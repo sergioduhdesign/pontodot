@@ -75,3 +75,11 @@ Options -Indexes
   AddOutputFilterByType DEFLATE application/javascript application/json
   AddOutputFilterByType DEFLATE image/svg+xml
 </IfModule>
+
+# --- Página HTML nunca fica presa no cache do navegador ---------------
+# O robô publica e todo mundo vê na próxima aberta, sem Ctrl+Shift+R.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

@@ -106,13 +106,25 @@ try {
             if (!in_array($tipo, ['vida', 'nascimento', 'avatar', 'capa'], true)) continue;
             $id = preg_replace('/[^A-Za-z0-9_\-]/', '', (string)($f['id'] ?? ''));
             $em = strtotime((string)($f['modified'] ?? '')) ?: 0;
-            if ($id === '' || (isset($vivas[$quem][$tipo]) && $vivas[$quem][$tipo]['em'] >= $em)) continue;
+            if ($id === '') continue;
             $k = pdi_assina($id);
-            $vivas[$quem][$tipo] = ['src' => '/arte.php?i=' . $id . '&k=' . $k . '&w=1200',
+            $img = ['src' => '/arte.php?i=' . $id . '&k=' . $k . '&w=1200',
                 'src_m' => '/arte.php?i=' . $id . '&k=' . $k . '&w=600', 'em' => $em];
+            // o ÁLBUM enche: toda vida entra na história, a mais nova na frente
+            if ($tipo === 'vida') $vivas[$quem]['album'][] = $img;
+            if (!isset($vivas[$quem][$tipo]) || ($vivas[$quem][$tipo]['em'] ?? 0) < $em) $vivas[$quem][$tipo] = $img;
         }
-        foreach ($vivas as &$ts) foreach ($ts as &$v) unset($v['em']);
-        unset($ts, $v);
+        foreach ($vivas as &$ts) {
+            if (!empty($ts['album'])) {
+                usort($ts['album'], fn($a, $b) => $b['em'] <=> $a['em']);
+                $ts['album'] = array_slice($ts['album'], 0, 24);
+                foreach ($ts['album'] as &$ai) { $ai['semana'] = date('d/m', $ai['em'] ?: time()); unset($ai['em']); }
+                unset($ai);
+            }
+            foreach ($ts as $kk => &$v) if ($kk !== 'album') unset($v['em']);
+            unset($v);
+        }
+        unset($ts);
         @file_put_contents($arqCache, json_encode(['em' => time(), 'imagens' => [], 'personagens' => $vivas],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
         pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'drive', 'atualizado' => date('c'),
