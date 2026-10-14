@@ -206,6 +206,46 @@ function w_faxina() {
 // =====================================================================
 // 5) ZAP — a fila
 // =====================================================================
+
+/**
+ * Manda UMA mensagem pela Cloud API do WhatsApp.
+ * 1) texto livre — só a Meta aceita se a pessoa falou com o número nas últimas 24h;
+ * 2) se recusar por isso (erro 131047) e houver template configurado, manda o
+ *    template aprovado, com o texto inteiro no parâmetro {{1}}.
+ * Config (sd-config.php): SD_ZAP_TOKEN, SD_ZAP_PHONE_ID e, pro aviso que ABRE a
+ * conversa, SD_ZAP_TEMPLATE (nome) + SD_ZAP_TEMPLATE_LANG (padrão pt_BR).
+ * Template "hello_world" (o de teste da Meta) não tem parâmetro: vai sem.
+ */
+function pdZapEnviar($para, $texto) {
+    $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
+    $url  = $base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages';
+    $post = function ($corpo) use ($url) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN, 'Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode($corpo, JSON_UNESCAPED_UNICODE)]);
+        $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        return [$code, $raw];
+    };
+    [$code, $raw] = $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'text',
+        'text' => ['preview_url' => true, 'body' => mb_substr($texto, 0, 3900)]]);
+    $fechada = $code !== 200 && (strpos((string)$raw, '131047') !== false || stripos((string)$raw, 're-engagement') !== false);
+    if ($fechada && defined('SD_ZAP_TEMPLATE') && SD_ZAP_TEMPLATE) {
+        $lang = defined('SD_ZAP_TEMPLATE_LANG') && SD_ZAP_TEMPLATE_LANG ? SD_ZAP_TEMPLATE_LANG : 'pt_BR';
+        $tpl = ['name' => SD_ZAP_TEMPLATE, 'language' => ['code' => $lang]];
+        if (SD_ZAP_TEMPLATE !== 'hello_world') {
+            // parâmetro de template não pode ter quebra de linha nem sequência longa de espaços
+            $param = trim(preg_replace('/\s*[\r\n\t]+\s*/u', ' · ', $texto));
+            $param = preg_replace('/ {4,}/', '   ', $param);
+            $tpl['components'] = [['type' => 'body', 'parameters' => [['type' => 'text', 'text' => mb_substr($param, 0, 900)]]]];
+        } else {
+            $tpl['language'] = ['code' => 'en_US'];
+        }
+        [$code, $raw] = $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'template', 'template' => $tpl]);
+    }
+    return [$code, $raw];
+}
+
 function w_zap() {
     $r = sd_supabase('/rest/v1/pd_zap?status=eq.fila&select=*&order=criado_em.asc&limit=10');
     if ($r['code'] >= 300) return ['enviados' => 0, 'sem_tabela' => true];
@@ -222,13 +262,7 @@ function w_zap() {
             $manuais++;
             continue;
         }
-        $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
-        $ch = curl_init($base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages');
-        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN, 'Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => json_encode(['messaging_product' => 'whatsapp', 'to' => preg_replace('/\D/', '', (string)$z['para']),
-                'type' => 'text', 'text' => ['preview_url' => true, 'body' => mb_substr($texto, 0, 3900)]])]);
-        $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        [$code, $raw] = pdZapEnviar(preg_replace('/\D/', '', (string)$z['para']), $texto);
         if ($code === 200) {
             sd_supabase('/rest/v1/pd_zap?id=eq.' . (int)$z['id'], 'PATCH', ['status' => 'enviado', 'enviado_em' => date('c')]);
             if (!empty($z['task_id'])) pdEvento($z['task_id'], 'zap', 'Zap enviado', ($z['quem'] ?: $z['para']) . ': ' . mb_substr($z['corpo'], 0, 120), 'Robô', 'robo');
