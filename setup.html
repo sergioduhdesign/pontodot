@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Studio Design — Criar acesso</title>
+<link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --border: #222;
+    --text: #f5f5f5;
+    --text2: #999;
+    --accent: #f5f5f5;
+    --danger: #dc2626;
+    --radius: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .logo-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .logo-wrap img {
+    height: 22px;
+    width: auto;
+    object-fit: contain;
+    object-position: left;
+    filter: invert(1);
+    opacity: 0.9;
+  }
+
+  .logo-wrap span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .card-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .card-header p {
+    font-size: 13.5px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .fields {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+
+  .field input:focus {
+    border-color: #444;
+  }
+
+  .error-msg {
+    font-size: 13px;
+    color: var(--danger);
+    display: none;
+    padding: 10px 12px;
+    background: rgba(220,38,38,0.08);
+    border: 1px solid rgba(220,38,38,0.2);
+    border-radius: 8px;
+    line-height: 1.4;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--text);
+    color: #0a0a0a;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    font-family: inherit;
+  }
+
+  .btn:hover { opacity: 0.88; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: #333;
+    margin-top: 32px;
+  }
+
+  /* Estado de sucesso */
+  .success-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  .success-icon {
+    width: 52px;
+    height: 52px;
+    background: rgba(22,163,74,0.12);
+    border: 1px solid rgba(22,163,74,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .success-state h2 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .success-state p {
+    font-size: 13.5px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  /* Estado de erro de link */
+  .link-error-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  .link-error-icon {
+    width: 52px;
+    height: 52px;
+    background: rgba(220,38,38,0.1);
+    border: 1px solid rgba(220,38,38,0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .link-error-state h2 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .link-error-state p {
+    font-size: 13.5px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(0,0,0,0.15);
+    border-top-color: #0a0a0a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="logo-wrap">
+    <img src="assets/logo-studio-design.svg" alt="Studio Design">
+    <span>workflow</span>
+  </div>
+
+  <!-- Formulário de senha -->
+  <div id="form-state">
+    <div class="card-header" style="margin-bottom:20px">
+      <h1>Criar sua senha</h1>
+      <p>Escolha uma senha para acessar a plataforma. Você poderá alterá-la depois no seu perfil.</p>
+    </div>
+
+    <div class="fields">
+      <div class="field">
+        <label>Nova senha</label>
+        <input type="password" id="pw" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Confirmar senha</label>
+        <input type="password" id="pw2" placeholder="Repita a senha" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')salvar()">
+      </div>
+      <div class="error-msg" id="err"></div>
+      <button class="btn" id="btn" onclick="salvar()">Criar senha e entrar</button>
+    </div>
+  </div>
+
+  <!-- Sucesso -->
+  <div class="success-state" id="success-state">
+    <div class="success-icon">✓</div>
+    <h2>Tudo certo!</h2>
+    <p>Sua senha foi criada. Redirecionando para a plataforma...</p>
+  </div>
+
+  <!-- Link inválido/expirado -->
+  <div class="link-error-state" id="error-state">
+    <div class="link-error-icon">✕</div>
+    <h2>Link inválido</h2>
+    <p>Este link de acesso expirou ou já foi utilizado. Peça um novo link ao administrador da plataforma.</p>
+  </div>
+</div>
+
+<div class="footer">© 2026 SD Agência · <a href="https://sergioduh.com" target="_blank" rel="noopener" style="color:#444;text-decoration:none">sergioduh.com</a></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+  const hash = window.location.hash;
+
+  // Link com erro (expirado, inválido)
+  if (hash.includes('error=access_denied') || hash.includes('otp_expired') || hash.includes('error=')) {
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'flex';
+  }
+
+  // Sem token nenhum — redireciona para login
+  if (!hash.includes('type=invite') && !hash.includes('type=recovery') && !hash.includes('error=')) {
+    window.location.href = '/index.html';
+  }
+
+  async function salvar() {
+    const pw = document.getElementById('pw').value;
+    const pw2 = document.getElementById('pw2').value;
+    const err = document.getElementById('err');
+    const btn = document.getElementById('btn');
+
+    err.style.display = 'none';
+
+    if (pw.length < 8) {
+      err.textContent = 'A senha deve ter pelo menos 8 caracteres.';
+      err.style.display = 'block';
+      return;
+    }
+    if (pw !== pw2) {
+      err.textContent = 'As senhas não coincidem.';
+      err.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Salvando...';
+
+    const { error } = await sb.auth.updateUser({ password: pw });
+
+    if (error) {
+      err.textContent = 'Erro ao salvar: ' + error.message;
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Criar senha e entrar';
+      return;
+    }
+
+    // Sucesso
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('success-state').style.display = 'flex';
+    window.history.replaceState(null, '', window.location.pathname);
+
+    setTimeout(() => {
+      window.location.href = '/app.html';
+    }, 2000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# Publica o Pontodot no HostGator.
+# Dispara em todo push na main (e na mão, pela aba Actions).
+# Nunca apaga o que só existe no servidor (sd-private, pub-midia, caches):
+# o robô só mexe no que ele mesmo subiu.
+name: Publicar no HostGator
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Enviar por FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_DIR }}
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            README.md
+            LEIAME.txt

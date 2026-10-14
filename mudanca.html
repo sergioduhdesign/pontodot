@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mudança das aprovações — SD</title>
+<style>
+:root{--br:rgba(255,255,255,.92);--br2:rgba(255,255,255,.6);--br3:rgba(255,255,255,.36);
+  --linha:rgba(255,255,255,.22);--verde:#16A34A;--laranja:#D97706;--vermelho:#DC2626}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0B0C0B;color:var(--br);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;font-weight:400}
+.tela{max-width:720px;margin:0 auto;padding:36px 20px 80px}
+h1{font-size:30px;font-weight:400;letter-spacing:-.015em;margin:0 0 6px}
+.sub{color:var(--br2);font-size:13.5px;margin:0 0 28px}
+.cx{border:.5px solid var(--linha);border-radius:18px;padding:20px 18px;margin-bottom:14px;
+  background:rgba(255,255,255,.035)}
+.cx h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--br2);
+  font-weight:400;margin:0 0 14px}
+.num{font-size:40px;font-weight:400;letter-spacing:-.02em;line-height:1}
+.num small{font-size:13px;font-weight:400;color:var(--br2);letter-spacing:0;margin-left:7px}
+.b{display:inline-flex;align-items:center;gap:8px;border:.5px solid var(--linha);background:rgba(255,255,255,.07);
+  color:var(--br);border-radius:999px;padding:12px 22px;font-size:13.5px;font-weight:400;cursor:pointer;
+  min-height:46px;transition:transform .12s,opacity .2s}
+.b:active{transform:scale(.97)}
+.b[disabled]{opacity:.35;cursor:default}
+.b.vai{background:var(--verde);border-color:transparent;color:#fff;font-weight:500}
+.b.perigo{background:var(--vermelho);border-color:transparent;color:#fff;font-weight:500}
+.barra{height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;margin:14px 0 10px}
+.barra i{display:block;height:100%;background:var(--verde);width:0;transition:width .4s ease}
+.log{font:11.5px/1.7 ui-monospace,Menlo,monospace;white-space:pre-wrap;color:var(--br2);
+  max-height:260px;overflow-y:auto;margin-top:14px;padding-top:12px;border-top:.5px solid var(--linha)}
+.linha{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:.5px solid rgba(255,255,255,.09);font-size:13px}
+.linha:first-of-type{border-top:none}
+.linha b{font-weight:500}
+.aviso{font-size:12.5px;line-height:1.55;padding:12px 14px;border-radius:12px;margin:14px 0 0;
+  background:color-mix(in srgb,var(--laranja) 15%,transparent);
+  border:.5px solid color-mix(in srgb,var(--laranja) 42%,transparent)}
+.ok{background:color-mix(in srgb,var(--verde) 14%,transparent);border-color:color-mix(in srgb,var(--verde) 40%,transparent)}
+.passo{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.passo i{font-style:normal;width:22px;height:22px;flex:none;border-radius:50%;border:.5px solid var(--linha);
+  display:grid;place-items:center;font-size:11px;color:var(--br2)}
+.passo h2{margin:0}
+a{color:var(--br);text-decoration:underline;text-underline-offset:3px}
+</style>
+</head>
+<body>
+<div class="tela">
+  <h1>Mudança das aprovações</h1>
+  <p class="sub">As artes saem do Supabase e passam a morar no Drive da agência,
+     em <b>APROVAÇÕES / cliente / lote</b>. Nada é apagado antes de estar lá.</p>
+
+  <div class="cx">
+    <div class="passo"><i>1</i><h2>O que ainda está no Supabase</h2></div>
+    <div id="cont" class="num">—<small>conferindo…</small></div>
+    <div id="porCliente"></div>
+    <div style="margin-top:16px"><button class="b" id="bConta" onclick="contar()">Conferir de novo</button></div>
+  </div>
+
+  <div class="cx">
+    <div class="passo"><i>2</i><h2>Copiar pro Drive</h2></div>
+    <p style="margin:0;color:var(--br2);font-size:13px">Copia em levas pequenas e grava o endereço novo em cada
+       arte. O endereço antigo fica guardado — é o que permite voltar atrás.
+       <b>Nada sai do Supabase neste passo.</b></p>
+    <div class="barra"><i id="barra"></i></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="b vai" id="bMig" onclick="migrar(true)">Copiar tudo</button>
+      <button class="b" id="bUma" onclick="migrar(false)">Só uma leva</button>
+      <button class="b" id="bPara" onclick="parar=true" disabled>Parar</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="cx">
+    <div class="passo"><i>3</i><h2>Liberar o espaço</h2></div>
+    <p style="margin:0;color:var(--br2);font-size:13px">Só depois que o passo 2 terminar e você tiver <b>aberto a tela de
+       aprovação e visto as artes aparecendo</b>. Cada arquivo é conferido no Drive
+       (existe? tem tamanho?) no segundo antes de sair do Supabase.</p>
+    <div class="aviso" id="avisoLimpar">Confira umas aprovações antigas na tela do cliente antes de apagar.
+       Depois de apagado, só o Drive tem a arte.</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:14px">
+      <button class="b perigo" id="bLimpa" onclick="limpar()">Apagar do Supabase o que já está no Drive</button>
+    </div>
+    <div class="log" id="log2"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co';
+const SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+let sb=null, total=0, parar=false;
+
+const $=s=>document.querySelector(s);
+const diz=(el,t)=>{ const l=$(el); l.textContent=(l.textContent?l.textContent+'\n':'')+t; l.scrollTop=l.scrollHeight; };
+
+async function fala(acao,dados){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) throw new Error('Sua sessão expirou. Entre no SD de novo.');
+  const r=await fetch('/aprovacoes-drive.php',{method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+    body:JSON.stringify(Object.assign({acao},dados||{}))});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok) throw new Error(j.error||j.erro||('servidor respondeu '+r.status));
+  return j;
+}
+
+async function contar(){
+  $('#bConta').disabled=true;
+  try{
+    const j=await fala('contar');
+    total=Math.max(total,j.arquivos);
+    $('#cont').innerHTML = j.arquivos
+      ? `${j.arquivos}<small>arte${j.arquivos>1?'s':''} ainda no Supabase · ${j.itens} aprovações</small>`
+      : `0<small>tudo no Drive 🎉</small>`;
+    $('#porCliente').innerHTML = Object.entries(j.por_cliente||{}).slice(0,12)
+      .map(([c,n])=>`<div class="linha"><span>${c}</span><b>${n}</b></div>`).join('');
+    pintarBarra(j.arquivos);
+  }catch(e){ $('#cont').innerHTML=`—<small style="color:var(--laranja)">${e.message}</small>`; }
+  $('#bConta').disabled=false;
+}
+
+function pintarBarra(faltam){
+  if(!total) return;
+  $('#barra').style.width = Math.round(100*(total-faltam)/total)+'%';
+}
+
+async function migrar(ateOFim){
+  parar=false;
+  ['bMig','bUma','bConta','bLimpa'].forEach(x=>$('#'+x).disabled=true);
+  $('#bPara').disabled=false;
+  let movidos=0, mb=0;
+  try{
+    do{
+      const j=await fala('migrar',{quantos:15});
+      movidos+=j.migrados; mb+=j.mb||0;
+      diz('#log', `leva: ${j.migrados} copiadas · faltam ${j.faltam}` + (j.mb?` · ${j.mb} MB`:''));
+      (j.erros||[]).forEach(e=>diz('#log','   ⚠ '+e));
+      pintarBarra(j.faltam);
+      if(j.acabou){ diz('#log', `\nPRONTO. ${movidos} artes no Drive, ${mb.toFixed(1)} MB fora do Supabase.`);
+        diz('#log','Agora abra uma aprovação antiga e veja se as artes aparecem. Só depois use o passo 3.'); break; }
+      if(!j.migrados && !j.erros?.length){ diz('#log','Parou sem progresso — confira os erros acima.'); break; }
+    } while(ateOFim && !parar);
+    if(parar) diz('#log','— parado por você —');
+  }catch(e){ diz('#log','✗ '+e.message); }
+  ['bMig','bUma','bConta','bLimpa'].forEach(x=>$('#'+x).disabled=false);
+  $('#bPara').disabled=true;
+  contar();
+}
+
+async function limpar(){
+  if(!confirm('Apagar do Supabase as artes que já estão no Drive?\n\nCada arquivo é conferido no Drive antes.\nMesmo assim: isso não tem desfazer.')) return;
+  $('#bLimpa').disabled=true;
+  let n=0;
+  try{
+    while(true){
+      const j=await fala('limpar',{quantos:50});
+      n+=j.apagados;
+      diz('#log2', `${j.apagados} apagadas do Supabase` + (j.nada?` · ${j.nada}`:''));
+      (j.pulados||[]).forEach(p=>diz('#log2','   ⚠ pulei '+p));
+      if(j.acabou||!j.apagados) break;
+    }
+    diz('#log2', `\nFIM. ${n} arquivos saíram do Supabase.`);
+    $('#avisoLimpar').className='aviso ok';
+    $('#avisoLimpar').textContent=`${n} arquivos liberados. Confira o espaço no painel do Supabase.`;
+  }catch(e){ diz('#log2','✗ '+e.message); }
+  $('#bLimpa').disabled=false;
+  contar();
+}
+
+(async()=>{
+  if(!window.supabase){ $('#cont').innerHTML='—<small>não carreguei a biblioteca do Supabase</small>'; return; }
+  sb=window.supabase.createClient(SB_URL,SB_KEY);
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){ document.querySelector('.tela').innerHTML=
+    '<h1>Entre primeiro</h1><p class="sub">Abra o <a href="/index.html">SD</a>, faça login, e volte nesta página.</p>'; return; }
+  contar();
+})();
+</script>
+</body>
+</html>

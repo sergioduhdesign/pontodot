@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>SD Workflow Design</title>
+<link rel="stylesheet" href="css/main.css">
+<link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
+</head>
+<body>
+<script>
+  const _t=localStorage.getItem('sd_theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  document.documentElement.setAttribute('data-theme',_t);
+</script>
+
+<!-- ================================================================
+     SD WORKFLOW DESIGN — módulo separado do gestor de tarefas (app.html).
+     Mesmo Supabase/login, mas app próprio: fica isolado (não carrega o
+     editor de peças dentro do gestor) e pode ser ligado/desligado inteiro
+     pelo admin em app.html → Admin → Módulos (tabela app_settings).
+     Etapa 1 (atual): base/infra — kit de marca por cliente (paleta,
+     tipografia, formatos/grids padrão). Os próximos módulos (redes
+     sociais, campanha, papelaria, books/apresentações) vão se apoiar
+     nessa base.
+     ================================================================ -->
+<div class="app-shell" id="app" style="display:none">
+  <div class="header">
+    <div class="logo-group" onclick="window.location.href='app.html'" style="cursor:pointer">
+      <div id="logo-square-mask" title="Studio Design"></div>
+    </div>
+    <div style="margin-left:12px;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">SD Workflow Design</div>
+      <div style="font-size:11px;color:var(--text3)">Base de marca · peças · papelaria</div>
+    </div>
+    <div class="header-right">
+      <a href="app.html" class="btn btn-secondary btn-sm" style="text-decoration:none">← Voltar ao Workflow</a>
+      <button class="theme-btn" id="theme-btn" onclick="Theme.toggle()">◑</button>
+      <button class="btn btn-secondary btn-sm" onclick="Auth.signOut()">Sair</button>
+    </div>
+  </div>
+
+  <!-- Módulo desativado — mostrado pra todo mundo (inclusive admin) quando
+       o toggle em app.html → Admin → Módulos está desligado. Ligar de novo
+       só é possível por lá, não daqui. -->
+  <div id="design-disabled" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:40px;text-align:center">
+    <div style="font-size:34px">🚧</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text)">Módulo desativado</div>
+    <div style="font-size:13px;color:var(--text3);max-width:360px;line-height:1.5">O SD Workflow Design está desligado no momento. Um admin pode reativar em Workflow → Admin → Módulos.</div>
+    <a href="app.html" class="btn btn-primary" style="text-decoration:none;margin-top:6px">Voltar ao Workflow</a>
+  </div>
+
+  <div class="main-body" id="design-body">
+    <div class="main-content">
+      <div class="view-panel active" id="view-design"><div class="client-scroll" id="design-content"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Kit de Marca — etapa 1 (base/infra) -->
+<div class="overlay" id="modal-brandkit">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-head"><div><div class="modal-title">Kit de Marca</div><div class="modal-subtitle" id="bk-client-name"></div></div><button class="modal-close" onclick="closeModal('modal-brandkit')">✕</button></div>
+    <div class="modal-body">
+
+      <div class="field" style="margin-bottom:22px">
+        <div class="field-label">Esquema de cores</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:8px;line-height:1.5">Defina pelo menos 4 cores (ex: Primária, Secundária, Apoio, Neutra) — sempre pelo código hexadecimal exato.</div>
+        <div id="bk-colors" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+        <div id="bk-color-add-wrap" style="display:none;gap:8px;align-items:center">
+          <input type="color" id="bk-color-picker" value="#2563eb" oninput="document.getElementById('bk-color-hex').value=this.value.toUpperCase()" style="width:38px;height:34px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;flex-shrink:0">
+          <input class="field-input" id="bk-color-hex" placeholder="#2563EB" maxlength="7" oninput="syncBkColorPicker(this.value)" style="width:100px;font-family:monospace;text-transform:uppercase;flex-shrink:0">
+          <input class="field-input" id="bk-color-name" placeholder="Nome (ex: Primária)" style="flex:1">
+          <button class="btn btn-secondary btn-sm" onclick="addBrandColor()">+ Adicionar</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:22px">
+        <div class="field-label">Tipografia</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:8px;line-height:1.5">Suba quantos arquivos de fonte precisar de uma vez (títulos, texto corrido, variações de peso).</div>
+        <div id="bk-fonts" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+        <div id="bk-font-add-wrap" style="display:none">
+          <input class="field-input" id="bk-font-name" placeholder="Uso (opcional — ex: Título). Sem isso, usa o nome do arquivo" style="margin-bottom:8px">
+          <input type="file" id="bk-font-file" multiple accept=".ttf,.otf,.woff,.woff2,.eot,.ttc,.svg,.fon,.pfb,.pfm,font/ttf,font/otf,font/woff,font/woff2,application/font-woff,application/font-woff2,application/x-font-ttf,application/x-font-otf" onchange="uploadBrandFont(this)">
+          <div id="bk-font-status" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:22px">
+        <div class="field-label">Logotipos</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:8px;line-height:1.5">Recomendado subir em <b>SVG</b> — permite recolorir o logo depois, conforme a peça (mesma técnica usada no logo do sistema).</div>
+        <div id="bk-logos" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Elementos de design</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:8px;line-height:1.5">Bordas, filtros e patterns/texturas de fundo — pra reaproveitar depois na montagem das peças.</div>
+        <div id="bk-elements" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+        <div id="bk-element-add-wrap" style="display:none">
+          <input class="field-input" id="bk-element-name" placeholder="Nome (opcional — ex: Borda dourada). Sem isso, usa o nome do arquivo" style="margin-bottom:8px">
+          <input type="file" id="bk-element-file" multiple accept=".svg,.png,.jpg,.jpeg,.webp,.ai,.eps,.pdf" onchange="uploadBrandElements(this)">
+          <div id="bk-element-status" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-foot"><button class="btn btn-secondary" onclick="closeModal('modal-brandkit')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- Wizard de peça modelo — etapa 2 (redes sociais + campanha). Define a
+     "receita" visual (tipo, quadros, abordagem, tom, tipografia, fundo)
+     com preview ao vivo; a produção em fornada (próxima etapa) aplica
+     essa receita em cima de um volume de textos/imagens. -->
+<div class="overlay" id="modal-piece-wizard">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nova peça modelo</div>
+        <div class="modal-subtitle" id="pw-client-name"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-piece-wizard')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="pw-ai-box" style="border:1px dashed var(--border);border-radius:10px;padding:12px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:700">✦ Gerar com IA</span>
+          <span style="font-size:11px;color:var(--text3)">— descreva a peça e a IA pré-preenche os passos (você revisa e ajusta tudo depois)</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <textarea id="pw-ai-brief" class="field-input" rows="2" style="flex:1;resize:vertical" placeholder="Ex: carrossel de lançamento, tom comercial, planta de 2 quartos, público jovem casal"></textarea>
+          <button class="btn btn-secondary btn-sm" id="pw-ai-btn" onclick="pwGenerateWithAI()" style="flex-shrink:0">Gerar</button>
+        </div>
+        <div id="pw-ai-status" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+      </div>
+      <div id="pw-steps-nav" style="display:flex;gap:4px;margin-bottom:18px"></div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div id="pw-controls" style="flex:1;min-width:300px"></div>
+        <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">Preview</div>
+          <canvas id="pw-canvas" width="240" height="240" style="border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow)"></canvas>
+          <div id="pw-frame-nav" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot" style="display:flex;justify-content:space-between">
+      <button class="btn btn-secondary" id="pw-back-btn" onclick="pwGoStep(-1)">← Voltar</button>
+      <button class="btn btn-primary" id="pw-next-btn" onclick="pwGoStep(1)">Avançar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fornada — produção em lote a partir de uma peça modelo já aprovada.
+     Define quantidade, origem das imagens e o volume de textos (planilha
+     ou, no futuro, IA), depois gera N peças aplicando a mesma receita. -->
+<div class="overlay" id="modal-batch">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-head">
+      <div><div class="modal-title">Criar material de trabalho (fornada)</div><div class="modal-subtitle" id="pb-client-name"></div></div>
+      <button class="modal-close" onclick="closeModal('modal-batch')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:18px">
+        <div class="field-label">Nome da fornada</div>
+        <input class="field-input" id="pb-name" placeholder="Ex: Lançamento Julho — Carrossel">
+      </div>
+      <div class="field" style="margin-bottom:18px">
+        <div class="field-label">Origem das imagens</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" id="pb-src-upload" onclick="pbSetImageSource('upload')" style="flex:1">Upload próprio</button>
+          <button class="btn btn-secondary" id="pb-src-banco" onclick="pbSetImageSource('banco')" style="flex:1">Banco de imagens</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">"Banco de imagens" = automático — preenche a coluna de palavras-chave no Excel (ex: "casal jovem, praia, crianças") e o sistema já busca e encaixa a imagem certa em cada peça sozinho (primeiro na sua biblioteca própria, depois no Unsplash). "Upload próprio" deixa em branco pra você trocar manualmente depois, na galeria de produções.</div>
+      </div>
+      <div class="field" style="margin-bottom:18px">
+        <div class="field-label">Textos em volume</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:8px;line-height:1.5">Baixe o modelo, preencha uma linha por peça (título / texto menor / texto maior tipo bloco / texto de finalização / legenda) e suba de volta.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="pbDownloadTemplate()">⬇ Baixar modelo Excel</button>
+          <input type="file" accept=".xlsx,.xls" id="pb-excel-file" onchange="pbParseExcel(this)">
+        </div>
+        <div id="pb-excel-status" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+        <div id="pb-excel-preview" style="margin-top:10px;max-height:180px;overflow:auto"></div>
+      </div>
+    </div>
+    <div class="modal-foot" style="display:flex;justify-content:flex-end">
+      <button class="btn btn-primary" id="pb-generate-btn" onclick="pbGenerate()" disabled>Gerar peças →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Board de revisão — todas as peças geradas numa fornada, com edição e
+     aprovação peça a peça. -->
+<div class="overlay" id="modal-board">
+  <div class="modal" style="max-width:960px">
+    <div class="modal-head">
+      <div><div class="modal-title">Revisão da fornada</div><div class="modal-subtitle" id="board-batch-name"></div></div>
+      <button class="modal-close" onclick="closeModal('modal-board')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:65vh;overflow:auto">
+      <div id="board-pieces" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edição pontual de uma peça dentro da fornada -->
+<div class="overlay" id="modal-piece-edit">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div class="modal-title">Editar peça</div>
+      <button class="modal-close" onclick="closeModal('modal-piece-edit')">✕</button>
+    </div>
+    <div class="modal-body" id="pe-fields"></div>
+    <div class="modal-foot" style="display:flex;justify-content:space-between">
+      <button class="btn btn-secondary" onclick="closeModal('modal-piece-edit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="pieceEditSave()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Galeria de produção — tudo que já foi gerado pra um cliente, em modo
+     visualização (miniaturas prontas), com botão de editar por peça que
+     leva pro editor grande. É o "ponto de chegada" depois de gerar uma
+     fornada, e também dá pra voltar aqui depois a qualquer momento. -->
+<div class="overlay" id="modal-gallery">
+  <div class="modal" style="max-width:1040px">
+    <div class="modal-head">
+      <div class="modal-title">Produções</div>
+      <button class="modal-close" onclick="closeModal('modal-gallery')">✕</button>
+    </div>
+    <div class="modal-body" id="gallery-content" style="max-height:75vh;overflow:auto"></div>
+  </div>
+</div>
+
+<!-- Editor grande — tela cheia, canvas Fabric.js editável de verdade:
+     adicionar texto/imagem, escolher fonte/tamanho/cor, mover camadas pra
+     frente/trás, e escolher o tamanho do arquivo. Ponto de partida pra
+     ajuste fino de qualquer peça gerada em volume. -->
+<div class="overlay" id="modal-big-editor" style="z-index:9500">
+  <div class="modal" style="max-width:none;width:100vw;height:100vh;border-radius:0;display:flex;flex-direction:column">
+    <div class="modal-head" style="flex-shrink:0">
+      <div class="modal-title">Editor</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="big-editor-size" class="field-input" onchange="bigEditorChangeSize(this.value)" style="font-size:12px;padding:6px 8px">
+          <option value="1080x1080">Quadrado (1080x1080)</option>
+          <option value="1080x1350">Feed retrato (1080x1350)</option>
+          <option value="1080x1920">Stories (1080x1920)</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="saveBigEditor()">💾 Salvar</button>
+        <button class="modal-close" onclick="closeModal('modal-big-editor')">✕</button>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;overflow:hidden">
+      <div style="width:76px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 6px;overflow-y:auto">
+        <button class="btn btn-secondary btn-sm" title="Adicionar texto" onclick="bigEditorAddText()" style="width:100%">🔤</button>
+        <button class="btn btn-secondary btn-sm" title="Adicionar imagem" onclick="bigEditorAddImage()" style="width:100%">🖼️</button>
+        <div style="width:100%;border-top:1px solid var(--border);margin:4px 0"></div>
+        <button class="btn btn-secondary btn-sm" title="Trazer pra frente" onclick="bigEditorLayer('front')" style="width:100%">⬆⬆</button>
+        <button class="btn btn-secondary btn-sm" title="Avançar uma camada" onclick="bigEditorLayer('forward')" style="width:100%">⬆</button>
+        <button class="btn btn-secondary btn-sm" title="Recuar uma camada" onclick="bigEditorLayer('backward')" style="width:100%">⬇</button>
+        <button class="btn btn-secondary btn-sm" title="Mandar pro fundo" onclick="bigEditorLayer('back')" style="width:100%">⬇⬇</button>
+        <div style="width:100%;border-top:1px solid var(--border);margin:4px 0"></div>
+        <button class="btn btn-secondary btn-sm" title="Excluir objeto" onclick="bigEditorDelete()" style="width:100%;color:#dc2626">🗑</button>
+      </div>
+      <div id="big-editor-canvas-wrap" style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);overflow:auto">
+        <canvas id="big-editor-canvas"></canvas>
+      </div>
+      <div style="width:220px;flex-shrink:0;border-left:1px solid var(--border);padding:14px;overflow-y:auto" id="big-editor-props">
+        <div style="font-size:11.5px;color:var(--text3)">Clique num objeto no canvas pra editar.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Biblioteca de mídia — picker compartilhado usado tanto no wizard (fundo
+     por quadro) quanto na edição de peça. Três origens: biblioteca própria
+     (geral da SD ou exclusiva do cliente, em pastas), Unsplash (busca ao
+     vivo) e upload direto do computador. -->
+<div class="overlay" id="modal-media-picker">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-head">
+      <div class="modal-title">Escolher imagem/vídeo</div>
+      <button class="modal-close" onclick="closeModal('modal-media-picker')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-primary" id="mp-tab-library" onclick="mpSetTab('library')" style="flex:1">📁 Biblioteca</button>
+        <button class="btn btn-secondary" id="mp-tab-unsplash" onclick="mpSetTab('unsplash')" style="flex:1">🔍 Unsplash</button>
+        <label class="btn btn-secondary" style="flex:1;text-align:center;cursor:pointer">⬆ Upload
+          <input type="file" accept="image/*,video/*" multiple id="mp-upload-input" onchange="mpUploadFiles(this)" style="display:none">
+        </label>
+      </div>
+
+      <div id="mp-panel-library">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" id="mp-scope-global" onclick="mpSetScope('global')" style="flex:1;min-width:140px">Biblioteca geral SD</button>
+          <button class="btn btn-sm" id="mp-scope-client" onclick="mpSetScope('client')" style="flex:1;min-width:140px">Biblioteca deste cliente</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;color:var(--text3)" id="mp-breadcrumb"></div>
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <input class="field-input" id="mp-new-folder" placeholder="Nome da nova pasta..." style="flex:1;font-size:12.5px">
+          <button class="btn btn-secondary btn-sm" onclick="mpCreateFolder()">+ Pasta</button>
+        </div>
+        <div id="mp-library-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:340px;overflow-y:auto"></div>
+      </div>
+
+      <div id="mp-panel-unsplash" style="display:none">
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <input class="field-input" id="mp-unsplash-query" placeholder="Ex: fachada moderna, apartamento, arquitetura..." style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();mpSearchUnsplash();}">
+          <button class="btn btn-primary btn-sm" onclick="mpSearchUnsplash()">Buscar</button>
+        </div>
+        <div id="mp-unsplash-status" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
+        <div id="mp-unsplash-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:340px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Agendamento em massa — contas conectadas (Instagram/Facebook) + upload
+     em lote de posts (legenda + mídia + data/hora) + fila/calendário do que
+     está agendado/publicado. A publicação de verdade só liga depois que o
+     app da Meta estiver aprovado — até lá, dá pra montar e organizar tudo,
+     e testar com contas de desenvolvedor/teste. -->
+<div class="overlay" id="modal-scheduling">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-head">
+      <div class="modal-title">Agendamento</div>
+      <button class="modal-close" onclick="closeModal('modal-scheduling')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:75vh;overflow:auto">
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-primary" id="sch-tab-accounts" onclick="schSetTab('accounts')" style="flex:1">Contas conectadas</button>
+        <button class="btn btn-secondary" id="sch-tab-upload" onclick="schSetTab('upload')" style="flex:1">Upload em lote</button>
+        <button class="btn btn-secondary" id="sch-tab-queue" onclick="schSetTab('queue')" style="flex:1">Fila / calendário</button>
+      </div>
+
+      <div id="sch-panel-accounts">
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.5">Cada rede social do cliente precisa ser conectada uma vez — depois disso fica salva e reaproveitada em toda publicação. Antes da aprovação final da Meta, dá pra conectar contas de teste/desenvolvedor.</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn btn-secondary" onclick="schConnectAccount('instagram')" style="flex:1">📷 Conectar Instagram</button>
+          <button class="btn btn-secondary" onclick="schConnectAccount('facebook')" style="flex:1">📘 Conectar Facebook</button>
+        </div>
+        <div id="sch-accounts-list"></div>
+      </div>
+
+      <div id="sch-panel-upload" style="display:none">
+        <div class="field" style="margin-bottom:14px">
+          <div class="field-label">Nome do lote</div>
+          <input class="field-input" id="sch-batch-name" placeholder="Ex: Julho — Feed semanal">
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <div class="field-label">Conta de destino</div>
+          <select class="field-input" id="sch-batch-account"></select>
+        </div>
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:8px;line-height:1.5">Baixe o modelo, preencha uma linha por post (legenda, tipo, nome do arquivo de mídia — precisa já estar subido na Biblioteca de mídia — e data/hora de publicação) e suba de volta.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn btn-secondary btn-sm" onclick="schDownloadTemplate()">⬇ Baixar modelo Excel</button>
+          <input type="file" accept=".xlsx,.xls" id="sch-excel-file" onchange="schParseExcel(this)">
+        </div>
+        <div id="sch-excel-status" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
+        <div id="sch-excel-preview" style="margin-bottom:14px;max-height:220px;overflow:auto"></div>
+        <button class="btn btn-primary" id="sch-generate-btn" onclick="schGenerate()" disabled>Agendar posts →</button>
+      </div>
+
+      <div id="sch-panel-queue" style="display:none">
+        <div id="sch-queue-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js?v=20260717c"></script>
+<script src="js/ui.js?v=20260722a"></script>
+<script src="js/auth.js?v=20260717c"></script>
+<script>
+let profile=null, clients=[], IS_CLIENT=false;
+let currentBrandKitClientId=null, currentBrandKit=null;
+
+// Mostra um erro legível na tela em vez de deixar a página em branco — se
+// algo falhar (migration não rodada, arquivo em pasta errada, etc.), dá
+// pra ver o motivo direto, sem precisar abrir o console.
+function fatalDesignError(msg){
+  document.getElementById('app').style.display='flex';
+  document.getElementById('design-body').style.display='none';
+  const el=document.getElementById('design-disabled');
+  el.style.display='flex';
+  el.innerHTML=`<div style="font-size:34px">⚠️</div><div style="font-size:16px;font-weight:700;color:var(--text)">Não deu pra carregar o módulo</div><div style="font-size:13px;color:var(--text3);max-width:420px;line-height:1.5">${msg}</div><a href="app.html" class="btn btn-primary" style="text-decoration:none;margin-top:6px">Voltar ao Workflow</a>`;
+}
+
+(async()=>{
+  try{
+    const auth=await Auth.requireAuth(['admin','team','client']);
+    if(!auth)return;
+    profile=auth.profile;
+    IS_CLIENT=profile.role==='client';
+    Theme.init();
+
+    // Checa o liga/desliga do módulo — se desativado, bloqueia geral (nem
+    // admin passa por aqui; religar só em app.html → Admin → Módulos).
+    const{data:settings,error:serr}=await sb.from('app_settings').select('design_module_enabled').eq('id',1).maybeSingle();
+    if(serr){
+      fatalDesignError(`Erro ao ler configuração do módulo: ${serr.message}. Provavelmente falta rodar o <b>migration_client_v7.sql</b> no Supabase (SQL Editor).`);
+      return;
+    }
+    document.getElementById('app').style.display='flex';
+    if(settings && settings.design_module_enabled===false){
+      document.getElementById('design-disabled').style.display='flex';
+      document.getElementById('design-body').style.display='none';
+      return;
+    }
+
+    if(IS_CLIENT){
+      // Cliente só tem o próprio cliente — cai direto no kit, só leitura.
+      document.getElementById('design-content').innerHTML='';
+      await openBrandKit(profile.client_id);
+    } else {
+      const{data:cdata,error:cerr}=await sb.from('clients').select('*').order('name');
+      if(cerr){document.getElementById('design-content').innerHTML=`<div style="padding:20px;color:#dc2626;font-size:13px">Erro ao carregar clientes: ${cerr.message}</div>`;return;}
+      clients=cdata||[];
+      renderDesignClientList();
+    }
+  }catch(e){
+    console.error(e);
+    fatalDesignError('Erro inesperado: '+(e?.message||e)+'. Abre o console do navegador (F12) pra ver o detalhe completo.');
+  }
+})();
+
+function renderDesignClientList(){
+  const wrap=document.getElementById('design-content');
+  const activeClients=clients.filter(c=>c.active!==false);
+  if(!activeClients.length){wrap.innerHTML='<div class="empty-state" style="padding:40px"><div class="empty-state-icon">○</div><div>Nenhum cliente ativo</div></div>';return;}
+  wrap.innerHTML=`<div style="padding:16px 18px;font-size:12px;color:var(--text3);line-height:1.5">Base de marca por cliente e criação de peças modelo. Clique num cliente pra configurar o kit de marca ou criar uma peça.</div>`+activeClients.map(c=>{
+    const initials=(c.name||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    return`<div class="client-group"><div class="client-group-head" style="cursor:default">
+      <div class="client-logo" style="background:${c.color||'#64748b'}">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover">`:initials}</div>
+      <div><div class="client-name">${c.name}</div><div class="client-meta">Kit de marca · peças</div></div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="openBrandKit('${c.id}')">Kit de marca →</button>
+        <button class="btn btn-secondary btn-sm" onclick="openProductionGallery('${c.id}')">📦 Produções</button>
+        <button class="btn btn-secondary btn-sm" onclick="openScheduling('${c.id}')">📅 Agendamento</button>
+        <button class="btn btn-primary btn-sm" onclick="openPieceWizard('${c.id}')">+ Peça modelo</button>
+      </div>
+    </div></div>`;
+  }).join('');
+}
+
+const LOGO_SLOTS=[
+  {key:'quadrado',label:'Logo quadrado'},
+  {key:'retangular',label:'Logo retangular'},
+  {key:'avatar',label:'Avatar'},
+  {key:'icone',label:'Ícone'}
+];
+
+// Busca o kit de marca de um cliente (sem depender do modal) — usado tanto
+// pelo modal-brandkit quanto pelo wizard de peça (que precisa das cores/
+// fontes/elementos já cadastrados como opções prontas).
+async function fetchBrandKit(clientId){
+  const{data,error}=await sb.from('brand_kits').select('*').eq('client_id',clientId).maybeSingle();
+  if(error)return{client_id:clientId,colors:[],fonts:[],logos:{},elements:[],_error:error.message};
+  const k=data||{client_id:clientId,colors:[],fonts:[],logos:{},elements:[]};
+  if(!k.logos)k.logos={};
+  if(!k.elements)k.elements=[];
+  if(!k.colors)k.colors=[];
+  if(!k.fonts)k.fonts=[];
+  return k;
+}
+
+async function openBrandKit(clientId){
+  let c=clients.find(x=>x.id===clientId);
+  if(!c){
+    const{data}=await sb.from('clients').select('*').eq('id',clientId).maybeSingle();
+    c=data;
+  }
+  if(!c)return;
+  currentBrandKitClientId=clientId;
+  const canEdit=!IS_CLIENT;
+  document.getElementById('bk-client-name').textContent=c.name;
+  document.getElementById('bk-color-add-wrap').style.display=canEdit?'flex':'none';
+  document.getElementById('bk-font-add-wrap').style.display=canEdit?'block':'none';
+  document.getElementById('bk-element-add-wrap').style.display=canEdit?'block':'none';
+  document.getElementById('bk-colors').innerHTML='<div style="font-size:13px;color:var(--text3)">Carregando...</div>';
+  document.getElementById('bk-fonts').innerHTML='';
+  document.getElementById('bk-logos').innerHTML='';
+  document.getElementById('bk-elements').innerHTML='';
+  openModal('modal-brandkit');
+  await loadBrandKit(clientId);
+}
+
+async function loadBrandKit(clientId){
+  currentBrandKit=await fetchBrandKit(clientId);
+  if(currentBrandKit._error){document.getElementById('bk-colors').innerHTML=`<div style="font-size:13px;color:#dc2626">Erro ao carregar: ${currentBrandKit._error}. Provavelmente falta rodar o migration_client_v6.sql (e v8) no Supabase.</div>`;return;}
+  renderBrandKit();
+}
+
+function syncBkColorPicker(hex){
+  hex=(hex||'').trim();
+  if(!hex.startsWith('#'))hex='#'+hex;
+  document.getElementById('bk-color-hex').value=hex.toUpperCase();
+  if(/^#[0-9a-fA-F]{6}$/.test(hex))document.getElementById('bk-color-picker').value=hex;
+}
+
+function renderBrandKit(){
+  const k=currentBrandKit||{colors:[],fonts:[],logos:{},elements:[]};
+  const canEdit=!IS_CLIENT;
+
+  const colorsEl=document.getElementById('bk-colors');
+  colorsEl.innerHTML=(k.colors||[]).map((col,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 10px 5px 5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px">
+    <span style="width:20px;height:20px;border-radius:50%;background:${col.hex};border:1px solid rgba(0,0,0,0.1);flex-shrink:0"></span>
+    <span style="font-size:12.5px;font-weight:600">${col.name||col.hex}</span>
+    <span style="font-size:11px;color:var(--text3);font-family:monospace">${col.hex}</span>
+    ${canEdit?`<button onclick="removeBrandColor(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>`:''}
+  </div>`).join('')||'<div style="font-size:13px;color:var(--text3)">Nenhuma cor cadastrada ainda — adicione pelo menos 4.</div>';
+  if(canEdit&&(k.colors||[]).length>0&&(k.colors||[]).length<4){
+    colorsEl.innerHTML+=`<div style="font-size:11.5px;color:#d97706;width:100%;margin-top:4px">Recomendado ter pelo menos 4 cores no esquema (tem ${k.colors.length} até agora).</div>`;
+  }
+
+  const fontsEl=document.getElementById('bk-fonts');
+  fontsEl.innerHTML=(k.fonts||[]).map((f,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+    <span style="font-size:18px;flex-shrink:0">🔤</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:600">${f.name}</div>
+      <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.file_name||''}</div>
+    </div>
+    <a href="${f.file_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Baixar ↓</a>
+    ${canEdit?`<button onclick="removeBrandFont(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>`:''}
+  </div>`).join('')||'<div style="font-size:13px;color:var(--text3)">Nenhuma fonte cadastrada ainda.</div>';
+
+  const logosEl=document.getElementById('bk-logos');
+  const logos=k.logos||{};
+  logosEl.innerHTML=LOGO_SLOTS.map(slot=>{
+    const l=logos[slot.key];
+    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+      <div style="width:36px;height:36px;border-radius:6px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${l?`<img src="${l.file_url}" style="width:100%;height:100%;object-fit:contain">`:'<span style="font-size:16px;opacity:0.35">▢</span>'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${slot.label}</div>
+        <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l?l.file_name:'Nenhum arquivo ainda'}</div>
+      </div>
+      ${l?`<a href="${l.file_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Baixar ↓</a>`:''}
+      ${canEdit?`<label class="btn btn-secondary btn-sm" style="cursor:pointer;flex-shrink:0;margin:0">${l?'Trocar':'Subir'}<input type="file" accept=".svg,.png,.jpg,.jpeg,.webp" style="display:none" onchange="uploadBrandLogo('${slot.key}',this)"></label>`:''}
+      ${canEdit&&l?`<button onclick="removeBrandLogo('${slot.key}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>`:''}
+    </div>`;
+  }).join('');
+
+  const elementsEl=document.getElementById('bk-elements');
+  elementsEl.innerHTML=(k.elements||[]).map((el,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+    <div style="width:32px;height:32px;border-radius:6px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${/\.(png|jpe?g|webp|svg)$/i.test(el.file_name||'')?`<img src="${el.file_url}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:15px">🎨</span>'}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:600">${el.name}</div>
+      <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${el.file_name||''}</div>
+    </div>
+    <a href="${el.file_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Baixar ↓</a>
+    ${canEdit?`<button onclick="removeBrandElement(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>`:''}
+  </div>`).join('')||'<div style="font-size:13px;color:var(--text3)">Nenhum elemento cadastrado ainda.</div>';
+}
+
+async function saveBrandKit(){
+  if(!currentBrandKitClientId||!currentBrandKit)return;
+  const payload={
+    client_id:currentBrandKitClientId,
+    colors:currentBrandKit.colors||[],
+    fonts:currentBrandKit.fonts||[],
+    logos:currentBrandKit.logos||{},
+    elements:currentBrandKit.elements||[],
+    updated_at:new Date().toISOString(),
+    updated_by:profile.id
+  };
+  const{data,error}=await sb.from('brand_kits').upsert(payload,{onConflict:'client_id'}).select().maybeSingle();
+  if(error){showToast('Erro ao salvar kit de marca: '+error.message,'error');return;}
+  currentBrandKit=data;
+}
+
+function addBrandColor(){
+  const hex=(document.getElementById('bk-color-hex').value||'').trim().toUpperCase();
+  const name=document.getElementById('bk-color-name').value.trim();
+  if(!/^#[0-9A-F]{6}$/.test(hex)){showToast('Código hexadecimal inválido — use o formato #2563EB.','warn');return;}
+  if(!currentBrandKit)return;
+  currentBrandKit.colors=[...(currentBrandKit.colors||[]),{hex,name}];
+  document.getElementById('bk-color-name').value='';
+  document.getElementById('bk-color-hex').value='';
+  renderBrandKit();
+  saveBrandKit();
+}
+function removeBrandColor(i){
+  if(!currentBrandKit)return;
+  currentBrandKit.colors=(currentBrandKit.colors||[]).filter((_,idx)=>idx!==i);
+  renderBrandKit();
+  saveBrandKit();
+}
+
+async function uploadBrandFont(input){
+  if(!input.files.length||!currentBrandKitClientId)return;
+  if(IS_CLIENT){showToast('Só a equipe pode gerenciar o kit de marca.','warn');return;}
+  const baseName=document.getElementById('bk-font-name').value.trim();
+  const files=Array.from(input.files);
+  const status=document.getElementById('bk-font-status');
+  const added=[];
+  for(let idx=0;idx<files.length;idx++){
+    const file=files[idx];
+    status.textContent=`Enviando ${idx+1}/${files.length}...`;
+    const fname=`fonts/${currentBrandKitClientId}/${Date.now()}_${idx}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const{error:ue}=await sb.storage.from('brand-assets').upload(fname,file);
+    if(ue){status.textContent='';showToast(`Erro ao enviar ${file.name}: `+ue.message,'error');continue;}
+    const{data:{publicUrl}}=sb.storage.from('brand-assets').getPublicUrl(fname);
+    const name=baseName?(files.length>1?`${baseName} (${idx+1})`:baseName):file.name.replace(/\.[^.]+$/,'');
+    added.push({name,file_url:publicUrl,file_name:file.name});
+  }
+  currentBrandKit.fonts=[...(currentBrandKit.fonts||[]),...added];
+  status.textContent='';
+  input.value='';
+  document.getElementById('bk-font-name').value='';
+  renderBrandKit();
+  await saveBrandKit();
+  if(added.length)showToast(added.length>1?`${added.length} fontes adicionadas!`:'Fonte adicionada!','success');
+}
+function removeBrandFont(i){
+  if(!currentBrandKit)return;
+  currentBrandKit.fonts=(currentBrandKit.fonts||[]).filter((_,idx)=>idx!==i);
+  renderBrandKit();
+  saveBrandKit();
+}
+
+async function uploadBrandLogo(slotKey,input){
+  if(!input.files[0]||!currentBrandKitClientId)return;
+  if(IS_CLIENT){showToast('Só a equipe pode gerenciar o kit de marca.','warn');return;}
+  const file=input.files[0];
+  showToast('Enviando logo...','info');
+  const fname=`logos/${currentBrandKitClientId}/${slotKey}-${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const{error:ue}=await sb.storage.from('brand-assets').upload(fname,file);
+  if(ue){showToast('Erro ao enviar: '+ue.message,'error');return;}
+  const{data:{publicUrl}}=sb.storage.from('brand-assets').getPublicUrl(fname);
+  if(!currentBrandKit.logos)currentBrandKit.logos={};
+  currentBrandKit.logos[slotKey]={file_url:publicUrl,file_name:file.name};
+  renderBrandKit();
+  await saveBrandKit();
+  showToast('Logo atualizado!','success');
+}
+function removeBrandLogo(slotKey){
+  if(!currentBrandKit||!currentBrandKit.logos)return;
+  delete currentBrandKit.logos[slotKey];
+  renderBrandKit();
+  saveBrandKit();
+}
+
+async function uploadBrandElements(input){
+  if(!input.files.length||!currentBrandKitClientId)return;
+  if(IS_CLIENT){showToast('Só a equipe pode gerenciar o kit de marca.','warn');return;}
+  const baseName=document.getElementById('bk-element-name').value.trim();
+  const files=Array.from(input.files);
+  const status=document.getElementById('bk-element-status');
+  const added=[];
+  for(let idx=0;idx<files.length;idx++){
+    const file=files[idx];
+    status.textContent=`Enviando ${idx+1}/${files.length}...`;
+    const fname=`elements/${currentBrandKitClientId}/${Date.now()}_${idx}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const{error:ue}=await sb.storage.from('brand-assets').upload(fname,file);
+    if(ue){status.textContent='';showToast(`Erro ao enviar ${file.name}: `+ue.message,'error');continue;}
+    const{data:{publicUrl}}=sb.storage.from('brand-assets').getPublicUrl(fname);
+    const name=baseName?(files.length>1?`${baseName} (${idx+1})`:baseName):file.name.replace(/\.[^.]+$/,'');
+    added.push({name,file_url:publicUrl,file_name:file.name});
+  }
+  currentBrandKit.elements=[...(currentBrandKit.elements||[]),...added];
+  status.textContent='';
+  input.value='';
+  document.getElementById('bk-element-name').value='';
+  renderBrandKit();
+  await saveBrandKit();
+  if(added.length)showToast(added.length>1?`${added.length} elementos adicionados!`:'Elemento adicionado!','success');
+}
+function removeBrandElement(i){
+  if(!currentBrandKit)return;
+  currentBrandKit.elements=(currentBrandKit.elements||[]).filter((_,idx)=>idx!==i);
+  renderBrandKit();
+  saveBrandKit();
+}
+
+// =====================================================================
+// Wizard de peça modelo (fase 1: define UMA peça/receita — carrossel etc)
+// =====================================================================
+const PW_STEPS=[
+  {key:'frames',label:'Quadros'},
+  {key:'approach',label:'Abordagem'},
+  {key:'tone',label:'Tom'},
+  {key:'typo',label:'Tipografia'},
+  {key:'bg',label:'Fundo'}
+];
+let pw=null; // estado do wizard atual
+let pwCanvas=null; // instância fabric.Canvas
+let pwLoadedFonts=new Set();
+
+async function openPieceWizard(clientId){
+  const client=clients.find(c=>c.id===clientId);
+  document.getElementById('pw-client-name').textContent=client?client.name:'';
+  document.getElementById('pw-ai-status').textContent='';
+  document.getElementById('pw-ai-brief').value='';
+  pw={
+    clientId,
+    step:1,
+    type:'carrossel',
+    frame_count:5,
+    approach:'institucional',
+    tone:'clara',
+    typography:{font_family:'system-ui',font_size:28,color:'#111111',line_height:1.2,letter_spacing:0,font_file_url:null},
+    background:{mode:'color',value:'#f4f4f4',element_url:null,images:[]},
+    currentFrame:1,
+    brandKit:null
+  };
+  openModal('modal-piece-wizard');
+  pw.brandKit=await fetchBrandKit(clientId);
+  if(!pw.brandKit){
+    showToast('Configure o kit de marca desse cliente antes de criar uma peça.','error');
+    closeModal('modal-piece-wizard');
+    return;
+  }
+  // se o fundo já tem uma cor de marca definida, começa com a primeira
+  if(pw.brandKit.colors?.length)pw.background.value=pw.brandKit.colors[0].hex;
+  renderWizardStep();
+}
+
+function pwGoStep(delta){
+  const next=pw.step+delta;
+  if(next<1){return;}
+  if(next>PW_STEPS.length){savePieceTemplate();return;}
+  pw.step=next;
+  renderWizardStep();
+}
+
+function renderWizardStep(){
+  // nav dos passos
+  const nav=document.getElementById('pw-steps-nav');
+  nav.innerHTML=PW_STEPS.map((s,i)=>{
+    const n=i+1,active=n===pw.step,done=n<pw.step;
+    return `<div style="flex:1;text-align:center;padding:6px 4px;border-radius:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:${active?'var(--accent)':done?'var(--border2)':'transparent'};color:${active?'#fff':'var(--text3)'}">${n}. ${s.label}</div>`;
+  }).join('');
+
+  document.getElementById('pw-back-btn').style.visibility=pw.step===1?'hidden':'visible';
+  document.getElementById('pw-next-btn').textContent=pw.step===PW_STEPS.length?'Salvar peça modelo →':'Avançar →';
+
+  const c=document.getElementById('pw-controls');
+  if(pw.step===1){
+    c.innerHTML=`<div class="field-label" style="margin-bottom:10px">Quantos quadros tem essa peça?</div>
+    <div style="display:flex;gap:8px">${[3,5,7].map(n=>`<button class="btn ${pw.frame_count===n?'btn-primary':'btn-secondary'}" onclick="pwSetFrames(${n})" style="flex:1">${n}</button>`).join('')}</div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:10px;line-height:1.5">Um carrossel costuma variar entre 3 (rápido), 5 (padrão) e 7 quadros (mais narrativo).</div>`;
+  }else if(pw.step===2){
+    c.innerHTML=`<div class="field-label" style="margin-bottom:10px">Abordagem</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn ${pw.approach==='comercial'?'btn-primary':'btn-secondary'}" onclick="pwSet('approach','comercial')" style="flex:1">Comercial</button>
+      <button class="btn ${pw.approach==='institucional'?'btn-primary':'btn-secondary'}" onclick="pwSet('approach','institucional')" style="flex:1">Institucional</button>
+    </div>`;
+  }else if(pw.step===3){
+    c.innerHTML=`<div class="field-label" style="margin-bottom:10px">Tom visual</div>
+    <div style="display:flex;gap:8px">
+      ${['clara','escura','mista'].map(t=>`<button class="btn ${pw.tone===t?'btn-primary':'btn-secondary'}" onclick="pwSet('tone','${t}')" style="flex:1;text-transform:capitalize">${t}</button>`).join('')}
+    </div>`;
+  }else if(pw.step===4){
+    const fontOptions=['system-ui','Georgia','Arial',...((pw.brandKit.fonts||[]).map(f=>f.name))];
+    c.innerHTML=`<div class="field-label" style="margin-bottom:10px">Tipografia</div>
+    <div class="field" style="margin-bottom:12px"><label style="font-size:11px;color:var(--text3)">Fonte</label>
+      <select class="field-input" id="pw-typo-font" onchange="pwTypoChange()">${fontOptions.map(f=>`<option value="${f}" ${pw.typography.font_family===f?'selected':''}>${f}</option>`).join('')}</select>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label style="font-size:11px;color:var(--text3)">Tamanho (${pw.typography.font_size}px)</label>
+      <input type="range" min="12" max="64" id="pw-typo-size" value="${pw.typography.font_size}" oninput="pwTypoChange()" style="width:100%"></div>
+    <div class="field" style="margin-bottom:12px"><label style="font-size:11px;color:var(--text3)">Cor do texto</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${(pw.brandKit.colors||[]).map(cl=>`<button onclick="pwSetTypoColor('${cl.hex}')" title="${cl.name||cl.hex}" style="width:26px;height:26px;border-radius:6px;border:2px solid ${pw.typography.color===cl.hex?'var(--accent)':'var(--border)'};background:${cl.hex}"></button>`).join('')}
+        <input type="color" value="${pw.typography.color}" oninput="pwSetTypoColor(this.value)" style="width:26px;height:26px;padding:0;border:none;background:none;cursor:pointer"></div></div>
+    <div class="field" style="margin-bottom:12px"><label style="font-size:11px;color:var(--text3)">Altura de linha (${pw.typography.line_height})</label>
+      <input type="range" min="0.9" max="2" step="0.05" id="pw-typo-lh" value="${pw.typography.line_height}" oninput="pwTypoChange()" style="width:100%"></div>
+    <div class="field"><label style="font-size:11px;color:var(--text3)">Espaço entre caracteres (${pw.typography.letter_spacing}px)</label>
+      <input type="range" min="-2" max="10" step="0.5" id="pw-typo-ls" value="${pw.typography.letter_spacing}" oninput="pwTypoChange()" style="width:100%"></div>`;
+  }else if(pw.step===5){
+    const modeBtn=(m,label)=>`<button class="btn ${pw.background.mode===m?'btn-primary':'btn-secondary'}" onclick="pwSetBgMode('${m}')" style="flex:1">${label}</button>`;
+    c.innerHTML=`<div class="field-label" style="margin-bottom:10px">Fundo</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">${modeBtn('color','Cor sólida')}${modeBtn('element','Elemento de design')}${modeBtn('image','Imagens próprias')}</div>
+    <div id="pw-bg-detail"></div>`;
+    renderBgDetail();
+  }
+  updatePreview();
+}
+
+function pwSetFrames(n){pw.frame_count=n;if(pw.currentFrame>n)pw.currentFrame=1;renderWizardStep();}
+function pwSet(field,value){pw[field]=value;renderWizardStep();}
+function pwTypoChange(){
+  pw.typography.font_family=document.getElementById('pw-typo-font').value;
+  pw.typography.font_size=Number(document.getElementById('pw-typo-size').value);
+  pw.typography.line_height=Number(document.getElementById('pw-typo-lh').value);
+  pw.typography.letter_spacing=Number(document.getElementById('pw-typo-ls').value);
+  renderWizardStep();
+}
+function pwSetTypoColor(hex){pw.typography.color=hex.toUpperCase();renderWizardStep();}
+
+function renderBgDetail(){
+  const d=document.getElementById('pw-bg-detail');
+  if(pw.background.mode==='color'){
+    d.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap">${(pw.brandKit.colors||[]).map(cl=>`<button onclick="pwSetBgValue('${cl.hex}')" title="${cl.name||cl.hex}" style="width:26px;height:26px;border-radius:6px;border:2px solid ${pw.background.value===cl.hex?'var(--accent)':'var(--border)'};background:${cl.hex}"></button>`).join('')}
+      <input type="color" value="${pw.background.value}" oninput="pwSetBgValue(this.value)" style="width:26px;height:26px;padding:0;border:none;background:none;cursor:pointer"></div>`;
+  }else if(pw.background.mode==='element'){
+    const els=pw.brandKit.elements||[];
+    d.innerHTML=els.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">${els.map((e,i)=>`<img src="${e.file_url}" title="${e.name}" onclick="pwSetBgElement(${i})" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:2px solid ${pw.background.element_url===e.file_url?'var(--accent)':'var(--border)'};cursor:pointer">`).join('')}</div>`:`<div style="font-size:11.5px;color:var(--text3)">Nenhum elemento de design cadastrado no kit de marca ainda.</div>`;
+  }else if(pw.background.mode==='image'){
+    const n=pw.frame_count;
+    d.innerHTML=`<div style="font-size:11.5px;color:var(--text3);margin-bottom:8px">Uma imagem por quadro (${n} no total):</div>
+    <div style="display:flex;flex-direction:column;gap:8px">${Array.from({length:n},(_,i)=>`
+      <div style="display:flex;gap:6px;align-items:center">
+        ${pw.background.images?.[i]?`<img src="${pw.background.images[i]}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0">`:''}
+        <input type="file" accept="image/*" class="field-input" onchange="pwSetBgImage(${i},this)" style="flex:1">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openMediaPicker(pw.clientId,f=>{pw.background.images=pw.background.images||[];pw.background.images[${i}]=f.file_url;updatePreview();renderBgDetail();})">📁 Biblioteca</button>
+      </div>`).join('')}</div>`;
+  }
+}
+function pwSetBgMode(m){pw.background.mode=m;renderWizardStep();}
+function pwSetBgValue(hex){pw.background.value=hex.toUpperCase();renderWizardStep();}
+function pwSetBgElement(i){pw.background.element_url=pw.brandKit.elements[i].file_url;updatePreview();}
+async function pwSetBgImage(i,input){
+  const file=input.files[0];if(!file)return;
+  const path=`piece-images/${pw.clientId}/${Date.now()}_${i}_${file.name}`;
+  const{error}=await sb.storage.from('brand-assets').upload(path,file,{upsert:true});
+  if(error){showToast('Erro ao subir imagem: '+error.message,'error');return;}
+  const{data:{publicUrl}}=sb.storage.from('brand-assets').getPublicUrl(path);
+  pw.background.images[i]=publicUrl;
+  updatePreview();
+}
+
+function pwGoFrame(n){pw.currentFrame=n;updatePreview();}
+
+async function updatePreview(){
+  const canvasEl=document.getElementById('pw-canvas');
+  if(!pwCanvas)pwCanvas=new fabric.Canvas(canvasEl,{selection:false});
+  pwCanvas.clear();
+  // fundo
+  if(pw.background.mode==='color'){
+    pwCanvas.setBackgroundColor(pw.background.value,()=>{});
+  }else{
+    const url=pw.background.mode==='element'?pw.background.element_url:pw.background.images?.[pw.currentFrame-1];
+    if(url){
+      fabric.Image.fromURL(url,img=>{
+        img.scaleToWidth(pwCanvas.width);img.scaleToHeight(pwCanvas.height);
+        pwCanvas.setBackgroundImage(img,()=>pwCanvas.renderAll());
+      },{crossOrigin:'anonymous'});
+    }else{
+      pwCanvas.setBackgroundColor('#e5e5e5',()=>{});
+    }
+  }
+  // fonte custom, se houver
+  const fontEntry=(pw.brandKit.fonts||[]).find(f=>f.name===pw.typography.font_family);
+  if(fontEntry && !pwLoadedFonts.has(fontEntry.name)){
+    try{
+      const face=new FontFace(fontEntry.name,`url(${fontEntry.file_url})`);
+      await face.load();
+      document.fonts.add(face);
+      pwLoadedFonts.add(fontEntry.name);
+    }catch(e){console.warn('Não deu pra carregar a fonte custom:',e);}
+  }
+  // texto de exemplo
+  const txt=new fabric.Textbox('Texto de exemplo',{
+    left:16,top:16,width:pwCanvas.width-32,
+    fontFamily:pw.typography.font_family,
+    fontSize:pw.typography.font_size,
+    fill:pw.typography.color,
+    lineHeight:pw.typography.line_height,
+    charSpacing:pw.typography.letter_spacing*10,
+    editable:false
+  });
+  pwCanvas.add(txt);
+  pwCanvas.renderAll();
+  // nav de quadros (só faz sentido no modo imagem, pra conferir cada upload)
+  const frameNav=document.getElementById('pw-frame-nav');
+  if(pw.background.mode==='image'){
+    frameNav.innerHTML=Array.from({length:pw.frame_count},(_,i)=>`<button class="btn ${pw.currentFrame===i+1?'btn-primary':'btn-secondary'} btn-sm" onclick="pwGoFrame(${i+1})">${i+1}</button>`).join('');
+  }else{
+    frameNav.innerHTML='';
+  }
+}
+
+// Preenchimento automático via IA a partir de um briefing em texto livre.
+// Chama uma Edge Function do Supabase (a ser criada — ver instruções),
+// que guarda a chave da API de IA no servidor (nunca no navegador).
+async function pwGenerateWithAI(){
+  const brief=document.getElementById('pw-ai-brief').value.trim();
+  if(!brief){showToast('Descreve rapidamente a peça que você quer.','error');return;}
+  const status=document.getElementById('pw-ai-status');
+  const btn=document.getElementById('pw-ai-btn');
+  btn.disabled=true;status.textContent='Gerando sugestão com IA...';
+  try{
+    const{data:sessionData}=await sb.auth.getSession();
+    const resp=await fetch(SUPABASE_URL+'/functions/v1/generate-piece-brief',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionData.session.access_token},
+      body:JSON.stringify({brief,brandKit:pw.brandKit})
+    });
+    if(!resp.ok)throw new Error('status '+resp.status);
+    const suggestion=await resp.json();
+    if(suggestion.frame_count)pw.frame_count=suggestion.frame_count;
+    if(suggestion.approach)pw.approach=suggestion.approach;
+    if(suggestion.tone)pw.tone=suggestion.tone;
+    if(suggestion.typography)Object.assign(pw.typography,suggestion.typography);
+    if(suggestion.background_color)pw.background.value=suggestion.background_color;
+    status.textContent='Sugestão aplicada — revise cada passo e ajuste o que quiser.';
+    renderWizardStep();
+  }catch(e){
+    console.warn('IA indisponível:',e);
+    status.textContent='IA ainda não configurada nesse ambiente (falta publicar a Edge Function) — segue manualmente pelos passos.';
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+async function savePieceTemplate(){
+  const row={
+    client_id:pw.clientId,
+    name:`Carrossel ${pw.frame_count}q`,
+    type:pw.type,
+    frame_count:pw.frame_count,
+    approach:pw.approach,
+    tone:pw.tone,
+    typography:pw.typography,
+    background:pw.background,
+    status:'pronto',
+    canvas_w:1080,
+    canvas_h:pw.type==='story'?1920:1080,
+    created_by:profile?.id||null
+  };
+  const{data,error}=await sb.from('piece_templates').insert(row).select().single();
+  if(error){showToast('Erro ao salvar peça modelo: '+error.message,'error');return;}
+  showToast('Peça modelo salva!','success');
+  closeModal('modal-piece-wizard');
+  if(confirm('Peça modelo pronta. Vamos criar agora todo o material de trabalho (fornada)?')){
+    openBatch(data);
+  }
+}
+
+// =====================================================================
+// Fornada — geração em lote de peças a partir de uma peça modelo aprovada
+// =====================================================================
+let pb=null; // estado da fornada atual
+const PB_TEXT_COLS=['titulo','texto_menor','texto_maior_bloco','texto_finalizacao','texto_legenda','palavras_chave_imagem'];
+const PB_TEXT_LABELS={titulo:'Título',texto_menor:'Texto menor',texto_maior_bloco:'Texto maior (bloco)',texto_finalizacao:'Texto de finalização',texto_legenda:'Legenda',palavras_chave_imagem:'Palavras-chave da imagem (ex: casal jovem, praia, crianças)'};
+
+function openBatch(template){
+  const client=clients.find(c=>c.id===template.client_id);
+  document.getElementById('pb-client-name').textContent=client?client.name:'';
+  document.getElementById('pb-name').value='';
+  document.getElementById('pb-excel-file').value='';
+  document.getElementById('pb-excel-status').textContent='';
+  document.getElementById('pb-excel-preview').innerHTML='';
+  document.getElementById('pb-generate-btn').disabled=true;
+  pb={template,rows:[],imageSource:'upload'};
+  pbSetImageSource('upload');
+  openModal('modal-batch');
+}
+
+function pbSetImageSource(mode){
+  pb.imageSource=mode;
+  document.getElementById('pb-src-upload').className='btn '+(mode==='upload'?'btn-primary':'btn-secondary');
+  document.getElementById('pb-src-banco').className='btn '+(mode==='banco'?'btn-primary':'btn-secondary');
+}
+
+function pbDownloadTemplate(){
+  const header=PB_TEXT_COLS.map(c=>PB_TEXT_LABELS[c]);
+  const sample=[header,['Título de exemplo','Texto menor de apoio','Texto maior explicando o produto em bloco','Chamada final de ação','Legenda completa do post','casal jovem, praia, crianças']];
+  const ws=XLSX.utils.aoa_to_sheet(sample);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Textos');
+  XLSX.writeFile(wb,'sdworkflow-modelo-textos.xlsx');
+}
+
+function pbParseExcel(input){
+  const file=input.files[0];
+  if(!file)return;
+  const status=document.getElementById('pb-excel-status');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      const dataRows=rows.slice(1).filter(r=>r.some(cell=>String(cell||'').trim()!==''));
+      pb.rows=dataRows.map(r=>{
+        const obj={};
+        PB_TEXT_COLS.forEach((col,i)=>obj[col]=r[i]||'');
+        return obj;
+      });
+      status.textContent=`${pb.rows.length} linha(s) reconhecida(s).`;
+      document.getElementById('pb-generate-btn').disabled=pb.rows.length===0;
+      renderExcelPreview();
+    }catch(err){
+      console.error(err);
+      status.textContent='Não consegui ler esse arquivo — confere se é o modelo baixado aqui mesmo.';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderExcelPreview(){
+  const wrap=document.getElementById('pb-excel-preview');
+  if(!pb.rows.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<table style="width:100%;font-size:11px;border-collapse:collapse">
+    <tr>${PB_TEXT_COLS.map(c=>`<th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);color:var(--text3)">${PB_TEXT_LABELS[c]}</th>`).join('')}</tr>
+    ${pb.rows.slice(0,8).map(r=>`<tr>${PB_TEXT_COLS.map(c=>`<td style="padding:4px;border-bottom:1px solid var(--border)">${(r[c]||'').toString().slice(0,30)}</td>`).join('')}</tr>`).join('')}
+  </table>${pb.rows.length>8?`<div style="font-size:11px;color:var(--text3);margin-top:4px">+ ${pb.rows.length-8} linha(s)...</div>`:''}`;
+}
+
+// Busca automática de imagem por palavra-chave — primeiro na biblioteca
+// própria (mais rápido, sem custo), depois completa com Unsplash. Sem
+// perguntar nada pro usuário: a IA já decide a melhor imagem disponível
+// pra cada quadro. Se não achar nada em lugar nenhum, deixa o quadro vazio
+// (o usuário troca depois no editor).
+async function autoSourceImages(keyword,frameCount,clientId){
+  const images=[];
+  if(!keyword)return images;
+  const words=keyword.toLowerCase().split(/[,;]+/).map(w=>w.trim()).filter(Boolean);
+
+  try{
+    let q=sb.from('asset_library').select('file_url,file_type,folder_path,file_name').eq('file_type','image');
+    q=clientId?q.or(`client_id.eq.${clientId},client_id.is.null`):q.is('client_id',null);
+    const{data:libFiles}=await q;
+    (libFiles||[]).forEach(f=>{
+      if(images.length>=frameCount)return;
+      const hay=((f.file_name||'')+' '+(f.folder_path||'')).toLowerCase();
+      if(words.some(w=>hay.includes(w)))images.push(f.file_url);
+    });
+  }catch(e){console.error('busca na biblioteca falhou',e);}
+
+  if(images.length<frameCount){
+    try{
+      const{data:sessionData}=await sb.auth.getSession();
+      const resp=await fetch(SUPABASE_URL+'/functions/v1/unsplash-search?action=search&query='+encodeURIComponent(keyword),{
+        headers:{'Authorization':'Bearer '+sessionData.session.access_token}
+      });
+      if(resp.ok){
+        const data=await resp.json();
+        for(const p of (data.results||[])){
+          if(images.length>=frameCount)break;
+          images.push(p.full);
+          fetch(SUPABASE_URL+'/functions/v1/unsplash-search?action=track&download_location='+encodeURIComponent(p.download_location),{
+            headers:{'Authorization':'Bearer '+sessionData.session.access_token}
+          });
+        }
+      }
+    }catch(e){console.error('busca no Unsplash falhou',e);}
+  }
+  return images;
+}
+
+async function pbGenerate(){
+  if(!pb.rows.length)return;
+  const btn=document.getElementById('pb-generate-btn');
+  btn.disabled=true;btn.textContent='Gerando...';
+  const name=document.getElementById('pb-name').value.trim()||`Fornada ${pb.template.name}`;
+  const{data:batch,error:batchErr}=await sb.from('piece_batches').insert({
+    client_id:pb.template.client_id,
+    template_id:pb.template.id,
+    name,
+    image_source:pb.imageSource,
+    quantity:pb.rows.length,
+    status:'em_revisao',
+    created_by:profile?.id||null
+  }).select().single();
+  if(batchErr){showToast('Erro ao criar fornada: '+batchErr.message,'error');btn.disabled=false;btn.textContent='Gerar peças →';return;}
+
+  let rowImages=pb.rows.map(()=>[]);
+  if(pb.imageSource==='banco'){
+    btn.textContent='Buscando imagens...';
+    for(let i=0;i<pb.rows.length;i++){
+      const keyword=pb.rows[i].palavras_chave_imagem||pb.rows[i].titulo||'';
+      rowImages[i]=await autoSourceImages(keyword,pb.template.frame_count||3,pb.template.client_id);
+      btn.textContent=`Buscando imagens... (${i+1}/${pb.rows.length})`;
+    }
+  }
+  btn.textContent='Gerando...';
+
+  const pieceRows=pb.rows.map((r,i)=>({
+    batch_id:batch.id,
+    client_id:pb.template.client_id,
+    seq:i+1,
+    format:pb.template.type,
+    texts:r,
+    images:rowImages[i],
+    canvas_w:pb.template.canvas_w||1080,
+    canvas_h:pb.template.canvas_h||1080,
+    status:'rascunho'
+  }));
+  const{error:piecesErr}=await sb.from('pieces').insert(pieceRows);
+  if(piecesErr){showToast('Erro ao gerar peças: '+piecesErr.message,'error');btn.disabled=false;btn.textContent='Gerar peças →';return;}
+  showToast(`${pieceRows.length} peça(s) gerada(s)!`,'success');
+  closeModal('modal-batch');
+  // Ponto de chegada é a galeria de produções — tudo visível em modo
+  // visualização, com botão de editar por peça (não mais o board antigo,
+  // só texto). O board antigo continua existindo por baixo caso precise.
+  openProductionGallery(pb.template.client_id);
+}
+
+// =====================================================================
+// Board de revisão — lista as peças de uma fornada, edição e aprovação
+// =====================================================================
+let currentBoardBatch=null;
+let currentPieces=[];
+let editingPieceId=null;
+
+async function openBoard(batch){
+  currentBoardBatch=batch;
+  document.getElementById('board-batch-name').textContent=batch.name;
+  // Precisa do frame_count do template pra saber quantos slots de imagem
+  // mostrar na edição de cada peça (uma imagem por quadro).
+  if(!currentBoardBatch.frame_count && currentBoardBatch.template_id){
+    const{data:tpl}=await sb.from('piece_templates').select('frame_count').eq('id',currentBoardBatch.template_id).single();
+    currentBoardBatch.frame_count=tpl?.frame_count||3;
+  }
+  openModal('modal-board');
+  await loadBoardPieces();
+}
+
+async function loadBoardPieces(){
+  const{data,error}=await sb.from('pieces').select('*').eq('batch_id',currentBoardBatch.id).order('seq');
+  if(error){showToast('Erro ao carregar peças: '+error.message,'error');return;}
+  currentPieces=data||[];
+  renderBoard();
+}
+
+function renderBoard(){
+  const wrap=document.getElementById('board-pieces');
+  if(!currentPieces.length){wrap.innerHTML='<div class="empty-state" style="padding:30px">Nenhuma peça nessa fornada ainda.</div>';return;}
+  const statusLabel={rascunho:'Rascunho',aprovado_time:'Aprovado (equipe)',aprovado_cliente:'Aprovado (cliente)',reprovado:'Reprovado'};
+  wrap.innerHTML=currentPieces.map(p=>`
+    <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em">Peça ${p.seq}</div>
+          <div style="font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.texts?.titulo||'(sem título)'}</div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.texts?.texto_legenda||''}</div>
+        </div>
+        <span style="flex-shrink:0;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--border2);color:var(--text3)">${statusLabel[p.status]||p.status}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="openPieceEdit('${p.id}')">Editar</button>
+        <button class="btn btn-primary btn-sm" onclick="approvePiece('${p.id}')">Aprovar (equipe)</button>
+      </div>
+    </div>`).join('');
+}
+
+let peImages=[];
+function openPieceEdit(pieceId){
+  const p=currentPieces.find(x=>x.id===pieceId);
+  if(!p)return;
+  editingPieceId=pieceId;
+  peImages=[...(p.images||[])];
+  const n=currentBoardBatch?.frame_count||3;
+  while(peImages.length<n)peImages.push(null);
+  const fields=document.getElementById('pe-fields');
+  fields.innerHTML=`
+    <div class="field" style="margin-bottom:16px">
+      <div class="field-label">Imagens (uma por quadro)</div>
+      <div id="pe-images-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px"></div>
+    </div>
+    ${PB_TEXT_COLS.map(c=>`
+    <div class="field" style="margin-bottom:12px">
+      <div class="field-label">${PB_TEXT_LABELS[c]}</div>
+      <textarea class="field-input" rows="2" data-col="${c}" style="resize:vertical">${p.texts?.[c]||''}</textarea>
+    </div>`).join('')}`;
+  renderPeImagesGrid();
+  openModal('modal-piece-edit');
+}
+
+function renderPeImagesGrid(){
+  const grid=document.getElementById('pe-images-grid');
+  if(!grid)return;
+  grid.innerHTML=peImages.map((url,i)=>`
+    <div onclick="openMediaPicker(currentBoardBatch.client_id,f=>{peImages[${i}]=f.file_url;renderPeImagesGrid();})" style="cursor:pointer;border:1px dashed var(--border);border-radius:8px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:var(--surface2)">
+      ${url?`<img src="${url}" style="width:100%;height:100%;object-fit:cover">`:`<div style="font-size:10px;color:var(--text3);text-align:center;padding:4px">Quadro ${i+1}<br>+ escolher</div>`}
+    </div>`).join('');
+}
+
+async function pieceEditSave(){
+  const p=currentPieces.find(x=>x.id===editingPieceId);
+  if(!p)return;
+  const texts={};
+  document.querySelectorAll('#pe-fields textarea').forEach(t=>texts[t.dataset.col]=t.value);
+  const{error}=await sb.from('pieces').update({texts,images:peImages}).eq('id',p.id);
+  if(error){showToast('Erro ao salvar peça: '+error.message,'error');return;}
+  showToast('Peça atualizada.','success');
+  closeModal('modal-piece-edit');
+  await loadBoardPieces();
+}
+
+async function approvePiece(pieceId){
+  const{error}=await sb.from('pieces').update({status:'aprovado_time'}).eq('id',pieceId);
+  if(error){showToast('Erro ao aprovar: '+error.message,'error');return;}
+  await loadBoardPieces();
+}
+
+// ================================================================
+// BIBLIOTECA DE MÍDIA — picker compartilhado (biblioteca própria em pastas
+// + Unsplash conectado + upload direto), usado no fundo do wizard e na
+// edição de peça. onSelect recebe {file_url, file_type, file_name}.
+// ================================================================
+let mp={onSelect:null,clientId:null,scope:'global',folder:'',tab:'library'};
+
+function openMediaPicker(clientId,onSelect){
+  mp={onSelect,clientId,scope:'global',folder:'',tab:'library'};
+  mpSetTab('library');
+  mpSetScope(clientId?'client':'global');
+  openModal('modal-media-picker');
+}
+
+function mpSetTab(tab){
+  mp.tab=tab;
+  document.getElementById('mp-tab-library').className='btn '+(tab==='library'?'btn-primary':'btn-secondary');
+  document.getElementById('mp-tab-unsplash').className='btn '+(tab==='unsplash'?'btn-primary':'btn-secondary');
+  document.getElementById('mp-panel-library').style.display=tab==='library'?'block':'none';
+  document.getElementById('mp-panel-unsplash').style.display=tab==='unsplash'?'block':'none';
+}
+
+function mpSetScope(scope){
+  mp.scope=scope;mp.folder='';
+  const hasClient=!!mp.clientId;
+  document.getElementById('mp-scope-client').style.display=hasClient?'block':'none';
+  document.getElementById('mp-scope-global').className='btn btn-sm '+(scope==='global'?'btn-primary':'btn-secondary');
+  document.getElementById('mp-scope-client').className='btn btn-sm '+(scope==='client'?'btn-primary':'btn-secondary');
+  mpLoadFolder('');
+}
+
+async function mpLoadFolder(folder){
+  mp.folder=folder;
+  const scopeClientId=mp.scope==='client'?mp.clientId:null;
+  const bc=document.getElementById('mp-breadcrumb');
+  const parts=folder?folder.split('/'):[];
+  bc.innerHTML=`<span style="cursor:pointer;text-decoration:underline" onclick="mpLoadFolder('')">📁 Início</span>`+
+    parts.map((p,i)=>` / <span style="cursor:pointer;text-decoration:underline" onclick="mpLoadFolder('${parts.slice(0,i+1).join('/')}')">${p}</span>`).join('');
+
+  let q=sb.from('asset_library').select('*');
+  q=scopeClientId?q.eq('client_id',scopeClientId):q.is('client_id',null);
+  const{data,error}=await q.order('created_at',{ascending:false});
+  const grid=document.getElementById('mp-library-grid');
+  if(error){grid.innerHTML=`<div style="font-size:12px;color:#dc2626">Erro: ${error.message}</div>`;return;}
+  const all=data||[];
+  const prefix=folder?folder+'/':'';
+  const subfolders=[...new Set(all
+    .filter(a=>a.folder_path&&a.folder_path.startsWith(prefix)&&a.folder_path!==folder)
+    .map(a=>a.folder_path.slice(prefix.length).split('/')[0])
+    .filter(Boolean))];
+  const files=all.filter(a=>(a.folder_path||'')===folder);
+
+  if(!subfolders.length&&!files.length){
+    grid.innerHTML='<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:16px;text-align:center">Nada aqui ainda — suba um arquivo ou crie uma pasta.</div>';
+    return;
+  }
+  grid.innerHTML=
+    subfolders.map(f=>`<div onclick="mpLoadFolder('${prefix+f}')" style="cursor:pointer;border:1px solid var(--border);border-radius:8px;padding:10px 6px;text-align:center;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font-size:26px">📁</div>${f}</div>`).join('')+
+    files.map(f=>`<div onclick='mpChooseAsset(${JSON.stringify(f).replace(/'/g,"&#39;")})' style="cursor:pointer;border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;aspect-ratio:1">
+      ${f.file_type==='video'
+        ?`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:26px">🎬</div>`
+        :`<img src="${f.file_url}" style="width:100%;height:100%;object-fit:cover">`}
+      <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:9.5px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.file_name}</div>
+    </div>`).join('');
+}
+
+function mpChooseAsset(f){
+  if(mp.onSelect)mp.onSelect({file_url:f.file_url,file_type:f.file_type,file_name:f.file_name});
+  closeModal('modal-media-picker');
+}
+
+function mpCreateFolder(){
+  const input=document.getElementById('mp-new-folder');
+  const name=input.value.trim();
+  if(!name)return;
+  input.value='';
+  mpLoadFolder(mp.folder?mp.folder+'/'+name:name);
+}
+
+async function mpUploadFiles(input){
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  const scopeClientId=mp.scope==='client'?mp.clientId:null;
+  for(const file of files){
+    const fileType=file.type.startsWith('video')?'video':'image';
+    const path=`library/${scopeClientId||'geral'}/${mp.folder?mp.folder+'/':''}${Date.now()}_${file.name}`;
+    const{error:ue}=await sb.storage.from('media-library').upload(path,file);
+    if(ue){showToast('Erro ao subir "'+file.name+'": '+ue.message,'error');continue;}
+    const{data:{publicUrl}}=sb.storage.from('media-library').getPublicUrl(path);
+    await sb.from('asset_library').insert({
+      client_id:scopeClientId,
+      folder_path:mp.folder,
+      file_name:file.name,
+      file_type:fileType,
+      file_url:publicUrl,
+      file_size:file.size,
+      uploaded_by:profile?.id||null
+    });
+  }
+  input.value='';
+  showToast(`${files.length} arquivo(s) enviado(s)!`,'success');
+  mpLoadFolder(mp.folder);
+}
+
+let mpUnsplashPage=1,mpUnsplashLastQuery='';
+async function mpSearchUnsplash(){
+  const query=document.getElementById('mp-unsplash-query').value.trim();
+  if(!query)return;
+  mpUnsplashPage=1;mpUnsplashLastQuery=query;
+  const status=document.getElementById('mp-unsplash-status');
+  const grid=document.getElementById('mp-unsplash-grid');
+  status.textContent='Buscando...';grid.innerHTML='';
+  try{
+    const{data:sessionData}=await sb.auth.getSession();
+    const resp=await fetch(SUPABASE_URL+'/functions/v1/unsplash-search?action=search&query='+encodeURIComponent(query)+'&page='+mpUnsplashPage,{
+      headers:{'Authorization':'Bearer '+sessionData.session.access_token}
+    });
+    if(!resp.ok)throw new Error('status '+resp.status);
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error);
+    status.textContent=(data.results||[]).length?'':'Nenhum resultado.';
+    grid.innerHTML=(data.results||[]).map(p=>`<div onclick='mpChooseUnsplash(${JSON.stringify(p).replace(/'/g,"&#39;")})' style="cursor:pointer;border:1px solid var(--border);border-radius:8px;overflow:hidden;aspect-ratio:1" title="Foto de ${p.credit_name||''} no Unsplash">
+      <img src="${p.thumb}" style="width:100%;height:100%;object-fit:cover">
+    </div>`).join('');
+  }catch(err){
+    status.textContent='Não consegui buscar no Unsplash — confere se a chave está configurada (veja instruções).';
+    console.error(err);
+  }
+}
+async function mpChooseUnsplash(p){
+  try{
+    const{data:sessionData}=await sb.auth.getSession();
+    fetch(SUPABASE_URL+'/functions/v1/unsplash-search?action=track&download_location='+encodeURIComponent(p.download_location),{
+      headers:{'Authorization':'Bearer '+sessionData.session.access_token}
+    });
+  }catch(e){}
+  if(mp.onSelect)mp.onSelect({file_url:p.full,file_type:'image',file_name:'unsplash-'+p.id+'.jpg',credit:p.credit_name});
+  closeModal('modal-media-picker');
+}
+
+// ================================================================
+// GALERIA DE PRODUÇÃO — tudo que já foi gerado pra um cliente, em modo
+// visualização, com botão de editar por peça levando pro editor grande.
+// ================================================================
+let galleryClientId=null,galleryBatches=[],galleryPieces=[];
+
+async function openProductionGallery(clientId){
+  galleryClientId=clientId;
+  openModal('modal-gallery');
+  await loadGallery();
+}
+
+async function loadGallery(){
+  const wrap=document.getElementById('gallery-content');
+  wrap.innerHTML='<div style="padding:30px;text-align:center;color:var(--text3)">Carregando...</div>';
+  const{data:batches,error:be}=await sb.from('piece_batches').select('*').eq('client_id',galleryClientId).order('created_at',{ascending:false});
+  if(be){wrap.innerHTML=`<div style="color:#dc2626;padding:20px">Erro: ${be.message}</div>`;return;}
+  galleryBatches=batches||[];
+  if(!galleryBatches.length){
+    galleryPieces=[];
+    wrap.innerHTML='<div class="empty-state" style="padding:40px"><div class="empty-state-icon">○</div><div>Nenhuma produção ainda pra esse cliente.</div></div>';
+    return;
+  }
+  const{data:pieces,error:pe}=await sb.from('pieces').select('*').in('batch_id',galleryBatches.map(b=>b.id)).order('seq');
+  if(pe){wrap.innerHTML=`<div style="color:#dc2626;padding:20px">Erro: ${pe.message}</div>`;return;}
+  galleryPieces=pieces||[];
+  renderGallery();
+}
+
+function renderGallery(){
+  const wrap=document.getElementById('gallery-content');
+  const statusLabel={rascunho:'Rascunho',aprovado_time:'Aprovado (equipe)',aprovado_cliente:'Aprovado (cliente)',reprovado:'Reprovado'};
+  wrap.innerHTML=galleryBatches.map(b=>{
+    const bp=galleryPieces.filter(p=>p.batch_id===b.id);
+    return`<div style="margin-bottom:24px">
+      <div style="margin-bottom:10px">
+        <div style="font-weight:700;font-size:14px">${b.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${bp.length} peça(s) · ${new Date(b.created_at).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
+        ${bp.map(p=>{
+          const thumb=p.rendered_url||p.images?.[0];
+          return`<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+            <div style="aspect-ratio:${p.canvas_w||1}/${p.canvas_h||1};background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+              ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover">`:`<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px">Sem imagem ainda</div>`}
+            </div>
+            <div style="padding:8px;display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.texts?.titulo||''}">${p.texts?.titulo||'Peça '+p.seq}</div>
+              <span style="font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--border2);color:var(--text3);align-self:flex-start">${statusLabel[p.status]||p.status}</span>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-primary btn-sm" style="flex:1" onclick="openPieceBigEditor('${p.id}')">✎ Editar</button>
+                ${p.status==='rascunho'?`<button class="btn btn-secondary btn-sm" title="Aprovar (equipe)" onclick="gApprovePiece('${p.id}')">✓</button>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function gApprovePiece(pieceId){
+  const{error}=await sb.from('pieces').update({status:'aprovado_time'}).eq('id',pieceId);
+  if(error){showToast('Erro ao aprovar: '+error.message,'error');return;}
+  await loadGallery();
+}
+
+// ================================================================
+// EDITOR GRANDE — canvas Fabric.js de verdade: texto/imagem editáveis,
+// camadas, tamanho de arquivo escolhível. Salva o estado completo (pra
+// reabrir depois) e também um PNG renderizado (pra miniatura na galeria).
+// ================================================================
+let bigEd={canvas:null,pieceId:null,w:1080,h:1080,zoom:1,piece:null};
+
+function openPieceBigEditor(pieceId){
+  const p=galleryPieces.find(x=>x.id===pieceId);
+  if(!p){showToast('Peça não encontrada.','error');return;}
+  bigEd.pieceId=pieceId;bigEd.piece=p;
+  bigEd.w=p.canvas_w||1080;bigEd.h=p.canvas_h||1080;
+  document.getElementById('big-editor-size').value=`${bigEd.w}x${bigEd.h}`;
+  openModal('modal-big-editor');
+  setTimeout(initBigCanvas,60);
+}
+
+function initBigCanvas(){
+  const el=document.getElementById('big-editor-canvas');
+  if(bigEd.canvas){bigEd.canvas.dispose();}
+  bigEd.canvas=new fabric.Canvas(el,{selection:true,preserveObjectStacking:true});
+  const wrapEl=document.getElementById('big-editor-canvas-wrap');
+  const availW=wrapEl.clientWidth-40,availH=wrapEl.clientHeight-40;
+  bigEd.zoom=Math.min(availW/bigEd.w,availH/bigEd.h,1);
+  bigEd.canvas.setDimensions({width:bigEd.w*bigEd.zoom,height:bigEd.h*bigEd.zoom});
+  bigEd.canvas.setZoom(bigEd.zoom);
+
+  const p=bigEd.piece;
+  if(p.canvas_json){
+    bigEd.canvas.loadFromJSON(p.canvas_json,()=>bigEd.canvas.renderAll());
+  }else{
+    bigEd.canvas.setBackgroundColor('#ffffff',()=>bigEd.canvas.renderAll());
+    if(p.images&&p.images[0]){
+      fabric.Image.fromURL(p.images[0],img=>{
+        img.scaleToWidth(bigEd.w);img.set({left:0,top:0,selectable:true});
+        bigEd.canvas.add(img);bigEd.canvas.sendToBack(img);bigEd.canvas.renderAll();
+      },{crossOrigin:'anonymous'});
+    }
+    let topOffset=50;
+    PB_TEXT_COLS.filter(c=>c!=='palavras_chave_imagem').forEach(c=>{
+      const val=p.texts?.[c];
+      if(!val)return;
+      const isTitle=c==='titulo';
+      const t=new fabric.Textbox(val,{left:44,top:topOffset,width:bigEd.w-88,fontSize:isTitle?Math.round(bigEd.w*0.06):Math.round(bigEd.w*0.03),fill:'#ffffff',fontFamily:'Arial',fontWeight:isTitle?'bold':'normal'});
+      bigEd.canvas.add(t);
+      topOffset+=(isTitle?Math.round(bigEd.w*0.09):Math.round(bigEd.w*0.06));
+    });
+    bigEd.canvas.renderAll();
+  }
+  bigEd.canvas.on('selection:created',updateBigEditorPanel);
+  bigEd.canvas.on('selection:updated',updateBigEditorPanel);
+  bigEd.canvas.on('selection:cleared',()=>{document.getElementById('big-editor-props').innerHTML='<div style="font-size:11.5px;color:var(--text3)">Clique num objeto no canvas pra editar.</div>';});
+}
+
+function updateBigEditorPanel(){
+  const obj=bigEd.canvas.getActiveObject();
+  const props=document.getElementById('big-editor-props');
+  if(!obj){props.innerHTML='';return;}
+  if(obj.type==='textbox'||obj.type==='text'){
+    props.innerHTML=`
+      <div class="field" style="margin-bottom:12px"><div class="field-label">Texto</div>
+        <textarea class="field-input" rows="3" oninput="bigEditorSetText(this.value)">${obj.text}</textarea></div>
+      <div class="field" style="margin-bottom:12px"><div class="field-label">Fonte</div>
+        <select class="field-input" onchange="bigEditorSetProp('fontFamily',this.value)">
+          ${['Arial','Georgia','Helvetica','system-ui','Times New Roman'].map(f=>`<option value="${f}" ${obj.fontFamily===f?'selected':''}>${f}</option>`).join('')}
+        </select></div>
+      <div class="field" style="margin-bottom:12px"><div class="field-label">Tamanho (${Math.round(obj.fontSize)}px)</div>
+        <input type="range" min="10" max="180" value="${Math.round(obj.fontSize)}" oninput="bigEditorSetProp('fontSize',Number(this.value))" style="width:100%"></div>
+      <div class="field" style="margin-bottom:12px"><div class="field-label">Cor</div>
+        <input type="color" value="${obj.fill||'#ffffff'}" oninput="bigEditorSetProp('fill',this.value)" style="width:100%;height:30px;padding:0;border:none;cursor:pointer"></div>
+      <div class="field" style="margin-bottom:12px"><div class="field-label">Estilo</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm ${obj.fontWeight==='bold'?'btn-primary':'btn-secondary'}" style="flex:1" onclick="bigEditorSetProp('fontWeight','${obj.fontWeight==='bold'?'normal':'bold'}')"><b>B</b></button>
+          <button class="btn btn-sm ${obj.fontStyle==='italic'?'btn-primary':'btn-secondary'}" style="flex:1" onclick="bigEditorSetProp('fontStyle','${obj.fontStyle==='italic'?'normal':'italic'}')"><i>I</i></button>
+        </div></div>
+      <div class="field"><div class="field-label">Alinhamento</div>
+        <div style="display:flex;gap:6px">
+          ${['left','center','right'].map(a=>`<button class="btn btn-sm ${obj.textAlign===a?'btn-primary':'btn-secondary'}" style="flex:1" onclick="bigEditorSetProp('textAlign','${a}')">${a==='left'?'⇤':a==='center'?'↔':'⇥'}</button>`).join('')}
+        </div></div>`;
+  }else{
+    props.innerHTML=`<div style="font-size:11.5px;color:var(--text3)">Objeto de imagem selecionado — use as alças no canvas pra mover/redimensionar, ou os botões de camada na barra lateral.</div>`;
+  }
+}
+function bigEditorSetProp(prop,value){
+  const obj=bigEd.canvas.getActiveObject();if(!obj)return;
+  obj.set(prop,value);bigEd.canvas.renderAll();
+  if(prop==='fontSize'||prop==='fontFamily')updateBigEditorPanel();
+}
+function bigEditorSetText(value){
+  const obj=bigEd.canvas.getActiveObject();if(!obj)return;
+  obj.set('text',value);bigEd.canvas.renderAll();
+}
+function bigEditorAddText(){
+  const t=new fabric.Textbox('Novo texto',{left:60,top:60,width:bigEd.w*0.6,fontSize:Math.round(bigEd.w*0.04),fill:'#ffffff',fontFamily:'Arial'});
+  bigEd.canvas.add(t);bigEd.canvas.setActiveObject(t);bigEd.canvas.renderAll();updateBigEditorPanel();
+}
+function bigEditorAddImage(){
+  openMediaPicker(bigEd.piece?.client_id,f=>{
+    fabric.Image.fromURL(f.file_url,img=>{
+      img.scaleToWidth(bigEd.w*0.5);img.set({left:40,top:40});
+      bigEd.canvas.add(img);bigEd.canvas.setActiveObject(img);bigEd.canvas.renderAll();
+    },{crossOrigin:'anonymous'});
+  });
+}
+function bigEditorLayer(action){
+  const obj=bigEd.canvas.getActiveObject();if(!obj)return;
+  if(action==='front')bigEd.canvas.bringToFront(obj);
+  else if(action==='back')bigEd.canvas.sendToBack(obj);
+  else if(action==='forward')bigEd.canvas.bringForward(obj);
+  else if(action==='backward')bigEd.canvas.sendBackwards(obj);
+  bigEd.canvas.renderAll();
+}
+function bigEditorDelete(){
+  const obj=bigEd.canvas.getActiveObject();if(!obj)return;
+  bigEd.canvas.remove(obj);bigEd.canvas.discardActiveObject();bigEd.canvas.renderAll();
+  document.getElementById('big-editor-props').innerHTML='';
+}
+function bigEditorChangeSize(sizeStr){
+  const[w,h]=sizeStr.split('x').map(Number);
+  bigEd.w=w;bigEd.h=h;
+  const wrapEl=document.getElementById('big-editor-canvas-wrap');
+  const availW=wrapEl.clientWidth-40,availH=wrapEl.clientHeight-40;
+  bigEd.zoom=Math.min(availW/bigEd.w,availH/bigEd.h,1);
+  bigEd.canvas.setDimensions({width:bigEd.w*bigEd.zoom,height:bigEd.h*bigEd.zoom});
+  bigEd.canvas.setZoom(bigEd.zoom);
+  bigEd.canvas.renderAll();
+}
+
+async function saveBigEditor(){
+  const canvas=bigEd.canvas;
+  const trueW=bigEd.w,trueH=bigEd.h;
+  canvas.setZoom(1);canvas.setDimensions({width:trueW,height:trueH});
+  const dataUrl=canvas.toDataURL({format:'png',quality:0.92});
+  const json=canvas.toJSON();
+  canvas.setDimensions({width:trueW*bigEd.zoom,height:trueH*bigEd.zoom});
+  canvas.setZoom(bigEd.zoom);
+  canvas.renderAll();
+
+  showToast('Salvando...','info');
+  try{
+    const blob=await(await fetch(dataUrl)).blob();
+    const path=`rendered/${bigEd.pieceId}_${Date.now()}.png`;
+    const{error:ue}=await sb.storage.from('media-library').upload(path,blob,{contentType:'image/png'});
+    let rendered_url=null;
+    if(!ue){const{data:{publicUrl}}=sb.storage.from('media-library').getPublicUrl(path);rendered_url=publicUrl;}
+    await sb.from('pieces').update({canvas_json:json,rendered_url,canvas_w:trueW,canvas_h:trueH}).eq('id',bigEd.pieceId);
+    showToast('Peça salva!','success');
+    closeModal('modal-big-editor');
+    await loadGallery();
+  }catch(e){
+    console.error(e);
+    showToast('Erro ao salvar: '+(e?.message||e),'error');
+  }
+}
+
+// ================================================================
+// AGENDAMENTO EM MASSA — contas conectadas, upload em lote (Excel) e fila
+// de publicação. A conexão de conta usa o fluxo OAuth real da Meta (precisa
+// do App ID configurado em app_settings — funciona com contas de
+// desenvolvedor/teste mesmo antes da aprovação final do app).
+// ================================================================
+let schClientId=null,schAccounts=[],schTab='accounts';
+const SCH_COLS=['legenda','tipo','midia_arquivo','data_hora'];
+const SCH_LABELS={legenda:'Legenda',tipo:'Tipo (feed/story/reels)',midia_arquivo:'Nome do arquivo (já na Biblioteca de mídia)',data_hora:'Data e hora (ex: 2026-08-01 14:30)'};
+let schRows=[];
+
+async function openScheduling(clientId){
+  schClientId=clientId;
+  openModal('modal-scheduling');
+  schSetTab('accounts');
+  await loadSchAccounts();
+}
+
+function schSetTab(tab){
+  schTab=tab;
+  document.getElementById('sch-tab-accounts').className='btn '+(tab==='accounts'?'btn-primary':'btn-secondary');
+  document.getElementById('sch-tab-upload').className='btn '+(tab==='upload'?'btn-primary':'btn-secondary');
+  document.getElementById('sch-tab-queue').className='btn '+(tab==='queue'?'btn-primary':'btn-secondary');
+  document.getElementById('sch-panel-accounts').style.display=tab==='accounts'?'block':'none';
+  document.getElementById('sch-panel-upload').style.display=tab==='upload'?'block':'none';
+  document.getElementById('sch-panel-queue').style.display=tab==='queue'?'block':'none';
+  if(tab==='queue')loadSchQueue();
+}
+
+async function loadSchAccounts(){
+  const{data,error}=await sb.from('social_accounts').select('*').eq('client_id',schClientId).order('connected_at',{ascending:false});
+  const wrap=document.getElementById('sch-accounts-list');
+  if(error){wrap.innerHTML=`<div style="color:#dc2626;font-size:12px">Erro: ${error.message}</div>`;return;}
+  schAccounts=data||[];
+  const sel=document.getElementById('sch-batch-account');
+  if(sel)sel.innerHTML=schAccounts.map(a=>`<option value="${a.id}">${a.platform==='instagram'?'📷':'📘'} ${a.account_name||a.external_account_id}</option>`).join('')||'<option value="">Nenhuma conta conectada ainda</option>';
+  if(!schAccounts.length){
+    wrap.innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-state-icon">○</div><div>Nenhuma conta conectada ainda pra esse cliente.</div></div>';
+    return;
+  }
+  const statusLabel={conectado:'Conectado',expirado:'Token expirado — reconectar',desconectado:'Desconectado'};
+  const statusColor={conectado:'#16a34a',expirado:'#d97706',desconectado:'#dc2626'};
+  wrap.innerHTML=schAccounts.map(a=>`<div class="entity-card" style="flex-direction:row;align-items:center;justify-content:space-between;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      ${a.account_avatar_url?`<img src="${a.account_avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`:`<div style="width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center">${a.platform==='instagram'?'📷':'📘'}</div>`}
+      <div>
+        <div style="font-weight:700;font-size:13px">${a.account_name||a.external_account_id}</div>
+        <div style="font-size:11px;color:${statusColor[a.status]||'var(--text3)'}">${statusLabel[a.status]||a.status}</div>
+      </div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="schDisconnectAccount('${a.id}')">Desconectar</button>
+  </div>`).join('');
+}
+
+// Inicia o login OAuth da Meta — precisa do App ID real (configurado em
+// app_settings.meta_app_id assim que você criar o app de desenvolvedor).
+// Funciona com contas de teste mesmo antes da aprovação final.
+async function schConnectAccount(platform){
+  const{data:settings}=await sb.from('app_settings').select('*').limit(1).maybeSingle();
+  const appId=settings?.meta_app_id;
+  if(!appId){
+    showToast('Configure o App ID da Meta primeiro (fala comigo que eu te ajudo a colocar isso em app_settings).','error');
+    return;
+  }
+  const redirectUri=`${SUPABASE_URL}/functions/v1/meta-oauth-callback`;
+  const scopes=platform==='instagram'
+    ?'instagram_business_basic,instagram_business_content_publish,instagram_business_manage_messages'
+    :'pages_manage_posts,pages_messaging,pages_show_list';
+  const state=encodeURIComponent(JSON.stringify({client_id:schClientId,platform}));
+  const url=`https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
+  window.open(url,'_blank');
+}
+
+async function schDisconnectAccount(accountId){
+  if(!confirm('Desconectar essa conta? Os posts já agendados continuam salvos, mas não vão publicar até reconectar.'))return;
+  await sb.from('social_accounts').update({status:'desconectado'}).eq('id',accountId);
+  await loadSchAccounts();
+}
+
+function schDownloadTemplate(){
+  const header=SCH_COLS.map(c=>SCH_LABELS[c]);
+  const sample=[header,['Legenda completa do post #hashtag','feed','fachada-01.jpg','2026-08-01 14:30']];
+  const ws=XLSX.utils.aoa_to_sheet(sample);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Agendamento');
+  XLSX.writeFile(wb,'sdworkflow-modelo-agendamento.xlsx');
+}
+
+function schParseExcel(input){
+  const file=input.files[0];
+  if(!file)return;
+  const status=document.getElementById('sch-excel-status');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      const dataRows=rows.slice(1).filter(r=>r.some(cell=>String(cell||'').trim()!==''));
+      schRows=dataRows.map(r=>{
+        const obj={};
+        SCH_COLS.forEach((col,i)=>obj[col]=r[i]||'');
+        return obj;
+      });
+      status.textContent=`${schRows.length} linha(s) reconhecida(s).`;
+      document.getElementById('sch-generate-btn').disabled=schRows.length===0;
+      renderSchExcelPreview();
+    }catch(err){
+      console.error(err);
+      status.textContent='Não consegui ler esse arquivo — confere se é o modelo baixado aqui mesmo.';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderSchExcelPreview(){
+  const wrap=document.getElementById('sch-excel-preview');
+  if(!schRows.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<table style="width:100%;font-size:11px;border-collapse:collapse">
+    <tr>${SCH_COLS.map(c=>`<th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);color:var(--text3)">${SCH_LABELS[c]}</th>`).join('')}</tr>
+    ${schRows.slice(0,8).map(r=>`<tr>${SCH_COLS.map(c=>`<td style="padding:4px;border-bottom:1px solid var(--border)">${(r[c]||'').toString().slice(0,30)}</td>`).join('')}</tr>`).join('')}
+  </table>${schRows.length>8?`<div style="font-size:11px;color:var(--text3);margin-top:4px">+ ${schRows.length-8} linha(s)...</div>`:''}`;
+}
+
+async function schGenerate(){
+  if(!schRows.length)return;
+  const accountId=document.getElementById('sch-batch-account').value;
+  if(!accountId){showToast('Conecte e escolha uma conta de destino primeiro.','error');return;}
+  const btn=document.getElementById('sch-generate-btn');
+  btn.disabled=true;btn.textContent='Agendando...';
+  const batchName=document.getElementById('sch-batch-name').value.trim()||`Lote ${new Date().toLocaleDateString('pt-BR')}`;
+
+  // Casa o nome do arquivo de mídia com o que já está na Biblioteca (geral
+  // ou desse cliente) — não sobe nada novo aqui, só referencia.
+  const{data:libFiles}=await sb.from('asset_library').select('file_url,file_name,file_type').or(`client_id.eq.${schClientId},client_id.is.null`);
+
+  const rows=schRows.map(r=>{
+    const match=(libFiles||[]).find(f=>f.file_name===r.midia_arquivo);
+    return{
+      client_id:schClientId,
+      social_account_id:accountId,
+      batch_name:batchName,
+      caption:r.legenda||'',
+      media_urls:match?[{url:match.file_url,type:match.file_type}]:[],
+      post_type:r.tipo||'feed',
+      scheduled_at:r.data_hora?new Date(r.data_hora.replace(' ','T')).toISOString():new Date().toISOString(),
+      status:'agendado',
+      created_by:profile?.id||null
+    };
+  });
+  const missing=rows.filter(r=>!r.media_urls.length).length;
+  const{error}=await sb.from('scheduled_posts').insert(rows);
+  btn.disabled=false;btn.textContent='Agendar posts →';
+  if(error){showToast('Erro ao agendar: '+error.message,'error');return;}
+  showToast(`${rows.length} post(s) agendado(s)!${missing?` (${missing} sem mídia encontrada — ajusta na fila.)`:''}`,missing?'warn':'success');
+  schRows=[];
+  document.getElementById('sch-excel-file').value='';
+  document.getElementById('sch-excel-preview').innerHTML='';
+  document.getElementById('sch-excel-status').textContent='';
+  document.getElementById('sch-generate-btn').disabled=true;
+  schSetTab('queue');
+}
+
+async function loadSchQueue(){
+  const wrap=document.getElementById('sch-queue-list');
+  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Carregando...</div>';
+  const{data,error}=await sb.from('scheduled_posts').select('*').eq('client_id',schClientId).order('scheduled_at',{ascending:true});
+  if(error){wrap.innerHTML=`<div style="color:#dc2626;padding:16px">Erro: ${error.message}</div>`;return;}
+  const posts=data||[];
+  if(!posts.length){wrap.innerHTML='<div class="empty-state" style="padding:30px"><div class="empty-state-icon">○</div><div>Nenhum post agendado ainda.</div></div>';return;}
+  const statusLabel={agendado:'Agendado',publicando:'Publicando...',publicado:'Publicado',erro:'Erro',cancelado:'Cancelado'};
+  const statusColor={agendado:'#2563eb',publicando:'#d97706',publicado:'#16a34a',erro:'#dc2626',cancelado:'#64748b'};
+  wrap.innerHTML=posts.map(p=>`<div class="entity-card" style="flex-direction:row;align-items:center;gap:10px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;color:var(--text3)">${new Date(p.scheduled_at).toLocaleString('pt-BR')} · ${p.post_type}</div>
+      <div style="font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.caption||'(sem legenda)'}</div>
+      ${p.error_message?`<div style="font-size:11px;color:#dc2626;margin-top:4px">${p.error_message}</div>`:''}
+    </div>
+    <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${statusColor[p.status]}18;color:${statusColor[p.status]};flex-shrink:0">${statusLabel[p.status]||p.status}</span>
+    ${p.status==='agendado'?`<button class="btn btn-secondary btn-sm" onclick="schCancelPost('${p.id}')">Cancelar</button>`:''}
+  </div>`).join('');
+}
+
+async function schCancelPost(postId){
+  await sb.from('scheduled_posts').update({status:'cancelado'}).eq('id',postId);
+  await loadSchQueue();
+}
+</script>
+</body>
+</html>

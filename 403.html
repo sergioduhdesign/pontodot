@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Acesso restrito — Studio Design</title>
+<link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
+<style>
+  /* Página de erro é autossuficiente de propósito: nada de CSS externo,
+     nada de fonte remota. Se o servidor estiver com problema, ela ainda
+     precisa aparecer inteira. */
+  :root{
+    --bg:#f4f4f5; --surface:#fff; --border:#e0e0e3;
+    --text:#0a0a0a; --text2:#3a3a45; --text3:#7a7a88;
+    --accent:#0a0a0a; --accent-fg:#fff; --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0c0c0e; --surface:#141416; --border:#2e2e36;
+      --text:#f4f4f8; --text2:#b0b0be; --text3:#68687a;
+      --accent:#f4f4f8; --accent-fg:#0a0a0a;
+    }
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+    min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:32px 24px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .card{
+    width:100%; max-width:440px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:44px 40px 36px;
+  }
+  .logo{height:20px;width:auto;display:block;margin-bottom:44px;opacity:.85}
+  @media (prefers-color-scheme: dark){ .logo{filter:invert(1)} }
+
+  .code{
+    font-size:13px; font-weight:700; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--text3); margin-bottom:14px;
+  }
+  h1{
+    font-size:26px; font-weight:700; line-height:1.2;
+    letter-spacing:-.02em; margin-bottom:14px;
+  }
+  p{font-size:14.5px; color:var(--text2); margin-bottom:32px}
+
+  .actions{display:flex; gap:10px; flex-wrap:wrap}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:11px 20px; border-radius:9px; font-size:13.5px; font-weight:700;
+    text-decoration:none; border:1px solid var(--border);
+    transition:.18s cubic-bezier(.4,0,.2,1);
+  }
+  .btn-primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+  .btn-primary:hover{opacity:.85}
+  .btn-ghost{background:transparent; color:var(--text2)}
+  .btn-ghost:hover{border-color:var(--text3); color:var(--text)}
+
+  footer{
+    margin-top:26px; font-size:11.5px; color:var(--text3);
+    letter-spacing:.04em; text-align:center;
+  }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <img class="logo" src="/assets/logo-studio-design.svg" alt="Studio Design"
+         onerror="this.style.display='none'">
+
+    <div class="code">Erro 403</div>
+    <h1>Acesso restrito.</h1>
+    <p>Esta área é da equipe. Se você deveria ter acesso, fale com o administrador.</p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="/app.html">Ir para a plataforma</a>
+      <a class="btn btn-ghost" href="javascript:history.back()">Voltar</a>
+    </div>
+  </div>
+
+  <footer>STUDIO DESIGN — workflow</footer>
+
+</body>
+</html>

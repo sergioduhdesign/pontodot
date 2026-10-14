@@ -1,0 +1,511 @@
+{
+  "id": "sd-workstyle",
+  "version": "0.1",
+  "status": "proposta original para piloto; não validada psicometricamente",
+  "title": "Seu jeito de trabalhar",
+  "intro": "Não existe resposta certa. Pense em como você prefere receber ajuda no trabalho hoje. Você pode ajustar tudo depois.",
+  "scale": [
+    {
+      "value": 1,
+      "label": "Muito mais a primeira opção"
+    },
+    {
+      "value": 2,
+      "label": "Um pouco mais a primeira opção"
+    },
+    {
+      "value": 3,
+      "label": "Depende / entre as duas"
+    },
+    {
+      "value": 4,
+      "label": "Um pouco mais a segunda opção"
+    },
+    {
+      "value": 5,
+      "label": "Muito mais a segunda opção"
+    }
+  ],
+  "display": {
+    "questions_per_step": 1,
+    "randomize": false,
+    "order_note": "Intercalado por eixo; preservar ordem e versão ao retomar.",
+    "estimate_minutes": [
+      10,
+      15
+    ],
+    "estimate_status": "estimativa de produto, a calibrar com uso real",
+    "mode": "statement"
+  },
+  "scoring": {
+    "compute_only_when_all_required_answered": true,
+    "formula": "Para cada eixo: 25 * (média das 8 respostas - 1), resultando em 0..100.",
+    "normalization": "Escala interna de preferência; não percentil da população nem grau de capacidade.",
+    "mixed_band": [
+      40,
+      60
+    ],
+    "recommendation": "Para cada código editorial do cânone, converter bit 0 em 20 e bit 1 em 80; calcular soma dos quatro quadrados das diferenças. Menor distância sugere afinidade visual/narrativa. Empates permanecem empates e exigem escolha visual do usuário; não preferir o primeiro ID. Mostrar três opções próximas ou todos os empatados no limite. Não chamar isso de probabilidade, diagnóstico ou tipo MBTI.",
+    "overrides": "A confirmação explícita do usuário sobre como deseja atendimento prevalece sobre pontuações. Trocar aparência não muda respostas nem configuração.",
+    "incomplete": "Permitir salvar sem calcular resultado final; oferecer configuração manual e uso padrão sem avaliação."
+  },
+  "questions": [
+    {
+      "id": "interaction_1",
+      "axis": "interaction",
+      "prompt": "Quando surge uma tarefa nova, prefiro…",
+      "left": "pensar um pouco antes de conversar",
+      "right": "desenvolver o raciocínio conversando",
+      "reverse": false,
+      "required": true,
+      "statement": "Quando surge uma tarefa nova, eu começo falando sobre ela pra pensar melhor."
+    },
+    {
+      "id": "starting_point_1",
+      "axis": "starting_point",
+      "prompt": "Ao conhecer um projeto, quero começar…",
+      "left": "por um exemplo concreto do resultado esperado",
+      "right": "pela intenção e pelas possibilidades do projeto",
+      "reverse": false,
+      "required": true,
+      "statement": "Quero entender a intenção do projeto antes de ver um exemplo do resultado."
+    },
+    {
+      "id": "support_style_1",
+      "axis": "support_style",
+      "prompt": "Quando uma entrega precisa de revisão, prefiro que a IA comece…",
+      "left": "pelo ajuste principal e sua razão",
+      "right": "reconhecendo o contexto antes de explicar o ajuste",
+      "reverse": false,
+      "required": true,
+      "statement": "Prefiro que reconheçam o contexto antes de apontar o ajuste."
+    },
+    {
+      "id": "planning_1",
+      "axis": "planning",
+      "prompt": "Ao começar um trabalho novo, prefiro…",
+      "left": "combinar etapas e marcos desde o início",
+      "right": "descobrir etapas enquanto faço uma primeira tentativa",
+      "reverse": false,
+      "required": true,
+      "statement": "Começo trabalhos novos tentando, e descubro as etapas no caminho."
+    },
+    {
+      "id": "interaction_2",
+      "axis": "interaction",
+      "prompt": "Para avaliar uma ideia inicial, ajuda mais…",
+      "left": "receber um rascunho para ler no meu tempo",
+      "right": "trocar perguntas e respostas na hora",
+      "reverse": false,
+      "required": true,
+      "statement": "Prefiro trocar perguntas na hora a receber um rascunho pra ler depois."
+    },
+    {
+      "id": "starting_point_2",
+      "axis": "starting_point",
+      "prompt": "Para entender uma proposta, prefiro ver primeiro…",
+      "left": "o que já existe e o que precisa mudar",
+      "right": "a visão do que isso poderia se tornar",
+      "reverse": false,
+      "required": true,
+      "statement": "Diante de uma proposta, penso primeiro no que ela poderia se tornar."
+    },
+    {
+      "id": "support_style_2",
+      "axis": "support_style",
+      "prompt": "Quando algo dá errado, ajuda mais receber primeiro…",
+      "left": "um próximo passo claro",
+      "right": "uma breve escuta sobre o que ficou difícil",
+      "reverse": false,
+      "required": true,
+      "statement": "Quando algo dá errado, me ajuda ser ouvido antes de receber o próximo passo."
+    },
+    {
+      "id": "planning_2",
+      "axis": "planning",
+      "prompt": "Para organizar a semana, ajuda mais…",
+      "left": "ter prioridades e horários relativamente definidos",
+      "right": "ter prioridades com espaço amplo para reorganizar",
+      "reverse": false,
+      "required": true,
+      "statement": "Prefiro a semana com espaço amplo pra reorganizar."
+    },
+    {
+      "id": "interaction_3",
+      "axis": "interaction",
+      "prompt": "Antes de uma reunião importante, prefiro…",
+      "left": "organizar minhas observações por escrito",
+      "right": "conversar para descobrir minhas observações",
+      "reverse": false,
+      "required": true,
+      "statement": "Antes de uma reunião importante, descubro o que penso conversando."
+    },
+    {
+      "id": "starting_point_3",
+      "axis": "starting_point",
+      "prompt": "Quando a IA explica um conceito, ajuda mais começar…",
+      "left": "com um caso do dia a dia",
+      "right": "com uma visão geral que conecte as partes",
+      "reverse": false,
+      "required": true,
+      "statement": "Prefiro a visão geral antes do caso do dia a dia."
+    },
+    {
+      "id": "support_style_3",
+      "axis": "support_style",
+      "prompt": "Num feedback difícil, prefiro a abertura…",
+      "left": "direta, respeitosa e específica",
+      "right": "cuidadosa, com espaço para eu contextualizar",
+      "reverse": false,
+      "required": true,
+      "statement": "Num feedback difícil, prefiro uma abertura cuidadosa."
+    },
+    {
+      "id": "planning_3",
+      "axis": "planning",
+      "prompt": "Quando existem várias alternativas, prefiro…",
+      "left": "escolher um caminho e organizar sua execução",
+      "right": "experimentar alguns caminhos antes de fechar",
+      "reverse": false,
+      "required": true,
+      "statement": "Com várias alternativas, experimento algumas antes de fechar."
+    },
+    {
+      "id": "interaction_4",
+      "axis": "interaction",
+      "prompt": "Quando travo num problema, costumo querer…",
+      "left": "um intervalo para pensar sozinho",
+      "right": "uma conversa curta para destravar",
+      "reverse": false,
+      "required": true,
+      "statement": "Quando travo num problema, uma conversa curta me destrava mais que ficar sozinho."
+    },
+    {
+      "id": "starting_point_4",
+      "axis": "starting_point",
+      "prompt": "Num pedido ainda vago, prefiro que a IA…",
+      "left": "peça um exemplo do que seria uma boa entrega",
+      "right": "explore possíveis direções para a entrega",
+      "reverse": false,
+      "required": true,
+      "statement": "Num pedido vago, prefiro explorar direções a pedir um exemplo."
+    },
+    {
+      "id": "support_style_4",
+      "axis": "support_style",
+      "prompt": "Se estou sobrecarregado, quero que a IA comece…",
+      "left": "organizando prioridades objetivamente",
+      "right": "perguntando o que mais está pesando",
+      "reverse": false,
+      "required": true,
+      "statement": "Sobrecarregado, prefiro que me perguntem o que está pesando."
+    },
+    {
+      "id": "planning_4",
+      "axis": "planning",
+      "prompt": "No meio de um projeto, quero que a IA…",
+      "left": "acompanhe os marcos que combinamos",
+      "right": "ajude a revisar o caminho conforme descobrimos coisas",
+      "reverse": false,
+      "required": true,
+      "statement": "No meio do projeto, prefiro revisar o caminho conforme descubro coisas."
+    },
+    {
+      "id": "interaction_5",
+      "axis": "interaction",
+      "prompt": "Durante uma explicação da IA, prefiro…",
+      "left": "receber uma resposta completa e depois comentar",
+      "right": "construir a resposta em etapas comigo",
+      "reverse": false,
+      "required": true,
+      "statement": "Gosto de construir a resposta junto, em etapas, em vez de recebê-la pronta."
+    },
+    {
+      "id": "starting_point_5",
+      "axis": "starting_point",
+      "prompt": "Ao comparar caminhos, presto atenção primeiro…",
+      "left": "no que cada um permite fazer agora",
+      "right": "nas oportunidades que cada um pode abrir",
+      "reverse": false,
+      "required": true,
+      "statement": "Ao comparar caminhos, olho as oportunidades que cada um abre."
+    },
+    {
+      "id": "support_style_5",
+      "axis": "support_style",
+      "prompt": "Ao discordar de mim, a IA deve começar…",
+      "left": "mostrando o ponto de divergência com clareza",
+      "right": "situando o que entendeu antes de divergir",
+      "reverse": false,
+      "required": true,
+      "statement": "Ao discordar de mim, prefiro que situem o que entenderam antes."
+    },
+    {
+      "id": "planning_5",
+      "axis": "planning",
+      "prompt": "Para destravar uma tarefa, prefiro receber…",
+      "left": "uma sequência clara de ações",
+      "right": "uma primeira experiência e opções para o passo seguinte",
+      "reverse": false,
+      "required": true,
+      "statement": "Pra destravar, prefiro uma primeira experiência a uma sequência de ações."
+    },
+    {
+      "id": "interaction_6",
+      "axis": "interaction",
+      "prompt": "Ao iniciar uma colaboração, me ajuda…",
+      "left": "ter contexto escrito antes do primeiro encontro",
+      "right": "começar por uma conversa de alinhamento",
+      "reverse": false,
+      "required": true,
+      "statement": "Começo uma colaboração nova por uma conversa de alinhamento."
+    },
+    {
+      "id": "starting_point_6",
+      "axis": "starting_point",
+      "prompt": "Para começar a criar, prefiro ter…",
+      "left": "uma referência ou um material para transformar",
+      "right": "uma pergunta ampla para explorar",
+      "reverse": false,
+      "required": true,
+      "statement": "Começo a criar melhor a partir de uma pergunta ampla do que de uma referência."
+    },
+    {
+      "id": "support_style_6",
+      "axis": "support_style",
+      "prompt": "Depois de um erro meu, costuma ajudar mais…",
+      "left": "uma orientação prática sem rodeios",
+      "right": "um breve acolhimento antes da orientação prática",
+      "reverse": false,
+      "required": true,
+      "statement": "Depois de um erro meu, um acolhimento breve ajuda antes da orientação."
+    },
+    {
+      "id": "planning_6",
+      "axis": "planning",
+      "prompt": "Ao trabalhar com incerteza, ajuda mais…",
+      "left": "definir o próximo marco e o que falta para chegar lá",
+      "right": "avançar com uma hipótese e ajustar com o retorno",
+      "reverse": false,
+      "required": true,
+      "statement": "Na incerteza, avanço com uma hipótese e ajusto com o retorno."
+    },
+    {
+      "id": "interaction_7",
+      "axis": "interaction",
+      "prompt": "Quando tenho várias ideias, prefiro…",
+      "left": "selecionar algumas antes de compartilhar",
+      "right": "compartilhar cedo para desenvolvê-las junto",
+      "reverse": false,
+      "required": true,
+      "statement": "Compartilho minhas ideias cedo, antes de escolher as melhores."
+    },
+    {
+      "id": "starting_point_7",
+      "axis": "starting_point",
+      "prompt": "Quando recebo uma ideia abstrata, quero primeiro…",
+      "left": "ver como funcionaria numa situação real",
+      "right": "entender suas conexões com outras ideias",
+      "reverse": false,
+      "required": true,
+      "statement": "Com uma ideia abstrata, quero entender as conexões antes do caso real."
+    },
+    {
+      "id": "support_style_7",
+      "axis": "support_style",
+      "prompt": "Numa mensagem delicada para outra pessoa, quero primeiro…",
+      "left": "a intenção e o pedido expressos claramente",
+      "right": "uma abertura que cuide da relação e do contexto",
+      "reverse": false,
+      "required": true,
+      "statement": "Numa mensagem delicada, começo cuidando da relação."
+    },
+    {
+      "id": "planning_7",
+      "axis": "planning",
+      "prompt": "Quando uma boa ideia nova aparece, prefiro…",
+      "left": "avaliar como ela entra no plano atual",
+      "right": "testar rapidamente se muda o plano",
+      "reverse": false,
+      "required": true,
+      "statement": "Quando aparece uma ideia nova, testo rápido se ela muda o plano."
+    },
+    {
+      "id": "interaction_8",
+      "axis": "interaction",
+      "prompt": "Para revisar meu raciocínio, prefiro…",
+      "left": "uma síntese que eu possa reler em silêncio",
+      "right": "uma troca em que eu possa pensar em voz alta",
+      "reverse": false,
+      "required": true,
+      "statement": "Penso melhor em voz alta do que relendo em silêncio."
+    },
+    {
+      "id": "starting_point_8",
+      "axis": "starting_point",
+      "prompt": "Uma boa primeira resposta da IA costuma me dar…",
+      "left": "um exemplo utilizável",
+      "right": "um mapa de possibilidades",
+      "reverse": false,
+      "required": true,
+      "statement": "Uma boa primeira resposta me dá um mapa de possibilidades."
+    },
+    {
+      "id": "support_style_8",
+      "axis": "support_style",
+      "prompt": "Em uma resposta sob pressão, prefiro…",
+      "left": "conclusão primeiro, contexto depois",
+      "right": "contexto breve primeiro, conclusão depois",
+      "reverse": false,
+      "required": true,
+      "statement": "Sob pressão, prefiro um contexto breve antes da conclusão."
+    },
+    {
+      "id": "planning_8",
+      "axis": "planning",
+      "prompt": "Uma parceria produtiva com a IA deve me oferecer…",
+      "left": "continuidade e acompanhamento dos acordos",
+      "right": "flexibilidade para revisar o jeito de fazer",
+      "reverse": false,
+      "required": true,
+      "statement": "Valorizo poder revisar o jeito de fazer no meio do caminho."
+    }
+  ],
+  "direct_preferences": [
+    {
+      "id": "role",
+      "label": "O que você faz no trabalho?",
+      "kind": "short_text",
+      "max_length": 160,
+      "required": true,
+      "note": "Cargo/atividade e tarefas reais; não inferir profissão por persona."
+    },
+    {
+      "id": "main_help",
+      "label": "Em quais tarefas você mais quer ajuda?",
+      "kind": "multi_select",
+      "options": [
+        "Criar",
+        "Planejar",
+        "Pesquisar",
+        "Revisar",
+        "Organizar entregas",
+        "Comunicar",
+        "Outra tarefa"
+      ],
+      "max_selections": 3,
+      "required": true
+    },
+    {
+      "id": "verbosity",
+      "label": "Como prefere a primeira resposta?",
+      "kind": "single_select",
+      "options": [
+        "Curta, com opção de aprofundar",
+        "Média, com contexto suficiente",
+        "Detalhada desde o começo"
+      ],
+      "required": true
+    },
+    {
+      "id": "feedback",
+      "label": "Como quer receber críticas e sugestões?",
+      "kind": "single_select",
+      "options": [
+        "Diretas e respeitosas",
+        "Com contexto e exemplos",
+        "Em conversa, por partes"
+      ],
+      "required": true
+    },
+    {
+      "id": "challenge",
+      "label": "Quando quer que a IA questione uma ideia sua?",
+      "kind": "single_select",
+      "options": [
+        "Sempre que encontrar uma fragilidade relevante",
+        "Depois de desenvolvermos a primeira versão",
+        "Quando eu pedir, exceto erros factuais ou riscos concretos"
+      ],
+      "required": true
+    },
+    {
+      "id": "initiative",
+      "label": "Como prefere receber sugestões novas?",
+      "kind": "single_select",
+      "options": [
+        "Só quando eu pedir",
+        "Quando forem claramente relevantes",
+        "Com frequência, sem interromper a tarefa"
+      ],
+      "required": true,
+      "note": "Não altera permissões de executar, enviar, publicar ou gastar."
+    },
+    {
+      "id": "reminders",
+      "label": "Como prefere lembretes sobre combinados?",
+      "kind": "single_select",
+      "options": [
+        "Sem lembretes proativos",
+        "Um resumo diário",
+        "Só marcos e prazos combinados"
+      ],
+      "required": true
+    },
+    {
+      "id": "narrative",
+      "label": "Quanto do universo do personagem quer ver?",
+      "kind": "single_select",
+      "options": [
+        "Só perfil e álbum",
+        "Pequenas aparições quando fizer sentido",
+        "Mais presença, sem atrapalhar o trabalho"
+      ],
+      "required": true
+    }
+  ],
+  "optional_self_report": {
+    "label": "Já conhece alguma descrição de personalidade com que se identifica?",
+    "required": false,
+    "fields": [
+      "tipo informado, por exemplo INTJ",
+      "origem informada pelo usuário",
+      "data opcional"
+    ],
+    "use": "Guardar como autodescrição privada. Não importar automaticamente relatórios de terceiros, não converter em pontuações e não usar em avaliação profissional."
+  },
+  "result_copy": {
+    "heading": "Seu jeito de trabalhar ganhou companhia",
+    "body": "Estas respostas sugerem algumas preferências de colaboração. Confira o que combina com você, ajuste o que faltar e escolha quem vai te acompanhar.",
+    "mixed": "Você varia conforme o contexto — vamos manter essa flexibilidade.",
+    "confirmation": "É assim que quero que minha IA trabalhe comigo."
+  },
+  "statement_scale": [
+    {
+      "value": 1,
+      "label": "Nunca",
+      "curto": "nunca"
+    },
+    {
+      "value": 2,
+      "label": "Raramente",
+      "curto": "raro"
+    },
+    {
+      "value": 3,
+      "label": "Às vezes",
+      "curto": "às vezes"
+    },
+    {
+      "value": 4,
+      "label": "Quase sempre",
+      "curto": "quase sempre"
+    },
+    {
+      "value": 5,
+      "label": "Sempre",
+      "curto": "sempre"
+    }
+  ],
+  "statement_note": "Frase ancorada no polo DIREITO do par original: 5 (Sempre) equivale a 'muito mais a segunda opção'. A pontuação do cânone vale sem alteração. O par left/right continua no arquivo — trocar de volta é só mudar o modo de exibição."
+}

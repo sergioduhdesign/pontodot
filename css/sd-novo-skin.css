@@ -1,0 +1,308 @@
+/* =====================================================================
+   SD — pele "sdnovo": o SD de hoje, inteiro, vestindo a identidade nova.
+   Nada de lógica: só variáveis e acabamento. O app continua o mesmo.
+   Aplicada quando <html data-theme="sdnovo"> (o /novo injeta sozinho).
+   ===================================================================== */
+
+[data-theme="sdnovo"]{
+  --bg:        #0B0C0B;
+  --surface:   #151615;
+  --surface2:  #1E201F;
+  --surface3:  #282A29;
+  --border:    rgba(255,255,255,.17);
+  --border2:   rgba(255,255,255,.3);
+  --text:      rgba(255,255,255,.93);
+  --text2:     rgba(255,255,255,.64);
+  --text3:     rgba(255,255,255,.42);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.35);
+  --shadow:    0 8px 22px rgba(0,0,0,.35);
+  --shadow-md: 0 14px 34px rgba(0,0,0,.42);
+  --shadow-lg: 0 24px 60px rgba(0,0,0,.55);
+  --radius:    14px;
+  --radius-lg: 20px;
+  --accent:    #ffffff;
+  --accent-fg: #0B0C0B;
+}
+
+/* claro: papel e tinta, mesmo desenho */
+[data-theme="sdnovo-claro"]{
+  --bg:        #E9E8E2;
+  --surface:   #F4F3EF;
+  --surface2:  #ECEBE6;
+  --surface3:  #E2E1DB;
+  --border:    rgba(26,27,30,.3);
+  --border2:   rgba(26,27,30,.5);
+  --text:      #1A1B1E;
+  --text2:     rgba(26,27,30,.64);
+  --text3:     rgba(26,27,30,.42);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.08);
+  --shadow:    0 8px 22px rgba(0,0,0,.1);
+  --shadow-md: 0 14px 34px rgba(0,0,0,.12);
+  --shadow-lg: 0 24px 60px rgba(0,0,0,.16);
+  --radius:    14px;
+  --radius-lg: 20px;
+  --accent:    #1A1B1E;
+  --accent-fg: #ffffff;
+}
+
+/* ---- tipografia da casa ---- */
+[data-theme="sdnovo"] body,[data-theme="sdnovo-claro"] body{
+  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;
+  font-weight:400;
+  letter-spacing:.005em;
+}
+[data-theme="sdnovo"] h1,[data-theme="sdnovo"] h2,[data-theme="sdnovo"] .modal-title,
+[data-theme="sdnovo-claro"] h1,[data-theme="sdnovo-claro"] h2,[data-theme="sdnovo-claro"] .modal-title{
+  font-weight:400;letter-spacing:-.01em;
+}
+[data-theme="sdnovo"] b,[data-theme="sdnovo"] strong,
+[data-theme="sdnovo-claro"] b,[data-theme="sdnovo-claro"] strong{font-weight:600}
+
+/* ---- cantos, linhas finas e vidro ---- */
+[data-theme="sdnovo"] .k-card,[data-theme="sdnovo-claro"] .k-card,
+[data-theme="sdnovo"] .feed-post,[data-theme="sdnovo-claro"] .feed-post,
+[data-theme="sdnovo"] .client-entity-card,[data-theme="sdnovo-claro"] .client-entity-card{
+  border-radius:var(--radius-lg);
+  border-width:.5px;
+}
+[data-theme="sdnovo"] .modal,[data-theme="sdnovo-claro"] .modal{
+  border-radius:var(--radius-lg);
+  border:.5px solid var(--border);
+  box-shadow:var(--shadow-lg);
+}
+[data-theme="sdnovo"] .overlay,[data-theme="sdnovo-claro"] .overlay{
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+[data-theme="sdnovo"] .header,[data-theme="sdnovo-claro"] .header{
+  background:color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:.5px solid var(--border);
+}
+[data-theme="sdnovo"] .nav-tab,[data-theme="sdnovo-claro"] .nav-tab{
+  border-radius:999px;font-weight:400;letter-spacing:.02em;
+}
+[data-theme="sdnovo"] .btn,[data-theme="sdnovo-claro"] .btn,
+[data-theme="sdnovo"] .btn-primary,[data-theme="sdnovo-claro"] .btn-primary,
+[data-theme="sdnovo"] .btn-secondary,[data-theme="sdnovo-claro"] .btn-secondary{
+  border-radius:999px;font-weight:450;
+}
+[data-theme="sdnovo"] .field-input,[data-theme="sdnovo"] .field-select,[data-theme="sdnovo"] .field-textarea,
+[data-theme="sdnovo-claro"] .field-input,[data-theme="sdnovo-claro"] .field-select,[data-theme="sdnovo-claro"] .field-textarea{
+  border-radius:12px;border-width:.5px;
+}
+[data-theme="sdnovo"] .sidebar,[data-theme="sdnovo-claro"] .sidebar{
+  border-right:.5px solid var(--border);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+[data-theme="sdnovo"] .main-content,[data-theme="sdnovo-claro"] .main-content{background:var(--bg)}
+[data-theme="sdnovo"] .toolbar,[data-theme="sdnovo-claro"] .toolbar{gap:10px}
+[data-theme="sdnovo"] .nav-tab{padding:8px 16px}
+[data-theme="sdnovo"] .field-select,[data-theme="sdnovo-claro"] .field-select{border-radius:999px;padding-left:14px}
+[data-theme="sdnovo"] .user-dropdown,[data-theme="sdnovo-claro"] .user-dropdown,
+[data-theme="sdnovo"] .search-dropdown,[data-theme="sdnovo-claro"] .search-dropdown{
+  border-radius:16px;border:.5px solid var(--border);box-shadow:var(--shadow-lg);
+}
+[data-theme="sdnovo"] .list-tbl th,[data-theme="sdnovo-claro"] .list-tbl th{
+  font-weight:500;letter-spacing:.08em;font-size:10px;text-transform:uppercase;color:var(--text3);
+}
+[data-theme="sdnovo"] .k-cards,[data-theme="sdnovo-claro"] .k-cards{border-radius:var(--radius-lg)}
+[data-theme="sdnovo"] .modal-close,[data-theme="sdnovo-claro"] .modal-close{
+  min-width:40px;min-height:40px;display:grid;place-items:center;border-radius:12px;font-size:13px;
+}
+[data-theme="sdnovo"] .modal-close:hover,[data-theme="sdnovo-claro"] .modal-close:hover{background:rgba(127,127,127,.15)}
+
+/* paridade com a frente: pílulas, vidro e respiro */
+[data-theme="sdnovo"] body,[data-theme="sdnovo-claro"] body{font-size:13.5px}
+[data-theme="sdnovo"] .global-search-input,[data-theme="sdnovo-claro"] .global-search-input{
+  border-radius:999px;border:.5px solid var(--border);background:var(--surface2)}
+[data-theme="sdnovo"] .feed-compose-input,[data-theme="sdnovo-claro"] .feed-compose-input{border-radius:999px;border:.5px solid var(--border)}
+[data-theme="sdnovo"] .feed-post,[data-theme="sdnovo-claro"] .feed-post{border:.5px solid var(--border);box-shadow:var(--shadow-sm)}
+[data-theme="sdnovo"] .k-card{background:var(--surface);border:.5px solid var(--border);box-shadow:var(--shadow-sm)}
+[data-theme="sdnovo"] .user-btn,[data-theme="sdnovo-claro"] .user-btn{border-radius:999px}
+[data-theme="sdnovo"] .toolbar .field-select{background:var(--surface2)}
+[data-theme="sdnovo"] .app-footer,[data-theme="sdnovo-claro"] .app-footer{border-top:.5px solid var(--border);background:transparent}
+
+/* o widget do tracker (horário de trabalho) entra na mesma pele */
+[data-theme="sdnovo"] #tracker-win,[data-theme="sdnovo-claro"] #tracker-win{
+  background:var(--surface)!important;border:.5px solid var(--border)!important;
+  border-radius:var(--radius-lg)!important;box-shadow:var(--shadow-lg)!important;color:var(--text)}
+[data-theme="sdnovo"] #tracker-head,[data-theme="sdnovo-claro"] #tracker-head{
+  background:var(--surface2)!important;border-bottom:.5px solid var(--border)!important;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0!important}
+[data-theme="sdnovo"] #tracker-body .k-card{border-radius:12px}
+
+/* rolagem gorda, a mesma régua dos dois lados (frente e verso) */
+[data-theme="sdnovo"] ::-webkit-scrollbar,[data-theme="sdnovo-claro"] ::-webkit-scrollbar{width:13px;height:13px}
+[data-theme="sdnovo"] ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:9px;border:3px solid transparent;background-clip:content-box}
+[data-theme="sdnovo-claro"] ::-webkit-scrollbar-thumb{background:rgba(26,27,30,.26);border-radius:9px;border:3px solid transparent;background-clip:content-box}
+[data-theme="sdnovo"] ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.32);background-clip:content-box}
+[data-theme="sdnovo-claro"] ::-webkit-scrollbar-thumb:hover{background:rgba(26,27,30,.4);background-clip:content-box}
+[data-theme="sdnovo"] ::-webkit-scrollbar-track,[data-theme="sdnovo-claro"] ::-webkit-scrollbar-track{background:transparent}
+
+/* ====================== v45: o verso segue a frente ======================
+   caixas, menos linhas, cantos mais arredondados — e a pele desce fundo
+   no kanban, na lista e no fluxo. */
+[data-theme="sdnovo"],[data-theme="sdnovo-claro"]{--radius:16px;--radius-lg:22px}
+
+/* KANBAN: coluna vira caixa única de canto redondo, sem linha dura */
+[data-theme="sdnovo"] .k-col-head,[data-theme="sdnovo-claro"] .k-col-head{
+  border:.5px solid var(--border);border-bottom:none;border-radius:18px 18px 0 0;background:var(--surface2)}
+[data-theme="sdnovo"] .k-cards,[data-theme="sdnovo-claro"] .k-cards{
+  border:.5px solid var(--border);border-top:none;border-radius:0 0 18px 18px;padding:8px;gap:8px;
+  background:color-mix(in srgb, var(--surface) 60%, transparent)}
+[data-theme="sdnovo"] .k-card,[data-theme="sdnovo-claro"] .k-card{border-radius:16px;border-width:.5px}
+[data-theme="sdnovo"] .st-badge,[data-theme="sdnovo-claro"] .st-badge{border-radius:999px;font-weight:600;letter-spacing:.04em}
+
+/* LISTA: moldura arredondada, um fio suave por linha — nada de grade pesada */
+[data-theme="sdnovo"] .list-wrap,[data-theme="sdnovo-claro"] .list-wrap{
+  border:.5px solid var(--border);border-radius:20px;overflow:hidden;background:var(--surface)}
+[data-theme="sdnovo"] .list-tbl th,[data-theme="sdnovo-claro"] .list-tbl th{
+  border-bottom:.5px solid var(--border);background:var(--surface2)}
+[data-theme="sdnovo"] .list-tbl td,[data-theme="sdnovo-claro"] .list-tbl td{
+  border-bottom:.5px solid var(--border);padding:10px 12px}
+
+/* FLUXO (cronograma): sem linhas verticais, só o fio horizontal leve */
+[data-theme="sdnovo"] .gantt-tbl th,[data-theme="sdnovo-claro"] .gantt-tbl th{
+  border-right:none;border-bottom:.5px solid var(--border);background:var(--surface2)}
+[data-theme="sdnovo"] .gantt-tbl td,[data-theme="sdnovo-claro"] .gantt-tbl td{
+  border-right:none;border-bottom:.5px solid var(--border)}
+[data-theme="sdnovo"] .gantt-tbl td.s-left,[data-theme="sdnovo-claro"] .gantt-tbl td.s-left{
+  border-right:.5px solid var(--border2)}
+[data-theme="sdnovo"] .gantt-range-btn,[data-theme="sdnovo-claro"] .gantt-range-btn{border-radius:999px}
+[data-theme="sdnovo"] .gantt-container,[data-theme="sdnovo-claro"] .gantt-container{background:var(--bg)}
+
+/* ============ v46: a cabeça do verso fala a língua da frente ============
+   título grande e fino, texto pequeno embaixo, barrinha de bolinhas. */
+[data-theme="sdnovo"] .page-title,[data-theme="sdnovo-claro"] .page-title,
+[data-theme="sdnovo"] .modal-title,[data-theme="sdnovo-claro"] .modal-title{
+  font-size:25px;font-weight:400;letter-spacing:-.015em;line-height:1.1}
+[data-theme="sdnovo"] .page-subtitle,[data-theme="sdnovo-claro"] .page-subtitle,
+[data-theme="sdnovo"] .modal-subtitle,[data-theme="sdnovo-claro"] .modal-subtitle{
+  font-size:11.5px;font-weight:400;color:var(--text3);letter-spacing:.01em}
+[data-theme="sdnovo"] .k-col-title,[data-theme="sdnovo-claro"] .k-col-title{
+  font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+[data-theme="sdnovo"] .k-col-count,[data-theme="sdnovo-claro"] .k-col-count{
+  font-size:10px;font-weight:400;opacity:.6}
+/* a barrinha de bolinhas da frente, no topo das colunas */
+[data-theme="sdnovo"] .k-col-dot,[data-theme="sdnovo-claro"] .k-col-dot{
+  width:7px;height:7px;border-radius:50%;opacity:.9}
+[data-theme="sdnovo"] .sidebar-dot,[data-theme="sdnovo-claro"] .sidebar-dot{width:6px;height:6px;border-radius:50%}
+[data-theme="sdnovo"] .sidebar-label,[data-theme="sdnovo-claro"] .sidebar-label{
+  font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-weight:400}
+[data-theme="sdnovo"] .sidebar-count,[data-theme="sdnovo-claro"] .sidebar-count{
+  font-size:10px;font-weight:400;opacity:.6;font-variant-numeric:tabular-nums}
+[data-theme="sdnovo"] .entity-card,[data-theme="sdnovo-claro"] .entity-card{
+  border-radius:18px;border-width:.5px}
+[data-theme="sdnovo"] .entity-card-name,[data-theme="sdnovo-claro"] .entity-card-name{
+  font-size:15px;font-weight:400;letter-spacing:-.005em}
+[data-theme="sdnovo"] .entity-card-meta,[data-theme="sdnovo-claro"] .entity-card-meta{font-size:11px;font-weight:400}
+[data-theme="sdnovo"] .empty-state,[data-theme="sdnovo-claro"] .empty-state{font-weight:400}
+[data-theme="sdnovo"] .filter-sel,[data-theme="sdnovo-claro"] .filter-sel{border-radius:999px;border-width:.5px}
+[data-theme="sdnovo"] .dg-item,[data-theme="sdnovo-claro"] .dg-item{border-radius:12px}
+[data-theme="sdnovo"] .dg-label,[data-theme="sdnovo-claro"] .dg-label{
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;font-weight:400}
+[data-theme="sdnovo"] .dg-val,[data-theme="sdnovo-claro"] .dg-val{font-size:12.5px;font-weight:500}
+[data-theme="sdnovo"] .share-menu-item,[data-theme="sdnovo-claro"] .share-menu-item{border-radius:10px}
+[data-theme="sdnovo"] .mobile-nav-btn,[data-theme="sdnovo-claro"] .mobile-nav-btn{border-radius:14px}
+
+/* O VISOR DE QUEM ESTÁ TRABALHANDO sai de cena no verso: quem mostra
+   isso agora é a caixa "Rolando agora" da frente, que funciona no
+   celular, abre como janela e segue a mesma estética. */
+[data-theme="sdnovo"] #tracker-win,[data-theme="sdnovo-claro"] #tracker-win{display:none!important}
+
+/* =====================================================================
+   v47.2 — OS DOIS LADOS SÃO UM SÓ
+   Não existe "o app antigo" e "o site novo": existe o SD. Daqui pra
+   baixo, a régua da frente vale aqui dentro — cantos, pesos, pílulas,
+   alvos de toque e o mesmo X. O que o usuário vê tem de ser contínuo.
+   ===================================================================== */
+
+/* A RÉGUA. O verso lê --radius/--radius-lg (é o nome que ele conhece):
+   são ELAS que precisam carregar os valores da frente, senão metade do
+   acabamento não chega. A frente usa 15px no botão e 20px na caixa. */
+[data-theme="sdnovo"],[data-theme="sdnovo-claro"]{
+  --radius: 15px;        /* botão, campo, cartão */
+  --radius-lg: 22px;     /* modal, painel, caixa grande */
+  --r: 20px; --rb: 15px; /* os nomes da frente, pra quem vier dela */
+}
+
+/* ---- A ABA LATERAL DO VERSO (Clientes) vira irmã da aba de Conversas ---- */
+[data-theme="sdnovo"] #sidebar-tab,[data-theme="sdnovo-claro"] #sidebar-tab{
+  width:auto!important;height:auto!important;padding:16px 8px!important;
+  top:calc(50% + 96px)!important;                   /* desce: a de Conversas fica acima */
+  background:var(--surface)!important;color:var(--text)!important;
+  border:.5px solid var(--border)!important;border-left:none!important;
+  border-radius:0 14px 14px 0!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.2)!important;
+  gap:6px!important;transition:padding .2s!important}
+[data-theme="sdnovo"] #sidebar-tab:hover,[data-theme="sdnovo-claro"] #sidebar-tab:hover{padding-right:12px!important}
+[data-theme="sdnovo"] #sidebar-tab span,[data-theme="sdnovo-claro"] #sidebar-tab span{
+  font-size:11.5px!important;font-weight:500!important;letter-spacing:.14em!important;
+  color:var(--text)!important;opacity:1!important;writing-mode:vertical-rl!important;transform:none!important}
+[data-theme="sdnovo"] #sidebar-tab svg,[data-theme="sdnovo-claro"] #sidebar-tab svg{
+  width:11px!important;height:11px!important;stroke:var(--text2)!important;opacity:1!important}
+
+/* ---- TIPOGRAFIA: títulos finos e grandes, texto miúdo embaixo ---- */
+[data-theme="sdnovo"] .page-title,[data-theme="sdnovo-claro"] .page-title{
+  font-size:26px;font-weight:400;letter-spacing:-.015em;line-height:1.08}
+[data-theme="sdnovo"] .modal-title,[data-theme="sdnovo-claro"] .modal-title{
+  font-size:23px;font-weight:400;letter-spacing:-.012em}
+[data-theme="sdnovo"] .field-label,[data-theme="sdnovo-claro"] .field-label{
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;font-weight:400}
+
+/* ---- BOTÕES: pílula, alvo de dedo, sem peso de mais ---- */
+[data-theme="sdnovo"] .btn,[data-theme="sdnovo-claro"] .btn{
+  border-radius:999px;min-height:44px;padding:10px 18px;font-size:12.5px;font-weight:450;
+  border-width:.5px;box-shadow:none}
+[data-theme="sdnovo"] .btn-sm,[data-theme="sdnovo-claro"] .btn-sm{min-height:34px;padding:6px 14px;font-size:11.5px}
+[data-theme="sdnovo"] .btn:active,[data-theme="sdnovo-claro"] .btn:active{transform:translateY(1px)}
+[data-theme="sdnovo"] .btn-primary,[data-theme="sdnovo-claro"] .btn-primary{font-weight:600}
+
+/* ---- CAMPOS ---- */
+[data-theme="sdnovo"] .field-input,[data-theme="sdnovo"] .field-textarea,
+[data-theme="sdnovo-claro"] .field-input,[data-theme="sdnovo-claro"] .field-textarea{
+  border-radius:14px;border-width:.5px;min-height:44px;padding:11px 15px;font-size:13.5px}
+[data-theme="sdnovo"] .field-select,[data-theme="sdnovo-claro"] .field-select{
+  border-radius:999px;min-height:44px;padding:0 16px;font-size:13px;border-width:.5px}
+[data-theme="sdnovo"] .field-input:focus,[data-theme="sdnovo-claro"] .field-input:focus,
+[data-theme="sdnovo"] .field-textarea:focus,[data-theme="sdnovo-claro"] .field-textarea:focus{
+  outline:none;border-color:var(--border2)}
+
+/* ---- MODAIS: a mesma caixa de vidro da frente ---- */
+[data-theme="sdnovo"] .modal,[data-theme="sdnovo-claro"] .modal{border-radius:22px}
+[data-theme="sdnovo"] .modal-head,[data-theme="sdnovo-claro"] .modal-head{
+  border-bottom:.5px solid var(--border);padding:20px 22px 14px}
+[data-theme="sdnovo"] .modal-body,[data-theme="sdnovo-claro"] .modal-body{padding:16px 22px}
+[data-theme="sdnovo"] .modal-foot,[data-theme="sdnovo-claro"] .modal-foot{
+  border-top:.5px solid var(--border);padding:14px 22px 18px;gap:9px}
+/* o X é o mesmo em toda a casa: glifo discreto, alvo generoso */
+[data-theme="sdnovo"] .modal-close,[data-theme="sdnovo-claro"] .modal-close{
+  min-width:40px;min-height:40px;border-radius:12px;font-size:12px;font-weight:400;
+  display:grid;place-items:center;border:none;background:none;opacity:.85}
+[data-theme="sdnovo"] .modal-close:hover,[data-theme="sdnovo-claro"] .modal-close:hover{
+  background:rgba(127,127,127,.14);opacity:1}
+
+/* ---- CABEÇALHO E NAVEGAÇÃO ---- */
+[data-theme="sdnovo"] .header,[data-theme="sdnovo-claro"] .header{padding:0 18px}
+[data-theme="sdnovo"] .nav-tab,[data-theme="sdnovo-claro"] .nav-tab{
+  border-radius:999px;font-weight:400;letter-spacing:.03em;font-size:12.5px;min-height:38px;padding:8px 18px}
+[data-theme="sdnovo"] .nav-tab.active,[data-theme="sdnovo-claro"] .nav-tab.active{font-weight:600}
+[data-theme="sdnovo"] .user-btn,[data-theme="sdnovo-claro"] .user-btn{border-radius:999px;min-height:38px}
+[data-theme="sdnovo"] .sidebar,[data-theme="sdnovo-claro"] .sidebar{padding:16px 14px}
+[data-theme="sdnovo"] .toolbar,[data-theme="sdnovo-claro"] .toolbar{gap:10px;padding:12px 18px}
+
+/* ---- CARTÕES E LINHAS: respiro igual ao da frente ---- */
+[data-theme="sdnovo"] .k-card,[data-theme="sdnovo-claro"] .k-card{padding:13px 14px}
+[data-theme="sdnovo"] .feed-post,[data-theme="sdnovo-claro"] .feed-post{padding:16px 18px;border-radius:20px}
+[data-theme="sdnovo"] .entity-card,[data-theme="sdnovo-claro"] .entity-card{padding:16px 16px}
+[data-theme="sdnovo"] .st-badge,[data-theme="sdnovo-claro"] .st-badge{
+  border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.05em;padding:3px 10px}
+
+/* ---- o toque: no dedo, tudo precisa de alvo ---- */
+@media(max-width:999px){
+  [data-theme="sdnovo"] .btn,[data-theme="sdnovo-claro"] .btn{min-height:44px}
+  [data-theme="sdnovo"] .field-input,[data-theme="sdnovo"] .field-select,[data-theme="sdnovo"] .field-textarea,
+  [data-theme="sdnovo-claro"] .field-input,[data-theme="sdnovo-claro"] .field-select,[data-theme="sdnovo-claro"] .field-textarea{
+    font-size:16px}    /* 16px: o iOS para de dar zoom sozinho */
+  [data-theme="sdnovo"] .modal-close,[data-theme="sdnovo-claro"] .modal-close{min-width:44px;min-height:44px}
+}

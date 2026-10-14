@@ -1,0 +1,77 @@
+# =====================================================================
+# SD Workflow — configuração do servidor
+# Local: /home3/pont1652/sd.sergioduh.com/.htaccess
+#
+# Se este arquivo já existir no servidor, NÃO substitua: abra o atual e
+# cole estes blocos no fim, conferindo se algum já não está lá.
+# =====================================================================
+
+
+# --- 1. Páginas de erro com a cara da SD -----------------------------
+ErrorDocument 403 /403.html
+ErrorDocument 404 /404.html
+ErrorDocument 500 /500.html
+ErrorDocument 502 /500.html
+ErrorDocument 503 /500.html
+
+
+# --- 2. Cabeçalho Authorization --------------------------------------
+# Alguns servidores Apache removem este cabeçalho antes do PHP ver.
+# Sem ele, os endpoints não conseguem identificar quem está chamando e
+# todo mundo recebe "Sessão ausente". Este bloco garante a passagem.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:Authorization} ^(.*)
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+</IfModule>
+
+
+# --- 3. Esconder arquivos que não são para o público -----------------
+<FilesMatch "\.(sql|md|log|zip|bak|old|ini|env)$">
+  Require all denied
+</FilesMatch>
+
+# Arquivo de configuração, caso um dia acabe aqui por engano
+<Files "sd-config.php">
+  Require all denied
+</Files>
+
+# Bloqueia listagem de pastas sem index
+Options -Indexes
+
+
+# --- 4. Cabeçalhos de segurança --------------------------------------
+<IfModule mod_headers.c>
+  # Impede que o navegador "adivinhe" o tipo do arquivo
+  Header always set X-Content-Type-Options "nosniff"
+  # Impede que o site seja embutido em iframe de terceiros
+  Header always set X-Frame-Options "SAMEORIGIN"
+  # Não vaza a URL interna ao clicar em link externo
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # Bloqueia acesso a câmera, microfone e localização
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+
+# --- 5. Cache dos estáticos ------------------------------------------
+# Imagens e fontes podem ficar em cache; HTML e JS não, para que uma
+# atualização sua chegue na equipe sem precisar limpar o navegador.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg        "access plus 1 month"
+  ExpiresByType image/png         "access plus 1 month"
+  ExpiresByType image/svg+xml     "access plus 1 month"
+  ExpiresByType image/webp        "access plus 1 month"
+  ExpiresByType audio/mpeg        "access plus 1 month"
+  ExpiresByType text/css          "access plus 1 week"
+  ExpiresByType text/html         "access plus 0 seconds"
+  ExpiresByType application/javascript "access plus 0 seconds"
+</IfModule>
+
+
+# --- 6. Compressão ----------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>

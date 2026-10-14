@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Aprovação — Studio Design</title>
+<link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/main.css">
+<style>
+/* ==================================================================
+   APROVAÇÃO — estética SD
+   Preto e branco, muito espaço, caixas de canto arredondado.
+   A estrutura de informação vem do painel que o Juan montou; a
+   linguagem visual é a da SD, não a do cliente.
+   ================================================================== */
+
+body{background:var(--bg);color:var(--text);padding-bottom:80px}
+
+/* ---------- Topo ---------- */
+.ap-top{
+  background:var(--accent);color:var(--accent-fg);
+  padding:26px clamp(16px,4vw,44px) 22px;
+}
+.ap-top-inner{max-width:1400px;margin:0 auto}
+.ap-eyebrow{
+  font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  opacity:.55;font-weight:700;margin-bottom:8px
+}
+.ap-title{font-size:clamp(21px,3vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.ap-sub{font-size:13.5px;opacity:.6;margin-top:6px;max-width:620px;line-height:1.5}
+
+.ap-progress{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+.ap-track{
+  flex:1;min-width:160px;max-width:380px;height:6px;
+  background:rgba(128,128,128,.28);border-radius:20px;overflow:hidden
+}
+.ap-fill{height:100%;background:var(--accent-fg);width:0;transition:width .45s cubic-bezier(.4,0,.2,1)}
+.ap-count{font-size:12.5px;opacity:.75;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ---------- Filtros ---------- */
+.ap-bar{
+  position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:12px clamp(16px,4vw,44px);
+  background:var(--surface);border-bottom:1px solid var(--border);
+}
+.ap-chip{
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:var(--transition);font-family:inherit
+}
+.ap-chip:hover{border-color:var(--text3);color:var(--text)}
+.ap-chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.ap-chip[data-f="ajustar"].on{background:#db2777;border-color:#db2777;color:#fff}
+.ap-chip .n{opacity:.6;margin-left:5px;font-variant-numeric:tabular-nums}
+
+/* ---------- Board ---------- */
+.ap-board{padding:24px clamp(16px,4vw,44px) 60px;max-width:1400px;margin:0 auto}
+.ap-cols{display:flex;gap:20px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
+.ap-col{flex:0 0 336px;width:336px;display:flex;flex-direction:column;gap:14px}
+.ap-col-head{padding:0 2px 8px;border-bottom:2px solid var(--accent)}
+.ap-col-head h2{font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.ap-col-head .theme{font-size:11.5px;color:var(--text3);margin-top:3px;line-height:1.4}
+
+/* Galeria: grade em vez de colunas */
+.ap-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+
+/* ---------- Card ---------- */
+.ap-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition)
+}
+.ap-card.hide{display:none}
+.ap-card[data-status="aprovado"]{border-color:#16a34a}
+.ap-card[data-status="ajustar"]{border-color:#db2777;box-shadow:0 0 0 3px rgba(219,39,119,.10)}
+
+.ap-card-top{padding:14px 16px 10px;border-left:3px solid var(--text3)}
+.ap-card[data-status="aprovado"] .ap-card-top{border-left-color:#16a34a}
+.ap-card[data-status="ajustar"]  .ap-card-top{border-left-color:#db2777}
+
+.ap-tags{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ap-kind{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  padding:3px 9px;border-radius:20px;background:var(--accent);color:var(--accent-fg)
+}
+.ap-badge{
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;
+  background:var(--surface2);color:var(--text3)
+}
+.ap-badge.aprovado{background:rgba(22,163,74,.12);color:#16a34a}
+.ap-badge.ajustar{background:#db2777;color:#fff}
+.ap-card-title{font-size:13.5px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+
+/* ---------- Mídia ---------- */
+.ap-media{position:relative;background:var(--surface2);line-height:0}
+/* Proporção REAL do arquivo — 4:5 não vira quadrado, 9:16 fica vertical */
+.ap-media img{width:100%;height:auto;display:block;cursor:zoom-in}
+.ap-media video{width:100%;height:auto;display:block;background:#0b0b0d}
+.ap-strip video{width:44px;height:44px;object-fit:cover;border-radius:5px;cursor:pointer;background:#0b0b0d;
+  border:2px solid transparent;opacity:.5;flex:0 0 auto}
+.ap-strip video.on{opacity:1;border-color:var(--accent)}
+.ap-lab2{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:8px 0 4px}
+.ap-lab2:first-of-type{margin-top:0}
+.ap-ver{font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:6px;
+  background:var(--surface2);color:var(--text2);border:1px solid var(--border);margin-right:6px}
+.ap-media .n{
+  position:absolute;top:10px;right:10px;background:rgba(10,10,10,.72);color:#fff;
+  font-size:10.5px;padding:3px 9px;border-radius:20px;font-weight:700;line-height:1.4
+}
+.ap-strip{display:flex;gap:4px;padding:6px;background:var(--surface2);overflow-x:auto}
+.ap-strip img{
+  width:44px;height:44px;object-fit:cover;border-radius:5px;cursor:pointer;
+  border:2px solid transparent;opacity:.5;flex:0 0 auto;transition:var(--transition)
+}
+.ap-strip img.on{opacity:1;border-color:var(--accent)}
+
+/* ---------- Corpo ---------- */
+.ap-body{padding:12px 16px 4px}
+.ap-headline{
+  font-size:12.5px;font-weight:700;white-space:pre-line;line-height:1.35;
+  margin-bottom:8px;letter-spacing:-.01em
+}
+.ap-note{font-size:11.5px;color:var(--text3);line-height:1.45;margin-bottom:8px}
+details.ap-cap{margin-bottom:8px}
+details.ap-cap summary{
+  font-size:11.5px;font-weight:700;color:var(--text2);cursor:pointer;
+  list-style:none;display:flex;align-items:center;gap:5px;padding:3px 0
+}
+details.ap-cap summary::-webkit-details-marker{display:none}
+details.ap-cap summary::before{content:"▸";font-size:9px;transition:var(--transition)}
+details.ap-cap[open] summary::before{content:"▾"}
+.ap-cap-text{font-size:12.5px;line-height:1.6;white-space:pre-line;padding:8px 0 2px;color:var(--text2)}
+.ap-hash{font-size:11.5px;color:var(--text3);word-break:break-word;padding-bottom:6px}
+
+.ap-sb{font-size:11.5px;padding:2px 0 6px}
+.ap-sb .sc{padding:7px 0;border-top:1px dashed var(--border)}
+.ap-sb .sc:first-child{border-top:none}
+.ap-sb .sc b{font-weight:700}
+.ap-sb .sc .d{color:var(--text3)}
+.ap-sb .sc .t{font-style:italic;margin-top:3px;color:var(--text2)}
+
+/* ---------- Zona de decisão ---------- */
+.ap-zone{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2)}
+.ap-lab{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:5px}
+.ap-tip{font-size:11px;color:var(--text3);line-height:1.45;margin-top:7px}
+.ap-btns{display:flex;gap:8px;margin-bottom:9px}
+.ap-btn{
+  flex:1;border:1px solid var(--border);background:var(--surface);color:var(--text2);
+  padding:9px 6px;font-size:12px;font-weight:700;border-radius:9px;cursor:pointer;
+  transition:var(--transition);font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:5px
+}
+.ap-btn:hover{border-color:var(--text3);color:var(--text)}
+.ap-btn.ok.on{background:#16a34a;border-color:#16a34a;color:#fff}
+.ap-btn.fix.on{background:#db2777;border-color:#db2777;color:#fff;
+  box-shadow:0 0 0 3px rgba(219,39,119,.18)}
+.ap-btn:disabled{opacity:.5;cursor:default}
+
+/* Já decidido: o botão vira estado, não ação */
+.ap-btn.travado{background:#d97706;border-color:#d97706;color:#fff;cursor:default;opacity:1}
+.ap-btn.travado:hover{border-color:#d97706}
+.ap-btn.rever{background:transparent;border-color:var(--border2);color:var(--text3);font-weight:600}
+.ap-btn.rever:hover{border-color:var(--text3);color:var(--text2)}
+
+/* Aviso antes de reabrir algo aprovado */
+.ap-warn{position:fixed;inset:0;z-index:99500;display:flex;align-items:center;
+  justify-content:center;padding:24px;background:rgba(10,10,12,.6);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ap-warn-box{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);max-width:420px;width:100%;padding:26px 26px 22px;
+  box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.ap-warn-box h3{font-size:16px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.ap-warn-box p{font-size:13.5px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.ap-warn-acts{display:flex;gap:8px}
+.ap-warn-acts button{flex:1;height:40px;border-radius:9px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;border:1px solid var(--border)}
+.ap-warn-acts .no{background:transparent;color:var(--text2)}
+.ap-warn-acts .no:hover{border-color:var(--text3);color:var(--text)}
+.ap-warn-acts .yes{background:#db2777;border-color:#db2777;color:#fff}
+.ap-warn-acts .yes:hover{opacity:.88}
+
+.ap-ta{
+  width:100%;resize:vertical;min-height:54px;border:1px solid var(--border);
+  border-radius:9px;padding:9px 10px;font-size:12.5px;font-family:inherit;
+  color:var(--text);background:var(--surface);line-height:1.5
+}
+.ap-ta:focus{outline:none;border-color:var(--text3)}
+.ap-send{
+  background:var(--accent);color:var(--accent-fg);border:none;padding:7px 16px;
+  font-size:12px;font-weight:700;border-radius:9px;cursor:pointer;font-family:inherit
+}
+.ap-send:hover{opacity:.85}
+.ap-row{display:flex;justify-content:space-between;align-items:center;margin-top:7px;gap:8px}
+.ap-when{font-size:10.5px;color:var(--text3)}
+
+/* ---------- Conversa ---------- */
+.ap-talk{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.ap-msg{font-size:12px;line-height:1.5;padding:8px 10px;border-radius:9px;background:var(--surface)}
+.ap-msg.cli{background:rgba(219,39,119,.07);border-left:2px solid #db2777}
+.ap-msg .who{font-weight:700;font-size:11px;margin-bottom:2px}
+.ap-msg .when{font-size:10px;color:var(--text3);margin-left:6px;font-weight:400}
+
+/* ---------- Lightbox ---------- */
+.ap-lb{
+  position:fixed;inset:0;background:rgba(8,8,10,.94);z-index:9999;
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:24px
+}
+.ap-lb.on{display:flex}
+.ap-lb img,.ap-lb video{max-width:min(92vw,760px);max-height:76vh;border-radius:9px;object-fit:contain}
+.ap-lb-nav{display:flex;gap:22px;align-items:center}
+.ap-lb button{
+  background:rgba(255,255,255,.13);color:#fff;border:none;width:40px;height:40px;
+  border-radius:50%;font-size:18px;cursor:pointer;transition:var(--transition)
+}
+.ap-lb button:hover{background:rgba(255,255,255,.26)}
+.ap-lb-x{position:absolute;top:20px;right:24px}
+.ap-lb-cap{color:rgba(255,255,255,.68);font-size:12px;text-align:center;max-width:600px}
+
+/* ---------- Estados ---------- */
+.ap-empty{text-align:center;padding:80px 24px;color:var(--text3)}
+.ap-empty .ic{font-size:38px;opacity:.35;margin-bottom:14px}
+.ap-empty h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
+.ap-empty p{font-size:13.5px;max-width:340px;margin:0 auto;line-height:1.55}
+.ap-load{text-align:center;padding:70px 24px;color:var(--text3);font-size:13.5px}
+
+@media (max-width:640px){
+  .ap-col{flex-basis:84vw;width:84vw}
+  .ap-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="ap-top">
+  <div class="ap-top-inner">
+    <p class="ap-eyebrow" id="apEyebrow">Studio Design</p>
+    <h1 class="ap-title" id="apTitle">Carregando…</h1>
+    <p class="ap-sub" id="apSub"></p>
+    <div class="ap-progress">
+      <div class="ap-track"><div class="ap-fill" id="apFill"></div></div>
+      <div class="ap-count" id="apCount">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="ap-bar">
+  <button class="ap-chip on" data-f="all">Tudo <span class="n" id="nAll"></span></button>
+  <button class="ap-chip" data-f="pendente">Pendentes <span class="n" id="nPend"></span></button>
+  <button class="ap-chip" data-f="aprovado">Aprovados <span class="n" id="nOk"></span></button>
+  <button class="ap-chip" data-f="ajustar">Com ajustes <span class="n" id="nFix"></span></button>
+  <button id="btnTudo" style="display:none;margin-left:auto;background:#16a34a;color:#fff;border:none;padding:9px 20px;
+    border-radius:7px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(22,163,74,.35)">✓ Aprovar tudo</button>
+  <button id="btnPdf" style="background:transparent;color:var(--text2);
+    border:1px solid var(--border);padding:7px 15px;border-radius:20px;font-size:12.5px;
+    font-weight:700;cursor:pointer;font-family:inherit">⎙ PDF</button>
+  <button id="btnZip" style="display:none;background:var(--accent);
+    color:var(--accent-fg);border:none;padding:7px 16px;border-radius:20px;font-size:12.5px;
+    font-weight:700;cursor:pointer;font-family:inherit">⤓ Baixar conteúdo</button>
+</div>
+
+<div class="ap-board" id="apBoard">
+  <div class="ap-load">Carregando material…</div>
+</div>
+
+<div class="ap-lb" id="apLb">
+  <button class="ap-lb-x" onclick="lbClose()">✕</button>
+  <video id="apLbVid" controls playsinline style="display:none"></video>
+  <img id="apLbImg" src="" alt="">
+  <div class="ap-lb-nav">
+    <button onclick="lbGo(-1)">‹</button>
+    <div class="ap-lb-cap" id="apLbCap"></div>
+    <button onclick="lbGo(1)">›</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/js/supabase.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/aprovacao-comum.js?v=16"></script>
+<script>
+// ==================================================================
+// ESTADO — versão por LINK PÚBLICO (cliente sem conta)
+//
+// Tudo passa por três funções do banco que exigem o token e não
+// devolvem nada além deste lote. Não há login, e não há como
+// enxergar outro cliente.
+// ==================================================================
+let apSet = null, items = [], filter = 'all', guest = '';
+let lb = { list: [], i: 0 };
+
+const qs = new URLSearchParams(location.search);
+const TOKEN = qs.get('t');
+
+const esc = s => String(s ?? '')
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;');
+
+const KIND_LABEL = {
+  feed:'Feed', carrossel:'Carrossel', stories:'Stories',
+  reels:'Reels', generico:'Material', material:'Material'
+};
+
+// Quem é a pessoa? Perguntamos uma vez e guardamos no navegador dela,
+// só para assinar os comentários. Não é login e não dá acesso a nada.
+function askGuest(){
+  guest = localStorage.getItem('sd_ap_guest_' + TOKEN) || '';
+  if (guest) return;
+  const n = prompt('Como você se chama? (aparece junto dos seus comentários)');
+  guest = (n || '').trim() || 'Cliente';
+  localStorage.setItem('sd_ap_guest_' + TOKEN, guest);
+}
+
+// Erro solto vira aviso na tela. Antes só ia para o console e passava
+// batido — foi o que aconteceu com o realtime.
+window.addEventListener('unhandledrejection', ev => {
+  const m = ev.reason?.message || String(ev.reason || '');
+  if (!m || m.includes('postgres_changes')) return;
+  if (typeof showToast === 'function') showToast('Erro: ' + m, 'error');
+});
+
+(async () => {
+  Theme.init();
+  if (!TOKEN) { showEmpty('Link incompleto', 'Este endereço não traz o código do material. Peça o link de novo para a equipe.'); return; }
+  askGuest();
+  await load();
+})();
+
+async function load(){
+  const { data, error } = await sb.rpc('get_approval_by_token', { p_token: TOKEN });
+
+  if (error) { showEmpty('Não consegui abrir', error.message); return; }
+  if (!data || data.error) {
+    showEmpty('Link expirado', 'Este link não vale mais ou o material foi retirado. Peça um novo para a equipe.');
+    return;
+  }
+
+  apSet = data.set;
+  // Apontamento interno (equipe → IA) nunca aparece no link do cliente
+  items = (data.items || []).map(i => ({ ...i, _talk: (i.talk || []).filter(c => !AP.ehInterno(c.body)) }));
+
+  document.getElementById('apEyebrow').textContent = (data.client_name || 'Studio Design') + ' · Aprovação';
+  document.getElementById('apTitle').textContent   = apSet.title;
+  document.getElementById('apSub').textContent     = apSet.subtitle
+    || 'Revise cada peça, deixe seu comentário e marque como aprovada ou peça ajuste. Suas observações chegam direto na equipe.';
+  document.title = apSet.title + ' — Studio Design';
+
+  if (apSet.due_date) {
+    const d = new Date(apSet.due_date + 'T12:00:00');
+    document.getElementById('apSub').textContent +=
+      '  Prazo para retorno: ' + d.toLocaleDateString('pt-BR') + '.';
+  }
+
+  render();
+}
+
+// ==================================================================
+// RENDER
+// ==================================================================
+function render(){
+  const board = document.getElementById('apBoard');
+
+  if (!items.length) {
+    showEmpty('Nada por aqui ainda', 'A equipe ainda não enviou material neste lote.');
+    return;
+  }
+
+  const total = items.length;
+  const ok    = items.filter(i => i.status === 'aprovado').length;
+  const fix   = items.filter(i => i.status === 'ajustar').length;
+  const pend  = items.filter(i => i.status === 'pendente').length;
+
+  document.getElementById('apFill').style.width = (total ? (ok/total*100) : 0) + '%';
+  document.getElementById('apCount').textContent =
+    ok + ' de ' + total + (ok === total ? ' — tudo aprovado' : ' aprovadas');
+  document.getElementById('nAll').textContent  = total;
+  document.getElementById('nPend').textContent = pend;
+  document.getElementById('nOk').textContent   = ok;
+  document.getElementById('nFix').textContent  = fix;
+
+  const bp = document.getElementById('btnPdf');
+  if (bp) bp.onclick = gerarPDF;
+  const btT = document.getElementById('btnTudo');
+  if (btT) {
+    btT.style.display = (total - ok) > 0 ? 'block' : 'none';
+    btT.textContent = `✓ Aprovar tudo (${total - ok})`;
+    if (bp && true) bp.style.marginLeft = btT.style.display === 'none' ? 'auto' : '';
+    btT.onclick = () => AP.aprovarTudo(items, async (id, decision, comment) => {
+      const { error } = await sb.rpc('review_by_token', { p_token: TOKEN, p_item_id: id, p_decision: decision,
+        p_comment: comment || null, p_guest: guest });
+      if (error) throw error;
+    }, async r => {
+      showToast(`${r.aprovadas} aprovada(s)` + (r.corrigir ? `, ${r.corrigir} pra corrigir` : '') + (r.falhas ? ` · ${r.falhas} falharam` : '') + '.',
+        r.falhas ? 'warn' : 'success');
+      await load();
+      if (r.corrigir) AP.correcaoParaIA(TOKEN, apSet, items);
+      if (r.aprovadas) AP.registrarDecisao(TOKEN, 'aprovado', r.aprovadas);
+      if (r.corrigir) AP.registrarDecisao(TOKEN, 'ajustar', r.corrigir);
+    });
+  }
+
+  const bz = document.getElementById('btnZip');
+  if (bz) { const pronto = total > 0 && ok === total;
+    bz.style.display = pronto ? 'block' : 'none'; bz.onclick = baixarZip; }
+
+  const vis = items.filter(i => filter === 'all' || i.status === filter);
+
+  if (!vis.length) {
+    board.innerHTML = `<div class="ap-empty">
+      <div class="ic">○</div><h3>Nada neste filtro</h3>
+      <p>Não há peças com esse status agora.</p></div>`;
+    return;
+  }
+
+  // Galeria (folheto, outdoor, qualquer material) = grade simples.
+  // Social = colunas por dia, como no painel original.
+  if (apSet.layout === 'galeria') {
+    board.innerHTML = `<div class="ap-grid">${vis.map(cardHTML).join('')}</div>`;
+  } else {
+    const groups = [];
+    vis.forEach(i => {
+      const k = i.group_label || '—';
+      let g = groups.find(x => x.k === k);
+      if (!g) { g = { k, theme: i.group_theme, list: [] }; groups.push(g); }
+      g.list.push(i);
+    });
+    board.innerHTML = `<div class="ap-cols">${groups.map(g => `
+      <div class="ap-col">
+        <div class="ap-col-head">
+          <h2>${esc(g.k)}</h2>
+          ${g.theme ? `<div class="theme">${esc(g.theme)}</div>` : ''}
+        </div>
+        ${g.list.map(cardHTML).join('')}
+      </div>`).join('')}</div>`;
+  }
+
+  bind();
+}
+
+function cardHTML(it){
+  const media = Array.isArray(it.media) ? it.media : [];
+  const isClient = true;
+  const badge = it.status === 'aprovado' ? 'Aprovado'
+              : it.status === 'ajustar'  ? 'Ajustar' : 'Pendente';
+
+  let mediaHTML = '';
+  if (media.length) {
+    // Proporção real do arquivo, vídeo toca no card.
+    mediaHTML = `<div class="ap-media" data-item="${it.id}">
+        ${mediaTagHTML(media[0], 0)}
+        ${media.length > 1 ? `<div class="n">1 / ${media.length}</div>` : ''}
+      </div>`;
+    if (media.length > 1) {
+      mediaHTML += `<div class="ap-strip" data-item="${it.id}">${
+        media.map((m,i) => AP.ehVideo(m)
+          ? `<video src="${esc(m.url||m.thumb)}" data-i="${i}" class="${i===0?'on':''}" muted preload="metadata"></video>`
+          : `<img src="${esc(m.thumb||m.url)}" data-i="${i}" class="${i===0?'on':''}" loading="lazy">`).join('')
+      }</div>`;
+    }
+  }
+
+  let body = '';
+  if (it.headline) body += `<p class="ap-headline">${esc(it.headline)}</p>`;
+  if (it.art_note) body += `<p class="ap-note">${esc(it.art_note)}</p>`;
+  if (Array.isArray(it.storyboard) && it.storyboard.length) {
+    body += `<div class="ap-sb">${it.storyboard.map(s => `
+      <div class="sc"><b>${esc(s.cena)}.</b> <span class="d">${esc(s.desc)}</span>
+      ${s.texto ? `<div class="t">"${esc(s.texto)}"</div>` : ''}</div>`).join('')}</div>`;
+  }
+  if (it.caption) {
+    body += `<details class="ap-cap"><summary>Ler legenda completa</summary>
+      <div class="ap-cap-text">${esc(it.caption)}</div></details>`;
+  }
+  if (it.hashtags) body += `<div class="ap-hash">${esc(it.hashtags)}</div>`;
+
+  // Apresentação da peça — o texto do designer, para material impresso
+  // e afins, onde não existe legenda de post.
+  if (it.pitch) {
+    body += `<div style="font-size:12.5px;line-height:1.6;color:var(--text2);
+      white-space:pre-line;padding:10px 12px;background:var(--surface2);
+      border-radius:9px;margin-bottom:8px">${esc(it.pitch)}</div>`;
+  }
+
+  // Link do arquivo final: o pesado mora fora, aqui fica só o caminho.
+  if (it.external_url) {
+    body += `<a href="${esc(it.external_url)}" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:9px;
+             border:1px solid var(--border);background:var(--surface2);text-decoration:none;
+             color:var(--text);font-size:12.5px;font-weight:700;margin-bottom:8px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+        stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0">
+        <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+        <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      <span>${esc(it.external_label || 'Arquivo final')}</span>
+      <span style="margin-left:auto;color:var(--text3);font-weight:400">abrir ›</span></a>`;
+  }
+  if (it.publish_at) {
+    body += `<div class="ap-note">Publicação prevista: ${
+      AP.quando(it.publish_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>`;
+  }
+
+  const talk = (it._talk || []).map(c => `
+    <div class="ap-msg ${c.is_client ? 'cli' : ''}">
+      <div class="who">${esc(c.author_name)}
+        <span class="when">${new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+      </div>${AP.falaHTML(c.body)}
+    </div>`).join('');
+
+  return `
+  <div class="ap-card" data-id="${it.id}" data-status="${it.status}">
+    <div class="ap-card-top">
+      <div class="ap-tags">
+        <span class="ap-kind">${KIND_LABEL[it.kind] || 'Material'}</span>
+        <span>${(it.version||1) > 1 ? `<span class="ap-ver" title="Versão corrigida">V${it.version}</span>` : ''}<span class="ap-badge ${it.status}">${badge}</span></span>
+      </div>
+      ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
+    </div>
+    ${mediaHTML}
+    ${body ? `<div class="ap-body">${body}</div>` : ''}
+    <div class="ap-zone">
+      <div class="ap-lab2">Ajuste na arte</div>
+      <textarea class="ap-ta" id="ta_${it.id}" style="min-height:44px"
+        placeholder="Imagem, cor, logo, texto que está DENTRO da arte…"></textarea>
+      <div class="ap-lab2">Ajuste no texto (legenda)</div>
+      <textarea class="ap-ta" id="tt_${it.id}" style="min-height:44px"
+        placeholder="Legenda, hashtags, palavra a trocar… (opcional se for aprovar)"></textarea>
+      ${it.status === 'aprovado' ? `
+      <div class="ap-btns" style="margin:9px 0 0">
+        <button class="ap-btn travado" disabled>✓ Aprovado</button>
+        <button class="ap-btn rever" onclick="reverMaterial('${it.id}')">Rever material</button>
+      </div>
+      <div class="ap-tip">Aprovado em ${it.reviewed_at ? new Date(it.reviewed_at).toLocaleDateString('pt-BR') : '—'}.</div>
+      ` : `
+      <div class="ap-btns" style="margin:9px 0 0">
+        <button class="ap-btn ok"  data-act="aprovado" data-id="${it.id}">✓ Aprovar</button>
+        <button class="ap-btn fix ${it.status==='ajustar'?'on':''}" data-act="ajustar" data-id="${it.id}">✎ Pedir ajuste</button>
+      </div>
+      <div class="ap-tip">${it.reviewed_at
+        ? 'Você revisou em ' + new Date(it.reviewed_at).toLocaleDateString('pt-BR') + '. Pode mudar de ideia — é só decidir de novo.'
+        : 'Escreva primeiro, se quiser, e depois escolha. O comentário vai junto da sua decisão.'}</div>
+      `}
+      ${talk ? `<div class="ap-talk">${talk}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function showEmpty(t, p){
+  document.getElementById('apBoard').innerHTML =
+    `<div class="ap-empty"><div class="ic">○</div><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`;
+  document.getElementById('apTitle').textContent = t;
+}
+
+// ==================================================================
+// INTERAÇÃO
+// ==================================================================
+function bind(){
+  document.querySelectorAll('.ap-btn[data-act]').forEach(b =>
+    b.onclick = () => decide(b.dataset.id, b.dataset.act));
+
+  document.querySelectorAll('.ap-strip img, .ap-strip video').forEach(th => {
+    th.onclick = () => {
+      const wrap = th.closest('.ap-strip');
+      const it   = items.find(x => x.id === wrap.dataset.item);
+      const box  = document.querySelector(`.ap-media[data-item="${wrap.dataset.item}"]`);
+      const i    = +th.dataset.i;
+      const n = box.querySelector('.n');
+      box.innerHTML = mediaTagHTML(it.media[i], i) + (n ? n.outerHTML : '');
+      if (box.querySelector('.n')) box.querySelector('.n').textContent = (i+1) + ' / ' + it.media.length;
+      wrap.querySelectorAll('img,video').forEach(x => x.classList.toggle('on', x === th));
+      ligarCliqueMedia(box);
+    };
+  });
+
+  document.querySelectorAll('.ap-media').forEach(ligarCliqueMedia);
+}
+
+function mediaTagHTML(m, i){
+  if (m && m.source === 'drive_link') return `<a href="${esc(m.url)}" target="_blank" rel="noopener" data-i="${i}" style="display:block;padding:44px 16px;text-align:center;color:var(--text2);font-size:12.5px;line-height:1.5;text-decoration:none">▶ ${esc(m.name || 'Arquivo')}<br><span style="color:var(--text3)">Abrir no Drive</span></a>`;
+  if (AP.ehVideo(m)) return `<video src="${esc(m.url || m.thumb)}" data-i="${i}" controls playsinline preload="metadata"></video>`;
+  return `<img src="${esc(m.thumb || m.url)}" data-i="${i}" loading="lazy"
+    onerror="this.closest('.ap-media').innerHTML='<div style=&quot;padding:38px 16px;text-align:center;color:var(--text3);font-size:12px;line-height:1.5&quot;>Não consegui carregar esta imagem.<br>Confira o compartilhamento da pasta no Drive.</div>'">`;
+}
+function ligarCliqueMedia(box){
+  const img = box.querySelector('img');
+  if (!img) return;
+  img.onclick = () => lbOpen(items.find(x => x.id === box.dataset.item), +(img.dataset.i || 0));
+}
+
+document.querySelectorAll('.ap-chip').forEach(c => c.onclick = () => {
+  document.querySelectorAll('.ap-chip').forEach(x => x.classList.remove('on'));
+  c.classList.add('on');
+  filter = c.dataset.f;
+  render();
+});
+
+async function decide(id, decision){
+  const ta = document.getElementById('ta_' + id);   // arte
+  const tt = document.getElementById('tt_' + id);   // texto
+  const comment = AP.montarComentario(ta ? ta.value : '', tt ? tt.value : '');
+
+  if (decision === 'ajustar' && !comment) {
+    showToast('Escreva o que precisa ser ajustado — na arte, no texto ou nos dois.', 'warn');
+    ta.focus();
+    return;
+  }
+
+  const card = document.querySelector(`.ap-card[data-id="${id}"]`);
+  card.querySelectorAll('.ap-btn').forEach(b => b.disabled = true);
+
+  // O comentário viaja junto da decisão — inclusive numa aprovação.
+  // Aprovar com observação é normal: "pode ir, só troca o horário".
+  const { error } = await sb.rpc('review_by_token', {
+    p_token: TOKEN, p_item_id: id, p_decision: decision,
+    p_comment: comment || null, p_guest: guest
+  });
+
+  card.querySelectorAll('.ap-btn').forEach(b => b.disabled = false);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  showToast(decision === 'aprovado' ? 'Peça aprovada.' : 'Ajuste registrado.', 'success');
+  if (ta) ta.value = '';
+  if (tt) tt.value = '';
+  await load();
+  if (decision === 'ajustar') AP.correcaoParaIA(TOKEN, apSet, items);
+  AP.registrarDecisao(TOKEN, decision);
+}
+
+// ==================================================================
+// DOWNLOAD DO CONTEÚDO APROVADO
+//
+// Monta um zip organizado por SEMANA e, dentro dela, por tipo de peça.
+// A semana é a da data de publicação; peça sem data cai em "Semana 1",
+// porque conteúdo sem data ainda é conteúdo de uma semana só.
+//
+// Junto vai um leia-me com legenda, hashtags e horário de cada peça —
+// quem for postar tem tudo num lugar só, sem voltar na plataforma.
+// ==================================================================
+function pastaTipo(kind){
+  return { feed:'feed', carrossel:'carrossel', stories:'stories',
+           reels:'reels', material:'material', generico:'material' }[kind] || 'outros';
+}
+
+function semanaDe(items, it){
+  // Sem data: tudo vira Semana 1. Com data: conta a partir da mais antiga.
+  const datas = items.map(x => x.publish_at).filter(Boolean).map(d => AP.quando(d));
+  if (!datas.length || !it.publish_at) return 1;
+  const min = new Date(Math.min(...datas));
+  min.setHours(0,0,0,0);
+  const dias = Math.floor((AP.quando(it.publish_at) - min) / 86400000);
+  return Math.floor(dias / 7) + 1;
+}
+
+function limparNome(s){
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9 _.-]/g,'').trim().replace(/\s+/g,'-').substring(0,60) || 'peca';
+}
+
+async function baixarZip(){
+  const btn = document.getElementById('btnZip');
+  const txt = btn.textContent;
+  btn.disabled = true;
+
+  try {
+    const zip = new JSZip();
+    const linhas = ['CONTEUDO APROVADO', apSet.title, ''];
+    let baixados = 0, falhas = [];
+
+    // Total de arquivos, para a barra de progresso fazer sentido
+    const total = items.reduce((n,i) => n + ((i.media||[]).length || 0), 0);
+
+    for (const it of items) {
+      const sem  = 'Semana ' + semanaDe(items, it);
+      const tipo = pastaTipo(it.kind);
+      const base = limparNome(it.title || ('peca-' + (it.position + 1)));
+      const midias = it.media || [];
+
+      // Leia-me
+      linhas.push('─'.repeat(58));
+      linhas.push(`[${sem} · ${tipo.toUpperCase()}] ${it.title || base}`);
+      if (it.publish_at) linhas.push('Publicar: ' + AP.quando(it.publish_at).toLocaleString('pt-BR'));
+      if (it.headline) linhas.push('Texto da arte: ' + it.headline.replace(/\n/g,' / '));
+      if (it.caption)  linhas.push('', 'LEGENDA:', it.caption);
+      if (it.hashtags) linhas.push('', 'HASHTAGS: ' + it.hashtags);
+      linhas.push('Arquivos: ' + (midias.map(m => m.name).join(', ') || '(nenhum)'));
+      linhas.push('');
+
+      for (let i = 0; i < midias.length; i++) {
+        const m = midias[i];
+        try {
+          const r = await fetch(m.url);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const blob = await r.blob();
+          const ext = (m.name && m.name.includes('.'))
+            ? m.name.split('.').pop().toLowerCase()
+            : (blob.type.split('/')[1] || 'jpg');
+          const nome = midias.length > 1
+            ? `${base}-${String(i+1).padStart(2,'0')}.${ext}`
+            : `${base}.${ext}`;
+          zip.folder(sem).folder(tipo).file(nome, blob);
+          baixados++;
+          btn.textContent = `Preparando… ${baixados}/${total}`;
+        } catch(err){
+          falhas.push((m.name || 'arquivo') + ' — ' + err.message);
+        }
+      }
+    }
+
+    if (falhas.length) {
+      linhas.push('', '─'.repeat(58), 'NAO FOI POSSIVEL BAIXAR:', ...falhas);
+    }
+    zip.file('LEIA-ME.txt', linhas.join('\n'));
+
+    btn.textContent = 'Compactando…';
+    const blob = await zip.generateAsync({ type:'blob' }, meta => {
+      btn.textContent = 'Compactando… ' + Math.round(meta.percent) + '%';
+    });
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = limparNome(apSet.title) + '.zip';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+
+    showToast(falhas.length
+      ? `Baixado, mas ${falhas.length} arquivo(s) falharam — veja o LEIA-ME.`
+      : 'Conteúdo baixado.', falhas.length ? 'warn' : 'success');
+
+  } catch(err){
+    showToast('Erro ao montar o zip: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = txt;
+}
+
+
+// ================================================================
+// REVER MATERIAL JÁ APROVADO
+//
+// Depois de aprovado, o material entra em produção: agendamento,
+// gráfica, veiculação. Reabrir é possível, mas não é grátis — e a
+// pessoa precisa saber disso antes, não depois.
+// ================================================================
+function reverMaterial(id){
+  const ov = document.createElement('div');
+  ov.className = 'ap-warn';
+  ov.innerHTML = `
+    <div class="ap-warn-box">
+      <h3>Reabrir um material aprovado</h3>
+      <p>Este material já foi aprovado e pode ter entrado em produção — agendamento,
+         impressão ou veiculação. Vamos atender seu pedido o quanto antes, mas o que
+         já saiu pode não ter volta.<br><br>
+         Quer seguir e pedir a revisão?</p>
+      <div class="ap-warn-acts">
+        <button class="no">Deixar como está</button>
+        <button class="yes">Pedir revisão</button>
+      </div>
+    </div>`;
+
+  ov.querySelector('.no').onclick  = () => ov.remove();
+  ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  ov.querySelector('.yes').onclick = () => {
+    ov.remove();
+    const ta = document.getElementById('ta_' + id);
+    if (ta) {
+      ta.focus();
+      ta.scrollIntoView({behavior:'smooth', block:'center'});
+      ta.placeholder = 'Conte o que precisa ser revisto neste material.';
+      ta.style.borderColor = '#db2777';
+    }
+    showToast('Escreva o que precisa ser revisto e toque em "Pedir ajuste".', 'info');
+    // Libera os botões normais nesta peça
+    const card = document.querySelector(`.ap-card[data-id="${id}"] .ap-btns`);
+    if (card) card.innerHTML =
+      `<button class="ap-btn ok"  data-act="aprovado" data-id="${id}">✓ Aprovar</button>
+       <button class="ap-btn fix" data-act="ajustar"  data-id="${id}">✎ Pedir ajuste</button>`;
+    bind();
+  };
+  document.body.appendChild(ov);
+}
+
+
+// ==================================================================
+// PDF DO LOTE — mesmo gerador da equipe (js/aprovacao-comum.js).
+// Cada arte na proporção real: stories 9:16, feed 4:5/1:1…
+// ==================================================================
+async function gerarPDF(){
+  const btn = document.getElementById('btnPdf');
+  const txt = btn.textContent;
+  btn.disabled = true;
+  try {
+    await AP.gerarPDF({
+      set: apSet, items,
+      clienteNome: document.getElementById('apEyebrow').textContent.split(' · ')[0],
+      onProgress: (n, t) => btn.textContent = `Montando… ${n}/${t}`
+    });
+    showToast('PDF gerado.', 'success');
+  } catch(err){
+    showToast('Erro ao gerar o PDF: ' + err.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = txt;
+}
+
+// ==================================================================
+// LIGHTBOX
+// ==================================================================
+function lbOpen(it, i){
+  lb.list = it.media || [];
+  lb.i = i;
+  lbShow();
+  document.getElementById('apLb').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function lbShow(){
+  const m = lb.list[lb.i];
+  if (!m) return;
+  const img = document.getElementById('apLbImg');
+  const vid = document.getElementById('apLbVid');
+  if (AP.ehVideo(m)) { img.style.display = 'none'; vid.style.display = ''; vid.src = m.url || m.thumb; }
+  else { vid.pause?.(); vid.removeAttribute('src'); vid.style.display = 'none'; img.style.display = ''; img.src = m.url || m.thumb; }
+  document.getElementById('apLbCap').textContent =
+    (m.name || '') + (lb.list.length > 1 ? `  ·  ${lb.i+1} de ${lb.list.length}` : '');
+}
+function lbGo(d){
+  if (!lb.list.length) return;
+  lb.i = (lb.i + d + lb.list.length) % lb.list.length;
+  lbShow();
+}
+function lbClose(){
+  document.getElementById('apLb').classList.remove('on');
+  document.getElementById('apLbVid')?.pause?.();
+  document.body.style.overflow = '';
+}
+document.getElementById('apLb').onclick = e => { if (e.target.id === 'apLb') lbClose(); };
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('apLb').classList.contains('on')) return;
+  if (e.key === 'Escape')     lbClose();
+  if (e.key === 'ArrowLeft')  lbGo(-1);
+  if (e.key === 'ArrowRight') lbGo(1);
+});
+</script>
+<script src="/js/protege.js?v=1"></script>
+</body>
+</html>

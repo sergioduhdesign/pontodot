@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Novo lote de aprovação — Studio Design</title>
+<link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/main.css">
+<style>
+body{background:var(--bg);color:var(--text);padding-bottom:120px}
+/* Dentro do popup, o cabeçalho e o "voltar" são redundantes:
+   o popup já tem o cliente no topo e o X para fechar. */
+body.embed .nl-top{display:none}
+body.embed .nl-steps{padding-top:16px}
+body.embed #btnVoltar{display:none}
+
+/* Enquanto os dados não chegam, o conteúdo fica oculto. Antes ele
+   aparecia preenchido e sumia meio segundo depois — parecia defeito. */
+body.carregando .nl-wrap,
+body.carregando .nl-steps,
+body.carregando .nl-bar{visibility:hidden}
+.nl-skel{display:none;padding:60px 24px;text-align:center;color:var(--text3);font-size:13.5px}
+body.carregando .nl-skel{display:block}
+
+/* Resumo de onde a tarefa veio — no lugar dos campos travados */
+.nl-from{display:flex;align-items:center;gap:11px;padding:13px 15px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px}
+.nl-from .av{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.nl-from .tx{flex:1;min-width:0}
+.nl-from .t1{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- Escolha do tipo de envio ---------- */
+.nl-opts{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.nl-opt{border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 18px 16px;
+  cursor:pointer;transition:var(--transition);background:var(--surface);text-align:left}
+.nl-opt:hover{border-color:var(--text3)}
+.nl-opt.on{border-color:var(--accent);background:var(--surface2);
+  box-shadow:0 0 0 3px rgba(128,128,128,.12)}
+.nl-opt .ic{margin-bottom:11px;opacity:.75}
+.nl-opt h3{font-size:14px;font-weight:700;margin-bottom:5px;letter-spacing:-.01em}
+.nl-opt p{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:9px}
+.nl-opt .ex{font-size:11px;color:var(--text3);line-height:1.5;opacity:.85;
+  border-top:1px solid var(--border);padding-top:8px}
+.nl-opt .ex b{font-weight:700;color:var(--text2)}
+
+/* ---------- Peças soltas (variado / única) ---------- */
+.nl-peca{border:1px solid var(--border);border-radius:var(--radius);padding:14px;
+  margin-bottom:11px;background:var(--surface2)}
+.nl-peca .top{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.nl-peca img{width:76px;height:76px;object-fit:cover;border-radius:8px;flex-shrink:0;
+  border:1px solid var(--border);background:var(--surface3)}
+.nl-peca .campos{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.nl-peca .rm{background:none;border:none;color:#db2777;cursor:pointer;font-size:12px;
+  font-weight:700;font-family:inherit;padding:2px 6px;flex-shrink:0}
+
+.nl-from .t2{font-size:11.5px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.nl-top{background:var(--accent);color:var(--accent-fg);padding:24px clamp(16px,4vw,44px)}
+.nl-in{max-width:1080px;margin:0 auto}
+.nl-eyebrow{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;font-weight:700;margin-bottom:7px}
+.nl-title{font-size:clamp(20px,3vw,27px);font-weight:700;letter-spacing:-.02em}
+
+/* Passos */
+.nl-steps{display:flex;gap:0;max-width:1080px;margin:0 auto;padding:18px clamp(16px,4vw,44px) 0;flex-wrap:wrap}
+.nl-step{display:flex;align-items:center;gap:9px;padding:0 18px 0 0;opacity:.4;transition:var(--transition)}
+.nl-step.on{opacity:1}
+.nl-step.done{opacity:.75}
+.nl-step .b{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--text3);
+  display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex-shrink:0}
+.nl-step.on .b{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.nl-step.done .b{background:#16a34a;border-color:#16a34a;color:#fff}
+.nl-step span{font-size:12.5px;font-weight:600;white-space:nowrap}
+
+.nl-wrap{max-width:1080px;margin:0 auto;padding:22px clamp(16px,4vw,44px)}
+.nl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:24px 26px;margin-bottom:18px}
+.nl-card h2{font-size:15.5px;font-weight:700;margin-bottom:5px;letter-spacing:-.01em}
+.nl-card .hint{font-size:12.5px;color:var(--text3);line-height:1.55;margin-bottom:18px}
+
+.nl-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.nl-f label{display:block;font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:5px}
+.nl-f input,.nl-f select,.nl-f textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;
+  background:var(--surface);color:var(--text);font-size:13.5px;font-family:inherit}
+.nl-f input:focus,.nl-f select:focus,.nl-f textarea:focus{outline:none;border-color:var(--text3)}
+
+/* Zona de arraste */
+.nl-drop{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:38px 24px;
+  text-align:center;cursor:pointer;transition:var(--transition);background:var(--surface2)}
+.nl-drop:hover,.nl-drop.over{border-color:var(--accent);background:var(--surface3)}
+.nl-drop .ic{font-size:30px;opacity:.35;margin-bottom:10px}
+.nl-drop b{display:block;font-size:14px;margin-bottom:5px}
+.nl-drop small{font-size:12px;color:var(--text3);line-height:1.5}
+
+
+.nl-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);
+  border-top:1px solid var(--border);padding:14px clamp(16px,4vw,44px);z-index:50}
+.nl-bar-in{max-width:1080px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.nl-status{font-size:12.5px;color:var(--text3)}
+
+.nl-prog{height:5px;background:var(--surface2);border-radius:20px;overflow:hidden;margin-top:12px;display:none}
+.nl-prog.on{display:block}
+.nl-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+
+.nl-link{display:flex;gap:8px;margin-top:14px}
+.nl-link input{flex:1;font-size:12px;background:var(--surface2)}
+.hide{display:none}
+</style>
+</head>
+<body class="carregando">
+
+<div class="nl-top">
+  <div class="nl-in">
+    <p class="nl-eyebrow">Aprovações</p>
+    <h1 class="nl-title">Novo lote</h1>
+  </div>
+</div>
+
+<div class="nl-skel">Carregando os dados da tarefa…</div>
+
+<div class="nl-steps">
+  <div class="nl-step on" id="s0"><div class="b">1</div><span>Tipo de envio</span></div>
+  <div class="nl-step" id="s1"><div class="b">2</div><span>Dados</span></div>
+  <div class="nl-step" id="s2"><div class="b">3</div><span>Conteúdo</span></div>
+  <div class="nl-step" id="s4"><div class="b">4</div><span>Enviar</span></div>
+</div>
+
+<div class="nl-wrap">
+
+  <!-- ESCOLHA -->
+  <div class="nl-card" id="cardModo">
+    <h2>O que você está entregando?</h2>
+    <p class="hint">A escolha muda a tela seguinte. Dá para voltar depois.</p>
+    <div class="nl-opts">
+      <button class="nl-opt" data-modo="lote_variado">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+        <h3>Envio variado</h3>
+        <p>Materiais diferentes entre si, cada um com sua explicação. Sem planilha.</p>
+        <div class="ex"><b>Ex.:</b> peças avulsas da semana, artes de apoio, ajustes pontuais</div>
+      </button>
+
+      <button class="nl-opt" data-modo="peca_unica">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">
+          <path d="M4 4h16v16H4z"/><path d="M4 15l5-5 4 4 3-3 4 4"/><circle cx="9" cy="8.5" r="1.4"/></svg></div>
+        <h3>Peça única</h3>
+        <p>Um material só, com mockup para ver, link do arquivo final e espaço para você defender a entrega.</p>
+        <div class="ex"><b>Ex.:</b> folder, outdoor, papelaria, apresentação, manual de marca</div>
+      </button>
+
+      <button class="nl-opt" data-modo="post_unico">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">
+          <rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.6"/>
+          <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg></div>
+        <h3>Post único</h3>
+        <p>Um post só, sem planilha — legenda, hashtags e agendamento aqui mesmo. Aprovado, entra na fila de publicação normal.</p>
+        <div class="ex"><b>Ex.:</b> post avulso da semana, aviso, data comemorativa, repost</div>
+      </button>
+
+      <button class="nl-opt" data-modo="lote_drive" id="optDrive" style="display:none;border-color:#7c3aed">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">
+          <path d="M8 3h8l6 10-4 7H6l-4-7z"/><path d="M8 3l6 10H2"/><path d="M16 3l-6 10 4 7"/></svg></div>
+        <h3>Entrega da IA (Drive)</h3>
+        <p>Leio a pasta da tarefa no Drive e pego o que a IA produziu — onde quer que ela tenha salvo. Mesmas regras do ZIP.</p>
+        <div class="ex"><b>Revisão interna:</b> <span id="optDriveInt">o lote nasce só pra equipe</span></div>
+      </button>
+
+      <button class="nl-opt" data-modo="lote_zip">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">
+          <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+          <path d="M12 10v6"/><path d="m9 13 3 3 3-3"/></svg></div>
+        <h3>Pasta completa (ZIP)</h3>
+        <p>Suba a pasta do mês zipada — eu leio a organização: cada subpasta vira uma peça, os .txt viram legenda, e monto tudo pra você só conferir.</p>
+        <div class="ex"><b>Ex.:</b> conteúdo do mês inteiro — posts, carrosséis, stories, vídeos e legendas</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <div class="nl-card hide" id="cardTask">
+    <h2>Dados do lote</h2>
+    <p class="hint">É o que o cliente vê no topo do painel de aprovação.</p>
+    <div id="lockedInfo" style="display:none"></div>
+    <div class="nl-grid">
+      <div id="pickWrap" style="display:contents">
+        <div class="nl-f">
+          <label>Cliente</label>
+          <select id="fClient"><option value="">Carregando…</option></select>
+        </div>
+        <div class="nl-f">
+          <label>Tarefa (opcional)</label>
+          <select id="fTask"><option value="">Sem tarefa vinculada</option></select>
+        </div>
+      </div>
+      <div class="nl-f">
+        <label>Título</label>
+        <input id="fTitle" placeholder="Semana 1 — Agosto">
+      </div>
+      <div class="nl-f">
+        <label>Prazo para aprovar</label>
+        <input id="fDue" type="date">
+      </div>
+    </div>
+    <div class="nl-f" style="margin-top:14px">
+      <label>Subtítulo (opcional)</label>
+      <input id="fSub" placeholder="Entre a pausa e o movimento">
+    </div>
+  </div>
+
+  <!-- PEÇAS SOLTAS (variado / única) -->
+  <div class="nl-card hide" id="cardSoltas">
+    <h2 id="soltasTitulo">Material</h2>
+    <p class="hint" id="soltasHint"></p>
+    <div id="soltasLista"></div>
+    <div class="nl-drop" id="dropSoltas">
+      <div class="ic">▣</div>
+      <b id="dropSoltasLabel">Arraste os mockups aqui</b>
+      <small>JPG, PNG, WEBP, MP4, MOV ou PDF · até 50 MB cada</small>
+    </div>
+    <input type="file" id="inSoltas" multiple accept="image/*,video/*,.pdf" class="hide">
+    <div class="nl-prog" id="progSoltas"><i id="progSoltasBar"></i></div>
+  </div>
+
+  <!-- ZIP DO MÊS -->
+  <div class="nl-card hide" id="cardZip">
+    <h2>Pasta completa</h2>
+    <p class="hint">
+      Como eu leio: <b>cada subpasta vira uma peça</b> (2+ imagens = carrossel, 1 = post,
+      vídeo = reels, "stories" no nome = stories, PDF = uma imagem por página) · pasta com subpastas dentro (ex.: "semana 1")
+      trata os arquivos soltos como posts individuais · se tiver um <b>.xlsx</b> dentro do zip
+      (o modelo de 7 colunas — <a href="/SD_modelo_lote_aprovacao.xlsx" download style="color:inherit;font-weight:700">baixar</a>),
+      ele manda: casa cada linha pela chave ARQUIVO_OU_PASTA · sem excel, aceito <b>.txt</b> (vira legenda)
+      ou o <b>.docx</b> da semana (DIA 1, DIA 2… com Legenda e STORYs). Depois é só conferir e ajustar.
+    </p>
+    <div style="margin-bottom:10px"><select id="selPag" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12px">
+          <option value="auto">PDF/PPTX: automático ("carrossel"/"stories" no nome = 1 peça)</option>
+          <option value="peca">PDF/PPTX: cada página é uma peça</option>
+          <option value="grupo">PDF/PPTX: o arquivo inteiro é uma peça (carrossel)</option>
+        </select></div>
+    <button class="btn btn-primary" id="btnLerDrive" style="display:none;width:100%;justify-content:center;height:44px">
+      ⇣ Ler a entrega da IA no Drive</button>
+    <div class="nl-drop" id="dropZip">
+      <div class="ic">▤</div>
+      <b>Arraste o .zip aqui</b>
+      <small>ou clique para escolher · um zip com toda a estrutura de pastas</small>
+    </div>
+    <input type="file" id="inZip" accept=".zip" class="hide">
+    <div id="zipStatus" class="hint" style="display:none;margin-top:10px"></div>
+    <div id="zipLista" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Link -->
+  <div class="nl-card hide" id="cardDone">
+    <h2>Lote enviado</h2>
+    <p class="hint">Mande este link para o cliente. Ele abre sem precisar de conta e vale 30 dias.</p>
+    <div class="nl-link">
+      <input id="outLink" readonly>
+      <button class="btn btn-primary" id="btnCopy">Copiar</button>
+      <button class="btn btn-secondary" id="btnWa">WhatsApp</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="nl-bar">
+  <div class="nl-bar-in">
+    <span class="nl-status" id="status">Comece escolhendo o cliente e o tipo de envio.</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" id="btnVoltar" onclick="location.href='/app.html'">Voltar</button>
+      <button class="btn btn-primary" id="btnSave" disabled>Criar e enviar</button>
+    </div>
+    <div class="nl-prog" id="prog" style="flex-basis:100%"><i id="progBar"></i></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="/js/supabase.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/aprovacao-comum.js?v=16"></script>
+<script>
+let profile=null, clients=[], tasks=[], setId=null;
+let MODO = null;          // lote_zip | lote_variado | peca_unica | post_unico
+let soltas = [];          // [{file, url, titulo, pitch, link}]
+let driveTask = null;     // pasta do Drive desta tarefa (task_drive)
+let CONTEXTO = '';        // ação/projeto/obs da tarefa — ajuda a deduzir o tipo
+
+const el = id => document.getElementById(id);
+
+const QS = new URLSearchParams(location.search);
+const TASK_ID = QS.get('task');
+const EMBED = QS.get('embed') === '1' || window.self !== window.top;
+// ROBÔ DO LOTE: a frente do Pontodot abre esta tela escondida, ela lê a
+// SAIDA, cria o lote e conta o resultado pra quem abriu. Sem clique.
+const AUTO = QS.get('auto') === '1' && window.self !== window.top && QS.get('modo') === 'lote_drive';
+let _roboContou = false;
+function roboAvisa(r){
+  if (!AUTO || _roboContou) return;
+  _roboContou = true;
+  try { window.parent.postMessage(Object.assign({ pdRobo: true }, r), location.origin); } catch(e){}
+}
+if (EMBED) document.documentElement.style.background = 'transparent';
+
+(async () => {
+ try {
+  Theme.init();
+  if (EMBED) document.body.classList.add('embed');
+  const a = await Auth.requireAuth(['admin','team']);
+  if (!a) return;
+  profile = a.profile;
+
+  const { data:c } = await sb.from('clients').select('id,name').eq('active',true).order('name');
+  clients = c || [];
+  el('fClient').innerHTML = '<option value="">Selecione…</option>' +
+    clients.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+  el('fClient').onchange = () => { loadTasks(); atualizar(); };
+
+  // O lote nasce DA TAREFA. Vindo de lá, cliente e vínculo já vêm
+  // preenchidos e travados — não faz sentido escolher de novo.
+  if (TASK_ID) {
+    const { data:t } = await sb.from('tasks')
+      .select('id,action,project,obs,client_id,clients(name),products(name)').eq('id',TASK_ID).single();
+    if (t) {
+      // Contexto pra deduzir o tipo das peças (press, folheto, post…)
+      CONTEXTO = [t.action, t.project, t.obs, t.products?.name].filter(Boolean).join(' · ');
+      el('fClient').value = t.client_id;
+      el('fTask').innerHTML = `<option value="${t.id}">${t.id} — ${t.action}</option>`;
+      el('fTitle').value = t.project && t.project !== 'GERAL' ? t.project : t.action;
+      document.querySelector('.nl-title').textContent = t.action;
+      document.querySelector('.nl-eyebrow').textContent =
+        (t.clients?.name || '') + ' · ' + t.id;
+
+      // Cliente e tarefa vêm decididos: viram um resumo, não dois selects
+      // travados. Título, subtítulo e prazo continuam editáveis — são
+      // justamente o que você pode querer ajustar aqui.
+      const c = t.clients || {};
+      const av = c.logo_url
+        ? `<img class="av" src="${c.logo_url}">`
+        : `<div class="av" style="background:${c.color||'#64748b'};display:flex;
+             align-items:center;justify-content:center;color:#fff;font-size:12px;
+             font-weight:800">${(c.name||'?').substring(0,2).toUpperCase()}</div>`;
+
+      el('lockedInfo').innerHTML = `<div class="nl-from">${av}
+        <div class="tx">
+          <div class="t1">${c.name || 'Cliente'}</div>
+          <div class="t2">${t.id} · ${t.action}</div>
+        </div>
+        <span style="font-size:10.5px;color:var(--text3);text-transform:uppercase;
+          letter-spacing:.07em;font-weight:700;flex-shrink:0">Da tarefa</span></div>`;
+      el('lockedInfo').style.display = 'block';
+      el('pickWrap').style.display = 'none';
+
+      el('status').textContent = 'Escolha o tipo de envio para começar.';
+
+      driveTask = await AP.drive.obter(TASK_ID);
+      if (driveTask) {
+        el('optDrive').style.display = '';
+        el('optDriveInt').textContent = driveTask.revisao_interna
+          ? 'ligada — o lote nasce só pra equipe; você libera depois'
+          : 'desligada — vai direto pro cliente';
+        if (QS.get('modo') === 'lote_drive') {
+          document.body.classList.remove('carregando');
+          escolherModo('lote_drive');
+          receberDrive();
+        }
+      } else roboAvisa({ ok:false, motivo:'a tarefa não tem pasta do Drive ligada' });
+    }
+  }
+  if (AUTO && !TASK_ID) roboAvisa({ ok:false, motivo:'sem tarefa' });
+
+  document.body.classList.remove('carregando');
+ } catch(err) {
+  document.body.classList.remove('carregando');
+  showToast('Erro ao carregar: ' + err.message, 'error');
+  roboAvisa({ ok:false, motivo:'erro ao abrir: ' + err.message });
+ }
+})();
+
+async function loadTasks(){
+  const cid = el('fClient').value;
+  if (!cid) { el('fTask').innerHTML = '<option value="">Sem tarefa vinculada</option>'; return; }
+  const { data:t } = await sb.from('tasks')
+    .select('id,action,project').eq('client_id',cid)
+    .neq('status','ENTREGUE').order('created_at',{ascending:false}).limit(60);
+  tasks = t || [];
+  el('fTask').innerHTML = '<option value="">Sem tarefa vinculada</option>' +
+    tasks.map(x => `<option value="${x.id}">${x.id} — ${x.action}</option>`).join('');
+}
+
+function step(n){
+  [0,1,2,4].forEach(i => {
+    const x = el('s'+i);
+    if (!x) return;
+    x.classList.toggle('on',   i === n);
+    x.classList.toggle('done', i <  n);
+  });
+}
+
+// ============================================================
+// ESCOLHA DO MODO
+// ============================================================
+document.querySelectorAll('.nl-opt').forEach(b => b.onclick = () => escolherModo(b.dataset.modo));
+
+function escolherModo(modo){
+  MODO = modo;
+  document.querySelectorAll('.nl-opt').forEach(b => b.classList.toggle('on', b.dataset.modo === modo));
+
+  el('cardTask').classList.remove('hide');
+  const pacote = modo === 'lote_zip' || modo === 'lote_drive';
+  el('cardZip').classList.toggle('hide',    !pacote);
+  el('cardSoltas').classList.toggle('hide', pacote);
+  el('dropZip').style.display    = modo === 'lote_drive' ? 'none' : '';
+  el('btnLerDrive').style.display = modo === 'lote_drive' ? '' : 'none';
+  el('cardZip').querySelector('h2').textContent = modo === 'lote_drive' ? 'Entrega da IA (Drive)' : 'Pasta completa';
+  if (pacote && modo !== MODO_PACOTE_ANTERIOR) { zipPecas = []; el('zipLista').innerHTML = ''; el('zipStatus').style.display = 'none'; }
+  MODO_PACOTE_ANTERIOR = modo;
+
+  const unica = modo === 'peca_unica' || modo === 'post_unico';
+  el('soltasTitulo').textContent = unica ? 'A peça' : 'Os materiais';
+  el('soltasHint').textContent = unica
+    ? 'Suba o mockup (será exibido em quadrado), cole o link do arquivo final e conte o que está entregando.'
+    : 'Arraste todos os materiais. Cada um ganha um espaço para você explicar o que é.';
+  el('dropSoltasLabel').textContent = unica
+    ? 'Arraste o mockup aqui'
+    : 'Arraste os mockups aqui';
+  el('inSoltas').multiple = !unica;
+
+  soltas = [];
+  el('soltasLista').innerHTML = '';
+
+  step(1);
+  el('cardTask').scrollIntoView({behavior:'smooth', block:'nearest'});
+  atualizar();
+}
+
+// ============================================================
+// PLANILHA
+// ============================================================
+function dropzone(zone, input, cb){
+  zone.onclick = () => input.click();
+  input.onchange = () => { if (input.files.length) cb([...input.files]); };
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); zone.classList.add('over');
+  }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); zone.classList.remove('over');
+  }));
+  zone.addEventListener('drop', e => {
+    if (e.dataTransfer.files.length) cb([...e.dataTransfer.files]);
+  });
+}
+
+dropzone(el('dropSoltas'), el('inSoltas'), f => receberSoltas(f));
+dropzone(el('dropZip'), el('inZip'), f => { if (f[0]) receberZip(f[0]); });
+el('btnLerDrive').onclick = receberDrive;
+
+// ============================================================
+// MODOS SEM PLANILHA
+// ============================================================
+// ================================================================
+// ZIP DO MÊS — o receptor inteligente. Lê a estrutura de pastas do
+// zip e monta as peças sozinho: subpasta = peça, .txt = legenda,
+// vídeo = reels, "stories" no nome = stories, 2+ imagens = carrossel.
+// O resultado aparece abaixo pra conferir e ajustar antes de enviar.
+// ================================================================
+let zipPecas = [];
+let MODO_PACOTE_ANTERIOR = null;
+const ZIP_VID = AP.RE.VID;
+
+// Entrega da IA: mesma leitura do zip, só que a fonte é a pasta SAIDA
+// da tarefa no Drive (via ponte-drive.php).
+async function receberDrive(){
+  const st = el('zipStatus');
+  st.style.display = 'block';
+  el('btnLerDrive').disabled = true;
+  zipPecas = [];
+  try {
+    const ent = await AP.drive.entradas(TASK_ID, t => st.textContent = t);
+    const r = await AP.lerPacote([], { doc:true, entradas: ent, paginas: el('selPag').value,
+      contexto: CONTEXTO + ' ' + el('fTitle').value, onStatus: t => st.textContent = t });
+    zipPecas = r.pecas;
+    st.textContent = zipPecas.length
+      ? `Entendi ${zipPecas.length} peça(s), ${zipPecas.reduce((t,p)=>t+p.files.length,0)} arte(s) (${ent._origem}).`
+        + (ent._ignorados ? ` ${ent._ignorados} arquivo(s) ignorados (.psd, .ai…).` : '') + ' Confere abaixo.'
+      : 'Não achei entrega da IA na pasta da tarefa (imagem, vídeo, PDF, PPTX ou Google Slides).';
+    renderZipPecas();
+  } catch(e) {
+    st.textContent = 'Não consegui ler o Drive: ' + e.message;
+  }
+  el('btnLerDrive').disabled = false;
+  atualizar();
+  if (AUTO) {
+    if (!zipPecas.length) roboAvisa({ ok:false, motivo:'não achei arte na SAIDA' });
+    else if (el('btnSave').disabled) roboAvisa({ ok:false, motivo: el('status').textContent || 'o lote não ficou pronto' });
+    else el('btnSave').click();
+  }
+}
+
+// O leitor mora em js/aprovacao-comum.js — o MESMO que lê o zip de
+// correções na tela de aprovação. Uma regra só pra montar e pra corrigir.
+async function receberZip(file){
+  const st = el('zipStatus');
+  st.style.display = 'block';
+  zipPecas = [];
+  try {
+    const r = await AP.lerPacote([file], { doc:true, paginas: el('selPag').value,
+      contexto: CONTEXTO + ' ' + el('fTitle').value, onStatus: t => st.textContent = t });
+    zipPecas = r.pecas;
+    st.textContent = zipPecas.length
+      ? `Entendi ${zipPecas.length} peça(s), ${zipPecas.reduce((t,p)=>t+p.files.length,0)} arte(s). Confere abaixo — dá pra ajustar tudo.`
+      : 'Não achei nenhuma imagem, vídeo ou PDF dentro do zip.';
+    renderZipPecas();
+  } catch(e) {
+    st.textContent = 'Não consegui ler esse zip: ' + e.message;
+  }
+  atualizar();
+}
+
+function tipoDeTodas(k){
+  if (!k) return;
+  zipPecas.forEach(p => p.kind = k);
+  renderZipPecas();
+  showToast('Tipo aplicado em ' + zipPecas.length + ' peça(s).', 'success');
+}
+
+function renderZipPecas(){
+  const KINDS = { feed:'Post', carrossel:'Carrossel', stories:'Stories', reels:'Reels', material:'Material' };
+  const contagem = {};
+  zipPecas.forEach(p => contagem[p.kind] = (contagem[p.kind] || 0) + 1);
+  const topo = zipPecas.length > 1 ? `
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;
+                border:1px solid var(--border);border-radius:9px;background:var(--surface)">
+      <span style="font-size:12px;color:var(--text3);flex:1;min-width:180px">
+        ${Object.entries(contagem).map(([k,n]) => n + ' ' + (KINDS[k]||k)).join(' · ')}</span>
+      <select onchange="tipoDeTodas(this.value);this.value=''" style="padding:7px 9px;border:1px solid var(--border);
+        border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12px">
+        <option value="">Mudar o tipo de todas…</option>
+        ${Object.entries(KINDS).map(([k,v]) => `<option value="${k}">Todas = ${v}</option>`).join('')}
+      </select></div>` : '';
+  el('zipLista').innerHTML = topo + zipPecas.map((p, i) => `
+    <div class="nl-peca">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        ${p.files.slice(0,8).map(f => ZIP_VID.test(f.nome)
+          ? `<video src="${f.url}" muted preload="metadata" style="width:64px;height:64px;object-fit:cover;border-radius:7px;background:#0b0b0d"></video>`
+          : `<img src="${f.url}" style="width:64px;height:64px;object-fit:cover;border-radius:7px">`).join('')}
+        ${p.files.length > 8 ? `<div style="width:64px;height:64px;border-radius:7px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">+${p.files.length-8}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <div class="nl-f" style="flex:1;margin:0">
+          <label>Nome da peça</label>
+          <input value="${p.titulo.replace(/"/g,'&quot;')}" oninput="zipPecas[${i}].titulo=this.value;atualizar()">
+        </div>
+        <div class="nl-f" style="width:130px;margin:0">
+          <label>Tipo</label>
+          <select onchange="zipPecas[${i}].kind=this.value;renderZipPecas()" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font:inherit">
+            ${Object.entries(KINDS).map(([k,v])=>`<option value="${k}" ${p.kind===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="nl-f">
+        <label>Legenda ${p.fonteLegenda==='doc'?'(casei com o DIA certo do .docx)':p.fonteLegenda==='txt'?'(achei no .txt da pasta)':''}</label>
+        <textarea rows="3" oninput="zipPecas[${i}].legenda=this.value">${p.legenda||''}</textarea>
+      </div>
+      <div class="nl-f">
+        <label>Hashtags</label>
+        <input value="${(p.hashtags||'').replace(/"/g,'&quot;')}" oninput="zipPecas[${i}].hashtags=this.value">
+      </div>
+      <div class="nl-f" style="display:flex;gap:10px;margin:0">
+        <div style="flex:1">
+          <label>Publicar em (opcional)</label>
+          <input type="date" value="${p.dataPub||''}" oninput="zipPecas[${i}].dataPub=this.value">
+        </div>
+        <div style="width:110px">
+          <label>Hora</label>
+          <input type="time" value="${p.horaPub||'09:00'}" oninput="zipPecas[${i}].horaPub=this.value">
+        </div>
+        <button class="rm" style="align-self:flex-end" onclick="zipPecas.splice(${i},1);renderZipPecas();atualizar()">Remover</button>
+      </div>
+    </div>`).join('');
+}
+
+function receberSoltas(lista){
+  const unica = MODO === 'peca_unica' || MODO === 'post_unico';
+  if (unica && soltas.length) soltas = [];        // peça única: só um mockup
+  const usar = unica ? lista.slice(0,1) : lista;
+
+  usar.forEach(f => {
+    if (f.size > 52428800) { showToast(f.name + ' passa de 50 MB.', 'warn'); return; }
+    soltas.push({
+      file: f,
+      url: URL.createObjectURL(f),
+      titulo: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
+      pitch: '',
+      link: ''
+    });
+  });
+  renderSoltas();
+}
+
+function renderSoltas(){
+  const post = MODO === 'post_unico';
+  const unica = MODO === 'peca_unica' || post;
+  el('soltasLista').innerHTML = soltas.map((p, i) => `
+    <div class="nl-peca">
+      <div class="top">
+        ${p.file.type.startsWith('video')
+          ? `<video src="${p.url}" muted playsinline preload="metadata" style="width:96px;height:96px;object-fit:cover;border-radius:8px;background:#0b0b0d"></video>`
+          : `<img src="${p.url}">`}
+        <div class="campos">
+          <div class="nl-f" style="margin:0">
+            <label>Nome ${post ? 'do post' : 'da peça'}</label>
+            <input value="${p.titulo.replace(/"/g,'&quot;')}" oninput="setSolta(${i},'titulo',this.value)">
+          </div>
+        </div>
+        <button class="rm" onclick="removerSolta(${i})" title="Remover">Remover</button>
+      </div>
+
+      ${post ? `
+      <div class="nl-f">
+        <label>Legenda do post</label>
+        <textarea rows="4" oninput="setSolta(${i},'legenda',this.value)"
+          placeholder="A legenda exatamente como vai sair publicada.">${p.legenda||''}</textarea>
+      </div>
+      <div class="nl-f">
+        <label>Hashtags</label>
+        <input value="${(p.hashtags||'').replace(/"/g,'&quot;')}" oninput="setSolta(${i},'hashtags',this.value)"
+          placeholder="#lançamento #imóveis #suacidade">
+      </div>
+      <div class="nl-f" style="display:flex;gap:10px">
+        <div style="flex:1">
+          <label>Data de publicação</label>
+          <input type="date" value="${p.dataPub||''}" oninput="setSolta(${i},'dataPub',this.value)">
+        </div>
+        <div style="width:120px">
+          <label>Hora</label>
+          <input type="time" value="${p.horaPub||'09:00'}" oninput="setSolta(${i},'horaPub',this.value)">
+        </div>
+      </div>
+      <div class="nl-f" style="margin:0">
+        <label>Observação para o cliente (opcional)</label>
+        <textarea rows="2" oninput="setSolta(${i},'pitch',this.value)"
+          placeholder="Contexto do post, se precisar.">${p.pitch}</textarea>
+      </div>` : `
+      <div class="nl-f">
+        <label>${unica ? 'Descreva o que está entregando. Pode fazer defesa se sentir que é importante.'
+                       : 'O que é esta peça? Explique para o cliente.'}</label>
+        <textarea rows="${unica ? 5 : 3}" oninput="setSolta(${i},'pitch',this.value)"
+          placeholder="${unica
+            ? 'Conte a ideia, o porquê das escolhas, o que observar. Este texto aparece junto do mockup.'
+            : 'Onde entra, para que serve, o que observar.'}">${p.pitch}</textarea>
+      </div>
+
+      <div class="nl-f" style="margin:0">
+        <label>Link do arquivo final${unica ? '' : ' (opcional)'}</label>
+        <input value="${p.link.replace(/"/g,'&quot;')}" oninput="setSolta(${i},'link',this.value)"
+          placeholder="Cole aqui o link do Drive com o arquivo fechado">
+      </div>`}
+    </div>`).join('');
+  atualizar();
+}
+
+function setSolta(i, campo, valor){ if (soltas[i]) { soltas[i][campo] = valor; atualizar(); } }
+function removerSolta(i){ soltas.splice(i,1); renderSoltas(); }
+
+// Decide sozinho se dá para enviar, seja qual for o modo.
+function atualizar(){
+  const temCliente = !!el('fClient').value;
+  let pronto = false, msg = '';
+
+  if (!MODO) {
+    msg = 'Escolha o tipo de envio para começar.';
+  } else if (!temCliente) {
+    msg = 'Escolha o cliente.';
+  } else if (MODO === 'peca_unica') {
+    const p = soltas[0];
+    pronto = !!p && !!p.titulo.trim() && !!p.pitch.trim();
+    msg = !p ? 'Suba o mockup da peça.'
+        : !p.titulo.trim() ? 'Dê um nome à peça.'
+        : !p.pitch.trim() ? 'Escreva o que você está entregando.'
+        : 'Pronto para enviar.';
+  } else if (MODO === 'lote_zip' || MODO === 'lote_drive') {
+    pronto = zipPecas.length > 0 && zipPecas.every(p => p.titulo.trim());
+    const artes = zipPecas.reduce((t,p)=>t+p.files.length,0);
+    msg = !zipPecas.length ? (MODO === 'lote_drive' ? 'Leia a pasta SAIDA do Drive.' : 'Suba o zip com a pasta do mês.')
+        : !pronto ? 'Tem peça sem nome — confere a lista.'
+        : `${zipPecas.length} peça(s), ${artes} arte(s). Pronto para enviar.`;
+  } else if (MODO === 'post_unico') {
+    const p = soltas[0];
+    pronto = !!p && !!p.titulo.trim() && !!(p.legenda||'').trim() && !!p.dataPub;
+    msg = !p ? 'Suba a arte do post.'
+        : !p.titulo.trim() ? 'Dê um nome ao post.'
+        : !(p.legenda||'').trim() ? 'Escreva a legenda.'
+        : !p.dataPub ? 'Escolha a data de publicação.'
+        : 'Pronto para enviar — aprovado, entra na fila de publicação.';
+  } else {
+    pronto = soltas.length > 0 && soltas.every(p => p.titulo.trim());
+    msg = !soltas.length ? 'Arraste os materiais.'
+        : !soltas.every(p => p.titulo.trim()) ? 'Toda peça precisa de um nome.'
+        : soltas.length + ' peça(s) prontas para enviar.';
+  }
+
+  el('btnSave').disabled = !pronto;
+  el('status').textContent = msg;
+  if (pronto) step(4);
+}
+
+// ============================================================
+// SALVAR
+// ============================================================
+el('btnSave').onclick = async () => {
+  const btn = el('btnSave');
+  btn.disabled = true;
+
+  try {
+    const clientId = el('fClient').value;
+
+    // Layout SEMPRE em galeria (grade lado a lado). O layout "social"
+    // (colunas por dia) só fazia sentido com a coluna DIA da planilha
+    // do "Lote com planilha" antigo — removido. Nenhum caminho de
+    // envio hoje preenche group_label/dia, então "social" sempre caía
+    // numa coluna só, virando fila infinita. Trava em galeria pra
+    // sempre — é o layout que já colapsa certo pra 1 coluna no mobile
+    // (media query em aprovacao.html) e vira grade lado a lado no desktop.
+    const galeria = true;
+
+    const { data:s, error:e1 } = await sb.from('approval_sets').insert({
+      client_id: clientId,
+      task_id: el('fTask').value || null,
+      title: el('fTitle').value.trim() || 'Material para aprovação',
+      subtitle: el('fSub').value.trim() || null,
+      due_date: el('fDue').value || null,
+      layout: galeria ? 'galeria' : 'social',
+      modo: MODO === 'lote_drive' ? 'lote_zip' : MODO,
+      source_type: 'upload',
+      status: 'rascunho',
+      created_by: profile.id,
+      ...(MODO === 'lote_drive' ? { interno: !!driveTask?.revisao_interna } : {})
+    }).select().single();
+    if (e1) throw e1;
+    setId = s.id;
+
+    // ---- ZIP DO MÊS: sobe todas as artes de cada peça detectada ----
+    if (MODO === 'lote_zip' || MODO === 'lote_drive') {
+      el('prog').classList.add('on');
+      const itens = [];
+      const totalArtes = zipPecas.reduce((t,p)=>t+p.files.length,0);
+      let subidas = 0;
+
+      for (let i = 0; i < zipPecas.length; i++) {
+        const p = zipPecas[i];
+        const media = [];
+        for (const f of p.files) {
+          media.push(await AP.subirMidia(f.file, clientId, setId, { path: f.path }));
+          subidas++;
+          el('progBar').style.width = Math.round(subidas/totalArtes*100) + '%';
+          el('status').textContent = `Subindo artes… ${subidas} de ${totalArtes}`;
+        }
+        itens.push({
+          set_id: setId, position: i,
+          kind: p.kind,
+          title: p.titulo.trim(),
+          caption: (p.legenda||'').trim() || null,
+          hashtags: (p.hashtags||'').trim() || null,
+          publish_at: AP.dataBanco(p.dataPub, p.horaPub),
+          source_key: p.chave || null,
+          media
+        });
+      }
+
+      const { error:ei } = await sb.from('approval_items').insert(itens);
+      if (ei) throw ei;
+
+      if (MODO === 'lote_drive') {
+        const interno = !!driveTask?.revisao_interna;
+        try { await AP.drive.chamar('revisao', { task_id: TASK_ID, set_id: setId, liberado: !interno }); }
+        catch(e) { console.warn('Drive revisao:', e.message); }
+        if (interno) { finalizarInterno(); return; }
+      }
+      await finalizar();
+      return;
+    }
+
+    // ---- Peças soltas (variado, única, post único) ----
+    {
+      el('prog').classList.add('on');
+      const itens = [];
+
+      for (let i = 0; i < soltas.length; i++) {
+        const p = soltas[i];
+        // Mesma regra do resto da casa: a arte nasce no Drive. Se a ponte
+        // estiver fora, cai no Supabase — ninguém fica sem mandar aprovação.
+        let midia = null;
+        try { midia = await AP.subirNoDrive(p.file, clientId, setId); }
+        catch(e){ console.warn('[SD] Drive recusou, caindo no Supabase:', e && e.message); }
+
+        if (!midia) {
+          const ext = p.file.name.split('.').pop().toLowerCase();
+          const caminho = `${clientId}/${setId}/${crypto.randomUUID()}.${ext}`;
+          const { error:eu } = await sb.storage.from('aprovacao')
+            .upload(caminho, p.file, { contentType: p.file.type });
+          if (eu) throw new Error('Falha ao subir ' + p.file.name + ': ' + eu.message);
+          const { data:pub } = sb.storage.from('aprovacao').getPublicUrl(caminho);
+          midia = { name: p.file.name, url: pub.publicUrl, thumb: pub.publicUrl,
+                    mime: p.file.type, source: 'storage' };
+        }
+        midia.path = p.file.name;
+
+        const ehPost = MODO === 'post_unico';
+        itens.push({
+          set_id: setId, position: i,
+          // Post único é um item de REDE: mesma anatomia dos que vêm da
+          // planilha (kind post + legenda + hashtags + publish_at) — por
+          // isso, depois de aprovado, o "Agendar aprovadas" o trata
+          // exatamente como trata os do lote. Fila normal, sem exceção.
+          kind: ehPost ? 'feed' : 'material',
+          title: p.titulo.trim(),
+          pitch: p.pitch.trim() || null,
+          caption: ehPost ? (p.legenda||'').trim() || null : undefined,
+          hashtags: ehPost ? (p.hashtags||'').trim() || null : undefined,
+          publish_at: ehPost && p.dataPub ? AP.dataBanco(p.dataPub, p.horaPub) : undefined,
+          external_url: (p.link||'').trim() || null,
+          external_label: (p.link||'').trim() ? 'Arquivo final' : null,
+          source_key: p.file.name,
+          media: [midia]
+        });
+
+        const pct = Math.round((i+1)/soltas.length*100);
+        el('progBar').style.width = pct + '%';
+        el('status').textContent = `Subindo… ${i+1} de ${soltas.length}`;
+      }
+
+      const { error:ei } = await sb.from('approval_items').insert(itens);
+      if (ei) throw ei;
+
+      await finalizar();
+      return;
+    }
+  } catch(err){
+    showToast('Erro: ' + err.message, 'error');
+    el('status').textContent = 'Erro: ' + err.message;
+    btn.disabled = false;
+    el('prog').classList.remove('on');
+    roboAvisa({ ok:false, motivo: 'erro ao criar o lote: ' + err.message });
+    return;
+  }
+};
+
+// Lote da IA em revisão interna: não gera link nem avisa o cliente.
+function finalizarInterno(){
+  el('prog').classList.remove('on');
+  const card = el('cardDone');
+  card.querySelector('h2').textContent = 'Lote criado — em revisão interna';
+  card.querySelector('.hint').textContent = 'Só a equipe vê. Revise as peças, aponte correções pra IA ou libere pro cliente na tela das peças.';
+  card.querySelector('.nl-link').innerHTML = `<button class="btn btn-primary" style="flex:1;justify-content:center;height:42px"
+    onclick="location.href='/aprovacao.html?set=${setId}'">Abrir as peças</button>`;
+  card.classList.remove('hide');
+  if (EMBED) el('btnSave').style.display = 'none';
+  card.scrollIntoView({behavior:'smooth'});
+  el('status').textContent = 'Lote criado em revisão interna.';
+  showToast('Lote criado. O cliente ainda não vê — libere quando estiver pronto.', 'success');
+  roboAvisa({ ok:true, tipo:'lote', n: zipPecas.length, set_id: setId });
+}
+
+// Fecha o envio: gera o link, move a tarefa e mostra o resultado.
+async function finalizar(){
+  try {
+    const { data:env, error } = await sb.rpc('send_approval_set',
+      { p_set_id: setId, p_days: 30 });
+    if (error) throw error;
+
+    const link = `${location.origin}/aprovacao-preview.php?t=${env.token}`;
+    if (env.task) {
+      el('cardDone').querySelector('.hint').textContent =
+        `Mande este link para o cliente. A tarefa ${env.task} já foi para "Com o cliente".`;
+    }
+    el('outLink').value = link;
+    el('cardDone').classList.remove('hide');
+    if (EMBED) {
+      const b = document.createElement('button');
+      b.className = 'btn btn-primary';
+      b.style.cssText = 'margin-top:14px;width:100%;justify-content:center;height:42px';
+      b.textContent = 'Concluir e voltar para a tarefa';
+      b.onclick = () => { if (window.parent && window.parent.fecharPecas) window.parent.fecharPecas(); };
+      el('cardDone').appendChild(b);
+      el('btnSave').style.display = 'none';
+    }
+    el('cardDone').scrollIntoView({behavior:'smooth'});
+    el('status').textContent = 'Lote criado e enviado.';
+    el('prog').classList.remove('on');
+    showToast('Pronto! Copie o link e mande para o cliente.', 'success');
+    roboAvisa({ ok:true, tipo:'lote', n: zipPecas.length, set_id: setId });
+
+    el('btnCopy').onclick = async () => {
+      try { await navigator.clipboard.writeText(link); showToast('Link copiado!','success'); }
+      catch(e){ el('outLink').select(); }
+    };
+    el('btnWa').onclick = () => {
+      const t = `Olá! O material de ${el('fTitle').value} está pronto para sua aprovação: `;
+      window.open('https://wa.me/?text=' + encodeURIComponent(t + link), '_blank');
+    };
+
+  } catch(err){
+    // Autolimpeza: se o lote (approval_sets) já tinha sido criado mas
+    // a subida das peças quebrou no meio, NÃO deixa órfão vazio pra
+    // trás — apaga sozinho. Sem isso, a tarefa ficava com um lote
+    // fantasma de 0 peças, mostrando "tudo aprovado" por engano.
+    if (setId) {
+      try {
+        const { count } = await sb.from('approval_items').select('id', { count:'exact', head:true }).eq('set_id', setId);
+        if (!count) await sb.from('approval_sets').delete().eq('id', setId);
+      } catch(e2) { /* limpeza é best-effort — não mascara o erro original */ }
+    }
+    showToast('Erro: ' + err.message, 'error');
+    el('status').textContent = 'Erro: ' + err.message + ' — nada ficou pendurado, pode tentar de novo.';
+    roboAvisa({ ok:false, motivo: 'erro ao enviar o lote: ' + err.message });
+    el('btnSave').disabled = false;
+    el('prog').classList.remove('on');
+  }
+}
+</script>
+</body>
+</html>

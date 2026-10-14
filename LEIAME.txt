@@ -1,0 +1,91 @@
+================================================================
+STUDIO DESIGN — workflow
+Guia de instalação
+================================================================
+
+PASSO 1 — Supabase (banco já feito)
+-----------
+✓ Banco criado: ibkflplbraltewsjjsqm.supabase.co
+✓ RLS ativo
+✓ SQL do schema rodado
+
+Agora rode também o arquivo 02_storage_setup.sql no SQL Editor.
+
+
+PASSO 2 — Criar seu usuário admin
+-----------
+No Supabase → Authentication → Users → Add user:
+  Email: sergio.duh.design@gmail.com
+  Password: (crie uma senha forte)
+  
+Depois no SQL Editor:
+  update profiles set role = 'admin' where email = 'sergio.duh.design@gmail.com';
+
+
+PASSO 3 — HostGator: criar subdomínio
+-----------
+1. Entre no cPanel da HostGator
+2. Subdomínios → criar: sd.sergioduh.com
+3. Pasta raiz: /public_html/sd  (ou outro caminho de sua preferência)
+4. Salvar
+
+
+PASSO 4 — Upload dos arquivos
+-----------
+Via FTP (FileZilla ou similar):
+  Host: ftp.sergioduh.com
+  Usuário/senha: credenciais HostGator
+
+Suba TODOS os arquivos desta pasta para /public_html/sd/
+
+Estrutura final no servidor:
+  /public_html/sd/
+    index.html
+    app.html
+    client.html
+    manifest.json
+    js/
+      supabase.js
+      auth.js
+      ui.js
+      import.js
+    css/
+      main.css
+    assets/
+      logo-sd.svg
+    STUDIO_DESIGN_modelo_importacao.xlsx
+
+
+PASSO 5 — Primeiro acesso
+-----------
+Abra: https://sd.sergioduh.com
+Entre com seu email e senha (ou Google, se configurado)
+Você será redirecionado para app.html como admin
+
+
+PASSO 6 — Criar usuários da equipe
+-----------
+Na plataforma → aba Admin → Novo Usuário
+Preencha nome, email, papel (team) e senha provisória
+A pessoa entra, acessa, e pode trocar a senha depois
+
+
+PARA CLIENTES:
+-----------
+Crie o usuário com papel = "client" e associe ao cliente
+O cliente acessa: https://sd.sergioduh.com/client.html
+Ou você pode criar um link direto: sd.sergioduh.com (o login
+detecta o papel e redireciona automaticamente)
+
+
+IMPORTAR EXCEL:
+-----------
+Use o arquivo STUDIO_DESIGN_modelo_importacao.xlsx como modelo
+Botão "Importar Excel" fica no topo da plataforma (sempre visível)
+Arraste o arquivo ou clique para selecionar
+O sistema processa e mostra resumo: criadas / atualizadas / erros
+
+
+================================================================
+Dúvidas: sergio.duh.design@gmail.com
+================================================================
