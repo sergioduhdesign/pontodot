@@ -1,5 +1,5 @@
 // ============================================================
-// SD — Edge Function "sd-ia"  (v9.1 — a IA vive o papel e entende a conversa)
+// SD — Edge Function "sd-ia"  (v9.3 — conhece a casa; campo vazio não derruba ação)
 //
 // v9.1: LÊ A AÇÃO COM PACIÊNCIA. Uma linha ##ACAO## por tarefa, texto
 // depois do JSON, cerca de código: antes derrubava o pedido inteiro
@@ -665,7 +665,13 @@ function validarProduzir(a: Registro, clientesLower: Set<string>, contagem: Map<
   if (!objeto(job)) throw new Error("a proposta de produção veio sem o bloco do job");
   const permitidos = ["action","cliente","project","resp","status","date_int","date_cli","obs","drive_url","tipo_entrega","prompt"];
   if (Object.keys(job).some(k => !permitidos.includes(k))) throw new Error("a proposta de produção trouxe um campo que eu não conheço");
-  if (Object.values(job).some(v => typeof v !== "string" || !v.trim() || v.length > 40000)) throw new Error("um dos valores veio vazio ou grande demais");
+  // campo opcional que veio vazio não derruba o job: só sai da proposta
+  for (const k of Object.keys(job))
+    if (typeof job[k] === "string" && !(job[k] as string).trim() && !["action", "cliente", "prompt"].includes(k)) delete job[k];
+  for (const [k, v] of Object.entries(job)) {
+    if (typeof v !== "string" || !v.trim()) throw new Error(`o campo "${k}" veio vazio`);
+    if (v.length > 40000) throw new Error(`o campo "${k}" veio grande demais`);
+  }
   if (String(job.action).length > 300) throw new Error("o nome da tarefa passou do tamanho que cabe");
   // sem cliente não há onde salvar — a regra que o Sérgio pediu, no servidor
   if (!job.cliente || !clientesLower.has(semAcento(String(job.cliente).trim()).toLocaleLowerCase("pt-BR"))) throw new Error(`o cliente "${String(job.cliente ?? "").slice(0,40)}" não está no cadastro`);
@@ -806,7 +812,13 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   for (const item of items) {
    try {
     if (!objeto(item) || Object.keys(item).some(k => !permitidos.includes(k))) throw new Error(`só sei mexer em: ${permitidos.join(", ")}`);
-    if (Object.values(item).some(v => typeof v !== "string" || !v.trim() || v.length > 12000)) throw new Error("um dos valores veio vazio ou grande demais");
+    // campo opcional vazio sai da proposta em vez de derrubá-la
+    for (const k of Object.keys(item))
+      if (typeof item[k] === "string" && !(item[k] as string).trim() && !["id", "action"].includes(k)) delete item[k];
+    for (const [k, v] of Object.entries(item)) {
+      if (typeof v !== "string" || !v.trim()) throw new Error(`o campo "${k}" veio vazio`);
+      if (v.length > 12000) throw new Error(`o campo "${k}" veio grande demais`);
+    }
     let atual: Registro | undefined;
     if (criar) {
       if (!item.action) throw new Error("faltou dizer o que é a tarefa nova");
