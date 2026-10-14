@@ -4963,12 +4963,12 @@ async function personagensProximos(){
 // (pasta vazia, Drive fora), vale a foto fixa do site — nunca buraco.
 let IMG_VIVAS = null;
 (function(){
-  try { const v = JSON.parse(localStorage.getItem('pd_img_vivas')||'null');
+  try { const v = JSON.parse(localStorage.getItem('pd_img_vivas2')||'null');
         if (v && Date.now() - v.em < 6*3600e3) IMG_VIVAS = v.p; } catch(e){}
   fetch('/pd-imagens.php?pasta=personagens').then(r=>r.json()).then(j=>{
     if (j && j.personagens && !Array.isArray(j.personagens)){
       IMG_VIVAS = j.personagens;
-      try { localStorage.setItem('pd_img_vivas', JSON.stringify({ em: Date.now(), p: IMG_VIVAS })); } catch(e){}
+      try { localStorage.setItem('pd_img_vivas2', JSON.stringify({ em: Date.now(), p: IMG_VIVAS })); } catch(e){}
     }
   }).catch(()=>{});
 })();
