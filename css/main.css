@@ -383,8 +383,8 @@ img{max-width:100%;display:block;}
   background-color:#0a0a0a;
   background-image:var(--logo-texture,none);
   background-size:cover;background-position:center;
-  -webkit-mask-image:url('https://sd.sergioduh.com/assets/logo-studio-design-quadrado.svg');
-  mask-image:url('https://sd.sergioduh.com/assets/logo-studio-design-quadrado.svg');
+  -webkit-mask-image:url('https://sd.sergioduh.com/assets/logo-pontodot-bolinha.svg');
+  mask-image:url('https://sd.sergioduh.com/assets/logo-pontodot-bolinha.svg');
   -webkit-mask-size:cover;mask-size:cover;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
   -webkit-mask-position:center;mask-position:center;
@@ -1056,3 +1056,6 @@ input[type="date"],input[type="email"],input[type="number"]{
 .fx-nota textarea::placeholder{ color:rgba(51,41,12,.38); }
 .fx-nota:hover{ box-shadow:0 5px 16px rgba(0,0,0,.18) !important; }
 .fx-nota-mais:hover,.fx-nota div[title="Excluir"]:hover{ opacity:.85 !important; }
+
+/* caixinha flutuante de horários do verso: fora da tela a pedido (14/10). O relógio interno segue medindo. */
+#tracker-win{display:none !important}
