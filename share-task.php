@@ -47,11 +47,11 @@ $pageUrl = $origin.'/share-task.php?t='.urlencode($shareToken);
 
 if (!$task) {
   http_response_code(404);
-  $title = 'Tarefa não encontrada — Studio Design';
+  $title = 'Tarefa não encontrada — Pontodot';
   $desc = 'Esse link de tarefa não existe mais ou foi removido.';
   $image = $origin.'/assets/icon-512.png';
 } else {
-  $clientName = $task['clients']['name'] ?? 'Studio Design';
+  $clientName = $task['clients']['name'] ?? 'Pontodot';
   $productName = $task['products']['name'] ?? null;
   $respLabel = $RESP_LABELS[$task['resp']] ?? $task['resp'];
   $statusInfo = $STATUS_LABELS[$task['status']] ?? [$task['status'], '#999'];
@@ -76,7 +76,7 @@ if (!$task) {
 <meta property="og:description" content="<?= h($desc) ?>">
 <meta property="og:image" content="<?= h($image) ?>">
 <meta property="og:url" content="<?= h($pageUrl) ?>">
-<meta property="og:site_name" content="Studio Design — SD Agência">
+<meta property="og:site_name" content="Pontodot">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="<?= h($title) ?>">
 <meta name="twitter:description" content="<?= h($desc) ?>">
@@ -103,7 +103,7 @@ if (!$task) {
     <div class="body">
       <div class="title"><?= h($title) ?></div>
       <div class="meta"><?= h($desc) ?></div>
-      <a class="btn" href="/index.html">Abrir Studio Design</a>
+      <a class="btn" href="/index.html">Abrir o Pontodot</a>
     </div>
   </div>
 <?php else: ?>
@@ -117,7 +117,7 @@ if (!$task) {
         Projeto: <b><?= h($task['project'] ?: 'Geral') ?></b><br>
         Responsável: <b><?= h($respLabel) ?></b>
       </div>
-      <a class="btn" href="/index.html?redirect=task:<?= urlencode($task['id']) ?>">Abrir no Studio Design</a>
+      <a class="btn" href="/index.html?redirect=task:<?= urlencode($task['id']) ?>">Abrir no Pontodot</a>
     </div>
   </div>
   <script>
@@ -125,6 +125,6 @@ if (!$task) {
     // Se não, o botão acima leva pro login normalmente.
   </script>
 <?php endif; ?>
-<div class="footer">Studio Design — SD Agência</div>
+<div class="footer">Pontodot</div>
 </body>
 </html>

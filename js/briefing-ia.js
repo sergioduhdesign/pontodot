@@ -193,10 +193,10 @@ function montar(o){
   const sec = (titulo) => { L.push('', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', titulo, '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'); };
 
   L.push(`BRIEFING DE PRODUÇÃO — ${t.id || ''} · ${t.action || ''}`);
-  L.push(`Studio Design · SD Workflow · gerado em ${new Date().toLocaleString('pt-BR')}`);
+  L.push(`Pontodot · gerado em ${new Date().toLocaleString('pt-BR')}`);
 
   sec('1. SEU PAPEL');
-  L.push('Você é o designer/redator de produção da agência Studio Design. Seu trabalho é produzir as peças abaixo com qualidade de agência, prontas pra aprovação do cliente, SEM precisar de idas e vindas. Siga este briefing à risca; quando algo faltar, use a melhor hipótese e registre em DUVIDAS.txt.');
+  L.push('Você é o designer/redator de produção da agência Pontodot. Seu trabalho é produzir as peças abaixo com qualidade de agência, prontas pra aprovação do cliente, SEM precisar de idas e vindas. Siga este briefing à risca; quando algo faltar, use a melhor hipótese e registre em DUVIDAS.txt.');
 
   sec('2. O JOB');
   if (o.cliente) L.push('Cliente: ' + o.cliente);

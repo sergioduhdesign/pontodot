@@ -70,13 +70,13 @@ if ($prof['code'] >= 300) {
 }
 
 // --- 3. Email de convite ---------------------------------------------
-$subject = 'Seu acesso ao Studio Design - workflow';
+$subject = 'Seu acesso ao Pontodot — workflow';
 $message = "Ola, $name!\n\n"
-         . "Voce foi convidado(a) para acessar o Studio Design - workflow.\n\n"
+         . "Voce foi convidado(a) para acessar o Pontodot — workflow.\n\n"
          . "Clique no link abaixo para criar sua senha e entrar na plataforma:\n\n"
          . "$link\n\n"
          . "Este link e valido por 24 horas.\n\n"
-         . "Studio Design\nhttps://sd.sergioduh.com";
+         . "Pontodot\nhttps://sd.sergioduh.com";
 $headers = "From: workflow@sergioduh.com\r\n"
          . "Reply-To: contato@sergioduh.com\r\n"
          . "Content-Type: text/plain; charset=UTF-8";

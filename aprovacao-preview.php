@@ -7,7 +7,7 @@
 // depois de buscar os dados no Supabase. O rastreador que gera a
 // prévia no WhatsApp, iMessage, Slack etc. NÃO executa JavaScript —
 // ele só lê as tags <meta> que já vêm prontas no HTML. Por isso o
-// link saía sempre igual: "Aprovação — Studio Design", sem imagem,
+// link saía sempre igual: "Aprovação — Pontodot", sem imagem,
 // sem dizer de quem é nem o que é.
 //
 // COMO FUNCIONA:
@@ -38,7 +38,7 @@ function h($s) {
 
 // --- Valores padrão, usados se o token não existir ou já tiver vencido ---
 $titulo      = 'Aprovação de material';
-$cliente     = 'Studio Design';
+$cliente     = 'Pontodot';
 $descricao   = 'Confira e aprove o material preparado para você.';
 $imagem      = 'https://sd.sergioduh.com/assets/icon-512.png';
 $imagemQuad  = true;
@@ -74,7 +74,7 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
             ? false : true;
 
         if (!$expirado) {
-            $cliente = $set['clients']['name'] ?? 'Studio Design';
+            $cliente = $set['clients']['name'] ?? 'Pontodot';
             $titulo  = $set['title'] ?? $titulo;
 
             $itens = $set['approval_items'] ?? [];
@@ -106,7 +106,7 @@ $tituloCompleto = $titulo . ' — ' . $cliente;
 
 <!-- Open Graph (WhatsApp, iMessage, Slack, LinkedIn...) -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Studio Design">
+<meta property="og:site_name" content="Pontodot">
 <meta property="og:title" content="<?= h($tituloCompleto) ?>">
 <meta property="og:description" content="<?= h($descricao) ?>">
 <meta property="og:image" content="<?= h($imagem) ?>">

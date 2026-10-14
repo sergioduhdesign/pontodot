@@ -35,7 +35,7 @@ function supa($path, $method, $body = null, $extra = []) {
     return ['code' => $code, 'body' => json_decode($raw, true), 'raw' => $raw];
 }
 
-echo "SD Workflow — aviso de prazo — " . date('c') . "\n";
+echo "Pontodot — aviso de prazo — " . date('c') . "\n";
 echo str_repeat('-', 60) . "\n";
 
 // ---------------------------------------------------------------

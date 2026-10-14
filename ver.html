@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Aprovação — Studio Design</title>
+<title>Aprovação — Pontodot</title>
 <link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/main.css">
 <style>
@@ -234,7 +234,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 
 <div class="ap-top">
   <div class="ap-top-inner">
-    <p class="ap-eyebrow" id="apEyebrow">Studio Design</p>
+    <p class="ap-eyebrow" id="apEyebrow">Pontodot</p>
     <h1 class="ap-title" id="apTitle">Carregando…</h1>
     <p class="ap-sub" id="apSub"></p>
     <div class="ap-progress">
@@ -342,11 +342,11 @@ async function load(){
   // Apontamento interno (equipe → IA) nunca aparece no link do cliente
   items = (data.items || []).map(i => ({ ...i, _talk: (i.talk || []).filter(c => !AP.ehInterno(c.body)) }));
 
-  document.getElementById('apEyebrow').textContent = (data.client_name || 'Studio Design') + ' · Aprovação';
+  document.getElementById('apEyebrow').textContent = (data.client_name || 'Pontodot') + ' · Aprovação';
   document.getElementById('apTitle').textContent   = apSet.title;
   document.getElementById('apSub').textContent     = apSet.subtitle
     || 'Revise cada peça, deixe seu comentário e marque como aprovada ou peça ajuste. Suas observações chegam direto na equipe.';
-  document.title = apSet.title + ' — Studio Design';
+  document.title = apSet.title + ' — Pontodot';
 
   if (apSet.due_date) {
     const d = new Date(apSet.due_date + 'T12:00:00');

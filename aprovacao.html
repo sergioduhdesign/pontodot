@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Aprovação — Studio Design</title>
+<title>Aprovação — Pontodot</title>
 <link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/main.css">
 <style>
@@ -342,7 +342,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 
 <div class="ap-top">
   <div class="ap-top-inner">
-    <p class="ap-eyebrow" id="apEyebrow">Studio Design</p>
+    <p class="ap-eyebrow" id="apEyebrow">Pontodot</p>
     <h1 class="ap-title" id="apTitle">Carregando…</h1>
     <p class="ap-sub" id="apSub"></p>
     <div class="ap-progress">
@@ -475,11 +475,11 @@ async function load(){
 
   const { data: cli } = await sb.from('clients').select('name').eq('id', s.client_id).single();
 
-  document.getElementById('apEyebrow').textContent = (cli?.name || 'Studio Design') + ' · Aprovação';
+  document.getElementById('apEyebrow').textContent = (cli?.name || 'Pontodot') + ' · Aprovação';
   document.getElementById('apTitle').textContent   = s.title;
   document.getElementById('apSub').textContent     = s.subtitle
     || 'Revise cada peça, deixe seu comentário e marque como aprovada ou peça ajuste. Suas observações chegam direto na equipe.';
-  document.title = s.title + ' — Studio Design';
+  document.title = s.title + ' — Pontodot';
 
   const { data: it } = await sb.from('approval_items')
     .select('*').eq('set_id', SET_ID).order('position');

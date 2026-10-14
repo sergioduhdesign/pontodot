@@ -1,6 +1,6 @@
 {
-  "name": "SD Workflow",
-  "short_name": "SD",
+  "name": "Pontodot",
+  "short_name": "Pontodot",
   "description": "O estúdio inteiro numa tela",
   "start_url": "/index.html",
   "display": "standalone",

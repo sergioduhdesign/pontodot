@@ -1,5 +1,5 @@
 // ================================================================
-// STUDIO DESIGN — Import Excel em lote
+// PONTODOT — Import Excel em lote
 // v2 — suporte a hierarquia (coluna PAI) e ordem (coluna ORDEM)
 // ================================================================
 

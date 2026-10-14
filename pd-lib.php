@@ -151,9 +151,9 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
         sd_push_usuario($p['id'], $titulo, $corpo, '/app.html', 'sd-aprovacao');
         if (!empty($p['email'])) {
             $msg = 'Olá, ' . ($p['name'] ?: '') . "!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link
-                 . "\n\nVocê pode aprovar tudo de uma vez ou pedir ajuste peça por peça.\n\nStudio Design\nhttps://sd.sergioduh.com";
+                 . "\n\nVocê pode aprovar tudo de uma vez ou pedir ajuste peça por peça.\n\nPontodot\nhttps://sd.sergioduh.com";
             @mail($p['email'], '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
-                "From: Studio Design <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+                "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
         }
         $n++;
     }

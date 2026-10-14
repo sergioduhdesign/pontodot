@@ -22,7 +22,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Studio Design — workflow</title>
+<title>pontodot — workflow</title>
 <link rel="stylesheet" href="css/main.css?v=20260817i">
 <style>
 @media (max-width: 768px) { 
@@ -56,7 +56,7 @@
        esquerda e a frase alinhada à direita dentro dele — fica perto do
        texto técnico, ancorado no rodapé, sem véu/filtro nenhum sobre a foto. -->
   <div style="position:absolute;left:0;right:0;bottom:96px;z-index:2;max-width:920px;margin:0 auto;padding:0 36px;display:flex;flex-direction:column;align-items:flex-end;gap:24px">
-    <img id="splash-logo" src="assets/logo-studio-design-white.svg" alt="Studio Design" style="align-self:flex-start;height:40px;width:auto;opacity:0;transform:translateY(-14px);transition:opacity 3s ease,transform 3s ease;filter:drop-shadow(0 2px 10px rgba(0,0,0,0.75)) drop-shadow(0 0 24px rgba(0,0,0,0.5))">
+    <img id="splash-logo" src="assets/logo-pontodot-white.svg" alt="Pontodot" style="align-self:flex-start;height:40px;width:auto;opacity:0;transform:translateY(-14px);transition:opacity 3s ease,transform 3s ease;filter:drop-shadow(0 2px 10px rgba(0,0,0,0.75)) drop-shadow(0 0 24px rgba(0,0,0,0.5))">
     <div id="splash-quote" style="width:100%;text-align:right;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;font-weight:400;font-style:normal;font-size:clamp(30px,6vw,92px);color:#fff;line-height:1.08;opacity:0;transform:translateY(-14px);transition:opacity 3s ease,transform 3s ease;text-shadow:0 2px 10px rgba(0,0,0,0.75),0 0 32px rgba(0,0,0,0.5)"></div>
   </div>
   <div id="splash-tech" style="position:absolute;left:0;right:0;bottom:36px;z-index:2;text-align:center;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;font-weight:400;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);text-shadow:0 1px 8px rgba(0,0,0,0.75)"></div>
@@ -65,7 +65,7 @@
 <div class="app-shell" id="app" style="display:none">
   <div class="header" id="app-header">
     <div class="logo-group" onclick="goHome()" style="cursor:pointer">
-      <div id="logo-square-mask" title="Studio Design"></div>
+      <div id="logo-square-mask" title="Pontodot"></div>
     </div>
 
     <div class="hdr-stack">
@@ -505,7 +505,7 @@
               </div>
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
-                  <div class="entity-card-name">SD Workflow Design</div>
+                  <div class="entity-card-name">Pontodot Design</div>
                   <div class="entity-card-meta">Kit de marca, redes sociais, papelaria, books</div>
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
@@ -3690,13 +3690,13 @@ function pdfPaginaFinalSD(pdf, logoInfo){
     pdf.addImage(logoInfo.dataURL, 'PNG', (W - lw) / 2, cy - 22, lw, lh);
   } else {
     pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(20);
-    pdf.text('STUDIO DESIGN', W/2, cy - 12, { align: 'center' });
+    pdf.text('PONTODOT', W/2, cy - 12, { align: 'center' });
   }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
   pdf.setTextColor(165, 170, 180);
   pdf.text('sd.sergioduh.com', W/2, cy + 4, { align: 'center' });
   pdf.setFontSize(7.5); pdf.setTextColor(110, 115, 125);
-  pdf.text('Studio Design · documento gerado pela plataforma SD Workflow', W/2, H - 12, { align: 'center' });
+  pdf.text('Pontodot — documento gerado pela plataforma', W/2, H - 12, { align: 'center' });
 }
 
 function loadImageDataURL(url, maxW) {
@@ -3736,7 +3736,7 @@ async function exportCronoPDF() {
 
     // Logo SD (versão escura — header do PDF agora é cinza claro, não preto)
     let logoInfo = null;
-    try { logoInfo = await loadImageDataURL('assets/logo-studio-design.svg', 500); } catch (e) { logoInfo = null; }
+    try { logoInfo = await loadImageDataURL('assets/logo-pontodot.svg', 500); } catch (e) { logoInfo = null; }
 
     // Calcular dimensões PDF (A4 landscape)
     // 16:9 (proporção 1920×1080) — padrão de TODOS os PDFs do sistema
@@ -3761,7 +3761,7 @@ async function exportCronoPDF() {
       } else {
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('SD Studio Design — Workflow', margin, TEXT_Y);
+        pdf.text('Pontodot — workflow', margin, TEXT_Y);
       }
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
@@ -4501,7 +4501,7 @@ async function exportBIPDF(btn){
 
     // Logos: SD (asset local) + cliente (se houver e se carregar)
     let logoSD = null, logoCli = null;
-    try { logoSD = await loadImageDataURL('assets/logo-studio-design.svg', 500); } catch(e){}
+    try { logoSD = await loadImageDataURL('assets/logo-pontodot.svg', 500); } catch(e){}
     if (clienteObj?.logo_url) { try { logoCli = await loadImageDataURL(clienteObj.logo_url, 300); } catch(e){} }
 
     // ------- consulta tudo de uma vez -------
@@ -4533,7 +4533,7 @@ async function exportBIPDF(btn){
     pdf.text('Business Intelligence', M, 84);
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(17);
     pdf.setTextColor(160, 165, 175);
-    pdf.text('SD Workflow — leitura da operação', M, 98);
+    pdf.text('Pontodot — leitura da operação', M, 98);
     pdf.setDrawColor(70, 74, 84); pdf.setLineWidth(0.5);
     pdf.line(M, 112, M + 90, 112);
     pdf.setFontSize(13); pdf.setTextColor(210, 213, 220);
@@ -5604,7 +5604,7 @@ async function loadDesignModuleToggle(){
 async function toggleDesignModule(enabled){
   const{error}=await sb.from('app_settings').update({design_module_enabled:enabled}).eq('id',1);
   if(error){showToast('Erro ao atualizar módulo: '+error.message,'error');document.getElementById('design-module-toggle').checked=!enabled;return;}
-  showToast(enabled?'SD Workflow Design ativado.':'SD Workflow Design desativado.','success');
+  showToast(enabled?'Pontodot Design ativado.':'Pontodot Design desativado.','success');
 }
 
 // ================================================================
@@ -8072,7 +8072,7 @@ function exportExcel(){
   const wsData = [];
 
   // Linha 1: Título
-  wsData.push(['STUDIO DESIGN — workflow','','','','','','','','','','','']);
+  wsData.push(['PONTODOT — workflow','','','','','','','','','','','']);
   // Linha 2: Subtítulo
   const clientName = fClient ? (clients.find(c=>c.id===fClient)?.name||'Todos os clientes') : 'Todos os clientes';
   const respName = fResp ? (RESP_CFG[fResp]?.label||fResp) : 'Todos';
@@ -8207,7 +8207,7 @@ ${rows.map(t => {
 }).join('')}
 </tbody>
 </table>
-<div class="footer">Studio Design — workflow · sergioduh.com</div>
+<div class="footer">pontodot — workflow · sd.sergioduh.com</div>
 
 </body></html>`;
 
@@ -8396,7 +8396,7 @@ function mostrarAlertaOperacao(n){
   if (navigator.vibrate) navigator.vibrate([180, 80, 180]);
   // Volta ao topo da pilha se a pessoa estiver em outra aba
   if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-    try { new Notification(n.title || 'Studio Design', { body: n.body || '', icon: '/assets/icon-192.png', tag: 'sd-op-' + n.id }); } catch(e){}
+    try { new Notification(n.title || 'Pontodot', { body: n.body || '', icon: '/assets/icon-192.png', tag: 'sd-op-' + n.id }); } catch(e){}
   }
   if (n.link && n.link.startsWith('task:') && activeTaskId === n.link.slice(5)) { loadTaskDrive(activeTaskId); loadTaskApproval(activeTaskId); }
 }
@@ -11160,14 +11160,14 @@ function abrirSobreApp(){
                 max-width:520px;width:100%;max-height:82vh;display:flex;flex-direction:column;
                 overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4)">
       <div style="padding:18px 22px 14px;border-bottom:1px solid var(--border)">
-        <div style="font-size:15px;font-weight:700">STUDIO DESIGN — workflow</div>
+        <div style="font-size:15px;font-weight:700">PONTODOT — workflow</div>
         <div style="font-size:11.5px;color:var(--text3);margin-top:3px">
           Versão ${SD_APP_VERSAO} · Plataforma de gestão criativa</div>
       </div>
       <div style="overflow-y:auto;padding:18px 22px;font-size:12px;line-height:1.62;color:var(--text2)">
         <p style="margin:0 0 14px">
-          Software proprietário desenvolvido e mantido por <strong>SD Agência</strong>
-          (Studio Design), para uso interno e licenciado de gestão de fluxo criativo.
+          Software proprietário desenvolvido e mantido por <strong>NOVA HORDA SERVIÇOS &amp; NEGÓCIOS LTDA</strong>
+          (Pontodot), para uso interno e licenciado de gestão de fluxo criativo.
         </p>
 
         <div style="font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--text3);

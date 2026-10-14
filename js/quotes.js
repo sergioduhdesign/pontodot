@@ -1,5 +1,5 @@
 // ================================================================
-// STUDIO DESIGN — banco de frases pra tela de abertura (splash)
+// PONTODOT — banco de frases pra tela de abertura (splash)
 // 100 frases reais, de gente da arte/design/arquitetura/criação, em
 // português, espanhol, italiano, francês e inglês. Uma é sorteada a
 // cada refresh/entrada no app, junto com uma imagem nova do banco.

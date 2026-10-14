@@ -625,13 +625,13 @@ AP.gerarPDF = async function(o){
   };
 
   let logoSD = null, logoCli = null;
-  try { logoSD = await carregarImagem('/assets/logo-studio-design.svg', 600); } catch(e){}
+  try { logoSD = await carregarImagem('/assets/logo-pontodot.svg', 600); } catch(e){}
   try { if (o.logoClienteUrl) logoCli = await carregarImagem(o.logoClienteUrl, 400); } catch(e){}
 
   // ---------- CAPA ----------
   pdf.setFillColor(10,10,12); pdf.rect(0, 0, W, H, 'F');
   if (logoSD) { const lh = 10; pdf.addImage(logoSD.data, 'JPEG', M, 22, lh * logoSD.r, lh); }
-  else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.text('STUDIO DESIGN', M, 28); }
+  else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.text('PONTODOT', M, 28); }
   if (logoCli) { const lh = 16, lw = Math.min(lh * logoCli.r, 60); pdf.addImage(logoCli.data, 'JPEG', W - M - lw, 20, lw, lw / logoCli.r); }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(12); pdf.setTextColor(160,165,175);
   pdf.text(String(o.clienteNome || '').toUpperCase(), M, 78);
@@ -660,7 +660,7 @@ AP.gerarPDF = async function(o){
     pdf.setFillColor(255,255,255); pdf.rect(0, 0, W, H, 'F');
     pdf.setFillColor(10,10,12); pdf.rect(0, 0, W, 12, 'F');
     pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5);
-    pdf.text(('STUDIO DESIGN — ' + (set.title||'')).toUpperCase(), M, 8);
+    pdf.text(('PONTODOT — ' + (set.title||'')).toUpperCase(), M, 8);
 
     const midias = (it.media || []).slice(0, MAX_ARTES);
     const imgs = [];
@@ -760,17 +760,17 @@ AP.gerarPDF = async function(o){
   pdf.addPage([W, H], 'landscape');
   pdf.setFillColor(10,10,12); pdf.rect(0, 0, W, H, 'F');
   if (logoSD) { const lh = 14, lw = lh * logoSD.r; pdf.addImage(logoSD.data, 'JPEG', (W - lw)/2, H/2 - 22, lw, lh); }
-  else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(20); pdf.text('STUDIO DESIGN', W/2, H/2 - 12, { align:'center' }); }
+  else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(20); pdf.text('PONTODOT', W/2, H/2 - 12, { align:'center' }); }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(10); pdf.setTextColor(165,170,180);
   pdf.text('sd.sergioduh.com', W/2, H/2 + 4, { align:'center' });
   pdf.setFontSize(7.5); pdf.setTextColor(110,115,125);
-  pdf.text('Studio Design · documento gerado pela plataforma SD Workflow', W/2, H - 12, { align:'center' });
+  pdf.text('Pontodot — documento gerado pela plataforma', W/2, H - 12, { align:'center' });
 
   const paginas = pdf.internal.getNumberOfPages();
   for (let p = 2; p < paginas; p++) {
     pdf.setPage(p);
     pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(150,150,150);
-    pdf.text('Studio Design — ' + (set.title || ''), M, H - 6);
+    pdf.text('Pontodot — ' + (set.title || ''), M, H - 6);
     pdf.text((p-1) + ' / ' + (paginas-2), W - M, H - 6, { align:'right' });
   }
 
@@ -866,7 +866,7 @@ AP.gerarExcelCorrecoes = function(o){
   });
 
   const aoa = [
-    ['STUDIO DESIGN — Correções do lote: ' + (set.title || '') + (o.clienteNome ? ' · ' + o.clienteNome : '')],
+    ['PONTODOT — Correções do lote: ' + (set.title || '') + (o.clienteNome ? ' · ' + o.clienteNome : '')],
     ['Mesmo modelo do upload. Uma linha = uma peça. As colunas de correção (STATUS → ID_PECA) são só leitura: corrija as artes e a LEGENDA/HASHTAGS e devolva este arquivo dentro do zip de correções.'],
     [],
     HEAD,

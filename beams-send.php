@@ -12,7 +12,7 @@ $me = sd_current_user();
 
 $body     = sd_body();
 $interest = $body['interest'] ?? '';
-$title    = mb_substr(trim($body['title'] ?? 'Studio Design'), 0, 120);
+$title    = mb_substr(trim($body['title'] ?? 'Pontodot'), 0, 120);
 $message  = mb_substr(trim($body['body'] ?? ''), 0, 300);
 $url      = $body['url'] ?? '/app.html';
 

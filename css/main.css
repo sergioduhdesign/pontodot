@@ -1,5 +1,5 @@
 /* ================================================================
-   STUDIO DESIGN — workflow v5
+   PONTODOT — workflow v5
 ================================================================ */
 
 :root {
@@ -473,7 +473,7 @@ img{max-width:100%;display:block;}
 
 .theme-btn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2);flex-shrink:0;}
 
-/* Switch (liga/desliga) — usado pra ativar/desativar módulos, ex: SD Workflow Design */
+/* Switch (liga/desliga) — usado pra ativar/desativar módulos, ex: Pontodot Design */
 .switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;}
 .switch input{opacity:0;width:0;height:0;}
 .switch-track{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:background var(--transition);}

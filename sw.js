@@ -1,4 +1,4 @@
-// Studio Design — Service Worker v2
+// Pontodot — Service Worker v2
 // UM service worker só pro app inteiro: Web Push próprio (VAPID) e
 // Pusher Beams no mesmo arquivo. Antes eram dois registrados no mesmo
 // escopo — o segundo apagava o primeiro e o push sumia.
@@ -23,7 +23,7 @@ self.addEventListener('push', e => {
     tag: data.tag || 'sd-notification',
     renotify: true
   };
-  e.waitUntil(self.registration.showNotification(data.title || 'Studio Design', options));
+  e.waitUntil(self.registration.showNotification(data.title || 'Pontodot', options));
 });
 
 self.addEventListener('notificationclick', e => {
