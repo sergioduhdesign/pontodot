@@ -333,6 +333,8 @@ html.dia .frente{background:#F4F3EF}
 .hist-item .hq img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
 
 /* o álbum */
+.maestro-b{width:auto!important;padding:0 11px 0 9px;gap:6px;display:inline-flex!important;align-items:center;border-radius:21px;font-size:12px;font-weight:600;letter-spacing:.02em}
+.maestro-b span{line-height:1}
 .fi-alb{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:4px;scrollbar-width:thin}
 .fi-alb-t{flex:0 0 52px;width:52px;height:52px;border-radius:10px;overflow:hidden;border:2px solid transparent;padding:0;background:none;cursor:pointer;opacity:.75}
 .fi-alb-t.ativa{border-color:currentColor;opacity:1}
@@ -1623,8 +1625,8 @@ button.ct-rotulo:hover{color:var(--branco)}
         <textarea id="campo" placeholder="Fale comigo..." rows="1" autocomplete="off"
           onkeydown="teclaNoCampo(event, enviar)" oninput="crescerCampo(this)"
           onfocus="modoChat(true);if(!mostrarSug){mostrarSug=true;gerarSugestoes();render()}setTimeout(medirAltura,320);setTimeout(medirAltura,650)"></textarea>
-        <button class="ico-b" onclick="maestroEnviar()" aria-label="Mandar como briefing pro maestro" title="Briefing → maestro: vira plano de produção pra você validar">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10.55A4 4 0 1 0 14 17V7l6-2V3z"/></svg>
+        <button class="ico-b maestro-b" onclick="maestroEnviar()" aria-label="Mandar como briefing pro maestro" title="Briefing → maestro: vira plano de produção pra você validar">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10.55A4 4 0 1 0 14 17V7l6-2V3z"/></svg><span>Maestro</span>
         </button>
         <button class="ico-b" onclick="escolherAnexo()" aria-label="Anexar arquivo" title="Subir arquivo pra pasta de um cliente">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a4.6 4.6 0 0 1-6.5-6.5l8.4-8.4a3 3 0 0 1 4.3 4.3l-8.4 8.4a1.5 1.5 0 0 1-2.1-2.1l7.7-7.7"/></svg>
