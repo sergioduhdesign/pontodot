@@ -106,7 +106,14 @@ function marcarErro($targetId, $mensagem, $tentativas = null, $avisar = true) {
     if ($tentativas !== null) $dados['attempts'] = (int)$tentativas + 1;
     supa('/rest/v1/scheduled_post_targets?id=eq.' . urlencode($targetId), 'PATCH', $dados);
     error_log('Pontodot publish - erro no alvo ' . $targetId . ': ' . $mensagem);
-    if ($avisar) pub_avisar_equipe('Não publicou', $mensagem, 'publicacao_erro');
+    if ($avisar) {
+        pub_avisar_equipe('Não publicou', $mensagem, 'publicacao_erro');
+        // alarme (v62): pisca e apita até alguém cuidar — só se não começar com "Segurei"
+        if (strpos($mensagem, 'Segurei') !== 0) {
+            supa('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'erro_publicacao', 'titulo' => 'Publicação falhou',
+                'corpo' => mb_substr($mensagem, 0, 400), 'link' => '/index.html#publicacao']);
+        }
+    }
 }
 
 function marcarPublicado($targetId, $postId, $platformPostId, $permalink, $tentativas = null) {
@@ -159,8 +166,13 @@ function verificarEAtualizarTarefa($postId) {
 
     $pendentes = array_filter($statuses, fn($s) => in_array($s, ['agendado', 'publicando'], true));
     if (empty($pendentes) && !in_array('erro', $statuses, true) && in_array('publicado', $statuses, true)) {
-        supa('/rest/v1/tasks?id=eq.' . urlencode($taskId), 'PATCH', ['status' => 'ENTREGUE']);
+        $u = supa('/rest/v1/tasks?id=eq.' . urlencode($taskId), 'PATCH',
+            ['status' => 'ENTREGUE', 'batata' => null, 'batata_em' => gmdate('c')]);
+        if ($u['code'] >= 300) supa('/rest/v1/tasks?id=eq.' . urlencode($taskId), 'PATCH', ['status' => 'ENTREGUE']);
         pub_avisar_equipe('Lote publicado', ($st['body'][0]['title'] ?? 'Lote') . ' saiu inteiro. A tarefa foi pra ENTREGUE.', 'publicacao_ok');
+        supa('/rest/v1/task_events', 'POST', ['task_id' => $taskId, 'tipo' => 'publicado',
+            'titulo' => 'Lote publicado por inteiro', 'corpo' => ($st['body'][0]['title'] ?? null),
+            'quem' => 'Robô', 'quem_tipo' => 'robo', 'ref' => (object)['set_id' => $setId]]);
     }
 }
 

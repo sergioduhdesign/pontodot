@@ -1616,6 +1616,9 @@ button.ct-rotulo:hover{color:var(--branco)}
         <textarea id="campo" placeholder="Fale comigo..." rows="1" autocomplete="off"
           onkeydown="teclaNoCampo(event, enviar)" oninput="crescerCampo(this)"
           onfocus="modoChat(true);if(!mostrarSug){mostrarSug=true;gerarSugestoes();render()}setTimeout(medirAltura,320);setTimeout(medirAltura,650)"></textarea>
+        <button class="ico-b" onclick="maestroEnviar()" aria-label="Mandar como briefing pro maestro" title="Briefing → maestro: vira plano de produção pra você validar">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10.55A4 4 0 1 0 14 17V7l6-2V3z"/></svg>
+        </button>
         <button class="ico-b" onclick="escolherAnexo()" aria-label="Anexar arquivo" title="Subir arquivo pra pasta de um cliente">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a4.6 4.6 0 0 1-6.5-6.5l8.4-8.4a3 3 0 0 1 4.3 4.3l-8.4 8.4a1.5 1.5 0 0 1-2.1-2.1l7.7-7.7"/></svg>
         </button>
@@ -1730,13 +1733,14 @@ button.ct-rotulo:hover{color:var(--branco)}
 <div class="solta-aqui oculto" id="soltaAqui"><div>solta aqui — eu pergunto de qual cliente é</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/js/pd-card.js?v=1"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v61 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v62 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2827,6 +2831,7 @@ function comecarEspera(txt){
 function pararEspera(){ if (_esperaT){ clearInterval(_esperaT); _esperaT = null; } }
 function enviar(micou, doVerso){
   const txt = $('#campo').value.trim(); if (!txt) { if(!doVerso) $('#campo').focus(); return; }
+  if (window._maestroCorrigindo){ limparCampo($('#campo')); maestroEnviar(txt, window._maestroCorrigindo); return; }
   limparCampo($('#campo'));
   if (!chat && !doVerso) { chat = true; layoutChatDesk(true); }
   const th = THREADS[atual] = THREADS[atual] || [];
@@ -3397,6 +3402,61 @@ function gadSeguro(id){
 }
 
 // =====================================================================
+// PUBLICAÇÃO — o quadradinho que diz a verdade da fila: o que sai hoje,
+// o que está agendado, o que falhou (e por quê) e o que está aprovado
+// mas ainda fora da fila. E os relatórios diários de campanha, abertos.
+// =====================================================================
+let PUB = { em:0, dados:null, erro:'' };
+async function carregarPub(forcar){
+  if (!window.REAL) return;
+  if (!forcar && PUB.em && Date.now() - PUB.em < 3 * 60e3) return;
+  PUB.em = Date.now();
+  try {
+    const [alvos, rel] = await Promise.all([
+      sbR.from('scheduled_post_targets').select('id,status,platform,placement,error_message,scheduled_at_override,post_id,scheduled_posts(scheduled_at,caption,client_id,batch_name)')
+        .in('status',['agendado','publicando','erro']).limit(200),
+      sbR.from('pd_relatorios').select('client_id,dia,analise,clients(name)').order('dia',{ascending:false}).limit(6).then(r=>r,()=>({data:null})),
+    ]);
+    const agora = Date.now(), fimHoje = new Date(); fimHoje.setHours(23,59,59,999);
+    const q = (alvos.data||[]).map(a => ({ ...a, quando: new Date(a.scheduled_at_override || a.scheduled_posts?.scheduled_at || 0).getTime() }));
+    PUB.dados = {
+      hoje: q.filter(a => a.status!=='erro' && a.quando <= fimHoje.getTime()).length,
+      fila: q.filter(a => a.status!=='erro').length,
+      erros: q.filter(a => a.status==='erro').slice(0,4),
+      nErros: q.filter(a => a.status==='erro').length,
+      relatorios: (rel && rel.data) || [],
+    };
+    // aprovadas que ainda não entraram na fila
+    try {
+      const { data: aps } = await sbR.from('approval_items').select('id,title,kind,set_id').eq('status','aprovado')
+        .in('kind',['feed','carrossel','stories','reels']).order('created_at',{ascending:false}).limit(60);
+      const ids = (aps||[]).map(x=>'ap:'+x.id);
+      const { data: ja } = ids.length ? await sbR.from('scheduled_posts').select('batch_name').in('batch_name', ids) : { data: [] };
+      const tem = new Set((ja||[]).map(x=>x.batch_name));
+      PUB.dados.foraDaFila = (aps||[]).filter(x=>!tem.has('ap:'+x.id)).length;
+    } catch(e){ PUB.dados.foraDaFila = null; }
+    PUB.erro = '';
+  } catch(e){ PUB.erro = e.message; }
+  render();
+}
+function htmlPublicacao(){
+  if (!window.REAL) return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver a fila de publicação.</div>`);
+  if (!PUB.dados) { carregarPub(); return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">olhando a fila…</div>`); }
+  if (PUB.erro) return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">${esc(PUB.erro)}</div>`);
+  const d = PUB.dados;
+  const num = (v,r) => `<div style="flex:1;min-width:72px;text-align:center;padding:9px 4px;border:.5px solid var(--linha);border-radius:12px">
+    <div style="font-size:21px;font-weight:600;line-height:1">${v}</div><div class="nota" style="margin-top:4px">${r}</div></div>`;
+  const erros = d.erros.map(a => `<div style="margin:5px 0;padding:7px 10px;border-left:2px solid var(--rosa);font-size:11.5px;line-height:1.45;opacity:.9">
+    ✗ ${a.platform==='instagram'?'Instagram':'Facebook'} · ${esc(String(a.error_message||'erro').slice(0,110))}</div>`).join('');
+  const rel = (d.relatorios||[]).slice(0,2).map(r => `<div style="margin:5px 0;padding:8px 11px;background:rgba(127,127,127,.09);border-radius:10px;font-size:11.5px;line-height:1.5">
+    📊 <b>${esc(r.clients?.name||'Cliente')}</b> · ${fmtD(r.dia)}${r.analise?`<br><span style="opacity:.8">${esc(String(r.analise).slice(0,180))}${String(r.analise).length>180?'…':''}</span>`:''}</div>`).join('');
+  return gadCaixa('Publicação', `
+    <div style="display:flex;gap:8px;margin:4px 0 8px">${num(d.hoje,'sai hoje')}${num(d.fila,'na fila')}${num(d.nErros,'com erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar'):''}</div>
+    ${erros}${rel}
+    ${!d.fila && !d.nErros && !rel ? '<div class="nota" style="padding:2px">Fila vazia — aprove um lote e agende, ou ligue o "agendar sozinho".</div>' : ''}`);
+}
+
+// =====================================================================
 // ANÚNCIOS — o que a Meta diz das campanhas e os leads que chegaram.
 // Só LÊ: nada aqui cria, liga ou gasta. Os números vêm do meta-ads.php
 // (que guarda 10 min pra não queimar o limite da Meta); os leads vêm do
@@ -3642,6 +3702,7 @@ const GADGETS = {
       <div class="nota" style="margin:8px 0 0">74% na última semana · melhor mês do ano</div>`,
       ['Ver relatórios',`toast('Abre os relatórios.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
+  publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
   financeiro:{ nome:'Financeiro', html:()=> window.REAL ? gadCaixa('Financeiro',
       `<div class="nota" style="padding:6px 2px">O financeiro (empresa e casa) entra na onda própria da migração — sem números de mentira até lá.</div>`)
     : gadCaixa('Financeiro',`
@@ -3807,6 +3868,7 @@ const ICONE_GAD = {
   equipe:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c.6-4 3.4-6.2 7-6.2s6.4 2.2 7 6.2"/>',
   relatorios:'<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>',
   anuncios:'<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 7a7 7 0 0 1 0 10"/>',
+  publicacao:'<path d="M12 19V5M5 12l7-7 7 7"/><path d="M5 21h14"/>',
   financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
 };
 const icoGad = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${ICONE_GAD[id]||ICONE_GAD.tarefas}</svg>`;
@@ -5473,12 +5535,22 @@ async function entrarReal(session){
     gadsAbertos.anuncios = true; ADS.em = 0; carregarAds(true);
   }
   if (location.hash === '#leads'){ carregarAds(true).then(() => abrirLeads()); history.replaceState(null, '', location.pathname); }
+  if (location.hash === '#publicacao' || location.hash === '#relatorios'){
+    if (!meusGadgets.includes('publicacao')){ meusGadgets = [...meusGadgets, 'publicacao']; salvarGadgets(); }
+    gadsAbertos.publicacao = true; carregarPub(true); history.replaceState(null, '', location.pathname);
+  }
   // o SD completo carrega no fundo: a ponte do Drive e o verso ficam prontos antes do primeiro giro
   setTimeout(()=>{ try { prepararVersoApp(); } catch(e){} }, 2500);
   setInterval(()=>{ carregarReal().catch(()=>{}); carregarThreadsSalvas(); }, 60000);
   if (perfil && ['admin','team'].includes(perfil.role)) {
     setTimeout(roboLote, 8000);
     setInterval(roboLote, 90000);
+    // o ALARME: pisca e apita até alguém cuidar
+    if (window.PDCARD) PDCARD.vigiarAlarmes(sbR, perfil, { abrir: l => {
+      if (!l) return;
+      if (l.startsWith('task:')) abrirTarefaReal(l.slice(5));
+      else if (l.startsWith('/') || l.startsWith(location.origin)) location.href = l;
+    }});
   }
 }
 
@@ -5551,7 +5623,8 @@ function miniTexto(t){
   return (t.status||'').toLowerCase();
 }
 
-let CAMPOS_TAREFA = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,tarefa_mae_id,prompt_ia,prompt_ia_em,clients(name),products(name)';
+const CAMPOS_V46 = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,tarefa_mae_id,prompt_ia,prompt_ia_em,clients(name),products(name)';
+let CAMPOS_TAREFA = CAMPOS_V46 + ',batata,batata_em';
 // migração v46 ainda não rodou? o site não pode morrer por causa disso
 const CAMPOS_BASICOS = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,clients(name),products(name)';
 // carrega TODAS as abertas, em páginas — nenhum corte silencioso
@@ -5561,6 +5634,9 @@ async function buscarTodasAbertas(){
     const { data, error } = await sbR.from('tasks').select(CAMPOS_TAREFA)
       .neq('status','ENTREGUE').order('date_int',{ascending:true,nullsFirst:false})
       .range(i*PAG, i*PAG + PAG - 1);
+    if (error && /batata/i.test(error.message||'') && CAMPOS_TAREFA !== CAMPOS_V46){
+      CAMPOS_TAREFA = CAMPOS_V46; i--; continue;          // migração v62 ainda não rodou
+    }
     if (error && /prompt_ia|tarefa_mae_id|column/i.test(error.message||'') && CAMPOS_TAREFA !== CAMPOS_BASICOS){
       CAMPOS_TAREFA = CAMPOS_BASICOS; i--; continue;      // sem os campos novos, segue a vida
     }
@@ -5847,7 +5923,7 @@ async function abrirTarefaReal(id){
     <div class="tc-topo">
       <span style="margin-top:4px">${cara(caraDe(t),26)}</span>
       <div style="flex:1;min-width:0">
-        <div class="tc-id">${t.id}${tempo}</div>
+        <div class="tc-id">${t.id}${tempo} ${(window.PDCARD && PDCARD.batataHTML(t)) || ''}</div>
         <h3 class="edit" title="Toca pra editar o título" onclick="editarInline(event,'${t.id}','action','texto')">${esc(t.action)}</h3>
         <div class="tc-cli">${esc((t.clients?.name||'SD').toUpperCase())}</div>
       </div>
@@ -6159,6 +6235,13 @@ async function carregarEventos(id){
     }
     const corpo = (data||[]).filter(c => !(c.meta && c.meta.decision === 'ajustar'));
     const ev = $('#tcEventos'); if (!ev) return;
+    // a LINHA DO TEMPO: o que de fato aconteceu (task_events) + a conversa, em ordem
+    if (window.PDCARD){
+      try {
+        await PDCARD.carregarTimeline(sbR, id, ev, corpo);
+        return;
+      } catch(e){ /* sem a v62 no banco, cai no formato antigo */ }
+    }
     ev.innerHTML = (corpo && corpo.length) ? corpo.map(c=>{
       const dt = new Date(c.created_at);
       const dd = `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
@@ -6431,6 +6514,142 @@ async function produzirIA(btn){
   salvarThread(); render();
   toast('Na rua: ' + taskId);
 }
+// =====================================================================
+// O MAESTRO — briefing em conversa normal vira PLANO; humano valida;
+// a casa executa (tarefas encadeadas, GPT acionado, batata registrada).
+// =====================================================================
+const EDGE_MAESTRO = SB_URL + '/functions/v1/pd-maestro';
+async function maestroChamar(texto, debriefingId){
+  const { data:{ session } } = await sbR.auth.getSession();
+  if (!session) throw new Error('entra na conta primeiro');
+  const r = await fetch(EDGE_MAESTRO, { method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token, 'apikey': SB_KEY },
+    body: JSON.stringify({ acao:'debriefing', texto, debriefing_id: debriefingId || undefined, origem:'chat' }) });
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok || j.error) throw new Error(j.error || ('o maestro respondeu ' + r.status));
+  return j;
+}
+const MAESTRO_ICO = { gpt:'🎨 GPT', claude:'🧠 Claude', humano:'🙋 humano' };
+function maestroCardHTML(plano){
+  const linhas = (plano.pecas||[]).map((x,i) =>
+    `<div style="display:flex;gap:8px;align-items:baseline;margin:3px 0">
+      <span style="opacity:.5;font-variant-numeric:tabular-nums">${String(i+1).padStart(2,'0')}</span>
+      <span style="flex:1;min-width:0"><b>${esc(x.titulo)}</b>
+        <span style="opacity:.65"> · ${esc(x.tipo)} · ${MAESTRO_ICO[x.produtor]||esc(x.produtor)} · ${esc(x.resp)}</span>
+        ${x.depende_de != null ? `<span style="opacity:.5"> · depois da ${String(x.depende_de+1).padStart(2,'0')}</span>` : ''}</span>
+      <span style="opacity:.65;flex-shrink:0">${x.prazo ? fmtD(x.prazo) : 'sem data'}</span>
+    </div>`).join('');
+  return `<b>🎼 Plano do maestro</b> — ${esc(plano.resumo||'')}${plano.cliente ? ` · <b>${esc(plano.cliente)}</b>` : ''}
+    <div style="margin:8px 0 2px">${linhas}</div>
+    ${plano.site ? `<div style="margin:6px 0;padding:8px 11px;border-left:2px solid var(--verde,#5BC48E);opacity:.9">🌐 <b>Site:</b> ${esc(JSON.stringify(plano.site.precisa||plano.site).slice(0,300))}</div>` : ''}
+    ${(plano.perguntas||[]).length ? `<div style="margin-top:6px;opacity:.85">❓ ${plano.perguntas.map(esc).join('<br>❓ ')}</div>` : ''}
+    <div style="margin-top:6px;font-size:11px;opacity:.55">Validar cria as tarefas encadeadas e aciona a produção. Corrigir: escreve a mudança no campo e manda.</div>`;
+}
+async function maestroEnviar(txtCorrecao, debriefingId){
+  const texto = typeof txtCorrecao === 'string' ? txtCorrecao : $('#campo').value.trim();
+  window._maestroCorrigindo = null;
+  if (!texto){ toast('Escreve (ou cola) o briefing no campo e toca no maestro.'); $('#campo').focus(); return; }
+  if (!window.REAL){ toast('Entra na conta primeiro.'); return; }
+  if (typeof txtCorrecao !== 'string') limparCampo($('#campo'));
+  if (!chat) { chat = true; layoutChatDesk(true); }
+  const th = THREADS.sd = THREADS.sd || [];
+  th.push({ eu:true, t:esc(texto).replace(/\n/g,'<br>'), h:hAgora() }, { espera:true });
+  render();
+  try {
+    const j = await maestroChamar(texto, debriefingId);
+    th.pop();
+    window._maestro = j;
+    th.push({ t: (j.fala ? esc(j.fala) + '<br><br>' : '') + maestroCardHTML(j.plano), h: hAgora(),
+      acoes: [['✓ Validar e executar','verde','maestroExecutar(this)'],['Corrigir o plano','',`maestroCorrigir('${j.debriefing_id}')`]] });
+  } catch(e){
+    th.pop();
+    th.push({ t:`<i style="opacity:.75">O maestro não conseguiu: ${esc(e.message)}</i>`, h:hAgora() });
+  }
+  salvarThread(); render();
+}
+function maestroCorrigir(id){
+  window._maestroCorrigindo = id;
+  toast('Escreve a correção no campo e manda — o plano volta refeito.');
+  $('#campo').focus();
+}
+async function maestroExecutar(btn){
+  const m = window._maestro;
+  if (botaoCarregando(btn, !m) && !m) return;
+  if (!m){ toast('Esse plano já foi executado.'); return; }
+  window._maestro = null;
+  (THREADS.sd||[]).forEach(x => { if (x.acoes && x.acoes.some(a => /maestroExecutar|maestroCorrigir/.test(a[2]||''))) x.acoes = null; });
+  const b = bolhaCadeia();
+  const plano = m.plano, ids = [], falhas = [];
+  const cli = plano.cliente ? (clientesReais||[]).find(c => (c.name||'').toLowerCase() === plano.cliente.toLowerCase()) : null;
+  const projeto = String(plano.resumo||'MAESTRO').toUpperCase().slice(0,48);
+
+  for (let i = 0; i < (plano.pecas||[]).length; i++){
+    const pc = plano.pecas[i];
+    const p = b.passo(`criando ${i+1}/${plano.pecas.length} — ${pc.titulo.slice(0,36)}`);
+    try {
+      const { data: nid, error: eid } = await sbR.rpc('next_task_id');
+      if (eid || !nid) throw new Error(eid?.message || 'sem id novo');
+      const raiz = pc.depende_de == null;
+      const nova = { id: nid, action: pc.titulo.slice(0,160), status: 'BRIEFING',
+        resp: pc.resp, project: projeto, week: 'ESTA SEMANA', created_by: perfil.id,
+        obs: pc.detalhe ? pc.detalhe.slice(0,800) : null,
+        batata: pc.produtor === 'gpt' && raiz ? 'gpt' : (pc.produtor === 'claude' ? 'maestro' : 'humano'),
+        batata_em: new Date().toISOString() };
+      if (cli) nova.client_id = cli.id;
+      if (pc.prazo) nova.date_int = pc.prazo;
+      if (pc.prazo_cliente) nova.date_cli = pc.prazo_cliente;
+      if (pc.depende_de != null && ids[pc.depende_de]) nova.tarefa_mae_id = ids[pc.depende_de];
+      if (pc.produtor === 'gpt') { nova.prompt_ia = pc.detalhe || pc.titulo; nova.prompt_ia_em = new Date().toISOString(); }
+      let { data, error } = await sbR.from('tasks').insert(nova).select('id').single();
+      if (error && /batata|prompt_ia|column/i.test(error.message||'')){
+        delete nova.batata; delete nova.batata_em; delete nova.prompt_ia; delete nova.prompt_ia_em;
+        ({ data, error } = await sbR.from('tasks').insert(nova).select('id').single());
+      }
+      if (error) throw error;
+      ids[i] = data.id;
+      b.fim(p, 'ok', data.id);
+      if (window.PDCARD) PDCARD.evento(sbR, data.id, 'debriefing', 'Nasceu do plano do maestro',
+        { corpo: (pc.detalhe||'').slice(0,280), quem: 'Maestro', quem_tipo: 'maestro' });
+    } catch(e){ b.fim(p, 'erro', e.message); falhas.push(pc.titulo.slice(0,30)); }
+  }
+
+  // produção: GPT entra agora nas peças-raiz dele; as derivadas esperam a mãe
+  for (let i = 0; i < (plano.pecas||[]).length; i++){
+    const pc = plano.pecas[i];
+    if (!ids[i] || pc.produtor !== 'gpt' || pc.depende_de != null) continue;
+    const p = b.passo(`acionando o GPT — ${pc.titulo.slice(0,36)}`);
+    try {
+      await sdPonte('conectar', { task_id: ids[i], revisao_interna: true });
+      await sdPonte('briefing', { task_id: ids[i], b64: b64Texto(
+        `BRIEFING — ${pc.titulo}\nCliente: ${plano.cliente||'SD'}\nTipo: ${pc.tipo}\nPrazo: ${pc.prazo||'combinar'}\n\n${pc.detalhe||''}\n\nContexto do job: ${plano.resumo||''}`) });
+      const r = await sdPonte('play', { task_id: ids[i] });
+      b.fim(p, 'ok', r?.chamado?.chamado || 'chamado enviado');
+      if (window.PDCARD) PDCARD.evento(sbR, ids[i], 'chamado_ia', 'Chamado enviado pro GPT', { quem: 'Maestro', quem_tipo: 'maestro' });
+    } catch(e){ b.fim(p, 'erro', e.message); }
+  }
+
+  // o plano pede site/conector? registra e diz, em português, o que falta
+  if (plano.site && cli){
+    try {
+      const tipoSite = ['wp','html','bloco'].includes(plano.site.tipo) ? plano.site.tipo : 'wp';
+      await sbR.from('pd_sites').upsert({ client_id: cli.id, tipo: tipoSite,
+        url: typeof plano.site.url === 'string' ? plano.site.url : null, ativo: false, atualizado_por: perfil.id });
+      const falta = Array.isArray(plano.site.precisa) ? plano.site.precisa.map(esc).join('<br>• ') : 'o endereço do site e a senha de aplicativo';
+      (THREADS.sd||[]).push({ t: `🌐 <b>Site do ${esc(cli.name)} registrado</b> (${tipoSite}). Pra ligar, falta:<br>• ${falta}<br>` +
+        `<span style="opacity:.7">No verso → Clientes → ${esc(cli.name)}: cole o endereço, guarde a senha no 🔐 cofre e toque em "Testar conexão". Quando ligar, blog aprovado vai pro ar sozinho.</span>`, h: hAgora() });
+    } catch(e){ console.warn('[maestro site]', e.message); }
+  }
+  try {
+    await sbR.from('pd_debriefings').update({ status: 'executado', validado_por: perfil.id,
+      validado_em: new Date().toISOString(), tarefas: ids.filter(Boolean) }).eq('id', m.debriefing_id);
+  } catch(e){}
+  await carregarReal(); atualizarVersoApp();
+  b.passos.push({ n: falhas.length ? `pronto, com ${falhas.length} falha(s): ${falhas.join(' · ')}` : 'plano no ar — tudo encadeado', e: falhas.length ? 'erro' : 'ok' });
+  b.pintar();
+  if (ids.filter(Boolean).length) b.acoes = [['Ver a primeira tarefa','azul',`abrirTarefaReal('${ids.find(Boolean)}')`]];
+  salvarThread(); render();
+}
+
 // =====================================================================
 // A MEMÓRIA DA CASA — o que a SD guarda pra saber mais amanhã do que sabe
 // hoje. Sempre com dono (quem disse) e sempre revogável.

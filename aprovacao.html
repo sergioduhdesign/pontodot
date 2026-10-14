@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Aprovação — Studio Design</title>
+<link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/main.css">
+<style>
+/* ==================================================================
+   APROVAÇÃO — estética SD
+   Preto e branco, muito espaço, caixas de canto arredondado.
+   A estrutura de informação vem do painel que o Juan montou; a
+   linguagem visual é a da SD, não a do cliente.
+   ================================================================== */
+
+body{background:var(--bg);color:var(--text);padding-bottom:80px}
+/* Dentro do popup da tarefa o cabeçalho grande é redundante:
+   o próprio popup já mostra cliente e projeto. */
+body.embed .ap-top{display:none}
+body.embed .ap-bar{border-top:none}
+body.embed .ap-board{padding-top:16px}
+
+/* ---------- Topo ---------- */
+.ap-top{
+  background:var(--accent);color:var(--accent-fg);
+  padding:26px clamp(16px,4vw,44px) 22px;
+}
+.ap-top-inner{max-width:1400px;margin:0 auto}
+.ap-eyebrow{
+  font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  opacity:.55;font-weight:700;margin-bottom:8px
+}
+.ap-title{font-size:clamp(21px,3vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.ap-sub{font-size:13.5px;opacity:.6;margin-top:6px;max-width:620px;line-height:1.5}
+
+.ap-progress{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+.ap-track{
+  flex:1;min-width:160px;max-width:380px;height:6px;
+  background:rgba(128,128,128,.28);border-radius:20px;overflow:hidden
+}
+.ap-fill{height:100%;background:var(--accent-fg);width:0;transition:width .45s cubic-bezier(.4,0,.2,1)}
+.ap-count{font-size:12.5px;opacity:.75;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ---------- Filtros ---------- */
+.ap-bar{
+  position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:12px clamp(16px,4vw,44px);
+  background:var(--surface);border-bottom:1px solid var(--border);
+}
+.ap-chip{
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:var(--transition);font-family:inherit
+}
+.ap-chip:hover{border-color:var(--text3);color:var(--text)}
+.ap-chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.ap-chip[data-f="ajustar"].on{background:#db2777;border-color:#db2777;color:#fff}
+.ap-chip .n{opacity:.6;margin-left:5px;font-variant-numeric:tabular-nums}
+
+/* ---------- Board ---------- */
+.ap-board{padding:24px clamp(16px,4vw,44px) 60px;max-width:1400px;margin:0 auto}
+.ap-cols{display:flex;gap:20px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
+.ap-col{flex:0 0 336px;width:336px;display:flex;flex-direction:column;gap:14px}
+.ap-col-head{padding:0 2px 8px;border-bottom:2px solid var(--accent)}
+.ap-col-head h2{font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.ap-col-head .theme{font-size:11.5px;color:var(--text3);margin-top:3px;line-height:1.4}
+
+/* Galeria: grade em vez de colunas */
+.ap-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+
+/* ---------- Card ---------- */
+.ap-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition)
+}
+.ap-card.hide{display:none}
+.ap-card[data-status="aprovado"]{border-color:#16a34a}
+.ap-card[data-status="ajustar"]{border-color:#db2777;box-shadow:0 0 0 3px rgba(219,39,119,.10)}
+
+.ap-card-top{padding:14px 16px 10px;border-left:3px solid var(--text3)}
+.ap-card[data-status="aprovado"] .ap-card-top{border-left-color:#16a34a}
+.ap-card[data-status="ajustar"]  .ap-card-top{border-left-color:#db2777}
+
+.ap-tags{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ap-kind{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  padding:3px 9px;border-radius:20px;background:var(--accent);color:var(--accent-fg)
+}
+.ap-badge{
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;
+  background:var(--surface2);color:var(--text3)
+}
+.ap-badge.aprovado{background:rgba(22,163,74,.12);color:#16a34a}
+.ap-badge.ajustar{background:#db2777;color:#fff}
+.ap-card-title{font-size:13.5px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+
+/* ---------- Mídia ---------- */
+.ap-media{position:relative;background:var(--surface2);line-height:0}
+.ap-media img{width:100%;height:auto;display:block;cursor:zoom-in}
+.ap-media video{width:100%;height:auto;display:block;background:#0b0b0d}
+.ap-media .n{
+  position:absolute;top:10px;right:10px;background:rgba(10,10,10,.72);color:#fff;
+  font-size:10.5px;padding:3px 9px;border-radius:20px;font-weight:700;line-height:1.4
+}
+.ap-strip{display:flex;gap:4px;padding:6px;background:var(--surface2);overflow-x:auto}
+.ap-strip img{
+  width:44px;height:44px;object-fit:cover;border-radius:5px;cursor:pointer;background:#0b0b0d;
+  border:2px solid transparent;opacity:.5;flex:0 0 auto;transition:var(--transition)
+}
+.ap-strip img.on{opacity:1;border-color:var(--accent)}
+
+/* ---------- Corpo ---------- */
+.ap-body{padding:12px 16px 4px}
+.ap-headline{
+  font-size:12.5px;font-weight:700;white-space:pre-line;line-height:1.35;
+  margin-bottom:8px;letter-spacing:-.01em
+}
+.ap-note{font-size:11.5px;color:var(--text3);line-height:1.45;margin-bottom:8px}
+details.ap-cap{margin-bottom:8px}
+details.ap-cap summary{
+  font-size:11.5px;font-weight:700;color:var(--text2);cursor:pointer;
+  list-style:none;display:flex;align-items:center;gap:5px;padding:3px 0
+}
+details.ap-cap summary::-webkit-details-marker{display:none}
+details.ap-cap summary::before{content:"▸";font-size:9px;transition:var(--transition)}
+details.ap-cap[open] summary::before{content:"▾"}
+.ap-cap-text{font-size:12.5px;line-height:1.6;white-space:pre-line;padding:8px 0 2px;color:var(--text2)}
+.ap-hash{font-size:11.5px;color:var(--text3);word-break:break-word;padding-bottom:6px}
+
+.ap-sb{font-size:11.5px;padding:2px 0 6px}
+.ap-sb .sc{padding:7px 0;border-top:1px dashed var(--border)}
+.ap-sb .sc:first-child{border-top:none}
+.ap-sb .sc b{font-weight:700}
+.ap-sb .sc .d{color:var(--text3)}
+.ap-sb .sc .t{font-style:italic;margin-top:3px;color:var(--text2)}
+
+/* ---------- Zona de decisão ---------- */
+.ap-zone{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface2)}
+.ap-lab{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:5px}
+.ap-tip{font-size:11px;color:var(--text3);line-height:1.45;margin-top:7px}
+
+/* ---------- Modo edição (só equipe) ---------- */
+.ed-zone{border-top:1px solid var(--border);padding:12px 16px 14px;background:var(--surface)}
+.ed-f{margin-bottom:9px}
+.ed-f label{display:block;font-size:10.5px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.ed-f input,.ed-f textarea{width:100%;padding:8px 10px;border:1px solid var(--border);
+  border-radius:8px;background:var(--surface2);color:var(--text);font-size:12.5px;
+  font-family:inherit;line-height:1.5}
+.ed-f input:focus,.ed-f textarea:focus{outline:none;border-color:var(--text3)}
+.ed-f textarea{resize:vertical;min-height:60px}
+.ed-drop{border:1.5px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;
+  cursor:pointer;font-size:12px;color:var(--text3);transition:var(--transition);background:var(--surface2)}
+.ed-drop:hover,.ed-drop.over{border-color:var(--accent);color:var(--text)}
+.ed-arts{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.ed-art{position:relative;width:52px;height:52px}
+.ed-art img{width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.ed-art button{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;
+  border:none;background:#db2777;color:#fff;font-size:10px;cursor:pointer;line-height:1;padding:0}
+.ed-save{background:var(--accent);color:var(--accent-fg);border:none;padding:9px 18px;
+  border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}
+.ed-save:disabled{opacity:.5;cursor:default}
+.ed-toggle{background:none;border:1px solid var(--border);color:var(--text2);padding:6px 12px;
+  border-radius:20px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;width:100%}
+.ed-toggle:hover{border-color:var(--text3);color:var(--text)}
+.ap-btns{display:flex;gap:8px;margin-bottom:9px}
+.ap-btn{
+  flex:1;border:1px solid var(--border);background:var(--surface);color:var(--text2);
+  padding:9px 6px;font-size:12px;font-weight:700;border-radius:9px;cursor:pointer;
+  transition:var(--transition);font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:5px
+}
+.ap-btn:hover{border-color:var(--text3);color:var(--text)}
+.ap-btn.ok.on{background:#16a34a;border-color:#16a34a;color:#fff}
+.ap-btn.fix.on{background:#db2777;border-color:#db2777;color:#fff;
+  box-shadow:0 0 0 3px rgba(219,39,119,.18)}
+.ap-btn:disabled{opacity:.5;cursor:default}
+
+/* Já decidido: o botão vira estado, não ação */
+.ap-btn.travado{background:#d97706;border-color:#d97706;color:#fff;cursor:default;opacity:1}
+.ap-btn.travado:hover{border-color:#d97706}
+.ap-btn.rever{background:transparent;border-color:var(--border2);color:var(--text3);font-weight:600}
+.ap-btn.rever:hover{border-color:var(--text3);color:var(--text2)}
+
+/* Aviso antes de reabrir algo aprovado */
+.ap-warn{position:fixed;inset:0;z-index:99500;display:flex;align-items:center;
+  justify-content:center;padding:24px;background:rgba(10,10,12,.6);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ap-warn-box{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);max-width:420px;width:100%;padding:26px 26px 22px;
+  box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.ap-warn-box h3{font-size:16px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.ap-warn-box p{font-size:13.5px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.ap-warn-acts{display:flex;gap:8px}
+.ap-warn-acts button{flex:1;height:40px;border-radius:9px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;border:1px solid var(--border)}
+.ap-warn-acts .no{background:transparent;color:var(--text2)}
+.ap-warn-acts .no:hover{border-color:var(--text3);color:var(--text)}
+.ap-warn-acts .yes{background:#db2777;border-color:#db2777;color:#fff}
+.ap-warn-acts .yes:hover{opacity:.88}
+
+.ap-ta{
+  width:100%;resize:vertical;min-height:54px;border:1px solid var(--border);
+  border-radius:9px;padding:9px 10px;font-size:12.5px;font-family:inherit;
+  color:var(--text);background:var(--surface);line-height:1.5
+}
+.ap-ta:focus{outline:none;border-color:var(--text3)}
+.ap-send{
+  background:var(--accent);color:var(--accent-fg);border:none;padding:7px 16px;
+  font-size:12px;font-weight:700;border-radius:9px;cursor:pointer;font-family:inherit
+}
+.ap-send:hover{opacity:.85}
+.ap-row{display:flex;justify-content:space-between;align-items:center;margin-top:7px;gap:8px}
+.ap-when{font-size:10.5px;color:var(--text3)}
+
+/* ---------- Conversa ---------- */
+.ap-talk{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.ap-msg{font-size:12px;line-height:1.5;padding:8px 10px;border-radius:9px;background:var(--surface)}
+.ap-msg.cli{background:rgba(219,39,119,.07);border-left:2px solid #db2777}
+.ap-msg .who{font-weight:700;font-size:11px;margin-bottom:2px}
+.ap-msg .when{font-size:10px;color:var(--text3);margin-left:6px;font-weight:400}
+
+/* ---------- Lightbox ---------- */
+.ap-lb{
+  position:fixed;inset:0;background:rgba(8,8,10,.94);z-index:9999;
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:24px
+}
+.ap-lb.on{display:flex}
+.ap-lb img,.ap-lb video{max-width:min(92vw,760px);max-height:76vh;border-radius:9px;object-fit:contain}
+.ap-lb-nav{display:flex;gap:22px;align-items:center}
+.ap-lb button{
+  background:rgba(255,255,255,.13);color:#fff;border:none;width:40px;height:40px;
+  border-radius:50%;font-size:18px;cursor:pointer;transition:var(--transition)
+}
+.ap-lb button:hover{background:rgba(255,255,255,.26)}
+.ap-lb-x{position:absolute;top:20px;right:24px}
+.ap-lb-cap{color:rgba(255,255,255,.68);font-size:12px;text-align:center;max-width:600px}
+
+/* ---------- Estados ---------- */
+.ap-empty{text-align:center;padding:80px 24px;color:var(--text3)}
+.ap-empty .ic{font-size:38px;opacity:.35;margin-bottom:14px}
+.ap-empty h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
+.ap-empty p{font-size:13.5px;max-width:340px;margin:0 auto;line-height:1.55}
+.ap-load{text-align:center;padding:70px 24px;color:var(--text3);font-size:13.5px}
+
+/* ---------- Ferramentas da equipe ---------- */
+.ap-tool{background:transparent;color:var(--text2);border:1px solid var(--border);padding:7px 13px;
+  border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--transition)}
+.ap-tool:hover{border-color:var(--text3);color:var(--text)}
+.ap-tool:disabled{opacity:.5;cursor:default}
+#btnIA{margin-left:auto}
+#btnCorr{margin-left:auto}
+#btnIA[style*="block"] + #btnCorr{margin-left:0}
+.ap-ver{font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:6px;
+  background:var(--surface2);color:var(--text2);border:1px solid var(--border);margin-right:6px}
+
+/* Comentário do cliente em dois campos */
+.ap-lab2{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.07em;margin:8px 0 4px}
+.ap-lab2:first-of-type{margin-top:0}
+
+/* Troca de arte no lugar */
+.ed-art .sw{position:absolute;left:-5px;bottom:-5px;width:19px;height:19px;border-radius:50%;
+  border:none;background:var(--accent);color:var(--accent-fg);font-size:11px;cursor:pointer;
+  line-height:1;padding:0;top:auto;right:auto}
+.ed-art.trocada img{outline:2px solid #16a34a;outline-offset:1px}
+.ed-art .num{position:absolute;top:2px;left:3px;font-size:9px;font-weight:800;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.ed-hist{margin-top:6px;font-size:11px}
+.ed-hist button{background:none;border:none;color:var(--text3);font:inherit;font-weight:700;
+  cursor:pointer;padding:0;text-decoration:underline}
+.ed-hist .v{display:flex;gap:6px;align-items:center;margin-top:7px;flex-wrap:wrap}
+.ed-hist .v b{font-size:10.5px;min-width:76px;color:var(--text2)}
+.ed-hist .v img{width:34px;height:34px;object-fit:cover;border-radius:5px;cursor:zoom-in;border:1px solid var(--border)}
+
+/* ---------- Revisão interna ---------- */
+.ap-interno{max-width:1400px;margin:16px auto 0;padding:0 clamp(16px,4vw,44px)}
+.ap-interno > div{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:13px 16px;border-radius:var(--radius);
+  border:1.5px dashed #7c3aed;background:rgba(124,58,237,.06)}
+.ap-interno b{font-size:13.5px;color:#6d28d9;display:block}
+.ap-interno span{font-size:12px;color:var(--text3);line-height:1.5}
+.ap-msg.int{background:rgba(124,58,237,.07);border-left:2px dashed #7c3aed}
+.ap-lib{background:#16a34a;color:#fff;border:none;padding:9px 16px;border-radius:7px;font-weight:700;
+  font-size:12.5px;cursor:pointer;font-family:inherit;margin-left:auto}
+
+/* ---------- Subir correções (modal) ---------- */
+.cz-ov{position:fixed;inset:0;z-index:99400;background:rgba(10,10,12,.6);backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;
+  padding:clamp(10px,4vh,40px) 14px;overflow-y:auto}
+.cz-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  width:100%;max-width:880px;box-shadow:0 24px 60px rgba(0,0,0,.4);overflow:hidden}
+.cz-head{padding:20px 22px 14px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start}
+.cz-head h3{font-size:16px;font-weight:700;letter-spacing:-.01em;margin-bottom:4px}
+.cz-head p{font-size:12.5px;color:var(--text3);line-height:1.5}
+.cz-x{margin-left:auto;background:none;border:1px solid var(--border);color:var(--text2);width:32px;height:32px;
+  border-radius:7px;cursor:pointer;font-size:14px;flex-shrink:0}
+.cz-body{padding:18px 22px}
+.cz-drop{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:30px 20px;text-align:center;
+  cursor:pointer;background:var(--surface2);transition:var(--transition)}
+.cz-drop:hover,.cz-drop.over{border-color:var(--accent);background:var(--surface3)}
+.cz-drop b{display:block;font-size:14px;margin-bottom:5px}
+.cz-drop small{font-size:12px;color:var(--text3);line-height:1.55;display:block}
+.cz-modo{display:flex;gap:8px;margin:14px 0 4px;flex-wrap:wrap}
+.cz-modo label{flex:1;min-width:220px;display:flex;gap:9px;align-items:flex-start;padding:11px 12px;
+  border:1.5px solid var(--border);border-radius:9px;cursor:pointer;font-size:12.5px;line-height:1.45}
+.cz-modo label.on{border-color:var(--accent);background:var(--surface2)}
+.cz-modo label small{display:block;color:var(--text3);font-size:11.5px;margin-top:2px}
+.cz-st{font-size:12.5px;color:var(--text3);margin:12px 0 0;line-height:1.5}
+.cz-row{border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:10px;background:var(--surface2)}
+.cz-row.off{opacity:.5}
+.cz-row .hd{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.cz-row .hd .nm{font-size:13px;font-weight:700;flex:1;min-width:140px;word-break:break-word}
+.cz-row .hd .src{font-size:11px;color:var(--text3);font-weight:400;display:block;margin-top:2px}
+.cz-row select{padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);
+  color:var(--text);font:inherit;font-size:12px;max-width:100%}
+.cz-cmp{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cz-cmp .lado{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.cz-cmp img,.cz-cmp video,.cz-cmp .ph{width:46px;height:46px;object-fit:cover;border-radius:6px;
+  border:1px solid var(--border);background:#0b0b0d}
+.cz-cmp .ph{display:flex;align-items:center;justify-content:center;font-size:9px;color:#999}
+.cz-cmp .novo{outline:2px solid #16a34a;outline-offset:1px}
+.cz-cmp .seta{font-size:16px;color:var(--text3);padding:0 2px}
+.cz-tx{font-size:11.5px;color:var(--text2);margin-top:8px;line-height:1.5;white-space:pre-line;
+  padding:8px 10px;border-radius:7px;background:var(--surface);border-left:3px solid #16a34a}
+.cz-tx b{font-size:10px;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:2px}
+.cz-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;background:var(--surface)}
+.cz-foot .info{font-size:12px;color:var(--text3)}
+.cz-prog{height:5px;background:var(--surface2);border-radius:7px;overflow:hidden;margin-top:12px;display:none}
+.cz-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+
+@media (max-width:640px){
+  .ap-col{flex-basis:84vw;width:84vw}
+  .ap-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="ap-top">
+  <div class="ap-top-inner">
+    <p class="ap-eyebrow" id="apEyebrow">Studio Design</p>
+    <h1 class="ap-title" id="apTitle">Carregando…</h1>
+    <p class="ap-sub" id="apSub"></p>
+    <div class="ap-progress">
+      <div class="ap-track"><div class="ap-fill" id="apFill"></div></div>
+      <div class="ap-count" id="apCount">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="ap-bar">
+  <button class="ap-chip on" data-f="all">Tudo <span class="n" id="nAll"></span></button>
+  <button class="ap-chip" data-f="pendente">Pendentes <span class="n" id="nPend"></span></button>
+  <button class="ap-chip" data-f="aprovado">Aprovados <span class="n" id="nOk"></span></button>
+  <button class="ap-chip" data-f="ajustar">Com ajustes <span class="n" id="nFix"></span></button>
+  <button id="btnAgendar" style="display:none;margin-left:auto;background:#16a34a;
+    color:#fff;border:none;padding:7px 16px;border-radius:20px;font-size:12.5px;
+    font-weight:700;cursor:pointer;font-family:inherit">📤 Agendar aprovadas</button>
+  <button id="btnTudo" style="display:none;margin-left:auto;background:#16a34a;color:#fff;border:none;padding:9px 20px;
+    border-radius:7px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(22,163,74,.35)">✓ Aprovar tudo</button>
+  <button id="btnIA" class="ap-tool" style="display:none" title="Grava o Excel de correções na pasta ENTRADA do Drive e avisa a IA (status CORRIGIR)">⇢ Correções pra IA</button>
+  <button id="btnCorr" class="ap-tool" style="display:none" title="Subir artes e textos corrigidos — peça por peça ou o pacote inteiro">⤒ Subir correções</button>
+  <button id="btnXls" class="ap-tool" style="display:none" title="Excel no modelo do upload, com as correções do cliente post a post">⤓ Baixar correções (Excel)</button>
+  <button id="btnPdf" style="background:transparent;color:var(--text2);
+    border:1px solid var(--border);padding:7px 15px;border-radius:20px;font-size:12.5px;
+    font-weight:700;cursor:pointer;font-family:inherit">⎙ PDF</button>
+  <button id="btnZip" style="display:none;background:var(--accent);
+    color:var(--accent-fg);border:none;padding:7px 16px;border-radius:20px;font-size:12.5px;
+    font-weight:700;cursor:pointer;font-family:inherit">⤓ Baixar conteúdo</button>
+</div>
+
+<div id="apAviso"></div>
+
+<div class="ap-board" id="apBoard">
+  <div class="ap-load">Carregando material…</div>
+</div>
+
+<div class="ap-lb" id="apLb">
+  <button class="ap-lb-x" onclick="lbClose()">✕</button>
+  <video id="apLbVid" controls playsinline style="display:none"></video>
+  <img id="apLbImg" src="" alt="">
+  <div class="ap-lb-nav">
+    <button onclick="lbGo(-1)">‹</button>
+    <div class="ap-lb-cap" id="apLbCap"></div>
+    <button onclick="lbGo(1)">›</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/js/supabase.js"></script>
+<script src="/js/aprovacao-comum.js?v=17"></script>
+<script src="/js/briefing-ia.js?v=1"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+// ==================================================================
+// ESTADO
+// ==================================================================
+let profile = null, apSet = null, items = [], filter = 'all';
+let versoes = {};          // itemId -> [versões anteriores, mais nova primeiro]
+let drive = null;          // pasta do Drive da tarefa (task_drive), se houver
+let lb = { list: [], i: 0 };
+
+const qs = new URLSearchParams(location.search);
+// ROBÔ DO LOTE: a frente abre esta tela escondida quando a IA devolve a
+// correção. Ela lê a SAIDA, casa com as peças do lote e aplica — só se
+// TODA peça que voltou tiver par certo. Na dúvida, para e chama alguém.
+const AUTO = qs.get('auto') === '1' && window.self !== window.top && qs.get('drive') === '1';
+let _roboContou = false;
+function roboAvisa(r){
+  if (!AUTO || _roboContou) return;
+  _roboContou = true;
+  try { window.parent.postMessage(Object.assign({ pdRobo: true, tipo: 'correcao', set_id: SET_ID }, r), location.origin); } catch(e){}
+}
+async function roboDecide(){
+  if (!AUTO || !cz) return;
+  const semPar = cz.entradas.filter(e => e.peca && (!e.alvo || e.alvo === 'novo'));
+  if (!cz.entradas.length) return roboAvisa({ ok:false, motivo: document.getElementById('czSt')?.textContent || 'não achei a entrega na SAIDA' });
+  if (semPar.length) return roboAvisa({ ok:false, motivo: semPar.length + ' peça(s) da IA sem par no lote (o nome do arquivo mudou?)' });
+  const { mudou, novas } = czPlano();
+  if (!mudou.length && !novas.length) return roboAvisa({ ok:false, motivo:'a IA entregou, mas nada mudou em relação ao lote' });
+  const r = await czAplicar();
+  roboAvisa(r ? { ok:true, n: r.ok } : { ok:false, motivo: document.getElementById('czInfo')?.textContent || 'erro ao aplicar' });
+}
+const SET_ID = qs.get('set');
+
+const esc = s => String(s ?? '')
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;');
+
+const KIND_LABEL = {
+  feed:'Feed', carrossel:'Carrossel', stories:'Stories',
+  reels:'Reels', generico:'Material'
+};
+
+// ==================================================================
+// CARGA
+// ==================================================================
+// Erro solto vira aviso na tela. Antes só ia para o console e passava
+// batido — foi o que aconteceu com o realtime.
+window.addEventListener('unhandledrejection', ev => {
+  const m = ev.reason?.message || String(ev.reason || '');
+  if (!m || m.includes('postgres_changes')) return;
+  if (typeof showToast === 'function') showToast('Erro: ' + m, 'error');
+});
+
+(async () => {
+  Theme.init();
+  // Rodando dentro do popup da tarefa? Esconde o cabeçalho repetido.
+  if (window.self !== window.top) document.body.classList.add('embed');
+
+  const auth = await Auth.requireAuth(['admin','team','client']);
+  if (!auth) return;
+  profile = auth.profile;
+
+  if (!SET_ID) { showEmpty('Nenhum lote informado', 'O link está incompleto — falta o código do lote de aprovação.'); return; }
+
+  await load();
+})();
+
+async function load(){
+  const { data: s, error } = await sb.from('approval_sets').select('*').eq('id', SET_ID).single();
+  if (error || !s) {
+    showEmpty('Material não encontrado', 'Ele pode ter sido removido, ou este link não é para a sua conta.');
+    return;
+  }
+  apSet = s;
+
+  const { data: cli } = await sb.from('clients').select('name').eq('id', s.client_id).single();
+
+  document.getElementById('apEyebrow').textContent = (cli?.name || 'Studio Design') + ' · Aprovação';
+  document.getElementById('apTitle').textContent   = s.title;
+  document.getElementById('apSub').textContent     = s.subtitle
+    || 'Revise cada peça, deixe seu comentário e marque como aprovada ou peça ajuste. Suas observações chegam direto na equipe.';
+  document.title = s.title + ' — Studio Design';
+
+  const { data: it } = await sb.from('approval_items')
+    .select('*').eq('set_id', SET_ID).order('position');
+  items = it || [];
+
+  const ids = items.map(i => i.id);
+  let talk = [];
+  if (ids.length) {
+    const { data: c } = await sb.from('approval_comments')
+      .select('*').in('item_id', ids).order('created_at');
+    talk = c || [];
+  }
+  // Apontamento interno (equipe → IA) nunca aparece pro cliente
+  if (profile.role === 'client') talk = talk.filter(c => !AP.ehInterno(c.body));
+  items.forEach(i => i._talk = talk.filter(c => c.item_id === i.id));
+
+  if (profile.role !== 'client' && apSet.task_id && drive === null) {
+    drive = (await AP.drive.obter(apSet.task_id)) || false;
+  }
+
+  // Versões anteriores (só equipe): data da última correção enviada de
+  // cada peça. O Excel de correções só traz o que veio DEPOIS dela.
+  versoes = {};
+  if (profile.role !== 'client' && ids.length) {
+    const { data: vs, error: ev } = await sb.from('approval_item_versions')
+      .select('id,item_id,version,media,caption,hashtags,created_at,origem')
+      .in('item_id', ids).order('version', { ascending:false });
+    if (!ev) (vs || []).forEach(v => (versoes[v.item_id] = versoes[v.item_id] || []).push(v));
+  }
+
+  render();
+  listenLive();
+
+  // Veio do botão "Subir correções" da tarefa: abre direto.
+  if (qs.get('corrigir') === '1' && !window._corrAberto && profile.role !== 'client') {
+    window._corrAberto = true;
+    abrirCorrecoes();
+    if (qs.get('drive') === '1') setTimeout(() => document.getElementById('czDrive')?.click(), 150);
+  }
+
+  // Veio de uma correção específica: destaca e rola até ela.
+  const alvo = location.hash.replace('#item-','');
+  if (alvo) setTimeout(() => {
+    const c = document.querySelector(`.ap-card[data-id="${alvo}"]`);
+    if (c) {
+      c.scrollIntoView({behavior:'smooth', block:'center'});
+      c.style.transition = 'box-shadow .4s';
+      c.style.boxShadow = '0 0 0 4px rgba(219,39,119,.35)';
+      setTimeout(() => c.style.boxShadow = '', 2600);
+    }
+  }, 260);
+}
+
+// ==================================================================
+// RENDER
+// ==================================================================
+function render(){
+  const board = document.getElementById('apBoard');
+
+  if (!items.length) {
+    showEmpty('Nada por aqui ainda', 'A equipe ainda não enviou material neste lote.');
+    return;
+  }
+
+  const total = items.length;
+  const ok    = items.filter(i => i.status === 'aprovado').length;
+  const fix   = items.filter(i => i.status === 'ajustar').length;
+  const pend  = items.filter(i => i.status === 'pendente').length;
+
+  document.getElementById('apFill').style.width = (total ? (ok/total*100) : 0) + '%';
+  document.getElementById('apCount').textContent =
+    ok + ' de ' + total + (ok === total ? ' — tudo aprovado' : ' aprovadas');
+  document.getElementById('nAll').textContent  = total;
+  document.getElementById('nPend').textContent = pend;
+  document.getElementById('nOk').textContent   = ok;
+  document.getElementById('nFix').textContent  = fix;
+
+  // O download só aparece quando não sobrou nada pendente nem em ajuste:
+  // material meio aprovado não é material pronto para soltar.
+  const bp = document.getElementById('btnPdf');
+  if (bp) bp.onclick = gerarPDF;
+
+  const equipe = profile.role !== 'client';
+  const bc = document.getElementById('btnCorr');
+  const bx = document.getElementById('btnXls');
+  if (bc) { bc.style.display = equipe ? 'block' : 'none'; bc.onclick = abrirCorrecoes; }
+  if (bx) { bx.style.display = equipe ? 'block' : 'none'; bx.onclick = baixarExcelCorrecoes; }
+  const btT = document.getElementById('btnTudo');
+  const faltaInterno = items.filter(i => !i.interno_ok).length;
+  if (btT && equipe && apSet.interno) {
+    // Revisão interna: o gestor aprova tudo de uma vez (com exceções)
+    btT.style.display = faltaInterno ? 'block' : 'none';
+    btT.textContent = `✓ Aprovar tudo (${faltaInterno})`;
+    btT.onclick = () => AP.aprovarTudo(items, async (id, decision, comment) => {
+      if (decision === 'ajustar') {
+        const { error } = await sb.from('approval_comments').insert({ item_id: id, author_id: profile.id,
+          author_name: profile.name, is_client: false, body: '[INTERNO]\n' + comment });
+        if (error) throw error;
+        await sb.rpc('set_internal_review', { p_item_ids: [id], p_ok: false });
+      } else {
+        const { error } = await sb.rpc('set_internal_review', { p_item_ids: [id], p_ok: true });
+        if (error) throw error;
+      }
+    }, async r => {
+      await load();
+      if (r.falhas) { showToast(`${r.falhas} falharam — rodou a migration_aprovacao_interna.sql?`, 'error'); return; }
+      if (r.corrigir) {
+        showToast(`${r.aprovadas} aprovada(s), ${r.corrigir} com apontamento. Use "Correções pra IA" pra mandar.`, 'success');
+      } else if (confirm('Tudo aprovado internamente. Liberar pro cliente agora?')) {
+        liberarCliente(true);
+      }
+    }, { pendente: i => !i.interno_ok, titulo: 'Aprovar internamente' });
+  } else if (btT) {
+    btT.style.display = (!equipe && (total - ok) > 0) ? 'block' : 'none';
+    btT.textContent = `✓ Aprovar tudo (${total - ok})`;
+    if (bp && !equipe) bp.style.marginLeft = btT.style.display === 'none' ? 'auto' : '';
+    btT.onclick = () => AP.aprovarTudo(items, async (id, decision, comment) => {
+      const { error } = await sb.rpc('review_approval_item', { p_item_id: id, p_decision: decision,
+        p_comment: comment || null, p_anchor: null });
+      if (error) throw error;
+    }, async r => {
+      showToast(`${r.aprovadas} aprovada(s)` + (r.corrigir ? `, ${r.corrigir} pra corrigir` : '') + (r.falhas ? ` · ${r.falhas} falharam` : '') + '.',
+        r.falhas ? 'warn' : 'success');
+      notifyTeam({ pendentes: 0, task: apSet.task_id }, r.corrigir ? 'ajustar' : 'aprovado');
+      if (profile.role === 'client') {   // push no celular da equipe, não só o sino
+        if (r.aprovadas) AP.registrarDecisao(apSet.share_token, 'aprovado', r.aprovadas);
+        if (r.corrigir) AP.registrarDecisao(apSet.share_token, 'ajustar', r.corrigir);
+      }
+      await load();
+      if (r.corrigir) AP.correcaoParaIA(apSet.share_token, apSet, items);
+    });
+  }
+  const bi = document.getElementById('btnIA');
+  if (bi) { bi.style.display = (equipe && drive) ? 'block' : 'none'; bi.onclick = mandarCorrecoesIA; }
+
+  const av = document.getElementById('apAviso');
+  if (av) av.innerHTML = (equipe && apSet.interno) ? `<div class="ap-interno"><div>
+      <div style="flex:1;min-width:220px"><b>Revisão interna — o cliente ainda não vê este lote · ${total - faltaInterno} de ${total} aprovadas</b>
+        <span>Aponte o que precisa mudar em cada peça (vai pra IA no "Correções pra IA") ou libere quando estiver pronto.</span></div>
+      <button class="ap-lib" onclick="liberarCliente()">✓ Liberar pro cliente</button></div></div>` : '';
+
+  const bz = document.getElementById('btnZip');
+  if (bz) {
+    const pronto = total > 0 && ok === total;
+    bz.style.display = pronto ? 'block' : 'none';
+    bz.onclick = baixarZip;
+  }
+
+  // Botão de agendar: sozinho ele já sabe em que estado está —
+  // "agendar" quando tem peça aprovada esperando, "acompanhando" com
+  // contador quando já foi enviado. Os dois podem coexistir: já tem
+  // publicando E chegou peça nova aprovada depois.
+  const ba = document.getElementById('btnAgendar');
+  if (ba) {
+    const temSocial = items.some(i => i.status === 'aprovado' &&
+      ['feed','carrossel','stories','reels'].includes(i.kind));
+    ba.style.display = (profile.role !== 'client' && temSocial) ? 'block' : 'none';
+    if (ba.style.display === 'block') atualizarBotaoAgendar();
+  }
+
+  const vis = items.filter(i => filter === 'all' || i.status === filter);
+
+  if (!vis.length) {
+    board.innerHTML = `<div class="ap-empty">
+      <div class="ic">○</div><h3>Nada neste filtro</h3>
+      <p>Não há peças com esse status agora.</p></div>`;
+    return;
+  }
+
+  // Galeria (folheto, outdoor, qualquer material) = grade simples.
+  // Social = colunas por dia, como no painel original.
+  if (apSet.layout === 'galeria') {
+    board.innerHTML = `<div class="ap-grid">${vis.map(cardHTML).join('')}</div>`;
+  } else {
+    const groups = [];
+    vis.forEach(i => {
+      const k = i.group_label || '—';
+      let g = groups.find(x => x.k === k);
+      if (!g) { g = { k, theme: i.group_theme, list: [] }; groups.push(g); }
+      g.list.push(i);
+    });
+    board.innerHTML = `<div class="ap-cols">${groups.map(g => `
+      <div class="ap-col">
+        <div class="ap-col-head">
+          <h2>${esc(g.k)}</h2>
+          ${g.theme ? `<div class="theme">${esc(g.theme)}</div>` : ''}
+        </div>
+        ${g.list.map(cardHTML).join('')}
+      </div>`).join('')}</div>`;
+  }
+
+  bind();
+}
+
+function cardHTML(it){
+  const media = Array.isArray(it.media) ? it.media : [];
+  const isClient = profile.role === 'client';
+  const internoEquipe = apSet.interno && !isClient;
+  const badge = internoEquipe ? (it.interno_ok ? 'Aprovado (interno)' : 'Em revisão')
+              : it.status === 'aprovado' ? 'Aprovado'
+              : it.status === 'ajustar'  ? 'Ajustar' : 'Pendente';
+
+  let mediaHTML = '';
+  if (media.length) {
+    // A mídia aparece na PROPORÇÃO REAL do arquivo — 1:1 fica quadrado,
+    // 1080×1920 fica vertical, horizontal fica horizontal. Nada de
+    // moldura quadrada cortando arte. Vídeo toca direto no card.
+    mediaHTML = `<div class="ap-media" data-item="${it.id}">
+        ${mediaTagHTML(media[0], 0)}
+        ${media.length > 1 ? `<div class="n">1 / ${media.length}</div>` : ''}
+      </div>`;
+    if (media.length > 1) {
+      mediaHTML += `<div class="ap-strip" data-item="${it.id}">${
+        media.map((m,i) => ehVideo(m)
+          ? `<video src="${esc(m.url||m.thumb)}" data-i="${i}" class="${i===0?'on':''}" muted preload="metadata"></video>`
+          : `<img src="${esc(m.thumb||m.url)}" data-i="${i}" class="${i===0?'on':''}" loading="lazy">`).join('')
+      }</div>`;
+    }
+  }
+
+  let body = '';
+  if (it.headline) body += `<p class="ap-headline">${esc(it.headline)}</p>`;
+  if (it.art_note) body += `<p class="ap-note">${esc(it.art_note)}</p>`;
+  if (Array.isArray(it.storyboard) && it.storyboard.length) {
+    body += `<div class="ap-sb">${it.storyboard.map(s => `
+      <div class="sc"><b>${esc(s.cena)}.</b> <span class="d">${esc(s.desc)}</span>
+      ${s.texto ? `<div class="t">"${esc(s.texto)}"</div>` : ''}</div>`).join('')}</div>`;
+  }
+  if (it.caption) {
+    body += `<details class="ap-cap"><summary>Ler legenda completa</summary>
+      <div class="ap-cap-text">${esc(it.caption)}</div></details>`;
+  }
+  if (it.hashtags) body += `<div class="ap-hash">${esc(it.hashtags)}</div>`;
+
+  // Apresentação da peça — o texto do designer, para material impresso
+  // e afins, onde não existe legenda de post.
+  if (it.pitch) {
+    body += `<div style="font-size:12.5px;line-height:1.6;color:var(--text2);
+      white-space:pre-line;padding:10px 12px;background:var(--surface2);
+      border-radius:9px;margin-bottom:8px">${esc(it.pitch)}</div>`;
+  }
+
+  // Link do arquivo final: o pesado mora fora, aqui fica só o caminho.
+  if (it.external_url) {
+    body += `<a href="${esc(it.external_url)}" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:9px;
+             border:1px solid var(--border);background:var(--surface2);text-decoration:none;
+             color:var(--text);font-size:12.5px;font-weight:700;margin-bottom:8px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+        stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0">
+        <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+        <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+      <span>${esc(it.external_label || 'Arquivo final')}</span>
+      <span style="margin-left:auto;color:var(--text3);font-weight:400">abrir ›</span></a>`;
+  }
+  if (it.publish_at) {
+    body += `<div class="ap-note">Publicação prevista: ${
+      AP.quando(it.publish_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>`;
+  }
+
+  const talk = (it._talk || []).map(c => {
+    const int = AP.ehInterno(c.body);
+    return `
+    <div class="ap-msg ${c.is_client ? 'cli' : ''} ${int ? 'int' : ''}">
+      <div class="who">${esc(c.author_name)}${int ? ' <span style="font-size:9.5px;font-weight:800;color:#6d28d9;letter-spacing:.06em">· INTERNO</span>' : ''}
+        <span class="when">${new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+      </div>${AP.falaHTML(int ? AP.semInterno(c.body) : c.body)}
+    </div>`; }).join('');
+
+  return `
+  <div class="ap-card" data-id="${it.id}" data-status="${internoEquipe ? (it.interno_ok ? 'aprovado' : 'pendente') : it.status}">
+    <div class="ap-card-top">
+      <div class="ap-tags">
+        <span class="ap-kind">${KIND_LABEL[it.kind] || 'Material'}</span>
+        <span>${(it.version||1) > 1 ? `<span class="ap-ver" title="Corrigida ${(it.version||1)-1}x">V${it.version}</span>` : ''}<span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span>
+      </div>
+      ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
+    </div>
+    ${mediaHTML}
+    ${body ? `<div class="ap-body">${body}</div>` : ''}
+    <div class="ap-zone">
+      ${isClient ? `
+      <div class="ap-lab2">Ajuste na arte</div>
+      <textarea class="ap-ta" id="ta_${it.id}" style="min-height:44px"
+        placeholder="Imagem, cor, logo, texto que está DENTRO da arte…"></textarea>
+      <div class="ap-lab2">Ajuste no texto (legenda)</div>
+      <textarea class="ap-ta" id="tt_${it.id}" style="min-height:44px"
+        placeholder="Legenda, hashtags, palavra a trocar… (opcional se for aprovar)"></textarea>` : `
+      ${apSet.interno ? `
+      <div class="ap-lab2">Apontamento interno · arte</div>
+      <textarea class="ap-ta" id="ta_${it.id}" data-interno="1" style="min-height:44px"
+        placeholder="O que a IA deve mudar na arte…"></textarea>
+      <div class="ap-lab2">Apontamento interno · texto</div>
+      <textarea class="ap-ta" id="tt_${it.id}" style="min-height:44px"
+        placeholder="O que a IA deve mudar na legenda/texto…"></textarea>` : `
+      <div class="ap-lab">Responder ao cliente</div>
+      <textarea class="ap-ta" id="ta_${it.id}"
+        placeholder="Escreva e envie — o cliente vê aqui mesmo."></textarea>`}`}
+      ${!isClient ? `
+      <div style="margin-top:9px"><button class="ed-toggle" onclick="editarPeca('${it.id}')">✎ Editar / trocar arte</button></div>
+      <div class="ed-zone" id="ed_${it.id}" style="display:none;margin:10px -16px -14px;border-radius:0"></div>
+      ` : ''}
+      ${isClient ? (it.status === 'aprovado' ? `
+      <div class="ap-btns" style="margin:9px 0 0">
+        <button class="ap-btn travado" disabled>✓ Aprovado</button>
+        <button class="ap-btn rever" onclick="reverMaterial('${it.id}')">Rever material</button>
+      </div>
+      <div class="ap-tip">Aprovado em ${it.reviewed_at ? new Date(it.reviewed_at).toLocaleDateString('pt-BR') : '—'}.</div>
+      ` : `
+      <div class="ap-btns" style="margin:9px 0 0">
+        <button class="ap-btn ok"  data-act="aprovado" data-id="${it.id}">✓ Aprovar</button>
+        <button class="ap-btn fix ${it.status==='ajustar'?'on':''}" data-act="ajustar"  data-id="${it.id}">✎ Pedir ajuste</button>
+      </div>
+      <div class="ap-tip">${it.reviewed_at
+        ? 'Revisado em ' + new Date(it.reviewed_at).toLocaleDateString('pt-BR') + '. Pode mudar de ideia — é só decidir de novo.'
+        : 'Escreva primeiro, se quiser, e depois escolha. O comentário vai junto da sua decisão.'}</div>
+      `) : `
+      <div class="ap-row" style="margin-top:8px">
+        <span class="ap-when">${apSet.interno ? 'Só a equipe e a IA veem.' : it.reviewed_at
+          ? 'Cliente revisou em ' + new Date(it.reviewed_at).toLocaleDateString('pt-BR') : 'Aguardando o cliente'}</span>
+        <span style="display:flex;gap:6px">
+          ${apSet.interno ? `<button class="ap-btn ok ${it.interno_ok ? 'on' : ''}" data-int-ok="${it.id}" style="flex:0 0 auto;padding:7px 12px">
+            ✓ ${it.interno_ok ? 'Aprovado' : 'Aprovar'}</button>` : ''}
+          <button class="ap-send" data-send="${it.id}">${apSet.interno ? 'Apontar' : 'Responder'}</button>
+        </span>
+      </div>
+      `}
+      ${talk ? `<div class="ap-talk">${talk}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function showEmpty(t, p){
+  document.getElementById('apBoard').innerHTML =
+    `<div class="ap-empty"><div class="ic">○</div><h3>${esc(t)}</h3><p>${esc(p)}</p></div>`;
+  document.getElementById('apTitle').textContent = t;
+}
+
+// ==================================================================
+// INTERAÇÃO
+// ==================================================================
+function bind(){
+  document.querySelectorAll('.ap-btn[data-act]').forEach(b =>
+    b.onclick = () => decide(b.dataset.id, b.dataset.act));
+
+  document.querySelectorAll('[data-send]').forEach(b =>
+    b.onclick = () => sendComment(b.dataset.send));
+
+  document.querySelectorAll('[data-int-ok]').forEach(b => b.onclick = async () => {
+    const it = items.find(x => x.id === b.dataset.intOk);
+    b.disabled = true;
+    const { error } = await sb.rpc('set_internal_review', { p_item_ids: [it.id], p_ok: !it.interno_ok });
+    b.disabled = false;
+    if (error) { showToast('Erro: ' + error.message + ' (rodou a migration_aprovacao_interna.sql?)', 'error'); return; }
+    showToast(it.interno_ok ? 'Aprovação interna desfeita.' : 'Aprovada internamente.', 'success');
+    await load();
+  });
+
+  document.querySelectorAll('.ap-strip img, .ap-strip video').forEach(th => {
+    th.onclick = () => {
+      const wrap = th.closest('.ap-strip');
+      const it   = items.find(x => x.id === wrap.dataset.item);
+      const box  = document.querySelector(`.ap-media[data-item="${wrap.dataset.item}"]`);
+      const i    = +th.dataset.i;
+      // Regenera a tag certa (img↔video) — trocar só o src quebraria
+      // quando a peça mistura foto e vídeo no mesmo item.
+      const n = box.querySelector('.n');
+      box.innerHTML = mediaTagHTML(it.media[i], i) + (n ? n.outerHTML : '');
+      if (box.querySelector('.n')) box.querySelector('.n').textContent = (i+1) + ' / ' + it.media.length;
+      wrap.querySelectorAll('img,video').forEach(x => x.classList.toggle('on', x === th));
+      ligarCliqueMedia(box);
+    };
+  });
+
+  document.querySelectorAll('.ap-media').forEach(ligarCliqueMedia);
+}
+
+document.querySelectorAll('.ap-chip').forEach(c => c.onclick = () => {
+  document.querySelectorAll('.ap-chip').forEach(x => x.classList.remove('on'));
+  c.classList.add('on');
+  filter = c.dataset.f;
+  render();
+});
+
+async function decide(id, decision){
+  const ta = document.getElementById('ta_' + id);   // arte
+  const tt = document.getElementById('tt_' + id);   // texto
+  const comment = AP.montarComentario(ta ? ta.value : '', tt ? tt.value : '');
+
+  if (decision === 'ajustar' && !comment) {
+    showToast('Escreva o que precisa ser ajustado — na arte, no texto ou nos dois.', 'warn');
+    ta.focus();
+    return;
+  }
+
+  const card = document.querySelector(`.ap-card[data-id="${id}"]`);
+  card.querySelectorAll('.ap-btn').forEach(b => b.disabled = true);
+
+  // O comentário viaja junto da decisão — inclusive numa aprovação.
+  const { data, error } = await sb.rpc('review_approval_item', {
+    p_item_id: id, p_decision: decision, p_comment: comment || null, p_anchor: null
+  });
+
+  card.querySelectorAll('.ap-btn').forEach(b => b.disabled = false);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  showToast(decision === 'aprovado' ? 'Peça aprovada.' : 'Ajuste registrado.', 'success');
+  if (data && profile.role === 'client') notifyTeam(data, decision);
+  if (profile.role === 'client') AP.registrarDecisao(apSet.share_token, decision, 1);
+  if (ta) ta.value = '';
+  if (tt) tt.value = '';
+  await load();
+  if (decision === 'ajustar' && profile.role === 'client') AP.correcaoParaIA(apSet.share_token, apSet, items);
+}
+
+// ================================================================
+// EDIÇÃO PELA EQUIPE
+//
+// É aqui que a correção do cliente vira trabalho: trocar a arte,
+// reescrever a legenda, mexer na data. Ao salvar, a peça volta para
+// "pendente" e o cliente é avisado de que há material novo.
+// Tudo fica registrado: quem mexeu, no quê e quando.
+// ================================================================
+const edArquivos = {};   // itemId -> [File]   artes novas (vão pro fim)
+const edTroca    = {};   // itemId -> { índice: File }   troca NO LUGAR
+
+function editarPeca(id){
+  const box = document.getElementById('ed_' + id);
+  if (!box) return;
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+
+  const it = items.find(x => x.id === id);
+  if (!it) return;
+  edArquivos[id] = [];
+  edTroca[id] = {};
+
+  const midias = (it.media || []).map((m, i) => `
+    <div class="ed-art" data-i="${i}" title="${esc(m.name || '')}">
+      ${AP.ehVideo(m)
+        ? `<video src="${esc(m.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid var(--border)"></video>`
+        : `<img src="${esc(m.thumb || m.url)}">`}
+      ${(it.media||[]).length > 1 ? `<span class="num">${i+1}</span>` : ''}
+      <button onclick="removerArte('${id}',${i})" title="Remover">✕</button>
+      <button class="sw" onclick="trocarArte('${id}',${i})" title="Trocar esta arte (mantém a posição)">↻</button>
+    </div>`).join('');
+
+  const dt = AP.quando(it.publish_at);
+  const dtLocal = dt ? AP.instanteBanco(dt).slice(0,16) : '';
+  const hist = versoes[id] || [];
+
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="ed-f">
+      <label>Artes ${(it.version||1) > 1 ? '· versão ' + it.version : ''}</label>
+      <div class="ed-arts" id="edArts_${id}">${midias}</div>
+      <div class="ap-tip" style="margin-top:6px">↻ troca a arte no mesmo lugar · ✕ remove · arraste abaixo para acrescentar.</div>
+      <div class="ed-drop" id="edDrop_${id}" style="margin-top:7px">Arraste ou clique para acrescentar arte nova</div>
+      <input type="file" id="edFile_${id}" multiple accept="image/*,video/*,.pdf" style="display:none">
+      <input type="file" id="edSw_${id}" accept="image/*,video/*,.pdf" style="display:none">
+      ${hist.length ? `<div class="ed-hist" id="edHist_${id}">
+        <button onclick="verHistorico('${id}')">Ver ${hist.length} versão(ões) anterior(es)</button></div>` : ''}
+    </div>
+    <div class="ed-f"><label>Texto da arte</label>
+      <textarea id="edHead_${id}" style="min-height:48px">${esc(it.headline || '')}</textarea></div>
+    <div class="ed-f"><label>Legenda</label>
+      <textarea id="edCap_${id}" style="min-height:100px">${esc(it.caption || '')}</textarea></div>
+    <div class="ed-f"><label>Hashtags</label>
+      <input id="edHash_${id}" value="${esc(it.hashtags || '')}"></div>
+    <div class="ed-f"><label>Apresentação da peça</label>
+      <textarea id="edPitch_${id}" style="min-height:70px">${esc(it.pitch || '')}</textarea></div>
+    <div class="ed-f"><label>Link do arquivo final</label>
+      <input id="edLink_${id}" value="${esc(it.external_url || '')}"
+        placeholder="Cole aqui o link do Drive"></div>
+    <div class="ed-f"><label>Publicação</label>
+      <div style="display:flex;gap:7px">
+        <input type="date" id="edD_${id}" value="${dtLocal.slice(0,10)}"
+               style="flex:1" oninput="previewData('${id}')">
+        <input type="time" id="edH_${id}" value="${dtLocal.slice(11,16) || '09:00'}"
+               style="width:110px" oninput="previewData('${id}')">
+        <button type="button" onclick="limparData('${id}')" title="Sem data"
+          style="width:38px;border:1px solid var(--border);border-radius:8px;
+                 background:var(--surface2);color:var(--text3);cursor:pointer;font-family:inherit">✕</button>
+      </div>
+      <div id="edDprev_${id}" class="ap-tip" style="margin-top:5px"></div>
+    </div>
+    <button class="ed-save" id="edSave_${id}" onclick="salvarPeca('${id}')">
+      Salvar e devolver para aprovação
+    </button>
+    <div class="ap-tip">A peça volta para "pendente", a versão anterior fica guardada e o cliente recebe aviso de material corrigido.</div>`;
+
+  previewData(id);
+
+  const drop = document.getElementById('edDrop_' + id);
+  const inp  = document.getElementById('edFile_' + id);
+  drop.onclick = () => inp.click();
+  inp.onchange = () => { addArtes(id, [...inp.files]); inp.value = ''; };
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) addArtes(id, [...e.dataTransfer.files]); });
+
+  // Arrastar um arquivo EM CIMA de uma arte existente = trocar aquela arte
+  box.querySelectorAll('.ed-art[data-i]').forEach(d => {
+    ['dragenter','dragover'].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.style.opacity = '.55'; }));
+    ['dragleave','drop'].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.style.opacity = ''; }));
+    d.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) aplicarTroca(id, +d.dataset.i, f); });
+  });
+}
+
+// Troca no lugar: a arte nova assume a posição da antiga (card 3 de um
+// carrossel continua sendo o card 3).
+function trocarArte(id, i){
+  const inp = document.getElementById('edSw_' + id);
+  inp.onchange = () => { if (inp.files[0]) aplicarTroca(id, i, inp.files[0]); inp.value = ''; };
+  inp.click();
+}
+function aplicarTroca(id, i, f){
+  if (f.size > 52428800) { showToast(f.name + ' passa de 50 MB.', 'warn'); return; }
+  edTroca[id][i] = f;
+  const d = document.querySelector(`#edArts_${id} .ed-art[data-i="${i}"]`);
+  if (!d) return;
+  const url = URL.createObjectURL(f);
+  const velho = d.querySelector('img,video');
+  const novo = f.type.startsWith('video') ? document.createElement('video') : document.createElement('img');
+  novo.src = url;
+  if (novo.tagName === 'VIDEO') { novo.muted = true; novo.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:6px'; }
+  velho.replaceWith(novo);
+  d.classList.add('trocada');
+  d.title = 'Nova: ' + f.name;
+}
+
+async function verHistorico(id){
+  const box = document.getElementById('edHist_' + id);
+  const hist = versoes[id] || [];
+  box.innerHTML = hist.map(v => `
+    <div class="v"><b>V${v.version} · ${new Date(v.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</b>
+      ${(v.media||[]).map((m,i) => AP.ehVideo(m)
+        ? `<span style="font-size:10px;color:var(--text3)">vídeo</span>`
+        : `<img src="${esc(m.thumb || m.url)}" onclick="lbOpen({media:versoes['${id}'].find(x=>x.id==='${v.id}').media},${i})">`).join('')}
+    </div>`).join('');
+}
+
+// O campo de data nativo não tem "OK": a pessoa escolhe e fica sem
+// confirmação nenhuma. Esta linha embaixo escreve por extenso o que
+// foi entendido, para não haver dúvida antes de salvar.
+function previewData(id){
+  const el = document.getElementById('edDprev_' + id);
+  const d  = document.getElementById('edD_' + id).value;
+  const h  = document.getElementById('edH_' + id).value;
+  if (!el) return;
+  if (!d) { el.textContent = 'Sem data definida.'; el.style.color = 'var(--text3)'; return; }
+  const dt = new Date(d + 'T' + (h || '09:00'));
+  const fmt = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+  el.textContent = 'Publica ' + fmt + (h ? ', às ' + h : '') + '.';
+  el.style.color = dt < new Date() ? '#db2777' : 'var(--text3)';
+  if (dt < new Date()) el.textContent += '  Atenção: é uma data no passado.';
+}
+function limparData(id){
+  document.getElementById('edD_' + id).value = '';
+  document.getElementById('edH_' + id).value = '';
+  previewData(id);
+}
+
+function addArtes(id, lista){
+  const wrap = document.getElementById('edArts_' + id);
+  lista.forEach(f => {
+    if (f.size > 52428800) { showToast(f.name + ' passa de 50 MB.', 'warn'); return; }
+    edArquivos[id].push(f);
+    const url = URL.createObjectURL(f);
+    const d = document.createElement('div');
+    d.className = 'ed-art trocada';
+    d.dataset.novo = edArquivos[id].length - 1;
+    d.innerHTML = `<img src="${url}"><button onclick="this.parentElement.remove()">✕</button>`;
+    wrap.appendChild(d);
+  });
+}
+
+function removerArte(id, i){
+  const el = document.querySelector(`#edArts_${id} .ed-art[data-i="${i}"]`);
+  if (el) el.remove();
+}
+
+// Sobe um arquivo para o storage do lote (módulo comum: guarda também
+// o link do original quando o arquivo veio do Drive).
+function subirMidia(f, extra){ return AP.subirMidia(f, apSet.client_id, SET_ID, extra); }
+
+// Guarda a foto da versão atual antes de qualquer correção. Se a
+// migration ainda não rodou, segue sem histórico (não trava a correção).
+async function registrarVersao(itemId, origem){
+  const { error } = await sb.rpc('register_approval_version', { p_item_id: itemId, p_origem: origem });
+  if (error) console.warn('Versão não registrada (rodou a migration_aprovacao_versoes.sql?):', error.message);
+}
+
+async function salvarPeca(id){
+  const btn = document.getElementById('edSave_' + id);
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  try {
+    const it = items.find(x => x.id === id);
+    const wrap = document.getElementById('edArts_' + id);
+
+    // Antigas que ficaram, NA ORDEM, com as trocas no lugar
+    const finais = [];
+    let trocou = false;
+    for (const d of wrap.querySelectorAll('.ed-art[data-i]')) {
+      const i = +d.dataset.i, velha = it.media[i];
+      const f = edTroca[id] && edTroca[id][i];
+      if (f) {
+        btn.textContent = 'Subindo ' + f.name + '…';
+        // Mantém o "path" original: o próximo ZIP de correções continua
+        // achando esta arte pelo nome de sempre.
+        finais.push(await subirMidia(f, velha?.path ? { path: velha.path } : null));
+        trocou = true;
+      } else if (velha) finais.push(velha);
+    }
+    if (finais.length !== (it.media||[]).length) trocou = true;   // removeu alguma
+
+    // Novas, no fim
+    for (const d of wrap.querySelectorAll('.ed-art[data-novo]')) {
+      const f = edArquivos[id][+d.dataset.novo];
+      if (!f) continue;
+      btn.textContent = 'Subindo ' + f.name + '…';
+      finais.push(await subirMidia(f));
+      trocou = true;
+    }
+
+    const d = document.getElementById('edD_' + id).value;
+    const h = document.getElementById('edH_' + id).value || '09:00';
+    const dv = d ? (d + 'T' + h) : '';
+
+    btn.textContent = 'Salvando…';
+    await registrarVersao(id, trocou ? 'troca' : 'edicao');
+
+    const { error } = await sb.rpc('update_approval_item', {
+      p_item_id: id,
+      p_media: finais,
+      p_headline: document.getElementById('edHead_' + id).value.trim() || null,
+      p_caption:  document.getElementById('edCap_'  + id).value.trim() || null,
+      p_hashtags: document.getElementById('edHash_' + id).value.trim() || null,
+      p_publish_at: dv ? AP.dataBanco(d, h) : null,
+      p_trocou_arte: trocou,
+      p_external_url: document.getElementById('edLink_'  + id).value.trim() || null,
+      p_pitch:        document.getElementById('edPitch_' + id).value.trim() || null
+    });
+    if (error) throw error;
+
+    showToast('Peça atualizada. O cliente foi avisado.', 'success');
+    delete edArquivos[id]; delete edTroca[id];
+    await load();
+
+  } catch(err){
+    showToast('Erro: ' + err.message, 'error');
+    btn.disabled = false; btn.textContent = 'Salvar e devolver para aprovação';
+  }
+}
+
+// A equipe responde sem decidir nada — a decisão é sempre do cliente.
+async function sendComment(id){
+  const ta = document.getElementById('ta_' + id);
+  const tt = document.getElementById('tt_' + id);
+  const body = ta.dataset.interno ? AP.montarInterno(ta.value, tt ? tt.value : '') : ta.value.trim();
+  if (!body) return;
+
+  const { error } = await sb.from('approval_comments').insert({
+    item_id: id, author_id: profile.id, author_name: profile.name,
+    is_client: false, body
+  });
+
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  ta.value = ''; if (tt) tt.value = '';
+  showToast(ta.dataset.interno ? 'Apontamento registrado — vai pra IA em "Correções pra IA".' : 'Resposta enviada.', 'success');
+  await load();
+}
+
+// Avisa a equipe: notificação no painel da plataforma
+async function notifyTeam(r, decision){
+  try {
+    const { data: team } = await sb.from('profiles')
+      .select('id').in('role',['admin','team']).eq('active', true);
+    if (!team || !team.length) return;
+
+    const titulo = decision === 'aprovado' ? '✓ Cliente aprovou' : '↺ Cliente pediu ajuste';
+    const corpo  = (apSet?.title || 'Material') +
+      (r.pendentes === 0 ? ' — lote completo' : ' — faltam ' + r.pendentes);
+
+    await sb.from('notifications').insert(team.map(t => ({
+      user_id: t.id, actor_id: profile.id,
+      type: decision === 'aprovado' ? 'aprovacao_ok' : 'aprovacao_ajuste',
+      title: titulo, body: corpo,
+      link: r.task ? ('task:' + r.task) : ('aprovacao:' + SET_ID)
+    })));
+  } catch(e){ console.log('aviso falhou:', e.message); }
+}
+
+// ==================================================================
+// TEMPO REAL — a equipe vê a decisão do cliente chegando
+// ==================================================================
+let canalLive = null;
+
+function listenLive(){
+  // load() roda depois de toda decisão e de toda edição, e chamava esta
+  // função de novo — tentando assinar um canal que já estava assinado.
+  // O Supabase recusa e o erro estourava no console.
+  if (canalLive) return;
+
+  canalLive = sb.channel('ap_' + SET_ID)
+    .on('postgres_changes',
+        { event:'*', schema:'public', table:'approval_items', filter:'set_id=eq.' + SET_ID },
+        () => load())
+    .subscribe();
+}
+
+// Ao sair da tela, desliga o canal — senão fica pendurado.
+window.addEventListener('beforeunload', () => {
+  if (canalLive) { sb.removeChannel(canalLive); canalLive = null; }
+});
+
+// ==================================================================
+// AGENDAR AS APROVADAS
+//
+// Pega toda peça de rede social já aprovada, que ainda não está na
+// fila, e cria o agendamento — usando a data que já veio do Excel no
+// momento da montagem do lote. Não pede nada de novo pra pessoa além
+// de escolher em quais contas conectadas vai publicar.
+// ==================================================================
+// ==================================================================
+// ESTADO DO BOTÃO DE AGENDAMENTO — três situações possíveis:
+//   1. Nada agendado ainda → botão verde "Agendar aprovadas" normal
+//   2. Já agendado, ainda publicando → pílula com contador X/Y,
+//      atualiza sozinha a cada 30s enquanto a tela ficar aberta
+//   3. Tudo publicado, mas surgiu peça nova aprovada depois → mostra
+//      o resultado ("10/10 publicadas") E o botão de agendar as novas,
+//      lado a lado — as duas coisas são situações reais ao mesmo tempo.
+// ==================================================================
+async function atualizarBotaoAgendar(){
+  const ba = document.getElementById('btnAgendar');
+  if (!ba || ba.style.display === 'none') return;
+
+  const elegiveis = items.filter(i => i.status === 'aprovado' &&
+    ['feed','carrossel','stories','reels'].includes(i.kind));
+  const idsElegiveis = elegiveis.map(i => i.id);
+  if (!idsElegiveis.length) return;
+
+  const { data: postsDoLote } = await sb.from('scheduled_posts')
+    .select('id,batch_name').in('batch_name', idsElegiveis.map(id => 'ap:' + id));
+
+  const idsAgendados = new Set((postsDoLote||[]).map(p => (p.batch_name||'').replace('ap:','')));
+  const pendentes = elegiveis.filter(i => !idsAgendados.has(i.id));
+
+  if (!postsDoLote || !postsDoLote.length) {
+    // Situação 1 — nada agendado ainda, botão normal de CTA.
+    ba.innerHTML = '📤 Agendar aprovadas';
+    ba.onclick = abrirAgendamento;
+    ba.style.background = '#16a34a';
+    ba.disabled = false;
+    return;
+  }
+
+  // Já tem algo agendado — busca o status de cada alvo pra montar o contador.
+  const postIds = postsDoLote.map(p => p.id);
+  const { data: alvos } = await sb.from('scheduled_post_targets')
+    .select('status').in('post_id', postIds);
+
+  const totalAlvos = (alvos||[]).length;
+  const publicados = (alvos||[]).filter(a => a.status === 'publicado').length;
+  const comErro = (alvos||[]).filter(a => a.status === 'erro').length;
+  const tudoPronto = publicados + comErro === totalAlvos;
+
+  const corBadge = comErro ? '#dc2626' : (tudoPronto ? '#16a34a' : '#2563eb');
+  const textoBadge = tudoPronto
+    ? `✓ ${publicados}/${totalAlvos} publicada${totalAlvos!==1?'s':''}` + (comErro ? ` (${comErro} com erro)` : '')
+    : `${publicados}/${totalAlvos} publicando…`;
+
+  if (pendentes.length) {
+    // Situação 3 — mostra os dois: o que já foi, e o botão pras novas.
+    ba.innerHTML = `<span style="opacity:.9">${textoBadge}</span><span style="opacity:.5;margin:0 2px">·</span>+ agendar ${pendentes.length} nova(s)`;
+    ba.onclick = abrirAgendamento;
+    ba.style.background = corBadge;
+    ba.disabled = false;
+  } else {
+    // Situação 2 — só o acompanhamento, sem ação pendente.
+    ba.innerHTML = textoBadge;
+    ba.onclick = null;
+    ba.style.background = corBadge;
+    ba.style.cursor = 'default';
+  }
+}
+// Atualiza sozinho a cada 30s, enquanto a tela ficar aberta — "vai
+// atualizando conforme o tempo passa e novas publicações acontecem".
+setInterval(atualizarBotaoAgendar, 30000);
+
+async function abrirAgendamento(){
+  const elegiveis = items.filter(i => i.status === 'aprovado' &&
+    ['feed','carrossel','stories','reels'].includes(i.kind));
+
+  if (!elegiveis.length) { showToast('Nada aprovado ainda para agendar.', 'warn'); return; }
+
+  // "piece_id" em scheduled_posts aponta pra tabela antiga de design
+  // (pieces), não pra approval_items — são conceitos parecidos, mas
+  // de sistemas diferentes. Uso batch_name (campo livre) só pra eu
+  // mesmo saber depois de qual peça aprovada este agendamento veio,
+  // e pra não agendar a mesma peça duas vezes.
+  const { data: jaAgendadas } = await sb.from('scheduled_posts')
+    .select('batch_name').in('batch_name', elegiveis.map(i => 'ap:' + i.id));
+  const idsAgendados = new Set((jaAgendadas||[]).map(x => (x.batch_name||'').replace('ap:','')));
+  const pendentes = elegiveis.filter(i => !idsAgendados.has(i.id));
+
+  // Tudo já na fila: a janela abre mesmo assim, pra ligar/desligar o "agendar sozinho".
+
+  // Contas conectadas deste cliente
+  const clienteId = apSet.client_id;
+  if (!clienteId) { showToast('Este lote não tem cliente vinculado.', 'error'); return; }
+  const { data: contas } = await sb.from('social_accounts')
+    .select('id,platform,account_name').eq('client_id', clienteId).eq('status','conectada');
+
+  if (!contas || !contas.length) {
+    showToast('Nenhuma conta social conectada para este cliente. Vá em Admin → Redes sociais.', 'warn');
+    return;
+  }
+
+  // Agendar sozinho (por cliente): lembra as contas e o liga/desliga
+  let cfgAuto = null;
+  try {
+    const { data, error } = await sb.from('pd_publicacao').select('agendar_sozinho,contas').eq('client_id', clienteId).maybeSingle();
+    if (!error) cfgAuto = data || { agendar_sozinho: false, contas: [] };
+  } catch(e) {}
+  const contaMarcada = id => !cfgAuto || !(cfgAuto.contas || []).length || cfgAuto.contas.includes(id);
+
+  const ov = document.createElement('div');
+  ov.style.cssText = `position:fixed;inset:0;z-index:99600;display:flex;align-items:center;
+    justify-content:center;padding:24px;background:rgba(10,10,12,.55);backdrop-filter:blur(6px)`;
+  ov.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+                max-width:400px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4)">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">${pendentes.length ? `Agendar ${pendentes.length} peça(s)` : 'Tudo aprovado já está na fila'}</div>
+      <div style="font-size:12.5px;color:var(--text3);line-height:1.5;margin-bottom:16px">
+        Cada peça publica na data que veio da planilha. Escolha em quais contas.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+        ${contas.map(c => `
+          <label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--border);
+                        border-radius:9px;cursor:pointer">
+            <input type="checkbox" class="ag-conta" value="${c.id}" data-platform="${c.platform}" ${contaMarcada(c.id) ? 'checked' : ''}
+              style="width:16px;height:16px">
+            <span style="font-size:13px">${c.platform === 'instagram' ? '📷' : '📘'} ${c.account_name}</span>
+          </label>`).join('')}
+      </div>
+      ${cfgAuto ? `<label style="display:flex;gap:9px;align-items:flex-start;padding:10px 11px;margin:-6px 0 16px;border-radius:9px;
+                    background:var(--surface2,rgba(127,127,127,.08));cursor:pointer;font-size:12.5px;line-height:1.45">
+        <input type="checkbox" id="agAuto" ${cfgAuto.agendar_sozinho ? 'checked' : ''} style="width:16px;height:16px;margin-top:1px;flex-shrink:0">
+        <span><b>Agendar sozinho daqui pra frente</b><br><span style="color:var(--text3)">Toda peça aprovada deste cliente, com data,
+        entra na fila nestas contas — sem abrir esta janela. Peça sem data ou com a data já passada espera você.</span></span>
+      </label>` : ''}
+      <div style="display:flex;gap:8px">
+        <button id="agCancel" class="btn btn-secondary" style="flex:1;justify-content:center">Cancelar</button>
+        <button id="agConfirm" class="btn btn-primary" style="flex:1;justify-content:center;background:#16a34a;border-color:#16a34a">Confirmar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  ov.querySelector('#agCancel').onclick = () => ov.remove();
+  ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  ov.querySelector('#agConfirm').onclick = () => confirmarAgendamento(pendentes, clienteId, ov);
+}
+
+async function confirmarAgendamento(pendentes, clienteId, ov){
+  const marcadas = [...document.querySelectorAll('.ag-conta:checked')]
+    .map(el => ({ id: el.value, platform: el.dataset.platform }));
+
+  if (!marcadas.length) { showToast('Escolha pelo menos uma conta.', 'warn'); return; }
+  const auto = document.getElementById('agAuto');
+  if (auto) {
+    const { error: ea } = await sb.from('pd_publicacao').upsert({ client_id: clienteId, agendar_sozinho: auto.checked,
+      contas: marcadas.map(c => c.id), atualizado_por: profile.id, atualizado_em: new Date().toISOString() });
+    if (ea) console.warn('agendar sozinho:', ea.message);
+    else if (auto.checked) showToast('Agendar sozinho ligado pra este cliente.', 'success');
+  }
+  if (!pendentes.length) { ov.remove(); if (!auto) showToast('Nada novo pra agendar.', 'info'); return; }
+
+  const btn = ov.querySelector('#agConfirm');
+  btn.disabled = true; btn.textContent = 'Agendando…';
+
+  let ok = 0, falhas = 0;
+
+  for (const item of pendentes) {
+    // A tabela real não tem coluna própria para hashtags — junta tudo
+    // dentro de "caption", como o post final vai sair mesmo.
+    const legendaCompleta = [item.caption || item.headline, item.hashtags]
+      .filter(Boolean).join('\n\n') || null;
+
+    const { data: post, error: e1 } = await sb.from('scheduled_posts').insert({
+      client_id: clienteId,
+      batch_name: 'ap:' + item.id,
+      caption: legendaCompleta,
+      media_urls: item.media || [],
+      post_type: item.kind,
+      scheduled_at: (AP.quando(item.publish_at) || new Date()).toISOString(),
+      created_by: profile.id,
+    }).select().single();
+
+    if (e1 || !post) { falhas++; console.log('agendar post:', e1?.message); continue; }
+
+    const placement = { feed:'feed', carrossel:'feed', stories:'stories', reels:'reels' }[item.kind] || 'feed';
+
+    const alvos = marcadas.map(c => ({
+      post_id: post.id, social_account_id: c.id, platform: c.platform, placement,
+    }));
+    const { error: e2 } = await sb.from('scheduled_post_targets').insert(alvos);
+
+    if (e2) { falhas++; console.log('agendar alvo:', e2.message); } else { ok++; }
+  }
+
+  ov.remove();
+  if (ok) showToast(`${ok} peça(s) na fila de publicação.` + (falhas ? ` ${falhas} falharam.` : ''), falhas ? 'warn' : 'success');
+  else showToast('Não consegui agendar. Confira o console.', 'error');
+
+  await load();
+}
+
+// ==================================================================
+// DOWNLOAD DO CONTEÚDO APROVADO
+//
+// Monta um zip organizado por SEMANA e, dentro dela, por tipo de peça.
+// A semana é a da data de publicação; peça sem data cai em "Semana 1",
+// porque conteúdo sem data ainda é conteúdo de uma semana só.
+//
+// Junto vai um leia-me com legenda, hashtags e horário de cada peça —
+// quem for postar tem tudo num lugar só, sem voltar na plataforma.
+// ==================================================================
+function pastaTipo(kind){
+  return { feed:'feed', carrossel:'carrossel', stories:'stories',
+           reels:'reels', material:'material', generico:'material' }[kind] || 'outros';
+}
+
+function semanaDe(items, it){
+  // Sem data: tudo vira Semana 1. Com data: conta a partir da mais antiga.
+  const datas = items.map(x => x.publish_at).filter(Boolean).map(d => AP.quando(d));
+  if (!datas.length || !it.publish_at) return 1;
+  const min = new Date(Math.min(...datas));
+  min.setHours(0,0,0,0);
+  const dias = Math.floor((AP.quando(it.publish_at) - min) / 86400000);
+  return Math.floor(dias / 7) + 1;
+}
+
+function limparNome(s){
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9 _.-]/g,'').trim().replace(/\s+/g,'-').substring(0,60) || 'peca';
+}
+
+async function baixarZip(){
+  const btn = document.getElementById('btnZip');
+  const txt = btn.textContent;
+  btn.disabled = true;
+
+  try {
+    const zip = new JSZip();
+    const linhas = ['CONTEUDO APROVADO', apSet.title, ''];
+    let baixados = 0, falhas = [];
+
+    // Total de arquivos, para a barra de progresso fazer sentido
+    const total = items.reduce((n,i) => n + ((i.media||[]).length || 0), 0);
+
+    for (const it of items) {
+      const sem  = 'Semana ' + semanaDe(items, it);
+      const tipo = pastaTipo(it.kind);
+      const base = limparNome(it.title || ('peca-' + (it.position + 1)));
+      const midias = it.media || [];
+
+      // Leia-me
+      linhas.push('─'.repeat(58));
+      linhas.push(`[${sem} · ${tipo.toUpperCase()}] ${it.title || base}`);
+      if (it.publish_at) linhas.push('Publicar: ' + AP.quando(it.publish_at).toLocaleString('pt-BR'));
+      if (it.headline) linhas.push('Texto da arte: ' + it.headline.replace(/\n/g,' / '));
+      if (it.caption)  linhas.push('', 'LEGENDA:', it.caption);
+      if (it.hashtags) linhas.push('', 'HASHTAGS: ' + it.hashtags);
+      linhas.push('Arquivos: ' + (midias.map(m => m.name).join(', ') || '(nenhum)'));
+      linhas.push('');
+
+      for (let i = 0; i < midias.length; i++) {
+        const m = midias[i];
+        try {
+          const r = await fetch(m.url);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const blob = await r.blob();
+          const ext = (m.name && m.name.includes('.'))
+            ? m.name.split('.').pop().toLowerCase()
+            : (blob.type.split('/')[1] || 'jpg');
+          const nome = midias.length > 1
+            ? `${base}-${String(i+1).padStart(2,'0')}.${ext}`
+            : `${base}.${ext}`;
+          zip.folder(sem).folder(tipo).file(nome, blob);
+          baixados++;
+          btn.textContent = `Preparando… ${baixados}/${total}`;
+        } catch(err){
+          falhas.push((m.name || 'arquivo') + ' — ' + err.message);
+        }
+      }
+    }
+
+    if (falhas.length) {
+      linhas.push('', '─'.repeat(58), 'NAO FOI POSSIVEL BAIXAR:', ...falhas);
+    }
+    zip.file('LEIA-ME.txt', linhas.join('\n'));
+
+    btn.textContent = 'Compactando…';
+    const blob = await zip.generateAsync({ type:'blob' }, meta => {
+      btn.textContent = 'Compactando… ' + Math.round(meta.percent) + '%';
+    });
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = limparNome(apSet.title) + '.zip';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+
+    showToast(falhas.length
+      ? `Baixado, mas ${falhas.length} arquivo(s) falharam — veja o LEIA-ME.`
+      : 'Conteúdo baixado.', falhas.length ? 'warn' : 'success');
+
+  } catch(err){
+    showToast('Erro ao montar o zip: ' + err.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = txt;
+}
+
+// ================================================================
+// REVER MATERIAL JÁ APROVADO
+//
+// Depois de aprovado, o material entra em produção: agendamento,
+// gráfica, veiculação. Reabrir é possível, mas não é grátis — e a
+// pessoa precisa saber disso antes, não depois.
+// ================================================================
+function reverMaterial(id){
+  const ov = document.createElement('div');
+  ov.className = 'ap-warn';
+  ov.innerHTML = `
+    <div class="ap-warn-box">
+      <h3>Reabrir um material aprovado</h3>
+      <p>Este material já foi aprovado e pode ter entrado em produção — agendamento,
+         impressão ou veiculação. Vamos atender seu pedido o quanto antes, mas o que
+         já saiu pode não ter volta.<br><br>
+         Quer seguir e pedir a revisão?</p>
+      <div class="ap-warn-acts">
+        <button class="no">Deixar como está</button>
+        <button class="yes">Pedir revisão</button>
+      </div>
+    </div>`;
+
+  ov.querySelector('.no').onclick  = () => ov.remove();
+  ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  ov.querySelector('.yes').onclick = () => {
+    ov.remove();
+    const ta = document.getElementById('ta_' + id);
+    if (ta) {
+      ta.focus();
+      ta.scrollIntoView({behavior:'smooth', block:'center'});
+      ta.placeholder = 'Conte o que precisa ser revisto neste material.';
+      ta.style.borderColor = '#db2777';
+    }
+    showToast('Escreva o que precisa ser revisto e toque em "Pedir ajuste".', 'info');
+    // Libera os botões normais nesta peça
+    const card = document.querySelector(`.ap-card[data-id="${id}"] .ap-btns`);
+    if (card) card.innerHTML =
+      `<button class="ap-btn ok"  data-act="aprovado" data-id="${id}">✓ Aprovar</button>
+       <button class="ap-btn fix" data-act="ajustar"  data-id="${id}">✎ Pedir ajuste</button>`;
+    bind();
+  };
+  document.body.appendChild(ov);
+}
+
+
+// ==================================================================
+// PDF DO LOTE — gerado pelo módulo comum (js/aprovacao-comum.js):
+// mesma peça, mesmo PDF, aqui e no link do cliente. Cada arte sai na
+// proporção real (stories 9:16, feed 4:5/1:1…).
+// ==================================================================
+async function gerarPDF(){
+  const btn = document.getElementById('btnPdf');
+  const txt = btn.textContent;
+  btn.disabled = true;
+  try {
+    let logo = null;
+    try {
+      const { data: cli } = await sb.from('clients').select('logo_url').eq('id', apSet.client_id).single();
+      logo = cli?.logo_url || null;
+    } catch(e){}
+    await AP.gerarPDF({
+      set: apSet, items,
+      clienteNome: document.getElementById('apEyebrow').textContent.split(' · ')[0],
+      logoClienteUrl: logo,
+      onProgress: (n, t) => btn.textContent = `Montando… ${n}/${t}`
+    });
+    showToast('PDF gerado.', 'success');
+  } catch(err){
+    showToast('Erro ao gerar o PDF: ' + err.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = txt;
+}
+
+// ==================================================================
+// LIBERAR PRO CLIENTE — o lote sai da revisão interna, ganha o link
+// público e o gestor manda pelo WhatsApp (com a mensagem pronta).
+// ==================================================================
+async function liberarCliente(jaConfirmado){
+  const jaTinhaLink = !!apSet.share_token;
+  const falta = items.filter(i => !i.interno_ok).length;
+  if (!jaConfirmado && !confirm(falta
+      ? `${falta} peça(s) ainda não foram aprovadas internamente. Liberar mesmo assim? O cliente passa a ver todas.`
+      : 'Liberar este lote pro cliente? Ele passa a ver todas as peças e recebe o link.')) return;
+  try {
+    const { error: e1 } = await sb.from('approval_sets').update({ interno: false }).eq('id', SET_ID);
+    if (e1) throw e1;
+    const { data: env, error: e2 } = await sb.rpc('send_approval_set', { p_set_id: SET_ID, p_days: 30 });
+    if (e2) throw e2;
+    if (drive) { try { await AP.drive.chamar('liberar', { task_id: apSet.task_id }); } catch(e){ console.warn(e.message); } }
+    const link = `${location.origin}/aprovacao-preview.php?t=${env.token}`;
+    // Avisa o cliente sozinho: sino + push + e-mail com o link
+    let avisados = 0;
+    try {
+      const r = await AP.sdFetch('/ponte-drive.php', { acao: 'avisar_cliente', task_id: apSet.task_id || '-',
+        set_id: SET_ID, link, corrigido: !!(jaTinhaLink || apSet._jaLiberado) });
+      avisados = r.avisados || 0;
+    } catch(e) { console.warn('Aviso ao cliente:', e.message); }
+    mostrarLinkCliente(link, avisados);
+    await load();
+  } catch(err){ showToast('Erro ao liberar: ' + err.message, 'error'); }
+}
+
+function mostrarLinkCliente(link, avisados){
+  const cli = document.getElementById('apEyebrow').textContent.split(' · ')[0];
+  const msg = `Olá! O material "${apSet.title}" está pronto para sua aprovação: ${link}`;
+  const ov = document.createElement('div');
+  ov.className = 'ap-warn';
+  ov.innerHTML = `<div class="ap-warn-box">
+      <h3>Liberado pro cliente</h3>
+      <p>${avisados ? `✓ ${avisados} contato(s) do ${esc(cli)} já foram avisados (notificação + e-mail). ` : ''}Se quiser, mande também pelo WhatsApp — o cliente aprova sem precisar de conta.</p>
+      <input class="ap-ta" value="${esc(link)}" readonly style="min-height:0;margin-bottom:14px">
+      <div class="ap-warn-acts">
+        <button class="no" id="lkCopy">Copiar link</button>
+        <button class="yes" id="lkWa" style="background:#16a34a;border-color:#16a34a">WhatsApp</button>
+      </div></div>`;
+  document.body.appendChild(ov);
+  ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  ov.querySelector('#lkCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(link); showToast('Link copiado.', 'success'); } catch(e){}
+  };
+  ov.querySelector('#lkWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ==================================================================
+// CORREÇÕES PRA IA — o Excel de correções (cliente + apontamentos
+// internos) vai direto pra pasta ENTRADA da tarefa no Drive, e a
+// planilha SD_CONTROLE muda pra CORRIGIR. Sem baixar nada.
+// ==================================================================
+async function mandarCorrecoesIA(){
+  const btn = document.getElementById('btnIA');
+  if (!drive) return;
+  btn.disabled = true; const txt = btn.textContent; btn.textContent = 'Enviando…';
+  try {
+    const desde = {};
+    Object.entries(versoes).forEach(([id, vs]) => { if (vs[0]) desde[id] = vs[0].created_at; });
+    const linhasInfo = AP.gerarExcelCorrecoes({ set: apSet, items, desdeVersao: desde,
+      clienteNome: document.getElementById('apEyebrow').textContent.split(' · ')[0], retornarBuffer: true });
+    // gerarExcelCorrecoes com retornarBuffer devolve o arquivo; conta à parte
+    const resumo = contarCorrecoes(desde);
+    if (!resumo.n && !confirm('Não achei correção nova (do cliente ou interna). Mandar o Excel mesmo assim?')) {
+      btn.disabled = false; btn.textContent = txt; return;
+    }
+    const b64 = await AP.b64(linhasInfo);
+    // Briefing de correção na pasta ANTES do chamado por e-mail
+    let pedido = '';
+    try { pedido = await AP.montarBriefing(apSet.task_id, { correcao: true }); } catch(e) { console.warn(e.message); }
+    const r = await AP.drive.chamar('enviar_correcoes', { task_id: apSet.task_id, b64, nome: 'correcoes.xlsx',
+      origem: apSet.interno ? 'revisão interna' : 'cliente', resumo: resumo.n + ' peça(s) com correção' });
+    drive = r.drive || drive;
+    try { if (pedido) await navigator.clipboard.writeText(pedido); } catch(e){}
+    showToast(`Correções na pasta ENTRADA (${resumo.n} peça(s)). Chamado CORRIGIR enviado por e-mail pra IA.`, 'success');
+  } catch(err){ showToast('Erro: ' + err.message, 'error'); }
+  btn.disabled = false; btn.textContent = txt;
+}
+
+function contarCorrecoes(desde){
+  let n = 0;
+  items.forEach(it => {
+    const corte = desde[it.id] ? new Date(desde[it.id]) : null;
+    const tem = (it._talk || []).some(c => (c.is_client || AP.ehInterno(c.body)) &&
+      (corte ? new Date(c.created_at) > corte : (AP.ehInterno(c.body) || it.status === 'ajustar')));
+    if (tem) n++;
+  });
+  return { n };
+}
+
+// ==================================================================
+// EXCEL DE CORREÇÕES
+// Mesmo modelo do upload + as correções do cliente, post a post,
+// separadas em CRIATIVO e COPY. Só entra o que foi pedido DEPOIS da
+// última versão enviada de cada peça. Vai pro GPT, volta corrigido.
+// ==================================================================
+async function baixarExcelCorrecoes(){
+  const btn = document.getElementById('btnXls');
+  btn.disabled = true;
+  try {
+    const desde = {};
+    Object.entries(versoes).forEach(([id, vs]) => { if (vs[0]) desde[id] = vs[0].created_at; });
+    const r = AP.gerarExcelCorrecoes({
+      set: apSet, items, desdeVersao: desde,
+      clienteNome: document.getElementById('apEyebrow').textContent.split(' · ')[0]
+    });
+    showToast(r.comCorrecao
+      ? `Excel baixado: ${r.linhas} peça(s), ${r.comCorrecao} com correção.`
+      : `Excel baixado (${r.linhas} peças) — nenhuma correção pendente.`, 'success');
+  } catch(err){ showToast('Erro ao gerar o Excel: ' + err.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ==================================================================
+// SUBIR CORREÇÕES — na mesma tarefa, no mesmo lote.
+//
+// Aceita um .zip (com ou sem o Excel de correções dentro), vários
+// arquivos soltos, ou só o Excel. Só o que veio é trocado:
+//   · cada pasta/arquivo é casado com a peça certa (ID_PECA do Excel,
+//     nome original, pasta, nome do arquivo, título)
+//   · dentro da peça, a arte com o MESMO NOME substitui a antiga NA
+//     MESMA POSIÇÃO — dá pra mandar só o card 3 do carrossel
+//   · "Trocar todas as artes" substitui o conjunto inteiro da peça
+//   · LEGENDA/HASHTAGS/DATA alterados no Excel (ou .txt) atualizam o texto
+//   · o que não casar com nada pode virar peça nova ou ser ignorado
+// Tudo passa pela conferência antes de aplicar. A versão anterior de
+// cada peça tocada fica guardada.
+// ==================================================================
+let cz = null;
+
+function abrirCorrecoes(){
+  document.getElementById('czOv')?.remove();
+  cz = { entradas: [], modo: 'parcial' };
+
+  const ov = document.createElement('div');
+  ov.className = 'cz-ov'; ov.id = 'czOv';
+  ov.innerHTML = `
+    <div class="cz-box">
+      <div class="cz-head">
+        <div>
+          <h3>Subir correções</h3>
+          <p>Arraste o .zip com as artes corrigidas (e o Excel de correções, se tiver), ou só as artes soltas.
+             Só o que vier é trocado — o resto do lote fica como está.</p>
+        </div>
+        <button class="cz-x" onclick="fecharCorrecoes()">✕</button>
+      </div>
+      <div class="cz-body">
+        <div class="cz-drop" id="czDrop">
+          <b>Arraste aqui o .zip, as artes ou o Excel</b>
+          <small>Mesmo nome de arquivo = troca no mesmo lugar (card 3 continua card 3).<br>
+                 Excel com LEGENDA alterada = texto atualizado. Pode subir só uma arte, ou o pacote inteiro.</small>
+        </div>
+        <input type="file" id="czIn" multiple accept=".zip,.xlsx,.pdf,image/*,video/*,.txt" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 13px;border:1px solid var(--border);
+                    border-radius:9px;background:var(--surface);flex-wrap:wrap">
+          <div style="flex:1;min-width:200px;font-size:12px;color:var(--text3);line-height:1.5">
+            <b style="color:var(--text);display:block;font-size:12.5px">1º passo: o Excel certo deste lote</b>
+            Já vem com as correções do cliente post a post e o ID de cada peça. Corrija, ponha no zip e suba aqui.
+          </div>
+          <button class="ap-tool" onclick="baixarExcelCorrecoes()">⤓ Baixar correções (Excel)</button>
+        </div>
+        <div style="margin-top:10px"><select id="czPag" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12px">
+          <option value="auto">PDF/PPTX: automático ("carrossel"/"stories" no nome = 1 peça)</option>
+          <option value="peca">PDF/PPTX: cada página é uma peça</option>
+          <option value="grupo">PDF/PPTX: o arquivo inteiro é uma peça (carrossel)</option>
+        </select></div>
+        ${drive ? `<button class="ap-tool" id="czDrive" style="margin-top:10px;width:100%;padding:11px;border-color:#7c3aed;color:#6d28d9">
+          ⇣ Puxar a entrega da IA (Drive)</button>` : ''}
+        <div class="cz-modo" id="czModo">
+          <label class="on"><input type="radio" name="czm" value="parcial" checked>
+            <span><b>Só o que veio</b><small>Troca as artes de mesmo nome. As outras artes da peça ficam.</small></span></label>
+          <label><input type="radio" name="czm" value="tudo">
+            <span><b>Trocar todas as artes</b><small>Cada peça enviada fica só com as artes novas (pacote inteiro).</small></span></label>
+        </div>
+        <div class="cz-st" id="czSt"></div>
+        <div id="czLista"></div>
+        <div class="cz-prog" id="czProg"><i id="czBar"></i></div>
+      </div>
+      <div class="cz-foot">
+        <span class="info" id="czInfo">Nada carregado ainda.</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="fecharCorrecoes()">Cancelar</button>
+          <button class="btn btn-primary" id="czOk" disabled>Aplicar correções</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.body.style.overflow = 'hidden';
+
+  const drop = ov.querySelector('#czDrop'), inp = ov.querySelector('#czIn');
+  drop.onclick = () => inp.click();
+  inp.onchange = () => { if (inp.files.length) czReceber([...inp.files]); inp.value = ''; };
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) czReceber([...e.dataTransfer.files]); });
+
+  ov.querySelectorAll('input[name="czm"]').forEach(r => r.onchange = () => {
+    cz.modo = r.value;
+    ov.querySelectorAll('.cz-modo label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+    cz.entradas.forEach(e => { if (e.peca) e.modo = cz.modo === 'tudo' ? 'tudo' : e.modoAuto; });
+    czRender();
+  });
+  ov.querySelector('#czOk').onclick = czAplicar;
+  const bd = ov.querySelector('#czDrive');
+  if (bd) bd.onclick = async () => {
+    bd.disabled = true;
+    const st = document.getElementById('czSt');
+    try {
+      const ent = await AP.drive.entradas(apSet.task_id, t => st.textContent = t);
+      cz.fonte = 'drive';
+      await czReceber(null, ent);
+      if (ent._ignorados) st.textContent += ` (${ent._ignorados} arquivo(s) de trabalho ignorados — .pptx, .psd etc.)`;
+      bd.disabled = false;
+      await roboDecide();
+    } catch(err){ st.textContent = 'Drive: ' + err.message; roboAvisa({ ok:false, motivo: 'Drive: ' + err.message }); }
+    bd.disabled = false;
+  };
+}
+
+function fecharCorrecoes(){
+  document.getElementById('czOv')?.remove();
+  document.body.style.overflow = '';
+  cz = null;
+}
+
+async function czReceber(files, entradasDrive){
+  const st = document.getElementById('czSt');
+  try {
+    const r = await AP.lerPacote(files || [], { doc:false, entradas: entradasDrive,
+      paginas: document.getElementById('czPag')?.value || 'auto',
+      contexto: (apSet.title || '') + ' ' + (apSet.subtitle || ''), onStatus: t => st.textContent = t });
+
+    const novas = r.pecas.map(p => {
+      const alvo = AP.casarPeca(p, items);
+      const it = alvo && items.find(i => i.id === alvo);
+      const { mapa } = AP.casarSlots(it?.media || [], p.files);
+      // Nenhum nome bateu = a peça veio inteira de novo → troca tudo
+      const modoAuto = (it && Object.keys(mapa).length) ? 'parcial' : 'tudo';
+      return { peca: p, alvo: alvo || 'novo', modoAuto,
+               modo: cz.modo === 'tudo' ? 'tudo' : modoAuto };
+    });
+    // Linhas do Excel sem arte no pacote = só texto
+    r.linhas.filter(l => !l._usada).forEach(l => {
+      novas.push({ linha: l, alvo: AP.casarLinha(l, items) || '' });
+    });
+    // Peças casadas por arte também levam o texto da linha delas
+    novas.forEach(e => { if (e.peca && e.peca.linha) e.linha = e.peca.linha; });
+
+    cz.entradas.push(...novas);
+    st.textContent = `Li ${r.pecas.length} peça(s) com arte` +
+      (r.linhas.length ? ` e ${r.linhas.length} linha(s) de planilha` : '') + '. Confira abaixo antes de aplicar.';
+    czRender();
+  } catch(err){
+    st.textContent = 'Não consegui ler: ' + err.message;
+  }
+}
+
+// O que vai acontecer com cada peça do lote — usado na conferência e
+// na aplicação (uma fonte só, pra o que se vê ser o que se faz).
+function czPlano(){
+  const plano = {};     // itemId -> { it, media:[{velha}|{novo}], trocou, caption, hashtags, publish_at, origens:[] }
+  const novas = [];     // peças novas a criar
+  const pega = it => plano[it.id] = plano[it.id] || {
+    it, media: (it.media||[]).map(m => ({ velha: m, name: m.name, path: m.path })),
+    trocou: false, caption: undefined, hashtags: undefined, publish_at: undefined, origens: []
+  };
+
+  cz.entradas.forEach((e, idx) => {
+    if (!e.alvo) return;
+    if (e.alvo === 'novo') { if (e.peca) novas.push(e.peca); return; }
+    const it = items.find(i => i.id === e.alvo);
+    if (!it) return;
+    const pl = pega(it);
+    pl.origens.push(idx);
+
+    if (e.peca) {
+      const arqs = e.peca.files.map(f => ({ novo: f, name: f.nome, path: f.path }));
+      if (e.modo === 'tudo') {
+        pl.media = arqs; pl.trocou = true;
+      } else {
+        const meta = pl.media.map(m => ({ name: m.name, path: m.path }));
+        const { mapa, sobra } = AP.casarSlots(meta, e.peca.files);
+        Object.entries(mapa).forEach(([i, f]) => {
+          pl.media[+i] = { novo: f, name: f.nome, path: pl.media[+i].path || f.path };
+        });
+        sobra.forEach(f => pl.media.push({ novo: f, name: f.nome, path: f.path }));
+        if (Object.keys(mapa).length || sobra.length) pl.trocou = true;
+      }
+      // Texto vindo de .txt da pasta (sem planilha)
+      if (!e.linha && e.peca.fonteLegenda === 'txt') {
+        if (e.peca.legenda && e.peca.legenda.trim() !== (it.caption||'').trim()) pl.caption = e.peca.legenda.trim();
+        if (e.peca.hashtags && e.peca.hashtags.trim() !== (it.hashtags||'').trim()) pl.hashtags = e.peca.hashtags.trim();
+      }
+    }
+    if (e.linha) {
+      const l = e.linha;
+      if (l.legenda && l.legenda.trim() !== (it.caption||'').trim()) pl.caption = l.legenda.trim();
+      if (l.hashtags && l.hashtags.trim() !== (it.hashtags||'').trim()) pl.hashtags = l.hashtags.trim();
+      if (l.data) {
+        const pp = l.data.split('/');
+        if (pp.length === 3) {
+          const novaData = AP.dataBanco(`${pp[2].length===2?'20'+pp[2]:pp[2]}-${pp[1].padStart(2,'0')}-${pp[0].padStart(2,'0')}`, l.hora);
+          const iso = AP.quando(novaData);
+          if (iso && (!it.publish_at || Math.abs(AP.quando(it.publish_at) - iso) > 59000)) pl.publish_at = novaData;
+        }
+      }
+    }
+  });
+
+  const mudou = Object.values(plano).filter(p => p.trocou || p.caption !== undefined
+    || p.hashtags !== undefined || p.publish_at !== undefined);
+  return { mudou, novas };
+}
+
+function czRender(){
+  const lista = document.getElementById('czLista');
+  if (!lista || !cz) return;
+  const { mudou, novas } = czPlano();
+  const porItem = {}; mudou.forEach(p => porItem[p.it.id] = p);
+
+  const opcoes = (sel, permiteNovo) => `
+    <option value="" ${!sel?'selected':''}>— ignorar —</option>
+    ${permiteNovo ? `<option value="novo" ${sel==='novo'?'selected':''}>+ adicionar como peça nova</option>` : ''}
+    ${items.map((it, n) => `<option value="${it.id}" ${sel===it.id?'selected':''}>${n+1} · ${esc((it.title||'Peça').slice(0,60))}</option>`).join('')}`;
+
+  const thumb = (m, novo) => {
+    const url = novo ? m.novo.url : (m.velha?.thumb || m.velha?.url);
+    const vid = novo ? AP.RE.VID.test(m.name||'') : AP.ehVideo(m.velha);
+    return vid ? `<video src="${esc(url)}" muted preload="metadata" class="${novo?'novo':''}" title="${esc(m.name||'')}"></video>`
+               : `<img src="${esc(url)}" class="${novo?'novo':''}" title="${esc(m.name||'')}">`;
+  };
+
+  lista.innerHTML = cz.entradas.map((e, idx) => {
+    const nome = e.peca ? e.peca.titulo : (e.linha.titulo || e.linha.arquivos[0] || 'Linha da planilha');
+    const src  = e.peca ? (e.peca.individual ? e.peca.files[0].path : e.peca._pasta + '/ · ' + e.peca.files.length + ' arte(s)')
+                        : 'só texto · ' + (e.linha._fonte || 'planilha');
+    const pl = e.alvo && e.alvo !== 'novo' ? porItem[e.alvo] : null;
+    const it = e.alvo && e.alvo !== 'novo' ? items.find(i => i.id === e.alvo) : null;
+
+    let cmp = '';
+    if (e.peca && e.alvo === 'novo') {
+      cmp = `<div class="cz-cmp"><span class="seta">+</span><div class="lado">${e.peca.files.slice(0,10).map(f => thumb({ novo:f, name:f.nome }, true)).join('')}</div></div>`;
+    } else if (pl && pl.trocou) {
+      cmp = `<div class="cz-cmp">
+        <div class="lado">${(it.media||[]).slice(0,10).map(m => thumb({ velha:m })).join('') || '<span class="ph">vazio</span>'}</div>
+        <span class="seta">→</span>
+        <div class="lado">${pl.media.slice(0,10).map(m => m.novo ? thumb(m, true) : thumb(m)).join('')}</div></div>`;
+    }
+    let tx = '';
+    if (pl && pl.caption !== undefined) tx += `<div class="cz-tx"><b>LEGENDA NOVA</b>${esc(pl.caption.slice(0,400))}${pl.caption.length>400?'…':''}</div>`;
+    if (pl && pl.hashtags !== undefined) tx += `<div class="cz-tx"><b>HASHTAGS NOVAS</b>${esc(pl.hashtags)}</div>`;
+    if (pl && pl.publish_at !== undefined) tx += `<div class="cz-tx"><b>NOVA DATA</b>${AP.quando(pl.publish_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`;
+
+    const nada = e.alvo && e.alvo !== 'novo' && !cmp && !tx;
+    const modoSel = (e.peca && it && (it.media||[]).length > 1) ? `
+      <select onchange="cz.entradas[${idx}].modo=this.value;czRender()" title="Como trocar as artes desta peça">
+        <option value="parcial" ${e.modo==='parcial'?'selected':''}>Só as de mesmo nome</option>
+        <option value="tudo" ${e.modo==='tudo'?'selected':''}>Trocar todas</option>
+      </select>` : '';
+
+    return `<div class="cz-row ${!e.alvo || nada ? 'off' : ''}">
+      <div class="hd">
+        <div class="nm">${esc(nome)}<span class="src">${esc(src)}</span></div>
+        <select onchange="cz.entradas[${idx}].alvo=this.value;czRender()">${opcoes(e.alvo, !!e.peca)}</select>
+        ${modoSel}
+      </div>
+      ${!e.alvo ? `<div class="ap-tip" style="margin:0">${e.peca ? 'Não achei a peça correspondente — escolha acima ou deixe ignorado.' : 'Linha sem peça correspondente — escolha acima ou deixe ignorada.'}</div>` : ''}
+      ${nada ? '<div class="ap-tip" style="margin:0">Igual ao que já está no lote — nada muda.</div>' : ''}
+      ${cmp}${tx}
+    </div>`;
+  }).join('');
+
+  const nArte = mudou.filter(p => p.trocou).length;
+  const nTxt  = mudou.filter(p => !p.trocou).length;
+  const partes = [];
+  if (nArte) partes.push(`${nArte} peça(s) com arte nova`);
+  if (nTxt) partes.push(`${nTxt} só com texto`);
+  if (novas.length) partes.push(`${novas.length} peça(s) nova(s)`);
+  document.getElementById('czInfo').textContent = partes.length ? partes.join(' · ') : 'Nada para aplicar.';
+  document.getElementById('czOk').disabled = !partes.length;
+}
+
+async function czAplicar(){
+  const btn = document.getElementById('czOk');
+  const bar = document.getElementById('czBar'), prog = document.getElementById('czProg');
+  const info = document.getElementById('czInfo');
+  btn.disabled = true;
+  prog.style.display = 'block';
+
+  const { mudou, novas } = czPlano();
+  // Correção da IA num lote que o cliente já vê: volta pra revisão
+  // interna — o gestor confere antes do cliente ver a versão nova.
+  if (cz.fonte === 'drive' && !apSet.interno && (mudou.length || novas.length)) {
+    const { error: ei } = await sb.from('approval_sets').update({ interno: true }).eq('id', SET_ID);
+    if (!ei) { apSet.interno = true; apSet._jaLiberado = true; }
+  }
+  const totalArq = mudou.reduce((n, p) => n + p.media.filter(m => m.novo).length, 0)
+                 + novas.reduce((n, p) => n + p.files.length, 0);
+  let feitos = 0, ok = 0;
+  const aplicados = new Set();
+  const passo = (t) => { feitos++; bar.style.width = Math.round(feitos / Math.max(1,totalArq) * 100) + '%'; info.textContent = t; };
+
+  try {
+    for (const pl of mudou) {
+      const it = pl.it;
+      const finais = [];
+      for (const m of pl.media) {
+        if (m.novo) { finais.push(await subirMidia(m.novo.file, m.path ? { path: m.path } : null)); passo('Subindo ' + m.name + '…'); }
+        else finais.push(m.velha);
+      }
+      info.textContent = 'Salvando ' + (it.title || 'peça') + '…';
+      await registrarVersao(it.id, 'zip');
+      const { error } = await sb.rpc('update_approval_item', {
+        p_item_id: it.id,
+        p_media: finais,
+        p_headline: it.headline || null,
+        p_caption:  pl.caption  !== undefined ? pl.caption  : (it.caption  || null),
+        p_hashtags: pl.hashtags !== undefined ? pl.hashtags : (it.hashtags || null),
+        p_publish_at: pl.publish_at !== undefined ? pl.publish_at : (it.publish_at || null),
+        p_trocou_arte: pl.trocou,
+        p_external_url: it.external_url || null,
+        p_pitch: it.pitch || null
+      });
+      if (error) throw new Error((it.title || 'Peça') + ': ' + error.message);
+      ok++; aplicados.add(it.id);
+    }
+
+    if (novas.length) {
+      let pos = items.reduce((m, i) => Math.max(m, i.position ?? 0), -1) + 1;
+      const linhas = [];
+      for (const p of novas) {
+        const media = [];
+        for (const f of p.files) { media.push(await subirMidia(f.file, { path: f.path })); passo('Subindo ' + f.nome + '…'); }
+        linhas.push({
+          set_id: SET_ID, position: pos++, kind: p.kind,
+          title: p.titulo.trim(), caption: (p.legenda||'').trim() || null,
+          hashtags: (p.hashtags||'').trim() || null,
+          publish_at: AP.dataBanco(p.dataPub, p.horaPub),
+          source_key: p.chave, media
+        });
+      }
+      const { error } = await sb.from('approval_items').insert(linhas);
+      if (error) throw new Error('Peças novas: ' + error.message);
+    }
+
+    if (cz.fonte === 'drive' && apSet.task_id) {
+      try { await AP.drive.chamar('revisao', { task_id: apSet.task_id, set_id: SET_ID, liberado: !apSet.interno }); }
+      catch(e){ console.warn('Drive revisao:', e.message); }
+    }
+    fecharCorrecoes();
+    showToast(`Correções aplicadas: ${ok} peça(s) atualizada(s)` +
+      (novas.length ? `, ${novas.length} nova(s)` : '') + '.', 'success');
+    await load();
+    return { ok: ok + novas.length };
+  } catch(err){
+    info.textContent = 'Erro: ' + err.message + (ok ? ` — ${ok} peça(s) já tinham sido salvas.` : '');
+    showToast('Erro: ' + err.message, 'error');
+    // O que já foi salvo sai da lista: tentar de novo não duplica versão.
+    cz.entradas = cz.entradas.filter(e => !aplicados.has(e.alvo));
+    btn.disabled = false;
+    if (ok) { await load(); czRender(); }
+  }
+}
+
+// ==================================================================
+// MÍDIA — helpers de vídeo/imagem
+// ==================================================================
+function ehVideo(m){
+  return ((m?.mime)||'').startsWith('video') || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(m?.url || m?.name || '');
+}
+function mediaTagHTML(m, i){
+  if (m && m.source === 'drive_link') {
+    return `<a href="${esc(m.url)}" target="_blank" rel="noopener" data-i="${i}" style="display:block;padding:44px 16px;text-align:center;
+      color:var(--text2);font-size:12.5px;line-height:1.5;text-decoration:none">▶ ${esc(m.name || 'Arquivo')}<br>
+      <span style="color:var(--text3)">Arquivo pesado — abrir no Drive</span></a>`;
+  }
+  if (ehVideo(m)) {
+    return `<video src="${esc(m.url || m.thumb)}" data-i="${i}" controls playsinline preload="metadata"></video>`;
+  }
+  return `<img src="${esc(m.thumb || m.url)}" data-i="${i}" loading="lazy"
+    onerror="this.closest('.ap-media').innerHTML='<div style=&quot;padding:38px 16px;text-align:center;color:var(--text3);font-size:12px;line-height:1.5&quot;>Não consegui carregar esta imagem.<br>Confira o compartilhamento da pasta no Drive.</div>'">`;
+}
+// Clique abre o lightbox — só pra imagem; vídeo tem os próprios controles.
+function ligarCliqueMedia(box){
+  const img = box.querySelector('img');
+  if (!img) return;
+  img.onclick = () => {
+    const it = items.find(x => x.id === box.dataset.item);
+    lbOpen(it, +(img.dataset.i || 0));
+  };
+}
+
+// ==================================================================
+// LIGHTBOX
+// ==================================================================
+function lbOpen(it, i){
+  lb.list = it.media || [];
+  lb.i = i;
+  lbShow();
+  document.getElementById('apLb').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function lbShow(){
+  const m = lb.list[lb.i];
+  if (!m) return;
+  const img = document.getElementById('apLbImg');
+  const vid = document.getElementById('apLbVid');
+  if (ehVideo(m)) {
+    img.style.display = 'none';
+    vid.style.display = '';
+    vid.src = m.url || m.thumb;
+  } else {
+    vid.pause?.(); vid.removeAttribute('src');
+    vid.style.display = 'none';
+    img.style.display = '';
+    img.src = m.url || m.thumb;
+  }
+  document.getElementById('apLbCap').textContent =
+    (m.name || '') + (lb.list.length > 1 ? `  ·  ${lb.i+1} de ${lb.list.length}` : '');
+}
+function lbGo(d){
+  if (!lb.list.length) return;
+  lb.i = (lb.i + d + lb.list.length) % lb.list.length;
+  lbShow();
+}
+function lbClose(){
+  document.getElementById('apLb').classList.remove('on');
+  document.getElementById('apLbVid')?.pause?.();
+  document.body.style.overflow = '';
+}
+document.getElementById('apLb').onclick = e => { if (e.target.id === 'apLb') lbClose(); };
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('apLb').classList.contains('on')) return;
+  if (e.key === 'Escape')     lbClose();
+  if (e.key === 'ArrowLeft')  lbGo(-1);
+  if (e.key === 'ArrowRight') lbGo(1);
+});
+</script>
+<script src="/js/protege.js?v=1"></script>
+</body>
+</html>

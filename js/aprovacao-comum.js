@@ -1073,26 +1073,31 @@ AP.subirMidia = async function(f, clientId, setId, extra){
     return Object.assign({ name: f.name, url: f._drive.url, thumb: f._drive.url,
       mime: AP.mime(f.name), source: 'drive_link' }, meta);
   }
-  // A ARTE NASCE NO DRIVE, não no Supabase. Era aqui que 1,39 GB entravam
-  // no plano, uma aprovação de cada vez. O Drive da agência tem espaço de
-  // sobra e é onde o material já mora de verdade.
+  // v62: ARQUIVO DE TRABALHO MORA NO SUPABASE (Pro) até o lote fechar.
+  // É rápido (sem a volta pela ponte) e a Meta alcança a URL na hora de
+  // publicar. Quando o lote fecha, o relógio da casa faz a CÓPIA pro
+  // Drive e, na faxina do mês, o gestor libera a limpeza do que já tem
+  // cópia conferida. O Drive vira acervo; o Supabase vira bancada.
+  const ext = f.type === 'image/jpeg' ? 'jpg' : ((f.name.split('.').pop() || 'bin').toLowerCase());
+  try {
+    const caminho = `${clientId}/${setId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await sb.storage.from('aprovacao').upload(caminho, f, { contentType: f.type || AP.mime(f.name) });
+    if (error) throw new Error(error.message);
+    const { data: pub } = sb.storage.from('aprovacao').getPublicUrl(caminho);
+    return Object.assign({ name: f.name, url: pub.publicUrl, thumb: pub.publicUrl,
+      mime: f.type || AP.mime(f.name), source: 'storage' }, meta);
+  } catch (e) {
+    // bancada fora do ar não trava ninguém: cai no Drive (o caminho antigo)
+    console.warn('[SD] Supabase recusou, caindo no Drive:', e && e.message);
+  }
   try {
     const nova = await AP.subirNoDrive(f, clientId, setId);
     if (nova) return Object.assign(nova, meta);
   } catch (e) {
-    // Drive fora do ar não pode impedir ninguém de mandar aprovação pro
-    // cliente: cai no Supabase e avisa. Um arquivo a mais lá não quebra
-    // o plano; uma aprovação que não sai quebra o dia.
-    console.warn('[SD] Drive recusou, caindo no Supabase:', e && e.message);
-    if (typeof AP.aviso === 'function') AP.aviso('Drive fora do ar — esta arte foi pro armazenamento antigo.');
+    console.warn('[SD] Drive também recusou:', e && e.message);
+    if (typeof AP.aviso === 'function') AP.aviso('Nem Supabase nem Drive aceitaram a arte — confere a conexão.');
+    throw new Error('Falha ao subir ' + f.name);
   }
-  const ext = f.type === 'image/jpeg' ? 'jpg' : ((f.name.split('.').pop() || 'bin').toLowerCase());
-  const caminho = `${clientId}/${setId}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await sb.storage.from('aprovacao').upload(caminho, f, { contentType: f.type || AP.mime(f.name) });
-  if (error) throw new Error('Falha ao subir ' + f.name + ': ' + error.message);
-  const { data: pub } = sb.storage.from('aprovacao').getPublicUrl(caminho);
-  return Object.assign({ name: f.name, url: pub.publicUrl, thumb: pub.publicUrl,
-    mime: f.type || AP.mime(f.name), source: 'storage' }, meta);
 };
 
 // O nome do cliente, que é o nome da pasta. Em cache: a mesma pasta vale
