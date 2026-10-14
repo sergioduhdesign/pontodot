@@ -96,14 +96,20 @@ try {
         foreach ((array)($r['arquivos'] ?? []) as $f) {
             if (!preg_match('#^image/(jpeg|png|webp)$#', (string)($f['mime'] ?? ''))) continue;
             if ((int)($f['size'] ?? 0) > PDI_MAX_BYTES) continue;
-            $path = (string)($f['path'] ?? '');
-            if (!preg_match('#^([a-z0-9_\-]{2,30})/([a-z\-]+)#i', $path, $m)) continue;   // precisa da subpasta
-            $quem = strtolower($m[1]);
-            $tipo = strtolower($m[2]);
-            foreach (['vida', 'nascimento', 'avatar', 'capa'] as $t) {
-                if (strpos($tipo, $t) === 0) { $tipo = $t; break; }
+            $path  = (string)($f['path'] ?? '');
+            $parte = explode('/', $path);
+            if (count($parte) < 2) continue;                              // precisa da subpasta
+            // a subpasta pode vir numerada e com maiúscula ("01_Nix") — o id é só o nome
+            $quem = preg_replace('/^\d+[\s_\-]*/', '', strtolower(trim($parte[0])));
+            $quem = preg_replace('/[^a-z0-9_\-]/', '', $quem);
+            // o tipo pode estar em QUALQUER lugar do nome do arquivo
+            // ("Nix_vida_2026-10-14.png", "Nix_prova-de-vida.png", "avatar.jpg")
+            $nome = strtolower((string)end($parte));
+            $tipo = '';
+            foreach (['nascimento', 'avatar', 'capa', 'vida'] as $t) {
+                if (strpos($nome, $t) !== false) { $tipo = $t; break; }
             }
-            if (!in_array($tipo, ['vida', 'nascimento', 'avatar', 'capa'], true)) continue;
+            if ($quem === '' || $tipo === '') continue;
             $id = preg_replace('/[^A-Za-z0-9_\-]/', '', (string)($f['id'] ?? ''));
             $em = strtotime((string)($f['modified'] ?? '')) ?: 0;
             if ($id === '') continue;
