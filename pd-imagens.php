@@ -6,8 +6,12 @@
 // tem lá e devolve endereços que saem pelo SEU domínio (arte.php), nunca
 // drive.google.com. O app sorteia daqui.
 //
-//   GET /pd-imagens.php?pasta=capas      → as faixas do topo da escola
-//   GET /pd-imagens.php?pasta=cartazes   → cartazes de campanha (fonte pronta)
+//   GET /pd-imagens.php?pasta=capas        → as faixas do topo da escola
+//   GET /pd-imagens.php?pasta=cartazes     → cartazes de campanha (fonte pronta)
+//   GET /pd-imagens.php?pasta=personagens  → a vida VIVA de cada personagem:
+//        subpasta por id (nix/, kiro/…); dentro, arquivos cujo nome começa
+//        com o tipo (vida…, nascimento…, avatar…). O MAIS NOVO de cada
+//        tipo vale — o GPT solta a prova de vida da semana e o site troca.
 //
 // Não mexe no Apps Script: usa a ação "listar" que a Ponte já tem.
 // Guarda a lista em disco por 6 horas. Se a Ponte cair, devolve a última
@@ -24,8 +28,9 @@ require_once __DIR__ . '/../sd-private/sd-config.php';
 // as pastas são do Sérgio e não são segredo — o que protege é a assinatura
 // do arte.php. Dá pra trocar no sd-config.php sem mexer aqui.
 $PASTAS = [
-    'capas'    => defined('PD_PASTA_CAPAS')    ? PD_PASTA_CAPAS    : '1KXR2YX_3BOqJDu_ifQ0gzZ6gfav_k_DA',
-    'cartazes' => defined('PD_PASTA_CARTAZES') ? PD_PASTA_CARTAZES : '10l5vwNKeD8y-azlpe-3vvcVHfEVrf2zn',
+    'capas'       => defined('PD_PASTA_CAPAS')       ? PD_PASTA_CAPAS       : '1KXR2YX_3BOqJDu_ifQ0gzZ6gfav_k_DA',
+    'cartazes'    => defined('PD_PASTA_CARTAZES')    ? PD_PASTA_CARTAZES    : '10l5vwNKeD8y-azlpe-3vvcVHfEVrf2zn',
+    'personagens' => defined('PD_PASTA_PERSONAGENS') ? PD_PASTA_PERSONAGENS : '',
 ];
 const PDI_CACHE    = __DIR__ . '/.cache-pd';
 const PDI_VALIDADE = 21600;     // 6 horas: alimentação é semanal, isto basta
@@ -69,18 +74,51 @@ function pdi_ponte($acao, $dados) {
 }
 
 $chave = preg_replace('/[^a-z]/', '', (string)($_GET['pasta'] ?? ''));
-if (!isset($PASTAS[$chave])) pdi_sai(['ok' => false, 'erro' => 'pasta desconhecida (use capas ou cartazes)'], 400);
+if (!isset($PASTAS[$chave])) pdi_sai(['ok' => false, 'erro' => 'pasta desconhecida (capas, cartazes ou personagens)'], 400);
+if ($PASTAS[$chave] === '') pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'vazio',
+    'aviso' => 'defina PD_PASTA_PERSONAGENS no sd-config.php', 'imagens' => [], 'personagens' => (object)[]]);
 
 if (!is_dir(PDI_CACHE)) { @mkdir(PDI_CACHE, 0755, true); @file_put_contents(PDI_CACHE . '/.htaccess', "Deny from all\n"); }
 $arqCache = PDI_CACHE . '/' . $chave . '.json';
 $velho = is_file($arqCache) ? json_decode((string)file_get_contents($arqCache), true) : null;
 
 if (is_array($velho) && (time() - (int)($velho['em'] ?? 0)) < PDI_VALIDADE) {
-    pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'cache', 'atualizado' => date('c', (int)$velho['em']), 'imagens' => $velho['imagens']]);
+    pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'cache', 'atualizado' => date('c', (int)$velho['em']),
+        'imagens' => $velho['imagens'], 'personagens' => $velho['personagens'] ?? (object)[]]);
 }
 
 try {
     $r = pdi_ponte('listar', ['folderId' => $PASTAS[$chave]]);
+
+    // ----------------- personagens: subpasta = id, o MAIS NOVO de cada tipo vale
+    if ($chave === 'personagens') {
+        $vivas = [];   // id => tipo => ['src','src_m','em']
+        foreach ((array)($r['arquivos'] ?? []) as $f) {
+            if (!preg_match('#^image/(jpeg|png|webp)$#', (string)($f['mime'] ?? ''))) continue;
+            if ((int)($f['size'] ?? 0) > PDI_MAX_BYTES) continue;
+            $path = (string)($f['path'] ?? '');
+            if (!preg_match('#^([a-z0-9_\-]{2,30})/([a-z\-]+)#i', $path, $m)) continue;   // precisa da subpasta
+            $quem = strtolower($m[1]);
+            $tipo = strtolower($m[2]);
+            foreach (['vida', 'nascimento', 'avatar', 'capa'] as $t) {
+                if (strpos($tipo, $t) === 0) { $tipo = $t; break; }
+            }
+            if (!in_array($tipo, ['vida', 'nascimento', 'avatar', 'capa'], true)) continue;
+            $id = preg_replace('/[^A-Za-z0-9_\-]/', '', (string)($f['id'] ?? ''));
+            $em = strtotime((string)($f['modified'] ?? '')) ?: 0;
+            if ($id === '' || (isset($vivas[$quem][$tipo]) && $vivas[$quem][$tipo]['em'] >= $em)) continue;
+            $k = pdi_assina($id);
+            $vivas[$quem][$tipo] = ['src' => '/arte.php?i=' . $id . '&k=' . $k . '&w=1200',
+                'src_m' => '/arte.php?i=' . $id . '&k=' . $k . '&w=600', 'em' => $em];
+        }
+        foreach ($vivas as &$ts) foreach ($ts as &$v) unset($v['em']);
+        unset($ts, $v);
+        @file_put_contents($arqCache, json_encode(['em' => time(), 'imagens' => [], 'personagens' => $vivas],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+        pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'drive', 'atualizado' => date('c'),
+            'personagens' => $vivas ?: (object)[]]);
+    }
+
     $imgs = [];
     foreach ((array)($r['arquivos'] ?? []) as $f) {
         $mime = (string)($f['mime'] ?? '');
@@ -104,9 +142,10 @@ try {
     pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'drive', 'atualizado' => date('c'), 'imagens' => $imgs]);
 } catch (Exception $e) {
     // a Ponte tropeçou: a última lista boa vale mais que lista nenhuma
-    if (is_array($velho) && !empty($velho['imagens'])) {
+    if (is_array($velho) && (!empty($velho['imagens']) || !empty($velho['personagens']))) {
         pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'cache-antigo', 'atualizado' => date('c', (int)$velho['em']),
-                 'aviso' => 'Drive fora do ar agora; mostrando a última lista boa.', 'imagens' => $velho['imagens']]);
+                 'aviso' => 'Drive fora do ar agora; mostrando a última lista boa.',
+                 'imagens' => $velho['imagens'] ?? [], 'personagens' => $velho['personagens'] ?? (object)[]]);
     }
-    pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'vazio', 'aviso' => $e->getMessage(), 'imagens' => []]);
+    pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'vazio', 'aviso' => $e->getMessage(), 'imagens' => [], 'personagens' => (object)[]]);
 }
