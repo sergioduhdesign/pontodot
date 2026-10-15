@@ -1059,5 +1059,3 @@ input[type="date"],input[type="email"],input[type="number"]{
 
 /* caixinha flutuante de horários do verso: fora da tela a pedido (14/10). O relógio interno segue medindo. */
 #tracker-win{display:none !important}
-/* aba lateral "Clientes": sobrava */
-#sidebar-tab{display:none !important}
