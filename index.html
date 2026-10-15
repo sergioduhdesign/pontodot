@@ -5677,6 +5677,10 @@ async function bootReal(){
   if (!temSupa()) return;
   try {
     sbR = window.supabase.createClient(SB_URL, SB_KEY);
+    // sessão que morre não fica muda: avisa e volta pra entrada
+    sbR.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && window.REAL){ try { toast('Sua sessão expirou — entre de novo.'); } catch(e){} setTimeout(() => location.reload(), 1800); } });
+    // voltou pra aba (ou o computador acordou): confere e renova o login na hora
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && window.REAL){ sbR.auth.getSession().catch(()=>{}); } });
     const { data:{ session } } = await sbR.auth.getSession();
     if (!session) { mostrarLogin(); return; }
     await entrarReal(session);
