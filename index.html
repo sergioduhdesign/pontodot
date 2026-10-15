@@ -7399,6 +7399,22 @@ async function responder(txt){
   if (!window.REAL) return resposta(txt);
   const t = txt.toLowerCase();
 
+  // "SD-2749 + link do Drive" (e quase mais nada): a casa já sabe o que fazer — liga a pasta, o robô
+  // lê tudo o que tem dentro (imagens, subpastas, legendas.xlsx) e monta o lote. Sem botão, sem IA no meio.
+  {
+    const mId = txt.match(/\bSD[-\s]?(\d{1,5})\b/i);
+    const mDrv = txt.match(/https:\/\/(?:drive|docs)\.google\.com\/[^\s"<>)]+/i);
+    if (mId && mDrv){
+      const id = 'SD-' + mId[1].padStart(4, '0');
+      const resto = txt.replace(mDrv[0], ' ').replace(mId[0], ' ');
+      if (tasksReais.find(x => x.id === id) && resto.length < 220 && !/refer[eê]ncia|produz|cri[ae]r?\b|briefing|prompt/i.test(resto)){
+        window._driveAprov = mDrv[0];
+        setTimeout(() => reenviarAprovacao(id, null), 60);
+        return { t: `Peguei a <b>${id}</b>. Vou ligar a pasta, ler tudo o que tem dentro e montar o lote.` };
+      }
+    }
+  }
+
   // criar tarefa vai pra IA: ela entende cliente, prazo, responsável — e volta com o botão Criar
   const querAcao = /(troc|mud|empurr|adia|adie|altera|move|mexe|aplica|coloca|bota|passa|atualiza|organiza|arruma)/.test(t);
   if (!querAcao && /atrasad/.test(t)){
