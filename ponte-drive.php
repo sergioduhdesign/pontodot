@@ -468,10 +468,17 @@ try {
         if (!empty($d['file_url'])) {
             if (!preg_match('~/d/([A-Za-z0-9_-]{15,})|[?&]id=([A-Za-z0-9_-]{15,})~', (string)$d['file_url'], $mm)) sd_fail('Não reconheci esse link de arquivo do Drive.');
             $fid = $mm[1] ?: $mm[2];
-            $b = ponte('baixar', ['fileId' => $fid]);
-            if (empty($b['b64'])) sd_fail('A ponte não conseguiu ler esse arquivo. Compartilhe com a conta da ponte do Drive.');
-            ponte('gravar', ['folderId' => $td['saida_id'], 'nome' => mb_substr((string)$b['name'], 0, 120),
-                'b64' => $b['b64'], 'mime' => (string)($b['mime'] ?? 'application/octet-stream'), 'substituir' => true]);
+            try {   // copia DENTRO do Drive: sem baixar, qualquer tamanho
+                ponte('copiar', ['fileId' => $fid, 'folderId' => $td['saida_id']]);
+            } catch (Exception $e) {
+                $m = $e->getMessage();
+                if (strpos($m, 'Ação desconhecida') === false) sd_fail($m . ' — confira se o arquivo está compartilhado com a conta da ponte do Drive.');
+                // script da ponte antigo (sem "copiar"): cai no caminho de baixar+gravar, que vai até 30 MB
+                try { $b = ponte('baixar', ['fileId' => $fid]); }
+                catch (Exception $e2) { sd_fail($e2->getMessage() . ' — pra arquivo grande, atualize o script da ponte no Apps Script (SD-Ponte.gs novo, nova implantação).'); }
+                ponte('gravar', ['folderId' => $td['saida_id'], 'nome' => mb_substr((string)$b['name'], 0, 120),
+                    'b64' => $b['b64'], 'mime' => (string)($b['mime'] ?? 'application/octet-stream'), 'substituir' => true]);
+            }
         }
         $lista = ponte('listar', ['folderId' => $td['saida_id']]);
         $n = count($lista['arquivos'] ?? []);
@@ -520,6 +527,14 @@ try {
         $qual = $d['pasta'] ?? 'saida';
         $pasta = $qual === 'entrada' ? $td['entrada_id'] : ($qual === 'raiz' ? $td['folder_id'] : $td['saida_id']);
         echo json_encode(ponte('listar', ['folderId' => $pasta]));
+        break;
+    }
+
+    // pedaço de arquivo grande (o navegador monta): a ponte baixar não passa de 30 MB
+    case 'baixar_parte': {
+        if (empty($d['file_id'])) sd_fail('Arquivo não informado.');
+        echo json_encode(ponte('baixar_parte', ['fileId' => $d['file_id'], 'inicio' => (int)($d['inicio'] ?? 0),
+            'tamanho' => min(max((int)($d['tamanho'] ?? 8388608), 1048576), 12582912)]));
         break;
     }
 

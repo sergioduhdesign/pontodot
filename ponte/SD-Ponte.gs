@@ -37,7 +37,7 @@ function doPost(e) {
     var acoes = {
       // produção (pastas de tarefa, planilha de controle, arquivos)
       ping: ping_, preparar: preparar_, status: escreverStatus_, ler_status: lerStatus_,
-      listar: listar_, baixar: baixar_, gravar: gravar_, baixar_parte: baixarParte_,
+      listar: listar_, baixar: baixar_, gravar: gravar_, baixar_parte: baixarParte_, copiar: copiar_,
       // reuniões / atas  (sem isto a pasta ATAS nunca é preenchida)
       reunioes_listar: reunioesListar_, reuniao_ler: reuniaoLer_,
       reuniao_salvar_ata: reuniaoSalvarAta_, reunioes_buscar: reunioesBuscar_,
@@ -256,6 +256,19 @@ function baixarParte_(d) {
   info.b64 = Utilities.base64Encode(bytes);
   info.fim = ini + bytes.length >= total;
   return info;
+}
+
+/** Copia um arquivo do Drive pra dentro de uma pasta SEM baixar nada: serve pra
+ *  qualquer tamanho (PDF de 200 MB, vídeo, apresentação). Se já existe um
+ *  arquivo com o mesmo nome na pasta de destino, ele é substituído. */
+function copiar_(d) {
+  var f = DriveApp.getFileById(d.fileId);
+  var pasta = DriveApp.getFolderById(d.folderId);
+  var nome = f.getName();
+  var it = pasta.getFilesByName(nome);
+  while (it.hasNext()) it.next().setTrashed(true);
+  var c = f.makeCopy(nome, pasta);
+  return { id: c.getId(), url: c.getUrl(), nome: nome, tamanho: c.getSize(), mime: c.getMimeType() };
 }
 
 function gravar_(d) {

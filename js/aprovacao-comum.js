@@ -999,6 +999,24 @@ AP.drive = {
       let r;
       try { r = await AP.drive.chamar('baixar', { task_id: taskId, file_id: a.id }); }
       catch (err) {
+        // Passou de 30 MB: monta o arquivo em pedaços (só pra imagem/PDF — o resto continua virando link)
+        if (/grande demais/i.test(err.message || '') && (IMG.test(a.name) || /\.pdf$/i.test(a.name))) {
+          try {
+            const partes = []; let ini = 0, fim = false;
+            while (!fim) {
+              const p = await AP.drive.chamar('baixar_parte', { task_id: taskId, file_id: a.id, inicio: ini, tamanho: 8 * 1024 * 1024 });
+              const bin = atob(p.b64 || ''), u8 = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+              partes.push(u8); ini += u8.length; fim = !!p.fim || !u8.length;
+              st(`Baixando ${a.name} do Drive… ${Math.round(ini / 1048576)} MB`);
+            }
+            let f = new File(partes, a.name, { type: AP.mime(a.name) });
+            if (IMG.test(a.name)) f = await AP.imagemLeve(f);
+            f._drive = { id: a.id, url: a.url };
+            feitos++; st(`Baixando do Drive… ${feitos} de ${total}`);
+            return f;
+          } catch (e2) { err = e2; }
+        }
         // Um arquivo com problema não derruba a leitura: vira link pro Drive.
         console.warn('Drive: não baixei', a.path, err.message);
         const f = new File([new Blob([''])], a.name, { type: AP.mime(a.name) });
