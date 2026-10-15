@@ -350,7 +350,7 @@ Português brasileiro, direto e humano. Sem bajulação, corporativês, emoji de
 
 5. A PLATAFORMA (fatos, não hipóteses)
 Você trabalha dentro da pontodot. Isto existe e está no ar:
-- Produção: a tarefa tem pasta no Drive (ENTRADA/SAIDA). O GPT produz e entrega na SAIDA (subpasta por post + legendas.xlsx) e escreve TERMINEI; a plataforma percebe sozinha e monta o lote de aprovação. Também dá para subir o pacote na mão ("subir material").
+- Produção: a tarefa tem pasta no Drive (ENTRADA/SAIDA). O GPT produz e entrega na SAIDA (subpasta por post + legendas.xlsx) e escreve TERMINEI; a plataforma percebe sozinha e monta o lote de aprovação. O pedido "reenvie as peças pra aprovação" é a ação aprovacao.
 - Aprovação: tela própria interna e do cliente, com comentário e ajuste por peça. Ajuste do cliente vira chamado ao GPT; correção volta como versão nova no mesmo lote.
 - Publicação: peça aprovada agenda e publica sozinha (Instagram, Facebook, blog); erros disparam alarme; há esteiras semanais por cliente.
 - Maestro (bastidor): briefing grande vira plano validável. Para a pessoa, quem organizou foi você.
@@ -382,7 +382,11 @@ escopo: agencia, pessoa, cliente (alvo = nome do cadastro) ou tarefa (alvo = ID)
 
 MAESTRO (briefing com VÁRIAS peças, campanha, lançamento, site, algo que precisa virar plano encadeado):
 ##ACAO##{"tipo":"maestro","briefing":"<o briefing inteiro, nas palavras da pessoa, sem resumir>"}
-Diga em uma frase, na sua voz, que já vai mostrar o plano. NUNCA cite "maestro" nem sistema. Pedido de uma peça só continua sendo "produzir".`;
+Diga em uma frase, na sua voz, que já vai mostrar o plano. NUNCA cite "maestro" nem sistema. Pedido de uma peça só continua sendo "produzir".
+
+APROVAÇÃO (a pessoa diz que as peças de uma tarefa estão prontas e pede para subir, reenviar ou montar o lote no visualizador):
+##ACAO##{"tipo":"aprovacao","task_id":"SD-0123","drive_url":"https://drive.google.com/drive/folders/..."}
+"drive_url" só entra se a pessoa colou o link da pasta onde estão as peças finais; sem link, a casa usa a pasta que a tarefa já tem. A casa liga a pasta à tarefa, lê os arquivos, monta o lote (ou atualiza o que já existe) e a pessoa recebe o link. Se a pasta for dela e a casa não alcançar, a própria tela avisa para compartilhar com a conta da ponte. Sem o ID, use a tarefa de que se falava; se houver dúvida, pergunte o ID em uma linha. NUNCA mande a pessoa organizar pasta, escrever TERMINEI nem subir na mão. Se as peças não estão na pasta da tarefa, diga que ela pode anexar os arquivos aqui no chat (📎 ou arrastar) e a casa pergunta onde guardar.`;
 
 // A hora do dia não é só "bom dia": é o que faz sentido dizer àquela hora.
 function horaDaCasa(): { faixa: string; cor: string } {
@@ -577,7 +581,7 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   const a = lida.acao as Registro;
   if (a.tipo === "status") a.tipo = "tarefas";
   const partes = [lida.nota ? `${lida.texto}\n\n${lida.nota}`.trim() : lida.texto];
-  if (!objeto(a) || !["tarefas", "criar", "produzir", "lembrar", "maestro"].includes(String(a.tipo))) throw new Error("a ação proposta é de um tipo que eu não executo");
+  if (!objeto(a) || !["tarefas", "criar", "produzir", "lembrar", "maestro", "aprovacao"].includes(String(a.tipo))) throw new Error("a ação proposta é de um tipo que eu não executo");
   const contagem = new Map<string, number>();
   for (const nome of equipe) {
     const primeiro = semAcento(nome.trim().split(/\s+/)[0]).toLocaleUpperCase("pt-BR");
@@ -587,6 +591,20 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   const respsEmUso = new Set(tarefas.map(t => semAcento(String(t.resp ?? "").trim()).toLocaleUpperCase("pt-BR")).filter(Boolean));
   const clientesLower = new Set(clientes.map(c => semAcento(c.trim()).toLocaleLowerCase("pt-BR")));
 
+  if (a.tipo === "aprovacao") {
+    // reenviar a entrega da tarefa pro visualizador de aprovação (a casa monta o lote a partir da pasta)
+    const id = typeof a.task_id === "string" ? a.task_id.trim().toUpperCase() : "";
+    if (!/^SD-\d{3,6}$/.test(id)) throw new Error('o campo "task_id" não é um ID de tarefa');
+    if (!tarefas.some(t => String(t.id ?? "").toUpperCase() === id)) throw new Error("essa tarefa não está entre as que eu enxergo");
+    if (Object.keys(a).some(k => !["tipo", "task_id", "drive_url"].includes(k))) throw new Error("a proposta trouxe um bloco a mais do que eu sei aplicar");
+    const out: Registro = { tipo: "aprovacao", task_id: id };
+    if (a.drive_url !== undefined && a.drive_url !== null && a.drive_url !== "") {
+      const u = typeof a.drive_url === "string" ? a.drive_url.trim() : "";
+      if (!/^https:\/\/(drive|docs)\.google\.com\/[^\s"<>]+$/.test(u) || u.length > 400) throw new Error('o campo "drive_url" não é um link do Google Drive');
+      out.drive_url = u;
+    }
+    return partes[0].trimEnd() + "\n##ACAO##" + JSON.stringify(out);
+  }
   if (a.tipo === "maestro") {
     // briefing grande / vários entregáveis: a casa organiza por baixo (você nunca cita "maestro")
     const br = typeof a.briefing === "string" ? a.briefing.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g, " ").trim() : "";

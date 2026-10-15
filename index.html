@@ -6991,12 +6991,24 @@ function perguntarClienteAnexo(){
   const sugeridas = tarefa ? [tarefa]
     : tasksReais.filter(t => !dica || t.client_id === dica.id).slice(0, 5);
 
-  const acoes = sugeridas.map((t,i) => [`${t.id} — ${String(t.action).slice(0,26)}`, i===0?'verde':'', `subirNaTarefa('${t.id}',this)`]);
+  // peça final (imagem/vídeo/PDF) que o usuário diz ser pra aprovar: vira lote de aprovação, não material de origem
+  const soMidia = fs.length && fs.every(f => /\.(jpe?g|png|webp|gif|mp4|mov|webm|m4v|pdf)$/i.test(f.name));
+  const recente = (THREADS.sd||[]).slice(-8).map(m=>String(m.t||'')).join(' ');
+  const querAprovar = soMidia && !ehCorrecao && /aprov|pront|finai|finalizad|entrega/i.test(recente);
+  const acoes = [];
+  sugeridas.forEach((t,i) => {
+    const rot = `${t.id} — ${String(t.action).slice(0,26)}`;
+    if (soMidia && !ehCorrecao){
+      acoes.push(['↑ peças prontas → aprovação · ' + rot, (i===0 && querAprovar)?'verde':'', `subirPecasAprovacao('${t.id}',this)`]);
+      acoes.push(['material de origem (ENTRADA) · ' + rot, (i===0 && !querAprovar)?'verde':'', `subirNaTarefa('${t.id}',this)`]);
+    } else acoes.push([rot, i===0?'verde':'', `subirNaTarefa('${t.id}',this)`]);
+  });
   if (ativos.length) acoes.push(['↓ guardar na pasta de um cliente','', 'perguntarClientePuro()']);
 
   const abertura = ehCorrecao
     ? `<b>Correções chegando.</b> Em qual tarefa eu subo? Elas entram na ENTRADA, abrem rodada nova e o chamado sai na hora pra IA.`
-    : `<b>Hey, preciso saber onde eu vou salvar isso.</b><br>Em qual tarefa?`;
+    : (soMidia ? `<b>Recebi ${fs.length} arquivo(s).</b> São <b>peças prontas pra aprovação</b> ou <b>material de origem</b> pra IA produzir? E em qual tarefa?`
+               : `<b>Hey, preciso saber onde eu vou salvar isso.</b><br>Em qual tarefa?`);
   const comoAjudar = `<br><span style="opacity:.7">Se me der o <b>ID</b> (tipo SD-0123) é na mosca — mas pode ir falando que eu acho.</span>`;
   const chute = tarefa ? `<br><span style="opacity:.7">Pelo papo, chutaria a <b>${tarefa.id}</b>.</span>` : '';
   (THREADS.sd = THREADS.sd || []).push({ h:hAgora(),
@@ -7055,6 +7067,116 @@ async function subirNaTarefa(taskId, btn){
   b.pintar();
   b.acoes = [['Ver a tarefa','azul',`abrirTarefaReal('${taskId}')`]];
   if (!virouCorrecao) b.acoes.push(['▶ Começar agora','verde',`forcarStart('${taskId}')`]);
+  salvarThread(); render();
+}
+// peças FINAIS pelo chat: cria o lote de aprovação da tarefa, sobe cada arte pro Drive
+// (cai no Supabase se a ponte estiver fora) e gera o link do cliente. Sem tela extra.
+async function subirPecasAprovacao(taskId, btn){
+  const fs = window._anexos || []; window._anexos = null;
+  if (botaoCarregando(btn, !fs.length) && !fs.length) return;
+  if (!fs.length){ toast('Esses arquivos já subiram.'); return; }
+  limparBotoesIA();
+  const b = bolhaCadeia();
+  const t = tasksReais.find(x=>x.id===taskId);
+  const cli = (clientesReais||[]).find(c=>c.id===t?.client_id);
+  let setId = null;
+  try {
+    if (!t || !t.client_id) throw new Error('essa tarefa não tem cliente — sem cliente não dá pra montar a aprovação');
+    const pEnv = b.passo('criando o lote de aprovação da ' + taskId);
+    const { data:s, error:e1 } = await sbR.from('approval_sets').insert({
+      client_id: t.client_id, task_id: taskId, title: String(t.action||'Material para aprovação').slice(0,120),
+      subtitle: null, due_date: null, layout: 'galeria', modo: 'lote_variado', source_type: 'upload',
+      status: 'rascunho', created_by: perfil.id }).select().single();
+    if (e1) throw e1;
+    setId = s.id; b.fim(pEnv, 'ok', 'lote criado');
+
+    const { data:{ session } } = await sbR.auth.getSession();
+    const itens = [];
+    for (let i=0; i<fs.length; i++){
+      const f = fs[i];
+      const p = b.passo(`subindo ${f.name} (${i+1} de ${fs.length})`);
+      let midia = null;
+      try {
+        const dados = await new Promise((ok, err) => { const r = new FileReader();
+          r.onload = () => ok(String(r.result).replace(/^data:[^,]+,/, '')); r.onerror = err; r.readAsDataURL(f); });
+        const r = await fetch('/aprovacoes-drive.php', { method:'POST',
+          headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+          body: JSON.stringify({ acao:'subir', cliente: cli?.name || 'SEM CLIENTE', set_id: setId,
+            nome: f.name, mime: f.type || 'application/octet-stream', dados }) });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok || !j.ok || !j.drive_id) throw new Error(j.error || j.erro || ('ponte respondeu ' + r.status));
+        midia = { name: f.name, url: j.url, thumb: j.thumb, original: j.original, drive_id: j.drive_id,
+                  mime: f.type || 'application/octet-stream', source: 'drive' };
+      } catch(e){
+        const ext = (f.name.split('.').pop()||'bin').toLowerCase();
+        const caminho = `${t.client_id}/${setId}/${crypto.randomUUID()}.${ext}`;
+        const { error:eu } = await sbR.storage.from('aprovacao').upload(caminho, f, { contentType: f.type });
+        if (eu) throw new Error('falhou ao subir ' + f.name + ': ' + eu.message);
+        const { data:pub } = sbR.storage.from('aprovacao').getPublicUrl(caminho);
+        midia = { name: f.name, url: pub.publicUrl, thumb: pub.publicUrl, mime: f.type, source: 'storage' };
+      }
+      midia.path = f.name;
+      itens.push({ set_id: setId, position: i, kind: 'material',
+        title: f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim() || ('Peça ' + (i+1)),
+        source_key: f.name, media: [midia] });
+      b.fim(p, 'ok', midia.source === 'drive' ? 'no Drive' : 'guardado');
+    }
+    const pIt = b.passo('montando as peças no visualizador');
+    const { error:ei } = await sbR.from('approval_items').insert(itens);
+    if (ei) throw ei;
+    b.fim(pIt, 'ok', itens.length + ' peça(s)');
+    const pLk = b.passo('gerando o link do cliente');
+    const { data:env, error:ee } = await sbR.rpc('send_approval_set', { p_set_id: setId, p_days: 30 });
+    if (ee) throw ee;
+    const link = `${location.origin}/aprovacao-preview.php?t=${env.token}`;
+    b.fim(pLk, 'ok', env.task ? (env.task + ' foi pra "Com o cliente"') : 'link pronto');
+    registrarEtapa(taskId, 'aprovacao', true, itens.length + ' peças');
+    window._linkAprov = link;
+    b.passos.push({ n: itens.length + ' peça(s) no visualizador da ' + taskId, e:'ok' }); b.pintar();
+    b.acoes = [['Copiar link do cliente','verde',`navigator.clipboard.writeText(window._linkAprov).then(()=>toast('Link copiado!'))`],
+               ['Abrir as peças','azul',`window.open('/aprovacao.html?set=${setId}','_blank')`],
+               ['Ver a tarefa','',`abrirTarefaReal('${taskId}')`]];
+  } catch(e){
+    if (setId){ try {   // autolimpeza: não deixa lote vazio pendurado
+      const { count } = await sbR.from('approval_items').select('id',{count:'exact',head:true}).eq('set_id', setId);
+      if (!count) await sbR.from('approval_sets').delete().eq('id', setId);
+    } catch(_){} }
+    b.passos.push({ n: 'não consegui: ' + (e.message||e) + ' — nada ficou pendurado, pode tentar de novo', e:'erro' }); b.pintar();
+    registrarEtapa(taskId, 'aprovacao', false, String(e.message||e));
+  }
+  await carregarReal(); atualizarVersoApp();
+  salvarThread(); render();
+}
+// reenviar a entrega: a pasta da tarefa vira lote de aprovação de novo (ou atualiza o que existe)
+async function reenviarAprovacao(taskId, btn){
+  if (botaoCarregando(btn, false)) return;
+  limparBotoesIA();
+  const b = bolhaCadeia();
+  const url = window._driveAprov || null; window._driveAprov = null;
+  try {
+    if (url || !driveMap[taskId]){
+      if (!url) throw new Error('essa tarefa ainda não tem pasta — me manda o link da pasta do Drive onde estão as peças');
+      const pc = b.passo('ligando a pasta do Drive à ' + taskId);
+      await sdPonte('conectar', { task_id: taskId, folder_url: url });
+      b.fim(pc, 'ok', 'pasta ligada');
+    }
+  } catch(e){ b.passos.push({ n:'não consegui ligar a pasta: ' + e.message + ' — confira se ela está compartilhada com a conta da ponte', e:'erro' }); b.pintar();
+    salvarThread(); render(); return; }
+  const p1 = b.passo('lendo os arquivos da ' + taskId);
+  try {
+    const r = await sdPonte('reenfileirar', { task_id: taskId });
+    b.fim(p1, 'ok', r.arquivos + ' arquivo(s) na SAIDA');
+    const p2 = b.passo('montando o lote no visualizador');
+    ROBO.rodando = false;
+    await roboLote();
+    const { data:td } = await sbR.from('task_drive').select('robo,set_id').eq('task_id', taskId).maybeSingle();
+    const robo = String(td?.robo||'');
+    if (robo.startsWith('parado')){ b.fim(p2, 'erro', robo.replace(/^parado:?\s*/,'') || 'o robô parou e precisa de gente'); }
+    else b.fim(p2, 'ok', 'pronto');
+    registrarEtapa(taskId, 'aprovacao', !robo.startsWith('parado'), robo);
+  } catch(e){ b.fim(p1, 'erro', e.message); registrarEtapa(taskId, 'aprovacao', false, e.message); }
+  await carregarReal(); atualizarVersoApp();
+  b.acoes = [['Ver a tarefa','azul',`abrirTarefaReal('${taskId}')`]];
   salvarThread(); render();
 }
 // o empurrão: a tarefa está pronta e alguém precisa apertar o play
@@ -7397,6 +7519,12 @@ async function responder(txt){
             // bastidor: a pessoa só vê a IA dela. O plano chega na voz dela.
             setTimeout(() => maestroEnviar(a.briefing, undefined, true), 60);
             return { t: texto };
+          }
+          // "reenvia as peças pra aprovação": a casa lê a pasta da tarefa e monta/atualiza o lote
+          if (a.tipo === 'aprovacao' && /^SD-\d+$/i.test(String(a.task_id||''))){
+            const id = String(a.task_id).toUpperCase();
+            window._driveAprov = (a.drive_url && /^https:\/\/(drive|docs)\.google\.com\//.test(a.drive_url)) ? a.drive_url : null;
+            return { t: texto, acoes: [[`Montar a aprovação da ${id}`,'verde',`reenviarAprovacao('${id}',this)`]] };
           }
           if (a.tipo === 'produzir' && a.job && a.job.action){
             window._jobIA = a.job;

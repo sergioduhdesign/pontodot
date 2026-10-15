@@ -460,6 +460,29 @@ try {
         break;
     }
 
+    // Reenviar pro visualizador: marca a tarefa como entregue de novo e solta o robô.
+    // Se já existe lote, o robô atualiza o que existe; se não, monta do zero a partir da pasta.
+    case 'reenfileirar': {
+        $td = td_get($taskId); if (!$td) sd_fail('Essa tarefa ainda não tem pasta do Drive ligada.');
+        $lista = ponte('listar', ['folderId' => $td['saida_id']]);
+        $n = count($lista['arquivos'] ?? []);
+        if (!$n) {   // peças soltas na pasta que a pessoa indicou (fora da SAIDA): conta o que for entrega
+            $raiz = ponte('listar', ['folderId' => $td['folder_id']]);
+            foreach (($raiz['arquivos'] ?? []) as $a) {
+                $nm = (string)($a['name'] ?? '');
+                if (preg_match('/^(SD_CONTROLE|00_|DUVIDAS)/i', $nm) || strpos($nm, '(SD temporário)') !== false) continue;
+                if (preg_match('/^ENTRADA\//i', (string)($a['path'] ?? ''))) continue;
+                $n++;
+            }
+        }
+        if (!$n) sd_fail('Não achei arquivo nenhum nessa pasta. Confira se ela está compartilhada com a conta da ponte do Drive, ou anexe as peças aqui no chat.');
+        $drv = td_patch($taskId, ['status' => 'entregue', 'ultima_entrega' => date('c'),
+            'arquivos_saida' => $n, 'robo' => null, 'robo_em' => null]);
+        sessaoFechar($taskId);
+        echo json_encode(['ok' => true, 'arquivos' => $n, 'drive' => $drv]);
+        break;
+    }
+
     // "Verificar agora" — não espera a varredura de 15 min.
     case 'verificar': {
         $td = td_get($taskId); if (!$td) sd_fail('Tarefa sem pasta do Drive.');
