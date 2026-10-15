@@ -464,6 +464,15 @@ try {
     // Se já existe lote, o robô atualiza o que existe; se não, monta do zero a partir da pasta.
     case 'reenfileirar': {
         $td = td_get($taskId); if (!$td) sd_fail('Essa tarefa ainda não tem pasta do Drive ligada.');
+        // link de ARQUIVO (não de pasta): a ponte baixa (Slides/Docs/PPTX viram PDF) e grava na SAIDA da tarefa
+        if (!empty($d['file_url'])) {
+            if (!preg_match('~/d/([A-Za-z0-9_-]{15,})|[?&]id=([A-Za-z0-9_-]{15,})~', (string)$d['file_url'], $mm)) sd_fail('Não reconheci esse link de arquivo do Drive.');
+            $fid = $mm[1] ?: $mm[2];
+            $b = ponte('baixar', ['fileId' => $fid]);
+            if (empty($b['b64'])) sd_fail('A ponte não conseguiu ler esse arquivo. Compartilhe com a conta da ponte do Drive.');
+            ponte('gravar', ['folderId' => $td['saida_id'], 'nome' => mb_substr((string)$b['name'], 0, 120),
+                'b64' => $b['b64'], 'mime' => (string)($b['mime'] ?? 'application/octet-stream'), 'substituir' => true]);
+        }
         $lista = ponte('listar', ['folderId' => $td['saida_id']]);
         $n = count($lista['arquivos'] ?? []);
         if (!$n) {   // peças soltas na pasta que a pessoa indicou (fora da SAIDA): conta o que for entrega

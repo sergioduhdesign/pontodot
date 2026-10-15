@@ -7154,17 +7154,22 @@ async function reenviarAprovacao(taskId, btn){
   const b = bolhaCadeia();
   const url = window._driveAprov || null; window._driveAprov = null;
   try {
-    if (url || !driveMap[taskId]){
-      if (!url) throw new Error('essa tarefa ainda não tem pasta — me manda o link da pasta do Drive onde estão as peças');
-      const pc = b.passo('ligando a pasta do Drive à ' + taskId);
-      await sdPonte('conectar', { task_id: taskId, folder_url: url });
-      b.fim(pc, 'ok', 'pasta ligada');
+    const ehArquivo = !!url && /\/file\/d\/|\/document\/d\/|\/presentation\/d\/|\/spreadsheets\/d\/|[?&]id=/.test(url) && !/\/folders\//.test(url);
+    window._arquivoAprov = ehArquivo ? url : null;
+    if ((url && !ehArquivo) || !driveMap[taskId]){
+      if (!url) throw new Error('essa tarefa ainda não tem pasta — me manda o link da pasta (ou do arquivo) do Drive onde estão as peças');
+      const pc = b.passo(ehArquivo ? 'criando a pasta da ' + taskId : 'ligando a pasta do Drive à ' + taskId);
+      await sdPonte('conectar', ehArquivo ? { task_id: taskId } : { task_id: taskId, folder_url: url });
+      b.fim(pc, 'ok', ehArquivo ? 'pasta criada' : 'pasta ligada');
     }
   } catch(e){ b.passos.push({ n:'não consegui ligar a pasta: ' + e.message + ' — confira se ela está compartilhada com a conta da ponte', e:'erro' }); b.pintar();
     salvarThread(); render(); return; }
   const p1 = b.passo('lendo os arquivos da ' + taskId);
   try {
-    const r = await sdPonte('reenfileirar', { task_id: taskId });
+    if (window._arquivoAprov){ b.passo('trazendo o arquivo do Drive'); b.passos[b.passos.length-1].e = 'indo'; b.pintar(); }
+    const arq = window._arquivoAprov || null; window._arquivoAprov = null;
+    const r = await sdPonte('reenfileirar', arq ? { task_id: taskId, file_url: arq } : { task_id: taskId });
+    if (arq){ const q = b.passos[b.passos.length-1]; q.e = 'ok'; b.pintar(); }
     b.fim(p1, 'ok', r.arquivos + ' arquivo(s) na SAIDA');
     const p2 = b.passo('montando o lote no visualizador');
     ROBO.rodando = false;
