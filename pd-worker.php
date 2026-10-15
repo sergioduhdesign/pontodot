@@ -227,22 +227,25 @@ function pdZapEnviar($para, $texto) {
         $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
         return [$code, $raw];
     };
-    [$code, $raw] = $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'text',
-        'text' => ['preview_url' => true, 'body' => mb_substr($texto, 0, 3900)]]);
-    $fechada = $code !== 200 && (strpos((string)$raw, '131047') !== false || stripos((string)$raw, 're-engagement') !== false);
-    if ($fechada && defined('SD_ZAP_TEMPLATE') && SD_ZAP_TEMPLATE) {
-        $lang = defined('SD_ZAP_TEMPLATE_LANG') && SD_ZAP_TEMPLATE_LANG ? SD_ZAP_TEMPLATE_LANG : 'pt_BR';
-        $tpl = ['name' => SD_ZAP_TEMPLATE, 'language' => ['code' => $lang]];
-        if (SD_ZAP_TEMPLATE !== 'hello_world') {
-            // parâmetro de template não pode ter quebra de linha nem sequência longa de espaços
-            $param = trim(preg_replace('/\s*[\r\n\t]+\s*/u', ' · ', $texto));
-            $param = preg_replace('/ {4,}/', '   ', $param);
-            $tpl['components'] = [['type' => 'body', 'parameters' => [['type' => 'text', 'text' => mb_substr($param, 0, 900)]]]];
-        } else {
-            $tpl['language'] = ['code' => 'en_US'];
-        }
-        [$code, $raw] = $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'template', 'template' => $tpl]);
+    // Alerta de sistema é mensagem que ABRE conversa: a Meta pode aceitar o texto livre na hora (HTTP 200)
+    // e só recusar depois, por webhook (131047, fora das 24h) — aí ninguém tenta o template. Por isso,
+    // com template configurado, ele vai DIRETO; texto livre só quando não há template.
+    $usaTemplate = defined('SD_ZAP_TEMPLATE') && SD_ZAP_TEMPLATE;
+    if (!$usaTemplate) {
+        return $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'text',
+            'text' => ['preview_url' => true, 'body' => mb_substr($texto, 0, 3900)]]);
     }
+    $lang = defined('SD_ZAP_TEMPLATE_LANG') && SD_ZAP_TEMPLATE_LANG ? SD_ZAP_TEMPLATE_LANG : 'pt_BR';
+    $tpl = ['name' => SD_ZAP_TEMPLATE, 'language' => ['code' => $lang]];
+    if (SD_ZAP_TEMPLATE !== 'hello_world') {
+        // parâmetro de template não pode ter quebra de linha nem sequência longa de espaços
+        $param = trim(preg_replace('/\s*[\r\n\t]+\s*/u', ' · ', $texto));
+        $param = preg_replace('/ {4,}/', '   ', $param);
+        $tpl['components'] = [['type' => 'body', 'parameters' => [['type' => 'text', 'text' => mb_substr($param, 0, 900)]]]];
+    } else {
+        $tpl['language'] = ['code' => 'en_US'];
+    }
+    [$code, $raw] = $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'template', 'template' => $tpl]);
     return [$code, $raw];
 }
 
