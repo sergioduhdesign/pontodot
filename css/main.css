@@ -383,8 +383,8 @@ img{max-width:100%;display:block;}
   background-color:#0a0a0a;
   background-image:var(--logo-texture,none);
   background-size:cover;background-position:center;
-  -webkit-mask-image:url('https://sd.sergioduh.com/assets/logo-pontodot-bolinha.svg');
-  mask-image:url('https://sd.sergioduh.com/assets/logo-pontodot-bolinha.svg');
+  -webkit-mask-image:url('https://sd.sergioduh.com/assets/logo-pontodot-bolinha.svg?v=2');
+  mask-image:url('https://sd.sergioduh.com/assets/logo-pontodot-bolinha.svg?v=2');
   -webkit-mask-size:cover;mask-size:cover;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
   -webkit-mask-position:center;mask-position:center;

@@ -1373,6 +1373,15 @@ button.ct-rotulo:hover{color:var(--branco)}
   box-shadow:0 10px 26px rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap}
 .verso .v-pe.mini .fale-mini{display:inline-flex}
 
+
+/* A IA fica no mesmo lugar, do mesmo tamanho, nos dois lados: some num, aparece no outro */
+.frente .rodape{opacity:1;transition:opacity .35s ease .6s}
+.mundo.virado .frente .rodape{opacity:0;transition:opacity .22s ease 0s}
+.mundo .verso .v-pe{opacity:0;transition:opacity .22s ease 0s}
+.mundo.virado .verso .v-pe{opacity:1;transition:opacity .35s ease .6s}
+.mundo.virado .verso .v-pe.oculto{opacity:0}
+.verso .v-pe .selo.com-cara{padding:0;overflow:hidden}
+
 /* ============ a área de trabalho EXISTE no mobile (igual ao desk) ============ */
 @media(max-width:999px){
   /* as caixas fixas antigas saem de cena: tudo vira gadget */
@@ -1618,7 +1627,21 @@ button.ct-rotulo:hover{color:var(--branco)}
     </div>
     <!-- rodapé -->
     <div class="rodape">
-      <button class="selo" onclick="virar()" title="O outro lado da pontodot"><svg viewBox="0 0 300 300" aria-label="SD"><circle cx="150" cy="150" r="146.7" fill="#010101"/><path fill="#FFFFFF" d="M189.2,55.8H95v188.4h94.2l15.7-31.4V87.2L189.2,55.8z M173.6,118.6h-15.7v-15.8l-15.7,0v15.8h0l31.4,62.8h0 v31.5h-15.7v0l-15.7,0v0h-15.7v-31.4h15.7v15.7l15.7,0v-15.7l0,0l-31.4-62.8h0V87.1h8.4v0l31.5,0v0h7.2V118.6z"/></svg></button>
+      <button class="selo" onclick="virar()" title="O outro lado da pontodot"><svg viewBox="1030.3 248.3 536.4 536.4" aria-label="Pontodot"><circle cx="1298.5" cy="516.5" r="268.2" fill="#010202"/><path fill="#FFFFFF" d="M1162.9,422.9v23.5h0.7c6.1-10,13.9-17.2,23.3-21.7c9.4-4.5,19.8-6.8,31.1-6.8c14.4,0,26.7,2.7,37.1,8.2
+					c10.4,5.5,19,12.7,25.8,21.7c6.8,9,11.9,19.5,15.2,31.5c3.3,12,4.9,24.5,4.9,37.5c0,12.3-1.7,24.2-4.9,35.6
+					c-3.3,11.4-8.3,21.5-15,30.2c-6.7,8.8-15.1,15.8-25.1,21c-10,5.2-21.7,7.8-35.2,7.8c-11.3,0-21.7-2.3-31.3-6.9
+					c-9.5-4.6-17.4-11.4-23.5-20.4h-0.7V671h-50.2V422.9H1162.9z M1228.1,568.6c5.5-3.3,10-7.6,13.4-13c3.4-5.3,5.8-11.6,7.2-18.7
+					s2.1-14.3,2.1-21.7c0-7.3-0.8-14.6-2.3-21.7c-1.5-7.1-4.1-13.4-7.6-19c-3.5-5.6-8.1-10.1-13.6-13.5c-5.5-3.4-12.3-5.2-20.3-5.2
+					c-8.3,0-15.1,1.7-20.7,5.2c-5.5,3.4-10,7.9-13.4,13.3c-3.4,5.5-5.8,11.7-7.2,18.8c-1.4,7.1-2.1,14.5-2.1,22
+					c0,7.3,0.8,14.6,2.3,21.7c1.5,7.1,4,13.3,7.4,18.7c3.4,5.3,8,9.7,13.6,13c5.7,3.3,12.5,5,20.5,5
+					C1215.7,573.6,1222.6,572,1228.1,568.6z"/><path fill="#FFFFFF" d="M1430.5,583.2c-5.9,10-13.6,17.1-23.2,21.5c-9.5,4.4-20.3,6.6-32.3,6.6c-13.7,0-25.7-2.7-36.1-8
+					c-10.4-5.3-18.9-12.6-25.6-21.7c-6.7-9.1-11.8-19.6-15.2-31.5c-3.4-11.8-5.1-24.2-5.1-37c0-12.3,1.7-24.2,5.1-35.7
+					c3.4-11.5,8.5-21.6,15.2-30.4c6.7-8.8,15.1-15.8,25.3-21.2c10.1-5.3,21.9-8,35.3-8c10.8,0,21.1,2.3,30.9,6.9
+					c9.8,4.6,17.5,11.4,23.2,20.4h0.7v-92.4h50.2v253.9h-47.7v-23.5H1430.5z M1428.3,492.4c-1.4-7-3.8-13.2-7.2-18.5
+					c-3.4-5.3-7.8-9.7-13.3-13c-5.4-3.3-12.3-5-20.5-5c-8.3,0-15.2,1.7-20.9,5c-5.7,3.3-10.2,7.7-13.6,13.2
+					c-3.4,5.5-5.9,11.7-7.4,18.7c-1.5,7-2.3,14.3-2.3,21.9c0,7.1,0.8,14.2,2.5,21.3c1.6,7.1,4.3,13.5,8,19
+					c3.7,5.6,8.2,10.1,13.8,13.5c5.5,3.4,12.2,5.2,20,5.2c8.2,0,15.1-1.7,20.7-5c5.5-3.3,10-7.8,13.3-13.3c3.3-5.6,5.7-11.9,7.1-19
+					c1.4-7.1,2.1-14.5,2.1-22C1430.5,506.7,1429.7,499.4,1428.3,492.4z"/></svg></button>
       <div class="fala">
         <textarea id="campo" placeholder="Fale comigo..." rows="1" autocomplete="off"
           onkeydown="teclaNoCampo(event, enviar)" oninput="crescerCampo(this)"
@@ -1658,10 +1681,23 @@ button.ct-rotulo:hover{color:var(--branco)}
   <div class="v-aviso" id="vAviso">Entra na conta (na frente) pra abrir a pontodot completa aqui.</div>
   <!-- a IA continua aqui: o site vira, o campo fica -->
   <div class="v-conversa oculto" id="vConversa" onclick="if(event.target===this)fecharConvVerso()"></div>
-  <div class="v-pe mini" id="vPe">
-    <button class="selo" onclick="virar()" title="Voltar pra frente"><svg viewBox="0 0 300 300" aria-label="SD"><circle cx="150" cy="150" r="146.7" fill="#010101"/><path fill="#FFFFFF" d="M189.2,55.8H95v188.4h94.2l15.7-31.4V87.2L189.2,55.8z M173.6,118.6h-15.7v-15.8l-15.7,0v15.8h0l31.4,62.8h0 v31.5h-15.7v0l-15.7,0v0h-15.7v-31.4h15.7v15.7l15.7,0v-15.7l0,0l-31.4-62.8h0V87.1h8.4v0l31.5,0v0h7.2V118.6z"/></svg></button>
-    <button class="fale-mini" onclick="expandirFaleVerso()">Fale comigo…</button>
-    <div class="fala v-fala2">
+  <div class="v-pe" id="vPe">
+    <button class="selo" onclick="virar()" title="Voltar pra frente"><svg viewBox="1030.3 248.3 536.4 536.4" aria-label="Pontodot"><circle cx="1298.5" cy="516.5" r="268.2" fill="#010202"/><path fill="#FFFFFF" d="M1162.9,422.9v23.5h0.7c6.1-10,13.9-17.2,23.3-21.7c9.4-4.5,19.8-6.8,31.1-6.8c14.4,0,26.7,2.7,37.1,8.2
+					c10.4,5.5,19,12.7,25.8,21.7c6.8,9,11.9,19.5,15.2,31.5c3.3,12,4.9,24.5,4.9,37.5c0,12.3-1.7,24.2-4.9,35.6
+					c-3.3,11.4-8.3,21.5-15,30.2c-6.7,8.8-15.1,15.8-25.1,21c-10,5.2-21.7,7.8-35.2,7.8c-11.3,0-21.7-2.3-31.3-6.9
+					c-9.5-4.6-17.4-11.4-23.5-20.4h-0.7V671h-50.2V422.9H1162.9z M1228.1,568.6c5.5-3.3,10-7.6,13.4-13c3.4-5.3,5.8-11.6,7.2-18.7
+					s2.1-14.3,2.1-21.7c0-7.3-0.8-14.6-2.3-21.7c-1.5-7.1-4.1-13.4-7.6-19c-3.5-5.6-8.1-10.1-13.6-13.5c-5.5-3.4-12.3-5.2-20.3-5.2
+					c-8.3,0-15.1,1.7-20.7,5.2c-5.5,3.4-10,7.9-13.4,13.3c-3.4,5.5-5.8,11.7-7.2,18.8c-1.4,7.1-2.1,14.5-2.1,22
+					c0,7.3,0.8,14.6,2.3,21.7c1.5,7.1,4,13.3,7.4,18.7c3.4,5.3,8,9.7,13.6,13c5.7,3.3,12.5,5,20.5,5
+					C1215.7,573.6,1222.6,572,1228.1,568.6z"/><path fill="#FFFFFF" d="M1430.5,583.2c-5.9,10-13.6,17.1-23.2,21.5c-9.5,4.4-20.3,6.6-32.3,6.6c-13.7,0-25.7-2.7-36.1-8
+					c-10.4-5.3-18.9-12.6-25.6-21.7c-6.7-9.1-11.8-19.6-15.2-31.5c-3.4-11.8-5.1-24.2-5.1-37c0-12.3,1.7-24.2,5.1-35.7
+					c3.4-11.5,8.5-21.6,15.2-30.4c6.7-8.8,15.1-15.8,25.3-21.2c10.1-5.3,21.9-8,35.3-8c10.8,0,21.1,2.3,30.9,6.9
+					c9.8,4.6,17.5,11.4,23.2,20.4h0.7v-92.4h50.2v253.9h-47.7v-23.5H1430.5z M1428.3,492.4c-1.4-7-3.8-13.2-7.2-18.5
+					c-3.4-5.3-7.8-9.7-13.3-13c-5.4-3.3-12.3-5-20.5-5c-8.3,0-15.2,1.7-20.9,5c-5.7,3.3-10.2,7.7-13.6,13.2
+					c-3.4,5.5-5.9,11.7-7.4,18.7c-1.5,7-2.3,14.3-2.3,21.9c0,7.1,0.8,14.2,2.5,21.3c1.6,7.1,4.3,13.5,8,19
+					c3.7,5.6,8.2,10.1,13.8,13.5c5.5,3.4,12.2,5.2,20,5.2c8.2,0,15.1-1.7,20.7-5c5.5-3.3,10-7.8,13.3-13.3c3.3-5.6,5.7-11.9,7.1-19
+					c1.4-7.1,2.1-14.5,2.1-22C1430.5,506.7,1429.7,499.4,1428.3,492.4z"/></svg></button>
+        <div class="fala v-fala2">
       <textarea id="campoVerso" placeholder="Fale comigo..." rows="1" style="color:inherit" autocomplete="off"
         onkeydown="teclaNoCampo(event, enviarVerso)" oninput="crescerCampo(this)"
         onfocus="$('#vConversa').classList.remove('oculto')"></textarea>
@@ -1864,18 +1900,20 @@ function miniCaraIA(){
 }
 /** O selo ao lado do "Fale comigo" ganha a carinha da IA (e continua virando a tela). */
 function pintarSelo(){
-  const sl = document.querySelector('.rodape .selo'); if (!sl) return;
-  if (!sl.dataset.orig) sl.dataset.orig = '1', window._seloPD = sl.innerHTML;
+  const sls = document.querySelectorAll('.rodape .selo, #vPe .selo'); if (!sls.length) return;
+  sls.forEach(sl => {
+  if (!sl.dataset.orig) sl.dataset.orig = '1', sl._seloPD = sl.innerHTML;
   const c = aindaNao(() => temIA() ? personagemAtual() : null, null);
   const chave = c ? `${c.id}:${jeito.apelido || ''}` : 'pd';
   if (sl.dataset.cara === chave) return;
   sl.dataset.cara = chave;
   if (c){
     sl.innerHTML = `<img class="selo-cara" src="${fotoDe(c,'avatar')}" alt="" style="background:${esc(c.appearance?.avatar_background || '#333')}">`;
-    sl.title = `${nomeDaIA()} · o outro lado da pontodot`; sl.setAttribute('aria-label', sl.title); sl.classList.add('com-cara');
+    sl.title = `${nomeDaIA()} · ${sl.closest('#vPe') ? 'voltar pra frente' : 'o outro lado da pontodot'}`; sl.setAttribute('aria-label', sl.title); sl.classList.add('com-cara');
   } else {
-    sl.innerHTML = window._seloPD || ''; sl.title = 'O outro lado da pontodot'; sl.classList.remove('com-cara');
+    sl.innerHTML = sl._seloPD || ''; sl.title = sl.closest('#vPe') ? 'Voltar pra frente' : 'O outro lado da pontodot'; sl.classList.remove('com-cara');
   }
+  });
 }
 function render(){
   try { pintarSelo(); } catch(e){}
@@ -3089,6 +3127,17 @@ async function alternarVersoDe(id, nome, jaTem){
   } catch(e){ toast('Não deu: ' + e.message); }
   fecharJanela();
 }
+// o campo da IA no verso copia, em pixels, o da frente: mesmo tamanho, mesmo lugar
+function igualarIAVerso(){
+  try {
+    const m = $('#mundo'), pe = $('#vPe'), ro = document.querySelector('.frente .rodape');
+    if (!pe || !ro || m.classList.contains('virado')) return;
+    const r = ro.getBoundingClientRect(), v = $('#versoApp').getBoundingClientRect();
+    if (r.width < 120 || r.height < 20) return;
+    pe.style.width = Math.round(r.width) + 'px';
+    pe.style.bottom = Math.max(6, Math.round(v.bottom - r.bottom)) + 'px';
+  } catch(e){}
+}
 let _planoTimer = null;
 function virar(){
   if (!$('#mundo').classList.contains('virado') && !versoLiberado()){ avisarVersoMobile(); return; }
@@ -3099,6 +3148,7 @@ function virar(){
     void m.offsetWidth;
     m.style.transition = '';
   }
+  igualarIAVerso();
   m.classList.toggle('virado');
   // a aba de conversas e o painel moram fora do mundo que gira: precisam
   // saber de que lado estão pra não aparecer com a cara do lado errado
@@ -6276,10 +6326,7 @@ function expandirFaleVerso(){
   pe.classList.remove('mini');
   setTimeout(()=>$('#campoVerso')?.focus(), 640);
 }
-function encolherFaleVerso(){
-  const pe = $('#vPe'); if (!pe) return;
-  if ($('#vConversa').classList.contains('oculto')) pe.classList.add('mini');
-}
+function encolherFaleVerso(){ /* a IA do verso não encolhe mais: fica no centro, igual à da frente */ }
 async function carregarEventos(id){
   try {
     const { data } = await sbR.from('comments').select('body,created_at,meta,profiles(name,avatar_url)')
