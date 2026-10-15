@@ -7069,83 +7069,35 @@ async function subirNaTarefa(taskId, btn){
   if (!virouCorrecao) b.acoes.push(['▶ Começar agora','verde',`forcarStart('${taskId}')`]);
   salvarThread(); render();
 }
-// peças FINAIS pelo chat: cria o lote de aprovação da tarefa, sobe cada arte pro Drive
-// (cai no Supabase se a ponte estiver fora) e gera o link do cliente. Sem tela extra.
+// peças FINAIS anexadas no chat: sobem pra SAIDA da tarefa e seguem o MESMO caminho da entrega da IA,
+// então o visualizador mostra os posts separados (tipo, título, legenda), igual a qualquer lote.
 async function subirPecasAprovacao(taskId, btn){
   const fs = window._anexos || []; window._anexos = null;
   if (botaoCarregando(btn, !fs.length) && !fs.length) return;
   if (!fs.length){ toast('Esses arquivos já subiram.'); return; }
   limparBotoesIA();
   const b = bolhaCadeia();
-  const t = tasksReais.find(x=>x.id===taskId);
-  const cli = (clientesReais||[]).find(c=>c.id===t?.client_id);
-  let setId = null;
   try {
-    if (!t || !t.client_id) throw new Error('essa tarefa não tem cliente — sem cliente não dá pra montar a aprovação');
-    const pEnv = b.passo('criando o lote de aprovação da ' + taskId);
-    const { data:s, error:e1 } = await sbR.from('approval_sets').insert({
-      client_id: t.client_id, task_id: taskId, title: String(t.action||'Material para aprovação').slice(0,120),
-      subtitle: null, due_date: null, layout: 'galeria', modo: 'lote_variado', source_type: 'upload',
-      status: 'rascunho', created_by: perfil.id }).select().single();
-    if (e1) throw e1;
-    setId = s.id; b.fim(pEnv, 'ok', 'lote criado');
-
-    const { data:{ session } } = await sbR.auth.getSession();
-    const itens = [];
+    if (!driveMap[taskId]){
+      const pc = b.passo('criando a pasta da ' + taskId);
+      await sdPonte('conectar', { task_id: taskId });
+      driveMap[taskId] = driveMap[taskId] || { task_id: taskId };
+      b.fim(pc, 'ok', 'pasta criada');
+    }
     for (let i=0; i<fs.length; i++){
       const f = fs[i];
       const p = b.passo(`subindo ${f.name} (${i+1} de ${fs.length})`);
-      let midia = null;
-      try {
-        const dados = await new Promise((ok, err) => { const r = new FileReader();
-          r.onload = () => ok(String(r.result).replace(/^data:[^,]+,/, '')); r.onerror = err; r.readAsDataURL(f); });
-        const r = await fetch('/aprovacoes-drive.php', { method:'POST',
-          headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
-          body: JSON.stringify({ acao:'subir', cliente: cli?.name || 'SEM CLIENTE', set_id: setId,
-            nome: f.name, mime: f.type || 'application/octet-stream', dados }) });
-        const j = await r.json().catch(()=>({}));
-        if (!r.ok || !j.ok || !j.drive_id) throw new Error(j.error || j.erro || ('ponte respondeu ' + r.status));
-        midia = { name: f.name, url: j.url, thumb: j.thumb, original: j.original, drive_id: j.drive_id,
-                  mime: f.type || 'application/octet-stream', source: 'drive' };
-      } catch(e){
-        const ext = (f.name.split('.').pop()||'bin').toLowerCase();
-        const caminho = `${t.client_id}/${setId}/${crypto.randomUUID()}.${ext}`;
-        const { error:eu } = await sbR.storage.from('aprovacao').upload(caminho, f, { contentType: f.type });
-        if (eu) throw new Error('falhou ao subir ' + f.name + ': ' + eu.message);
-        const { data:pub } = sbR.storage.from('aprovacao').getPublicUrl(caminho);
-        midia = { name: f.name, url: pub.publicUrl, thumb: pub.publicUrl, mime: f.type, source: 'storage' };
-      }
-      midia.path = f.name;
-      itens.push({ set_id: setId, position: i, kind: 'material',
-        title: f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim() || ('Peça ' + (i+1)),
-        source_key: f.name, media: [midia] });
-      b.fim(p, 'ok', midia.source === 'drive' ? 'no Drive' : 'guardado');
+      const buf = new Uint8Array(await f.arrayBuffer());
+      let bin=''; for (let k=0;k<buf.length;k+=8192) bin += String.fromCharCode(...buf.subarray(k,k+8192));
+      await sdPonte('tarefa_subir', { task_id: taskId, nome: f.name, mime: f.type || 'application/octet-stream',
+        b64: btoa(bin), destino: 'saida' });
+      b.fim(p, 'ok', 'na pasta da tarefa');
     }
-    const pIt = b.passo('montando as peças no visualizador');
-    const { error:ei } = await sbR.from('approval_items').insert(itens);
-    if (ei) throw ei;
-    b.fim(pIt, 'ok', itens.length + ' peça(s)');
-    const pLk = b.passo('gerando o link do cliente');
-    const { data:env, error:ee } = await sbR.rpc('send_approval_set', { p_set_id: setId, p_days: 30 });
-    if (ee) throw ee;
-    const link = `${location.origin}/aprovacao-preview.php?t=${env.token}`;
-    b.fim(pLk, 'ok', env.task ? (env.task + ' foi pra "Com o cliente"') : 'link pronto');
-    registrarEtapa(taskId, 'aprovacao', true, itens.length + ' peças');
-    window._linkAprov = link;
-    b.passos.push({ n: itens.length + ' peça(s) no visualizador da ' + taskId, e:'ok' }); b.pintar();
-    b.acoes = [['Copiar link do cliente','verde',`navigator.clipboard.writeText(window._linkAprov).then(()=>toast('Link copiado!'))`],
-               ['Abrir as peças','azul',`window.open('/aprovacao.html?set=${setId}','_blank')`],
-               ['Ver a tarefa','',`abrirTarefaReal('${taskId}')`]];
   } catch(e){
-    if (setId){ try {   // autolimpeza: não deixa lote vazio pendurado
-      const { count } = await sbR.from('approval_items').select('id',{count:'exact',head:true}).eq('set_id', setId);
-      if (!count) await sbR.from('approval_sets').delete().eq('id', setId);
-    } catch(_){} }
-    b.passos.push({ n: 'não consegui: ' + (e.message||e) + ' — nada ficou pendurado, pode tentar de novo', e:'erro' }); b.pintar();
-    registrarEtapa(taskId, 'aprovacao', false, String(e.message||e));
+    b.passos.push({ n:'não consegui subir: ' + (e.message||e), e:'erro' }); b.pintar();
+    registrarEtapa(taskId, 'aprovacao', false, String(e.message||e)); salvarThread(); render(); return;
   }
-  await carregarReal(); atualizarVersoApp();
-  salvarThread(); render();
+  await reenviarAprovacao(taskId, null);
 }
 // reenviar a entrega: a pasta da tarefa vira lote de aprovação de novo (ou atualiza o que existe)
 async function reenviarAprovacao(taskId, btn){

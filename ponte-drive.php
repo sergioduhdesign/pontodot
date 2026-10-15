@@ -405,6 +405,15 @@ try {
         if (!$nome || !$b64) sd_fail('Faltou o arquivo.');
         if (strlen($b64) > 28 * 1024 * 1024) sd_fail('Arquivo grande demais (limite ~20 MB).');
         $t = tarefa($taskId);
+        // peça FINAL anexada no chat: vai pra SAIDA e segue o mesmo caminho da entrega da IA
+        // (o leitor da pasta monta os posts separados, com tipo, título e legenda)
+        if (($d['destino'] ?? '') === 'saida') {
+            if (!$td['saida_id']) sd_fail('Essa tarefa não tem pasta SAIDA.');
+            $g = ponte('gravar', ['folderId' => $td['saida_id'], 'nome' => mb_substr($nome, 0, 120),
+                'b64' => $b64, 'mime' => (string)($d['mime'] ?? 'application/octet-stream'), 'substituir' => true]);
+            echo json_encode(['ok' => true, 'arquivo' => $g, 'virou' => 'saida']);
+            break;
+        }
         $ehCorrecao = (bool)($d['correcao'] ?? false)
             || (bool)preg_match('/correc|corrig|ajuste/i', $nome);
         $ehExcel = (bool)preg_match('/\.xlsx?$/i', $nome);
