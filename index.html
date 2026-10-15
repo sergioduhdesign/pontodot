@@ -7536,6 +7536,9 @@ async function abrirArtesReais(taskId){
     const { data: sets } = await sbR.from('approval_sets').select('id,title').eq('task_id', taskId)
       .order('created_at',{ascending:false}).limit(1);
     if (!sets || !sets.length){ toast('Essa tarefa ainda não tem lote de aprovação.'); return; }
+    // o formato de sempre: o GRID do lote (um cartão por post, com tipo, título, legenda, datas e os botões)
+    popupIframe('/aprovacao.html?set=' + encodeURIComponent(sets[0].id), 'Peças — ' + taskId);
+    return;
     const { data: its } = await sbR.from('approval_items').select('*').eq('set_id', sets[0].id).order('position');
     if (!its || !its.length){ toast('O lote existe mas está vazio.'); return; }
     PECAS.length = 0;
