@@ -465,6 +465,7 @@ function validarProduzir(a: Registro, clientesLower: Set<string>, contagem: Map<
     if (typeof v !== "string" || !v.trim()) throw new Error(`o campo "${k}" veio vazio`);
     if (v.length > 40000) throw new Error(`o campo "${k}" veio grande demais`);
   }
+  if (typeof job.action !== "string" || !job.action.trim()) throw new Error("a produção veio sem o nome da tarefa");
   if (String(job.action).length > 300) throw new Error("o nome da tarefa passou do tamanho que cabe");
   // sem cliente não há onde salvar — a regra que o Sérgio pediu, no servidor
   if (!job.cliente || !clientesLower.has(semAcento(String(job.cliente).trim()).toLocaleLowerCase("pt-BR"))) throw new Error(`o cliente "${String(job.cliente ?? "").slice(0,40)}" não está no cadastro`);
@@ -664,9 +665,14 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
         const achou = tarefas.find(t => String(t.id) === mae);
         if (!achou) throw new Error(`não achei a tarefa ${mae.slice(0,20)} pra ser a mãe`);
         if (mae === String(item.id)) throw new Error("uma tarefa não pode ser mãe dela mesma");
-        const daMae = tarefas.find(t => String(t.id) === mae);
-        if (daMae && String((daMae as Registro).tarefa_mae ?? "") === String(item.id))
-          throw new Error(`${mae} já é filha de ${item.id} — não dá pra inverter sem desfazer antes`);
+        // sobe a cadeia de mães a partir da nova mãe: se chegar nesta tarefa, vira círculo (de qualquer tamanho)
+        let sobe: string = mae; const visitados = new Set<string>();
+        while (sobe && !visitados.has(sobe)) {
+          if (sobe === String(item.id)) throw new Error(`${mae} já depende de ${item.id} (direto ou por uma cadeia) — não dá pra inverter sem desfazer antes`);
+          visitados.add(sobe);
+          const t = tarefas.find(x => String(x.id) === sobe);
+          sobe = t ? String((t as Registro).tarefa_mae ?? "") : "";
+        }
       }
     }
 
@@ -1287,6 +1293,8 @@ Deno.serve(async (req: Request) => {
     // quem é esta pessoa de verdade (o "de" do front não manda em nada)
     etapa = "quem fala";
     const eu = await quemFala(auth, String(user.id));
+    // Sem confirmar o perfil, NÃO dá pra saber se é equipe ou cliente: não segue (nunca tratar desconhecido como equipe).
+    if (!eu || !eu.id) throw new Falha(503, "Não consegui confirmar quem está falando agora. Tenta de novo em alguns segundos.");
     const ehCliente = String(eu.role ?? "") === "client";
 
     // COMO ATUAR COM ESTA PESSOA. Vem do perfil dela (pd_jeito, lido com o
