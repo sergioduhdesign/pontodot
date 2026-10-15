@@ -1412,14 +1412,18 @@ html.dia .faixa-legal{color:rgba(23,24,27,.6)}
 .verso .v-conversa{padding-bottom:calc(96px + var(--faixa))}
 
 
-/* aba Histórico também na frente (a do verso mora dentro do app) — centrada, irmã da de Conversas */
-.aba-hist-frente{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:30;width:26px;height:160px;border:0;
-  background:rgba(255,255,255,.14);color:rgba(255,255,255,.8);border-radius:10px 0 0 10px;cursor:pointer;
-  writing-mode:vertical-lr;transform-origin:center;font-family:inherit;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:-3px 0 10px rgba(0,0,0,.2)}
-.aba-hist-frente span{display:inline-block;transform:rotate(180deg)}
-html.dia .aba-hist-frente{background:rgba(23,24,27,.12);color:rgba(23,24,27,.7)}
+/* aba Histórico na frente: a irmã espelhada da de Conversas (mesmo tamanho, mesma letra, mesmo vidro) */
+.aba-hist-frente{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:36;writing-mode:vertical-rl;
+  font:inherit;font-size:11.5px;font-weight:500;letter-spacing:.14em;color:var(--branco);white-space:nowrap;cursor:pointer;
+  background:var(--vidro);border:.5px solid var(--linha);border-right:none;border-radius:14px 0 0 14px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 8px 22px rgba(0,0,0,.2);
+  padding:16px 8px;transition:padding .2s,color .2s}
+.aba-hist-frente:hover{padding-left:12px}
+html.dia .frente .aba-hist-frente{text-shadow:0 1px 10px rgba(255,255,255,.7)}
 html.noVerso .aba-hist-frente{display:none}
+/* no chat: a barra de rolagem sai de cima das abas, e o "configurar" some (não serve ali) */
+html.emChat .cfg-area{display:none}
+.barra-chat{right:38px!important}
 
 /* ============ a área de trabalho EXISTE no mobile (igual ao desk) ============ */
 @media(max-width:999px){
@@ -1807,7 +1811,7 @@ html.noVerso .aba-hist-frente{display:none}
 <div class="tarefa-cheia oculto" id="tarefaCheia" style="position:fixed;z-index:118"></div>
 <div class="arte-view oculto" id="arteView" style="position:fixed;z-index:124" onclick="if(event.target===this)fecharArtes&&fecharArtes()"></div>
 <div class="tarefa-cheia oculto" id="janela" style="position:fixed;z-index:126" onclick="if(event.target===this)fecharJanela()"></div>
-<button class="aba-hist-frente" id="abaHistFrente" onclick="abrirHistoricoDoApp()" title="Histórico de ações da equipe"><span>Histórico</span></button>
+<button class="aba-hist-frente" id="abaHistFrente" onclick="abrirHistoricoDoApp()" title="Histórico de ações da equipe">Histórico</button>
 <button class="hist-handle" id="histHandle" onclick="alternarHist()">Conversas…</button>
 <div class="hist-veu oculto" id="histVeu" onclick="alternarHist()"></div>
 <aside class="historico" id="histPainel"></aside>
