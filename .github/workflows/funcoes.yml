@@ -1,0 +1,37 @@
+# Publica as funções da IA no Supabase (sd-ia e pd-maestro) quando elas mudam.
+# Precisa de 2 segredos no GitHub (você cria; eu nunca vejo):
+#   SUPABASE_ACCESS_TOKEN  — token pessoal do Supabase (Account → Access Tokens)
+#   SUPABASE_PROJECT_REF   — ibkflplbraltewsjjsqm
+name: Publicar funções no Supabase
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['supabase-functions/**']
+concurrency:
+  group: funcoes
+  cancel-in-progress: true
+jobs:
+  funcoes:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Conferir os segredos
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "Faltam os segredos SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_REF no GitHub."; exit 1
+          fi
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Preparar a pasta que o Supabase espera
+        run: |
+          mkdir -p supabase/functions
+          cp -r supabase-functions/* supabase/functions/
+      - name: Publicar sd-ia
+        run: supabase functions deploy sd-ia --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Publicar pd-maestro (a função confere o login por dentro, como já estava)
+        run: supabase functions deploy pd-maestro --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt

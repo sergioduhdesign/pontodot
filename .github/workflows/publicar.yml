@@ -32,3 +32,4 @@ jobs:
             LEIAME.txt
             **/fonte/**
             sql/**
+            supabase-functions/**
