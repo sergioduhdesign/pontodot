@@ -334,7 +334,7 @@ Português brasileiro, direto e humano. Sem bajulação, corporativês, emoji de
 
 3. O QUE É VERDADE (fontes, nesta ordem)
 - Cadastro: fonte dos nomes válidos (clientes, equipe). Tarefas recebidas: fonte dos IDs e do estado. "Nas tarefas recebidas" quando a cobertura importar; ausência na lista não prova que não existe.
-- NÚMEROS: nunca conte, some ou compare listas de cabeça. Totais (abertas, por status, atrasadas, vencem hoje, por responsável e cliente) vêm prontos em contagens_oficiais, calculados pelo código. Use só esses. Conta que não está lá: diga que vai conferir; nunca chute um total.
+- NÚMEROS: nunca conte, some ou compare listas de cabeça. Totais (abertas, por status, atrasadas, vencem hoje, por responsável e cliente) vêm prontos em contagens_oficiais, calculados pelo código. Use só esses. Conta que não está lá: diga que vai conferir; nunca chute um total. ATRASADA = prazo interno ANTERIOR a hoje, fora de BRIEFING, não entregue. Vence hoje NÃO é atrasada e BRIEFING com prazo vencido NÃO é atrasada. Pedido para puxar, empurrar ou mover "as atrasadas" usa exatamente ids_atrasadas_de_verdade, sem acrescentar as que vencem hoje nem as de BRIEFING. Depois de mover, o total de atrasadas recalculado é o que o código devolver; não invente explicação para uma diferença.
 - MEMÓRIA DA CASA: o que foi aprendido antes (orientações de cliente, preferências, fatos). Vale como se tivessem acabado de repetir. Se contradiz o que a pessoa diz agora, o agora vence, e vale perguntar se mudou.
 - RÉGUA DA CASA (quando vier): como a casa trabalha; manda em tudo que você escrever e entra, resumida, em todo prompt de produção. FICHA DO CLIENTE (quando vier): posicionamento, tom e regras daquele cliente; vence a régua no que é dele (marca, tom, restrições). Ficha não veio? Diga que o material do cliente não foi carregado; não invente identidade. Nunca transfira regra de um cliente para outro.
 - REUNIÕES (reunião, ata, call, alinhamento, "o que ficou da conversa" são a mesma coisa): use REUNIOES_ENCONTRADAS (processadas, com ata) e NOTAS_NA_PASTA / NOTAS_LIDAS (notas cruas do Read.ai, fonte primária). Primeira vazia e segunda com coisa: use a segunda, diga data e título e avise em meia linha que a ata formal ainda não saiu. Ambas vazias com AVISO_REUNIOES: o sistema ainda não leu nota nenhuma, falha nossa. Ambas vazias sem aviso: não há registro NAQUELE período; ofereça olhar mais atrás. Nunca diga "não houve reunião" como fato do mundo. Ao resumir: data, cliente, decidido, pendente, link da ata. Reunião vale mais que suposição e menos que cadastro. Qualquer pessoa da equipe pode perguntar.
@@ -1109,14 +1109,16 @@ function contagensOficiais(tarefas: Registro[]): Registro {
   const inc = (m: Record<string, number>, k: string) => { m[k] = (m[k] ?? 0) + 1; };
   const porStatus: Record<string, number> = {}, atrasPorResp: Record<string, number> = {}, atrasPorCliente: Record<string, number> = {};
   let vencidas = 0, vencidasEmBriefing = 0, hojeVence = 0;
+  const idsAtrasadas: string[] = [], idsVencemHoje: string[] = [];
   for (const t of abertas) {
     inc(porStatus, String(t.status ?? "sem status"));
     const d = prazoDe(t, "int");
     if (!dataValida(d)) continue;
-    if (d === hoje) hojeVence++;
+    if (d === hoje) { hojeVence++; idsVencemHoje.push(String(t.id ?? "")); }
     if (d < hoje) {
       vencidas++;
       if (String(t.status) === "BRIEFING") { vencidasEmBriefing++; continue; }   // briefing que não começou não é atraso
+      idsAtrasadas.push(String(t.id ?? ""));
       inc(atrasPorResp, String(t.resp ?? "sem resp") || "sem resp");
       inc(atrasPorCliente, String(t.cliente ?? "sem cliente") || "sem cliente");
     }
@@ -1129,6 +1131,8 @@ function contagensOficiais(tarefas: Registro[]): Registro {
     atrasadas_de_verdade: vencidas - vencidasEmBriefing,          // prazo interno vencido, SEM contar BRIEFING
     com_prazo_vencido_mas_em_briefing: vencidasEmBriefing,       // não são atraso
     vencem_hoje: hojeVence,
+    ids_atrasadas_de_verdade: idsAtrasadas.slice(0, 120),        // a lista exata: "empurrar as atrasadas" = ESTES ids, nenhum a mais
+    ids_que_vencem_hoje: idsVencemHoje.slice(0, 120),            // vence hoje NÃO é atrasada
     atrasadas_por_responsavel: topo(atrasPorResp),
     atrasadas_por_cliente: topo(atrasPorCliente),
   };

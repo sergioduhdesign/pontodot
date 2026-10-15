@@ -2461,7 +2461,7 @@ function gerarSugestoes(){
   ];
   if (window.REAL && tasksReais.length){
     const h = hojeISO();
-    const at = tasksReais.filter(t=>t.date_int && t.date_int.slice(0,10)<h);
+    const at = tasksReais.filter(ehAtrasada);
     if (at.length) pool.push(
       [`${at.length} atrasada${at.length>1?'s':''} — empurro os prazos?`,'envia','Olha as atrasadas e me propõe prazos novos realistas pra cada uma.'],
       [`O que falta na ${at[0].id}?`,'envia',`O que falta pra fechar a ${at[0].id}?`]);
@@ -2704,7 +2704,7 @@ function pintarTodas(){
     (!fT.resp || semAcento(t.resp) === semAcento(fT.resp)) &&
     (!fT.cli  || (t.clients?.name||'SD') === fT.cli) &&
     (!fT.st   || t.status === fT.st) &&
-    (!fT.atras || (t.date_int && t.date_int.slice(0,10) < hjF)) &&
+    (!fT.atras || ehAtrasada(t)) &&
     (!fT.ia   || (driveMap[t.id] && driveMap[t.id].status !== 'pausado')) &&
     (!q || (t.action+' '+t.id+' '+(t.clients?.name||'')+' '+(t.project||'')).toLowerCase().includes(q)));
   const tot = $('#jTot');
@@ -2714,7 +2714,7 @@ function pintarTodas(){
   const ord = [...fil].sort((a,b)=>String(a.date_int||'9999').localeCompare(String(b.date_int||'9999')));
   L.innerHTML = ord.map(t => {
     const ia = driveMap[t.id] && driveMap[t.id].status !== 'pausado';
-    const atras = t.date_int && t.date_int.slice(0,10) < hojeISO();
+    const atras = ehAtrasada(t);
     return `<button class="t-linha" onclick="abrirTarefaReal('${t.id}')">
       ${cara(caraDe(t), 26)}
       <span class="t-data${atras?' atras':''}">${fmtD(t.date_int)}</span>
@@ -3805,7 +3805,7 @@ const GADGETS = {
   clientes:  { nome:'Clientes', html:()=>{
       if (window.REAL){
         const por = {}; tasksReais.forEach(t=>{ const c=t.clients?.name||'SD'; por[c]=por[c]||{n:0,atr:0}; por[c].n++;
-          if (t.date_int && t.date_int.slice(0,10)<hojeISO()) por[c].atr++; });
+          if (ehAtrasada(t)) por[c].atr++; });
         const rows = Object.entries(por).sort((a,b)=>b[1].n-a[1].n);
         return gadCaixa('Clientes', rows.slice(0,6).map(([c,v])=>
           `<button class="gente" style="width:100%" onclick="abrirClientesAdmin()">${logoCliente(c,30)}<div class="c"><div style="font-size:12px">${c}</div><div class="d" style="font-size:10px;color:var(--branco2)">${v.n} aberta${v.n>1?'s':''}${v.atr?` · <span style="color:var(--rosa)">${v.atr} atrasada${v.atr>1?'s':''}</span>`:''}</div></div></button>`).join('')
@@ -3880,7 +3880,7 @@ async function abrirClientesAdmin(){
     <div style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none">
       ${ativos.map(c=>{
         const abertas = tasksReais.filter(t=>t.client_id===c.id);
-        const atr = abertas.filter(t=>t.date_int && t.date_int.slice(0,10)<hojeISO()).length;
+        const atr = abertas.filter(ehAtrasada).length;
         const nome = (c.name||'').replace(/'/g,'’');
         const rep = PERFIS.find(p => p.client_id === c.id);
         return `<div class="t-linha" style="cursor:default">
@@ -3909,7 +3909,7 @@ function abrirEquipe(){
       ${PERFIS.filter(p=>p.name).map(p=>{
         const pn = p.name.split(' ')[0];
         const minhas = tasksReais.filter(t=>ehDe(t,p));
-        const atr = minhas.filter(t=>t.date_int && t.date_int.slice(0,10)<hojeISO()).length;
+        const atr = minhas.filter(ehAtrasada).length;
         const nome = p.name.replace(/'/g,'’');
         return `<div class="t-linha" style="cursor:default">
           ${avatarImg(p.name, p.avatar_url, 32)}
@@ -5802,12 +5802,15 @@ function roboTela(f){
 
 const fmtD = d => { if(!d) return 'sem data'; const [a,m,di] = d.slice(0,10).split('-'); return `${di}/${m}/${a.slice(2)}`; };
 const hojeISO = () => new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date());   // a data da casa, não a de Greenwich
+// ATRASADA — regra única da casa, a mesma do servidor: prazo interno ANTERIOR a hoje, não entregue e FORA de BRIEFING.
+// Vence hoje não é atrasada; briefing que não começou não é atraso.
+function ehAtrasada(t){ return !!t && t.status !== 'ENTREGUE' && t.status !== 'BRIEFING' && !!t.date_int && String(t.date_int).slice(0,10) < hojeISO(); }
 function caraDe(t){
   const d = driveMap[t.id];
   if (d && (d.status === 'produzir' || d.status === 'corrigir')) return 'piscada';
   if (t.status === 'ENTREGUE') return 'radiante';
   if (t.status === 'ALTERAÇÃO') return 'braba';
-  if (t.date_int && t.date_int.slice(0,10) < hojeISO() && t.status !== 'ENTREGUE') return 'braba';
+  if (ehAtrasada(t)) return 'braba';
   if (t.status === 'ATENÇÃO') return 'uau';
   if (t.status === 'BRIEFING' || t.status === 'BUCHA') return 'neutra';
   if (d && d.status === 'pausado') return 'sono';
@@ -5908,7 +5911,7 @@ async function carregarReal(){
 
   // o verso conta a verdade
   const nCli = new Set(tasksReais.map(t=>t.clients?.name||'SD')).size;
-  const hj = hojeISO(); const nAtr = tasksReais.filter(t=>t.date_int && t.date_int.slice(0,10)<hj).length;
+  const hj = hojeISO(); const nAtr = tasksReais.filter(ehAtrasada).length;
   MODULOS1[0][1] = `${tasksReais.length} abertas · ${nAtr} atrasadas · ${nIA} com a IA`;
   MODULOS1[1][1] = setsReais.length ? `${setsReais.length} lote${setsReais.length>1?'s':''} recentes` : 'nenhum lote recente';
   MODULOS2[0][1] = `${nCli} com tarefa aberta`;
@@ -6583,7 +6586,7 @@ async function aplicarLoteIA(btn){
 
   await carregarReal(); atualizarVersoApp();
   const h = hojeISO();
-  const atrAgora = tasksReais.filter(t=>t.date_int && t.date_int.slice(0,10) < h).length;
+  const atrAgora = tasksReais.filter(ehAtrasada).length;
   const ex = feitos[0];
   const extraTxt = extrasFeitos.length ? `<br>Também gravei: ${extrasFeitos.join(', ')}.` : '';
   const resumo = (feitos.length || extrasFeitos.length
@@ -7270,7 +7273,7 @@ async function saudacaoDaSD(){
   try {
     const { data:{ session } } = await sbR.auth.getSession();
     const h = hojeISO();
-    const atras = tasksReais.filter(t => t.date_int && t.date_int.slice(0,10) < h);
+    const atras = tasksReais.filter(ehAtrasada);
     const hoje  = tasksReais.filter(t => t.date_int && t.date_int.slice(0,10) === h);
     const minhas= tasksReais.filter(t => ehDe(t, perfil));
     const comIA = tasksReais.filter(t => driveMap[t.id] && driveMap[t.id].status !== 'pausado');
@@ -7419,7 +7422,7 @@ async function responder(txt){
   const querAcao = /(troc|mud|empurr|adia|adie|altera|move|mexe|aplica|coloca|bota|passa|atualiza|organiza|arruma)/.test(t);
   if (!querAcao && /atrasad/.test(t)){
     const h = hojeISO();
-    const at = tasksReais.filter(x => x.date_int && x.date_int.slice(0,10) < h);
+    const at = tasksReais.filter(ehAtrasada);
     if (!at.length) return { t:'<b>Nada atrasado.</b> Hoje a casa tá em dia.' };
     return { t:`<b>${at.length} atrasada${at.length>1?'s':''}:</b><br>` +
       at.slice(0,6).map(x=>`• ${x.id} — ${x.action.slice(0,42)} <i style="opacity:.6">(${x.clients?.name||'SD'}, interna ${fmtD(x.date_int)})</i>`).join('<br>') };
@@ -7525,7 +7528,7 @@ async function responder(txt){
   }
   const h = hojeISO();
   // atrasada = prazo interno vencido, aberta e fora de BRIEFING (briefing que não começou não é atraso)
-  const nAt = tasksReais.filter(x => x.status !== 'ENTREGUE' && x.status !== 'BRIEFING' && x.date_int && x.date_int.slice(0,10) < h).length;
+  const nAt = tasksReais.filter(ehAtrasada).length;
   return { t:`Não consegui falar com a IA agora${window.__erroIA ? ' (' + esc(window.__erroIA) + ')' : ''} — tenta de novo em alguns segundos. Enquanto isso: <b>${tasksReais.length} tarefas abertas</b> (${nAt} atrasada${nAt===1?'':'s'}) — me pergunta “o que está atrasado?”, “resumo cliente por cliente”, ou pede “criar tarefa …”.` };
 }
 
