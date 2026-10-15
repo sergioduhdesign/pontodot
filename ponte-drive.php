@@ -469,7 +469,8 @@ try {
         break;
     }
 
-    // Põe o arquivo na SAIDA da tarefa (copia dentro do Drive, qualquer tamanho) pra tela de lote ler.
+    // Reenviar pro visualizador: marca a tarefa como entregue de novo e solta o robô.
+    // Se já existe lote, o robô atualiza o que existe; se não, monta do zero a partir da pasta.
     case 'reenfileirar': {
         $td = td_get($taskId); if (!$td) sd_fail('Essa tarefa ainda não tem pasta do Drive ligada.');
         // link de ARQUIVO (não de pasta): a ponte baixa (Slides/Docs/PPTX viram PDF) e grava na SAIDA da tarefa
@@ -500,11 +501,10 @@ try {
             }
         }
         if (!$n) sd_fail('Não achei arquivo nenhum nessa pasta. Confira se ela está compartilhada com a conta da ponte do Drive, ou anexe as peças aqui no chat.');
-        // NÃO aciona o robô: a montagem é MANUAL, na tela de lote (modos, títulos, legendas, datas).
-        // Se a tarefa já estava como "entregue", trava o robô pra ele não montar sozinho por cima.
-        if (($td['status'] ?? '') === 'entregue') td_patch($taskId, ['robo' => 'parado: montagem manual', 'robo_em' => date('c')]);
-        td_patch($taskId, ['arquivos_saida' => $n]);
-        echo json_encode(['ok' => true, 'arquivos' => $n]);
+        $drv = td_patch($taskId, ['status' => 'entregue', 'ultima_entrega' => date('c'),
+            'arquivos_saida' => $n, 'robo' => null, 'robo_em' => null]);
+        sessaoFechar($taskId);
+        echo json_encode(['ok' => true, 'arquivos' => $n, 'drive' => $drv]);
         break;
     }
 

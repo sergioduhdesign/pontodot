@@ -7124,11 +7124,15 @@ async function reenviarAprovacao(taskId, btn){
     const arq = window._arquivoAprov || null; window._arquivoAprov = null;
     const r = await sdPonte('reenfileirar', arq ? { task_id: taskId, file_url: arq } : { task_id: taskId });
     if (arq){ const q = b.passos[b.passos.length-1]; q.e = 'ok'; b.pintar(); }
-    b.fim(p1, 'ok', r.arquivos + ' arquivo(s) na pasta da tarefa');
-    registrarEtapa(taskId, 'aprovacao', true, r.arquivos + ' arquivos');
-    // a tela de lote de sempre: você escolhe o formato (lote, peça única, post), confere títulos, legendas e datas
-    b.passos.push({ n:'abrindo a tela de montagem — confira títulos, legendas e datas e salve', e:'ok' }); b.pintar();
-    setTimeout(() => popupIframe('/novo-lote.html?embed=1&modo=lote_drive&task=' + encodeURIComponent(taskId), 'Montar a aprovação — ' + taskId), 250);
+    b.fim(p1, 'ok', r.arquivos + ' arquivo(s) na SAIDA');
+    const p2 = b.passo('montando o lote no visualizador');
+    ROBO.rodando = false;
+    await roboLote();
+    const { data:td } = await sbR.from('task_drive').select('robo,set_id').eq('task_id', taskId).maybeSingle();
+    const robo = String(td?.robo||'');
+    if (robo.startsWith('parado')){ b.fim(p2, 'erro', robo.replace(/^parado:?\s*/,'') || 'o robô parou e precisa de gente'); }
+    else b.fim(p2, 'ok', 'pronto');
+    registrarEtapa(taskId, 'aprovacao', !robo.startsWith('parado'), robo);
   } catch(e){ b.passos.forEach(q => { if (q.e === 'indo') q.e = 'erro'; }); b.fim(p1, 'erro', e.message); registrarEtapa(taskId, 'aprovacao', false, e.message); }
   await carregarReal(); atualizarVersoApp();
   b.acoes = [['Ver a tarefa','azul',`abrirTarefaReal('${taskId}')`]];
