@@ -989,6 +989,7 @@ AP.drive = {
     let feitos = 0;
     const total = uteis.length;
 
+    const errosBaixar = [];
     const baixar = async (a) => {
       if (VID.test(a.name) && a.size > 45 * 1024 * 1024) {
         // Vídeo pesado: não passa pela ponte — a peça aponta pro Drive.
@@ -1019,6 +1020,7 @@ AP.drive = {
         }
         // Um arquivo com problema não derruba a leitura: vira link pro Drive.
         console.warn('Drive: não baixei', a.path, err.message);
+        errosBaixar.push(a.name + ': ' + (err.message || err));
         const f = new File([new Blob([''])], a.name, { type: AP.mime(a.name) });
         f._drive = { id: a.id, url: a.url, soLink: true, erro: err.message };
         feitos++; st(`Baixando do Drive… ${feitos} de ${total}`);
@@ -1060,6 +1062,8 @@ AP.drive = {
     out._ignorados = ignorados;
     out._total = arquivos.length;
     out._origem = origem;
+    out._erros = errosBaixar;
+    out._nomes = arquivos.slice(0, 6).map(a => a.path);
     return out;
   }
 };

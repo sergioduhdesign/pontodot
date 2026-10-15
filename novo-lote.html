@@ -285,7 +285,7 @@ body.carregando .nl-skel{display:block}
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/aprovacao-comum.js?v=18"></script>
+<script src="/js/aprovacao-comum.js?v=19"></script>
 <script>
 let profile=null, clients=[], tasks=[], setId=null;
 let MODO = null;          // lote_zip | lote_variado | peca_unica | post_unico
@@ -482,8 +482,12 @@ async function receberDrive(){
   st.style.display = 'block';
   el('btnLerDrive').disabled = true;
   zipPecas = [];
+  let porque = '';
   try {
     const ent = await AP.drive.entradas(TASK_ID, t => st.textContent = t);
+    porque = `li ${ent._total || 0} arquivo(s) (${ent._origem}); ${ent._ignorados || 0} ignorado(s)`
+      + (ent._nomes && ent._nomes.length ? '; ex.: ' + ent._nomes.slice(0, 3).join(', ') : '')
+      + (ent._erros && ent._erros.length ? '; erro ao baixar: ' + ent._erros[0] : '');
     const r = await AP.lerPacote([], { doc:true, entradas: ent, paginas: el('selPag').value,
       contexto: CONTEXTO + ' ' + el('fTitle').value, onStatus: t => st.textContent = t });
     zipPecas = r.pecas;
@@ -494,11 +498,12 @@ async function receberDrive(){
     renderZipPecas();
   } catch(e) {
     st.textContent = 'Não consegui ler o Drive: ' + e.message;
+    porque = 'erro ao ler: ' + (e && e.message || e);
   }
   el('btnLerDrive').disabled = false;
   atualizar();
   if (AUTO) {
-    if (!zipPecas.length) roboAvisa({ ok:false, motivo:'não achei arte na SAIDA' });
+    if (!zipPecas.length) roboAvisa({ ok:false, motivo:'não achei arte na SAIDA — ' + (porque || 'sem detalhe') });
     else if (el('btnSave').disabled) roboAvisa({ ok:false, motivo: el('status').textContent || 'o lote não ficou pronto' });
     else el('btnSave').click();
   }
