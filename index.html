@@ -7318,8 +7318,11 @@ async function responder(txt){
             if (a.mudar.some(m=>m.comentario)) faz.push('comentar');
             if (a.mudar.some(m=>m.tarefa_mae !== undefined)) faz.push('conectar');
             if (a.mudar.some(m=>m.referencia_url)) faz.push('ligar arquivos');
+            const memsJ = Array.isArray(a.memorias) && a.memorias.length ? a.memorias : null;
+            if (memsJ){ window._memoriasIA = memsJ; faz.push('guardar o aprendizado'); }
             const rotulo = faz.length ? `Aplicar — ${faz.join(' + ')} (${a.mudar.length})` : `Aplicar (${a.mudar.length})`;
-            return { t: texto, acoes: [[rotulo,'verde','aplicarLoteIA(this)']],
+            const memCard = memsJ ? `<div class="mem-card">${memsJ.map(m=>`<div class="mem-item"><b>${esc(m.assunto)}</b><br>${esc(m.conteudo)}</div>`).join('')}</div>` : '';
+            return { t: texto + memCard, acoes: [[rotulo,'verde', memsJ ? "aplicarLoteIA(this).then(()=>gravarMemorias(document.createElement('button')))" : 'aplicarLoteIA(this)']],
               memo: '[proposta: ' + a.mudar.map(x => x.id + ' ' + Object.entries(x).filter(([k]) => k !== 'id').map(([k,v]) => k + '=' + String(v).slice(0,40)).join(',')).join(' | ').slice(0,600) + ']' };
           }
           if (a.tipo === 'criar' && Array.isArray(a.novas) && a.novas.length){

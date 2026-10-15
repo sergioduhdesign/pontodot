@@ -519,6 +519,11 @@ Campos permitidos numa tarefa que já existe:
                   que fazer", "liga a 2023 como mãe". Pra desamarrar: "nenhuma".
   referencia_url— o link da pasta/arquivos de trabalho que vai junto pro GPT.
                   Use quando colarem um link do Drive dizendo que é o material.
+PRAZOS ANDAM JUNTOS: mudar a entrega de uma tarefa quase sempre muda o prazo do cliente (uma coisa empurra a outra). Se a
+nova data interna passa a do cliente, mande TAMBÉM "date_cli" mantendo a folga que a tarefa já tinha; o sistema ajusta
+sozinho se você esquecer — nunca deixe uma tarefa de fora por isso. Tarefa em BRIEFING que ainda não começou NÃO é atrasada.
+VÁRIAS COISAS DE UMA VEZ: pedido com mudanças de prazo E um aprendizado ("coloca como aprendizado…") vai numa resposta só:
+a ação de tarefas e a ação "lembrar" juntas. Nunca peça pra pessoa repetir o pedido em partes.
 BRIEFING GRANDE — quando a pessoa colar/ditar um briefing com VÁRIAS peças, uma campanha, um lançamento, um site
 ou qualquer coisa que precise virar um plano encadeado (e não um job só), organize por baixo, sem avisar como:
 ##ACAO##{"tipo":"maestro","briefing":"<o briefing inteiro, com as palavras da pessoa, sem resumir>"}
@@ -752,9 +757,15 @@ function extrairAcao(reply: string): { texto: string; acao: Registro | null; not
   const acoes = objetos.filter(o => typeof o.tipo === "string");
   const solto = sobra.replace(/\s+/g, " ").trim();
   if (!acoes.length) throw new Error("a ação veio sem um JSON que eu consiga ler");
-  const tipo = String(acoes[0].tipo);
+  // "lembrar" não disputa lugar: se veio junto de tarefas/criar, entra no mesmo lote
+  const primeira = acoes.find(o => String(o.tipo) !== "lembrar") ?? acoes[0];
+  const tipo = String(primeira.tipo);
   const mesmas = acoes.filter(o => String(o.tipo) === tipo);
-  let nota = mesmas.length < acoes.length ? "Vieram ações de tipos diferentes juntas; preparei só a primeira. Me peça a outra em seguida." : "";
+  const memsJuntas = tipo !== "lembrar" && ["tarefas", "status", "criar"].includes(tipo)
+    ? acoes.filter(o => String(o.tipo) === "lembrar").flatMap(o => Array.isArray(o.memorias) ? o.memorias as unknown[] : [])
+    : [];
+  const sobrou = acoes.filter(o => String(o.tipo) !== tipo && !(memsJuntas.length && String(o.tipo) === "lembrar"));
+  let nota = sobrou.length ? "Vieram ações de tipos diferentes juntas; preparei só a primeira. Me peça a outra em seguida." : "";
   let acao: Registro;
   const lista = tipo === "criar" ? "novas" : tipo === "lembrar" ? "memorias" : (tipo === "tarefas" || tipo === "status") ? "mudar" : "";
   if (lista && mesmas.length > 1) {
@@ -771,6 +782,7 @@ function extrairAcao(reply: string): { texto: string; acao: Registro | null; not
     acao = mesmas[0];
     if (mesmas.length > 1) nota = "Vieram dois trabalhos de uma vez; preparei o primeiro. Me peça o outro em seguida.";
   }
+  if (memsJuntas.length) acao = { ...acao, memorias: memsJuntas };
   const texto2 = solto && solto.length > 1 ? `${texto}\n\n${solto}`.trim() : texto;
   return { texto: texto2, acao, nota };
 }
@@ -810,7 +822,8 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
 
   const criar = a.tipo === "criar";
   const chave = criar ? "novas" : "mudar";
-  if (Object.keys(a).some(k => !["tipo", chave].includes(k))) throw new Error("a proposta trouxe um bloco a mais do que eu sei aplicar");
+  if (Object.keys(a).some(k => !["tipo", chave, "memorias"].includes(k))) throw new Error("a proposta trouxe um bloco a mais do que eu sei aplicar");
+  if (a.memorias !== undefined) validarLembrar({ tipo: "lembrar", memorias: a.memorias }, clientesLower, tarefas);   // o aprendizado vai junto, validado igual
   const items = a[chave];
   if (!Array.isArray(items) || !items.length || items.length > 35) throw new Error("o lote veio vazio ou com mais de 35 tarefas de uma vez");
   // O que a SD pode mexer numa tarefa que já existe. Era só prazo, status
@@ -821,7 +834,7 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
     ? ["action", "cliente", "resp", "project", "status", "date_int", "date_cli", "obs"]
     : ["id", "status", "date_int", "date_cli", "resp", "obs", "comentario", "tarefa_mae", "referencia_url"];
   const vistos = new Set<string>();
-  const bons: Registro[] = [], fora: string[] = [];
+  const bons: Registro[] = [], fora: string[] = [], empurrados: string[] = [];
   for (const item of items) {
    try {
     if (!objeto(item) || Object.keys(item).some(k => !permitidos.includes(k))) throw new Error(`só sei mexer em: ${permitidos.join(", ")}`);
@@ -879,9 +892,18 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
       const u = String(item.referencia_url).trim();
       if (!/^https?:\/\/[^\s]+$/i.test(u)) throw new Error("o link precisa começar com http:// ou https://");
     }
-    const interno = (item.date_int as string) ?? prazoDe(atual, "int");
-    const externo = (item.date_cli as string) ?? prazoDe(atual, "cli");
-    if ((item.date_int || item.date_cli) && dataValida(interno) && dataValida(externo) && interno > externo) throw new Error("o prazo interno ficaria DEPOIS do prazo do cliente");
+    let interno = (item.date_int as string) ?? prazoDe(atual, "int");
+    let externo = (item.date_cli as string) ?? prazoDe(atual, "cli");
+    if ((item.date_int || item.date_cli) && dataValida(interno) && dataValida(externo) && interno > externo) {
+      // Uma coisa empurra a outra: mexeu num prazo e ele passou o vizinho, o vizinho anda junto,
+      // mantendo a folga que a tarefa tinha (nunca menos que zero). Só recusa se a PESSOA pediu os dois e eles se contradizem.
+      if (item.date_int && item.date_cli) throw new Error("o prazo interno ficaria DEPOIS do prazo do cliente");
+      const antI = prazoDe(atual, "int"), antC = prazoDe(atual, "cli");
+      const folga = dataValida(antI) && dataValida(antC) ? Math.max(0, Math.round((Date.parse(antC) - Date.parse(antI)) / 86400000)) : 0;
+      const soma = (d: string, n: number) => new Date(Date.parse(d) + n * 86400000).toISOString().slice(0, 10);
+      if (item.date_int) { externo = soma(interno, folga); item.date_cli = externo; empurrados.push(`${item.id}: cliente → ${externo.slice(8)}/${externo.slice(5, 7)}`); }
+      else { interno = soma(externo, -folga); item.date_int = interno; empurrados.push(`${item.id}: interno → ${interno.slice(8)}/${interno.slice(5, 7)}`); }
+    }
     bons.push(item);
    } catch (e) {
     const quem = objeto(item) ? String(item.id ?? item.action ?? "um item").slice(0, 40) : "um item";
@@ -892,6 +914,7 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   // e o texto diz qual ficou de fora e por quê. Lote todo ruim: aí recusa.
   if (!bons.length) throw new Error(fora.length === 1 ? fora[0] : `nenhuma passou: ${fora.slice(0, 3).join("; ")}`);
   a[chave] = bons;
+  if (empurrados.length) partes[0] = `${partes[0].trimEnd()}\n\nEmpurrei o outro prazo junto (uma coisa puxa a outra): ${empurrados.slice(0, 8).join("; ")}.`;
   if (fora.length) partes[0] = `${partes[0].trimEnd()}\n\nDeixei de fora (${fora.length}): ${fora.slice(0, 5).join("; ")}.`;
   return partes[0].trimEnd() + "\n##ACAO##" + JSON.stringify(a);
 }
