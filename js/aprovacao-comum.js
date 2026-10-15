@@ -984,7 +984,7 @@ AP.drive = {
       origem = saida.length ? 'pasta SAIDA' : 'pasta inteira da tarefa';
     }
     const uteis = arquivos.filter(a => !LIXO.test(a.path) &&
-      (IMG.test(a.name) || VID.test(a.name) || TXT.test(a.name) || XLS.test(a.name) || AP.ehDocumento(a)));
+      (IMG.test(a.name) || VID.test(a.name) || TXT.test(a.name) || XLS.test(a.name) || AP.ehDocumento(a) || /\.zip$/i.test(a.name)));
     const ignorados = arquivos.length - uteis.length;
     let feitos = 0;
     const total = uteis.length;
@@ -1001,7 +1001,7 @@ AP.drive = {
       try { r = await AP.drive.chamar('baixar', { task_id: taskId, file_id: a.id }); }
       catch (err) {
         // Passou de 30 MB: monta o arquivo em pedaços (só pra imagem/PDF — o resto continua virando link)
-        if (/grande demais/i.test(err.message || '') && (IMG.test(a.name) || /\.pdf$/i.test(a.name))) {
+        if (/grande demais/i.test(err.message || '') && (IMG.test(a.name) || /\.(pdf|zip)$/i.test(a.name))) {
           try {
             const partes = []; let ini = 0, fim = false;
             while (!fim) {
@@ -1059,6 +1059,21 @@ AP.drive = {
       text: async () => (await pega(i)).text(),
       buf:  async () => (await pega(i)).arrayBuffer()
     }));
+    // ZIP na pasta (o "mês completo"): abre e lê por dentro, igual ao envio de pasta zipada
+    for (let i = out.length - 1; i >= 0; i--) {
+      if (!/\.zip$/i.test(out[i].path)) continue;
+      st('Abrindo o ZIP ' + out[i].path.split('/').pop() + '…');
+      try {
+        const zip = await JSZip.loadAsync(await out[i].blob());
+        const dentro = [];
+        Object.values(zip.files).forEach(z => {
+          if (z.dir || LIXO.test(z.name)) return;
+          dentro.push({ path: z.name, blob: () => z.async('blob'),
+                        text: () => z.async('string'), buf: () => z.async('arraybuffer') });
+        });
+        out.splice(i, 1, ...dentro);
+      } catch (e) { errosBaixar.push(out[i].path + ': não consegui abrir o zip — ' + (e.message || e)); }
+    }
     out._ignorados = ignorados;
     out._total = arquivos.length;
     out._origem = origem;
