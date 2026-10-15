@@ -7414,10 +7414,12 @@ async function responder(txt){
     if (j.error) return { t:'A IA devolveu um erro: <i>' + String(j.error).slice(0,160) + '</i>' };
   } catch(e){
     if (e && e.name === 'AbortError') return { t:'A IA demorou demais pra responder — tenta de novo.' };
+    window.__erroIA = String(e && e.message || e).slice(0,80);
   }
   const h = hojeISO();
-  const nAt = tasksReais.filter(x => x.date_int && x.date_int.slice(0,10) < h).length;
-  return { t:`Não consegui falar com a IA agora. Mas tô com <b>${tasksReais.length} tarefas abertas</b> na mão (${nAt} atrasada${nAt===1?'':'s'}) — me pergunta “o que está atrasado?”, “resumo cliente por cliente”, ou pede “criar tarefa …”.` };
+  // atrasada = prazo interno vencido, aberta e fora de BRIEFING (briefing que não começou não é atraso)
+  const nAt = tasksReais.filter(x => x.status !== 'ENTREGUE' && x.status !== 'BRIEFING' && x.date_int && x.date_int.slice(0,10) < h).length;
+  return { t:`Não consegui falar com a IA agora${window.__erroIA ? ' (' + esc(window.__erroIA) + ')' : ''} — tenta de novo em alguns segundos. Enquanto isso: <b>${tasksReais.length} tarefas abertas</b> (${nAt} atrasada${nAt===1?'':'s'}) — me pergunta “o que está atrasado?”, “resumo cliente por cliente”, ou pede “criar tarefa …”.` };
 }
 
 // peças reais: último lote de aprovação da tarefa
