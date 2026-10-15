@@ -1382,6 +1382,18 @@ button.ct-rotulo:hover{color:var(--branco)}
 .mundo.virado .verso .v-pe.oculto{opacity:0}
 .verso .v-pe .selo.com-cara{padding:0;overflow:hidden}
 
+
+/* A faixinha da casa (dados do negócio): fica embaixo, nos dois lados, e nada cobre ela */
+:root{--faixa:30px}
+@media(max-width:700px){:root{--faixa:44px}.faixa-legal{font-size:10px}}
+.faixa-legal{position:absolute;left:0;right:0;bottom:0;height:var(--faixa);z-index:6;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:0 14px calc(0px + env(safe-area-inset-bottom));font-size:11px;line-height:1.35;color:rgba(255,255,255,.55);pointer-events:none}
+.faixa-legal a{color:inherit;text-decoration:underline;pointer-events:auto}
+html.dia .faixa-legal{color:rgba(23,24,27,.6)}
+.tela{padding-bottom:calc(12px + var(--faixa) + env(safe-area-inset-bottom))}
+.verso .v-pe{bottom:calc(14px + var(--faixa))}
+.verso .v-conversa{padding-bottom:calc(96px + var(--faixa))}
+
 /* ============ a área de trabalho EXISTE no mobile (igual ao desk) ============ */
 @media(max-width:999px){
   /* as caixas fixas antigas saem de cena: tudo vira gadget */
@@ -1673,6 +1685,7 @@ button.ct-rotulo:hover{color:var(--branco)}
   <div class="barra-chat" id="barraChat"></div>
   <div class="det-pop oculto" id="detPop"></div>
 
+  <div class="faixa-legal"><span>© 2026 Pontodot · NOVA HORDA SERVIÇOS &amp; NEGÓCIOS LTDA · CNPJ 43.383.376/0001-35 · Criado por <a href="https://sergioduh.com" target="_blank" rel="noopener">sergioduh.com</a></span></div>
 </section>
 
 <!-- ======================= VERSO: o SD completo, como é hoje, com a pele nova ======================== -->
