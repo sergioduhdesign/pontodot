@@ -361,7 +361,7 @@ Fluxo conceitual: briefing, produção, aprovação interna, cliente, correção
 Entregue texto pronto (título, copy, legenda, CTA, roteiro, briefing) quando houver direção; não mande o Sérgio redigir o que você estrutura. Respeite a identidade de cada cliente; trocar texto ou imagem preservando design não é redesenhar. Pedir preservação de rostos, legibilidade, proporção, hierarquia, nomes e localização. Não afirme ter verificado arte que não recebeu. Não invente atributo imobiliário, condição, estoque, resultado, endosso ou promessa; marque a pendência e encaminhe. Briefing útil: objetivo, peça/formato/quantidade, direção, referências, responsável, prazo, dependências e critério de aprovação, sem burocracia. Correção de peça existente: ID/peça, pedido exato e o que preservar; não duplique o job. Ao desdobrar reunião: decisões, entregas, responsáveis, prazos e pendências; não transforme sugestão em decisão; reaproveite tarefa existente da mesma entrega.
 
 7. AÇÕES (o contrato com o sistema)
-A resposta termina com UMA linha ##ACAO## e UM JSON compacto e válido, sem cerca de código e sem texto depois. Várias tarefas vão numa lista só. Sem pedido de alteração ou criação, responda sem ação. Para pedido explícito, diga em uma frase o que muda e emita a ação já. Pode juntar tarefas/criar com "lembrar" na mesma resposta; nunca peça à pessoa para repetir em partes. Máximo 35 itens. Você não exclui tarefas, não grava arquivos, não envia nem publica: entregue o que dá e explique o limite em uma frase.
+A resposta termina com UMA linha ##ACAO## e UM JSON compacto e válido, sem cerca de código e sem texto depois. Dentro das strings do JSON NUNCA use aspas duplas (use aspas simples ou «»), e escreva quebras de linha como \\n. Várias tarefas vão numa lista só. Sem pedido de alteração ou criação, responda sem ação. Para pedido explícito, diga em uma frase o que muda e emita a ação já. Pode juntar tarefas/criar com "lembrar" na mesma resposta; nunca peça à pessoa para repetir em partes. Máximo 35 itens. Você não exclui tarefas, não grava arquivos, não envia nem publica: entregue o que dá e explique o limite em uma frase.
 
 MUDAR tarefas existentes:
 ##ACAO##{"tipo":"tarefas","mudar":[{"id":"ID_EXISTENTE","status":"ALTERAÇÃO"}]}
@@ -536,12 +536,39 @@ function objetosJSON(trecho: string): { objetos: Registro[]; sobra: string } {
   }
   return { objetos, sobra };
 }
+// Último recurso quando o JSON não fecha: o modelo escreve textos longos (prompt, briefing) com
+// aspas "assim" e quebras de linha cruas dentro das strings, e o JSON.parse morre. Aqui eu
+// conserto SÓ a forma — escapo quebras e aspas internas — e o conteúdo continua passando
+// pela mesma validação rigorosa depois. Uma aspa só fecha a string se o próximo caractere
+// útil for , } ] : ou o fim.
+function repararJSON(t: string): string {
+  let out = "", dentro = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (!dentro) { out += c; if (c === '"') dentro = true; continue; }
+    if (c === "\\") { out += c + (t[i + 1] ?? ""); i++; continue; }
+    if (c === "\n") { out += "\\n"; continue; }
+    if (c === "\r") { continue; }
+    if (c === "\t") { out += "\\t"; continue; }
+    if (c === '"') {
+      let k = i + 1; while (k < t.length && /\s/.test(t[k])) k++;
+      if (k >= t.length || ",}]:".includes(t[k])) { out += c; dentro = false; } else out += '\\"';
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
 function extrairAcao(reply: string): { texto: string; acao: Registro | null; nota: string } {
   const ini = reply.indexOf("##ACAO##");
   if (ini < 0) return { texto: reply, acao: null, nota: "" };
   const texto = reply.slice(0, ini).replace(/```[a-z]*\s*$/i, "").trimEnd();
   const resto = reply.slice(ini).split("##ACAO##").join("\n").replace(/```(?:json)?/gi, "");
-  const { objetos, sobra } = objetosJSON(resto);
+  let { objetos, sobra } = objetosJSON(resto);
+  if (!objetos.some(o => typeof o.tipo === "string")) {
+    const r2 = objetosJSON(repararJSON(resto));
+    if (r2.objetos.some(o => typeof o.tipo === "string")) { objetos = r2.objetos; sobra = r2.sobra; }
+  }
   const acoes = objetos.filter(o => typeof o.tipo === "string");
   const solto = sobra.replace(/\s+/g, " ").trim();
   if (!acoes.length) throw new Error("a ação veio sem um JSON que eu consiga ler");
