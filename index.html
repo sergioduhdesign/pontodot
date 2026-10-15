@@ -322,6 +322,23 @@ html.dia .frente{background:#F4F3EF}
 .vida-pilha img{transition:transform .25s ease}
 
 /* o card pequeno, no topo das Conversas */
+
+/* comentário que abre ali mesmo, embaixo da foto */
+.vida-c{display:none;margin-top:8px}
+.vida-c.on,.vida-c:has(.vida-c-item){display:block}
+.vida-c-item{display:flex;gap:8px;align-items:baseline;padding:7px 10px;margin-bottom:5px;border-radius:12px;font-size:13px;line-height:1.35;
+  background:color-mix(in srgb,currentColor 10%,transparent)}
+.vida-c-item span{flex:1;min-width:0;overflow-wrap:anywhere}
+.vida-c-item small{opacity:.55;font-size:10.5px;flex-shrink:0}
+.vida-c-item button{all:unset;cursor:pointer;opacity:.5;padding:4px 6px;font-size:12px}
+.vida-c-item button:hover{opacity:1}
+.vida-c-form{display:flex;gap:8px;align-items:flex-end;padding:6px 6px 6px 12px;border-radius:16px;
+  background:color-mix(in srgb,currentColor 12%,transparent);border:.5px solid color-mix(in srgb,currentColor 28%,transparent)}
+.vida-c-form textarea{flex:1;min-width:0;resize:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:14px;line-height:1.4;padding:6px 0;max-height:120px}
+.vida-c-form textarea::placeholder{color:inherit;opacity:.5}
+.vida-c-form button{font:inherit;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border:0;border-radius:12px;
+  padding:9px 14px;min-height:40px;cursor:pointer;background:#4ADE80;color:#0b1a10}
+@media(max-width:700px){.vida-c-form textarea{font-size:16px}}
 .vida-mini{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;margin:6px 0 2px;background:#222}
 .vida-mini>img{width:100%;height:100%;object-fit:cover;display:block}
 .vida-mini .vida-ov{padding:34px 12px 8px}
@@ -2205,12 +2222,38 @@ function curtirVida(alvo){
     b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Curtido' : 'Curtir';
   });
 }
+// Comentário na própria foto: abre ali mesmo, embaixo da imagem, e fica guardado (por aparelho, como o curtir).
+let vidaComent = {}; try { vidaComent = JSON.parse(localStorage.getItem('pd_coment_vida') || '{}') || {}; } catch(e){}
+const vidaAberto = {}, vidaRascunho = {};
+function salvarComentVida(){ try { localStorage.setItem('pd_coment_vida', JSON.stringify(vidaComent)); } catch(e){} }
+function slotComentVida(alvo){
+  const k = chaveCurtida(alvo), lista = vidaComent[k] || [], aberto = !!vidaAberto[alvo];
+  return `<div class="vida-c ${aberto ? 'on' : ''}" data-vc="${alvo}">
+    ${lista.map((c, n) => `<div class="vida-c-item"><span>${esc(c.t)}</span><small>${esc(c.h)}</small>
+      <button onclick="apagarComentVida('${alvo}',${n})" aria-label="Apagar comentário">✕</button></div>`).join('')}
+    ${aberto ? `<div class="vida-c-form"><textarea id="vcTxt-${alvo}" rows="2" enterkeyhint="send" placeholder="Escreva um comentário…"
+        oninput="vidaRascunho['${alvo}']=this.value;crescerCampo(this)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarComentVida('${alvo}')}">${esc(vidaRascunho[alvo] || '')}</textarea>
+      <button onclick="enviarComentVida('${alvo}')">Enviar</button></div>` : ''}
+  </div>`;
+}
 function comentarVida(alvo){
-  const v = vidaDaIA(); if (!v) return;
-  const ref = alvo === 'frase' ? `o que você disse ("${v.frase}")` : `o seu post "${v.titulo || (v.texto.length > 60 ? v.texto.slice(0, 60) + '…' : v.texto)}"`;
-  modoChat(true);
-  setTimeout(() => { const c = $('#campo'); if (!c) return;
-    c.value = `Sobre ${ref}: `; crescerCampo(c); c.focus(); c.setSelectionRange(c.value.length, c.value.length); }, 260);
+  vidaAberto[alvo] = !vidaAberto[alvo];
+  try { render(); } catch(e){}
+  if (vidaAberto[alvo]) setTimeout(() => { const c = document.getElementById('vcTxt-' + alvo); if (c){ c.focus(); c.scrollIntoView({ block:'nearest', behavior:'smooth' }); } }, 60);
+}
+function enviarComentVida(alvo){
+  const tx = String(vidaRascunho[alvo] || (document.getElementById('vcTxt-' + alvo) || {}).value || '').trim(); if (!tx) return;
+  const k = chaveCurtida(alvo);
+  (vidaComent[k] = vidaComent[k] || []).push({ t: tx.slice(0, 500), h: hAgora() });
+  vidaRascunho[alvo] = ''; salvarComentVida();
+  try { render(); } catch(e){}
+  setTimeout(() => { const c = document.getElementById('vcTxt-' + alvo); if (c) c.focus(); }, 60);
+}
+function apagarComentVida(alvo, n){
+  const k = chaveCurtida(alvo); if (!vidaComent[k]) return;
+  vidaComent[k].splice(n, 1); if (!vidaComent[k].length) delete vidaComent[k];
+  salvarComentVida(); try { render(); } catch(e){}
 }
 function htmlVidaIA(modo){
   const v = vidaDaIA(); if (!v) return '';
@@ -2221,9 +2264,10 @@ function htmlVidaIA(modo){
   const ov = `<div class="vida-ov"><small>${esc(v.rotulo)}</small>${v.titulo ? `<b>${esc(v.titulo)}</b>` : ''}<p>${esc(v.texto)}</p>${bt('post')}</div>`;
   if (modo === 'compacto') return `<div class="vida-mini">
       <img src="${fotoDe(c,'vidaP')}" alt="${esc(c.name)} em Mufun (ficção)" loading="lazy">
-      <button class="vida-ver" onclick="abrirMinhaIA()">ver+</button>${ov}</div>`;
+      <button class="vida-ver" onclick="abrirMinhaIA()">ver+</button>${ov}</div>${slotComentVida('post')}`;
   return `<div class="vida">
     <div class="vida-post"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Mufun (ficção)">${ov}</div>
+    ${slotComentVida('post')}
     <div class="vida-baixo">
       <div class="vida-frase"><p>${esc(v.frase)}</p>${bt('frase')}</div>
       <button class="vida-album" onclick="abrirAlbum()" aria-label="Abrir o álbum de ${nomeTodo}">
@@ -2231,6 +2275,7 @@ function htmlVidaIA(modo){
         <span class="vida-pilha"><img src="${fotoDe(c,'nascP')}" alt="" loading="lazy"><img src="${fotoDe(c,'vidaP')}" alt="" loading="lazy"></span>
       </button>
     </div>
+    ${slotComentVida('frase')}
   </div>`;
 }
 function abrirMinhaIA(){
