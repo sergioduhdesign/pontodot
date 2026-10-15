@@ -5791,7 +5791,7 @@ function roboTela(f){
 }
 
 const fmtD = d => { if(!d) return 'sem data'; const [a,m,di] = d.slice(0,10).split('-'); return `${di}/${m}/${a.slice(2)}`; };
-const hojeISO = () => new Date().toISOString().slice(0,10);
+const hojeISO = () => new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date());   // a data da casa, não a de Greenwich
 function caraDe(t){
   const d = driveMap[t.id];
   if (d && (d.status === 'produzir' || d.status === 'corrigir')) return 'piscada';

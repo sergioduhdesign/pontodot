@@ -519,6 +519,9 @@ Campos permitidos numa tarefa que já existe:
                   que fazer", "liga a 2023 como mãe". Pra desamarrar: "nenhuma".
   referencia_url— o link da pasta/arquivos de trabalho que vai junto pro GPT.
                   Use quando colarem um link do Drive dizendo que é o material.
+NÚMEROS: nunca conte, some ou compare listas de cabeça. Os totais (abertas, por status, atrasadas, vencem hoje, por responsável
+e por cliente) vêm prontos em "contagens_oficiais", calculados pelo código. Use SÓ esses números. Se a pessoa pedir uma conta
+que não está lá, diga que vai conferir e dê só o que o código entregou; nunca chute um total.
 PRAZOS ANDAM JUNTOS: mudar a entrega de uma tarefa quase sempre muda o prazo do cliente (uma coisa empurra a outra). Se a
 nova data interna passa a do cliente, mande TAMBÉM "date_cli" mantendo a folga que a tarefa já tinha; o sistema ajusta
 sozinho se você esquecer — nunca deixe uma tarefa de fora por isso. Tarefa em BRIEFING que ainda não começou NÃO é atrasada.
@@ -1295,6 +1298,37 @@ const docsLidos = new Map<string, Record<string, string>>();
 function hojeSP(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
+/** CONTAGENS OFICIAIS: quem conta é o código, não o modelo. Modelo de linguagem erra soma de lista grande. */
+function contagensOficiais(tarefas: Registro[]): Registro {
+  const hoje = hojeSP();
+  const abertas = tarefas.filter(t => String(t.status ?? "") !== "ENTREGUE");
+  const inc = (m: Record<string, number>, k: string) => { m[k] = (m[k] ?? 0) + 1; };
+  const porStatus: Record<string, number> = {}, atrasPorResp: Record<string, number> = {}, atrasPorCliente: Record<string, number> = {};
+  let vencidas = 0, vencidasEmBriefing = 0, hojeVence = 0;
+  for (const t of abertas) {
+    inc(porStatus, String(t.status ?? "sem status"));
+    const d = prazoDe(t, "int");
+    if (!dataValida(d)) continue;
+    if (d === hoje) hojeVence++;
+    if (d < hoje) {
+      vencidas++;
+      if (String(t.status) === "BRIEFING") { vencidasEmBriefing++; continue; }   // briefing que não começou não é atraso
+      inc(atrasPorResp, String(t.resp ?? "sem resp") || "sem resp");
+      inc(atrasPorCliente, String(t.cliente ?? "sem cliente") || "sem cliente");
+    }
+  }
+  const topo = (m: Record<string, number>) => Object.fromEntries(Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 12));
+  return {
+    data_de_hoje: hoje,
+    tarefas_abertas: abertas.length,
+    por_status: porStatus,
+    atrasadas_de_verdade: vencidas - vencidasEmBriefing,          // prazo interno vencido, SEM contar BRIEFING
+    com_prazo_vencido_mas_em_briefing: vencidasEmBriefing,       // não são atraso
+    vencem_hoje: hojeVence,
+    atrasadas_por_responsavel: topo(atrasPorResp),
+    atrasadas_por_cliente: topo(atrasPorCliente),
+  };
+}
 function dataCurta(iso: string): string { const [, m, d] = iso.split("-"); return `${d}/${m}`; }
 function limparLembranca(t: string): string {
   return t.replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/##\s*ACAO\s*##/gi, "")
@@ -1525,6 +1559,7 @@ Deno.serve(async (req: Request) => {
     const contexto = {
       quem_fala: { nome: eu.name ?? b.de ?? "integrante da equipe",
                    papel: ehCliente ? "cliente (só pode ver o que é dele)" : (eu.role ?? "equipe") },
+      contagens_oficiais: contagensOficiais(tarefas),
       hora_do_dia: agoraCasa.faixa,
       leitura_da_hora: agoraCasa.cor,
       memoria_da_casa: memoria,
