@@ -1907,13 +1907,15 @@ const CONVERSAS = [
 const THREADS = { sd: [] };
 // a conversa com a SD sobrevive ao F5 (e a IA não "esquece" o que combinaram)
 let chatMexidoEm = 0;   // quando a conversa foi tocada pela última vez (pra saber se está fria)
+// uma mensagem guardada nunca volta girando: o que estava "em andamento" vira interrompido
+const semGiro = t => String(t||'').replace(/<span class="spin"><\/span>/g, '<span style="opacity:.6">⋯ interrompido</span>');
 try { const s = JSON.parse(localStorage.getItem('sd_chat')||'null');
   if (Array.isArray(s) && s.length) THREADS.sd = s;                       // formato antigo
-  else if (s && Array.isArray(s.msgs)){ THREADS.sd = s.msgs; chatMexidoEm = s.em || 0; } } catch(e){}
+  else if (s && Array.isArray(s.msgs)){ THREADS.sd = s.msgs.map(m=>Object.assign({}, m, { t: semGiro(m.t) })); chatMexidoEm = s.em || 0; } } catch(e){}
 function salvarThread(){
   chatMexidoEm = Date.now();
   try { localStorage.setItem('sd_chat', JSON.stringify({ em: chatMexidoEm,
-    msgs: (THREADS.sd||[]).filter(m=>!m.espera).slice(-30).map(m=>({ eu:m.eu?1:0, t:m.t, h:m.h })) })); } catch(e){}
+    msgs: (THREADS.sd||[]).filter(m=>!m.espera).slice(-30).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h })) })); } catch(e){}
   try { salvarThreadNuvem(); } catch(e){}   // a conversa também fica guardada no banco, por usuário
 }
 let atual = 'sd';
@@ -2376,7 +2378,7 @@ function salvarThreadNuvem(){
   if (!window.REAL || !perfil || atual !== 'sd') return;
   clearTimeout(_thTimer);
   _thTimer = setTimeout(async ()=>{
-    const msgs = (THREADS.sd||[]).filter(m=>!m.espera && m.t).slice(-60).map(m=>({ eu:m.eu?1:0, t:m.t, h:m.h }));
+    const msgs = (THREADS.sd||[]).filter(m=>!m.espera && m.t).slice(-60).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h }));
     if (msgs.length < 2) return;
     const tit = threadTitulo || tituloSugerido(msgs);
     try {
@@ -2405,7 +2407,7 @@ function abrirThreadSalva(id){
   const minha = th.user_id === perfil?.id;
   threadId = minha ? th.id : null;                 // pública de outro: lê, mas não sobrescreve
   threadTitulo = minha ? (th.titulo||'') : '';
-  THREADS.sd = (th.msgs||[]).map(m=>({ eu:m.eu?1:0, t:m.t, h:m.h }));
+  THREADS.sd = (th.msgs||[]).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h }));
   atual = 'sd'; mostrarSug = false; salvarThread();
   if ($('#mundo').classList.contains('virado')){ $('#vConversa').classList.remove('oculto'); render(); }
   else if (!chat) modoChat(true); else render();
@@ -7127,7 +7129,7 @@ async function reenviarAprovacao(taskId, btn){
     // a tela de lote de sempre: você escolhe o formato (lote, peça única, post), confere títulos, legendas e datas
     b.passos.push({ n:'abrindo a tela de montagem — confira títulos, legendas e datas e salve', e:'ok' }); b.pintar();
     setTimeout(() => popupIframe('/novo-lote.html?embed=1&modo=lote_drive&task=' + encodeURIComponent(taskId), 'Montar a aprovação — ' + taskId), 250);
-  } catch(e){ b.fim(p1, 'erro', e.message); registrarEtapa(taskId, 'aprovacao', false, e.message); }
+  } catch(e){ b.passos.forEach(q => { if (q.e === 'indo') q.e = 'erro'; }); b.fim(p1, 'erro', e.message); registrarEtapa(taskId, 'aprovacao', false, e.message); }
   await carregarReal(); atualizarVersoApp();
   b.acoes = [['Ver a tarefa','azul',`abrirTarefaReal('${taskId}')`]];
   salvarThread(); render();
