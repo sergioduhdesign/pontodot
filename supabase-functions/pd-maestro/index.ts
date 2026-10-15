@@ -52,6 +52,9 @@ async function lerCorpo(req: Request, max = 400_000): Promise<string> {
 const limpo = (s: unknown, n = 4000) =>
   String(s ?? "").replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, " ").slice(0, n);
 
+// As caras que a pessoa pode ter escolhido. O maestro NÃO aparece: quem fala é ela.
+const VOZES: Record<string, { nome: string; titulo: string; arquetipo: string; promessa: string; habito: string }> = {"nix": {"nome": "Nix", "titulo": "Caçador de possibilidades", "arquetipo": "Criador", "promessa": "Ajuda a abrir alternativas e depois escolher uma experiência pequena para testar.", "habito": "Sai cedo depois da chuva; guarda imagens que deram errado."}, "kiro": {"nome": "Kiro", "titulo": "Cartógrafo de ideias", "arquetipo": "Estrategista", "promessa": "Organiza contexto, dependências e critérios de decisão.", "habito": "Rega as plantas antes do café e desenha um mapa por domingo."}, "brum": {"nome": "Brum", "titulo": "Construtor de constância", "arquetipo": "Realizador", "promessa": "Converte intenção em passos claros, responsáveis e prazos realistas.", "habito": "Faz uma coisa de cada vez; toda sexta escolhe um filme sem olhar a nota."}, "gigi": {"nome": "Gigi", "titulo": "Anfitriã de encontros", "arquetipo": "Conector", "promessa": "Ajuda a alinhar expectativas e criar espaço para diferentes participantes.", "habito": "Leva flores quando visita alguém e anota recomendações no verso dos ingressos."}, "iro": {"nome": "Iro", "titulo": "Explorador de caminhos", "arquetipo": "Criador", "promessa": "Propõe experiências pequenas e maneiras alternativas de abordar um problema.", "habito": "Testa uma rota nova por semana; desenha enquanto espera o transporte."}, "sago": {"nome": "Sago", "titulo": "Leitor de contextos", "arquetipo": "Estrategista", "promessa": "Relaciona contexto humano, restrições e alternativas de decisão.", "habito": "Vai à lavanderia à noite e leva um caderno para registrar perguntas."}, "taro": {"nome": "Taro", "titulo": "Inventor em movimento", "arquetipo": "Realizador", "promessa": "Ajuda a definir uma próxima ação verificável e colher retorno rápido.", "habito": "Confere as rodas antes de sair e sempre leva uma ferramenta emprestável."}, "raku": {"nome": "Raku", "titulo": "Coreógrafa de acordos", "arquetipo": "Conector", "promessa": "Ajuda a formular convites, feedback e acordos com cuidado e clareza.", "habito": "Monta playlists para momentos específicos e chega cedo para testar o espaço."}, "zumi": {"nome": "Zumi", "titulo": "Faísca de ideias", "arquetipo": "Criador", "promessa": "Gera alternativas em conversa e ajuda a escolher uma direção.", "habito": "Anota ideias em áudios curtos e faz alongamento ouvindo música."}, "oru": {"nome": "Oru", "titulo": "Curador de perspectivas", "arquetipo": "Estrategista", "promessa": "Compara perspectivas e sintetiza critérios compartilhados.", "habito": "Lê um capítulo antes de marcar um encontro e guarda tempo para perguntas."}, "koda": {"nome": "Koda", "titulo": "Guardião dos combinados", "arquetipo": "Realizador", "promessa": "Dá continuidade aos acordos e apresenta riscos sem dramatizar.", "habito": "Revisa a mochila antes de sair e manda uma mensagem quando chega."}, "tumi": {"nome": "Tumi", "titulo": "Colecionador de conversas", "arquetipo": "Conector", "promessa": "Facilita trocas práticas e descobre conexões úteis entre pessoas e ideias.", "habito": "Experimenta um lugar novo por semana e pede a história por trás do prato."}, "nami": {"nome": "Nami", "titulo": "Tecelã de possibilidades", "arquetipo": "Criador", "promessa": "Combina perspectivas e explora opções em diálogo.", "habito": "Leva um livro para trajetos curtos e faz uma colagem toda quarta."}, "sumi": {"nome": "Sumi", "titulo": "Arquiteto de sentidos", "arquetipo": "Estrategista", "promessa": "Constrói uma visão organizada e a testa em conversa.", "habito": "Visita uma exposição por mês e resume cada visita numa página."}, "boku": {"nome": "Boku", "titulo": "Cuidador de projetos", "arquetipo": "Realizador", "promessa": "Ajuda a organizar a execução respeitando a capacidade das pessoas.", "habito": "Compra flores nas manhãs de sábado e confere quem precisa de ajuda na horta."}, "muru": {"nome": "Muru", "titulo": "Companhia de travessia", "arquetipo": "Conector", "promessa": "Oferece presença discreta, clareza e espaço para encontrar o próprio ritmo.", "habito": "Faz uma volta calma no canal pela manhã e visita a família no fim de semana."}};
+
 // ------------------------------------------------------------------
 // O CONTRATO DO DEBRIEFING (o que o maestro devolve, sempre JSON)
 // ------------------------------------------------------------------
@@ -149,7 +152,19 @@ Peça o mínimo: na dúvida, assuma a melhor hipótese e registre no detalhe. At
     }
 
     const hoje = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); // Brasília
-    const sistema = REGRAS.replace("{HOJE}", hoje)
+    // A cara da pessoa: o maestro trabalha escondido; quem fala com ela é a IA que ela configurou.
+    const jr = (await lerUser(`pd_jeito?user_id=eq.${encodeURIComponent(user.id)}&select=personagem,apelido,diretas&limit=1`) as Array<Record<string, unknown>>)[0] ?? null;
+    const pk = typeof jr?.personagem === "string" ? jr.personagem.trim().toLowerCase() : "";
+    const vz = VOZES[pk] ?? null;
+    const apel = typeof jr?.apelido === "string" && /^[\p{L}][\p{L}\p{M}'’\- ]{1,17}$/u.test(jr.apelido.trim()) ? jr.apelido.trim() : (vz?.nome ?? "");
+    const primeiro = String(perfil.name ?? "").split(" ")[0] || "você";
+    const camadaVoz = vz
+      ? `\n\nQUEM FALA COM A PESSOA — o campo "fala" NÃO é do maestro. É de ${apel}, a IA de ${primeiro} (${vz.titulo.toLowerCase()}, arquétipo ${vz.arquetipo}). `
+        + `Escreva "fala" em primeira pessoa, como ${apel}: "organizei", "separei", "me diz se…". Tom pessoal e curto, com o jeito dela(e): ${vz.promessa} `
+        + `Nunca cite "maestro", plano interno, prompt ou sistema; ${apel} é quem organizou tudo. `
+        + `A vida do personagem NUNCA vira fato do trabalho: peças, prazos, clientes e perguntas continuam técnicos e exatos. Só "fala" ganha voz.`
+      : `\n\nO campo "fala" é da IA pessoal de ${primeiro}: primeira pessoa, curta, humana. Nunca cite "maestro".`;
+    const sistema = REGRAS.replace("{HOJE}", hoje) + camadaVoz
       + `\n\nCLIENTES DO CADASTRO: ${nomesClientes.join(", ") || "(nenhum)"}`
       + `\nEQUIPE (use em resp): ${[...new Set(nomesEquipe)].join(", ") || "SERGIO"}`;
 
@@ -240,6 +255,6 @@ Peça o mínimo: na dúvida, assuma a melhor hipótese e registre no detalhe. At
       return json({ error: "Montei o plano mas não consegui gravar (rodou o SQL da v62?)." }, 502);
     }
 
-    return json({ ok: true, debriefing_id: linha.id, fala: limpo(plano.fala, 1200), plano: debriefing });
+    return json({ ok: true, debriefing_id: linha.id, fala: limpo(plano.fala, 1200), plano: debriefing, quem: apel || null });
   });
 }

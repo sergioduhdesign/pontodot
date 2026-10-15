@@ -519,6 +519,11 @@ Campos permitidos numa tarefa que já existe:
                   que fazer", "liga a 2023 como mãe". Pra desamarrar: "nenhuma".
   referencia_url— o link da pasta/arquivos de trabalho que vai junto pro GPT.
                   Use quando colarem um link do Drive dizendo que é o material.
+BRIEFING GRANDE — quando a pessoa colar/ditar um briefing com VÁRIAS peças, uma campanha, um lançamento, um site
+ou qualquer coisa que precise virar um plano encadeado (e não um job só), organize por baixo, sem avisar como:
+##ACAO##{"tipo":"maestro","briefing":"<o briefing inteiro, com as palavras da pessoa, sem resumir>"}
+Você diz, na sua voz, uma frase curta ("deixa comigo, já te mostro o plano"). NUNCA cite "maestro", plano interno ou
+sistema: pra pessoa, quem organizou foi você. Um pedido simples de uma peça continua sendo "produzir".
 Pode combinar vários na mesma tarefa e várias tarefas no mesmo lote.
 Quando pedirem uma tarefa NOVA que precisa vir antes de uma existente, faça em duas
 partes na mesma resposta: crie a nova com "tipo":"criar" OU, se já existir, use
@@ -776,7 +781,7 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   const a = lida.acao as Registro;
   if (a.tipo === "status") a.tipo = "tarefas";
   const partes = [lida.nota ? `${lida.texto}\n\n${lida.nota}`.trim() : lida.texto];
-  if (!objeto(a) || !["tarefas", "criar", "produzir", "lembrar"].includes(String(a.tipo))) throw new Error("a ação proposta é de um tipo que eu não executo");
+  if (!objeto(a) || !["tarefas", "criar", "produzir", "lembrar", "maestro"].includes(String(a.tipo))) throw new Error("a ação proposta é de um tipo que eu não executo");
   const contagem = new Map<string, number>();
   for (const nome of equipe) {
     const primeiro = semAcento(nome.trim().split(/\s+/)[0]).toLocaleUpperCase("pt-BR");
@@ -786,6 +791,14 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   const respsEmUso = new Set(tarefas.map(t => semAcento(String(t.resp ?? "").trim()).toLocaleUpperCase("pt-BR")).filter(Boolean));
   const clientesLower = new Set(clientes.map(c => semAcento(c.trim()).toLocaleLowerCase("pt-BR")));
 
+  if (a.tipo === "maestro") {
+    // briefing grande / vários entregáveis: a casa organiza por baixo (você nunca cita "maestro")
+    const br = typeof a.briefing === "string" ? a.briefing.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g, " ").trim() : "";
+    if (!br) throw new Error('o campo "briefing" veio vazio');
+    if (br.length > 20000) throw new Error('o campo "briefing" veio grande demais');
+    if (Object.keys(a).some(k => !["tipo", "briefing"].includes(k))) throw new Error("a proposta trouxe um bloco a mais do que eu sei aplicar");
+    return partes[0].trimEnd() + "\n##ACAO##" + JSON.stringify({ tipo: "maestro", briefing: br });
+  }
   if (a.tipo === "produzir") {
     validarProduzir(a, clientesLower, contagem, respsEmUso);
     return partes[0].trimEnd() + "\n##ACAO##" + JSON.stringify(a);
