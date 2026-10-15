@@ -342,6 +342,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 
 <div class="ap-top">
   <div class="ap-top-inner">
+    <a id="apVoltar" href="#" style="display:none;font-size:12.5px;font-weight:700;color:inherit;opacity:.75;text-decoration:none;margin-bottom:8px">← Voltar</a>
     <p class="ap-eyebrow" id="apEyebrow">Pontodot</p>
     <h1 class="ap-title" id="apTitle">Carregando…</h1>
     <p class="ap-sub" id="apSub"></p>
@@ -463,6 +464,19 @@ window.addEventListener('unhandledrejection', ev => {
   if (!SET_ID) { showEmpty('Nenhum lote informado', 'O link está incompleto — falta o código do lote de aprovação.'); return; }
 
   await load();
+
+  // Equipe fora do popup (aba própria): precisa de um jeito de voltar.
+  if (profile.role !== 'client' && window.self === window.top) {
+    const v = document.getElementById('apVoltar');
+    v.style.display = 'inline-block';
+    v.onclick = ev => { ev.preventDefault();
+      if (window.opener) { window.close(); return; }
+      if (history.length > 1) history.back(); else location.href = '/'; };
+  }
+  // Vindo do botão "Publicar" da tarefa: já cai na etapa de publicar.
+  if (new URLSearchParams(location.search).get('publicar') === '1' && profile.role !== 'client') {
+    setTimeout(() => abrirPublicacao(), 400);
+  }
 })();
 
 async function load(){
@@ -1260,15 +1274,80 @@ async function atualizarBotaoAgendar(){
     ba.disabled = false;
   } else {
     // Situação 2 — só o acompanhamento, sem ação pendente.
-    ba.innerHTML = textoBadge;
-    ba.onclick = null;
+    ba.innerHTML = textoBadge + ' ▾';
+    ba.onclick = abrirStatusPublicacao;
     ba.style.background = corBadge;
-    ba.style.cursor = 'default';
+    ba.style.cursor = 'pointer';
   }
 }
 // Atualiza sozinho a cada 30s, enquanto a tela ficar aberta — "vai
 // atualizando conforme o tempo passa e novas publicações acontecem".
 setInterval(atualizarBotaoAgendar, 30000);
+
+// Entrada única da etapa PUBLICAR: agenda o que falta; se já está tudo na fila, mostra o andamento.
+async function abrirPublicacao(){
+  const el = items.filter(i => i.status === 'aprovado' && ['feed','carrossel','stories','reels'].includes(i.kind));
+  if (!el.length) { showToast('Ainda não há peça aprovada pra publicar.', 'warn'); return; }
+  const { data: ja } = await sb.from('scheduled_posts').select('batch_name').in('batch_name', el.map(i => 'ap:' + i.id));
+  if ((ja||[]).length >= el.length) abrirStatusPublicacao(); else abrirAgendamento();
+}
+
+// Andamento da publicação: cada peça/conta, quando sai, o que deu errado — e "publicar agora".
+async function abrirStatusPublicacao(){
+  const ids = items.filter(i => i.status === 'aprovado').map(i => 'ap:' + i.id);
+  const { data: posts } = await sb.from('scheduled_posts').select('id,batch_name,scheduled_at').in('batch_name', ids);
+  if (!posts || !posts.length) { showToast('Nada agendado ainda.', 'info'); return; }
+  const { data: alvos } = await sb.from('scheduled_post_targets')
+    .select('id,post_id,platform,status,error_message,scheduled_at_override,social_account_id')
+    .in('post_id', posts.map(p => p.id));
+  const { data: ctas } = await sb.from('social_accounts').select('id,account_name').eq('client_id', apSet.client_id);
+  const nomeConta = Object.fromEntries((ctas||[]).map(c => [c.id, c.account_name]));
+  const porPost = Object.fromEntries(posts.map(p => [p.id, p]));
+  const nomeItem = bn => { const it = items.find(i => 'ap:' + i.id === bn); return it ? (it.title || it.headline || it.kind) : '(peça)'; };
+  const cor = { publicado:'#16a34a', erro:'#dc2626', publicando:'#2563eb', agendado:'#a16207', cancelado:'#6b7280' };
+  const agora = Date.now();
+  const linhas = (alvos||[]).map(a => {
+    const p = porPost[a.post_id] || {};
+    const q = a.scheduled_at_override || p.scheduled_at;
+    const venceu = a.status === 'agendado' && q && new Date(q).getTime() <= agora;
+    const quando = q ? new Date(q).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem data';
+    const rot = a.status === 'agendado' ? (venceu ? 'venceu — aguardando o robô' : 'aguarda a data') : a.status;
+    return `<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nomeItem(p.batch_name))} <span style="color:var(--text3)">· ${esc(nomeConta[a.social_account_id] || a.platform)}</span></span>
+      <span style="color:var(--text3);white-space:nowrap">${quando}</span>
+      <b style="color:${cor[a.status]||'inherit'};white-space:nowrap">${rot}</b></div>`
+      + (a.status === 'erro' && a.error_message ? `<div style="font-size:11.5px;color:#dc2626;padding:2px 0 6px">${esc(a.error_message)}</div>` : '');
+  }).join('');
+  const faltam = (alvos||[]).filter(a => a.status === 'agendado' || a.status === 'erro').map(a => a.id);
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99600;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,10,12,.55);backdrop-filter:blur(6px)';
+  ov.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);max-width:560px;width:100%;max-height:85vh;overflow:auto;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.4)">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">Publicação</div>
+    <div style="font-size:12.5px;color:var(--text3);line-height:1.5;margin-bottom:12px">Cada peça sai na data da planilha, pelo robô que roda a cada poucos minutos. Se quiser antecipar, use “Publicar agora”.</div>
+    <div>${linhas}</div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button id="stFechar" class="btn btn-secondary" style="flex:1;justify-content:center">Fechar</button>
+      ${faltam.length ? `<button id="stAgora" class="btn btn-primary" style="flex:1;justify-content:center;background:#16a34a;border-color:#16a34a">Publicar agora (${faltam.length})</button>` : ''}
+    </div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#stFechar').onclick = () => ov.remove();
+  ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  const bt = ov.querySelector('#stAgora');
+  if (bt) bt.onclick = async () => {
+    if (!confirm(`Publicar ${faltam.length} agora, de verdade, nas redes? Não tem volta.`)) return;
+    bt.disabled = true; bt.textContent = 'Publicando…';
+    let ok = 0, falha = 0, msg = '';
+    for (let i = 0; i < faltam.length; i += 30) {
+      try {
+        const r = await AP.sdFetch('/social-publish-now.php', { target_ids: faltam.slice(i, i + 30) });
+        (r.resultados||[]).forEach(x => x.ok ? ok++ : falha++);
+      } catch(e) { falha += Math.min(30, faltam.length - i); msg = e.message; }
+    }
+    ov.remove();
+    showToast(`${ok} publicada(s)` + (falha ? `, ${falha} com erro${msg ? ' — ' + msg : ''}` : '.'), falha ? 'warn' : 'success');
+    atualizarBotaoAgendar();
+  };
+}
 
 async function abrirAgendamento(){
   const elegiveis = items.filter(i => i.status === 'aprovado' &&

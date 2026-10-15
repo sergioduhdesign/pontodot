@@ -2742,7 +2742,8 @@ function irPraMais(id){
         desc:t.obs||`Status: ${miniTexto(t)}.`, play:!!sessAbertas[t.id], real:t,
         resp:t.resp||'', st:t.status||'', ia:!!(driveMap[t.id] && driveMap[t.id].status!=='pausado'),
         acoes:[['Ver a tarefa','azul',`abrirTarefaReal('${t.id}')`],
-               ['Ver as peças','',`abrirArtesReais('${t.id}')`]] };
+               ['Ver as peças','',`abrirArtesReais('${t.id}')`],
+               ['Publicar','verde',`publicarTarefa('${t.id}')`]] };
       const j = TAREFAS.findIndex(x=>x.id===id);
       if (j>=0){ selecionada=j; } else { TAREFAS.pop(); TAREFAS.unshift(nova); selecionada=0; }
       fecharJanela(); gadsAbertos.tarefas = true; renderFlip(); return;
@@ -5877,7 +5878,8 @@ async function carregarReal(){
     resp: t.resp || '', st: t.status || '',
     ia: !!(driveMap[t.id] && driveMap[t.id].status !== 'pausado'),
     acoes: [ ['Ver a tarefa','azul',`abrirTarefaReal('${t.id}')`],
-             ['Ver as peças','',`abrirArtesReais('${t.id}')`] ],
+             ['Ver as peças','',`abrirArtesReais('${t.id}')`],
+             ['Publicar','verde',`publicarTarefa('${t.id}')`] ],
   });
   const ord = [...tasksReais].sort((a,b)=>{
     const pa = driveMap[a.id]?2:0, pb = driveMap[b.id]?2:0;
@@ -7532,6 +7534,16 @@ async function responder(txt){
   return { t:`Não consegui falar com a IA agora${window.__erroIA ? ' (' + esc(window.__erroIA) + ')' : ''} — tenta de novo em alguns segundos. Enquanto isso: <b>${tasksReais.length} tarefas abertas</b> (${nAt} atrasada${nAt===1?'':'s'}) — me pergunta “o que está atrasado?”, “resumo cliente por cliente”, ou pede “criar tarefa …”.` };
 }
 
+// etapa PUBLICAR: abre o lote já na tela de agendar/acompanhar publicações
+async function publicarTarefa(taskId){
+  if (!window.REAL){ toast('Disponível nas tarefas reais.'); return; }
+  try {
+    const { data: sets } = await sbR.from('approval_sets').select('id').eq('task_id', taskId)
+      .order('created_at',{ascending:false}).limit(1);
+    if (!sets || !sets.length){ toast('Essa tarefa ainda não tem lote de aprovação.'); return; }
+    popupIframe('/aprovacao.html?set=' + encodeURIComponent(sets[0].id) + '&publicar=1', 'Publicar — ' + taskId);
+  } catch(e){ toast('Não consegui abrir: ' + (e.message||e)); }
+}
 // peças reais: último lote de aprovação da tarefa
 async function abrirArtesReais(taskId){
   if (!window.REAL){ abrirArtes(0); return; }
