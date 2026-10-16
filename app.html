@@ -9066,11 +9066,18 @@ function saudeQuando(iso){
   return 'há ' + Math.round(m/1440) + ' dias';
 }
 async function renderSaude(){
+  try { await renderSaudeInner(); } catch(e){
+    const bx=document.getElementById('saude-corpo');
+    if(bx) bx.innerHTML='<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">Erro ao montar o painel: '+esc(e&&e.message||e)+'</div>';
+    console.error('[saude]',e);
+  }
+}
+async function renderSaudeInner(){
   const box = document.getElementById('saude-corpo');
   if(!box) return;
   if(profile.role !== 'admin'){ box.innerHTML = '<div style="padding:30px;color:var(--text3)">Só admin vê esta tela.</div>'; return; }
   box.innerHTML = '<div style="padding:30px;color:var(--text3)">Carregando…</div>';
-  const { data, error } = await sb.rpc('pd_saude');
+  const { data, error } = await Promise.race([sb.rpc('pd_saude'), new Promise(r => setTimeout(() => r({ error:{ message:'o banco não respondeu em 15 s' } }), 15000))]);
   if(error){
     box.innerHTML = `<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">
       Não consegui ler a saúde: ${esc(error.message)}<br><span style="color:var(--text3)">Se diz que a função não existe, falta rodar o SQL <b>migration_v63_saude.sql</b> no Supabase.</span></div>`;
