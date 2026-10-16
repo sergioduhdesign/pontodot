@@ -311,3 +311,4 @@
 /* o conjunto do canto direito mora na casca (frente e verso iguais): aqui dentro some o que repetia */
 html.sd-embutido .header-right{display:none!important}
 html.sd-embutido .hdr-row-top{min-height:0}
+html.sd-embutido #tab-admin-wrap{display:none!important}
