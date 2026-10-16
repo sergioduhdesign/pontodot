@@ -5450,22 +5450,57 @@ async function renderRedesSociais(){
   }).join('');
 }
 
-// Faixa de contas conectadas no topo de Redes sociais: todas visíveis, por cliente, com o estado
+// Contas conectadas, organizadas como o Business Manager: por cliente, com os ativos de cada um
+// (Instagram, Página, conta de anúncios) e o estado. Dobrável; o cabeçalho já resume e avisa.
+let _contasAberto = false;
+function alternarContasFila(){ _contasAberto = !_contasAberto; renderContasFila(); }
 async function renderContasFila(){
   const box = document.getElementById('fila-contas'); if (!box) return;
-  const { data: contas } = await sb.from('social_accounts').select('id,platform,account_name,account_avatar_url,status,client_id').order('account_name');
-  const L = contas || [];
-  const chip = c => {
-    const cli = (clients.find(x=>x.id===c.client_id)||{}).name;
-    const ok = !c.status || ['ativo','active','ok','conectada','connected'].includes(String(c.status).toLowerCase());
-    return `<span title="${(c.account_name||'').replace(/"/g,'')}${cli?' · '+cli:' · sem cliente'}" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:20px;background:var(--surface2);border:1px solid ${ok?'var(--border)':'#dc2626'};font-size:11.5px;white-space:nowrap">
-      ${c.account_avatar_url ? `<img src="${c.account_avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">` : iconeRedeSocial(c.platform, 16)}
-      <b style="font-weight:600">${cli || '<span style="color:#d97706">sem cliente</span>'}</b>
-      <span style="color:var(--text3)">${c.platform==='instagram'?'Instagram':'Facebook'}</span>
-      ${ok ? '' : '<span style="color:#dc2626">· reconectar</span>'}</span>`; };
-  box.innerHTML = `<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:4px">Contas · ${L.length}</span>
-    ${L.map(chip).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhuma conta conectada ainda.</span>'}
-    <button class="btn btn-primary btn-sm" data-perm="social.conectar" style="margin-left:auto" onclick="conectarInstagram()">＋ Conectar conta</button>`;
+  const [rs, ra] = await Promise.all([
+    sb.from('social_accounts').select('id,platform,account_name,account_avatar_url,status,client_id').order('account_name'),
+    sb.from('meta_ad_accounts').select('id,nome,client_id,status_meta').then(r=>r,()=>({data:[]})),
+  ]);
+  const ativos = [
+    ...((rs.data)||[]).map(c => ({ tipo:c.platform, nome:c.account_name, foto:c.account_avatar_url, client_id:c.client_id, id:c.id,
+        ok: !c.status || ['ativo','active','ok','conectada','connected'].includes(String(c.status).toLowerCase()), social:true })),
+    ...(((ra && ra.data)||[]).map(c => ({ tipo:'anuncios', nome:c.nome||c.id, client_id:c.client_id, id:c.id, ok:(c.status_meta==null||Number(c.status_meta)===1), social:false }))),
+  ];
+  const porCli = {}; ativos.forEach(x => (porCli[x.client_id||'_'] = porCli[x.client_id||'_'] || []).push(x));
+  const semCli = porCli['_'] || [], problemas = ativos.filter(x=>!x.ok).length;
+  const nClientes = Object.keys(porCli).filter(k=>k!=='_').length;
+  const rotulo = t => t==='instagram'?'Instagram':t==='facebook'?'Página do Facebook':'Conta de anúncios';
+  const icone = x => x.foto ? `<img src="${x.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
+      : x.tipo==='anuncios' ? `<span style="width:26px;height:26px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-size:12px">📣</span>` : iconeRedeSocial(x.tipo, 22);
+  const linha = (x, cli) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border)">
+      ${icone(x)}<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.nome||'—'}</div>
+      <div style="font-size:10.5px;color:var(--text3)">${rotulo(x.tipo)}</div></div>
+      ${cli ? `<span title="${x.ok?'Conectada':'Precisa reconectar'}" style="font-size:10.5px;color:${x.ok?'#16a34a':'#dc2626'};white-space:nowrap">● ${x.ok?'ok':'reconectar'}</span>
+        ${x.social ? (x.ok ? `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:10.5px" onclick="desvincularContaSocial('${x.id}').then(renderContasFila)">Desvincular</button>`
+                           : `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:10.5px;color:#dc2626" onclick="reconectarContaSocial()">Reconectar</button>`) : ''}`
+      : x.social ? `<select id="sel-conta-${x.id}" class="field-select" style="max-width:140px;font-size:11.5px"><option value="">Cliente…</option>${clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+        <button class="btn btn-primary btn-sm" style="padding:2px 9px;font-size:10.5px" onclick="vincularContaSocial('${x.id}').then(renderContasFila)">Vincular</button>` : ''}
+    </div>`;
+  const cartao = (cid, lista) => {
+    const c = clients.find(k=>k.id===cid) || {};
+    const logo = c.logo_url ? `<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover">` : (c.name||'?').substring(0,2).toUpperCase();
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;align-self:start">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 14px">
+        <div class="client-logo" style="background:${c.color||'#64748b'};width:30px;height:30px;font-size:11px;flex-shrink:0">${logo}</div>
+        <div style="flex:1;font-size:13.5px;font-weight:700">${c.name||'—'}</div>
+        <span style="font-size:10.5px;color:var(--text3)">${lista.length} ativo${lista.length>1?'s':''}</span></div>
+      ${lista.map(x=>linha(x,true)).join('')}</div>`; };
+  const corpo = _contasAberto ? `<div style="flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:12px">
+      ${semCli.length ? `<div style="border:1px solid #ea580c;border-radius:var(--radius);background:var(--surface);overflow:hidden;align-self:start">
+        <div style="padding:11px 14px;font-size:13px;font-weight:700;color:#ea580c">Esperando vínculo · ${semCli.length}</div>${semCli.map(x=>linha(x,false)).join('')}</div>` : ''}
+      ${Object.entries(porCli).filter(([k])=>k!=='_').sort((p,q)=>((clients.find(c=>c.id===p[0])||{}).name||'').localeCompare((clients.find(c=>c.id===q[0])||{}).name||'')).map(([k,l])=>cartao(k,l)).join('')}
+    </div>` : '';
+  box.innerHTML = `<button onclick="alternarContasFila()" style="display:flex;align-items:center;gap:10px;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)">Contas conectadas</span>
+      <span style="font-size:12px;color:var(--text2)">${nClientes} cliente${nClientes===1?'':'s'} · ${ativos.length} ativos</span>
+      ${semCli.length ? `<span style="font-size:11px;color:#ea580c">● ${semCli.length} sem cliente</span>` : ''}
+      ${problemas ? `<span style="font-size:11px;color:#dc2626">● ${problemas} para reconectar</span>` : ''}
+      <span style="font-size:11px;color:var(--text3)">${_contasAberto?'▲':'▼'}</span></button>
+    <button class="btn btn-primary btn-sm" data-perm="social.conectar" style="margin-left:auto" onclick="conectarInstagram()">＋ Conectar conta</button>${corpo}`;
   aplicarPermissoesUI();
 }
 
