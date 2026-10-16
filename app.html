@@ -9051,6 +9051,7 @@ function setView(v){
 // pd_saude() do banco (SQL v63). Cada cron grava um "batimento" quando
 // roda; aqui a gente compara com o intervalo esperado e acende o alerta.
 // ================================================================
+function saudeEsc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const SAUDE_CRONS = {
   'pd-worker':             { nome:'Relógio da casa (Zap, esteiras, cópias)', cada:5,    tolera:15 },
   'social-publish-worker': { nome:'Publicador das redes',                     cada:5,    tolera:20 },
@@ -9068,7 +9069,7 @@ function saudeQuando(iso){
 async function renderSaude(){
   try { await renderSaudeInner(); } catch(e){
     const bx=document.getElementById('saude-corpo');
-    if(bx) bx.innerHTML='<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">Erro ao montar o painel: '+esc(e&&e.message||e)+'</div>';
+    if(bx) bx.innerHTML='<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">Erro ao montar o painel: '+saudeEsc(e&&e.message||e)+'</div>';
     console.error('[saude]',e);
   }
 }
@@ -9080,7 +9081,7 @@ async function renderSaudeInner(){
   const { data, error } = await Promise.race([sb.rpc('pd_saude'), new Promise(r => setTimeout(() => r({ error:{ message:'o banco não respondeu em 15 s' } }), 15000))]);
   if(error){
     box.innerHTML = `<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">
-      Não consegui ler a saúde: ${esc(error.message)}<br><span style="color:var(--text3)">Se diz que a função não existe, falta rodar o SQL <b>migration_v63_saude.sql</b> no Supabase.</span></div>`;
+      Não consegui ler a saúde: ${saudeEsc(error.message)}<br><span style="color:var(--text3)">Se diz que a função não existe, falta rodar o SQL <b>migration_v63_saude.sql</b> no Supabase.</span></div>`;
     return;
   }
   const d = data || {};
@@ -9113,7 +9114,7 @@ async function renderSaudeInner(){
   if(zFila && zAtraso > 20) alertas.push('Zap: fila parada há ' + Math.round(zAtraso) + ' min');
   const zUlt = (d.zap||{}).ultimo_erro;
   const zapHTML = linha(zCor, 'Mensagens do WhatsApp',
-      `enviadas ${z.enviado||0} · na fila ${zFila} · com erro ${zErr} · pra mandar na mão ${zMan}` + (zUlt ? `<br>último erro (${saudeQuando(zUlt.quando)}): ${esc(zUlt.erro||'')}` : ''),
+      `enviadas ${z.enviado||0} · na fila ${zFila} · com erro ${zErr} · pra mandar na mão ${zMan}` + (zUlt ? `<br>último erro (${saudeQuando(zUlt.quando)}): ${saudeEsc(zUlt.erro||'')}` : ''),
       zFila ? 'fila mais antiga ' + saudeQuando(zAntiga) : '');
 
   // --- Publicação
@@ -9125,7 +9126,7 @@ async function renderSaudeInner(){
   if(venc) alertas.push('Publicação: ' + venc + ' passaram do horário e não saíram');
   const pubHTML = linha(pCor, 'Publicação nas redes',
       `agendadas ${ps.agendado||0} · publicadas ${ps.publicado||0} · com erro ${ps.erro||0}` + (venc ? ` · <b>${venc} vencida(s) sem sair</b>` : '')
-      + (p.ultimo_erro ? `<br>último erro: ${esc(p.ultimo_erro.erro||'')}` : ''), '');
+      + (p.ultimo_erro ? `<br>último erro: ${saudeEsc(p.ultimo_erro.erro||'')}` : ''), '');
 
   // --- Lotes / robô
   const l = d.lotes || {};
@@ -9156,12 +9157,12 @@ async function renderSaudeInner(){
   // --- Alarmes + versão
   const al = d.alarmes_abertos || 0;
   const alHTML = linha(al ? AV : OK, 'Alarmes abertos na equipe', al ? 'tem gente que precisa cuidar de algo' : 'nada pendente', String(al));
-  const verHTML = linha(CI, 'Versão no ar', 'confere se o que você colou/publicou é o que está rodando', esc(window.SD_VERSAO || '—'));
+  const verHTML = linha(CI, 'Versão no ar', 'confere se o que você colou/publicou é o que está rodando', saudeEsc(window.SD_VERSAO || '—'));
 
   const resumo = alertas.length
     ? `<div style="padding:14px 16px;border:1px solid ${RU}50;background:${RU}0d;border-radius:10px;margin-top:6px">
          <div style="font-weight:700;color:${RU};font-size:13px;margin-bottom:6px">${alertas.length} ponto(s) pedindo atenção</div>
-         ${alertas.map(a => `<div style="font-size:12.5px;line-height:1.55">• ${esc(a)}</div>`).join('')}</div>`
+         ${alertas.map(a => `<div style="font-size:12.5px;line-height:1.55">• ${saudeEsc(a)}</div>`).join('')}</div>`
     : `<div style="padding:14px 16px;border:1px solid ${OK}50;background:${OK}0d;border-radius:10px;margin-top:6px;font-weight:700;color:${OK};font-size:13px">Tudo certo agora.</div>`;
 
   box.innerHTML = resumo
