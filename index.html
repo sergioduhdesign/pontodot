@@ -273,6 +273,8 @@ html.dia .frente{background:#F4F3EF}
 .pf-d{min-width:0}.pf-d small{display:block;font-size:11.5px;opacity:.6}
 .pf-d span{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pf-d a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.pf-cancelar{margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08);text-align:center}
+.pf-cancelar button{font:inherit;font-size:12px;color:#b91c1c;opacity:.75;background:none;border:0;cursor:pointer}.pf-cancelar button:hover{opacity:1;text-decoration:underline}
 .pf-bio{margin:8px 2px 4px;font-size:13.5px;line-height:1.45;opacity:.8}
 @media(max-width:600px){.pf .mia-cara{width:104px;height:104px}.pf .mia-nome{font-size:21px}.pf-dados{gap:8px 12px}}
 /* ===== MINHA IA — o print do Sérgio ===== */
@@ -1927,7 +1929,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v74 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v75 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2737,7 +2739,7 @@ function abrirJanela(html, grande){
   document.documentElement.classList.add('comJanela');
   const j = $('#janela'); j.innerHTML = `<div class="j-caixa ${grande?'grande':''}">${html}</div>`;
   j.classList.remove('oculto');
-  const cx = j.querySelector('.caixa'); if (cx){ cx.classList.add('surge'); delete cx.dataset.fio; fio(cx); }
+  const cx = j.querySelector('.caixa'); if (cx && !cx.hasAttribute('data-sem-fio')){ cx.classList.add('surge'); delete cx.dataset.fio; fio(cx); }
 }
 function fecharJanela(){ const j=$('#janela'); j.classList.add('oculto'); j.innerHTML='';
   document.documentElement.classList.remove('comJanela'); }
@@ -3512,15 +3514,16 @@ function htmlPerfilPessoa(){
       <div class="mia-acoes">
         <button onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
         <button onclick="editarPerfil()">Editar perfil</button>
-        <button onclick="sairConta()" style="color:#b91c1c;opacity:1;margin-left:auto">Sair da conta</button>
+        <button onclick="sairConta()" style="margin-left:auto;opacity:1;font-weight:500">Desconectar PD</button>
       </div>
+      <div class="pf-cancelar"><button onclick="abrirCancelarConta()">Cancelar minha conta…</button></div>
     </div>
   </div></div>`;
 }
 function abrirPerfil(){
   if (!window.REAL){ toast('Entra na conta primeiro.'); return; }
   // o conteúdo nasce completo e do tamanho final: o fio da borda mede a caixa uma vez só
-  abrirJanela(`<div class="caixa invertida" style="padding:0;overflow:hidden">${htmlPerfilPessoa()}</div>`);
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:0;overflow:hidden">${htmlPerfilPessoa()}</div>`);
 }
 function editarPerfil(){
   fecharJanela();
@@ -6117,7 +6120,8 @@ const LOGIN_CSS = `
 .login-cx p{margin:-6px 0 4px;font-size:12px;color:rgba(29,30,34,.6)}
 .login-cx input{border:.5px solid rgba(29,30,34,.35);border-radius:14px;padding:13px 15px;font-size:15px;
   background:#fff;color:#1D1E22;outline:none;width:100%}
-.login-cx .btn-entrar{border-radius:14px;padding:13px;background:#1D1E22;color:#fff;font-size:14px;font-weight:500}
+.login-cx .btn-entrar{border-radius:14px;padding:13px;background:#1D1E22;color:#fff;font-size:14px;font-weight:500;width:100%;text-align:center;display:flex;justify-content:center;align-items:center;border:0;cursor:pointer}
+.login-cx input{text-align:center}.login-cx .btn-sec{background:none;color:inherit;border:0;font:inherit;font-size:12.5px;opacity:.7;cursor:pointer;text-align:center;width:100%;padding:6px}
 .login-err{font-size:12px;color:#DB2777;min-height:15px}
 .login-legal{margin:10px 0 0;text-align:center;font-size:11px;line-height:1.6;opacity:.6}
 .login-legal a{color:inherit}`;
@@ -6146,6 +6150,64 @@ async function fazerLogin(){
   $('#loginVeu')?.remove();
   entrarReal(data.session);
 }
+// ---- CANCELAR A CONTA: dupla checagem, 30 dias para voltar ----
+function abrirCancelarConta(){
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:24px 22px 20px;max-width:460px;margin:0 auto">
+    <h3 style="margin:0 0 4px;font-size:21px;font-weight:400">Cancelar a sua conta?</h3>
+    <div class="nota" style="margin:0 0 12px">Isso é diferente de desconectar. Leia antes de seguir.</div>
+    <div style="font-size:13.5px;line-height:1.55">
+      <p style="margin:0 0 8px">Ao cancelar, você <b>perde o acesso</b> à plataforma: tarefas, conversas, a sua IA e tudo o que ela aprendeu com você.</p>
+      <p style="margin:0 0 8px">Nada é apagado na hora. Você tem <b>30 dias</b> para voltar: é só entrar de novo e reativar, e tudo volta como estava, com o histórico.</p>
+      <p style="margin:0">Passados os 30 dias, a conta é excluída de vez e a sua IA deixa de existir.</p></div>
+    <label style="display:flex;gap:9px;align-items:flex-start;margin:14px 0 4px;font-size:13px;cursor:pointer"><input type="checkbox" id="cancCiente" style="margin-top:3px" onchange="$('#cancSegue').disabled=!this.checked">
+      <span>Entendi e quero continuar.</span></label>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="fecharJanela()">Voltar</button>
+      <button class="btn" id="cancSegue" style="flex:1;color:#b91c1c" disabled onclick="cancelarContaSenha()">Continuar</button></div></div>`);
+}
+function cancelarContaSenha(){
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:24px 22px 20px;max-width:460px;margin:0 auto">
+    <h3 style="margin:0 0 4px;font-size:21px;font-weight:400">Confirme com a sua senha</h3>
+    <div class="nota" style="margin:0 0 12px">Última checagem. Digite a senha e a palavra CANCELAR.</div>
+    <input id="cancSenha" type="password" placeholder="sua senha" autocomplete="current-password" style="width:100%;padding:12px 14px;border-radius:12px;border:.5px solid rgba(127,127,127,.5);background:transparent;color:inherit;font-size:15px;margin-bottom:8px">
+    <input id="cancPalavra" type="text" placeholder="digite CANCELAR" autocomplete="off" style="width:100%;padding:12px 14px;border-radius:12px;border:.5px solid rgba(127,127,127,.5);background:transparent;color:inherit;font-size:15px">
+    <div id="cancErr" class="nota" style="color:#DB2777;min-height:16px;margin-top:8px"></div>
+    <div style="display:flex;gap:8px;margin-top:6px"><button class="btn" style="flex:1" onclick="fecharJanela()">Voltar</button>
+      <button class="btn" style="flex:1;color:#b91c1c" onclick="cancelarContaFinal()">Cancelar a minha conta</button></div></div>`);
+  setTimeout(()=>$('#cancSenha')?.focus(), 80);
+}
+async function cancelarContaFinal(){
+  const err = m => { const e = $('#cancErr'); if (e) e.textContent = m; };
+  const senha = $('#cancSenha')?.value || '', pal = ($('#cancPalavra')?.value || '').trim().toUpperCase();
+  if (!senha) return err('Digite a senha.');
+  if (pal !== 'CANCELAR') return err('Digite a palavra CANCELAR.');
+  const r1 = await sbR.auth.signInWithPassword({ email: perfil.email, password: senha });
+  if (r1.error) return err('A senha não confere.');
+  const { error } = await sbR.rpc('pd_cancelar_conta');
+  if (error) return err(error.message.includes('pd_cancelar') ? 'Rode o migration_v75_cancelar_conta.sql no Supabase.' : error.message);
+  try { await sbR.auth.signOut(); } catch(e){}
+  try { sessionStorage.setItem('sd_cancelada', '1'); } catch(e){}
+  location.reload();
+}
+// conta cancelada que volta a entrar: dentro dos 30 dias, pode reativar
+function telaContaCancelada(){
+  const st = document.createElement('style'); st.textContent = LOGIN_CSS; document.head.appendChild(st);
+  const exc = perfil.exclusao_em ? new Date(perfil.exclusao_em) : null, dentro = exc && exc > new Date();
+  const d = document.createElement('div'); d.className = 'login-veu'; d.id = 'cancVeu';
+  d.innerHTML = `<div class="login-cx" style="text-align:center">
+    <h2>${dentro ? 'Sua conta está cancelada' : 'O prazo acabou'}</h2>
+    <p style="margin:0;font-size:13px;line-height:1.5">${dentro
+      ? `Ela será excluída de vez em <b>${exc.toLocaleDateString('pt-BR')}</b>. Reative agora e tudo volta como estava: histórico, conversas e a sua IA.`
+      : 'Passaram os 30 dias e a conta está marcada para exclusão. Fale com a administração.'}</p>
+    <div class="login-err" id="reaErr"></div>
+    ${dentro ? `<button class="btn-entrar" onclick="reativarConta()">Reativar minha conta</button>` : ''}
+    <button class="btn-sec" onclick="sairConta()">Desconectar PD</button></div>`;
+  document.body.appendChild(d);
+}
+async function reativarConta(){
+  const { error } = await sbR.rpc('pd_reativar_conta');
+  if (error){ const e = $('#reaErr'); if (e) e.textContent = error.message; return; }
+  location.reload();
+}
 async function sairConta(){ try{ await sbR.auth.signOut(); }catch(e){} location.reload(); }
 
 async function bootReal(){
@@ -6157,7 +6219,7 @@ async function bootReal(){
     // voltou pra aba (ou o computador acordou): confere e renova o login na hora
     document.addEventListener('visibilitychange', () => { if (!document.hidden && window.REAL){ sbR.auth.getSession().catch(()=>{}); } });
     const { data:{ session } } = await sbR.auth.getSession();
-    if (!session) { mostrarLogin(); return; }
+    if (!session) { mostrarLogin(); try { if (sessionStorage.getItem('sd_cancelada')){ sessionStorage.removeItem('sd_cancelada'); setTimeout(()=>toast('Conta cancelada. Você tem 30 dias para voltar: é só entrar e reativar.'), 600); } } catch(e){} return; }
     await entrarReal(session);
   } catch(e){ console.warn('[go-live] demo:', e.message); }
 }
@@ -6174,6 +6236,7 @@ async function bootReal(){
 async function entrarReal(session){
   const { data: p } = await sbR.from('profiles').select('*').eq('id', session.user.id).single();
   perfil = p || { id: session.user.id, name: 'SD' };
+  if (perfil.cancelada_em){ telaContaCancelada(); return; }
   window.REAL = true;
   $('#cluster')?.classList.add('on');
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin)) ad.style.display = ''; }
