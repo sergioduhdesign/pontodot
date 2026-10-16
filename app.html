@@ -9055,7 +9055,6 @@ const SAUDE_CRONS = {
   'lembretes':             { nome:'Lembretes (de hora em hora)',              cada:60,   tolera:150 },
   'lembrete-prazo':        { nome:'Aviso de prazo (1x por dia)',              cada:1440, tolera:1560 },
 };
-function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function saudeQuando(iso){
   if(!iso) return '—';
   const m = Math.round((Date.now() - new Date(iso).getTime())/60000);
