@@ -5040,6 +5040,7 @@ function desenharFila(){
   if (selCliente) lista = lista.filter(g => g.clientId === selCliente);
   if (selProjeto) lista = lista.filter(g => g.task?.project === selProjeto);
   if (selPlatform) lista = lista.filter(g => g.posts.some(p => p.alvos.some(a => a.platform === selPlatform)));
+  if (filaContasSel.size) lista = lista.filter(g => g.posts.some(p => p.alvos.some(a => filaContasSel.has(a.social_account_id))));
 
   // "Cancelado" fica escondido por padrão — não é apagado, só sai do
   // caminho. O interruptor no topo troca pra ver só o que foi cancelado,
@@ -5452,6 +5453,12 @@ async function renderRedesSociais(){
 
 // Contas conectadas, organizadas como o Business Manager: por cliente, com os ativos de cada um
 // (Instagram, Página, conta de anúncios) e o estado. Dobrável; o cabeçalho já resume e avisa.
+// Contas que a pessoa escolheu VER na lista (vazio = todas). Fica guardado neste aparelho.
+let filaContasSel = new Set(); try { filaContasSel = new Set(JSON.parse(localStorage.getItem('sd_fila_contas')||'[]')); } catch(e){}
+function _salvarContasSel(){ try { localStorage.setItem('sd_fila_contas', JSON.stringify([...filaContasSel])); } catch(e){} }
+function verConta(id){ filaContasSel.has(id) ? filaContasSel.delete(id) : filaContasSel.add(id); _salvarContasSel(); desenharFila(); renderContasFila(); }
+function verContasDe(ids, liga){ ids.forEach(i => liga ? filaContasSel.add(i) : filaContasSel.delete(i)); _salvarContasSel(); desenharFila(); renderContasFila(); }
+function limparContasSel(){ filaContasSel.clear(); _salvarContasSel(); desenharFila(); renderContasFila(); }
 let _contasAberto = false;
 function alternarContasFila(){ _contasAberto = !_contasAberto; renderContasFila(); }
 async function renderContasFila(){
@@ -5474,6 +5481,7 @@ async function renderContasFila(){
   const linha = (x, cli) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border)">
       ${icone(x)}<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.nome||'—'}</div>
       <div style="font-size:10.5px;color:var(--text3)">${rotulo(x.tipo)}</div></div>
+      ${cli && x.social ? `<button onclick="verConta('${x.id}')" title="${filaContasSel.has(x.id)?'Tirar da lista':'Ver na lista'}" style="padding:2px 9px;font-size:10.5px;border-radius:20px;cursor:pointer;border:1px solid ${filaContasSel.has(x.id)?'var(--accent)':'var(--border)'};background:${filaContasSel.has(x.id)?'var(--accent)':'transparent'};color:${filaContasSel.has(x.id)?'var(--accent-fg)':'var(--text2)'}">${filaContasSel.has(x.id)?'✓ vendo':'ver'}</button>` : ''}
       ${cli ? `<span title="${x.ok?'Conectada':'Precisa reconectar'}" style="font-size:10.5px;color:${x.ok?'#16a34a':'#dc2626'};white-space:nowrap">● ${x.ok?'ok':'reconectar'}</span>
         ${x.social ? (x.ok ? `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:10.5px" onclick="desvincularContaSocial('${x.id}').then(renderContasFila)">Desvincular</button>`
                            : `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:10.5px;color:#dc2626" onclick="reconectarContaSocial()">Reconectar</button>`) : ''}`
@@ -5482,12 +5490,14 @@ async function renderContasFila(){
     </div>`;
   const cartao = (cid, lista) => {
     const c = clients.find(k=>k.id===cid) || {};
+    const ids = lista.filter(x=>x.social).map(x=>x.id), todasVendo = ids.length && ids.every(i=>filaContasSel.has(i));
     const logo = c.logo_url ? `<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover">` : (c.name||'?').substring(0,2).toUpperCase();
     return `<div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;align-self:start">
       <div style="display:flex;align-items:center;gap:10px;padding:11px 14px">
         <div class="client-logo" style="background:${c.color||'#64748b'};width:30px;height:30px;font-size:11px;flex-shrink:0">${logo}</div>
         <div style="flex:1;font-size:13.5px;font-weight:700">${c.name||'—'}</div>
-        <span style="font-size:10.5px;color:var(--text3)">${lista.length} ativo${lista.length>1?'s':''}</span></div>
+        <span style="font-size:10.5px;color:var(--text3)">${lista.length} ativo${lista.length>1?'s':''}</span>
+        ${ids.length ? `<button onclick="verContasDe(${JSON.stringify(ids).replace(/"/g,'&quot;')}, ${!todasVendo})" style="padding:2px 9px;font-size:10.5px;border-radius:20px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2)">${todasVendo?'tirar todas':'ver todas'}</button>` : ''}</div>
       ${lista.map(x=>linha(x,true)).join('')}</div>`; };
   const corpo = _contasAberto ? `<div style="flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:12px">
       ${semCli.length ? `<div style="border:1px solid #ea580c;border-radius:var(--radius);background:var(--surface);overflow:hidden;align-self:start">
@@ -5499,8 +5509,10 @@ async function renderContasFila(){
       <span style="font-size:12px;color:var(--text2)">${nClientes} cliente${nClientes===1?'':'s'} · ${ativos.length} ativos</span>
       ${semCli.length ? `<span style="font-size:11px;color:#ea580c">● ${semCli.length} sem cliente</span>` : ''}
       ${problemas ? `<span style="font-size:11px;color:#dc2626">● ${problemas} para reconectar</span>` : ''}
+      <span style="font-size:11px;color:var(--accent)">${filaContasSel.size ? '● vendo '+filaContasSel.size+' na lista' : ''}</span>
       <span style="font-size:11px;color:var(--text3)">${_contasAberto?'▲':'▼'}</span></button>
-    <button class="btn btn-primary btn-sm" data-perm="social.conectar" style="margin-left:auto" onclick="conectarInstagram()">＋ Conectar conta</button>${corpo}`;
+    ${filaContasSel.size ? `<button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="limparContasSel()">Ver todas</button>` : ''}
+    <button class="btn btn-primary btn-sm" data-perm="social.conectar" style="${filaContasSel.size?'':'margin-left:auto'}" onclick="conectarInstagram()">＋ Conectar conta</button>${corpo}`;
   aplicarPermissoesUI();
 }
 
