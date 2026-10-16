@@ -3654,7 +3654,7 @@ async function conectarMeta(){
     const r = await fetch('/meta-connect-start.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body:'{}' });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.url) throw new Error(j.error || ('servidor respondeu ' + r.status));
-    location.href = j.url;          // a Meta exige a página inteira, não uma janela
+    try { (window.top || window).location.href = j.url; } catch(_) { window.open(j.url, '_top'); }   // a Meta bloqueia iframe: navega a janela de cima
   } catch(e){ toast('Não deu para abrir a Meta: ' + e.message); }
 }
 const quando = iso => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000);
