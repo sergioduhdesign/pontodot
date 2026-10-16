@@ -34,7 +34,7 @@ if ($r['code'] >= 300) {
 
 // Teste: manda um push de boas-vindas pro próprio aparelho
 if (!empty($body['testar'])) {
-    sd_push_usuario($me['id'], '🔔 Avisos ligados', 'Este aparelho vai receber os avisos do SD.', '/app.html', 'sd-teste');
+    sd_push_usuario($me['id'], '🔔 Avisos ligados', 'Este aparelho vai receber os avisos da pontodot.', '/app.html', 'sd-teste');
 }
 
 echo json_encode(['success' => true]);

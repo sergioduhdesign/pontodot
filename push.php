@@ -70,7 +70,7 @@ if ($acao === 'sair') {
 // ---------------------------------------------------------------- testar
 if ($acao === 'testar') {
     if (!p_configurado()) sd_fail('As chaves VAPID não estão configuradas no servidor.', 500);
-    $n = sd_push_usuario($me['id'], 'A SD te cutucou',
+    $n = sd_push_usuario($me['id'], 'A pontodot te cutucou',
         'Se você está lendo isso no celular, o aviso funciona.', '/index.html', 'sd-teste');
     if (!$n) sd_fail('Nenhum aparelho recebeu. Assine primeiro neste navegador, ou o aparelho antigo já expirou.', 400);
     p_ok(['enviados' => $n]);

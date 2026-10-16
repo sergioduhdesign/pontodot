@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>pontodot — workflow</title>
-<link rel="stylesheet" href="css/main.css?v=20261014pf">
+<link rel="stylesheet" href="css/main.css?v=20261016pd">
 <style>
 @media (max-width: 768px) { 
   .desktop-only { display: none !important; } 
@@ -36,7 +36,7 @@
 }
 </style>
 <link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="assets/icon-pwa.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -1081,7 +1081,7 @@
             <select id="mc-site-tipo" style="height:34px">
               <option value="">sem site automatizado</option>
               <option value="wp">WordPress</option>
-              <option value="html">HTML (feito pela SD)</option>
+              <option value="html">HTML (feito pela PD)</option>
               <option value="bloco">Bloco embutido</option>
             </select>
             <input id="mc-site-url" placeholder="https://site-do-cliente.com" style="flex:1;min-width:180px;height:34px">
@@ -1559,7 +1559,7 @@ const SPLASH_TECH_LINES=[
   'CONEXÃO SEGURA ESTABELECIDA',
   'CACHE ATUALIZADO · BORA TRABALHAR FORTE',
   'INTEGRIDADE DOS DADOS: OK',
-  'SD WORKFLOW · SESSÃO SINCRONIZADA'
+  'PONTODOT · SESSÃO SINCRONIZADA'
 ];
 function getSplashImageList(){
   const list=[];
@@ -3991,9 +3991,9 @@ async function exportCronoPDF() {
       pdf.text('Pág. ' + i + ' / ' + totalPages, pdfW - margin, pdfH - 4, { align: 'right' });
     }
 
-    // Salvar — nomenclatura padrão: CRONO-SD-[produto-]{cliente|todos-os-clientes}-AAAA-MM-DD.pdf
+    // Salvar — nomenclatura padrão: CRONO-PD-[produto-]{cliente|todos-os-clientes}-AAAA-MM-DD.pdf
     const dateSlug = new Date().toISOString().slice(0, 10);
-    const nameParts = ['CRONO-SD'];
+    const nameParts = ['CRONO-PD'];
     if (productObj) nameParts.push(slugify(productObj.name));
     nameParts.push(clientObj ? slugify(clientObj.name) : 'todos-os-clientes');
     nameParts.push(dateSlug);
@@ -4563,7 +4563,7 @@ async function exportBIPDF(btn){
       pdf.setFillColor(255,255,255); pdf.rect(0,0,W,H,'F');
       pdf.setFillColor(17,19,24); pdf.rect(0,0,W,13,'F');
       pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5);
-      pdf.text('BUSINESS INTELLIGENCE — SD WORKFLOW', M, 8.6);
+      pdf.text('BUSINESS INTELLIGENCE — PONTODOT', M, 8.6);
       pdf.setFont('helvetica','normal'); pdf.setFontSize(8.5); pdf.setTextColor(170,175,185);
       pdf.text(clienteNome + '  ·  ' + dataLabel, W - M, 8.6, { align: 'right' });
       pdf.setTextColor(17,19,24); pdf.setFont('helvetica','bold'); pdf.setFontSize(17);
@@ -6536,8 +6536,8 @@ function driveNovoHTML(taskId){
   <div style="background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--radius);padding:14px 16px">
     <div style="font-size:13px;font-weight:700;margin-bottom:2px">Produção com IA · Google Drive</div>
     <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:10px">
-      Ligue uma pasta do Drive a esta tarefa. O SD organiza ENTRADA, SAIDA e a planilha de controle; a IA trabalha lá
-      e o SD importa a entrega sozinho.</div>
+      Ligue uma pasta do Drive a esta tarefa. A pontodot organiza ENTRADA, SAIDA e a planilha de controle; a IA trabalha lá
+      e a pontodot importa a entrega sozinha.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <input class="field-input" id="drvLink" placeholder="Cole o link de uma pasta do Drive (ou deixe vazio pra criar)"
         style="flex:1;min-width:220px;font-size:12px">
@@ -8240,7 +8240,7 @@ function exportExcel(){
   // O SheetJS free não suporta estilos completos — usamos xlsx-style workaround
   // Para resultado mais rico, exportamos e notificamos
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Tarefas SD');
+  XLSX.utils.book_append_sheet(wb, ws, 'Tarefas PD');
 
   const fname = 'SD_Lista_'+clientName.replace(/\s+/g,'_')+'_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.xlsx';
   XLSX.writeFile(wb, fname);
@@ -8380,8 +8380,8 @@ function pushAvisoAparelho(){
   const instalado = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const semSuporte = !('PushManager' in window) || !('Notification' in window);
   const msg = (ios && !instalado)
-    ? 'No iPhone, os avisos só funcionam com o SD na Tela de Início: toque em Compartilhar → "Adicionar à Tela de Início" e abra por lá.'
-    : semSuporte ? null : 'Receba os avisos do SD neste aparelho (IA entregou, cliente aprovou ou pediu ajuste).';
+    ? 'No iPhone, os avisos só funcionam com a pontodot na Tela de Início: toque em Compartilhar → "Adicionar à Tela de Início" e abra por lá.'
+    : semSuporte ? null : 'Receba os avisos da pontodot neste aparelho (IA entregou, cliente aprovou ou pediu ajuste).';
   if (!msg) return;
   const el = document.createElement('div');
   el.id = 'push-ativar';
@@ -8676,7 +8676,7 @@ function handleIncomingMessage(data) {
   // Notificação nativa do browser (funciona com browser minimizado)
   if (Notification.permission === 'granted') {
     try {
-      new Notification('SD Workflow — ' + (data.sender_name || 'Nova mensagem'), {
+      new Notification('Pontodot — ' + (data.sender_name || 'Nova mensagem'), {
         body: data.body || '',
         icon: '/assets/icon-pwa.svg',
         tag: 'sd-chat'
@@ -8717,7 +8717,7 @@ function toggleChat() {
 async function showChatList() {
   chatCurrentUser = null;
   document.getElementById('chat-header-title').textContent = '💬 Mensagens';
-  document.getElementById('chat-header-sub').textContent = 'Equipe SD';
+  document.getElementById('chat-header-sub').textContent = 'Equipe PD';
   document.getElementById('chat-header-av').innerHTML = '';
   document.getElementById('chat-back-btn').style.display = 'none';
   document.getElementById('chat-list').style.display = 'flex';
@@ -8742,7 +8742,7 @@ async function showChatList() {
     ${isClientChat ? '' : `<div onclick="openChatGroup()" style="display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <div style="width:40px;height:40px;border-radius:50%;background:#0a0a0a;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏢</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700">Geral — Equipe SD</div>
+        <div style="font-size:13px;font-weight:700">Geral — Equipe PD</div>
         <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lastGroup?.[0]?.body?.substring(0,40) || 'Nenhuma mensagem ainda'}</div>
       </div>
       ${unreadCounts['group'] > 0 ? `<div style="background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0">${unreadCounts['group']}</div>` : ''}
@@ -8780,7 +8780,7 @@ async function openChatWith(userId, userName, avatarUrl) {
 async function openChatGroup() {
   chatCurrentUser = { id: null, name: 'Geral' };
   if (unreadCounts['group']) { totalUnread -= unreadCounts['group']; unreadCounts['group'] = 0; updateChatBadge(); }
-  document.getElementById('chat-header-title').textContent = '🏢 Geral — Equipe SD';
+  document.getElementById('chat-header-title').textContent = '🏢 Geral — Equipe PD';
   document.getElementById('chat-header-sub').textContent = 'Todos da equipe';
   document.getElementById('chat-header-av').innerHTML = '';
   document.getElementById('chat-back-btn').style.display = 'flex';
@@ -8940,7 +8940,7 @@ async function sendChatMessage() {
     await notifyUser(chatCurrentUser.id, 'chat_message', `💬 ${firstName}`, preview, chatLink);
   } else {
     const teamIds = await getTeamUserIds();
-    await notifyUsers(teamIds, 'chat_message', `💬 ${firstName} (Geral — Equipe SD)`, preview, 'chat-group');
+    await notifyUsers(teamIds, 'chat_message', `💬 ${firstName} (Geral — Equipe PD)`, preview, 'chat-group');
   }
 }
 // Todos os usuários da equipe/admin, exceto eu mesmo — usado pra avisar o
@@ -9410,7 +9410,7 @@ document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',e
     <div id="chat-header-av" style="flex-shrink:0"></div>
     <div style="flex:1;min-width:0">
       <div id="chat-header-title" style="font-size:13px;font-weight:700">💬 Mensagens</div>
-      <div id="chat-header-sub" style="font-size:11px;color:var(--text3)">Equipe SD</div>
+      <div id="chat-header-sub" style="font-size:11px;color:var(--text3)">Equipe PD</div>
     </div>
     <button id="chat-search-btn" onclick="toggleChatSearch()" style="display:none;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;font-weight:700;color:var(--text3);padding:4px" title="Buscar na conversa">⌕</button>
     <button onclick="toggleChat()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:4px">✕</button>
@@ -11371,7 +11371,7 @@ function biExportCruz(){
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Cruzamento');
-  XLSX.writeFile(wb, `SD-BI-${biCfg.linha}-x-${biCfg.coluna}-${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb, `PD-BI-${biCfg.linha}-x-${biCfg.coluna}-${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 // Injeta a aba no modal do BI assim que ele abrir

@@ -1059,3 +1059,14 @@ input[type="date"],input[type="email"],input[type="number"]{
 
 /* caixinha flutuante de horários do verso: fora da tela a pedido (14/10). O relógio interno segue medindo. */
 #tracker-win{display:none !important}
+
+/* dentro do verso (desktop): 100px de respiro nas laterais pras orelhas de Histórico e Conversas não ficarem por cima */
+@media (min-width:1000px){
+  html.sd-embutido #view-admin,
+  html.sd-embutido #view-clientes,
+  html.sd-embutido #view-saude,
+  html.sd-embutido #view-fila,
+  html.sd-embutido #view-mural{padding-left:100px;padding-right:100px;box-sizing:border-box}
+  html.sd-embutido #saude-corpo{margin:0 auto;width:100%}
+  html.sd-embutido #view-saude .page-header{max-width:980px;margin:0 auto;width:100%;box-sizing:border-box}
+}

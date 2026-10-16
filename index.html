@@ -1882,12 +1882,12 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
     </div>
     <div class="v-busca">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      <input id="vBusca" placeholder="Procurar no SD…" oninput="vFiltrar(this.value)"
+      <input id="vBusca" placeholder="Procurar na pontodot…" oninput="vFiltrar(this.value)"
         style="border:none;outline:none;background:none;flex:1;min-width:0;color:inherit;font-size:12px">
     </div>
     <div class="v-sec">O MAPA — TUDO CONECTADO</div>
     <div class="v-mapa">
-      <svg viewBox="0 0 400 548" role="img" aria-label="O fluxo do SD, do pedido ao desempenho" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif">
+      <svg viewBox="0 0 400 548" role="img" aria-label="O fluxo da pontodot, do pedido ao desempenho" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif">
         <defs>
           <marker id="seta" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
             <path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
@@ -1964,7 +1964,7 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v78 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v79 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2031,7 +2031,7 @@ const FRASES_LG = QUOTES.map(q=>q.t.length>110);
 const IAS = [
   { n:'Dot · GPT', on:true,
     d:'2 tarefas agora · último TERMINEI há 1 h · 78% aprovado de primeira' },
-  { n:'Claude · o maestro do SD', on:true,
+  { n:'Claude · o maestro da pontodot', on:true,
     d:'3 chamados hoje · 8 peças revisadas · 2 briefings escritos' },
 ];
 
@@ -2473,7 +2473,7 @@ function htmlFrase(usando){
 }
 
 function rotuloConversa(){
-  if (atual === 'sd') return (threadTitulo ? threadTitulo : 'conversa com a SD') + (window.IA_ON ? ' &nbsp;<span class="ia-chip" style="vertical-align:1px">Claude ligada</span>' : '');
+  if (atual === 'sd') return (threadTitulo ? threadTitulo : 'conversa com a pontodot') + (window.IA_ON ? ' &nbsp;<span class="ia-chip" style="vertical-align:1px">Claude ligada</span>' : '');
   const c = CONVERSAS.find(c => c.quem === atual);
   return c ? `conversa na tarefa ${c.tarefa} · ${c.tnome}` : 'conversa com ' + String(atual).split(' ')[0];
 }
@@ -2507,7 +2507,7 @@ function irConversa(quem){
 // por usuário, com opção pública/particular (tabela chat_threads) ----------
 let threadId = null, threadTitulo = '', threadsSalvas = [];
 function tituloSugerido(msgs){
-  const m = msgs.find(x => x.eu); if (!m) return 'Conversa com a SD';
+  const m = msgs.find(x => x.eu); if (!m) return 'Conversa com a pontodot';
   return String(m.t).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,46);
 }
 let _thTimer = null;
@@ -2647,7 +2647,7 @@ function selinhoON(nome){
 function avatarZ(quem){
   if (!quem || quem === 'sd')
     return avatarIA
-      ? `<img class="avatarzinho av-sd" src="${esc(avatarIA)}" alt="SD" data-sd="1" style="object-fit:cover;border:none">`
+      ? `<img class="avatarzinho av-sd" src="${esc(avatarIA)}" alt="pontodot" data-sd="1" style="object-fit:cover;border:none">`
       : '<div class="avatarzinho av-sd" data-sd="1">S</div>';
   const p = PERFIS.find(x=>x.name===quem) || PERFIS.find(x=>x.name && x.name.split(' ')[0]===quem);
   const c = CONVERSAS.find(x=>x.quem===quem);
@@ -3247,7 +3247,7 @@ function abrirMenuCtx(x,y){
     <div class="sep"></div>
     <button onclick="fecharMenuCtx();alternarTema()">Inverter dia e noite</button>
     <button onclick="fecharMenuCtx();alternarHist()">Histórico de conversas</button>
-    <button onclick="fecharMenuCtx();abrirMemoria()">O que a SD sabe…</button>
+    <button onclick="fecharMenuCtx();abrirMemoria()">O que a pontodot sabe…</button>
     <button onclick="fecharMenuCtx();forcarSaudacao()">Pedir pra ela falar comigo</button>
     <button onclick="fecharMenuCtx();abrirJeito()">Nosso jeito de trabalhar…</button>
     <button onclick="fecharMenuCtx();abrirCarinhas()">Trocar a carinha dela…</button>
@@ -3326,7 +3326,7 @@ async function liberarVersoMobile(abrir){
 }
 function abrirLiberarEquipe(){
   const gente = (PERFIS||[]).filter(p => p.name && !p.client_id);
-  miniEscolha('Quem pode abrir o SD completo no celular',
+  miniEscolha('Quem pode abrir a pontodot completa no celular',
     gente.map(p => `<button class="btn" style="min-height:40px" onclick="alternarVersoDe('${p.id}','${(p.name||'').replace(/'/g,'’')}',${p.verso_mobile?1:0})">
       ${p.verso_mobile?'✓ ':''}${esc(p.name.split(' ')[0])}</button>`).join('')
     || '<div class="nota">Equipe ainda carregando…</div>');
@@ -3335,7 +3335,7 @@ async function alternarVersoDe(id, nome, jaTem){
   try {
     await sbR.from('profiles').update({ verso_mobile: !jaTem }).eq('id', id);
     const p = (PERFIS||[]).find(x=>x.id===id); if (p) p.verso_mobile = !jaTem;
-    toast(`${nome.split(' ')[0]} ${!jaTem?'pode':'não pode mais'} abrir o SD completo no celular.`);
+    toast(`${nome.split(' ')[0]} ${!jaTem?'pode':'não pode mais'} abrir a pontodot completa no celular.`);
   } catch(e){ toast('Não deu: ' + e.message); }
   fecharJanela();
 }
@@ -4069,6 +4069,7 @@ function pdfCampanha(conta, id){
   h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#555;margin:20px 0 8px}
   .a{display:flex;gap:12px;padding:10px 0;border-top:1px solid #e5e5e5;break-inside:avoid}.a img{width:110px;height:110px;object-fit:cover;border-radius:8px;background:#eee}
   .a b{font-size:13px}.a p{margin:3px 0;color:#444}.rod{margin-top:22px;color:#999;font-size:10.5px}</style>
+  <img src="${location.origin}/assets/logo-pontodot.svg" alt="pontodot" style="height:26px;margin-bottom:14px;display:block">
   <h1>${esc(c.nome||'Campanha')}</h1><div class="sub">${esc(c0.cliente||c0.nome||'')} · ${esc(per)} · gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
   <div class="kk">${k('Investido',brl(c.gasto,c.moeda))}${k('Leads',c.leads||0)}${k('CPL',c.cpl!=null?brl(c.cpl,c.moeda):'—')}</div>
   <div class="kk">${k('Alcance',nf(c.alcance))}${k('Impressões',nf(c.impressoes))}${k('Cliques',nf(c.cliques))}</div>
@@ -4899,7 +4900,7 @@ function alternarSom(){
   somLigado = !somLigado;
   try { localStorage.setItem('sd_som', somLigado ? '1' : '0'); } catch(e){}
   if (somLigado) somChegou();
-  toast(somLigado ? 'Som ligado — você ouve quando a SD responde.' : 'Som desligado.');
+  toast(somLigado ? 'Som ligado — você ouve quando a pontodot responde.' : 'Som desligado.');
 }
 
 // =====================================================================
@@ -4928,10 +4929,10 @@ async function carinhasDoServidor(forcar){
 }
 
 async function abrirCarinhas(){
-  if (!window.REAL){ toast('As carinhas vêm do servidor — só no SD de verdade.'); return; }
+  if (!window.REAL){ toast('As carinhas vêm do servidor — só na pontodot de verdade.'); return; }
   abrirJanela(`<div class="caixa invertida" id="cxCarinhas" style="padding:20px 18px 16px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-      <h3 style="margin:0;flex:1;font-size:24px;font-weight:400;letter-spacing:-.01em">A carinha da SD</h3>
+      <h3 style="margin:0;flex:1;font-size:24px;font-weight:400;letter-spacing:-.01em">A carinha da pontodot</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharComFio('#janela .caixa',fecharJanela)" aria-label="Fechar">✕</button>
     </div>
     <div class="nota" style="margin:0 0 12px">Buscando na pasta do servidor…</div>
@@ -6121,7 +6122,7 @@ async function pintarAvisos(){
     ${trava ? `<p class="av-trava">${trava}</p>` : ''}
     <p style="font-size:12.5px;line-height:1.5;opacity:.75;margin:12px 0 0">
       O aviso é <b>por aparelho</b>, não por conta. Ligar aqui não liga no seu celular —
-      lá você precisa abrir o SD e ligar também, uma vez só.</p>
+      lá você precisa abrir a pontodot e ligar também, uma vez só.</p>
     ${outros.length ? `<div class="av-outros"><span>Outros aparelhos seus</span>
       ${outros.map(a=>`<i>${esc(nomeAparelho(a))}</i>`).join('')}</div>` : ''}
     <div id="avRecado" class="av-recado" style="display:none"></div>
@@ -6687,7 +6688,7 @@ function escolherCliente(ev, id){
   const ativos = (clientesReais||[]).filter(c=>c.active!==false);
   if (!ativos.length){ toast('Clientes ainda carregando…'); return; }
   abrirMenuSel(ev, `<div class="mini">CLIENTE DE ${id}</div>
-    <button onclick="fecharMenuCtx();aplicarCampo('${id}','client_id',null)">SD (interna, sem cliente)</button>` +
+    <button onclick="fecharMenuCtx();aplicarCampo('${id}','client_id',null)">PD (interna, sem cliente)</button>` +
     ativos.map(c=>`<button onclick="fecharMenuCtx();aplicarCampo('${id}','client_id',${JSON.stringify(c.id)})">${esc(c.name)}</button>`).join(''));
 }
 function escolherSemana(ev, id){
@@ -6807,7 +6808,7 @@ async function abrirTarefaReal(id){
       <button class="btn" onclick="verPromptTarefa('${t.id}')">ver</button>
       <button class="btn" onclick="window._promptAtual={id:'${t.id}',texto:(tasksReais.find(x=>x.id==='${t.id}')||{}).prompt_ia||''};baixarPrompt()">baixar</button>
     </div>` : `<div class="tc-prompt" style="border-left-color:rgba(127,127,127,.4);opacity:.7">
-      <span style="flex:1">Sem prompt ainda — peça o trabalho no chat da SD e ela escreve um pro GPT.</span>
+      <span style="flex:1">Sem prompt ainda — peça o trabalho no chat da pontodot e ela escreve um pro GPT.</span>
     </div>`}
     <div id="tcDrive"></div>
     ${t.obs?`<div class="tc-obs edit" title="Toca pra editar" onclick="editarInline(event,'${t.id}','obs','area')">${String(t.obs).replace(/</g,'&lt;').replace(/(https?:\/\/\S+)/g,'<a href="$1" target="_blank" style="color:inherit">$1</a>')}</div>`
@@ -6952,7 +6953,7 @@ function chamarApp(fn, ...args){
     if (w && typeof w[fn] === 'function'){ w[fn](...args); return true; }
   } catch(e){}
   prepararVersoApp();
-  toast('Ligando a ponte com o SD completo… tenta de novo em uns segundos.');
+  toast('Ligando a ponte com a pontodot completa… tenta de novo em uns segundos.');
   return false;
 }
 function driveAcaoNovo(fn, id){
@@ -8036,7 +8037,7 @@ function copiarDiagnostico(){
 function forcarSaudacao(){
   try { localStorage.removeItem('sd_saudacao'); } catch(e){}
   THREADS.sd = []; salvarThread();
-  toast('Chamando a SD…');
+  toast('Chamando a pontodot…');
   saudacaoDaSD().then(()=>{
     setTimeout(()=>{
       if (!(THREADS.sd||[]).length){

@@ -43,6 +43,9 @@ h1{font-size:30px;font-weight:400;letter-spacing:-.015em;margin:0 0 6px}
 .passo h2{margin:0}
 a{color:var(--br);text-decoration:underline;text-underline-offset:3px}
 </style>
+<link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/icon-pwa.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 </head>
 <body>
 <div class="tela">
@@ -173,7 +176,7 @@ async function limpar(){
   sb=window.supabase.createClient(SB_URL,SB_KEY);
   const {data:{session}}=await sb.auth.getSession();
   if(!session){ document.querySelector('.tela').innerHTML=
-    '<h1>Entre primeiro</h1><p class="sub">Abra o <a href="/index.html">SD</a>, faça login, e volte nesta página.</p>'; return; }
+    '<h1>Entre primeiro</h1><p class="sub">Abra a <a href="/index.html">pontodot</a>, faça login, e volte nesta página.</p>'; return; }
   contar();
 })();
 </script>
