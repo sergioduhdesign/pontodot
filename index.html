@@ -1916,7 +1916,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v68 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v69 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4450,10 +4450,16 @@ function icoTema(dia){
 const noVersoAgora = () => $('#mundo')?.classList.contains('virado');
 const frameVerso = () => { try { return $('#appFrame')?.contentWindow || null; } catch(e){ return null; } };
 function clChat(){
-  const w = noVersoAgora() ? frameVerso() : null;
-  if (w && typeof w.toggleChat === 'function') w.toggleChat();
-  else if (!ehDesk()){ gadsAbertos.conversas = !gadsAbertos.conversas; renderBoard(); }
-  else alternarPainel('conversas');
+  // chama o campo da IA (frente e verso) e deixa o cursor pronto pra pessoa falar
+  if (noVersoAgora()){
+    const v = $('#vConversa'); if (v) v.classList.remove('oculto');
+    $('#vPe')?.classList.remove('mini');
+    try { render(); } catch(e){}
+    const c = $('#campoVerso'); if (c) setTimeout(()=>c.focus(), 60);
+    return;
+  }
+  if (!chat) modoChat(true);
+  const c = $('#campo'); if (c) setTimeout(()=>c.focus(), 60);
 }
 // o ＋ mora ao lado da caixa da IA (no lugar da seta quando o campo está vazio):
 // preenche o molde de job novo e deixa o cursor no primeiro [campo]
