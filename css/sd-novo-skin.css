@@ -306,3 +306,8 @@
     font-size:16px}    /* 16px: o iOS para de dar zoom sozinho */
   [data-theme="sdnovo"] .modal-close,[data-theme="sdnovo-claro"] .modal-close{min-width:44px;min-height:44px}
 }
+
+
+/* o conjunto do canto direito mora na casca (frente e verso iguais): aqui dentro some o que repetia */
+html.sd-embutido .header-right{display:none!important}
+html.sd-embutido .hdr-row-top{min-height:0}

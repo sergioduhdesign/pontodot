@@ -1412,6 +1412,49 @@ html.dia .faixa-legal{color:rgba(23,24,27,.6)}
 .verso .v-conversa{padding-bottom:calc(96px + var(--faixa))}
 
 
+
+/* ===== conjunto do canto superior direito: UM só, igual na frente e no verso, fora do giro ===== */
+.cluster{position:fixed;top:calc(12px + env(safe-area-inset-top));right:16px;z-index:41;display:flex;align-items:center;gap:6px;
+  opacity:0;pointer-events:none;transition:opacity .35s ease}
+.cluster.on{opacity:1;pointer-events:auto}
+.cluster.vira{opacity:.2;transition:opacity .22s ease}            /* some rápido ao virar... */
+.cluster.esc{opacity:0;pointer-events:none;transition:opacity .2s ease}   /* ...e volta suave, como a caixa da IA */
+.cl-b{position:relative;width:38px;height:38px;display:grid;place-items:center;border:.5px solid var(--linha);border-radius:13px;
+  background:var(--vidro);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--branco);cursor:pointer;
+  padding:0;overflow:visible;transition:background .2s,transform .2s,border-color .2s}
+.cl-b:hover{background:color-mix(in srgb,var(--vidro) 70%,var(--branco) 14%)}
+.cl-b:active{transform:scale(.94)}
+.cl-b svg{width:18px;height:18px}
+.cl-mais{font-size:24px;font-weight:300;line-height:1}
+.cl-av{border-radius:50%;overflow:hidden;font-size:10.5px;font-weight:700;letter-spacing:.02em}
+.cl-av img{width:100%;height:100%;object-fit:cover;display:block}
+.cl-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#dc2626;color:#fff;
+  font-weight:700;font-size:10px;line-height:17px;font-style:normal;text-align:center;padding:0 4px;display:none}
+.cl-badge.on{display:block}
+.cl-busca{display:flex;align-items:center;gap:6px}
+.cl-busca input{width:0;opacity:0;padding:0;border:.5px solid var(--linha);border-radius:13px;height:38px;background:var(--vidro);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--branco);font:inherit;font-size:13.5px;outline:none;
+  transition:width .35s cubic-bezier(.19,1,.22,1),opacity .25s,padding .35s}
+.cl-busca.aberta input{width:min(250px,48vw);opacity:1;padding:0 14px}
+.cl-busca input::placeholder{color:var(--branco2)}
+.cl-res{position:absolute;top:46px;right:0;width:min(380px,92vw);max-height:60vh;overflow-y:auto;display:none;
+  background:rgba(8,10,9,.9);border:.5px solid var(--linha);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:6px}
+html.dia .cl-res{background:rgba(244,243,239,.96)}
+.cl-res.on{display:block}
+.cl-it{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:9px 12px;border-radius:11px;color:var(--branco);cursor:pointer}
+.cl-it:hover,.cl-it.sel{background:rgba(127,127,127,.16)}
+.cl-it b{font-weight:500;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-it span{font-size:11px;color:var(--branco2);letter-spacing:.03em}
+.cl-vazio{padding:14px 12px;font-size:12.5px;color:var(--branco2)}
+@media(max-width:999px){
+  .cluster{right:12px;gap:5px}
+  .cl-b{width:36px;height:36px;border-radius:12px}
+  .board-cab{min-height:46px;padding-bottom:6px;align-items:flex-start;padding-top:2px}
+  .frente .tela{padding-top:calc(96px + env(safe-area-inset-top))}
+  html.emChat .board-cab{display:none}
+}
+
 /* aba Histórico na frente: a irmã espelhada da de Conversas (mesmo tamanho, mesma letra, mesmo vidro) */
 .aba-hist-frente{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:36;writing-mode:vertical-rl;
   font:inherit;font-size:11.5px;font-weight:500;letter-spacing:.14em;color:var(--branco);white-space:nowrap;cursor:pointer;
@@ -1704,10 +1747,7 @@ html.emChat .cfg-area{display:none}
 
   <!-- praça de gadgets (desk) -->
   <aside class="board" id="board">
-    <div class="board-cab"><span class="tit">ÁREA DE TRABALHO</span>
-      <button class="tema-top" id="btnTemaTop" onclick="alternarTema()" title="Dia / noite" aria-label="Inverter dia e noite"></button>
-      <button class="mais-top" onclick="novaTarefa()" title="Nova tarefa" aria-label="Nova tarefa">+</button>
-      <button class="user-top oculto" id="userTop" onclick="abrirPerfil()" title="Sua conta">··</button></div>
+    <div class="board-cab"><span class="tit">ÁREA DE TRABALHO</span></div>
     <div class="board-rolo"><div class="board-grid" id="boardGrid"></div></div>
     <button class="cfg-area" id="cfgArea" onclick="abrirPicker()">Configurar área de trabalho…</button>
     <div id="pickerSlot"></div>
@@ -1808,6 +1848,22 @@ html.emChat .cfg-area{display:none}
 </div></div>
 
 <!-- globais: valem na frente e no verso -->
+<nav class="cluster" id="cluster" aria-label="Atalhos">
+  <div class="cl-busca" id="clBusca">
+    <input id="clInput" type="text" placeholder="Buscar tarefa, cliente, pessoa…" autocomplete="off" spellcheck="false"
+      oninput="clBuscar(this.value)" onkeydown="clTecla(event)">
+    <button class="cl-b" id="clBtnBusca" onclick="clAbrirBusca()" title="Buscar" aria-label="Buscar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="M20.5 20.5l-4.9-4.9"/></svg></button>
+  </div>
+  <button class="cl-b" id="clChat" onclick="clChat()" title="Conversas da equipe" aria-label="Conversas da equipe">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4.5 4V5.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg>
+    <i class="cl-badge" id="clBadge"></i></button>
+  <button class="cl-b" id="clTema" onclick="alternarTema()" title="Dia / noite" aria-label="Inverter dia e noite"></button>
+  <button class="cl-b cl-mais" id="clNova" onclick="clNova()" title="Nova tarefa" aria-label="Nova tarefa">+</button>
+  <button class="cl-b cl-av" id="clAv" onclick="abrirPerfil()" title="Sua conta" aria-label="Sua conta">··</button>
+  <div class="cl-res" id="clRes"></div>
+</nav>
+
 <div class="tarefa-cheia oculto" id="tarefaCheia" style="position:fixed;z-index:118"></div>
 <div class="arte-view oculto" id="arteView" style="position:fixed;z-index:124" onclick="if(event.target===this)fecharArtes&&fecharArtes()"></div>
 <div class="tarefa-cheia oculto" id="janela" style="position:fixed;z-index:126" onclick="if(event.target===this)fecharJanela()"></div>
@@ -1828,7 +1884,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v63 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v64 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3231,6 +3287,7 @@ function virar(){
     m.style.transition = '';
   }
   igualarIAVerso();
+  { const c = $('#cluster'); if (c){ c.classList.add('vira'); setTimeout(()=>c.classList.remove('vira'), 650); } }
   m.classList.toggle('virado');
   // a aba de conversas e o painel moram fora do mundo que gira: precisam
   // saber de que lado estão pra não aparecer com a cara do lado errado
@@ -3257,6 +3314,7 @@ function prepararVersoApp(){
     }
     const tema = (localStorage.getItem('sd_theme')||'') === 'light' ? 'sdnovo-claro' : 'sdnovo';
     d.documentElement.setAttribute('data-theme', tema);
+    d.documentElement.classList.add('sd-embutido');
     d.getElementById('splash-screen')?.remove();   // a capa é a frente; dentro do verso, direto ao app
     // clicou numa tarefa no app antigo → abre a NOSSA caixa, por cima do verso
     try {
@@ -3298,6 +3356,7 @@ function prepararVersoApp(){
           const dd = f.contentDocument; if (!dd) return;
           const aberto = !!dd.querySelector('.overlay.open');
           $('#vPe')?.classList.toggle('oculto', aberto);
+          $('#cluster')?.classList.toggle('esc', aberto);
           if (aberto) fecharConvVerso();
         } catch(e){} }, 600);
       }
@@ -4262,13 +4321,80 @@ vTarefas = 'aberta';   // a área de trabalho existe em todo lugar — mobile in
 // ---------- tema dia/noite ----------
 function pintarBtnTema(){
   const dia = document.documentElement.classList.contains('dia');
-  document.querySelectorAll('#btnTema,#btnTemaTop').forEach(b=>{ b.innerHTML = icoTema(dia); });
+  document.querySelectorAll('#btnTema,#btnTemaTop,#clTema').forEach(b=>{ b.innerHTML = icoTema(dia); });
 }
 function icoTema(dia){
   return dia
     ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 13.5A8 8 0 1 1 10.5 4 6.5 6.5 0 0 0 20 13.5z"/></svg>'
     : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>';
 }
+
+// =====================================================================
+// CONJUNTO DO CANTO SUPERIOR DIREITO — um só, igual na frente e no verso.
+// Fica FORA do mundo que gira: não muda de lugar nem de cara ao virar.
+// Cada botão sabe em que lado está e chama a coisa certa.
+// =====================================================================
+const noVersoAgora = () => $('#mundo')?.classList.contains('virado');
+const frameVerso = () => { try { return $('#appFrame')?.contentWindow || null; } catch(e){ return null; } };
+function clChat(){
+  const w = noVersoAgora() ? frameVerso() : null;
+  if (w && typeof w.toggleChat === 'function') w.toggleChat(); else alternarPainel('conversas');
+}
+function clNova(){
+  const w = noVersoAgora() ? frameVerso() : null;
+  if (w && typeof w.openNewTaskModal === 'function') w.openNewTaskModal(); else novaTarefa();
+}
+let _clSel = -1, _clAch = [];
+function clAbrirBusca(){
+  const b = $('#clBusca'), i = $('#clInput');
+  if (b.classList.contains('aberta') && !i.value){ clFecharBusca(); return; }
+  b.classList.add('aberta'); setTimeout(()=>i.focus(), 60);
+  if (i.value) clBuscar(i.value);
+}
+function clFecharBusca(){
+  $('#clBusca').classList.remove('aberta'); $('#clRes').classList.remove('on');
+  const i = $('#clInput'); i.value = ''; i.blur(); _clAch = []; _clSel = -1;
+}
+function clBuscar(q){
+  const box = $('#clRes'); q = (q||'').trim().toLowerCase();
+  if (!q){ box.classList.remove('on'); _clAch = []; return; }
+  const sem = x => String(x||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const termos = sem(q).split(/\s+/).filter(Boolean);
+  const lista = (window.REAL ? tasksReais : []) || [];
+  _clAch = lista.filter(t => {
+    const palheiro = sem([t.id, t.action, t.project, t.clients && t.clients.name, t.products && t.products.name, t.resp, t.status, t.obs].join(' '));
+    return termos.every(x => palheiro.includes(x));
+  }).slice(0, 8);
+  _clSel = _clAch.length ? 0 : -1;
+  box.innerHTML = _clAch.length
+    ? _clAch.map((t,k) => `<button class="cl-it${k===0?' sel':''}" onclick="clAbrirTarefa(${k})"><b>${esc(t.action || t.project || t.id)}</b>
+        <span>${esc(t.id)} · ${esc((t.clients&&t.clients.name)||'sem cliente')} · ${esc(t.resp||'sem responsável')} · ${esc(String(t.status||'').toLowerCase())}</span></button>`).join('')
+    : `<div class="cl-vazio">Nada encontrado pra "${esc(q)}".</div>`;
+  box.classList.add('on');
+}
+function clTecla(e){
+  if (e.key === 'Escape'){ clFecharBusca(); return; }
+  if (!_clAch.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    _clSel = (_clSel + (e.key === 'ArrowDown' ? 1 : -1) + _clAch.length) % _clAch.length;
+    document.querySelectorAll('#clRes .cl-it').forEach((el,k)=>el.classList.toggle('sel', k===_clSel));
+  } else if (e.key === 'Enter'){ e.preventDefault(); clAbrirTarefa(Math.max(_clSel,0)); }
+}
+function clAbrirTarefa(k){
+  const t = _clAch[k]; if (!t) return;
+  clFecharBusca();
+  abrirTarefaReal(t.id);
+}
+// contador de conversas novas: espelha o do app (que mora no verso)
+setInterval(()=>{ try {
+  const f = $('#appFrame'); const d = f && f.contentDocument; if (!d) return;
+  const el = d.getElementById('chat-badge'); const b = $('#clBadge'); if (!el || !b) return;
+  const vis = el.style.display !== 'none' && (el.textContent||'').trim() && (el.textContent||'').trim() !== '0';
+  b.textContent = vis ? el.textContent.trim() : ''; b.classList.toggle('on', !!vis);
+} catch(e){} }, 2500);
+document.addEventListener('click', e => { if (!e.target.closest('#clBusca,#clRes')) { const b = $('#clBusca'); if (b && b.classList.contains('aberta')) clFecharBusca(); } });
+
 function alternarTema(){
   document.documentElement.classList.toggle('dia');
   try { localStorage.setItem('sd_tema', document.documentElement.classList.contains('dia') ? 'dia' : 'noite'); } catch(e){}
@@ -5703,6 +5829,7 @@ async function entrarReal(session){
   const { data: p } = await sbR.from('profiles').select('*').eq('id', session.user.id).single();
   perfil = p || { id: session.user.id, name: 'SD' };
   window.REAL = true;
+  $('#cluster')?.classList.add('on');
   sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile') : r)
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id') : r)
@@ -5712,6 +5839,9 @@ async function entrarReal(session){
     if (n.length) EQUIPE = n;
     const ini = (perfil && perfil.name) ? perfil.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase() : 'SD';
     const b = $('#btnPerfilVerso'); if (b) b.textContent = ini;
+    const av = $('#clAv');
+    if (av) av.innerHTML = perfil && perfil.avatar_url
+      ? `<img src="${perfil.avatar_url}" alt="">` : ini;
     const u = $('#userTop');
     if (u){
       u.innerHTML = perfil && perfil.avatar_url
