@@ -144,6 +144,7 @@
              box-shadow:0 12px 32px rgba(0,0,0,.18);overflow:hidden;padding:4px">
           <div class="adm-mi" onclick="closeAdminMenu();setView('admin')">Painel</div>
           <div class="adm-mi" onclick="closeAdminMenu();setView('clientes')">Clientes</div>
+          <div class="adm-mi" id="adm-mi-saude" style="display:none" onclick="closeAdminMenu();setView('saude')">Saúde da plataforma</div>
           <div class="adm-mi" id="adm-mi-fila" data-perm="social.publicar" style="display:none" onclick="closeAdminMenu();setView('fila')">Redes sociais</div>
         </div>
       </div>
@@ -291,6 +292,14 @@
         <div id="mural-board" style="position:relative;flex:1;overflow:hidden;background:
           radial-gradient(circle, var(--border) 1px, transparent 1px);background-size:26px 26px"></div>
       </div>
+      <div class="view-panel" id="view-saude" style="background:var(--bg)">
+        <div class="page-header">
+          <div><div class="page-title">Saúde da plataforma</div><div class="page-subtitle" id="saude-sub">Filas, relógios e conexões — ao vivo</div></div>
+          <button class="btn btn-secondary" onclick="renderSaude()">↻ Atualizar</button>
+        </div>
+        <div id="saude-corpo" style="padding:0 20px 28px;max-width:980px"></div>
+      </div>
+
       <div class="view-panel" id="view-fila" style="background:var(--bg)">
         <div style="display:flex;align-items:center;gap:2px;padding:10px 16px 0;border-bottom:1px solid var(--border)">
           <button id="fila-tab-ativos" class="nav-tab active" style="font-weight:700" onclick="filaSetAba('ativos',this)">Ativos</button>
@@ -1627,7 +1636,7 @@ showSplash();
 
   const auth=await Auth.requireAuth(['admin','team','client']);if(!auth)return;
   profile=auth.profile;
-  if(profile.role==='admin'){const ta=document.getElementById('tab-admin-wrap'); if(ta) ta.style.display='';}
+  if(profile.role==='admin'){const ta=document.getElementById('tab-admin-wrap'); if(ta) ta.style.display='';const sm=document.getElementById('adm-mi-saude'); if(sm) sm.style.display='';}
   if(profile.role==='admin'||profile.role==='team'){const tm=document.getElementById('tab-mural');if(tm)tm.style.display='';}
   setHeaderUser();
   {const tb=document.getElementById('theme-btn'); if(tb) tb.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'◑';}
@@ -2503,7 +2512,7 @@ function applyTag(label){const input=document.getElementById('gs-input');const c
 function hideGsDrop(){document.getElementById('gs-drop').classList.remove('open');}
 function toggleMobileSearch(){const input=document.getElementById('gs-input');const isV=getComputedStyle(input).display!=='none';input.style.display=isV?'none':'block';if(!isV){input.style.display='block';input.focus();}}
 
-function render(){renderStats();renderSidebar();if(currentView==='feed')renderFeed();else if(currentView==='kanban')renderKanban();else if(currentView==='lista')renderLista();else if(currentView==='clientes')renderClientes();else if(currentView==='gantt')renderGantt();else if(currentView==='fila')renderFila();else if(currentView==='mural')renderMural();else if(currentView==='admin')renderAdmin();}
+function render(){renderStats();renderSidebar();if(currentView==='feed')renderFeed();else if(currentView==='kanban')renderKanban();else if(currentView==='lista')renderLista();else if(currentView==='clientes')renderClientes();else if(currentView==='gantt')renderGantt();else if(currentView==='fila')renderFila();else if(currentView==='mural')renderMural();else if(currentView==='admin')renderAdmin();else if(currentView==='saude')renderSaude();}
 
 function renderStats(){ updateMyTasksBadge(); }
 
@@ -9014,11 +9023,11 @@ function setView(v){
   const alvo=document.getElementById(mapaTab[v]);
   if(alvo) alvo.classList.add('active');
   // Clientes, Redes sociais e Painel vivem dentro de Admin
-  if(['admin','clientes','fila'].includes(v))
+  if(['admin','clientes','fila','saude'].includes(v))
     document.getElementById('tab-admin')?.classList.add('active');
   document.querySelectorAll('.view-panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v)?.classList.add('active');
-  document.getElementById('main-toolbar').style.display=(v==='feed'||v==='fila'||v==='mural')?'none':'flex';
+  document.getElementById('main-toolbar').style.display=(v==='feed'||v==='fila'||v==='mural'||v==='saude')?'none':'flex';
   // A coluna lateral (clientes/status) só faz sentido na Lista — nas
   // outras telas ela só ocupa espaço e às vezes sobrepõe conteúdo.
   const sbTab=document.getElementById('sidebar-tab');
@@ -9032,6 +9041,128 @@ function setView(v){
   if(v==='gantt' && typeof setCronoMode==='function'){
     try{ setCronoMode(window.cronoMode||'fluxo'); }catch(e){ console.warn('[fluxo]',e.message); }
   }
+}
+
+
+// ================================================================
+// SAÚDE DA PLATAFORMA (v1) — só admin. Lê tudo de uma vez pela função
+// pd_saude() do banco (SQL v63). Cada cron grava um "batimento" quando
+// roda; aqui a gente compara com o intervalo esperado e acende o alerta.
+// ================================================================
+const SAUDE_CRONS = {
+  'pd-worker':             { nome:'Relógio da casa (Zap, esteiras, cópias)', cada:5,    tolera:15 },
+  'social-publish-worker': { nome:'Publicador das redes',                     cada:5,    tolera:20 },
+  'lembretes':             { nome:'Lembretes (de hora em hora)',              cada:60,   tolera:150 },
+  'lembrete-prazo':        { nome:'Aviso de prazo (1x por dia)',              cada:1440, tolera:1560 },
+};
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function saudeQuando(iso){
+  if(!iso) return '—';
+  const m = Math.round((Date.now() - new Date(iso).getTime())/60000);
+  if(m < 1) return 'agora há pouco';
+  if(m < 60) return 'há ' + m + ' min';
+  if(m < 2880) return 'há ' + Math.round(m/60) + ' h';
+  return 'há ' + Math.round(m/1440) + ' dias';
+}
+async function renderSaude(){
+  const box = document.getElementById('saude-corpo');
+  if(!box) return;
+  if(profile.role !== 'admin'){ box.innerHTML = '<div style="padding:30px;color:var(--text3)">Só admin vê esta tela.</div>'; return; }
+  box.innerHTML = '<div style="padding:30px;color:var(--text3)">Carregando…</div>';
+  const { data, error } = await sb.rpc('pd_saude');
+  if(error){
+    box.innerHTML = `<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">
+      Não consegui ler a saúde: ${esc(error.message)}<br><span style="color:var(--text3)">Se diz que a função não existe, falta rodar o SQL <b>migration_v63_saude.sql</b> no Supabase.</span></div>`;
+    return;
+  }
+  const d = data || {};
+  const OK='#16a34a', AV='#d97706', RU='#dc2626', CI='#6b7280';
+  const ponto = c => `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:8px;flex-shrink:0"></span>`;
+  const linha = (cor, titulo, detalhe, dir) => `<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:10px">
+      ${ponto(cor)}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${titulo}</div>${detalhe?`<div style="font-size:11.5px;color:var(--text3);margin-top:2px;word-break:break-word">${detalhe}</div>`:''}</div>
+      <div style="font-size:12px;color:var(--text2);white-space:nowrap">${dir||''}</div></div>`;
+  const bloco = (titulo, corpo) => `<div style="margin-top:22px"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:2px">${titulo}</div>${corpo}</div>`;
+  const alertas = [];
+
+  // --- relógios
+  const bat = Object.fromEntries((d.batimentos||[]).map(b => [b.chave, b]));
+  const relogios = Object.entries(SAUDE_CRONS).map(([k, cfg]) => {
+    const b = bat[k];
+    if(!b){ alertas.push(cfg.nome + ': nunca bateu'); return linha(RU, cfg.nome, 'Nunca registrou batimento. Ou o cron não existe, ou o arquivo ainda não foi atualizado no servidor.', 'sem sinal'); }
+    const min = (Date.now() - new Date(b.ultima_em).getTime())/60000;
+    const cor = min <= cfg.tolera ? OK : RU;
+    if(cor === RU) alertas.push(cfg.nome + ': parado ' + saudeQuando(b.ultima_em));
+    return linha(cor, cfg.nome, 'esperado a cada ' + (cfg.cada >= 1440 ? 'dia' : cfg.cada >= 60 ? (cfg.cada/60)+' h' : cfg.cada+' min'), saudeQuando(b.ultima_em));
+  }).join('');
+
+  // --- Zap
+  const z = (d.zap||{}).por_status || {};
+  const zErr = (z.erro||0), zFila = (z.fila||0), zMan = (z.manual||0);
+  const zAntiga = (d.zap||{}).fila_mais_antiga;
+  const zAtraso = zAntiga ? (Date.now() - new Date(zAntiga).getTime())/60000 : 0;
+  const zCor = zErr ? RU : (zFila && zAtraso > 20) ? AV : OK;
+  if(zErr) alertas.push('Zap: ' + zErr + ' mensagem(ns) com erro');
+  if(zFila && zAtraso > 20) alertas.push('Zap: fila parada há ' + Math.round(zAtraso) + ' min');
+  const zUlt = (d.zap||{}).ultimo_erro;
+  const zapHTML = linha(zCor, 'Mensagens do WhatsApp',
+      `enviadas ${z.enviado||0} · na fila ${zFila} · com erro ${zErr} · pra mandar na mão ${zMan}` + (zUlt ? `<br>último erro (${saudeQuando(zUlt.quando)}): ${esc(zUlt.erro||'')}` : ''),
+      zFila ? 'fila mais antiga ' + saudeQuando(zAntiga) : '');
+
+  // --- Publicação
+  const p = (d.publicacao||{});
+  const ps = p.por_status || {};
+  const venc = p.vencidos_sem_publicar || 0;
+  const pCor = (ps.erro||0) ? RU : venc ? AV : OK;
+  if(ps.erro) alertas.push('Publicação: ' + ps.erro + ' com erro');
+  if(venc) alertas.push('Publicação: ' + venc + ' passaram do horário e não saíram');
+  const pubHTML = linha(pCor, 'Publicação nas redes',
+      `agendadas ${ps.agendado||0} · publicadas ${ps.publicado||0} · com erro ${ps.erro||0}` + (venc ? ` · <b>${venc} vencida(s) sem sair</b>` : '')
+      + (p.ultimo_erro ? `<br>último erro: ${esc(p.ultimo_erro.erro||'')}` : ''), '');
+
+  // --- Lotes / robô
+  const l = d.lotes || {};
+  const lCor = l.robo_parado ? RU : OK;
+  if(l.robo_parado) alertas.push('Lotes: ' + l.robo_parado + ' parado(s) com erro');
+  const lotesHTML = linha(lCor, 'Montagem de lotes (robô do Drive)',
+      `montando agora ${l.robo_montando||0} · parados com erro ${l.robo_parado||0} · aguardando a IA entregar ${l.entregas_a_receber||0}`, '');
+
+  // --- Meta
+  const m = d.meta || {};
+  const toks = m.tokens_usuario || [];
+  let metaCor = OK, metaTxt = 'conectada', metaDir = '';
+  if(!toks.length){ metaCor = RU; metaTxt = 'nenhum token de usuário'; alertas.push('Meta: sem token'); }
+  else {
+    const t = toks[0];
+    if(t.expira_em){
+      const dias = Math.round((new Date(t.expira_em).getTime() - Date.now())/86400000);
+      metaCor = dias < 0 ? RU : dias <= 7 ? AV : OK;
+      metaTxt = dias < 0 ? 'EXPIRADO' : 'vence em ' + dias + ' dia(s)'; metaDir = new Date(t.expira_em).toLocaleDateString('pt-BR');
+      if(metaCor !== OK) alertas.push('Meta: token ' + metaTxt);
+    } else { metaCor = AV; metaTxt = 'sem data de validade registrada (renovado ' + saudeQuando(t.atualizado_em) + ')'; }
+  }
+  const cs = m.contas_sociais || {};
+  const csTxt = Object.entries(cs).map(([k,v]) => v + ' ' + k).join(' · ') || 'nenhuma conta';
+  if((cs.erro||0) || (cs.desconectada||0)) alertas.push('Contas sociais com problema');
+  const metaHTML = linha(metaCor, 'Conexão com a Meta (redes e campanhas)', 'token de usuário: ' + metaTxt + '<br>contas sociais: ' + csTxt, metaDir);
+
+  // --- Alarmes + versão
+  const al = d.alarmes_abertos || 0;
+  const alHTML = linha(al ? AV : OK, 'Alarmes abertos na equipe', al ? 'tem gente que precisa cuidar de algo' : 'nada pendente', String(al));
+  const verHTML = linha(CI, 'Versão no ar', 'confere se o que você colou/publicou é o que está rodando', esc(window.SD_VERSAO || '—'));
+
+  const resumo = alertas.length
+    ? `<div style="padding:14px 16px;border:1px solid ${RU}50;background:${RU}0d;border-radius:10px;margin-top:6px">
+         <div style="font-weight:700;color:${RU};font-size:13px;margin-bottom:6px">${alertas.length} ponto(s) pedindo atenção</div>
+         ${alertas.map(a => `<div style="font-size:12.5px;line-height:1.55">• ${esc(a)}</div>`).join('')}</div>`
+    : `<div style="padding:14px 16px;border:1px solid ${OK}50;background:${OK}0d;border-radius:10px;margin-top:6px;font-weight:700;color:${OK};font-size:13px">Tudo certo agora.</div>`;
+
+  box.innerHTML = resumo
+    + bloco('Relógios (crons)', relogios)
+    + bloco('Filas', zapHTML + pubHTML + lotesHTML)
+    + bloco('Conexões', metaHTML)
+    + bloco('Equipe e versão', alHTML + verHTML);
+  const sub = document.getElementById('saude-sub');
+  if(sub) sub.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + ' — ao vivo';
 }
 
 // ---- Menu Admin (Painel / Clientes / Redes sociais) ----

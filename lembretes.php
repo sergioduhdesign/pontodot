@@ -31,6 +31,7 @@ if (!$esperada || !hash_equals((string)$esperada, (string)$chave)) {
     echo json_encode(['ok' => false, 'erro' => 'chave inválida']); exit;
 }
 $seco = !empty($_GET['seco']);
+if (!$seco) { require_once __DIR__ . '/pd-saude-lib.php'; pdBatimento('lembretes'); }
 
 // --------------------------------------------------------------- relógio
 $tz    = new DateTimeZone('America/Sao_Paulo');

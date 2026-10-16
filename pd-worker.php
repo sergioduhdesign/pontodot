@@ -33,6 +33,7 @@ require_once __DIR__ . '/pd-site-lib.php';
 if (!defined('SD_CRON_KEY') || SD_CRON_KEY === 'SUA_CRON_KEY_AQUI') { http_response_code(500); die('SD_CRON_KEY nao configurada.'); }
 if (($_GET['key'] ?? '') !== SD_CRON_KEY) { http_response_code(403); die('Chave invalida.'); }
 @set_time_limit(280);
+require_once __DIR__ . '/pd-saude-lib.php'; pdBatimento('pd-worker');
 header('Content-Type: text/plain; charset=utf-8');
 echo "Pontodot — relógio da casa — " . date('c') . "\n" . str_repeat('-', 60) . "\n";
 

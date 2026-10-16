@@ -20,6 +20,7 @@ if (($_GET['key'] ?? '') !== SD_CRON_KEY) {
 }
 
 header('Content-Type: text/plain; charset=utf-8');
+require_once __DIR__ . '/pd-saude-lib.php'; pdBatimento('social-publish-worker');
 
 echo "Pontodot — publicador — " . date('c') . "\n";
 echo str_repeat('-', 60) . "\n";
