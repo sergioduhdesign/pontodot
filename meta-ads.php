@@ -4,6 +4,7 @@
 //
 //   POST {acao:"resumo",    periodo}            -> cada conta de anúncio, com gasto/leads/CPL
 //   POST {acao:"campanhas", conta, periodo}     -> as campanhas de UMA conta
+//   POST {acao:"anuncios",  conta, campanha, periodo} -> os anúncios (criativos + números) de UMA campanha
 //   POST {acao:"vincular",  conta, client_id}   -> (admin) de qual cliente é a conta
 //
 // Só LÊ da Meta. Não cria, não liga, não gasta. Só a equipe (admin/team).
@@ -42,6 +43,45 @@ if ($acao === 'vincular') {
 $q = pd_supa('/rest/v1/meta_ad_accounts?select=id,nome,moeda,empresa,status_meta,client_id,conectada_por,clients(name)&order=nome');
 if ($q['code'] >= 300) sd_fail('As tabelas de anúncio ainda não existem. Rode o migration_meta_ads.sql no Supabase.', 500);
 $contas = array_values(array_filter((array)$q['body'], 'is_array'));
+
+// -------------------------------------------------------------- anúncios
+// criativos (imagem/vídeo/texto) + números de cada anúncio de uma campanha
+if ($acao === 'anuncios') {
+    $id = idConta($b['conta'] ?? ''); if (!$id) sd_fail('Conta inválida.', 400);
+    $camp = (string)($b['campanha'] ?? ''); if (!preg_match('/^\d{5,25}$/', $camp)) sd_fail('Campanha inválida.', 400);
+    $c = null; foreach ($contas as $x) if ($x['id'] === $id) $c = $x;
+    if (!$c) sd_fail('Essa conta não está conectada na plataforma.', 404);
+    $chave = "ads|$camp|$periodo";
+    if ($cache = pd_cache_ler($chave, 600)) sai($cache + ['cache' => true]);
+    $tok = pd_token_para($c['conectada_por'] ?? null);
+    if (!$tok) sd_fail('Ninguém com acesso válido à Meta. Reconecte a Meta.', 409);
+
+    $ads = pd_meta('GET', "/$camp/ads", ['fields' => 'id,name,effective_status,preview_shareable_link,creative{thumbnail_url,image_url,title,body,object_type,video_id}',
+        'thumbnail_width' => 480, 'limit' => 100], $tok);
+    if ($ads['code'] !== 200) sd_fail(pd_meta_erro($ads), 502);
+    $ins = pd_meta('GET', "/$camp/insights", ['level' => 'ad', 'date_preset' => $periodo,
+        'fields' => 'ad_id,' . $CAMPOS . ',frequency,ctr', 'limit' => 100], $tok);
+    $num = [];
+    foreach ((array)($ins['body']['data'] ?? []) as $l) if (is_array($l)) $num[$l['ad_id'] ?? ''] = $l;
+
+    $lista = [];
+    foreach ((array)($ads['body']['data'] ?? []) as $a) {
+        if (!is_array($a)) continue;
+        $cr = is_array($a['creative'] ?? null) ? $a['creative'] : [];
+        $l = $num[$a['id']] ?? [];
+        $lista[] = ['id' => $a['id'], 'nome' => $a['name'] ?? '', 'status' => $a['effective_status'] ?? null,
+            'imagem' => $cr['image_url'] ?? ($cr['thumbnail_url'] ?? null), 'miniatura' => $cr['thumbnail_url'] ?? null,
+            'titulo' => $cr['title'] ?? null, 'texto' => $cr['body'] ?? null,
+            'tipo' => !empty($cr['video_id']) ? 'video' : 'imagem', 'link' => $a['preview_shareable_link'] ?? null,
+            'ctr' => isset($l['ctr']) ? round((float)$l['ctr'], 2) : null,
+            'frequencia' => isset($l['frequency']) ? round((float)$l['frequency'], 2) : null,
+        ] + pd_numeros($l, $c['moeda'] ?? 'BRL');
+    }
+    usort($lista, function ($a, $b) { return $b['gasto'] <=> $a['gasto']; });
+    $out = ['conta' => $id, 'campanha' => $camp, 'periodo' => $periodo, 'anuncios' => $lista, 'em' => gmdate('c')];
+    pd_cache_gravar($chave, $out);
+    sai($out);
+}
 
 // ------------------------------------------------------------- campanhas
 if ($acao === 'campanhas') {

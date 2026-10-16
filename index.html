@@ -1916,7 +1916,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v69 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v70 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3624,6 +3624,11 @@ function marcarVisto(g, k){ (VISTOS[g] = VISTOS[g] || {})[k] = Date.now(); _salv
 const NOVIDADES = {
   // tudo que está com o cliente ou voltou com alteração
   aprovacoes: () => !window.REAL ? [] : tasksReais.filter(t => t.status === 'DELEGADA' || t.status === 'ALTERAÇÃO').map(t => ({ k: t.id + ':' + t.status })),
+  // post que caiu ou passou da hora sem sair (Social e Publicação)
+  social: () => !window.REAL || !PUB.dados ? [] : [...PUB.dados.todos.filter(a=>a.status==='erro'), ...PUB.dados.atrasados].map(a => ({ k: String(a.id) })),
+  publicacao: () => !window.REAL || !PUB.dados ? [] : PUB.dados.todos.filter(a=>a.status==='erro').map(a => ({ k: String(a.id) })),
+  // lead novo que ninguém atendeu
+  anuncios: () => !window.REAL || !ADS.leads ? [] : ADS.leads.filter(l=>l.status==='novo').map(l => ({ k: String(l.id) })),
   // comentários de outras pessoas
   tarefas: () => !window.REAL ? [] : comentsReais.filter(c => c.quem !== perfil.name).slice(0, 12).map(c => ({ k: c.tarefa + ':' + c.quando })),
 };
@@ -3747,12 +3752,19 @@ async function carregarPub(forcar){
     ]);
     const agora = Date.now(), fimHoje = new Date(); fimHoje.setHours(23,59,59,999);
     const q = (alvos.data||[]).map(a => ({ ...a, quando: new Date(a.scheduled_at_override || a.scheduled_posts?.scheduled_at || 0).getTime() }));
+    const nomeDe = a => (clientesReais.find(c => c.id === a.scheduled_posts?.client_id) || {}).name || 'SD';
+    q.forEach(a => { a.cliente = nomeDe(a); });
+    const ok = q.filter(a => a.status!=='erro').sort((x,y)=>x.quando-y.quando);
     PUB.dados = {
       hoje: q.filter(a => a.status!=='erro' && a.quando <= fimHoje.getTime()).length,
-      fila: q.filter(a => a.status!=='erro').length,
+      fila: ok.length,
       erros: q.filter(a => a.status==='erro').slice(0,4),
       nErros: q.filter(a => a.status==='erro').length,
       relatorios: (rel && rel.data) || [],
+      todos: q,
+      prox: ok.slice(0,5),
+      // passou da hora e continua "agendado": o publicador não pegou
+      atrasados: ok.filter(a => a.status==='agendado' && a.quando < agora - 15*60e3),
     };
     // aprovadas que ainda não entraram na fila
     try {
@@ -3761,7 +3773,8 @@ async function carregarPub(forcar){
       const ids = (aps||[]).map(x=>'ap:'+x.id);
       const { data: ja } = ids.length ? await sbR.from('scheduled_posts').select('batch_name').in('batch_name', ids) : { data: [] };
       const tem = new Set((ja||[]).map(x=>x.batch_name));
-      PUB.dados.foraDaFila = (aps||[]).filter(x=>!tem.has('ap:'+x.id)).length;
+      PUB.dados.foraLista = (aps||[]).filter(x=>!tem.has('ap:'+x.id));
+      PUB.dados.foraDaFila = PUB.dados.foraLista.length;
     } catch(e){ PUB.dados.foraDaFila = null; }
     PUB.erro = '';
   } catch(e){ PUB.erro = e.message; }
@@ -3772,16 +3785,58 @@ function htmlPublicacao(){
   if (!PUB.dados) { carregarPub(); return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">olhando a fila…</div>`); }
   if (PUB.erro) return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">${esc(PUB.erro)}</div>`);
   const d = PUB.dados;
-  const num = (v,r) => `<div style="flex:1;min-width:72px;text-align:center;padding:9px 4px;border:.5px solid var(--linha);border-radius:12px">
-    <div style="font-size:21px;font-weight:600;line-height:1">${v}</div><div class="nota" style="margin-top:4px">${r}</div></div>`;
+  const num = (v,r,tipo) => `<button onclick="abrirListaPub('${tipo}')" style="flex:1;min-width:72px;text-align:center;padding:9px 4px;border:.5px solid var(--linha);border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer">
+    <div style="font-size:21px;font-weight:600;line-height:1">${v}</div><div class="nota" style="margin-top:4px">${r}</div></button>`;
   const erros = d.erros.map(a => `<div style="margin:5px 0;padding:7px 10px;border-left:2px solid var(--rosa);font-size:11.5px;line-height:1.45;opacity:.9">
     ✗ ${a.platform==='instagram'?'Instagram':'Facebook'} · ${esc(String(a.error_message||'erro').slice(0,110))}</div>`).join('');
   const rel = (d.relatorios||[]).slice(0,2).map(r => `<div style="margin:5px 0;padding:8px 11px;background:rgba(127,127,127,.09);border-radius:10px;font-size:11.5px;line-height:1.5">
     📊 <b>${esc(r.clients?.name||'Cliente')}</b> · ${fmtD(r.dia)}${r.analise?`<br><span style="opacity:.8">${esc(String(r.analise).slice(0,180))}${String(r.analise).length>180?'…':''}</span>`:''}</div>`).join('');
   return gadCaixa('Publicação', `
-    <div style="display:flex;gap:8px;margin:4px 0 8px">${num(d.hoje,'sai hoje')}${num(d.fila,'na fila')}${num(d.nErros,'com erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar'):''}</div>
+    <div style="display:flex;gap:8px;margin:4px 0 8px">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar','fora'):''}</div>
     ${erros}${rel}
     ${!d.fila && !d.nErros && !rel ? '<div class="nota" style="padding:2px">Fila vazia — aprove um lote e agende, ou ligue o "agendar sozinho".</div>' : ''}`);
+}
+
+// ---- toda cifra da Publicação leva à lista dela ----
+const PLAT = a => (a.platform==='instagram'?'Instagram':'Facebook') + (a.placement && a.placement!=='feed' ? ' · ' + a.placement : '');
+const quandoPost = ms => { const d = new Date(ms); const h = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const hoje = new Date(); const amanha = new Date(Date.now()+864e5);
+  const dia = d.toDateString()===hoje.toDateString() ? 'Hoje' : d.toDateString()===amanha.toDateString() ? 'Amanhã' : d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+  return dia + ' ' + h; };
+function abrirListaPub(tipo){
+  const d = PUB.dados; if (!d) return;
+  if (tipo==='erro' || tipo==='fila'){ ['social','publicacao'].forEach(g => NOVIDADES[g]().forEach(x => (VISTOS[g] = VISTOS[g] || {})[x.k] = Date.now())); _salvarVistos(); pintarBolinhas(); }
+  const fim = new Date(); fim.setHours(23,59,59,999);
+  let L = [], tit = '', vazio = 'Nada aqui.';
+  if (tipo==='hoje'){ tit='Sai hoje'; L = d.todos.filter(a=>a.status!=='erro' && a.quando<=fim.getTime()).sort((x,y)=>x.quando-y.quando); }
+  else if (tipo==='fila'){ tit='Na fila'; L = d.todos.filter(a=>a.status!=='erro').sort((x,y)=>x.quando-y.quando); }
+  else if (tipo==='erro'){ tit='Com erro'; L = d.todos.filter(a=>a.status==='erro'); vazio='Nenhum erro. Tudo saiu como devia.'; }
+  const linha = a => `<div class="ads-linha" style="cursor:default"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+      ${logoCliente(a.cliente,30)}<div class="c"><div class="n">${esc(a.cliente)} · ${PLAT(a)}</div>
+      <div class="d">${a.status==='erro' ? '<span style="color:var(--rosa)">✗ '+esc(String(a.error_message||'erro').slice(0,120))+'</span>' : quandoPost(a.quando) + (a.status==='publicando'?' · publicando agora':'')}</div></div></div></div>`;
+  let corpo;
+  if (tipo==='fora'){ tit='Aprovadas, falta agendar'; vazio='Tudo que foi aprovado já está na fila.';
+    corpo = (d.foraLista||[]).map(x=>`<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(x.title||'Sem título')}</div><div class="d">${esc(x.kind)} · aprovada, ainda fora da fila</div></div></div>`).join(''); }
+  else corpo = L.map(linha).join('');
+  abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">${tit}</h3>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div style="margin-top:10px">${corpo || `<div class="nota">${vazio}</div>`}</div>
+    <div style="margin-top:12px"><button class="btn" onclick="fecharJanela();abrirNoVerso('fila')">Abrir o Social completo</button></div></div>`, true);
+}
+// ---- Social: os próximos 5, com o rosto do cliente, e o aviso se algo caiu ----
+function htmlSocial(){
+  if (!window.REAL) return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver o que sai nas redes.</div>`);
+  if (!PUB.dados){ carregarPub(); return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">olhando a agenda…</div>`); }
+  const d = PUB.dados, caiu = d.nErros + d.atrasados.length;
+  const aviso = caiu ? `<button onclick="abrirListaPub('${d.nErros?'erro':'fila'}')" style="width:100%;text-align:left;margin:2px 0 8px;padding:9px 11px;border-radius:11px;border:.5px solid var(--rosa);background:rgba(220,38,38,.10);color:inherit;font:inherit;font-size:11.5px;line-height:1.45;cursor:pointer">
+      <b style="color:var(--rosa)">⚠ ${d.nErros ? d.nErros+' post'+(d.nErros>1?'s':'')+' com erro' : ''}${d.nErros && d.atrasados.length ? ' · ' : ''}${d.atrasados.length ? d.atrasados.length+' passou da hora e não saiu' : ''}</b><br>
+      <span style="opacity:.85">Toque para ver qual caiu e por quê.</span></button>` : '';
+  const prox = d.prox.map(a => `<button class="ia-linha" style="width:100%;gap:10px" onclick="abrirListaPub('fila')">
+      ${logoCliente(a.cliente,30)}<div class="c"><div class="n">${quandoPost(a.quando)} · ${esc(a.cliente)}</div>
+      <div class="d">${PLAT(a)}${a.scheduled_posts?.caption ? ' · '+esc(String(a.scheduled_posts.caption).slice(0,42)) : ''}</div></div></button>`).join('');
+  return gadCaixa('Social', aviso + (prox || `<div class="nota" style="padding:2px">Nada agendado. Aprove um lote e agende, ou ligue o "agendar sozinho".</div>`),
+    ['Abrir o Social', `abrirNoVerso('fila')`]);
 }
 
 // =====================================================================
@@ -3870,15 +3925,82 @@ async function abrirCampanhas(conta){
     const j = await adsFala({ acao:'campanhas', conta, periodo: ADS.periodo });
     const C = document.getElementById('campCorpo'); if (!C) return;
     C.className = '';
-    C.innerHTML = (j.campanhas || []).map(x => `<div class="ads-linha" style="cursor:default">
+    ADS.camps = ADS.camps || {}; ADS.camps[conta] = j.campanhas || [];
+    C.innerHTML = (j.campanhas || []).map(x => `<button class="ads-linha" onclick="abrirCampanhaDetalhe('${esc(conta)}','${esc(x.id)}')">
         <div class="c"><div class="n">${esc(x.nome)}<span class="ads-st ${x.status==='ACTIVE'?'on':''}">${x.status==='ACTIVE'?'ativa':x.status==='PAUSED'?'pausada':esc((x.status||'').toLowerCase())}</span></div>
           <div class="d">${x.leads} lead${x.leads===1?'':'s'}${x.cpl!=null?' · CPL '+brl(x.cpl, x.moeda):''} · ${x.cliques} cliques · alcance ${Number(x.alcance).toLocaleString('pt-BR')}</div></div>
-        <div class="v">${brl(x.gasto, x.moeda)}${x.orcamento_dia?`<small>${brl(x.orcamento_dia, x.moeda)}/dia</small>`:''}</div></div>`).join('')
+        <div class="v">${brl(x.gasto, x.moeda)}${x.orcamento_dia?`<small>${brl(x.orcamento_dia, x.moeda)}/dia</small>`:''}</div></button>`).join('')
       || '<div class="nota">Nenhuma campanha com entrega nesse período.</div>';
   } catch(e){ const C = document.getElementById('campCorpo'); if (C) C.textContent = e.message; }
 }
+// ---- a campanha por dentro: criativos, números por anúncio, relatório em PDF ----
+const nf = v => Number(v||0).toLocaleString('pt-BR');
+const STAN = st => st==='ACTIVE' ? ['ativo','on'] : st==='PAUSED' ? ['pausado',''] : [String(st||'').toLowerCase().replace(/_/g,' '),''];
+async function abrirCampanhaDetalhe(conta, id){
+  const conta0 = (ADS.dados?.contas||[]).find(x=>x.conta===conta) || {};
+  const camp = ((ADS.camps||{})[conta]||[]).find(x=>x.id===id) || {};
+  const per = (ADS_PERIODOS.find(p=>p[0]===ADS.periodo)||[,''])[1];
+  abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px" id="cxCampDet">
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:21px;font-weight:400;line-height:1.2">${esc(camp.nome||'Campanha')}</h3>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div class="nota" style="margin:4px 0 10px">${esc(conta0.cliente||conta0.nome||'')} · ${esc(per)}${camp.objetivo?' · '+esc(String(camp.objetivo).replace(/^OUTCOME_/,'').toLowerCase()):''}</div>
+    <div class="ads-tot"><div><small>Investido</small><b>${brl(camp.gasto,camp.moeda)}</b></div><div><small>Leads</small><b>${camp.leads||0}</b></div>
+      <div><small>CPL</small><b>${camp.cpl!=null?brl(camp.cpl,camp.moeda):'—'}</b></div></div>
+    <div class="ads-tot" style="margin-top:6px"><div><small>Alcance</small><b>${nf(camp.alcance)}</b></div><div><small>Impressões</small><b>${nf(camp.impressoes)}</b></div>
+      <div><small>Cliques</small><b>${nf(camp.cliques)}</b></div></div>
+    <div class="ads-sec">Criativos</div>
+    <div id="anunCorpo" class="nota">Buscando os anúncios na Meta…</div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn cheio" id="btPdfCamp" onclick="pdfCampanha('${esc(conta)}','${esc(id)}')" disabled>Gerar PDF da campanha</button>
+      <button class="btn" onclick="abrirCampanhas('${esc(conta)}')">← Campanhas</button></div></div>`, true);
+  try {
+    const j = await adsFala({ acao:'anuncios', conta, campanha:id, periodo:ADS.periodo });
+    ADS.anuncios = ADS.anuncios || {}; ADS.anuncios[id] = j.anuncios || [];
+    const C = document.getElementById('anunCorpo'); if (!C) return;
+    C.className = '';
+    C.innerHTML = (j.anuncios||[]).map((a,i) => {
+      const [st,on] = STAN(a.status), m = a.miniatura || a.imagem;
+      return `<div class="anun" style="display:flex;gap:12px;padding:10px 0;border-top:.5px solid var(--linha)">
+        <div style="width:96px;height:96px;flex:0 0 96px;border-radius:12px;overflow:hidden;background:rgba(127,127,127,.18);position:relative">
+          ${m ? `<img src="${esc(m)}" style="width:100%;height:100%;object-fit:cover" alt="" loading="lazy">` : ''}
+          ${a.tipo==='video' ? '<span style="position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.65);color:#fff;font-size:9px;padding:2px 6px;border-radius:8px">vídeo</span>' : ''}</div>
+        <div style="flex:1;min-width:0"><div class="n" style="font-size:13px">${esc(a.nome)}<span class="ads-st ${on}">${esc(st)}</span></div>
+          ${a.titulo||a.texto ? `<div class="d" style="margin:3px 0 5px;line-height:1.4">${esc(String(a.titulo||a.texto).slice(0,110))}</div>` : ''}
+          <div class="d" style="line-height:1.6">${brl(a.gasto,a.moeda)} · ${a.leads} lead${a.leads===1?'':'s'}${a.cpl!=null?' · CPL '+brl(a.cpl,a.moeda):''}<br>${nf(a.alcance)} alcance · ${nf(a.cliques)} cliques${a.ctr!=null?' · CTR '+String(a.ctr).replace('.',',')+'%':''}</div>
+          ${a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--azul)">ver o anúncio ↗</a>` : ''}</div></div>`; }).join('')
+      || '<div class="nota">Nenhum anúncio com entrega nesse período.</div>';
+    const bt = document.getElementById('btPdfCamp'); if (bt) bt.disabled = false;
+  } catch(e){ const C = document.getElementById('anunCorpo'); if (C) C.textContent = e.message;
+    const bt = document.getElementById('btPdfCamp'); if (bt) bt.disabled = false; }
+}
+// PDF: abre uma página limpa de relatório e chama o imprimir — "Salvar como PDF"
+function pdfCampanha(conta, id){
+  const c0 = (ADS.dados?.contas||[]).find(x=>x.conta===conta) || {};
+  const c = ((ADS.camps||{})[conta]||[]).find(x=>x.id===id) || {};
+  const ads = (ADS.anuncios||{})[id] || [];
+  const per = (ADS_PERIODOS.find(p=>p[0]===ADS.periodo)||[,''])[1];
+  const w = window.open('', '_blank'); if (!w){ toast('O navegador bloqueou a janela do PDF. Libere pop-ups e tente de novo.'); return; }
+  const k = (r,v) => `<div class="k"><small>${r}</small><b>${v}</b></div>`;
+  w.document.write(`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>${esc(c.nome||'Campanha')} · relatório</title>
+  <style>@page{margin:14mm}*{box-sizing:border-box}body{font:13px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#111;margin:0}
+  h1{font-size:22px;margin:0 0 2px;font-weight:600}.sub{color:#666;margin-bottom:16px}.kk{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .k{flex:1;min-width:120px;border:1px solid #ddd;border-radius:10px;padding:9px 11px}.k small{display:block;color:#777;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}.k b{font-size:18px;font-weight:600}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#555;margin:20px 0 8px}
+  .a{display:flex;gap:12px;padding:10px 0;border-top:1px solid #e5e5e5;break-inside:avoid}.a img{width:110px;height:110px;object-fit:cover;border-radius:8px;background:#eee}
+  .a b{font-size:13px}.a p{margin:3px 0;color:#444}.rod{margin-top:22px;color:#999;font-size:10.5px}</style>
+  <h1>${esc(c.nome||'Campanha')}</h1><div class="sub">${esc(c0.cliente||c0.nome||'')} · ${esc(per)} · gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="kk">${k('Investido',brl(c.gasto,c.moeda))}${k('Leads',c.leads||0)}${k('CPL',c.cpl!=null?brl(c.cpl,c.moeda):'—')}</div>
+  <div class="kk">${k('Alcance',nf(c.alcance))}${k('Impressões',nf(c.impressoes))}${k('Cliques',nf(c.cliques))}</div>
+  <h2>Anúncios</h2>${ads.map(a=>`<div class="a">${a.miniatura||a.imagem?`<img src="${esc(a.miniatura||a.imagem)}" alt="">`:''}<div>
+    <b>${esc(a.nome)}</b><p>${esc(a.titulo||a.texto||'')}</p>
+    <p>${brl(a.gasto,a.moeda)} investidos · ${a.leads} leads${a.cpl!=null?' · CPL '+brl(a.cpl,a.moeda):''} · ${nf(a.alcance)} de alcance · ${nf(a.cliques)} cliques${a.ctr!=null?' · CTR '+String(a.ctr).replace('.',',')+'%':''}</p></div></div>`).join('') || '<p>Sem anúncios com entrega no período.</p>'}
+  <div class="rod">Dados da Meta Ads · Pontodot</div>
+  <script>window.onload=function(){setTimeout(function(){window.print()},500)}<\/script></html>`);
+  w.document.close();
+}
 function abrirLeads(){
   const L = ADS.leads || [];
+  L.forEach(l => { (VISTOS.anuncios = VISTOS.anuncios || {})[String(l.id)] = Date.now(); }); _salvarVistos(); pintarBolinhas();
   abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Leads</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
@@ -3890,6 +4012,7 @@ function abrirLeads(){
 }
 function abrirLead(id){
   const l = (ADS.leads || []).find(x => x.id === id); if (!l) return;
+  marcarVisto('anuncios', String(l.id));
   const fone = String(l.telefone || '').replace(/\D/g, '');
   const extras = Object.entries(l.campos || {}).filter(([k]) => !/^(full_name|email|phone_number|nome|telefone|e-mail)$/i.test(k));
   abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
@@ -3956,9 +4079,7 @@ const GADGETS = {
       <div class="mini-sem">${['S','T','Q','Q','S','S','D'].map((d,i)=>`<div class="dia"><div class="bar" style="height:${6+ns[i]/mx*40}px"></div>${d}</div>`).join('')}</div>
       <div class="nota" style="margin:8px 0 0">${nota}</div>`,
       ['Ver as tarefas',`${window.REAL?'abrirTarefasTodas()':`toast('Abre o cronograma.')`}`]); } },
-  social:    { nome:'Social', html:()=> window.REAL ? gadCaixa('Social',
-      `<div class="nota" style="padding:6px 2px 2px">A central de redes sociais do SD, dentro do verso — agenda, fila e publicação.</div>`,
-      ['Abrir o Social', `abrirNoVerso('fila')`])
+  social:    { nome:'Social', html:()=> window.REAL ? htmlSocial()
     : gadCaixa('Social',`
       <div class="ia-linha"><div class="c"><div class="n">Hoje 18h · VF feed</div><div class="d">Lançamento Prima Vera · agendado</div></div></div>
       <div class="ia-linha"><div class="c"><div class="n">Amanhã 11h · Geoville stories</div><div class="d">Tour da obra · 3 peças</div></div></div>
@@ -6040,7 +6161,9 @@ async function entrarReal(session){
   }
   // o SD completo carrega no fundo: a ponte do Drive e o verso ficam prontos antes do primeiro giro
   setTimeout(()=>{ try { prepararVersoApp(); } catch(e){} }, 2500);
-  setInterval(()=>{ carregarReal().catch(()=>{}); carregarThreadsSalvas(); }, 60000);
+  const _bg = ()=>{ try { carregarPub(); carregarAds(); } catch(e){} };
+  setTimeout(_bg, 2500);
+  setInterval(()=>{ carregarReal().catch(()=>{}); carregarThreadsSalvas(); _bg(); }, 60000);
   if (perfil && ['admin','team'].includes(perfil.role)) {
     setTimeout(roboLote, 8000);
     setInterval(roboLote, 90000);
