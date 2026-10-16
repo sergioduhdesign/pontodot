@@ -541,6 +541,14 @@
                 </div>
               </div>
 
+              <div class="entity-card" id="card-ias-casa" style="flex-direction:column;align-items:stretch;gap:9px">
+                <div>
+                  <div class="entity-card-name">Inteligências da casa</div>
+                  <div class="entity-card-meta">O Claude distribui, cobra e revisa. Só te chama quando precisa.</div>
+                </div>
+                <div id="ias-casa-body" style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text3)">Carregando…</div></div>
+              </div>
+
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
                   <div class="entity-card-name">Importar tarefas</div>
@@ -4043,6 +4051,7 @@ async function renderAdmin(){
   try { preencherHorarioAdmin(); } catch(e) { console.warn('Horário admin:', e.message); }
   try { renderBIResumo(); } catch(e) { console.warn('BI resumo:', e.message); }
   try { renderTrackingEquipe(); } catch(e) {}
+  try { renderIAsCasa(); } catch(e) {}
   // Admin vê todos os profiles — RLS permite se role=admin
   const{data:users,error:uerr}=await sb.from('profiles').select('*').order('name');
   if(uerr)console.warn('Profiles RLS error:', uerr.message);
@@ -9924,6 +9933,18 @@ function _trackerBtnHTML_antigo(taskId, size = 'sm'){
 }
 
 // --- Painel do admin: quem está trabalhando em quê ---
+async function renderIAsCasa(){
+  const box = document.getElementById('ias-casa-body'); if (!box) return;
+  let n = { produzir:0, corrigir:0, pausado:0 };
+  try { const { data } = await sb.from('task_drive').select('status'); (data||[]).forEach(r => { if (r.status in n) n[r.status]++; }); } catch(e){}
+  const linha = (nome, desc, cor) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:7px">
+      <span style="width:7px;height:7px;border-radius:50%;background:${cor}"></span>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">${nome}</div><div style="font-size:10.5px;color:var(--text3)">${desc}</div></div></div>`;
+  const ativas = n.produzir + n.corrigir;
+  box.innerHTML = linha('Dot · GPT', ativas ? `${n.produzir} produzindo · ${n.corrigir} corrigindo` : 'nada na mão agora', ativas ? '#2563eb' : '#9ca3af')
+    + linha('Claude · o maestro', n.pausado ? `${n.pausado} pausada${n.pausado>1?'s':''} por você` : 'distribuindo e revisando', '#16a34a');
+}
+
 async function renderTrackingEquipe(){
   const box = document.getElementById('adm-tracking-body');
   if (!box) return;

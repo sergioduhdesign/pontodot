@@ -1726,6 +1726,42 @@ html.emChat .cfg-area{display:none}
   .user-top.oculto{display:none}
 }
 </style>
+<style id="app-mobile-fino">
+/* ===== APP (celular): alvos de toque maiores, setinha de "tem mais", sem configurar área ===== */
+@media(max-width:999px){
+  .cfg-area,#cfgArea{display:none!important}
+  .gad-ico{width:64px;height:64px}
+  .gad-ico.mini-largo{min-width:64px}
+  .fechar,.x-chat,.gad-x,.fechar-painel,.acao-cab[aria-label="Fechar"],.cx-cab .acao-cab{min-width:48px;min-height:48px;display:inline-grid;place-items:center;font-size:15px}
+  .j-caixa .btn,.gad .btn,.cx-cab .acao-cab,.mia-acoes button,.mia-tt button,.mia-t{min-height:46px}
+  .mia-acoes button{padding:10px 4px}
+  .ia-linha,.ads-linha,.gente{min-height:52px}
+  .cl-b{width:42px;height:42px}
+  .gad-aba .aba-acoes button{min-width:44px;min-height:44px}
+  .board-rolo-w{position:relative}
+  .board-seta{position:absolute;right:0;top:0;bottom:6px;width:46px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;
+    pointer-events:none;opacity:0;transition:opacity .25s;background:linear-gradient(90deg,transparent,rgba(0,0,0,.55));border-radius:0 15px 15px 0}
+  .board-seta.on{opacity:1}
+  .board-seta i{font-style:normal;font-size:26px;line-height:1;color:var(--branco);animation:seta-vai 1.4s ease-in-out infinite}
+}
+@keyframes seta-vai{0%,100%{transform:translateX(0);opacity:.6}50%{transform:translateX(5px);opacity:1}}
+@media(min-width:1000px){.board-seta{display:none}}
+</style>
+<style id="fundo-app">
+html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,.52)),var(--fundo-app);background-size:cover;background-position:center;background-repeat:no-repeat}
+@media(min-width:1000px){html.com-fundo body{background-image:none}}
+@media(max-width:999px){
+  html.com-fundo .lado.frente{background-image:linear-gradient(rgba(8,9,8,.5),rgba(8,9,8,.5)),var(--fundo-app);background-size:cover;background-position:center}
+  html.com-fundo .lado.frente .fundo{background:transparent}
+  html.com-fundo #bgA,html.com-fundo #bgB{display:none}
+}
+.fundo-grade{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.fundo-alb{display:flex;flex-direction:column;gap:3px;text-align:left;padding:8px;border-radius:14px;border:1px solid rgba(127,127,127,.35);background:none;color:inherit;font:inherit;cursor:pointer;min-height:48px}
+.fundo-alb.on{border-color:currentColor;box-shadow:0 0 0 1px currentColor inset}
+.fundo-alb b{font-size:13.5px;font-weight:500}.fundo-alb small{font-size:11.5px;opacity:.65}
+.fundo-pil{display:flex;height:64px;border-radius:9px;overflow:hidden;gap:2px}.fundo-pil img{flex:1;min-width:0;object-fit:cover}
+.fala-ia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:3;background:#000}
+</style>
 </head>
 <body>
 <div class="cena"><div class="mundo plano" id="mundo">
@@ -1745,7 +1781,6 @@ html.emChat .cfg-area{display:none}
         <svg width="27" height="24" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="9" cy="7.5" r="3.1"/><path d="M3.8 19c.5-3.3 2.6-5 5.2-5s4.7 1.7 5.2 5"/><circle cx="16.8" cy="8.6" r="2.5"/><path d="M15.6 13.4c2.2.3 3.7 1.8 4.1 4.6"/></svg>
         <span id="aviso-pess">Luana respondeu...</span><span style="margin-left:auto;font-size:15px;color:var(--branco2);padding-left:6px">›</span>
       </button>
-      <button class="btn" id="btnIA" onclick="alternarPainel('ia')" style="font-size:15.5px;letter-spacing:.02em">IA&nbsp;<b id="iaRotulo">ON</b></button>
     </div>
     <!-- painel IA -->
     <div id="slotPainel"></div>
@@ -1791,7 +1826,7 @@ html.emChat .cfg-area{display:none}
   <!-- praça de gadgets (desk) -->
   <aside class="board" id="board">
     <div class="board-cab"><span class="tit">ÁREA DE TRABALHO</span></div>
-    <div class="board-rolo"><div class="board-grid" id="boardGrid"></div></div>
+    <div class="board-rolo-w"><div class="board-rolo"><div class="board-grid" id="boardGrid"></div></div><div class="board-seta" id="boardSeta" aria-hidden="true"><i>›</i></div></div>
     <button class="cfg-area" id="cfgArea" onclick="abrirPicker()">Configurar área de trabalho…</button>
     <div id="pickerSlot"></div>
   </aside>
@@ -1929,7 +1964,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v75 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v77 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2628,7 +2663,7 @@ function avatarEu(){
 function htmlConversa(){
   const conversa = THREADS[atual] || [];
   const sugestoes = (atual === 'sd' && !conversa.length && mostrarSug) ? `
-    <div class="sugs"><div class="sug-tit">COMEÇOS RÁPIDOS · SUGERIDOS PELA IA</div>
+    <div class="sugs"><div class="sug-tit">${ehDesk() ? 'COMEÇOS RÁPIDOS · SUGERIDOS PELA IA' : 'PEÇA AQUI O QUE VOCÊ PRECISA · A SUA IA RESOLVE'}</div>
     ${SUGESTOES.map((x,i)=>`<button class="sug" onclick="sugerir(${i})"><i style="font-size:${i?'7px':'13px'}">${x[0]}</i>${x[1]}</button>`).join('')}</div>` : '';
   return `<div class="chat-topo" role="button" onclick="modoChat(false)" title="Voltar pro painel">
       ${atual!=='sd'?`<button class="ct-volta" onclick="event.stopPropagation();voltarConversas()">‹ conversas</button>`:'<span class="ct-volta" style="opacity:.8">∧&nbsp; painel</span>'}
@@ -3125,7 +3160,7 @@ function resposta(txt){
     acoes:[['Cobrar os dois','laranja','toast(\'Cobranças enviadas, com delicadeza.\')'],['Deixar pra segunda','','toast(\'Anotado. Cobro segunda às 9h.\')']] };
   if (/ia|dot|claude/.test(t)) return {
     t:'O Dot está com 2 tarefas (uma em correção r2) e entregou a última há 1 h. Eu revisei 8 peças hoje e segurei 3 apontamentos pra sua bênção.',
-    acoes:[['Abrir o painel das IAs','','modoChat(false);alternarPainel(\'ia\')']] };
+    acoes:[] };
   return {
     t:`Anotei: “${txt}”. Quer que eu vire isso numa tarefa com pasta e chamado pra IA?`,
     acoes:[['Cria a tarefa','verde','THREADS.sd.push(Object.assign({h:hAgora()},resposta(\'cria job novo\')));render()'],['Só anota','','toast(\'Guardado no caderno do dia.\')']] };
@@ -3206,7 +3241,7 @@ function abrirMenuCtx(x,y){
   m.innerHTML = `
     <div class="puxador"></div>
     <div class="mini">ÁREA DE TRABALHO</div>
-    <button onclick="fecharMenuCtx();abrirPicker()">Configurar área de trabalho…</button>
+    ${ehDesk()?'<button onclick="fecharMenuCtx();abrirPicker()">Configurar área de trabalho…</button>':''}
     <button onclick="fecharMenuCtx();proximoFundo()">Trocar a imagem de fundo</button>
     <button onclick="fecharMenuCtx();alternarFotos()">${fundoDesligado?'Ligar':'Desligar'} as fotos de fundo</button>
     <div class="sep"></div>
@@ -3271,28 +3306,17 @@ setInterval(()=>{ if(!telaOcupada()) trocarFrase(); }, 17000);
 // No celular o SD completo fica DESLIGADO: ele é desenhado pra tela
 // grande e, no dedo, atrapalha mais do que ajuda. O admin libera pra si
 // e pra quem quiser, pessoa por pessoa (profiles.verso_mobile).
-function versoLiberado(){
-  if (ehDesk()) return true;
-  if (!window.REAL) return false;
-  return !!(perfil && perfil.verso_mobile);
-}
+function versoLiberado(){ return ehDesk(); }   // no celular o verso não abre, para ninguém
 function ehAdmin(){
   return !!(perfil && (perfil.is_admin || perfil.role === 'admin' || /sergio|sérgio/i.test(perfil.name||'')));
 }
 function avisarVersoMobile(){
-  if (!ehAdmin()){
-    miniEscolha('O SD completo é coisa de tela grande',
-      `<div class="nota" style="width:100%;margin:-6px 0 8px">Aqui no celular fica a área de trabalho — ela faz o que você precisa no dia a dia.
-       Se precisar mesmo do SD completo no telefone, peça pro Sérgio liberar pra você.</div>
-       <button class="btn" style="min-height:40px" onclick="fecharJanela()">Entendi</button>`);
-    return;
-  }
-  miniEscolha('Abrir o SD completo no celular?',
-    `<div class="nota" style="width:100%;margin:-6px 0 8px">Ele foi feito pra tela grande — no telefone algumas telas ficam apertadas.
-     Você é admin: pode abrir agora, e pode liberar pra outras pessoas.</div>
-     <button class="btn cheio" style="background:var(--verde);min-height:40px" onclick="liberarVersoMobile(true)">Abrir e liberar pra mim</button>
-     <button class="btn" style="min-height:40px" onclick="fecharJanela();abrirLiberarEquipe()">Liberar pra alguém da equipe</button>
-     <button class="btn" style="min-height:40px" onclick="fecharJanela()">Deixa quieto</button>`);
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:26px 22px 20px;text-align:center">
+    <h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Desculpe, esse lado fica no desktop</h3>
+    <p style="margin:0 0 6px;font-size:14px;line-height:1.55">No app, o seu acesso é restrito à gestão essencial da pontodot.</p>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.55;opacity:.8">O verso, com o fluxo, os quadros e o admin, é muito melhor no seu computador.</p>
+    <button class="btn" style="width:100%;min-height:46px;justify-content:center" onclick="fecharJanela()">Entendi</button>
+    <p style="margin:14px 0 0;font-size:12.5px;opacity:.65">Aqui no app, peça no campo o que você precisa: a sua IA resolve.</p></div>`);
 }
 async function liberarVersoMobile(abrir){
   try { await sbR.from('profiles').update({ verso_mobile: true }).eq('id', perfil.id); perfil.verso_mobile = true; }
@@ -3514,6 +3538,7 @@ function htmlPerfilPessoa(){
       <div class="mia-acoes">
         <button onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
         <button onclick="editarPerfil()">Editar perfil</button>
+        ${ehDesk() ? '' : '<button onclick="fecharJanela();abrirFundos()">Fundo do app</button>'}
         <button onclick="sairConta()" style="margin-left:auto;opacity:1;font-weight:500">Desconectar PD</button>
       </div>
       <div class="pf-cancelar"><button onclick="abrirCancelarConta()">Cancelar minha conta…</button></div>
@@ -3579,7 +3604,6 @@ function vAbrir(nome){
     else if (N.includes('relat')||N.includes('term')||N.includes('desempenho')) abreGad('relatorios');
     else if (N.includes('finan')) toast('O financeiro ainda vai ser criado — por enquanto fora do ar.');
     else if (N.includes('config')) abrirPicker();
-    else if (N.includes('ia')||N.includes('drive')||N.includes('ponte')) abreGad('ia');
     else if (N.includes('pedido')||N.includes('chat')) modoChat(true);
     else if (N.includes('design')||N.includes('biblioteca')) toast('Biblioteca de design entra na onda própria da migração.');
     else abrirTarefasTodas();
@@ -4112,7 +4136,6 @@ async function vincularAds(conta, clientId){
 const GADGETS = {
   tarefas:   { nome:'Tarefas', fixo:true, html:()=>`<div class="caixa cx-tarefas">${htmlTarefas()}</div>` },
   conversas: { nome:'Conversas', oculto:true, html:()=>htmlConversas() },
-  ia:        { nome:'Inteligências da casa', html:()=>htmlPainelIA() },
   minhaia:   { nome:()=>temIA()?'Minha IA':'Sua IA ainda não nasceu', html:()=>htmlMinhaIA() },
   aprovacoes:{ nome:'Aprovações', html:()=>{
     if (window.REAL) return htmlAprovacoes();
@@ -4272,7 +4295,7 @@ function abrirCadastroCliente(cid){
 }
 function abrirTodasResp(r){ fT.resp = r; guardarFiltro(); abrirTarefasTodas(); }
 function abrirTodasCliente(c){ fT.cli = c; guardarFiltro(); abrirTarefasTodas(); }
-let meusGadgets = ['tarefas','minhaia','ia','aprovacoes','cronograma'];
+let meusGadgets = ['tarefas','minhaia','aprovacoes','cronograma'];
 try { const g = JSON.parse(localStorage.getItem('sd_gadgets')||'null'); if (Array.isArray(g) && g.length) meusGadgets = g; } catch(e){}
 // Caixinha NOVA se apresenta sozinha, uma vez, pra quem guardou a área
 // antes de ela existir (quem tirou de propósito não ganha de volta).
@@ -4290,9 +4313,12 @@ try {
 try { if (!localStorage.getItem('sd_gad_mig_2')) {
   meusGadgets = meusGadgets.filter(id => !['rolando','conversas','financeiro'].includes(id));
   localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); localStorage.setItem('sd_gad_mig_2','1'); } } catch(e){}
+try { if (!localStorage.getItem('sd_gad_mig_3')) {
+  meusGadgets = meusGadgets.filter(id => id !== 'ia');
+  localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); localStorage.setItem('sd_gad_mig_3','1'); } } catch(e){}
 function salvarGadgets(){ try { localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); } catch(e){} }
 let pickerAberto = false;
-function abrirPicker(){ pickerAberto = !pickerAberto; $('#cluster')?.classList.toggle('esc', pickerAberto); render(); }
+function abrirPicker(){ if (!ehDesk()) return; pickerAberto = !pickerAberto; $('#cluster')?.classList.toggle('esc', pickerAberto); render(); }
 function alternarGadget(id){
   if (GADGETS[id].fixo) return;
   meusGadgets = meusGadgets.includes(id) ? meusGadgets.filter(x=>x!==id) : [...meusGadgets, id];
@@ -4407,6 +4433,77 @@ const OVO_SVG = `<svg class="ovo" viewBox="0 0 24 24" fill="none" stroke="curren
 // "S" no lugar do personagem escolhido.
 function temIA(){ return !!(jeito && jeito.personagem); }
 let nasceuAgora = false;                 // o quadradinho faz a passagem com calma, uma vez
+// =====================================================================
+// FUNDO DO APP (celular): a pessoa escolhe um álbum no perfil e o fundo
+// troca UMA vez por semana (ou fica fixo). Um dos álbuns é o da própria IA.
+// =====================================================================
+let FUNDOS = { albuns:null }, fundoCfg = { album:'', modo:'semana', idx:0 };
+try { fundoCfg = Object.assign(fundoCfg, JSON.parse(localStorage.getItem('sd_fundo')||'{}')); } catch(e){}
+const semanaDoAno = (d = new Date()) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const dia = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dia); const ini = new Date(Date.UTC(t.getUTCFullYear(),0,1)); return t.getUTCFullYear()*100 + Math.ceil(((t-ini)/864e5+1)/7); };
+async function carregarFundos(){
+  try {
+    const id = (aindaNao(()=>personagemAtual(),null)||{}).id || '';
+    const j = await (await fetch('/pd-fundos.php?ia=' + encodeURIComponent(id))).json();
+    FUNDOS.albuns = (j && j.albuns) || [];
+  } catch(e){ FUNDOS.albuns = []; }
+  aplicarFundo();
+}
+function aplicarFundo(){
+  const raiz = document.documentElement;
+  const alb = (FUNDOS.albuns||[]).find(a => a.id === fundoCfg.album);
+  if (ehDesk() || !alb || !alb.imagens.length){ raiz.classList.remove('com-fundo'); raiz.style.removeProperty('--fundo-app'); return; }
+  const i = fundoCfg.modo === 'semana' ? semanaDoAno() % alb.imagens.length : Math.min(fundoCfg.idx||0, alb.imagens.length-1);
+  raiz.style.setProperty('--fundo-app', `url("${alb.imagens[i]}")`);
+  raiz.classList.add('com-fundo');
+}
+function salvarFundo(){ try { localStorage.setItem('sd_fundo', JSON.stringify(fundoCfg)); } catch(e){} aplicarFundo(); }
+function abrirFundos(){
+  const albs = FUNDOS.albuns || [];
+  const alb = a => `<button class="fundo-alb ${fundoCfg.album===a.id?'on':''}" onclick="fundoCfg.album='${esc(a.id)}';salvarFundo();abrirFundos()">
+      <span class="fundo-pil">${a.imagens.slice(0,3).map(u=>`<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</span><b>${esc(a.nome)}</b><small>${a.imagens.length} imagens</small></button>`;
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 18px 18px">
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:21px;font-weight:400">Fundo do app</h3>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div class="nota" style="margin:4px 0 12px">Escolha um álbum. O fundo troca sozinho uma vez por semana.</div>
+    ${albs.length ? `<div class="fundo-grade"><button class="fundo-alb ${!fundoCfg.album?'on':''}" onclick="fundoCfg.album='';salvarFundo();abrirFundos()"><span class="fundo-pil" style="background:#0B0C0B"></span><b>Sem fundo</b><small>escuro padrão</small></button>${albs.map(alb).join('')}</div>`
+      : '<div class="nota">Ainda não há álbuns. Coloque imagens em <b>pd/personagens/&lt;sua IA&gt;/mobile/</b> ou em <b>pd/fundos/&lt;álbum&gt;/</b>.</div>'}
+    <label style="display:flex;gap:9px;align-items:center;margin-top:14px;font-size:13px"><input type="checkbox" ${fundoCfg.modo==='semana'?'checked':''} onchange="fundoCfg.modo=this.checked?'semana':'fixo';salvarFundo()"> Trocar de imagem toda semana</label></div>`);
+}
+// =====================================================================
+// A IA FALA O NOME: na 1ª abertura do dia, no login ou na volta de um turno,
+// o avatar vira vídeo (pd/personagens/<id>/fala.mp4), diz o nome e volta à foto.
+// Se o vídeo não existir, nada acontece — e tenta de novo na próxima abertura.
+// =====================================================================
+const TURNO_MS = 5 * 3600e3;     // longe do app por 5 h = voltou de turno
+function precisaFalar(){
+  try {
+    const ult = Number(localStorage.getItem('sd_fala_em') || 0), agora = Date.now();
+    if (!ult) return true;
+    const outroDia = new Date(ult).toDateString() !== new Date(agora).toDateString();
+    const voltouTurno = agora - Number(localStorage.getItem('sd_ativo_em') || ult) > TURNO_MS;
+    return outroDia || voltouTurno;
+  } catch(e){ return false; }
+}
+function marcarAtivo(){ try { localStorage.setItem('sd_ativo_em', String(Date.now())); } catch(e){} }
+function falarNome(forcar){
+  const c = aindaNao(()=>personagemAtual(), null); if (!c || !temIA()) return;
+  if (!forcar && !precisaFalar()) { marcarAtivo(); return; }
+  const alvos = [...document.querySelectorAll('.gad[data-fk="gad-minhaia"] .gad-ico, .mia-cara')].filter(el => el.offsetParent !== null);
+  if (!alvos.length) return;
+  const v = document.createElement('video');
+  v.className = 'fala-ia'; v.src = `/pd/personagens/${encodeURIComponent(c.id)}/fala.mp4`; v.poster = fotoDe(c,'avatar');
+  v.playsInline = true; v.setAttribute('playsinline',''); v.preload = 'auto';
+  const alvo = alvos[0]; if (getComputedStyle(alvo).position === 'static') alvo.style.position = 'relative';
+  const fim = () => { try { v.remove(); } catch(e){} };
+  v.addEventListener('error', fim); v.addEventListener('ended', fim);
+  v.addEventListener('playing', () => { try { localStorage.setItem('sd_fala_em', String(Date.now())); } catch(e){} marcarAtivo(); });
+  alvo.appendChild(v);
+  v.muted = false;
+  v.play().catch(() => { v.muted = true; v.play().catch(fim); });   // sem gesto do usuário o navegador exige mudo
+}
+addEventListener('pagehide', marcarAtivo);
+document.addEventListener('visibilitychange', () => { if (document.hidden) marcarAtivo(); else setTimeout(() => falarNome(), 600); });
 function caraDaIA(){
   const c = (typeof personagemAtual === 'function') ? personagemAtual() : null;
   if (c) return `<img class="gad-cara" src="${fotoDe(c,"avatar")}" alt="${esc(c.name)}"
@@ -4484,6 +4581,17 @@ function novoChat(){
   setTimeout(()=>{ const c=$('#campo'); if (c) c.focus(); }, 60);
 }
 function novaTarefa(){ novoChat(); }
+// No app (celular) o conjunto é FIXO: não dá para pôr nem tirar. Só o que importa no dia a dia.
+const GADGETS_APP = ['tarefas','aprovacoes','social','publicacao','anuncios','minhaia','cronograma'];
+function gadgetsDaTela(){ return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
+
+// setinha à direita: avisa que há mais caixinhas para rolar
+function atualizarSetaBoard(){
+  const r = document.querySelector('.board-rolo'), a = $('#boardSeta'); if (!r || !a) return;
+  a.classList.toggle('on', !ehDesk() && r.scrollWidth - r.clientWidth - r.scrollLeft > 8);
+}
+document.addEventListener('scroll', e => { if (e.target && e.target.classList && e.target.classList.contains('board-rolo')) atualizarSetaBoard(); }, true);
+addEventListener('resize', () => setTimeout(atualizarSetaBoard, 60));
 function renderBoard(){
   const grid = $('#boardGrid'); if (!grid) return;
   $('#pickerSlot').innerHTML = !pickerAberto ? '' : `
@@ -4496,7 +4604,7 @@ function renderBoard(){
     </div></div></div>`;
   const pk = $('#pickerSlot .fechar-painel'); if (pk) { pk.style.display='block'; pk.onclick = (e)=>{e.stopPropagation();abrirPicker()}; }
   requestAnimationFrame(medirMinis);     // o grid se refez: remede os quadradinhos
-  grid.innerHTML = [...meusGadgets.filter(id=>GADGETS[id] && !GADGETS[id].oculto), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
+  grid.innerHTML = [...gadgetsDaTela().filter(id=>GADGETS[id] && !GADGETS[id].oculto), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
     <div class="gad ${gadsAbertos[id]?'':'fechado'} ${id==='tarefas'&&!gadsAbertos[id]?'mini-largo':''} ${id==='minhaia'&&aindaNao(()=>temIA(),false)?'gad-ia':''} ${id==='minhaia'&&nasceuAgora?'nascendo':''}" data-fk="gad-${id}">
       <button class="gad-ico ${id==='tarefas'?'mini-largo':''}" onpointerdown="abaDown(event,'${id}',false,${id==='tarefas'?'true':'false'})" title="${nomeGad(id)}${id==='tarefas'?' — ver todas':''}">
         ${id==='tarefas' ? TAREFAS.slice(0,5).map(t=>cara(t.cara,28)).join('')
@@ -4513,6 +4621,8 @@ function renderBoard(){
       <i class="gad-bol" data-g="${id}"></i>
     </div>`).join('');
   pintarBolinhas();
+  setTimeout(atualizarSetaBoard, 80);
+  try { const c = $('#campo'); if (c && !ehDesk()) c.placeholder = 'Peça o que precisa…'; } catch(e){}
   nasceuAgora = false;                   // a passagem toca uma vez só
   document.documentElement.classList.toggle('com-ia', !!aindaNao(()=>temIA(), false));
   posicionarCfg();
@@ -5591,12 +5701,12 @@ async function personagensProximos(){
 // (pasta vazia, Drive fora), vale a foto fixa do site — nunca buraco.
 let IMG_VIVAS = null;
 (function(){
-  try { const v = JSON.parse(localStorage.getItem('pd_img_vivas2')||'null');
+  try { const v = JSON.parse(localStorage.getItem('pd_img_vivas3')||'null');
         if (v && Date.now() - v.em < 6*3600e3) IMG_VIVAS = v.p; } catch(e){}
   fetch('/pd-imagens.php?pasta=personagens').then(r=>r.json()).then(j=>{
     if (j && j.personagens && !Array.isArray(j.personagens)){
       IMG_VIVAS = j.personagens;
-      try { localStorage.setItem('pd_img_vivas2', JSON.stringify({ em: Date.now(), p: IMG_VIVAS })); } catch(e){}
+      try { localStorage.setItem('pd_img_vivas3', JSON.stringify({ em: Date.now(), p: IMG_VIVAS })); } catch(e){}
     }
   }).catch(()=>{});
 })();
@@ -6280,6 +6390,7 @@ async function entrarReal(session){
   setTimeout(()=>{ try { prepararVersoApp(); } catch(e){} }, 2500);
   const _bg = ()=>{ try { carregarPub(); carregarAds(); } catch(e){} };
   setTimeout(_bg, 2500);
+  setTimeout(()=>{ try { falarNome(); carregarFundos(); } catch(e){} }, 3200);
   setInterval(()=>{ carregarReal().catch(()=>{}); carregarThreadsSalvas(); _bg(); }, 60000);
   if (perfil && ['admin','team'].includes(perfil.role)) {
     setTimeout(roboLote, 8000);

@@ -79,7 +79,7 @@ if ($PASTAS[$chave] === '') pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' =>
     'aviso' => 'defina PD_PASTA_PERSONAGENS no sd-config.php', 'imagens' => [], 'personagens' => (object)[]]);
 
 if (!is_dir(PDI_CACHE)) { @mkdir(PDI_CACHE, 0755, true); @file_put_contents(PDI_CACHE . '/.htaccess', "Deny from all\n"); }
-$arqCache = PDI_CACHE . '/' . $chave . '.json';
+$arqCache = PDI_CACHE . '/' . $chave . '-s2.json';
 $velho = is_file($arqCache) ? json_decode((string)file_get_contents($arqCache), true) : null;
 
 if (is_array($velho) && (time() - (int)($velho['em'] ?? 0)) < PDI_VALIDADE) {
@@ -122,7 +122,14 @@ try {
         }
         foreach ($vivas as &$ts) {
             if (!empty($ts['album'])) {
+                // UMA vida por SEMANA (segunda a domingo): vale a PRIMEIRA que chegou na semana.
+                // Se o GPT soltar uma por dia, o resto da semana fica guardado e a imagem não troca.
+                usort($ts['album'], fn($a, $b) => $a['em'] <=> $b['em']);
+                $porSemana = [];
+                foreach ($ts['album'] as $ai0) { $sem = date('o-W', $ai0['em'] ?: time()); if (!isset($porSemana[$sem])) $porSemana[$sem] = $ai0; }
+                $ts['album'] = array_values($porSemana);
                 usort($ts['album'], fn($a, $b) => $b['em'] <=> $a['em']);
+                $ts['vida'] = $ts['album'][0];                       // a vida atual = a da semana mais recente
                 $ts['album'] = array_slice($ts['album'], 0, 24);
                 foreach ($ts['album'] as &$ai) { $ai['semana'] = date('d/m', $ai['em'] ?: time()); unset($ai['em']); }
                 unset($ai);
