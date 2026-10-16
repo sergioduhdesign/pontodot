@@ -264,6 +264,17 @@ html.dia .frente{background:#F4F3EF}
 .rs-ver{border:1px solid currentColor;opacity:.7}
 .rs-card.on{outline:2px solid #15803D;outline-offset:2px}
 
+
+/* ===== PERFIL DA PESSOA — a mesma ficha da Minha IA ===== */
+.pf .mia-ficha{border-radius:var(--r)}
+.pf-foto{background:rgba(127,127,127,.25);cursor:default}
+.pf-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-dados{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;padding:2px 2px 6px}
+.pf-d{min-width:0}.pf-d small{display:block;font-size:11.5px;opacity:.6}
+.pf-d span{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-d a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.pf-bio{margin:8px 2px 4px;font-size:13.5px;line-height:1.45;opacity:.8}
+@media(max-width:600px){.pf .mia-cara{width:104px;height:104px}.pf .mia-nome{font-size:21px}.pf-dados{gap:8px 12px}}
 /* ===== MINHA IA — o print do Sérgio ===== */
 .mia{display:flex;flex-direction:column;gap:12px}
 .mia-ficha{border-radius:0 0 var(--r) var(--r);overflow:hidden}
@@ -1916,7 +1927,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v73 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v74 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2226,6 +2237,7 @@ function htmlMinhaIA(){
         <div class="mia-tx">
           <small>Eu sou</small><b class="mia-nome">${esc(nomeDaIA())}</b>
           <small>Curto</small><span class="mia-up">${curto}</span>
+          <small>Natureza</small><span class="mia-up">IA agêntica</span>
           <small>Escola</small><span class="mia-up">pontodot – ${esc(c.school_course || 'formação em curso')}</span>
         </div>
       </div>
@@ -3461,17 +3473,59 @@ const MODULOS2 = [
     SPINE.map(n=>no(200,n[0],160,38,n[1],n[2],false)).join('') +
     SAT.map(n=>no(n[0],n[1],96,30,n[2],null,true)).join('');
 })();
+const ROTULO_FUNCAO = { JOY:'Atendimento / Fluxo', LUANA:'Design / Produção', JUAN:'Web / Campanha', SERGIO:'Brand / Conceito / Design', OUTROS:'Outros', CLIENTE:'Cliente', admin:'Administrador', team:'Equipe', client:'Cliente' };
+const ROTULO_PRESENCA = { online:'Online', ocupado:'Ocupado', ausente:'Ausente', reuniao:'Em reunião', offline:'Offline' };
+function htmlPerfilPessoa(){
+  const p = perfil || {}, nome = p.name || 'Você';
+  const ini = nome.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  const cor = ['#2563eb','#7c3aed','#dc2626'][(nome.charCodeAt(0)||0) % 3];
+  const foto = p.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="${esc(nome)}">`
+    : `<span style="width:100%;height:100%;display:grid;place-items:center;font-size:44px;font-weight:600;color:#fff;background:${cor}">${esc(ini)}</span>`;
+  const funcao = p.team_key && p.team_key !== 'OUTROS' ? (ROTULO_FUNCAO[p.team_key] || p.team_key) : (ROTULO_FUNCAO[p.role] || p.role || '');
+  const aniv = p.birthday ? (()=>{ const d = new Date(String(p.birthday).slice(0,10)+'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long'}); })() : '';
+  const desde = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR',{month:'short',year:'numeric'}) : '';
+  const abertas = (()=>{ try { return minhasAbertas().length; } catch(e){ return null; } })();
+  const cli = p.client_id ? ((clientesReais||[]).find(c=>c.id===p.client_id)||{}).name : '';
+  const IA = (()=>{ try { return temIA() ? personagemAtual() : null; } catch(e){ return null; } })();
+  const dado = (r, v) => v ? `<div class="pf-d"><small>${r}</small><span>${esc(v)}</span></div>` : '';
+  const site = p.site ? `<div class="pf-d"><small>Site</small><span><a href="${/^https?:/.test(p.site)?esc(p.site):'https://'+esc(p.site)}" target="_blank" rel="noopener">${esc(String(p.site).replace(/^https?:\/\//,''))}</a></span></div>` : '';
+  return `<div class="mia pf"><div class="mia-ficha">
+    <div class="mia-id">
+      <div class="mia-cara pf-foto">${foto}</div>
+      <div class="mia-tx">
+        <small>Eu sou</small><b class="mia-nome">${esc(nome)}</b>
+        <small>Natureza</small><span class="mia-up">Humano terrestre</span>
+        ${funcao ? `<small>Função</small><span class="mia-up">${esc(funcao)}</span>` : ''}
+      </div>
+      <button class="acao-cab" style="color:var(--branco);align-self:flex-start" onclick="fecharJanela()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="mia-tarefas">
+      <div class="pf-dados">
+        ${dado('E-mail', p.email)}${dado('Contato', p.contact)}${dado('Aniversário', aniv)}
+        ${dado('Status', ROTULO_PRESENCA[p.presence_status] || (p.presence_status ? '' : 'Online'))}
+        ${cli ? dado('Cliente', cli) : ''}${dado('Na casa desde', desde)}
+        ${abertas != null ? dado('Tarefas abertas', String(abertas)) : ''}
+        ${dado('Redes', [p.social1, p.social2].filter(Boolean).join(' · '))}${site}
+      </div>
+      ${p.bio ? `<div class="pf-bio">${esc(p.bio)}</div>` : ''}
+      ${IA ? `<button class="mia-t" style="margin-top:6px" onclick="fecharJanela();abrirFicha('${esc(IA.id)}','minhaia')"><i aria-hidden="true" style="overflow:hidden;border:0"><img src="${fotoDe(IA,'avatar')}" alt="" style="width:100%;height:100%;object-fit:cover"></i><span>Minha IA · ${esc(nomeDaIA())}</span></button>` : ''}
+      <div class="mia-acoes">
+        <button onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
+        <button onclick="editarPerfil()">Editar perfil</button>
+        <button onclick="sairConta()" style="color:#b91c1c;opacity:1;margin-left:auto">Sair da conta</button>
+      </div>
+    </div>
+  </div></div>`;
+}
 function abrirPerfil(){
   if (!window.REAL){ toast('Entra na conta primeiro.'); return; }
-  miniEscolha(`${esc(perfil.name || 'Você')}`,
-    `<div class="nota" style="width:100%;margin:-6px 0 4px">${esc(perfil.email || '')} · pontodot</div>
-     <div id="perfilIA" class="perfil-ia" style="width:100%">${htmlPerfilIA()}</div>
-     <button class="btn" style="min-height:40px" onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
-     <button class="btn" style="min-height:40px" onclick="sairConta()">Sair da conta</button>`);
-  // o cânone pode ainda estar chegando: repinta quando chegar
-  Promise.all([garantirUniverso().catch(()=>{}), carregarQuestionario().catch(()=>{})]).then(() => {
-    const el = document.getElementById('perfilIA'); if (el) el.innerHTML = htmlPerfilIA();
-  });
+  // o conteúdo nasce completo e do tamanho final: o fio da borda mede a caixa uma vez só
+  abrirJanela(`<div class="caixa invertida" style="padding:0;overflow:hidden">${htmlPerfilPessoa()}</div>`);
+}
+function editarPerfil(){
+  fecharJanela();
+  const vai = () => { try { const w = $('#appFrame')?.contentWindow; if (w && typeof w.openMyProfile === 'function') w.openMyProfile(); else toast('Abre o app e tenta de novo.'); } catch(e){} };
+  if (!$('#mundo').classList.contains('virado')){ virar(); setTimeout(vai, 1500); } else vai();
 }
 /** "Minha IA" no perfil: quem é, quanto já te conhece, e onde mexer. */
 function htmlPerfilIA(){
