@@ -4070,7 +4070,9 @@ async function conectarInstagram(){
   if (btn) { btn.disabled = true; btn.textContent = 'Abrindo a Meta…'; }
   try {
     const { url } = await sdFetch('/meta-connect-start.php', {});
-    location.href = url;   // navegação de página inteira — a Meta exige
+    // A Meta recusa abrir dentro de iframe (X-Frame-Options: DENY). Se o app
+    // estiver embutido (popup/painel), navega a janela de cima.
+    try { (window.top || window).location.href = url; } catch(_) { window.open(url, '_top'); }
   } catch(e){
     showToast('Erro: ' + e.message, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Conectar Instagram'; }
