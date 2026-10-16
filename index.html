@@ -1884,7 +1884,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v64 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v65 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3390,8 +3390,7 @@ const MODULOS2 = [
   ['Clientes', '9 ativos', '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.5-3.4 2.7-5.2 5.5-5.2s5 1.8 5.5 5.2"/><circle cx="17" cy="9.5" r="2.4"/><path d="M15.5 13.6c2.6.2 4.4 1.8 4.9 4.9"/>'],
   ['Equipe', 'Joy · Luana · Juan', '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c.6-4 3.4-6.2 7-6.2s6.4 2.2 7 6.2"/>'],
   ['IAs conectadas', 'Dot ON · Claude maestro', '<rect x="5" y="7" width="14" height="11" rx="2.5"/><path d="M12 4v3M9 12h.01M15 12h.01M9.5 15h5"/>'],
-  ['Financeiro', 'empresa e casa', '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>'],
-  ['Relatórios', 'tempo, aprovação e mídia', '<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>'],
+  ['Termômetro da agência', 'tempo, aprovação e mídia', '<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>'],
   ['Configurações', 'motor de IA, push, contas', '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.4M12 18.1v2.4M3.5 12h2.4M18.1 12h2.4M6 6l1.7 1.7M16.3 16.3 18 18M18 6l-1.7 1.7M7.7 16.3 6 18"/>'],
 ];
 (function(){
@@ -3412,7 +3411,7 @@ const MODULOS2 = [
   ];
   const SAT = [
     [62,116,'Clientes'],[62,192,'IAs da casa'],[62,268,'Aprovações'],
-    [338,116,'Equipe'],[338,420,'Social'],[338,496,'Relatórios'],
+    [338,116,'Equipe'],[338,420,'Social'],[338,496,'Termômetro da agência'],
   ];
   const el = document.getElementById('vMapaNos');
   if (el) el.innerHTML =
@@ -3477,8 +3476,8 @@ function vAbrir(nome){
     else if (N.includes('equipe')) { if (window.REAL) abrirEquipe(); else abreGad('equipe'); }
     else if (N.includes('cronograma')||N.includes('semana')) abreGad('cronograma');
     else if (N.includes('social')||N.includes('publica')) abreGad('social');
-    else if (N.includes('relat')||N.includes('desempenho')) abreGad('relatorios');
-    else if (N.includes('finan')) abreGad('financeiro');
+    else if (N.includes('relat')||N.includes('term')||N.includes('desempenho')) abreGad('relatorios');
+    else if (N.includes('finan')) toast('O financeiro ainda vai ser criado — por enquanto fora do ar.');
     else if (N.includes('config')) abrirPicker();
     else if (N.includes('ia')||N.includes('drive')||N.includes('ponte')) abreGad('ia');
     else if (N.includes('pedido')||N.includes('chat')) modoChat(true);
@@ -3820,8 +3819,7 @@ async function vincularAds(conta, clientId){
 
 const GADGETS = {
   tarefas:   { nome:'Tarefas', fixo:true, html:()=>`<div class="caixa cx-tarefas">${htmlTarefas()}</div>` },
-  rolando:   { nome:'Rolando agora', html:()=>htmlRolando() },
-  conversas: { nome:'Conversas', html:()=>htmlConversas() },
+  conversas: { nome:'Conversas', oculto:true, html:()=>htmlConversas() },
   ia:        { nome:'Inteligências da casa', html:()=>htmlPainelIA() },
   minhaia:   { nome:()=>temIA()?'Minha IA':'Sua IA ainda não nasceu', html:()=>htmlMinhaIA() },
   aprovacoes:{ nome:'Aprovações', html:()=>{
@@ -3868,7 +3866,7 @@ const GADGETS = {
           if (ehAtrasada(t)) por[c].atr++; });
         const rows = Object.entries(por).sort((a,b)=>b[1].n-a[1].n);
         return gadCaixa('Clientes', rows.slice(0,6).map(([c,v])=>
-          `<button class="gente" style="width:100%" onclick="abrirClientesAdmin()">${logoCliente(c,30)}<div class="c"><div style="font-size:12px">${c}</div><div class="d" style="font-size:10px;color:var(--branco2)">${v.n} aberta${v.n>1?'s':''}${v.atr?` · <span style="color:var(--rosa)">${v.atr} atrasada${v.atr>1?'s':''}</span>`:''}</div></div></button>`).join('')
+          `<button class="gente" style="width:100%" onclick="abrirTodasCliente('${String(c).replace(/'/g,'’')}')">${logoCliente(c,30)}<div class="c"><div style="font-size:12px">${c}</div><div class="d" style="font-size:10px;color:var(--branco2)">${v.n} aberta${v.n>1?'s':''}${v.atr?` · <span style="color:var(--rosa)">${v.atr} atrasada${v.atr>1?'s':''}</span>`:''}</div></div></button>`).join('')
           || '<div class="nota">Nenhuma tarefa aberta.</div>',
           ['Todos os clientes', `abrirClientesAdmin()`]);
       }
@@ -3888,7 +3886,7 @@ const GADGETS = {
       return gadCaixa('Equipe',`
       ${[['JO','Joy','▶ rodando SD-0021 · 1h12'],['LU','Luana','respondeu na SD-0019'],['JU','Juan','LP do Ápice · pausada']]
         .map(x=>`<div class="gente"><span class="av">${x[0]}</span><div class="c"><div style="font-size:12px">${x[1]}</div><div class="d" style="font-size:10px;color:var(--branco2)">${x[2]}</div></div></div>`).join('')}`); } },
-  relatorios:{ nome:'Relatórios', html:()=>{
+  relatorios:{ nome:'Termômetro da agência', html:()=>{
       if (window.REAL){
         let cfg = 'status'; try { cfg = localStorage.getItem('sd_bi') || 'status'; } catch(e){}
         const por = {};
@@ -3902,7 +3900,7 @@ const GADGETS = {
         const rows = Object.entries(por).sort((a,b)=>b[1]-a[1]).slice(0,7);
         const mx = Math.max(...rows.map(r=>r[1]),1);
         const ROT = { status:'por status', cliente:'por cliente', resp:'por responsável', semana:'por semana' };
-        return gadCaixa('Relatórios',`
+        return gadCaixa('Termômetro da agência',`
       <div style="display:flex;align-items:center;gap:8px;margin:0 0 9px">
         <span class="nota" style="margin:0;flex:1">${tasksReais.length} abertas · ${ROT[cfg]}</span>
         <button class="btn" style="min-height:30px;padding:4px 11px;font-size:10.5px" onclick="event.stopPropagation();configurarBI(event)">${icoMini('engrenagem',13)} configurar</button>
@@ -3917,14 +3915,9 @@ const GADGETS = {
       return gadCaixa('Aprovação de primeira',`
       <div class="mini-sem">${[52,61,58,74].map((v,i)=>`<div class="dia"><div class="bar" style="height:${v*0.6}px;background:rgba(255,255,255,.4)"></div>s${i+1}</div>`).join('')}</div>
       <div class="nota" style="margin:8px 0 0">74% na última semana · melhor mês do ano</div>`,
-      ['Ver relatórios',`toast('Abre os relatórios.')`]); } },
+      ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
-  financeiro:{ nome:'Financeiro', html:()=> window.REAL ? gadCaixa('Financeiro',
-      `<div class="nota" style="padding:6px 2px">O financeiro (empresa e casa) entra na onda própria da migração — sem números de mentira até lá.</div>`)
-    : gadCaixa('Financeiro',`
-      <div class="ia-linha"><div class="c"><div class="n">Faturas de outubro</div><div class="d">3 emitidas · 2 pagas · 1 vence sexta</div></div></div>`,
-      ['Abrir financeiro',`toast('Abre o financeiro.')`]) },
 };
 // o admin de clientes do SD, na roupa nova
 async function abrirClientesAdmin(){
@@ -3948,7 +3941,7 @@ async function abrirClientesAdmin(){
             :`<span class="av" style="width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;flex-shrink:0;background:${c.color||'rgba(127,127,127,.25)'};color:#fff">${(c.name||'?').slice(0,2).toUpperCase()}</span>`}
           <div class="t-main"><span class="nome" style="flex:none">${c.name}</span>
             <small>${abertas.length} aberta${abertas.length===1?'':'s'}${atr?` · ${atr} atrasada${atr===1?'':'s'}`:''}${rep?` · ${rep.name.split(' ')[0]} responde`:''}</small></div>
-          <button class="btn" style="min-height:34px" title="Cadastro completo do cliente" onclick="abrirCadastroCliente(${c.id})">${icoMini('externo',13)} cadastro</button>
+          <button class="btn" style="min-height:34px" title="Cadastro completo do cliente" onclick="abrirCadastroCliente('${esc(c.id)}')">${icoMini('externo',13)} cadastro</button>
           <button class="btn" style="min-height:34px" onclick="fecharJanela();abrirTodasCliente('${nome}')">tarefas</button>
           ${rep?`<button class="btn" style="min-height:34px" title="Conversar com ${rep.name.split(' ')[0]}" onclick="fecharJanela();abrirChatCom('${rep.name.replace(/'/g,'’')}')">${icoMini('balao',14)} conversar</button>`:''}
         </div>`;
@@ -3986,12 +3979,18 @@ function abrirEquipe(){
 function abrirCadastroCliente(cid){
   fecharJanela();
   const m = $('#mundo');
-  const vai = ()=>{ try { const w = $('#appFrame')?.contentWindow; w && w.openClientDetail && w.openClientDetail(cid); } catch(e){} };
-  if (!m.classList.contains('virado')){ virar(); setTimeout(vai, 1500); } else vai();
+  // o app do verso pode ainda estar carregando: tenta até ele ter os clientes na mão
+  const vai = (n=0)=>{ let ok = false;
+    try { const w = $('#appFrame')?.contentWindow;
+      if (w && typeof w.openClientDetail === 'function' && w.eval('Array.isArray(clients) && clients.length > 0')){ w.openClientDetail(cid); ok = true; } } catch(e){}
+    if (!ok && n < 40) setTimeout(()=>vai(n+1), 300);
+    else if (!ok) toast('O cadastro não abriu — gira o S e abre o cliente por lá.');
+  };
+  if (!m.classList.contains('virado')){ virar(); setTimeout(()=>vai(), 900); } else vai();
 }
 function abrirTodasResp(r){ fT.resp = r; guardarFiltro(); abrirTarefasTodas(); }
 function abrirTodasCliente(c){ fT.cli = c; guardarFiltro(); abrirTarefasTodas(); }
-let meusGadgets = ['tarefas','minhaia','rolando','conversas','ia','aprovacoes','cronograma'];
+let meusGadgets = ['tarefas','minhaia','ia','aprovacoes','cronograma'];
 try { const g = JSON.parse(localStorage.getItem('sd_gadgets')||'null'); if (Array.isArray(g) && g.length) meusGadgets = g; } catch(e){}
 // Caixinha NOVA se apresenta sozinha, uma vez, pra quem guardou a área
 // antes de ela existir (quem tirou de propósito não ganha de volta).
@@ -4005,6 +4004,10 @@ try {
   }
   localStorage.setItem('sd_gadgets_vistos', JSON.stringify(visto));
 } catch(e){}
+// limpeza única: quem já tinha guardado a área perde só o que foi aposentado
+try { if (!localStorage.getItem('sd_gad_mig_2')) {
+  meusGadgets = meusGadgets.filter(id => !['rolando','conversas','financeiro'].includes(id));
+  localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); localStorage.setItem('sd_gad_mig_2','1'); } } catch(e){}
 function salvarGadgets(){ try { localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); } catch(e){} }
 let pickerAberto = false;
 function abrirPicker(){ pickerAberto = !pickerAberto; render(); }
@@ -4203,11 +4206,11 @@ function renderBoard(){
     ${cabPainel('Monte sua área de trabalho','')}
     <div class="nota">O que está no verso pode morar aqui. A escolha fica salva neste aparelho.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-      ${Object.entries(GADGETS).map(([id,g])=>`<button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px;${meusGadgets.includes(id)?'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700':''}" ${g.fixo?'disabled style="opacity:.55;min-height:38px;padding:7px 13px;font-size:11.5px"':''} onclick="alternarGadget('${id}')">${esc(nomeGad(id))}${meusGadgets.includes(id)?' ✓':''}</button>`).join('')}
+      ${Object.entries(GADGETS).filter(([id,g])=>!g.oculto).map(([id,g])=>`<button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px;${meusGadgets.includes(id)?'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700':''}" ${g.fixo?'disabled style="opacity:.55;min-height:38px;padding:7px 13px;font-size:11.5px"':''} onclick="alternarGadget('${id}')">${esc(nomeGad(id))}${meusGadgets.includes(id)?' ✓':''}</button>`).join('')}
     </div></div></div>`;
   const pk = $('#pickerSlot .fechar-painel'); if (pk) { pk.style.display='block'; pk.onclick = (e)=>{e.stopPropagation();abrirPicker()}; }
   requestAnimationFrame(medirMinis);     // o grid se refez: remede os quadradinhos
-  grid.innerHTML = meusGadgets.filter(id=>GADGETS[id]).map(id=>`
+  grid.innerHTML = [...meusGadgets.filter(id=>GADGETS[id] && !GADGETS[id].oculto), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
     <div class="gad ${gadsAbertos[id]?'':'fechado'} ${id==='tarefas'&&!gadsAbertos[id]?'mini-largo':''} ${id==='minhaia'&&aindaNao(()=>temIA(),false)?'gad-ia':''} ${id==='minhaia'&&nasceuAgora?'nascendo':''}" data-fk="gad-${id}">
       <button class="gad-ico ${id==='tarefas'?'mini-largo':''}" onpointerdown="abaDown(event,'${id}',false,${id==='tarefas'?'true':'false'})" title="${nomeGad(id)}${id==='tarefas'?' — ver todas':''}">
         ${id==='tarefas' ? TAREFAS.slice(0,5).map(t=>cara(t.cara,28)).join('')
@@ -4338,7 +4341,9 @@ const noVersoAgora = () => $('#mundo')?.classList.contains('virado');
 const frameVerso = () => { try { return $('#appFrame')?.contentWindow || null; } catch(e){ return null; } };
 function clChat(){
   const w = noVersoAgora() ? frameVerso() : null;
-  if (w && typeof w.toggleChat === 'function') w.toggleChat(); else alternarPainel('conversas');
+  if (w && typeof w.toggleChat === 'function') w.toggleChat();
+  else if (!ehDesk()){ gadsAbertos.conversas = !gadsAbertos.conversas; renderBoard(); }
+  else alternarPainel('conversas');
 }
 function clNova(){
   const w = noVersoAgora() ? frameVerso() : null;
