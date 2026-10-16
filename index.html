@@ -1462,6 +1462,28 @@ html.dia .cl-res{background:rgba(244,243,239,.96)}
   html.emChat .board-cab{display:none}
 }
 
+
+/* ===== caixinhas: abrir e fechar sem pulo nem corte ===== */
+@keyframes gadFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes bolPop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.gad:not(.gad-ia).abrindo,.gad:not(.gad-ia).fechando{overflow:hidden}
+.gad.abrindo .gad-aba,.gad.abrindo .gad-corpo{animation:gadFade .42s cubic-bezier(.22,1,.36,1) .12s both}
+.gad.fechando .gad-aba,.gad.fechando .gad-corpo{opacity:0;transition:opacity .18s ease}
+.gad.recem-fechado .gad-ico{animation:gadFade .32s ease both}
+/* bolinha de novidade: canto alto da caixa fechada */
+.gad{position:relative}
+.gad:not(.fechado){position:relative}
+.gad-bol{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#dc2626;color:#fff;
+  font-weight:700;font-size:11px;line-height:20px;text-align:center;padding:0 5px;z-index:4;display:none;
+  box-shadow:0 3px 10px rgba(220,38,38,.55);pointer-events:none;font-variant-numeric:tabular-nums}
+.gad.fechado .gad-bol.on{display:block;animation:bolPop .45s cubic-bezier(.3,1.6,.5,1)}
+.nv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;margin:0 6px 1px 0;flex-shrink:0}
+.t-linha.nv .nome,.ia-linha.nv .n{font-weight:700}
+.ap-abas{display:flex;gap:6px;margin:0 0 9px;flex-wrap:wrap}
+.ap-abas button{border:.5px solid var(--linha);border-radius:999px;padding:6px 12px;font-size:11.5px;color:var(--branco);background:none;cursor:pointer}
+.ap-abas button.on{background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700}
+.ap-q{width:100%;border:.5px solid var(--linha);border-radius:12px;background:none;color:inherit;padding:9px 12px;font:inherit;font-size:13px;outline:none;margin:0 0 8px}
+
 /* aba Histórico na frente: a irmã espelhada da de Conversas (mesmo tamanho, mesma letra, mesmo vidro) */
 .aba-hist-frente{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:36;writing-mode:vertical-rl;
   font:inherit;font-size:11.5px;font-weight:500;letter-spacing:.14em;color:var(--branco);white-space:nowrap;cursor:pointer;
@@ -1893,7 +1915,7 @@ html.emChat .cfg-area{display:none}
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v66 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v67 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2082,7 +2104,7 @@ function htmlTarefas(){
   const tudo = vTarefas==='tudo';
   const linhas = TAREFAS.map((t,i)=>`
     <button class="t-linha ${i===selecionada?'sel':''}" data-fk="${t.id}" style="${i===selecionada?`background:${COR_SEL[t.cara]}`:''}"
-      onclick="selecionar(${i})">${cara(t.cara,32, i===selecionada ? '#fff' : null)}<span class="nome">${t.nome}</span>${t.ia?'<span class="ia-chip">IA</span>':''}${t.resp?`<span class="t-resp">${t.resp}</span>`:''}<span class="t-play ${t.play?'rodando':''}" role="button" aria-label="${t.play?'Pausar':'Dar play'}" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span></button>`).join('')
+      onclick="selecionar(${i})">${cara(t.cara,32, i===selecionada ? '#fff' : null)}${temNovo('tarefas', t.id) ? '<i class="nv-dot"></i>' : ''}<span class="nome">${t.nome}</span>${t.ia?'<span class="ia-chip">IA</span>':''}${t.resp?`<span class="t-resp">${t.resp}</span>`:''}<span class="t-play ${t.play?'rodando':''}" role="button" aria-label="${t.play?'Pausar':'Dar play'}" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span></button>`).join('')
     + (tudo ? TAREFAS_MAIS.map(t=>`
     <button class="t-linha" data-fk="${t[0]}" onclick="toast('Abre ${t[0]} — mesmo padrão da caixa acima.')">${cara(t[2],32)}<span class="nome">${t[1]}</span></button>`).join('') : '');
   const ferramentas = `<div class="t-ferr">
@@ -2712,6 +2734,8 @@ const fTvazio = () => ({resp:'',cli:'',st:'',q:'',atras:false,ia:false});
 let fT = fTvazio();
 try { const g = JSON.parse(localStorage.getItem('sd_filtro_tarefas')||'null');
   if (g && typeof g === 'object') fT = Object.assign(fTvazio(), g); } catch(e){}
+let _voltarLista = false, _jScroll = 0;
+function abrirDaLista(id){ const L = $('#jLista'); if (L) _jScroll = L.scrollTop; _voltarLista = true; abrirTarefaReal(id); }
 function guardarFiltro(){ try { localStorage.setItem('sd_filtro_tarefas', JSON.stringify(fT)); } catch(e){} }
 function filtroLigado(){ return !!(fT.resp||fT.cli||fT.st||fT.q||fT.atras||fT.ia); }
 function limparFiltro(){ fT = fTvazio(); guardarFiltro(); abrirTarefasTodas(); }
@@ -2780,7 +2804,7 @@ function pintarTodas(){
   L.innerHTML = ord.map(t => {
     const ia = driveMap[t.id] && driveMap[t.id].status !== 'pausado';
     const atras = ehAtrasada(t);
-    return `<button class="t-linha" onclick="abrirTarefaReal('${t.id}')">
+    return `<button class="t-linha" onclick="abrirDaLista('${t.id}')">
       ${cara(caraDe(t), 26)}
       <span class="t-data${atras?' atras':''}">${fmtD(t.date_int)}</span>
       <span class="t-clichip">${t.clients?.name||'SD'}</span>
@@ -2949,7 +2973,14 @@ function abrirTarefa(){
   `;
   tcPe('botoes');
 }
-function fecharTarefa(){ $('#tarefaCheia').classList.add('oculto'); $('#telaHome').style.visibility=''; render(); }
+function fecharTarefa(){
+  $('#tarefaCheia').classList.add('oculto'); $('#telaHome').style.visibility=''; render();
+  if (_voltarLista){                       // veio da lista: volta pra ela, do mesmo ponto, com o mesmo filtro
+    _voltarLista = false;
+    abrirTarefasTodas();
+    requestAnimationFrame(()=>{ const L = $('#jLista'); if (L) L.scrollTop = _jScroll; });
+  }
+}
 function tcPe(modo){
   const el = $('#tcPe'); if (!el) return;
   const icone = p => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -3578,6 +3609,75 @@ function gadCaixa(titulo, corpo, acao){
     ${acao?`<div style="margin-top:11px"><button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px" onclick="${acao[1].replace(/"/g,'&quot;')}">${acao[0]}</button></div>`:''}
   </div>`;
 }
+
+// =====================================================================
+// NOVIDADES — a bolinha vermelha das caixas fechadas (FOMO bom).
+// Cada caixa diz o que há de novo; o que você clica deixa de ser novo.
+// O "visto" fica guardado neste aparelho.
+// =====================================================================
+let VISTOS = {}; try { VISTOS = JSON.parse(localStorage.getItem('sd_vistos') || '{}') || {}; } catch(e){}
+const _salvarVistos = () => { try { localStorage.setItem('sd_vistos', JSON.stringify(VISTOS)); } catch(e){} };
+const eNovo = (g, k) => !(VISTOS[g] && VISTOS[g][k]);
+function marcarVisto(g, k){ (VISTOS[g] = VISTOS[g] || {})[k] = Date.now(); _salvarVistos(); pintarBolinhas(); }
+const NOVIDADES = {
+  // tudo que está com o cliente ou voltou com alteração
+  aprovacoes: () => !window.REAL ? [] : tasksReais.filter(t => t.status === 'DELEGADA' || t.status === 'ALTERAÇÃO').map(t => ({ k: t.id + ':' + t.status })),
+  // comentários de outras pessoas
+  tarefas: () => !window.REAL ? [] : comentsReais.filter(c => c.quem !== perfil.name).slice(0, 12).map(c => ({ k: c.tarefa + ':' + c.quando })),
+};
+const temNovo = (g, tid) => { try { return (NOVIDADES[g] ? NOVIDADES[g]() : []).some(x => x.k.startsWith(tid + ':') && eNovo(g, x.k)); } catch(e){ return false; } };
+function visitarTarefa(tid){
+  Object.keys(NOVIDADES).forEach(g => { try { NOVIDADES[g]().forEach(x => { if (x.k.startsWith(tid + ':')) (VISTOS[g] = VISTOS[g] || {})[x.k] = Date.now(); }); } catch(e){} });
+  _salvarVistos(); pintarBolinhas();
+}
+function pintarBolinhas(){
+  document.querySelectorAll('.gad-bol').forEach(el => {
+    const g = el.dataset.g; let n = 0;
+    try { n = NOVIDADES[g] ? NOVIDADES[g]().filter(x => eNovo(g, x.k)).length : 0; } catch(e){}
+    el.textContent = n > 99 ? '99+' : n; el.classList.toggle('on', n > 0);
+  });
+}
+
+// ---- Aprovações: TUDO que está com o cliente, com a mesma busca e memória ----
+const APROV_ABAS = { cliente:['Com o cliente','DELEGADA'], alteracao:['Pediu alteração','ALTERAÇÃO'], aprovadas:['Aprovadas · falta finalizar','ATENÇÃO'] };
+let aprovAba = 'cliente', aprovQ = '';
+try { const g = JSON.parse(localStorage.getItem('sd_filtro_aprov') || 'null'); if (g){ if (APROV_ABAS[g.aba]) aprovAba = g.aba; aprovQ = g.q || ''; } } catch(e){}
+const guardarAprov = () => { try { localStorage.setItem('sd_filtro_aprov', JSON.stringify({ aba: aprovAba, q: aprovQ })); } catch(e){} };
+function listaAprov(aba = aprovAba){
+  const st = APROV_ABAS[aba][1], q = semAcento(aprovQ);
+  return tasksReais.filter(t => t.status === st &&
+      (!q || semAcento([t.id, t.action, t.project, t.clients && t.clients.name, t.resp].join(' ')).includes(q)))
+    .sort((a, b) => String(a.date_cli || a.date_int || '9999').localeCompare(String(b.date_cli || b.date_int || '9999')));
+}
+function linhasAprov(){
+  const L = listaAprov();
+  if (!L.length) return `<div class="nota">${aprovQ ? 'Nada com essa busca.' : 'Nada aqui agora.'}</div>`;
+  return L.map(t => {
+    const novo = eNovo('aprovacoes', t.id + ':' + t.status);
+    const nome = t.clients?.name || 'SD';
+    return `<button class="ia-linha${novo ? ' nv' : ''}" style="width:100%;gap:10px" onclick="visitarTarefa('${t.id}');abrirTarefaReal('${t.id}')">
+      ${logoCliente(nome, 28)}
+      <div class="c" style="min-width:0"><div class="n" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${novo ? '<i class="nv-dot"></i>' : ''}${esc(String(t.action).slice(0, 48))}</div>
+      <div class="d">${esc(nome)} · com ${esc(t.resp || '—')}${t.date_cli ? ' · prazo do cliente ' + fmtD(t.date_cli) : ''}</div></div></button>`;
+  }).join('');
+}
+function pintarAprov(){
+  const L = $('#apLista'); if (L) L.innerHTML = linhasAprov();
+  document.querySelectorAll('[data-apaba]').forEach(b => { b.classList.toggle('on', b.dataset.apaba === aprovAba);
+    b.firstElementChild && (b.firstElementChild.textContent = listaAprovTotal(b.dataset.apaba)); });
+}
+const listaAprovTotal = aba => tasksReais.filter(t => t.status === APROV_ABAS[aba][1]).length;
+function aprovTroca(aba){ aprovAba = aba; guardarAprov(); pintarAprov(); }
+function htmlAprovacoes(){
+  const abas = Object.entries(APROV_ABAS).map(([k, v]) => `<button data-apaba="${k}" class="${k === aprovAba ? 'on' : ''}" onclick="aprovTroca('${k}')">${v[0].split(' · ')[0]} <b>${listaAprovTotal(k)}</b></button>`).join('');
+  const sets = (setsReais || []).slice(0, 4);
+  return gadCaixa('Aprovações',
+    `<div class="ap-abas">${abas}</div>
+     <input class="ap-q" id="apQ" placeholder="buscar por cliente, peça, pessoa…" value="${esc(aprovQ)}" oninput="aprovQ=this.value;guardarAprov();pintarAprov()">
+     <div id="apLista">${linhasAprov()}</div>
+     ${sets.length ? `<div class="nota" style="margin:12px 0 4px">LOTES RECENTES NA APROVAÇÃO</div>` + sets.map(x => `<button class="ia-linha" style="width:100%" onclick="${x.task_id ? `abrirTarefaReal('${x.task_id}')` : `popupIframe('/aprovacao.html?set=${x.id}','Aprovação')`}"><div class="c"><div class="n">${esc(x.title || 'Lote')}</div><div class="d">${esc((x.created_at || '').slice(0, 10))}${x.task_id ? ' · ' + esc(x.task_id) : ''}</div></div></button>`).join('') : ''}`);
+}
+
 // ---- QUEM ESTÁ TRABALHANDO AGORA ----------------------------------
 // O que está em play de verdade: meu cronômetro, o da equipe e a IA
 // produzindo. Cada linha fica pensando enquanto o trabalho não volta.
@@ -3833,15 +3933,7 @@ const GADGETS = {
   ia:        { nome:'Inteligências da casa', html:()=>htmlPainelIA() },
   minhaia:   { nome:()=>temIA()?'Minha IA':'Sua IA ainda não nasceu', html:()=>htmlMinhaIA() },
   aprovacoes:{ nome:'Aprovações', html:()=>{
-    if (window.REAL){
-      const apr = tasksReais.filter(t=>t.status==='ATENÇÃO');
-      return gadCaixa('Aprovadas · falta finalizar',
-        (apr.length ? apr.slice(0,6).map(t=>{
-          const dias = t.date_int ? Math.max(0, Math.floor((Date.now()-new Date(t.date_int.slice(0,10)+'T12:00:00'))/864e5)) : null;
-          return `<button class="ia-linha" style="width:100%" onclick="abrirTarefaReal('${t.id}')"><div class="c"><div class="n">${t.action.slice(0,44)}</div><div class="d">${t.clients?.name||'SD'} · com ${t.resp||'—'}${dias!==null?` · ${dias}d`:''}</div></div></button>`;
-        }).join('') + (apr.length>6?`<div class="nota" style="margin-top:6px">+ ${apr.length-6} aprovadas na fila</div>`:'')
-        : '<div class="nota">Nada aprovado esperando finalização.</div>'));
-    }
+    if (window.REAL) return htmlAprovacoes();
     return gadCaixa('Aprovações',`
       <div class="ia-linha"><div class="c"><div class="n" style="color:var(--laranja)">Geoville · carrossel</div><div class="d">com o cliente há 3 dias, sem resposta</div></div></div>
       <div class="ia-linha"><div class="c"><div class="n" style="color:var(--roxo)">Hermisfério · brand</div><div class="d">revisado — pronto pra enviar pro cliente</div></div></div>`,
@@ -4165,6 +4257,8 @@ function alternarAbertura(id){
   corpo.style.overflow = 'hidden';
   const desk = ehDesk();
   if (abrindo){
+    corpo.innerHTML = gadSeguro(id);             // conteúdo fresco já na abertura: sem recarregar a grade depois
+    gad.classList.add('abrindo');
     const medido = Math.round(gad.getBoundingClientRect().width);
     if (medido > 40) larguraMini[id] = medido;   // nasce do tamanho real do quadradinho
     const w0 = larguraMini[id] || medido;
@@ -4185,8 +4279,9 @@ function alternarAbertura(id){
       corpo.style.transition = 'height .6s cubic-bezier(.19,1,.22,1)';
       corpo.style.height = h + 'px';
     });
-    setTimeout(()=>{ corpo.style.cssText=''; posicionarCfg(); renderBoard(); }, 640);   // abre já mostrando tudo, sem segundo clique
+    setTimeout(()=>{ corpo.style.cssText=''; gad.classList.remove('abrindo'); posicionarCfg(); }, 640);
   } else {
+    gad.classList.add('fechando');
     corpo.style.height = corpo.scrollHeight + 'px';
     // sem medida confiável, não force largura nenhuma: melhor fechar sem
     // animar a largura do que encolher pro tamanho errado e dar o estouro
@@ -4195,8 +4290,9 @@ function alternarAbertura(id){
       corpo.style.transition = 'height .45s cubic-bezier(.4,.6,.3,1)';
       corpo.style.height = '0px';
     });
-    setTimeout(()=>{ gad.classList.add('fechado'); if (id==='tarefas') gad.classList.add('mini-largo');
-      corpo.style.cssText=''; gad.style.width=''; posicionarCfg(); }, 480);
+    setTimeout(()=>{ gad.classList.add('fechado','recem-fechado'); gad.classList.remove('fechando'); if (id==='tarefas') gad.classList.add('mini-largo');
+      corpo.style.cssText=''; gad.style.width=''; posicionarCfg(); pintarBolinhas();
+      setTimeout(()=>gad.classList.remove('recem-fechado'), 400); }, 480);
   }
 }
 function novoChat(){
@@ -4234,7 +4330,9 @@ function renderBoard(){
         </span>
       </div>
       <div class="gad-corpo">${gadSeguro(id)}</div>
+      <i class="gad-bol" data-g="${id}"></i>
     </div>`).join('');
+  pintarBolinhas();
   nasceuAgora = false;                   // a passagem toca uma vez só
   document.documentElement.classList.toggle('com-ia', !!aindaNao(()=>temIA(), false));
   posicionarCfg();
@@ -6085,6 +6183,7 @@ async function carregarReal(){
       h: `${String(dt.getHours()).padStart(2,'0')}h${String(dt.getMinutes()).padStart(2,'0')}`,
       ultima: (c.body||'').slice(0,90), tarefa: c.task_id || '', tnome: t ? t.action.slice(0,34) : '' });
   });
+  try { pintarBolinhas(); } catch(e){}
   const aviso = $('#aviso-pess');
   if (aviso && CONVERSAS[0]) aviso.textContent = `${CONVERSAS[0].quem} falou na ${CONVERSAS[0].tarefa}…`;
 
@@ -6281,6 +6380,7 @@ async function aplicarCampo(id, campo, valor){
 }
 // a página da tarefa (desenho 3) com dados reais: conversa, status, play
 async function abrirTarefaReal(id){
+  try { visitarTarefa(id); } catch(e){}
   let t = tasksReais.find(x=>x.id===id);
   if (!t && window.REAL){
     // não tá na lista? busca direto no banco — entregue, programada, o que for
