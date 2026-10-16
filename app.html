@@ -132,6 +132,7 @@
         <button class="nav-tab" id="tab-lista" onclick="setView('lista')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista</button>
         <button class="nav-tab" id="tab-gantt" onclick="setView('gantt')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="12" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.2 7.1 15.8 11M15.8 13 8.2 16.9"/></svg>Fluxo</button>
         <button class="nav-tab" id="tab-mural" style="display:none" onclick="setView('mural')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7h1a2 2 0 1 0 0-4H8a2 2 0 1 0 0 4h1z"/></svg>Mural</button>
+        <button class="nav-tab" id="tab-fila" data-perm="social.publicar" style="display:none" onclick="setView('fila')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>Redes sociais</button>
       </div>
 
       <!-- ADMIN + submenus, ancorado à direita da linha de navegação -->
@@ -145,7 +146,6 @@
           <div class="adm-mi" onclick="closeAdminMenu();setView('admin')">Painel</div>
           <div class="adm-mi" onclick="closeAdminMenu();setView('clientes')">Clientes</div>
           <div class="adm-mi" id="adm-mi-saude" style="display:none" onclick="closeAdminMenu();setView('saude')">Saúde da plataforma</div>
-          <div class="adm-mi" id="adm-mi-fila" data-perm="social.publicar" style="display:none" onclick="closeAdminMenu();setView('fila')">Redes sociais</div>
         </div>
       </div>
     </div>
@@ -307,6 +307,7 @@
           <button id="fila-tab-comentarios" class="nav-tab" style="opacity:0.4" onclick="filaSetAba('comentarios',this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comentários</button>
         </div>
+        <div id="fila-contas" style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
         <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
           <select class="filter-sel" id="fila-filter-client" onchange="renderFila()"><option value="">Todos os clientes</option></select>
           <select class="filter-sel" id="fila-filter-project" onchange="renderFila()"><option value="">Todos os projetos</option></select>
@@ -489,21 +490,18 @@
             <button id="admin-tab-enc" class="nav-tab" style="opacity:0.4" onclick="setAdminTab('pausados',this)">Encerrados</button>
           </div>
           <div id="admin-ativos">
-            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes</div>
-            <div class="cards-grid" id="admin-clients" style="margin-bottom:22px"></div>
-
             <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Configurações</div>
             <div class="cards-grid-4" style="margin-bottom:22px">
-              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:8px;grid-column:span 2">
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:12px;grid-column:1/-1;padding:18px 20px">
                 <div style="display:flex;align-items:center;justify-content:space-between">
-                  <div class="entity-card-name">BI — visão geral</div>
+                  <div class="entity-card-name" style="font-size:15px">BI — visão geral</div>
                   <button class="btn btn-secondary btn-sm" onclick="abrirBIDetalhe()">Ver mais →</button>
                 </div>
                 <div id="bi-resumo-body">
                   <div style="font-size:11px;color:var(--text3)">Carregando…</div>
                 </div>
               </div>
-              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
+              <div class="entity-card" id="card-pd-design" style="display:none;flex-direction:column;align-items:stretch;gap:9px">
                 <div>
                   <div class="entity-card-name">Pontodot Design</div>
                   <div class="entity-card-meta">Kit de marca, redes sociais, papelaria, books</div>
@@ -532,7 +530,7 @@
                 <button class="btn btn-primary btn-sm" onclick="salvarHorarioAtendimento()">Salvar</button>
               </div>
 
-              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px;grid-column:span 2">
                 <div style="display:flex;align-items:center;gap:7px">
                   <div class="entity-card-name">Quem está trabalhando</div>
                   <button class="btn btn-secondary btn-sm" style="margin-left:auto;padding:3px 9px;font-size:10.5px"
@@ -549,6 +547,7 @@
                   <div class="entity-card-meta">Cria/atualiza em lote, via Excel</div>
                 </div>
                 <button class="btn btn-secondary btn-sm" onclick="openImport()">⬆ Importar Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="abrirLixeiraLotes()">🗑 Lixeira de aprovações</button>
               </div>
 
               <div class="entity-card" data-perm="social.conectar" style="flex-direction:column;align-items:stretch;gap:9px">
@@ -557,6 +556,9 @@
                 <button class="btn btn-secondary btn-sm" onclick="conectarInstagram()">+ Conectar outra</button>
               </div>
             </div>
+
+            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes</div>
+            <div class="cards-grid" id="admin-clients" style="margin-bottom:22px"></div>
 
             <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Equipe & Usuários</div>
             <div class="cards-grid" id="admin-users" style="margin-bottom:24px"></div>
@@ -4040,6 +4042,7 @@ async function renderAdmin(){
   // isso que aconteceu antes da proteção existir).
   try { preencherHorarioAdmin(); } catch(e) { console.warn('Horário admin:', e.message); }
   try { renderBIResumo(); } catch(e) { console.warn('BI resumo:', e.message); }
+  try { renderTrackingEquipe(); } catch(e) {}
   // Admin vê todos os profiles — RLS permite se role=admin
   const{data:users,error:uerr}=await sb.from('profiles').select('*').order('name');
   if(uerr)console.warn('Profiles RLS error:', uerr.message);
@@ -4377,11 +4380,11 @@ function svgBarChart(dados, largura, altura){
   const gap = 6, barW = (largura - (dados.length + 1) * gap) / dados.length;
   let x = gap, svg = `<svg viewBox="0 0 ${largura} ${altura}" width="100%" style="max-width:${largura}px">`;
   dados.forEach(d => {
-    const h = Math.max(2, Math.round((d.valor / max) * (altura - 28)));
-    const y = altura - 18 - h;
+    const h = Math.max(2, Math.round((d.valor / max) * (altura - 34)));
+    const y = altura - 22 - h;
     svg += `<rect x="${x.toFixed(1)}" y="${y}" width="${barW.toFixed(1)}" height="${h}" rx="3" fill="${d.cor}"/>`;
-    svg += `<text x="${(x+barW/2).toFixed(1)}" y="${altura-5}" font-size="8" text-anchor="middle" fill="var(--text3)">${d.label}</text>`;
-    svg += `<text x="${(x+barW/2).toFixed(1)}" y="${y-3}" font-size="9" font-weight="700" text-anchor="middle" fill="var(--text)">${d.valor}</text>`;
+    svg += `<text x="${(x+barW/2).toFixed(1)}" y="${altura-5}" font-size="${largura>300?11:8}" text-anchor="middle" fill="var(--text3)">${d.label}</text>`;
+    svg += `<text x="${(x+barW/2).toFixed(1)}" y="${y-3}" font-size="${largura>300?13:9}" font-weight="700" text-anchor="middle" fill="var(--text)">${d.valor}</text>`;
     x += barW + gap;
   });
   return svg + '</svg>';
@@ -4440,16 +4443,17 @@ async function renderBIResumo(){
       valor: r.tarefas_abertas, cor: '#2563eb',
     }));
 
-    const num = (v, rotulo) => `<div style="text-align:center"><div style="font-size:18px;font-weight:800">${v}</div>
-      <div style="font-size:9px;color:var(--text3)">${rotulo}</div></div>`;
+    const num = (v, rotulo) => `<div style="text-align:center"><div style="font-size:30px;font-weight:800;line-height:1.1">${v}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${rotulo}</div></div>`;
 
     box.innerHTML = `
-      <div style="display:flex;justify-content:space-between;gap:4px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:16px;flex-wrap:wrap">
         ${num(totalAtrasadas,'atrasadas')}${num(totalAberta,'abertas')}${num(entregasMes,'entregas/mês')}${num(comCliente,'c/ cliente')}${num(emAjuste,'em ajuste')}
       </div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <div style="flex:1;min-width:0">${svgBarChart(dadosBarra, 150, 76)}</div>
-        <div style="flex-shrink:0">${svgPieChart(dadosPizza, 72)}</div>
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px">${svgBarChart(dadosBarra, 460, 170)}</div>
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:16px">${svgPieChart(dadosPizza, 150)}
+          <div style="font-size:11.5px;line-height:1.9">${dadosPizza.map(d=>`<div><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.cor};margin-right:7px"></span>${d.label} <b>${d.valor}</b></div>`).join('')}</div></div>
       </div>`;
   } catch(e) {
     box.innerHTML = `<div style="font-size:10.5px;color:#dc2626">${e.message}</div>`;
@@ -5446,6 +5450,25 @@ async function renderRedesSociais(){
   }).join('');
 }
 
+// Faixa de contas conectadas no topo de Redes sociais: todas visíveis, por cliente, com o estado
+async function renderContasFila(){
+  const box = document.getElementById('fila-contas'); if (!box) return;
+  const { data: contas } = await sb.from('social_accounts').select('id,platform,account_name,account_avatar_url,status,client_id').order('account_name');
+  const L = contas || [];
+  const chip = c => {
+    const cli = (clients.find(x=>x.id===c.client_id)||{}).name;
+    const ok = !c.status || ['ativo','active','ok','conectada','connected'].includes(String(c.status).toLowerCase());
+    return `<span title="${(c.account_name||'').replace(/"/g,'')}${cli?' · '+cli:' · sem cliente'}" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:20px;background:var(--surface2);border:1px solid ${ok?'var(--border)':'#dc2626'};font-size:11.5px;white-space:nowrap">
+      ${c.account_avatar_url ? `<img src="${c.account_avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">` : iconeRedeSocial(c.platform, 16)}
+      <b style="font-weight:600">${cli || '<span style="color:#d97706">sem cliente</span>'}</b>
+      <span style="color:var(--text3)">${c.platform==='instagram'?'Instagram':'Facebook'}</span>
+      ${ok ? '' : '<span style="color:#dc2626">· reconectar</span>'}</span>`; };
+  box.innerHTML = `<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:4px">Contas · ${L.length}</span>
+    ${L.map(chip).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhuma conta conectada ainda.</span>'}
+    <button class="btn btn-primary btn-sm" data-perm="social.conectar" style="margin-left:auto" onclick="conectarInstagram()">＋ Conectar conta</button>`;
+  aplicarPermissoesUI();
+}
+
 // Popup com a lista completa de UMA plataforma — vinculadas e não
 // vinculadas juntas, com a mesma ação de vincular/desvincular de antes.
 async function abrirDetalheRedeSocial(plataforma){
@@ -6261,6 +6284,36 @@ async function loadTaskFixes(taskId){
     </div>`;
 }
 
+// Exclui um lote enviado para aprovação: vai para a LIXEIRA (dá para restaurar)
+async function excluirLote(setId, taskId){
+  if (!confirm('Excluir este lote de aprovação?\n\nO cliente deixa de ver. Fica na lixeira e dá para restaurar.')) return;
+  const { error } = await sb.rpc('pd_excluir_lote', { p_set: setId });
+  if (error) { showToast('Não excluiu: ' + error.message, 'error'); return; }
+  showToast('Lote na lixeira. ↩ Restaurar em Admin › Painel › Lixeira.', 'success');
+  try { await loadTaskApproval(taskId); } catch(e){}
+}
+async function abrirLixeiraLotes(){
+  const { data, error } = await sb.rpc('pd_lixeira_lista');
+  const lista = (data||[]).map(l => `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border)">
+      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">${l.titulo||'Lote'}</div>
+        <div style="font-size:11px;color:var(--text3)">${l.task_id||''} · ${l.pecas} peça${l.pecas===1?'':'s'} · excluído ${new Date(l.excluido_em).toLocaleDateString('pt-BR')}</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="restaurarLote('${l.id}')">↩ Restaurar</button></div>`).join('');
+  let m = document.getElementById('modal-lixeira-lotes');
+  if (!m){ m = document.createElement('div'); m.id='modal-lixeira-lotes'; m.style.cssText='position:fixed;inset:0;z-index:99700;display:flex;align-items:center;justify-content:center;background:rgba(10,10,12,.55);padding:16px';
+    m.onclick = e => { if (e.target===m) m.remove(); }; document.body.appendChild(m); }
+  m.innerHTML = `<div style="background:var(--surface);border-radius:14px;padding:18px 20px;width:min(520px,100%);max-height:80vh;overflow:auto">
+    <div style="display:flex;align-items:center;margin-bottom:8px"><div style="font-size:16px;font-weight:700;flex:1">Lixeira de aprovações</div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-lixeira-lotes').remove()">Fechar</button></div>
+    ${error ? `<div style="color:#dc2626;font-size:12px">${error.message}<br>Rode o migration_v71_lixeira_aprovacao.sql no Supabase.</div>` : (lista || '<div style="font-size:12px;color:var(--text3);padding:10px 0">Lixeira vazia.</div>')}</div>`;
+}
+async function restaurarLote(id){
+  const { data, error } = await sb.rpc('pd_restaurar_lote', { p_id: id });
+  if (error) { showToast('Não restaurou: ' + error.message, 'error'); return; }
+  showToast('Lote restaurado.', 'success');
+  document.getElementById('modal-lixeira-lotes')?.remove();
+  if (data && data.task_id) { try { await loadTaskApproval(data.task_id); } catch(e){} }
+}
+
 // Apaga um lote de aprovação que ficou com zero peças (envio que
 // quebrou no meio) e já reabre a tela de envio pra tentar de novo.
 async function apagarLoteVazio(setId, taskId){
@@ -6357,6 +6410,8 @@ async function loadTaskApproval(taskId){
           title="Excel no modelo do upload com as correções do cliente, post a post (criativo e copy) — pra mandar pro GPT">⤓ Baixar correções</button>
         <button class="btn btn-secondary btn-sm" onclick="abrirCorrecoesLote('${ap.set_id}')"
           title="Subir artes/textos corrigidos — uma peça ou o pacote inteiro">↻ Subir correções</button>` : ''}
+        ${!isClient ? `<button class="btn btn-secondary btn-sm" onclick="excluirLote('${ap.set_id}','${taskId}')"
+          title="Manda o lote para a lixeira — dá para restaurar" style="color:#b91c1c">🗑 Excluir</button>` : ''}
         <button class="btn btn-sm" onclick="abrirPecas('${ap.set_id}')"
           style="background:${cor}14;color:${cor};border:1.5px solid ${cor};font-weight:700">Ver peças</button>
       </div>
@@ -9020,15 +9075,16 @@ function setView(v){
   currentView=v;
   // Abas por id (a ordem mudou na v20 e Admin virou menu com submenus)
   const mapaTab={feed:'tab-feed',kanban:'tab-kanban',lista:'tab-lista',
-                 gantt:'tab-gantt',mural:'tab-mural'};
+                 gantt:'tab-gantt',mural:'tab-mural',fila:'tab-fila'};
   document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
   const alvo=document.getElementById(mapaTab[v]);
   if(alvo) alvo.classList.add('active');
   // Clientes, Redes sociais e Painel vivem dentro de Admin
-  if(['admin','clientes','fila','saude'].includes(v))
+  if(['admin','clientes','saude'].includes(v))
     document.getElementById('tab-admin')?.classList.add('active');
   document.querySelectorAll('.view-panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v)?.classList.add('active');
+  if(v==='fila'){ try{ renderContasFila(); }catch(e){} }
   document.getElementById('main-toolbar').style.display=(v==='feed'||v==='fila'||v==='mural'||v==='saude')?'none':'flex';
   // A coluna lateral (clientes/status) só faz sentido na Lista — nas
   // outras telas ela só ocupa espaço e às vezes sobrepõe conteúdo.
@@ -9824,15 +9880,19 @@ function _trackerBtnHTML_antigo(taskId, size = 'sm'){
 async function renderTrackingEquipe(){
   const box = document.getElementById('adm-tracking-body');
   if (!box) return;
-  const { data, error } = await sb.from('v_tracking_ativo').select('*');
-  if (error) { box.innerHTML = `<div style="font-size:11px;color:#dc2626">${error.message}</div>`; return; }
-  if (!data?.length) {
-    box.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px">Ninguém trabalhando agora.</div>';
+  const [rh, ria] = await Promise.all([
+    sb.from('v_tracking_ativo').select('*'),
+    sb.from('task_drive').select('task_id,status,rodada').in('status',['produzir','corrigir']).then(r=>r,()=>({data:[]})),
+  ]);
+  if (rh.error) { box.innerHTML = `<div style="font-size:11px;color:#dc2626">${rh.error.message}</div>`; return; }
+  const data = rh.data || [], ias = (ria && ria.data) || [];
+  if (!data.length && !ias.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px">Ninguém trabalhando agora — nem gente, nem IA.</div>';
     return;
   }
   const porUser = {};
   data.forEach(r => { (porUser[r.user_id] ||= { nome:r.user_name, avatar:r.avatar_url, itens:[] }).itens.push(r); });
-  box.innerHTML = Object.values(porUser).map(u => `
+  const gente = Object.values(porUser).map(u => `
     <div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
         <span style="width:7px;height:7px;border-radius:50%;background:#16a34a"></span>
@@ -9848,6 +9908,20 @@ async function renderTrackingEquipe(){
             fmtDur((i.seconds_total_before||0) + (i.seconds_running||0))}</span>
         </div>`).join('')}
     </div>`).join('');
+  const iaHtml = ias.length ? `
+    <div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#2563eb"></span>
+        <span style="font-size:12.5px;font-weight:700">Dot · IA</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">${ias.length} tarefa${ias.length>1?'s':''}</span>
+      </div>
+      ${ias.map(i => { const t = (typeof tasks!=='undefined' ? tasks : []).find(x => x.id === i.task_id);
+        return `<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;font-size:11px;border-left:2px solid ${(t&&t.clients&&t.clients.color)||'#2563eb'};margin-bottom:3px">
+          <span style="color:var(--text3);font-size:10px">${i.task_id}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${t?t.action:''}</span>
+          <span style="color:var(--text2);font-weight:600">${i.status==='corrigir'?'corrigindo':'produzindo'}${i.rodada?' · r'+i.rodada:''}</span></div>`; }).join('')}
+    </div>` : '';
+  box.innerHTML = gente + iaHtml;
 }
 
 // --- Atraso: BRIEFING nunca atrasa ---
@@ -9884,6 +9958,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
     catch(e){ console.warn(`[tracker] ${fn}:`, e.message); }
   };
 });
+setInterval(()=>{ try { if (currentView==='admin') renderTrackingEquipe(); } catch(e){} }, 30000);
 </script>
 
 <script>
