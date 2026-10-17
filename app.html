@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>pontodot — workflow</title>
-<link rel="stylesheet" href="css/main.css?v=20261016pg">
+<link rel="stylesheet" href="css/main.css?v=20261016ph">
 <style>
 @media (max-width: 768px) { 
   .desktop-only { display: none !important; } 
@@ -127,7 +127,7 @@
     <!-- LINHA 2: navegação, alinhada à esquerda -->
     <div class="hdr-row hdr-row-nav">
       <div class="nav-tabs">
-        <button class="nav-tab active" id="tab-feed" onclick="setView('feed')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Feed</button>
+        <button class="nav-tab active" id="tab-feed" onclick="setView('feed')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Escola Agêntica</button>
         <button class="nav-tab" id="tab-kanban" onclick="setView('kanban')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg>Funil</button>
         <button class="nav-tab" id="tab-lista" onclick="setView('lista')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista</button>
         <button class="nav-tab" id="tab-gantt" onclick="setView('gantt')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="12" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.2 7.1 15.8 11M15.8 13 8.2 16.9"/></svg>Fluxo</button>
@@ -181,6 +181,13 @@
 
       <div class="view-panel active" id="view-feed">
         <div class="feed-wrap" id="feed-wrap">
+          <div class="esc-wrap" id="escola-wrap">
+            <div class="esc-cab"><div class="esc-tit">Escola Agêntica</div><div class="esc-sub" id="esc-sub">A vida dos habitantes de Mufun — uma publicação nova por semana</div></div>
+            <div class="esc-chips" id="esc-chips"></div>
+            <div class="esc-posts" id="esc-posts"><div class="esc-vazio">Chegando…</div></div>
+            <div class="esc-ficcao">Mufun é ficção. As cenas e os parentes não existem fora da escola.</div>
+            <div class="esc-div"><span>Da equipe</span></div>
+          </div>
           <div class="feed-compose">
             <div class="feed-compose-top">
               <div id="compose-av" style="flex-shrink:0"></div>
@@ -601,7 +608,7 @@
     <div class="mobile-nav-inner">
       <button class="mobile-nav-btn active" id="mnav-feed" onclick="setView('feed');setMobActive(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        <span style="font-size:9px">Feed</span>
+        <span style="font-size:9px">Escola</span>
       </button>
       <button class="mobile-nav-btn" id="mnav-kanban" onclick="setView('kanban');setMobActive(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="10"/></svg>
@@ -796,7 +803,7 @@
       <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.2);border-radius:var(--radius);cursor:pointer">
         <input type="checkbox" id="t-featured" style="width:16px;height:16px;accent-color:#d97706">
         <svg viewBox="0 0 24 24" fill="#f59e0b" style="width:16px;height:16px;flex-shrink:0"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        <span style="font-size:13px;color:var(--text2)">Destaque do dia — aparece fixado no Feed</span>
+        <span style="font-size:13px;color:var(--text2)">Destaque do dia — aparece fixado na Escola Agêntica</span>
       </label>
     </div>
     <div class="modal-foot">
@@ -2570,6 +2577,7 @@ async function publishPost(){
 }
 
 function renderFeed(){
+  iniciarEscola();
   const cav=document.getElementById('compose-av');
   if(profile.avatar_url)cav.innerHTML=`<img src="${profile.avatar_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
   else cav.innerHTML=avatarHTML(profile.name,'',34);
@@ -2604,6 +2612,84 @@ function renderFeed(){
   // Carregar os 2 comentários mais recentes de cada post
   posts.forEach(p => loadPostCommentsPreview(p.id));
 }
+
+
+// ================= ESCOLA AGÊNTICA — os habitantes de Mufun publicando, semana a semana =================
+let ESC = { u:null, sem:null, imgs:null, filtro:'' };
+const ESC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
+const escSafe = x => String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let escLikes = {}, escComs = {};
+try { escLikes = JSON.parse(localStorage.getItem('pd_esc_k')||'{}')||{}; escComs = JSON.parse(localStorage.getItem('pd_esc_c')||'{}')||{}; } catch(e){}
+const escSalva = () => { try { localStorage.setItem('pd_esc_k', JSON.stringify(escLikes)); localStorage.setItem('pd_esc_c', JSON.stringify(escComs)); } catch(e){} };
+function escFoto(id, tipo){
+  const v = ESC.imgs && ESC.imgs[id];
+  if (v && v[tipo] && v[tipo].src) return v[tipo].src;
+  return `/pd/personagens/${id}/${tipo==='avatar'?'avatar':'vida'}.jpg`;
+}
+function escDia(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); if(!m) return '';
+  const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return `semana de ${+m[3]} ${M[+m[2]-1]}`;
+}
+async function escCarregar(){
+  const get = (u)=>fetch(u).then(r=>r.ok?r.json():null).catch(()=>null);
+  const [u, sem, im] = await Promise.all([ESC.u||get('/pd/universo.json'), get('/pd-narrativas.php'), get('/pd-imagens.php?pasta=personagens')]);
+  if (u) ESC.u = u;
+  if (sem && sem.ok) ESC.sem = sem;
+  if (im && im.personagens && !Array.isArray(im.personagens)) ESC.imgs = im.personagens;
+}
+function escPosts(){
+  const out = [], cs = {};
+  (ESC.u?.characters||[]).forEach(c => cs[c.id] = c);
+  const P = ESC.sem?.personagens || {};
+  ESC_IDS.forEach(id => {
+    const c = cs[id]; if (!c) return;
+    const s = P[id] || {};
+    [['semana', ESC.sem?.semana],['anterior', ESC.sem?.anterior]].forEach(([k,data]) => {
+      const w = s[k]; if (!w || !(w.post || w.historia)) return;
+      out.push({ id, c, data, k, titulo:w.titulo||'', texto:w.post||w.historia, historia:w.historia||'' });
+    });
+  });
+  // sem narrativa ainda? vale a primeira legenda do cânone
+  if (!out.length) (ESC.u?.characters||[]).forEach(c => out.push({ id:c.id, c, data:'', k:'inicial', titulo:'', texto:c.initial_life_post?.caption||'', historia:'' }));
+  out.sort((a,b)=> (b.data||'').localeCompare(a.data||'') || ESC_IDS.indexOf(a.id)-ESC_IDS.indexOf(b.id));
+  return out;
+}
+function renderEscola(){
+  const chips = document.getElementById('esc-chips'), box = document.getElementById('esc-posts');
+  if (!chips || !box) return;
+  if (!ESC.u){ box.innerHTML = '<div class="esc-vazio">Chegando…</div>'; return; }
+  const cs = ESC.u.characters || [];
+  chips.innerHTML = `<button class="esc-chip ${ESC.filtro?'':'on'}" onclick="escFiltrar('')">Todos</button>` +
+    cs.map(c => `<button class="esc-chip ${ESC.filtro===c.id?'on':''}" onclick="escFiltrar('${c.id}')" title="${escSafe(c.name)} · ${escSafe(c.narrative_archetype)}"><img src="${escSafe(escFoto(c.id,'avatar'))}" alt="" loading="lazy"><span>${escSafe(c.name)}</span></button>`).join('');
+  const lista = escPosts().filter(p => !ESC.filtro || p.id === ESC.filtro);
+  box.innerHTML = lista.map(p => {
+    const key = p.id+':'+(p.data||'0'), on = !!escLikes[key], com = escComs[key]||[];
+    return `<article class="esc-post">
+      <header><img class="esc-av" src="${escSafe(escFoto(p.id,'avatar'))}" alt="" loading="lazy">
+        <div><b>${escSafe(p.c.name)} ${escSafe(p.c.surname||'')}</b><small>${escSafe(p.c.narrative_archetype||'')} · ${escSafe(p.c.profile_title||'')}</small></div>
+        <time>${escSafe(escDia(p.data))}</time></header>
+      <img class="esc-foto" src="${escSafe(escFoto(p.id,'vida'))}" alt="${escSafe(p.c.name)} em Mufun (ficção)" loading="lazy">
+      <div class="esc-corpo">${p.titulo?`<h4>${escSafe(p.titulo)}</h4>`:''}<p>${escSafe(p.texto)}</p>
+        ${p.historia && p.historia!==p.texto ? `<details><summary>ler a história</summary><p>${escSafe(p.historia)}</p></details>`:''}</div>
+      <footer><button class="${on?'on':''}" onclick="escCurtir('${key}')">${on?'Curtido':'Curtir'}</button>
+        <button onclick="escAbrirCom('${key}')">Comentar${com.length?' · '+com.length:''}</button></footer>
+      <div class="esc-coms" id="escc-${key.replace(/[^a-z0-9]/gi,'_')}">${com.map((t,i)=>`<div><span>${escSafe(t)}</span><button onclick="escApagarCom('${key}',${i})" aria-label="Apagar">✕</button></div>`).join('')}</div>
+    </article>`;
+  }).join('') || '<div class="esc-vazio">Nada publicado ainda.</div>';
+  const sub = document.getElementById('esc-sub');
+  if (sub && ESC.sem?.semana) sub.textContent = 'A vida dos habitantes de Mufun — ' + escDia(ESC.sem.semana);
+}
+function escFiltrar(id){ ESC.filtro = id; renderEscola(); }
+function escCurtir(k){ if (escLikes[k]) delete escLikes[k]; else escLikes[k]=1; escSalva(); renderEscola(); }
+function escAbrirCom(k){
+  const el = document.getElementById('escc-'+k.replace(/[^a-z0-9]/gi,'_')); if (!el || el.querySelector('textarea')) return;
+  el.insertAdjacentHTML('beforeend', `<div class="esc-form"><textarea rows="2" placeholder="Escreva um comentário…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();escEnviarCom('${k}',this)}"></textarea><button onclick="escEnviarCom('${k}',this.previousElementSibling)">Enviar</button></div>`);
+  el.querySelector('textarea').focus();
+}
+function escEnviarCom(k, ta){ const v=(ta.value||'').trim(); if(!v) return; (escComs[k]=escComs[k]||[]).push(v.slice(0,400)); escSalva(); renderEscola(); }
+function escApagarCom(k,i){ (escComs[k]||[]).splice(i,1); if(!(escComs[k]||[]).length) delete escComs[k]; escSalva(); renderEscola(); }
+async function iniciarEscola(){ renderEscola(); await escCarregar(); renderEscola(); }
 
 async function loadPostCommentsPreview(postId){
   const el=document.getElementById('pcmts-'+postId);
