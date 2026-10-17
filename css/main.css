@@ -1218,3 +1218,10 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 .overlay{animation:veuEntra .5s ease both}
 @keyframes veuEntra{from{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background-color:rgba(10,10,12,0)}}
 [style*="backdrop-filter"][style*="fixed"]{animation:veuEntra .5s ease both}
+/* v107 — zoom: legenda em cima da imagem (a caixa do chat cobre o rodapé da tela) */
+#esc-zoom{padding:0 0 110px;box-sizing:border-box}
+#esc-zoom figure{display:inline-block;line-height:0}
+#esc-zoom img{max-height:calc(100vh - 230px)}
+#esc-zoom figcaption{position:absolute;left:0;right:0;bottom:0;margin:0;padding:34px 16px 12px;line-height:1.35;text-align:left;border-radius:0 0 10px 10px;
+  background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font:13.5px system-ui,sans-serif;opacity:1}
+#esc-zoom figcaption:empty{display:none}
