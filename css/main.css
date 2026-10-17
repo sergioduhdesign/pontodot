@@ -1179,3 +1179,5 @@ button.esc-aluno{width:100%;background:none;border:0;border-bottom:1px solid var
 
 /* v97 — barrado só nos pop-ups, na proporção original da imagem */
 img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none;margin:-24px -24px 16px;border-bottom:3px double var(--text2);border-radius:0}
+/* v98 — véu desfocado atrás dos pop-ups da Escola */
+.esc-pop-fundo{background:rgba(10,10,12,.38)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
