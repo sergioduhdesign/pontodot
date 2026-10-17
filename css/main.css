@@ -1214,3 +1214,7 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 .esc-lead{font:500 15px/1.45 system-ui,sans-serif;color:var(--text);margin:2px 0 8px}.esc-lead b{font-weight:700;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 .esc-lead2{font:12.5px/1.5 system-ui,sans-serif;color:var(--text2);margin:0 0 6px}.esc-lead2 b{color:var(--text);font-weight:600}
 .esc-nota{font:10.5px/1.45 system-ui,sans-serif;color:var(--text3);margin:12px 0 0}.esc-nota b{font-weight:600;color:var(--text2)}
+
+.overlay{animation:veuEntra .5s ease both}
+@keyframes veuEntra{from{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background-color:rgba(10,10,12,0)}}
+[style*="backdrop-filter"][style*="fixed"]{animation:veuEntra .5s ease both}
