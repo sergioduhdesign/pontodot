@@ -548,6 +548,15 @@
                 </div>
               </div>
 
+              <div class="entity-card" id="card-habilidades" style="flex-direction:column;align-items:stretch;gap:9px;grid-column:span 2">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div><div class="entity-card-name">Habilidades e habilitações</div>
+                  <div class="entity-card-meta">Só quem tem habilitação aprovada recebe trabalho. Aprove depois de testar com um caso real.</div></div>
+                  <button class="btn btn-secondary btn-sm" style="margin-left:auto;padding:3px 9px;font-size:10.5px" onclick="renderHabilidades()">↻</button>
+                </div>
+                <div id="habilidades-body" style="display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:var(--text3)">Carregando…</div></div>
+              </div>
+
               <div class="entity-card" id="card-ias-casa" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
                   <div class="entity-card-name">Inteligências da casa</div>
@@ -4138,6 +4147,7 @@ async function renderAdmin(){
   try { renderBIResumo(); } catch(e) { console.warn('BI resumo:', e.message); }
   try { renderTrackingEquipe(); } catch(e) {}
   try { renderIAsCasa(); } catch(e) {}
+  try { renderHabilidades(); } catch(e) {}
   // Admin vê todos os profiles — RLS permite se role=admin
   const{data:users,error:uerr}=await sb.from('profiles').select('*').order('name');
   if(uerr)console.warn('Profiles RLS error:', uerr.message);
@@ -10019,6 +10029,43 @@ function _trackerBtnHTML_antigo(taskId, size = 'sm'){
 }
 
 // --- Painel do admin: quem está trabalhando em quê ---
+
+// ---- Habilidades e habilitações (admin) ----
+const HAB_COR = { aprovada:'#16a34a', em_teste:'#d97706', nao_testada:'#6b7280', reprovada:'#dc2626' };
+const HAB_ROT = { aprovada:'aprovada', em_teste:'em teste', nao_testada:'não testada', reprovada:'reprovada' };
+async function renderHabilidades(){
+  const box = document.getElementById('habilidades-body'); if (!box) return;
+  if (profile.role !== 'admin'){ box.innerHTML = ''; return; }
+  try {
+    const [h, e] = await Promise.all([ sb.from('pd_habilidades').select('skill_id,versao,nome,finalidade,ativa').order('skill_id'),
+                                       sb.from('pd_habilitacoes').select('id,personagem,skill_id,versao,avaliacao,ferramentas_ok,avaliada_em') ]);
+    if (h.error) throw h.error; if (e.error) throw e.error;
+    const hab = h.data || [], habil = e.data || [];
+    box.innerHTML = hab.map(s => {
+      const lista = habil.filter(x => x.skill_id === s.skill_id && x.versao === s.versao);
+      return `<div style="padding:8px 10px;background:var(--surface2);border-radius:8px">
+        <div style="font-size:12.5px;font-weight:700">${saudeEsc(s.nome)} <span style="font-weight:400;color:var(--text3)">· ${saudeEsc(s.skill_id)} v${s.versao}</span></div>
+        <div style="font-size:11px;color:var(--text3);margin:2px 0 6px">${saudeEsc(s.finalidade)}</div>
+        ${lista.map(x => `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px">
+          <span style="width:7px;height:7px;border-radius:50%;background:${HAB_COR[x.avaliacao]||'#6b7280'}"></span>
+          <b style="text-transform:capitalize">${saudeEsc(x.personagem)}</b>
+          <span style="color:var(--text3)">${HAB_ROT[x.avaliacao]||x.avaliacao}${x.ferramentas_ok?'':' · falta ferramenta'}</span>
+          <span style="margin-left:auto;display:flex;gap:4px">
+            ${['em_teste','aprovada','reprovada'].filter(k => k !== x.avaliacao).map(k => `<button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:10.5px" onclick="avaliarHabilitacao('${x.id}','${k}')">${k==='aprovada'?'Aprovar':k==='em_teste'?'Em teste':'Reprovar'}</button>`).join('')}
+          </span></div>`).join('') || '<div style="font-size:11px;color:var(--text3)">Ninguém habilitado ainda.</div>'}
+      </div>`;
+    }).join('') || '<div style="font-size:11px;color:var(--text3)">Nenhuma habilidade cadastrada. Falta rodar o SQL v85.</div>';
+  } catch(err){
+    box.innerHTML = `<div style="font-size:11.5px;color:#b45309">Não consegui ler: ${saudeEsc(err.message||err)}${/does not exist|relation/.test(String(err.message))?' — falta rodar o SQL v85.':''}</div>`;
+  }
+}
+async function avaliarHabilitacao(id, estado){
+  if (estado === 'aprovada' && !confirm('Aprovar? Depois disso este habitante passa a receber esse tipo de trabalho. Faça isso só depois de testar com um caso real.')) return;
+  const { error } = await sb.from('pd_habilitacoes').update({ avaliacao: estado, avaliada_por: profile.id, avaliada_em: new Date().toISOString() }).eq('id', id);
+  if (error){ showToast('Não consegui salvar: ' + error.message); return; }
+  showToast('Habilitação atualizada.'); renderHabilidades();
+}
+
 async function renderIAsCasa(){
   const box = document.getElementById('ias-casa-body'); if (!box) return;
   let n = { produzir:0, corrigir:0, pausado:0 };
