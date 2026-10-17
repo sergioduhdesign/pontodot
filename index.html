@@ -1793,6 +1793,13 @@ html.dia #menuMais{background:rgba(244,243,239,.94)}html.dia #menuMais button:ho
   .board:has(.gad:not(.fechado)) .gad.fechado,.board:has(.gad:not(.fechado)) .board-cab{visibility:hidden;pointer-events:none}
   .gad:not(.fechado){top:calc(64px + env(safe-area-inset-top))}
   .gad:not(.fechado) .gad-corpo{max-height:min(68dvh,calc(100dvh - 170px))}
+  /* chat aberto: escurece tudo que está atrás; sobra o texto da conversa e um X no canto direito */
+  html.emChat .frente .fundo .veu{background:rgba(6,7,6,.9)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:veuEntra .5s ease both}
+  html.emChat .cluster{opacity:0!important;pointer-events:none!important}
+  html.emChat .faixa-legal{display:none!important}
+  html.emChat .tela.em-chat .chat-topo{justify-content:flex-end;min-height:48px;padding:0 6px;background:none;border:0}
+  html.emChat .tela.em-chat .chat-topo .ct-volta,html.emChat .tela.em-chat .chat-topo .ct-rotulo,html.emChat .tela.em-chat .chat-topo .ct-novo{display:none!important}
+  html.emChat .tela.em-chat .chat-topo .x-chat{display:inline-grid!important;width:46px;height:46px;font-size:17px;opacity:.9}
   /* no chat: nada de fileira espremida em cima do conjunto */
   html.emChat .board{top:0;bottom:auto;height:0;padding:0}
   html.emChat .gad.fechado,html.emChat .board-cab{display:none!important}
@@ -2034,7 +2041,7 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v108 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v109 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
