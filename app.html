@@ -2910,6 +2910,7 @@ function escPop(html){
   document.body.appendChild(d); try { escAplicaLuz(); } catch(e){} requestAnimationFrame(() => d.classList.add('on'));
 }
 function escPerfil(id){
+  try { if (window.parent && window.parent !== window && typeof window.parent.abrirFicha === 'function'){ escFecharPop(); window.parent.abrirFicha(id, 'escola'); return; } } catch(e){}
   const c = escChar(id); if (!c) return; const b = c.biography || {}; const meu = ESC.meu && ESC.meu.personagem === id;
   const amigos = (b.friend_character_ids || []).filter(escChar);
   const curso = ESC_CURSOS.find(x => x.quem === id);
