@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>pontodot — workflow</title>
-<link rel="stylesheet" href="css/main.css?v=20261016pd">
+<link rel="stylesheet" href="css/main.css?v=20261016pe">
 <style>
 @media (max-width: 768px) { 
   .desktop-only { display: none !important; } 
@@ -297,7 +297,7 @@
           <div><div class="page-title">Saúde da plataforma</div><div class="page-subtitle" id="saude-sub">Filas, relógios e conexões — ao vivo</div></div>
           <button class="btn btn-secondary" onclick="renderSaude()">↻ Atualizar</button>
         </div>
-        <div id="saude-corpo" style="padding:0 20px 28px;max-width:980px"></div>
+        <div style="padding:14px;overflow-y:auto;flex:1"><div id="saude-corpo" style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px"></div></div>
       </div>
 
       <div class="view-panel" id="view-fila" style="background:var(--bg)">
@@ -9181,7 +9181,7 @@ function saudeQuando(iso){
 async function renderSaude(){
   try { await renderSaudeInner(); } catch(e){
     const bx=document.getElementById('saude-corpo');
-    if(bx) bx.innerHTML='<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">Erro ao montar o painel: '+saudeEsc(e&&e.message||e)+'</div>';
+    if(bx) bx.innerHTML='<div style="padding:18px;border:1px solid #d9770666;border-radius:10px;background:#d9770612;color:#b45309;font-size:13px">Erro ao montar o painel: '+saudeEsc(e&&e.message||e)+'</div>';
     console.error('[saude]',e);
   }
 }
@@ -9192,27 +9192,27 @@ async function renderSaudeInner(){
   box.innerHTML = '<div style="padding:30px;color:var(--text3)">Carregando…</div>';
   const { data, error } = await Promise.race([sb.rpc('pd_saude'), new Promise(r => setTimeout(() => r({ error:{ message:'o banco não respondeu em 15 s' } }), 15000))]);
   if(error){
-    box.innerHTML = `<div style="padding:18px;border:1px solid #dc262640;border-radius:10px;background:#dc262608;color:#dc2626;font-size:13px">
+    box.innerHTML = `<div style="padding:18px;border:1px solid #d9770666;border-radius:10px;background:#d9770612;color:#b45309;font-size:13px">
       Não consegui ler a saúde: ${saudeEsc(error.message)}<br><span style="color:var(--text3)">Se diz que a função não existe, falta rodar o SQL <b>migration_v63_saude.sql</b> no Supabase.</span></div>`;
     return;
   }
   const d = data || {};
-  const OK='#16a34a', AV='#d97706', RU='#dc2626', CI='#6b7280';
+  const OK='#16a34a', AV='#d97706', RU='#dc2626', CI='#6b7280', LA='#ea580c';
   const ponto = c => `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:8px;flex-shrink:0"></span>`;
   const linha = (cor, titulo, detalhe, dir) => `<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:10px">
       ${ponto(cor)}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${titulo}</div>${detalhe?`<div style="font-size:11.5px;color:var(--text3);margin-top:2px;word-break:break-word">${detalhe}</div>`:''}</div>
       <div style="font-size:12px;color:var(--text2);white-space:nowrap">${dir||''}</div></div>`;
-  const bloco = (titulo, corpo) => `<div style="margin-top:22px"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:2px">${titulo}</div>${corpo}</div>`;
+  const bloco = (titulo, corpo) => `<div class="entity-card" style="flex-direction:column;align-items:stretch;gap:0"><div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:2px">${titulo}</div>${corpo}</div>`;
   const alertas = [];
 
   // --- relógios
   const bat = Object.fromEntries((d.batimentos||[]).map(b => [b.chave, b]));
   const relogios = Object.entries(SAUDE_CRONS).map(([k, cfg]) => {
     const b = bat[k];
-    if(!b){ alertas.push(cfg.nome + ': nunca bateu'); return linha(RU, cfg.nome, 'Nunca registrou batimento. Ou o cron não existe, ou o arquivo ainda não foi atualizado no servidor.', 'sem sinal'); }
+    if(!b){ alertas.push(cfg.nome + ': nunca bateu'); return linha(AV, cfg.nome, 'Nunca registrou batimento. Ou o cron não existe, ou o arquivo ainda não foi atualizado no servidor.', 'sem sinal'); }
     const min = (Date.now() - new Date(b.ultima_em).getTime())/60000;
-    const cor = min <= cfg.tolera ? OK : RU;
-    if(cor === RU) alertas.push(cfg.nome + ': parado ' + saudeQuando(b.ultima_em));
+    const cor = min <= cfg.tolera ? OK : LA;
+    if(cor === LA) alertas.push(cfg.nome + ': parado ' + saudeQuando(b.ultima_em));
     return linha(cor, cfg.nome, 'esperado a cada ' + (cfg.cada >= 1440 ? 'dia' : cfg.cada >= 60 ? (cfg.cada/60)+' h' : cfg.cada+' min'), saudeQuando(b.ultima_em));
   }).join('');
 
@@ -9251,12 +9251,12 @@ async function renderSaudeInner(){
   const m = d.meta || {};
   const toks = m.tokens_usuario || [];
   let metaCor = OK, metaTxt = 'conectada', metaDir = '';
-  if(!toks.length){ metaCor = RU; metaTxt = 'nenhum token de usuário'; alertas.push('Meta: sem token'); }
+  if(!toks.length){ metaCor = LA; metaTxt = 'nenhum token de usuário'; alertas.push('Meta: sem token'); }
   else {
     const t = toks[0];
     if(t.expira_em){
       const dias = Math.round((new Date(t.expira_em).getTime() - Date.now())/86400000);
-      metaCor = dias < 0 ? RU : dias <= 7 ? AV : OK;
+      metaCor = dias < 0 ? LA : dias <= 7 ? AV : OK;
       metaTxt = dias < 0 ? 'EXPIRADO' : 'vence em ' + dias + ' dia(s)'; metaDir = new Date(t.expira_em).toLocaleDateString('pt-BR');
       if(metaCor !== OK) alertas.push('Meta: token ' + metaTxt);
     } else { metaCor = AV; metaTxt = 'sem data de validade registrada (renovado ' + saudeQuando(t.atualizado_em) + ')'; }
@@ -9272,10 +9272,10 @@ async function renderSaudeInner(){
   const verHTML = linha(CI, 'Versão no ar', 'confere se o que você colou/publicou é o que está rodando', saudeEsc(window.SD_VERSAO || '—'));
 
   const resumo = alertas.length
-    ? `<div style="padding:14px 16px;border:1px solid ${RU}50;background:${RU}0d;border-radius:10px;margin-top:6px">
-         <div style="font-weight:700;color:${RU};font-size:13px;margin-bottom:6px">${alertas.length} ponto(s) pedindo atenção</div>
+    ? `<div class="entity-card" style="flex-direction:column;align-items:stretch;border-color:${AV}66;background:${AV}12">
+         <div style="font-weight:700;color:${AV};font-size:13px;margin-bottom:6px">${alertas.length} ponto(s) pedindo atenção</div>
          ${alertas.map(a => `<div style="font-size:12.5px;line-height:1.55">• ${saudeEsc(a)}</div>`).join('')}</div>`
-    : `<div style="padding:14px 16px;border:1px solid ${OK}50;background:${OK}0d;border-radius:10px;margin-top:6px;font-weight:700;color:${OK};font-size:13px">Tudo certo agora.</div>`;
+    : `<div class="entity-card" style="border-color:${OK}50;background:${OK}0d;font-weight:700;color:${OK};font-size:13px">Tudo certo agora.</div>`;
 
   box.innerHTML = resumo
     + bloco('Relógios (crons)', relogios)
