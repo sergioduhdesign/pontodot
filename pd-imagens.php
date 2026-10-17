@@ -87,7 +87,7 @@ if ($PASTAS[$chave] === '') pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' =>
     'aviso' => 'defina PD_PASTA_PERSONAGENS no sd-config.php', 'imagens' => [], 'personagens' => (object)[]]);
 
 if (!is_dir(PDI_CACHE)) { @mkdir(PDI_CACHE, 0755, true); @file_put_contents(PDI_CACHE . '/.htaccess', "Deny from all\n"); }
-$arqCache = PDI_CACHE . '/' . $chave . '-s2.json';
+$arqCache = PDI_CACHE . '/' . $chave . '-s3.json';
 $velho = is_file($arqCache) ? json_decode((string)file_get_contents($arqCache), true) : null;
 
 if (is_array($velho) && (time() - (int)($velho['em'] ?? 0)) < PDI_VALIDADE) {
@@ -175,8 +175,10 @@ try {
     }
     usort($imgs, function ($a, $b) { return [$a['ordem'], $a['nome']] <=> [$b['ordem'], $b['nome']]; });
     $imgs = array_slice($imgs, 0, PDI_MAX);
-    @file_put_contents($arqCache, json_encode(['em' => time(), 'imagens' => $imgs], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
-    pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'drive', 'atualizado' => date('c'), 'imagens' => $imgs]);
+    // lista vazia NÃO fica guardada: foi o que escondeu os postais (a pasta encheu depois da primeira leitura)
+    if ($imgs) @file_put_contents($arqCache, json_encode(['em' => time(), 'imagens' => $imgs], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    $extra = $imgs ? [] : ['aviso' => 'nenhuma imagem encontrada (arquivos lidos na pasta: ' . count((array)($r['arquivos'] ?? [])) . ')'];
+    pdi_sai(['ok' => true, 'pasta' => $chave, 'fonte' => 'drive', 'atualizado' => date('c'), 'imagens' => $imgs] + $extra);
 } catch (Exception $e) {
     // a Ponte tropeçou: a última lista boa vale mais que lista nenhuma
     if (is_array($velho) && (!empty($velho['imagens']) || !empty($velho['personagens']))) {
