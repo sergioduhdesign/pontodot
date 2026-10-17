@@ -32,6 +32,14 @@ $PASTAS = [
     'cartazes'    => defined('PD_PASTA_CARTAZES')    ? PD_PASTA_CARTAZES    : '10l5vwNKeD8y-azlpe-3vvcVHfEVrf2zn',
     'personagens' => defined('PD_PASTA_PERSONAGENS') ? PD_PASTA_PERSONAGENS : '',
 ];
+// postais de Mufun: pasta própria (PD_PASTA_POSTAIS) ou, se não houver, uma subpasta
+// "postais" (ou arquivo que comece com "postal") dentro da pasta de capas.
+$POSTAIS_PROPRIA = defined('PD_PASTA_POSTAIS') && PD_PASTA_POSTAIS !== '';
+$PASTAS['postais'] = $POSTAIS_PROPRIA ? PD_PASTA_POSTAIS : $PASTAS['capas'];
+function pdi_eh_postal($f) {
+    $p = strtolower((string)($f['path'] ?? ($f['name'] ?? '')));
+    return (bool)preg_match('#(^|/)(postais?|postal[\s_\-])#', $p);
+}
 const PDI_CACHE    = __DIR__ . '/.cache-pd';
 const PDI_VALIDADE = 21600;     // 6 horas: alimentação é semanal, isto basta
 const PDI_MAX      = 60;        // teto de imagens por pasta
@@ -151,6 +159,10 @@ try {
         if ((int)($f['size'] ?? 0) > PDI_MAX_BYTES) continue;
         $id = preg_replace('/[^A-Za-z0-9_\-]/', '', (string)($f['id'] ?? ''));
         if (!$id) continue;
+        if (!$POSTAIS_PROPRIA) {                                   // mesma pasta: separa pelo nome/subpasta
+            if ($chave === 'postais' && !pdi_eh_postal($f)) continue;
+            if ($chave === 'capas'   &&  pdi_eh_postal($f)) continue;
+        }
         $nome = (string)($f['name'] ?? '');
         $k = pdi_assina($id);
         $imgs[] = [
