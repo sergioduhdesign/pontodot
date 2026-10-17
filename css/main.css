@@ -1066,6 +1066,9 @@ input[type="date"],input[type="email"],input[type="number"]{
   html.sd-embutido #view-clientes,
   html.sd-embutido #view-saude,
   html.sd-embutido #view-fila,
+  html.sd-embutido #view-kanban,
+  html.sd-embutido #view-lista,
+  html.sd-embutido #view-gantt,
   html.sd-embutido #view-mural{padding-left:100px;padding-right:100px;box-sizing:border-box}
 }
 
