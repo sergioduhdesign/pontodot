@@ -1124,3 +1124,13 @@ html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
   html.esc-gaveta.gaveta-aberta .hdr-row-nav .nav-tabs,html.esc-gaveta.gaveta-aberta .hdr-row-nav #tab-admin-wrap{transform:none;opacity:1;pointer-events:auto;margin-right:40px}
 }
 @media (max-width:900px){.esc-grade{grid-template-columns:1fr}.esc-post{grid-template-columns:1fr}.esc-capa-img{height:150px}}
+
+/* especialistas de Mufun (tarefa) */
+.esp-sua{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:6px}.esp-sua img{width:22px;height:22px;border-radius:50%;object-fit:cover}
+.esp-lista{display:flex;flex-direction:column}
+.esp-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}.esp-item img{width:28px;height:28px;border-radius:50%;object-fit:cover}
+.esp-item b{display:block;font-size:13px}.esp-item small{display:block;font-size:11px;color:var(--text3)}.esp-item>div{flex:1;min-width:0}
+.esp-off{opacity:.62}
+.esp-btn,.esp-tag{border:1px solid var(--border);background:none;color:var(--text2);border-radius:999px;padding:3px 11px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.esp-btn:hover{border-color:var(--text);color:var(--text)}.esp-btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.esp-tag.ok{border-color:#16a34a66;color:#16a34a;cursor:default}

@@ -718,7 +718,7 @@
           </div>
         </div>
       </div>
-      <div class="field"><div class="field-label">Tarefa *</div><input class="field-input" id="t-action" placeholder="O que precisa ser feito?" oninput="sugerirCatalogoPeloTitulo()"></div>
+      <div class="field"><div class="field-label">Tarefa *</div><input class="field-input" id="t-action" oninput="espAtualizarModal()" placeholder="O que precisa ser feito?" oninput="sugerirCatalogoPeloTitulo()"></div>
       <div class="field-row">
         <div class="field" id="t-client-wrap"><div class="field-label">Cliente</div>
           <div style="display:flex;gap:5px"><select class="field-select" id="t-client" onchange="onTaskClientChange(this.value)" style="flex:1"></select><button class="btn-inline-add" onclick="quickAddClient()">＋</button></div>
@@ -727,7 +727,7 @@
           <div style="display:flex;gap:5px"><select class="field-select" id="t-product" style="flex:1"></select><button class="btn-inline-add" onclick="quickAddProduct()">＋</button></div>
         </div>
       </div>
-      <div class="field"><div class="field-label">Projeto / Job</div><input class="field-input" id="t-project" placeholder="Ex: SITE, BRANDING, CAMPANHA..."></div>
+      <div class="field"><div class="field-label">Projeto / Job</div><input class="field-input" id="t-project" oninput="espAtualizarModal()" placeholder="Ex: SITE, BRANDING, CAMPANHA..."></div>
       <div id="t-client-note" style="display:none;font-size:12px;color:var(--text3);margin:-6px 0 12px;line-height:1.5">Sua tarefa entra como <strong>Briefing</strong> e vai direto pra Joy, que organiza e delega pra equipe.</div>
       <div class="field-row" id="t-resp-status-wrap">
         <div class="field"><div class="field-label">Responsável</div>
@@ -742,6 +742,10 @@
             <option value="BUCHA">Bucha</option><option value="ALTERAÇÃO">Alteração</option><option value="ENTREGUE">Entregue</option>
           </select>
         </div>
+      </div>
+      <div class="field" id="t-especialistas-wrap" style="margin-top:-2px">
+        <div class="field-label">Especialistas de Mufun <span style="font-weight:400;color:var(--text3)">· a plataforma sugere pelo tipo de tarefa</span></div>
+        <div id="t-especialistas"></div>
       </div>
       <div class="field-row3">
         <div class="field"><div class="field-label">Semana</div>
@@ -893,6 +897,7 @@
         <div class="dg-item"><div class="dg-label">Data Interna</div><div class="dg-val" id="d-date-int"></div></div>
         <div class="dg-item"><div class="dg-label">Data Cliente</div><div class="dg-val" id="d-date-cli"></div></div>
       </div>
+      <div id="d-esp-block" style="margin:4px 0 14px"><div class="field-label" style="margin-bottom:5px">Especialistas de Mufun</div><div id="d-especialistas"></div></div>
       <div id="d-obs-block" style="display:none"><div class="field-label" style="margin-bottom:5px">Detalhes da tarefa</div><div id="d-obs" style="font-size:13.5px;color:var(--text2);line-height:1.6;background:var(--surface2);padding:12px;border-radius:var(--radius)"></div></div>
       <div id="d-drive" style="display:none"></div>
       <div id="d-fixes" style="display:none"></div>
@@ -2767,7 +2772,9 @@ function renderEscola(){
                      : `<div class="esc-postal-vazio">Mufun</div><small>Cartão-postal em breve</small>`;
   }
   // cursos
-  document.getElementById('esc-cursos').innerHTML = ESC_CURSOS.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(c.area)} · ${c.semanas} semanas</small></button>`).join('');
+  { const rr = escRng('cursos' + new Date().toISOString().slice(0,10)); const dest = [...ESC_CURSOS].sort(() => rr() - .5).slice(0, 5);
+    document.getElementById('esc-cursos').innerHTML = dest.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(c.area)} · ${c.semanas} semanas</small></button>`).join('')
+      + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
   const lista = escPosts();
   box.innerHTML = lista.map((p, n) => {
@@ -2794,6 +2801,11 @@ function escPop(html){
 }
 function escFecharPop(){ const d = document.getElementById('esc-pop'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharPop(); });
+function escTodosCursos(){
+  const grupos = ['Criador','Estrategista','Realizador','Conector'];
+  escPop(`<h3>Todos os cursos</h3>` + grupos.map(g => { const L = ESC_CURSOS.filter(c => escChar(c.quem)?.narrative_archetype === g); if (!L.length) return '';
+    return `<small class="esc-area">${g}es</small>` + L.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(escChar(c.quem)?.name||'')} · ${escSafe(c.area)}</small></button>`).join(''); }).join(''));
+}
 function escFechadas(){
   escPop(`<h3>Inscrições fechadas</h3><p>Desculpe, as inscrições para humanos estão fechadas. Em breve estaremos abrindo.</p>
     <p class="esc-peq">Por enquanto, a escola é dos habitantes de Mufun. Você acompanha a vida deles por aqui.</p>`);
@@ -2801,18 +2813,26 @@ function escFechadas(){
 
 // ---- cursos: a IA da pessoa se inscreve, com prazo e um termômetro ----
 const ESC_CURSOS = [
-  { id:'lp-estrutura', titulo:'Estrutura de landing page', area:'Páginas e sites', semanas:4, quem:['nami','nix'],
-    resumo:'Como organizar as seções de uma página, o que cada uma faz e onde faltam provas.', skill:'LP_ESTRUTURA' },
-  { id:'briefing', titulo:'Briefing sem lacuna', area:'Atendimento', semanas:4, quem:['kiro','sago'],
-    resumo:'Receber um pedido e já devolver o que falta, em vez de descobrir no meio do trabalho.' },
-  { id:'desdobramento', titulo:'Desdobramento de peças', area:'Criação', semanas:4, quem:['brum','taro'],
-    resumo:'Adaptar uma peça aprovada para outros formatos sem mexer no conceito.' },
-  { id:'orcamento', titulo:'Orçamento de produção', area:'Operação', semanas:4, quem:['boku','oru'],
-    resumo:'Separar esforço humano, tempo de IA e verba de mídia numa estimativa honesta.' },
-  { id:'voz-marca', titulo:'A voz da marca no texto', area:'Conteúdo', semanas:4, quem:['zumi','iro'],
-    resumo:'Escrever com a voz do cliente, e não com a da IA.' },
-  { id:'leitura-anuncios', titulo:'Leitura de resultados de anúncios', area:'Mídia', semanas:4, quem:['sumi','raku'],
-    resumo:'Transformar o relatório de campanha numa decisão: o que manter, o que cortar.' }
+  // Criadores
+  { id:'nix',  quem:'nix',  titulo:'Abrir alternativas e escolher uma', area:'Criação', semanas:4, resumo:'Gerar caminhos diferentes para um briefing e fechar numa experiência pequena para testar.' },
+  { id:'iro',  quem:'iro',  titulo:'Experiências pequenas de campanha', area:'Criação', semanas:4, resumo:'Propor testes baratos e rápidos antes de gastar verba de verdade.' },
+  { id:'zumi', quem:'zumi', titulo:'Alternativas em conversa', area:'Conteúdo', semanas:4, resumo:'Levar o cliente de três ideias a uma direção, conversando, sem reunião interminável.' },
+  { id:'nami', quem:'nami', titulo:'Estrutura de landing page', area:'Páginas e sites', semanas:4, resumo:'Organizar as seções de uma página, o que cada uma faz e onde faltam provas.', skill:'LP_ESTRUTURA' },
+  // Estrategistas
+  { id:'kiro', quem:'kiro', titulo:'Revisão estrutural', area:'Estratégia', semanas:4, resumo:'Organizar contexto, dependências e critérios para revisar um trabalho sem reescrevê-lo.', skill:'LP_REVISAO_ESTRUTURA' },
+  { id:'sago', quem:'sago', titulo:'Briefing sem lacuna', area:'Atendimento', semanas:4, resumo:'Receber um pedido e já devolver o que falta, em vez de descobrir no meio do trabalho.' },
+  { id:'oru',  quem:'oru',  titulo:'Comparar e sintetizar critérios', area:'Estratégia', semanas:4, resumo:'Comparar referências e opiniões e entregar uma síntese que sustente a decisão.' },
+  { id:'sumi', quem:'sumi', titulo:'Leitura de resultados de anúncios', area:'Mídia', semanas:4, resumo:'Transformar o relatório de campanha numa decisão: o que manter e o que cortar.' },
+  // Realizadores
+  { id:'brum', quem:'brum', titulo:'Do pedido ao plano com prazos', area:'Operação', semanas:4, resumo:'Converter uma intenção em passos claros, responsáveis e prazos realistas.' },
+  { id:'taro', quem:'taro', titulo:'A próxima ação verificável', area:'Operação', semanas:4, resumo:'Definir o próximo passo que dá para conferir e colher retorno rápido.' },
+  { id:'koda', quem:'koda', titulo:'Continuidade e riscos sem drama', area:'Gestão', semanas:4, resumo:'Acompanhar os acordos e apontar riscos cedo, sem dramatizar.' },
+  { id:'boku', quem:'boku', titulo:'Orçamento de produção', area:'Operação', semanas:4, resumo:'Separar esforço humano, tempo de IA e verba de mídia numa estimativa honesta.' },
+  // Conectores
+  { id:'gigi', quem:'gigi', titulo:'Alinhar expectativas', area:'Atendimento', semanas:4, resumo:'Criar espaço para cada participante falar e chegar a um combinado que todos entendem.' },
+  { id:'raku', quem:'raku', titulo:'Feedback e acordos com clareza', area:'Atendimento', semanas:4, resumo:'Pedir e dar retorno ao cliente com cuidado e sem ambiguidade.' },
+  { id:'tumi', quem:'tumi', titulo:'Conexões úteis entre pessoas e ideias', area:'Rede', semanas:4, resumo:'Descobrir quem, dentro e fora da casa, resolve cada necessidade.' },
+  { id:'muru', quem:'muru', titulo:'Acompanhar no ritmo de cada um', area:'Acompanhamento', semanas:4, resumo:'Lembrar e cobrar com presença discreta, respeitando o ritmo da pessoa.' }
 ];
 async function escMediaRodadas(desdeISO){
   try {
@@ -2826,7 +2846,7 @@ async function escCurso(id){
   const c = ESC_CURSOS.find(x => x.id === id); if (!c) return;
   let insc = null;
   try { const { data } = await sb.from('pd_inscricoes').select('*').eq('user_id', profile.id).eq('curso_id', id).eq('status','ativa').maybeSingle(); insc = data; } catch(e){}
-  const prof = c.quem.map(q => escChar(q)?.name || q).join(' e ');
+  const prof = escChar(c.quem)?.name || c.quem;
   let corpo = '';
   if (insc){
     const agora = await escMediaRodadas(insc.iniciada_em);
@@ -2877,6 +2897,87 @@ async function iniciarEscola(){
   const c = document.getElementById('esc-capa-img'); if (c) delete c.dataset.ok;
   renderEscola();
 }
+
+
+// ================= ESPECIALISTAS DE MUFUN — a plataforma sugere quem chamar para cada tarefa =================
+// Regra do produto: só se chama quem está HABILITADO (habilitação aprovada no Painel). Quem ainda está em formação
+// aparece, mas sem botão: nada de fingir uma habilidade que a plataforma não confirmou.
+const ESP_SKILL = { nami:'LP_ESTRUTURA', kiro:'LP_REVISAO_ESTRUTURA' };
+const ESP_PAPEL = { nami:'conduz', kiro:'revisa' };
+const ESP_REGRAS = [
+  { re:/site|landing|\blp\b|p[áa]gina|hotsite/i,                 q:[['nami','conduz a estrutura da página'],['kiro','revisa a estrutura e os critérios']] },
+  { re:/campanha|an[úu]ncio|tr[áa]fego|m[íi]dia|meta ads|google ads/i, q:[['sumi','lê o resultado e propõe o que manter'],['iro','sugere testes pequenos']] },
+  { re:/or[çc]amento|proposta|cota[çc][ãa]o|estimativa/i,         q:[['boku','monta a estimativa respeitando a capacidade'],['oru','compara fornecedores e critérios']] },
+  { re:/briefing|reuni[ãa]o|alinhamento|cliente novo|kick/i,      q:[['sago','aponta o que falta no briefing'],['gigi','alinha as expectativas'],['raku','cuida do retorno ao cliente']] },
+  { re:/texto|copy|conte[úu]do|post|legenda|e-?mail|press|roteiro|artigo/i, q:[['zumi','gera alternativas de texto em conversa'],['raku','afina o retorno e a clareza']] },
+  { re:/logo|identidade|branding|\bkv\b|pe[çc]a|arte|design|folheto|banner|stories|reels|v[íi]deo/i, q:[['nix','abre caminhos de criação'],['iro','propõe versões para testar'],['koda','acompanha a entrega e os riscos']] },
+  { re:/prazo|cronograma|plano|lote|entrega/i,                      q:[['brum','transforma em passos e prazos'],['taro','define a próxima ação verificável']] }
+];
+const ESP_PADRAO = [['brum','transforma em passos e prazos'],['koda','acompanha a entrega e os riscos'],['taro','define a próxima ação verificável']];
+function espRecomendar(texto){
+  const vistos = new Set(), out = [];
+  const entra = lista => lista.forEach(([id, porque]) => { if (out.length < 3 && !vistos.has(id)) { vistos.add(id); out.push({ id, porque }); } });
+  ESP_REGRAS.forEach(r => { if (r.re.test(texto || '')) entra(r.q); });
+  if (!out.length) entra(ESP_PADRAO);
+  return out;
+}
+let _espCache = { t:0, ok:null, minha:null };
+async function espEstado(){
+  if (_espCache.ok && Date.now() - _espCache.t < 60000) return _espCache;
+  const ok = new Set();
+  try {
+    await Promise.all(Object.entries(ESP_SKILL).map(async ([pers, skill]) => {
+      const { data } = await sb.rpc('pd_elegiveis', { p_skill: skill });
+      (data || []).forEach(r => { if (r.personagem === pers) ok.add(pers); });
+    }));
+  } catch(e){}
+  let minha = null;
+  try { const { data } = await sb.from('pd_jeito').select('personagem,apelido').eq('user_id', profile.id).maybeSingle(); minha = data; } catch(e){}
+  if (!ESC.u) { try { ESC.u = await fetch('/pd/universo.json').then(r => r.json()); } catch(e){} }
+  _espCache = { t: Date.now(), ok, minha };
+  return _espCache;
+}
+window._espSel = window._espSel || new Set();
+async function renderEspecialistas(boxId, texto, taskId){
+  const box = document.getElementById(boxId); if (!box) return;
+  if (profile.role === 'client'){ box.innerHTML = ''; return; }
+  const est = await espEstado();
+  const recs = espRecomendar(texto);
+  let ja = [];
+  if (taskId){ try { const { data } = await sb.from('pd_contribuicoes').select('personagem,papel,status').eq('task_id', taskId); ja = data || []; } catch(e){} }
+  const nome = id => escChar(id)?.name || id;
+  const av = id => `/pd/personagens/${id}/avatar.jpg`;
+  const sua = est.minha && est.minha.personagem
+    ? `<div class="esp-sua"><img src="${av(est.minha.personagem)}" alt=""><span><b>${escSafe(est.minha.apelido || nome(est.minha.personagem))}</b> continua sendo a sua parceira nesta tarefa.</span></div>` : '';
+  box.innerHTML = sua + `<div class="esp-lista">` + recs.map(r => {
+    const hab = est.ok.has(r.id), feito = ja.find(x => x.personagem === r.id && x.status !== 'cancelada');
+    const marc = window._espSel.has(r.id);
+    let ac = '';
+    if (feito) ac = `<span class="esp-tag ok">convocado · ${escSafe(feito.status)}</span>`;
+    else if (hab && taskId) ac = `<button class="esp-btn" onclick="espChamar('${r.id}','${taskId}','${boxId}')">Chamar</button>`;
+    else if (hab) ac = `<button class="esp-btn ${marc?'on':''}" onclick="espAlternar('${r.id}','${boxId}')">${marc?'Selecionado':'Selecionar'}</button>`;
+    else ac = `<button class="esp-tag" onclick="escCurso('${r.id}')" title="Ainda não habilitado: veja o curso">em formação</button>`;
+    return `<div class="esp-item ${hab||feito?'':'esp-off'}"><img src="${av(r.id)}" alt="" loading="lazy">
+      <div><b>${escSafe(nome(r.id))}</b><small>${escSafe(escChar(r.id)?.narrative_archetype || '')} · ${escSafe(r.porque)}</small></div>${ac}</div>`;
+  }).join('') + `</div>`;
+}
+function espAlternar(id, boxId){ if (window._espSel.has(id)) window._espSel.delete(id); else window._espSel.add(id); const t = document.getElementById('t-action'), p = document.getElementById('t-project'); renderEspecialistas(boxId, (t?.value||'') + ' ' + (p?.value||''), null); }
+async function espChamar(personagem, taskId, boxId){
+  const skill = ESP_SKILL[personagem]; if (!skill){ showToast('Esse habitante ainda não tem habilidade cadastrada.'); return; }
+  const { error } = await sb.rpc('pd_criar_contribuicao', { p_task: taskId, p_personagem: personagem, p_skill: skill, p_versao: 1, p_papel: ESP_PAPEL[personagem] || 'executa' });
+  if (error){ showToast(error.message.includes('habilita') ? 'Sem habilitação aprovada para esse habitante.' : 'Não consegui chamar: ' + error.message); return; }
+  showToast((escChar(personagem)?.name || personagem) + ' foi convocado(a) para esta tarefa.');
+  const t = tasks.find(x => x.id === taskId); renderEspecialistas(boxId, (t?.project||'') + ' ' + (t?.action||''), taskId);
+}
+async function espConvocarSelecionados(taskId){
+  const sel = [...window._espSel]; window._espSel = new Set();
+  for (const p of sel){ const skill = ESP_SKILL[p]; if (!skill) continue;
+    try { await sb.rpc('pd_criar_contribuicao', { p_task: taskId, p_personagem: p, p_skill: skill, p_versao: 1, p_papel: ESP_PAPEL[p] || 'executa' }); } catch(e){} }
+  if (sel.length) showToast('Especialistas convocados.');
+}
+let _espT = null;
+function espAtualizarModal(){ clearTimeout(_espT); _espT = setTimeout(() => { const t = document.getElementById('t-action'), p = document.getElementById('t-project');
+  renderEspecialistas('t-especialistas', (t?.value||'') + ' ' + (p?.value||''), null); }, 350); }
 
 async function loadPostCommentsPreview(postId){
   const el=document.getElementById('pcmts-'+postId);
@@ -6395,6 +6496,7 @@ async function openDetail(id){
   const t=tasks.find(x=>x.id===id);if(!t)return;activeTaskId=id;
   carregarMencionaveis(id);   // roda em paralelo, não bloqueia o resto
   desenharOrelhas(id);         // idem — mãe/filha
+  try { renderEspecialistas('d-especialistas', (t.project||'') + ' ' + (t.action||''), id); } catch(e){}
   const cfg=STATUS_CFG[t.status]||{color:'#999',label:t.status},resp=getTaskResp(t);
   document.getElementById('d-id').innerHTML=esc(t.id)+' '+((window.PDCARD&&PDCARD.batataHTML(t))||'');document.getElementById('d-action').textContent=t.action;
   (function(){ try{
@@ -7753,6 +7855,7 @@ function importarCodigoTema(){
 
 function openNewTaskModal(){
   populateTaskModal(null);
+  window._espSel = new Set(); try{ espAtualizarModal(); }catch(e){}
   // Se a tela já estava filtrada num cliente/produto, a tarefa nova
   // nasce com eles pré-selecionados — dá pra trocar, mas o caso comum
   // (criar dentro do contexto que já está olhando) vem pronto.
@@ -7949,6 +8052,7 @@ async function saveTask(criarProxima){
   btn.textContent=criarProxima?'Salvar e criar próxima →':(activeTaskId?'Salvar':'Criar Tarefa');btn.disabled=false;
   if(error){showToast('Erro: '+error.message,'error');return;}
   showToast(activeTaskId?'Atualizada!':'Criada! ✅','success');coverBlob=null;await loadTasks();
+  if (newTaskId) { try { await espConvocarSelecionados(newTaskId); } catch(e){} }
 
   // ---------- Vínculo mãe/filha ----------
   // ORDEM IMPORTA: primeiro consome o vínculo PENDENTE de uma rodada
