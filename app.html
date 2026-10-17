@@ -2747,7 +2747,7 @@ function escCapasDoDia(){
   const d = Math.floor(Date.now() / 864e5), n = L.length;
   return { capa: L[d % n], barrado: L[(d + 1) % n] };
 }
-const escBarrado = () => `<div class="esc-barrado" style="background-image:url('${escSafe(escCapasDoDia().barrado)}')"></div>`;
+const escBarrado = () => `<img class="esc-barrado" src="${escSafe(escCapasDoDia().barrado)}" alt="">`;
 const escNome = (id, t) => `<button class="esc-nome" onclick="escPerfil('${id}')">${t}</button>`;
 // quem tem uma pessoa por trás (usuário) × quem só vive em Mufun
 const escEhUsuario = id => ESC.alunos ? ESC.alunos.includes(id) : ESC_IDS.slice(0,4).includes(id);
@@ -2827,8 +2827,7 @@ function renderEscola(){
   const als = [...ESC_IDS].sort((a,b)=> escEhUsuario(b)-escEhUsuario(a) || ESC_IDS.indexOf(a)-ESC_IDS.indexOf(b)).slice(0, 8);
   document.getElementById('esc-alunos').innerHTML = als.map(id => { const c = escChar(id); if (!c) return '';
     return `<button class="esc-aluno" onclick="escPerfil('${id}')"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy"><div><b>${escSafe(c.name)}</b><small>${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small></div></button>`; }).join('');
-  { const ed = document.querySelector('.esc-esq'); if (ed && !ed.querySelector('.esc-barrado')) ed.insertAdjacentHTML('afterbegin', escBarrado());
-    const mi = document.getElementById('esc-minha'); const m = ESC.meu && escChar(ESC.meu.personagem);
+  { const mi = document.getElementById('esc-minha'); const m = ESC.meu && escChar(ESC.meu.personagem);
     if (mi) mi.innerHTML = m ? `<button class="esc-minha-perfil" onclick="escPerfil('${m.id}')"><img src="${escSafe(escFoto(m.id,'avatar'))}" alt=""><div><small>Minha IA</small><b>${escSafe(ESC.meu.apelido || m.name)}</b></div></button>
         <button class="esc-link" onclick="escMeusCursos()">Meus cursos${ESC.insc.length?' ('+ESC.insc.length+')':''}</button>`
       : `<small class="esc-aviso">Sua IA ainda não foi escolhida.</small>`; }

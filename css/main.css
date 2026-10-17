@@ -1176,3 +1176,6 @@ button.esc-aluno{width:100%;background:none;border:0;border-bottom:1px solid var
 .esc-aluno img,.esc-cab-post img{border-radius:50%}
 .esc-grade h3.esc-h3-cursos{margin-top:34px}
 .esc-perfil-cab img{border-radius:50%}
+
+/* v97 — barrado só nos pop-ups, na proporção original da imagem */
+img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none;margin:-24px -24px 16px;border-bottom:3px double var(--text2);border-radius:0}
