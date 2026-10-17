@@ -187,11 +187,18 @@
         <div class="feed-wrap" id="feed-wrap">
           <div class="esc-wrap" id="escola-wrap">
             <header class="esc-capa" id="esc-capa">
-              <div class="esc-capa-img" id="esc-capa-img"></div>
+              <img id="esc-capa-img" alt="Escola Agêntica de Mufun" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
               <div class="esc-capa-frase" id="esc-capa-frase"></div>
             </header>
-            <div class="esc-titulo"><h1>Escola Agêntica de Mufun</h1><span>Portal dos alunos · ano letivo 2026</span></div>
             <div class="esc-grade">
+              <section class="esc-cidade">
+                <div class="esc-cidade-nome">Mufun</div>
+                <div class="esc-clima" id="esc-clima"></div>
+                <button class="esc-luz" id="esc-luz" onclick="escAlternarLuz()" aria-label="Apagar ou acender a luz da escola" title="Apagar / acender">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+                </button>
+              </section>
+              <div class="esc-titulo"><h1 id="esc-h1">Escola Agêntica de Mufun</h1><span>Portal dos alunos · ano letivo 2026</span></div>
               <aside class="esc-esq">
                 <h3>Alunos matriculados</h3>
                 <div id="esc-alunos"></div>
@@ -204,7 +211,7 @@
               </main>
               <aside class="esc-dir">
                 <div class="esc-postal" id="esc-postal"></div>
-                <h3>Cursos e extensão</h3>
+                <h3 class="esc-h3-cursos">Cursos e extensão</h3>
                 <div id="esc-cursos"></div>
               </aside>
             </div>
@@ -2759,12 +2766,14 @@ function renderEscola(){
   if (!ESC.u){ box.innerHTML = '<div class="esc-vazio">Chegando…</div>'; return; }
   // capa + frase
   const hoje = new Date().toISOString().slice(0,10);
+  escAplicaLuz();
   const capa = document.getElementById('esc-capa-img');
   if (capa && !capa.dataset.ok){
     const rr = escRng('capa' + hoje);
     const lista = ESC.capas.length ? ESC.capas.map(i => i.src) : ['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
-    capa.style.backgroundImage = `url("${escPick(lista, rr)}")`; capa.dataset.ok = ESC.capas.length ? '1' : '';
+    capa.src = escPick(lista, rr); capa.dataset.ok = ESC.capas.length ? '1' : '';   // proporção original: sem recorte
   }
+  escCidade(); escAjustaTitulo();
   const fr = document.getElementById('esc-capa-frase');
   if (fr && !fr.dataset.ok){
     let q = null; try { const L = window.parent.eval("typeof QUOTES!=='undefined'?QUOTES:null"); if (L && L.length) q = L[Math.floor(escRng('frase'+hoje)() * L.length)]; } catch(e){}
@@ -2804,12 +2813,47 @@ function renderEscola(){
     || '<div class="esc-vazio">Nada publicado ainda.</div>';
 }
 
+// ---- cidade e clima (sorteados por dia: o mesmo dia mostra sempre o mesmo clima) ----
+function escCidade(){
+  const el = document.getElementById('esc-clima'); if (!el) return;
+  const r = escRng('clima' + new Date().toISOString().slice(0,10));
+  const locais = (ESC.postais.length ? ESC.postais.map(p => escLegendaPostal(p.nome).local) : ['Estação Maré','Galeria das Chuvas','Biblioteca Submersa','Mercado das Lanternas']).filter(Boolean);
+  const L = escPick(locais, r);
+  const clima = [ [`céu limpo`, `vista aberta da ${L}`], [`garoa fina`, `reflexos na ${L}`], [`chuva passageira`, `${L} cheia de guarda-chuvas`],
+    [`nublado e abafado`, `maré alta na ${L}`], [`vento fresco`, `${L} com bandeiras agitadas`], [`sol entre nuvens`, `luz boa na ${L}`] ];
+  const [tempo, nota] = escPick(clima, r);
+  const t = 19 + Math.floor(r() * 12);
+  el.innerHTML = `<b>${t}°C</b> · ${escSafe(tempo)}<br><small>${escSafe(nota.charAt(0).toUpperCase() + nota.slice(1))}</small>`;
+}
+// o título entra na largura do feed central
+function escAjustaTitulo(){
+  const h = document.getElementById('esc-h1'); if (!h) return;
+  const pai = h.parentElement; if (!pai || !pai.clientWidth) return;
+  if (!window.matchMedia('(min-width:901px)').matches){ h.style.fontSize = ''; return; }
+  h.style.fontSize = '40px';
+  const w = h.scrollWidth, alvo = pai.clientWidth;
+  if (w > 0) h.style.fontSize = Math.max(26, Math.min(72, Math.floor(40 * alvo / w))) + 'px';
+}
+window.addEventListener('resize', () => { try { escAjustaTitulo(); } catch(e){} });
+// apagar e acender: escuro (quase marrom) ou o bege da caixa de entrada
+function escAplicaLuz(){
+  let luz = 'apagada'; try { luz = localStorage.getItem('pd_esc_luz') || 'apagada'; } catch(e){}
+  const v = document.getElementById('view-feed'); if (!v) return;
+  v.classList.toggle('esc-acesa', luz === 'acesa'); v.classList.toggle('esc-apagada', luz !== 'acesa');
+  document.getElementById('esc-pop')?.classList.toggle('esc-acesa', luz === 'acesa');
+}
+function escAlternarLuz(){
+  let luz = 'apagada'; try { luz = localStorage.getItem('pd_esc_luz') || 'apagada'; } catch(e){}
+  try { localStorage.setItem('pd_esc_luz', luz === 'acesa' ? 'apagada' : 'acesa'); } catch(e){}
+  escAplicaLuz();
+}
+
 // ---- pop-up simples ----
 function escPop(html){
   document.getElementById('esc-pop')?.remove();
   const d = document.createElement('div'); d.id = 'esc-pop';
   d.innerHTML = `<div class="esc-pop-fundo" onclick="escFecharPop()"></div><div class="esc-pop-caixa"><button class="esc-pop-x" onclick="escFecharPop()" aria-label="Fechar">✕</button>${html}</div>`;
-  document.body.appendChild(d); requestAnimationFrame(() => d.classList.add('on'));
+  document.body.appendChild(d); try { escAplicaLuz(); } catch(e){} requestAnimationFrame(() => d.classList.add('on'));
 }
 function escFecharPop(){ const d = document.getElementById('esc-pop'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharPop(); });
