@@ -1145,3 +1145,20 @@ html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 .esp-btn,.esp-tag{border:1px solid var(--border);background:none;color:var(--text2);border-radius:999px;padding:3px 11px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
 .esp-btn:hover{border-color:var(--text);color:var(--text)}.esp-btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .esp-tag.ok{border-color:#16a34a66;color:#16a34a;cursor:default}
+
+/* v93 — Escola viva */
+.esc-barrado{height:44px;background-size:cover;background-position:center;margin:-24px -24px 16px;border-bottom:3px double var(--text2)}
+.esc-esq .esc-barrado{margin:0 0 12px}
+.esc-pop-corpo{max-height:calc(86vh - 70px);overflow:auto}.esc-pop-caixa{padding-top:24px}
+.esc-pop-x{background:rgba(0,0,0,.45)!important;color:#fff!important;border-radius:50%;width:24px;height:24px;top:10px}
+button.esc-aluno{width:100%;background:none;border:0;border-bottom:1px solid var(--border);text-align:left;cursor:pointer;color:inherit}button.esc-aluno:hover b{text-decoration:underline}
+.esc-minha{margin-bottom:14px}.esc-minha-perfil{display:flex;align-items:center;gap:10px;width:100%;background:none;border:1px solid var(--border);padding:8px;cursor:pointer;color:inherit;text-align:left}
+.esc-minha-perfil img{width:38px;height:38px;border-radius:50%;object-fit:cover}.esc-minha-perfil small{display:block;font:10px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}.esc-minha-perfil b{font:600 14px system-ui,sans-serif}
+.esc-nome{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--text);cursor:pointer}.esc-nome:hover{text-decoration:underline}
+.esc-cora{background:none;border:0;cursor:pointer;font-size:17px;color:var(--text2);padding:0 2px;vertical-align:-1px}.esc-cora.on{color:#d9534f}
+.esc-coms .real{border-left:2px solid var(--text3);padding-left:8px}.esc-x{background:none;border:0;color:var(--text3);cursor:pointer;font-size:10px}
+.esc-comenta{display:flex;gap:6px;margin-top:8px}.esc-comenta input{flex:1;min-width:0;background:transparent;border:1px solid var(--border);color:var(--text);padding:6px 8px;font:12.5px system-ui,sans-serif}
+.esc-comenta button{background:none;border:1px solid var(--border);color:var(--text);padding:0 10px;font:12px system-ui,sans-serif;cursor:pointer}
+.esc-perfil-cab{display:flex;gap:14px;align-items:center;margin-bottom:10px}.esc-perfil-cab img{width:72px;height:72px;border-radius:50%;object-fit:cover}.esc-perfil-cab h3{margin:2px 0}
+.esc-dl{margin:0 0 10px;font:13px/1.5 system-ui,sans-serif}.esc-dl dt{font:10.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:8px}.esc-dl dd{margin:0}
+.esc-perfil-post{border-left:2px solid var(--border);padding-left:10px;margin:8px 0 12px}.esc-perfil-post p{font-size:13px!important}

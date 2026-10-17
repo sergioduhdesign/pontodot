@@ -200,6 +200,7 @@
               </section>
               <div class="esc-titulo"><h1 id="esc-h1">Escola Agêntica de Mufun</h1><span>Portal dos alunos · ano letivo 2026</span></div>
               <aside class="esc-esq">
+                <div id="esc-minha" class="esc-minha"></div>
                 <h3>Alunos matriculados</h3>
                 <div id="esc-alunos"></div>
                 <button class="esc-link" onclick="escFechadas()">Ver todos os alunos…</button>
@@ -2663,7 +2664,7 @@ function renderFeed(){
 // ================= ESCOLA AGÊNTICA — a rede social de Mufun (marketing e relacionamento) =================
 // Mufun é ficção. Os comentários e curtidas entre os alunos são gerados no navegador, de forma
 // determinística (a mesma semana mostra sempre a mesma conversa); a narrativa de verdade vem da pasta do GPT.
-let ESC = { u:null, sem:null, imgs:null, capas:[], postais:[], alunos:null };
+let ESC = { u:null, sem:null, imgs:null, capas:[], postais:[], alunos:null, com:{}, cur:{}, meu:null, insc:[] };
 const ESC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
 const escSafe = x => String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const escHash = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -2703,7 +2704,51 @@ async function escCarregar(){
   if (capas && capas.imagens) ESC.capas = capas.imagens;
   if (postais && postais.imagens) ESC.postais = postais.imagens;
   if (Array.isArray(alunos) && alunos.length) ESC.alunos = alunos.map(a => a.personagem);
+  await escCarregarSocial();
 }
+// o que é de gente de verdade: meu personagem, minhas inscrições, comentários e curtidas (se o SQL v93 já rodou)
+async function escCarregarSocial(){
+  try { const { data } = await sb.from('pd_jeito').select('personagem,apelido').eq('user_id', profile.id).maybeSingle(); ESC.meu = data && data.personagem ? data : null; } catch(e){}
+  try { const { data } = await sb.from('pd_inscricoes').select('*').eq('user_id', profile.id).eq('status','ativa'); ESC.insc = data || []; } catch(e){}
+  try {
+    const [c, k] = await Promise.all([
+      sb.from('pd_escola_comentarios').select('id,post_key,user_id,autor,texto,criado_em').order('criado_em',{ascending:true}).limit(600),
+      sb.from('pd_escola_curtidas').select('post_key,user_id').limit(3000) ]);
+    ESC.com = {}; ESC.cur = {}; ESC.semSql = !!(c.error || k.error);
+    (c.data||[]).forEach(x => (ESC.com[x.post_key] = ESC.com[x.post_key] || []).push(x));
+    (k.data||[]).forEach(x => (ESC.cur[x.post_key] = ESC.cur[x.post_key] || []).push(x.user_id));
+  } catch(e){ ESC.semSql = true; }
+}
+const escKey = p => p.id + ':' + (p.data || '0');
+const escQuando = iso => { const m = Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m/60)} h` : `há ${Math.round(m/1440)} d`; };
+async function escCurtir(key){
+  if (ESC.semSql) return showToast('Falta rodar o SQL v93 no Supabase.');
+  const L = ESC.cur[key] = ESC.cur[key] || []; const i = L.indexOf(profile.id);
+  if (i >= 0){ L.splice(i,1); await sb.from('pd_escola_curtidas').delete().eq('post_key', key).eq('user_id', profile.id); }
+  else { L.push(profile.id); await sb.from('pd_escola_curtidas').insert({ post_key:key, user_id:profile.id }); }
+  renderEscola();
+}
+async function escComentar(key, ev){
+  if (ev) ev.preventDefault();
+  if (ESC.semSql) return showToast('Falta rodar o SQL v93 no Supabase.');
+  const inp = document.querySelector(`[data-ck="${CSS.escape(key)}"]`); const t = (inp?.value || '').trim(); if (!t) return;
+  const autor = profile.name || profile.full_name || (profile.email||'').split('@')[0] || 'Alguém da casa';
+  const { data, error } = await sb.from('pd_escola_comentarios').insert({ post_key:key, user_id:profile.id, autor, texto:t.slice(0,600) }).select().single();
+  if (error) return showToast('Não consegui comentar: ' + error.message);
+  (ESC.com[key] = ESC.com[key] || []).push(data); renderEscola();
+}
+async function escApagarCom(id, key){
+  await sb.from('pd_escola_comentarios').delete().eq('id', id);
+  ESC.com[key] = (ESC.com[key]||[]).filter(x => x.id !== id); renderEscola();
+}
+// o barrado: a mesma capa em todas as caixinhas, trocando junto com a capa do topo (nunca repete a do topo)
+function escCapasDoDia(){
+  const L = ESC.capas.length ? ESC.capas.map(i => i.src) : ['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
+  const d = Math.floor(Date.now() / 864e5), n = L.length;
+  return { capa: L[d % n], barrado: L[(d + 1) % n] };
+}
+const escBarrado = () => `<div class="esc-barrado" style="background-image:url('${escSafe(escCapasDoDia().barrado)}')"></div>`;
+const escNome = (id, t) => `<button class="esc-nome" onclick="escPerfil('${id}')">${t}</button>`;
 // quem tem uma pessoa por trás (usuário) × quem só vive em Mufun
 const escEhUsuario = id => ESC.alunos ? ESC.alunos.includes(id) : ESC_IDS.slice(0,4).includes(id);
 // usuários publicam toda semana; os demais, uma vez por mês (na primeira semana do mês)
@@ -2769,9 +2814,7 @@ function renderEscola(){
   escAplicaLuz();
   const capa = document.getElementById('esc-capa-img');
   if (capa && !capa.dataset.ok){
-    const rr = escRng('capa' + hoje);
-    const lista = ESC.capas.length ? ESC.capas.map(i => i.src) : ['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
-    capa.src = escPick(lista, rr); capa.dataset.ok = ESC.capas.length ? '1' : '';   // proporção original: sem recorte
+    capa.src = escCapasDoDia().capa; capa.dataset.ok = ESC.capas.length ? '1' : '';   // proporção original: sem recorte
   }
   escCidade(); escAjustaTitulo();
   const fr = document.getElementById('esc-capa-frase');
@@ -2783,7 +2826,12 @@ function renderEscola(){
   // alunos
   const als = [...ESC_IDS].sort((a,b)=> escEhUsuario(b)-escEhUsuario(a) || ESC_IDS.indexOf(a)-ESC_IDS.indexOf(b)).slice(0, 8);
   document.getElementById('esc-alunos').innerHTML = als.map(id => { const c = escChar(id); if (!c) return '';
-    return `<div class="esc-aluno"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy"><div><b>${escSafe(c.name)}</b><small>${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small></div></div>`; }).join('');
+    return `<button class="esc-aluno" onclick="escPerfil('${id}')"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy"><div><b>${escSafe(c.name)}</b><small>${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small></div></button>`; }).join('');
+  { const ed = document.querySelector('.esc-esq'); if (ed && !ed.querySelector('.esc-barrado')) ed.insertAdjacentHTML('afterbegin', escBarrado());
+    const mi = document.getElementById('esc-minha'); const m = ESC.meu && escChar(ESC.meu.personagem);
+    if (mi) mi.innerHTML = m ? `<button class="esc-minha-perfil" onclick="escPerfil('${m.id}')"><img src="${escSafe(escFoto(m.id,'avatar'))}" alt=""><div><small>Minha IA</small><b>${escSafe(ESC.meu.apelido || m.name)}</b></div></button>
+        <button class="esc-link" onclick="escMeusCursos()">Meus cursos${ESC.insc.length?' ('+ESC.insc.length+')':''}</button>`
+      : `<small class="esc-aviso">Sua IA ainda não foi escolhida.</small>`; }
   // postal
   const po = document.getElementById('esc-postal');
   if (po){
@@ -2803,11 +2851,15 @@ function renderEscola(){
     return `<article class="esc-post ${ult?'esc-ultimo':''}">
       <div class="esc-foto-col"><img src="${escSafe(escFotoPost(p))}" alt="${escSafe(p.c.name)} em Mufun (ficção)" loading="lazy"></div>
       <div class="esc-txt-col">
-        <div class="esc-cab-post"><img src="${escSafe(escFoto(p.id,'avatar'))}" alt=""><b>${escSafe(p.c.name)}</b><span>${escSafe(escDia(p.data))}</span></div>
+        <div class="esc-cab-post"><img src="${escSafe(escFoto(p.id,'avatar'))}" alt="" onclick="escPerfil('${p.id}')" style="cursor:pointer"><b onclick="escPerfil('${p.id}')" style="cursor:pointer">${escSafe(p.c.name)}</b><span>${escSafe(escDia(p.data))}</span></div>
         ${p.titulo?`<h4>${escSafe(p.titulo)}</h4>`:''}<p>${escSafe(p.texto)}</p>
         ${p.historia && p.historia!==p.texto ? `<details><summary>ler a história</summary><p>${escSafe(p.historia)}</p></details>`:''}
-        <div class="esc-curt">♥ ${escSafe(escNomes(conv.curt.slice(0,2)).join(', '))}${conv.total>2?` e mais ${conv.total-2}`:''}</div>
-        <div class="esc-coms">${conv.coms.map(k => `<div class="${k.resposta?'resp':''}"><b>${escSafe(k.nome)}</b> ${escSafe(k.texto)} <small>${escSafe(k.quando)}</small></div>`).join('')}</div>
+        ${(() => { const k = escKey(p), reais = ESC.com[k] || [], cu = ESC.cur[k] || [], eu = cu.includes(profile.id);
+          const nCur = conv.total + cu.length;
+          return `<div class="esc-curt"><button class="esc-cora ${eu?'on':''}" onclick="escCurtir('${escSafe(k)}')" aria-label="Curtir">${eu?'♥':'♡'}</button> ${nCur} curtidas · ${escSafe(escNomes(conv.curt.slice(0,2)).join(', '))}</div>
+          <div class="esc-coms">${conv.coms.map(x => `<div class="${x.resposta?'resp':''}">${escNome(x.id, escSafe(x.nome))} ${escSafe(x.texto)} <small>${escSafe(x.quando)}</small></div>`).join('')}
+          ${reais.map(x => `<div class="real"><b>${escSafe(x.autor||'Alguém da casa')}</b> ${escSafe(x.texto)} <small>${escSafe(escQuando(x.criado_em))}</small>${x.user_id===profile.id?` <button class="esc-x" onclick="escApagarCom('${x.id}','${escSafe(k)}')" aria-label="Apagar">✕</button>`:''}</div>`).join('')}</div>
+          <form class="esc-comenta" onsubmit="escComentar('${escSafe(k)}',event)"><input data-ck="${escSafe(k)}" maxlength="600" placeholder="Comente algo…" autocomplete="off"><button>Enviar</button></form>`; })()}
       </div></article>`;
   }).join('') + `<div class="esc-mais">Há mais publicações da turma. <button class="esc-link" onclick="escFechadas()">Inscreva-se para ver</button></div>`
     || '<div class="esc-vazio">Nada publicado ainda.</div>';
@@ -2852,8 +2904,29 @@ function escAlternarLuz(){
 function escPop(html){
   document.getElementById('esc-pop')?.remove();
   const d = document.createElement('div'); d.id = 'esc-pop';
-  d.innerHTML = `<div class="esc-pop-fundo" onclick="escFecharPop()"></div><div class="esc-pop-caixa"><button class="esc-pop-x" onclick="escFecharPop()" aria-label="Fechar">✕</button>${html}</div>`;
+  d.innerHTML = `<div class="esc-pop-fundo" onclick="escFecharPop()"></div><div class="esc-pop-caixa">${escBarrado()}<button class="esc-pop-x" onclick="escFecharPop()" aria-label="Fechar">✕</button><div class="esc-pop-corpo">${html}</div></div>`;
   document.body.appendChild(d); try { escAplicaLuz(); } catch(e){} requestAnimationFrame(() => d.classList.add('on'));
+}
+function escPerfil(id){
+  const c = escChar(id); if (!c) return; const b = c.biography || {}; const meu = ESC.meu && ESC.meu.personagem === id;
+  const amigos = (b.friend_character_ids || []).filter(escChar);
+  const curso = ESC_CURSOS.find(x => x.quem === id);
+  const post = escPosts().find(p => p.id === id);
+  escPop(`<div class="esc-perfil-cab"><img src="${escSafe(escFoto(id,'avatar'))}" alt=""><div><small class="esc-area">${meu?'Sua IA · ':''}${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small><h3>${escSafe(c.full_name || c.name)}</h3><span class="esc-peq">${escSafe(c.profile_title||'')}</span></div></div>
+    <p>${escSafe(c.bio||'')}</p>
+    ${c.current_arc_first_person?`<p><i>${escSafe(c.current_arc_first_person)}</i></p>`:''}
+    <dl class="esc-dl">${b.habit?`<dt>Hábito</dt><dd>${escSafe(b.habit)}</dd>`:''}${(b.likes||[]).length?`<dt>Gosta de</dt><dd>${escSafe(b.likes.join(', '))}</dd>`:''}${c.assistant_promise?`<dt>Ajuda você a</dt><dd>${escSafe(c.assistant_promise)}</dd>`:''}${c.school_course?`<dt>Na escola</dt><dd>${escSafe(c.school_course)}</dd>`:''}
+    ${amigos.length?`<dt>Amigos</dt><dd>${amigos.map(a => escNome(a, escSafe(escChar(a).name))).join(' · ')}</dd>`:''}</dl>
+    ${post?`<div class="esc-perfil-post"><small class="esc-area">${escSafe(escDia(post.data))}</small><p>${escSafe(post.texto)}</p></div>`:''}
+    ${curso?`<button class="esc-btn sec" onclick="escCurso('${curso.id}')">Curso: ${escSafe(curso.titulo)}</button>`:''}
+    ${meu?`<button class="esc-btn sec" onclick="escMeusCursos()">Meus cursos</button>`:''}`);
+}
+async function escMeusCursos(){
+  let L = []; try { const { data } = await sb.from('pd_inscricoes').select('*').eq('user_id', profile.id).eq('status','ativa'); L = data || []; ESC.insc = L; } catch(e){}
+  const nome = ESC.meu ? (ESC.meu.apelido || escChar(ESC.meu.personagem)?.name || 'Sua IA') : 'Sua IA';
+  escPop(`<h3>Cursos de ${escSafe(nome)}</h3>` + (L.length ? L.map(i => { const c = ESC_CURSOS.find(x => x.id === i.curso_id); if (!c) return '';
+      return `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>termina em ${escSafe(new Date(i.termina_em).toLocaleDateString('pt-BR'))} · com ${escSafe(escChar(c.quem)?.name||'')}</small></button>`; }).join('')
+    : `<p class="esc-peq">Sua IA ainda não está em nenhum curso.</p><button class="esc-btn" onclick="escTodosCursos()">Ver cursos</button>`));
 }
 function escFecharPop(){ const d = document.getElementById('esc-pop'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharPop(); });
@@ -2925,11 +2998,11 @@ async function escInscrever(id){
   const fim = new Date(Date.now() + c.semanas*7*864e5).toISOString();
   const { error } = await sb.from('pd_inscricoes').insert({ user_id: profile.id, curso_id: id, termina_em: fim, base: { media: base.media, entregas: base.n, medida: 'rodadas de correção por entrega' } });
   if (error){ showToast(/does not exist|relation/.test(error.message) ? 'Falta rodar o SQL v86 no Supabase.' : 'Não consegui inscrever: ' + error.message); return; }
-  showToast('Sua IA está inscrita.'); escCurso(id);
+  showToast('Sua IA está inscrita.'); escCarregarSocial().then(renderEscola); escCurso(id);
 }
 async function escSair(inscId){
   await sb.from('pd_inscricoes').update({ status:'cancelada' }).eq('id', inscId);
-  showToast('Inscrição encerrada.'); escFecharPop();
+  showToast('Inscrição encerrada.'); escFecharPop(); escCarregarSocial().then(renderEscola);
 }
 
 // ---- a gaveta: na Escola, o menu do topo recolhe para a direita (3 risquinhos) ----
