@@ -128,7 +128,7 @@
     <!-- LINHA 2: navegação, alinhada à esquerda -->
     <div class="hdr-row hdr-row-nav">
       <button class="esc-burger" id="esc-burger" onclick="alternarGaveta()" aria-label="Abrir o menu" title="Menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:18px;height:18px"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:18px;height:18px"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg><span>Menu</span>
       </button>
       <div class="nav-tabs">
         <button class="nav-tab active" id="tab-feed" onclick="setView('feed')"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Escola Agêntica</button>
@@ -1840,7 +1840,10 @@ function applyRoleUI(){
 }
 
 // Home do usuário: cliente cai direto no Crono (o Feed é só da equipe)
-function goHome(){ setView(profile.role==='client' ? 'gantt' : 'feed'); }
+function goHome(){
+  if (profile.role !== 'client' && document.documentElement.classList.contains('esc-gaveta')){ alternarGaveta(); return; }   // já na Escola: o logo abre/fecha o menu
+  setView(profile.role==='client' ? 'gantt' : 'feed');
+}
 
 function setupEmojiPickers(){
   const cb=document.getElementById('compose-emoji-btn'),wrap=cb.parentElement;
@@ -3056,7 +3059,7 @@ function gavetaDaView(v){
 function alternarGaveta(){ document.documentElement.classList.toggle('gaveta-aberta'); }
 document.addEventListener('click', e => {
   const h = document.documentElement;
-  if (h.classList.contains('gaveta-aberta') && !e.target.closest('.hdr-row-nav')) h.classList.remove('gaveta-aberta');
+  if (h.classList.contains('gaveta-aberta') && !e.target.closest('.hdr-row-nav,.logo-group')) h.classList.remove('gaveta-aberta');
 });
 async function iniciarEscola(){
   renderEscola();
