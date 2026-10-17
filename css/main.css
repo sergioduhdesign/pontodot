@@ -1193,8 +1193,9 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 #esc-zoom img{max-width:92vw;max-height:84vh;border-radius:10px;display:block;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 #esc-zoom figcaption{margin-top:10px;color:#fff;font:13px system-ui,sans-serif;opacity:.85}
 #esc-zoom .esc-pop-x{position:absolute;top:18px;right:20px}
-.esc-login{text-align:center}.esc-login-logo{height:34px;width:auto;margin:6px auto 10px;display:block}#esc-pop.esc-acesa .esc-login-logo{filter:invert(1)}
+.esc-login{text-align:center}.esc-login-logo{height:34px;width:auto;margin:6px auto 10px;display:block}
 .esc-login form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .esc-login input{background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 12px;font:14px system-ui,sans-serif;border-radius:8px}
 .esc-login-ou{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--text3);font:11px system-ui,sans-serif}.esc-login-ou:before,.esc-login-ou:after{content:'';flex:1;border-top:1px solid var(--border)}
 .esc-mais{padding:18px 0 40px}
+#esc-pop.esc-acesa .esc-login-logo{content:url('../assets/logo-pontodot-escola-preto.svg')}.esc-login-logo{height:auto!important;width:min(240px,70%)!important}
