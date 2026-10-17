@@ -2849,10 +2849,10 @@ function renderEscola(){
   box.innerHTML = lista.map((p, n) => {
     const conv = escConversa(p.c, p.data); const ult = n === lista.length - 1;
     return `<article class="esc-post ${ult?'esc-ultimo':''}">
+      <div class="esc-cab-post"><img src="${escSafe(escFoto(p.id,'avatar'))}" alt="" onclick="escPerfil('${p.id}')" style="cursor:pointer"><b onclick="escPerfil('${p.id}')" style="cursor:pointer">${escSafe(p.c.name)}</b><span>${escSafe(escDia(p.data))}</span></div>
       <div class="esc-foto-col"><img src="${escSafe(escFotoPost(p))}" alt="${escSafe(p.c.name)} em Mufun (ficção)" loading="lazy"></div>
       <div class="esc-txt-col">
-        <div class="esc-cab-post"><img src="${escSafe(escFoto(p.id,'avatar'))}" alt="" onclick="escPerfil('${p.id}')" style="cursor:pointer"><b onclick="escPerfil('${p.id}')" style="cursor:pointer">${escSafe(p.c.name)}</b><span>${escSafe(escDia(p.data))}</span></div>
-        ${p.titulo?`<h4>${escSafe(p.titulo)}</h4>`:''}<p>${escSafe(p.texto)}</p>
+                ${p.titulo?`<h4>${escSafe(p.titulo)}</h4>`:''}<p>${escSafe(p.texto)}</p>
         ${p.historia && p.historia!==p.texto ? `<details><summary>ler a história</summary><p>${escSafe(p.historia)}</p></details>`:''}
         ${(() => { const k = escKey(p), reais = ESC.com[k] || [], cu = ESC.cur[k] || [], eu = cu.includes(profile.id);
           const nCur = conv.total + cu.length;

@@ -1162,3 +1162,17 @@ button.esc-aluno{width:100%;background:none;border:0;border-bottom:1px solid var
 .esc-perfil-cab{display:flex;gap:14px;align-items:center;margin-bottom:10px}.esc-perfil-cab img{width:72px;height:72px;border-radius:50%;object-fit:cover}.esc-perfil-cab h3{margin:2px 0}
 .esc-dl{margin:0 0 10px;font:13px/1.5 system-ui,sans-serif}.esc-dl dt{font:10.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-top:8px}.esc-dl dd{margin:0}
 .esc-perfil-post{border-left:2px solid var(--border);padding-left:10px;margin:8px 0 12px}.esc-perfil-post p{font-size:13px!important}
+
+/* v94 — mural em formato de rede social */
+.esc-post{display:flex!important;flex-direction:column;gap:0!important;padding:0!important;margin-bottom:22px!important;border:1px solid var(--border)!important;border-radius:14px;background:var(--surface);overflow:hidden}
+.esc-post .esc-cab-post{padding:12px 14px;margin:0}.esc-post .esc-cab-post img{width:36px;height:36px}.esc-post .esc-cab-post b{font-size:15px}
+.esc-foto-col img{aspect-ratio:1/1!important;border-radius:0}
+.esc-txt-col{padding:10px 16px 16px}
+.esc-ultimo{-webkit-mask-image:none!important;mask-image:none!important}
+.esc-comenta input{border-radius:18px;padding:7px 12px}.esc-comenta button{border-radius:18px}
+.esc-postal,.esc-postal img{border-radius:10px}.esc-postal{padding:6px}
+.esc-minha-perfil,.esc-pop-caixa{border-radius:12px}.esc-pop-caixa{overflow:hidden}
+.esc-barrado{border-radius:0}.esc-esq .esc-barrado{border-radius:8px}
+.esc-aluno img,.esc-cab-post img{border-radius:50%}
+.esc-grade h3.esc-h3-cursos{margin-top:34px}
+.esc-perfil-cab img{border-radius:50%}
