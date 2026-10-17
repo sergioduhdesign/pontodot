@@ -2888,15 +2888,17 @@ function escAjustaTitulo(){
 }
 window.addEventListener('resize', () => { try { escAjustaTitulo(); } catch(e){} });
 // apagar e acender: escuro (quase marrom) ou o bege da caixa de entrada
+let ESC_LUZ = null;
+function escLuz(){ if (ESC_LUZ) return ESC_LUZ; try { ESC_LUZ = localStorage.getItem('pd_esc_luz'); } catch(e){} return ESC_LUZ || 'apagada'; }
 function escAplicaLuz(){
-  let luz = 'apagada'; try { luz = localStorage.getItem('pd_esc_luz') || 'apagada'; } catch(e){}
+  const luz = escLuz();
   const v = document.getElementById('view-feed'); if (!v) return;
   v.classList.toggle('esc-acesa', luz === 'acesa'); v.classList.toggle('esc-apagada', luz !== 'acesa');
   document.getElementById('esc-pop')?.classList.toggle('esc-acesa', luz === 'acesa');
 }
 function escAlternarLuz(){
-  let luz = 'apagada'; try { luz = localStorage.getItem('pd_esc_luz') || 'apagada'; } catch(e){}
-  try { localStorage.setItem('pd_esc_luz', luz === 'acesa' ? 'apagada' : 'acesa'); } catch(e){}
+  ESC_LUZ = escLuz() === 'acesa' ? 'apagada' : 'acesa';
+  try { localStorage.setItem('pd_esc_luz', ESC_LUZ); } catch(e){}
   escAplicaLuz();
 }
 

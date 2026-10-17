@@ -1080,9 +1080,9 @@ input[type="date"],input[type="email"],input[type="number"]{
 /* ---- Escola Agêntica: portal de faculdade dos anos 90, em Mufun (tudo sem serifa; serifa só nos links da direita) ---- */
 html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 /* apagar (quase marrom) e acender (o bege da caixa de entrada) */
-#view-feed.esc-apagada,#esc-pop:not(.esc-acesa){--bg:#16110e;--surface:#16110e;--surface2:#221b16;--border:rgba(232,222,206,.2);--text:#ece3d4;--text2:rgba(236,227,212,.74);--text3:rgba(236,227,212,.5);--accent:#e3c79a}
-#view-feed.esc-acesa,#esc-pop.esc-acesa{--bg:#E4E3DE;--surface:#E4E3DE;--surface2:#d6d4cd;--border:rgba(29,30,34,.28);--text:#1D1E22;--text2:rgba(29,30,34,.76);--text3:rgba(29,30,34,.55);--accent:#1D1E22}
-#view-feed.esc-apagada,#view-feed.esc-acesa{background:var(--bg);color:var(--text);transition:background .5s,color .5s}
+#view-feed.esc-apagada,#esc-pop:not(.esc-acesa){--bg:#26292d;--surface:#2d3136;--surface2:#33383d;--border:rgba(235,236,238,.16);--text:#eceef0;--text2:rgba(236,238,240,.76);--text3:rgba(236,238,240,.5);--accent:#eceef0}
+#view-feed.esc-acesa,#esc-pop.esc-acesa{--bg:#E4E3DE;--surface:#ECEBE7;--surface2:#d6d4cd;--border:rgba(29,30,34,.28);--text:#1D1E22;--text2:rgba(29,30,34,.76);--text3:rgba(29,30,34,.55);--accent:#1D1E22}
+#view-feed.esc-apagada,#view-feed.esc-acesa{background:var(--bg)!important;color:var(--text);transition:background .5s,color .5s}
 .esc-wrap{width:100%;max-width:1240px;display:flex;flex-direction:column;gap:18px}
 .esc-capa{position:relative}
 .esc-capa-img,#esc-capa-img{display:block;width:100%;height:auto;border-bottom:1px solid var(--border);background:var(--surface2)}
@@ -1114,7 +1114,7 @@ html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 .esc-postal img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}.esc-postal small{display:block;font:11px/1.4 system-ui,sans-serif;color:var(--text3);margin:6px 2px 1px;letter-spacing:.02em}.esc-postal small b{color:var(--text2);font-weight:600}
 .esc-postal-vazio{aspect-ratio:4/3;display:grid;place-items:center;background:var(--surface2);font:22px system-ui,sans-serif;letter-spacing:.3em;color:var(--text3)}
 .esc-curso{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border);padding:12px 0;cursor:pointer;color:inherit;font:inherit}
-.esc-curso b{display:block;font:400 19px/1.25 Georgia,'Times New Roman',serif;color:var(--text);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}.esc-curso small{display:block;margin-top:3px;font:11px system-ui,sans-serif;color:var(--text3);text-decoration:none}.esc-curso:hover b{text-decoration-thickness:2px}
+.esc-curso b{display:block;font:500 17px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:var(--text);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}.esc-curso small{display:block;margin-top:3px;font:11px system-ui,sans-serif;color:var(--text3);text-decoration:none}.esc-curso:hover b{text-decoration-thickness:2px}
 .esc-vazio{text-align:center;color:var(--text3);padding:30px 0;font:13px system-ui,sans-serif}.esc-ficcao{text-align:center;font:11px system-ui,sans-serif;color:var(--text3)}
 .esc-equipe{width:100%;max-width:1240px;margin-top:10px;font:13px system-ui,sans-serif}.esc-equipe>summary{cursor:pointer;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;font-size:11px;padding:8px 0;border-top:1px solid var(--border)}
 .esc-equipe[open]>*:not(summary){margin-left:auto;margin-right:auto}
