@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>pontodot — workflow</title>
-<link rel="stylesheet" href="css/main.css?v=20261016pe">
+<link rel="stylesheet" href="css/main.css?v=20261016pf2">
 <style>
 @media (max-width: 768px) { 
   .desktop-only { display: none !important; } 
@@ -307,7 +307,7 @@
           <button id="fila-tab-comentarios" class="nav-tab" style="opacity:0.4" onclick="filaSetAba('comentarios',this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comentários</button>
         </div>
-        <div id="fila-contas" style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
+        <div id="fila-contas" style="max-height:34vh;overflow-y:auto;flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
         <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
           <select class="filter-sel" id="fila-filter-client" onchange="renderFila()"><option value="">Todos os clientes</option></select>
           <select class="filter-sel" id="fila-filter-project" onchange="renderFila()"><option value="">Todos os projetos</option></select>
@@ -334,7 +334,7 @@
           </div>
         </div>
 
-        <div style="overflow:auto;flex:1;background:var(--bg)" id="fila-tabela-wrap">
+        <div style="overflow-y:auto;overflow-x:auto;flex:1 1 0;min-height:160px;background:var(--bg)" id="fila-tabela-wrap">
           <table class="list-tbl" style="width:100%">
             <thead><tr>
               <th style="width:34px"><input type="checkbox" id="fila-select-all" onchange="filaSelecionarTudo(this.checked)" style="width:15px;height:15px;cursor:pointer"></th>
