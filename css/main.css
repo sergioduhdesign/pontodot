@@ -1181,3 +1181,20 @@ button.esc-aluno{width:100%;background:none;border:0;border-bottom:1px solid var
 img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none;margin:-24px -24px 16px;border-bottom:3px double var(--text2);border-radius:0}
 /* v98 — véu desfocado atrás dos pop-ups da Escola */
 .esc-pop-fundo{background:rgba(10,10,12,.38)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+
+/* v99 — todos os alunos, zoom, login de mentira */
+#esc-pop.larga .esc-pop-caixa{width:min(760px,calc(100vw - 32px))}
+.esc-roda{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:22px 14px;padding:8px 0 6px}
+.esc-bola{background:none;border:0;cursor:pointer;color:inherit;text-align:center;font:inherit}
+.esc-bola span{display:block;width:96px;height:96px;margin:0 auto 8px;border-radius:50%;overflow:hidden;transition:transform .25s}.esc-bola:hover span{transform:scale(1.07)}
+.esc-bola img{width:100%;height:100%;object-fit:cover;display:block}.esc-bola b{display:block;font:600 13.5px system-ui,sans-serif}.esc-bola small{font:11px system-ui,sans-serif;color:var(--text3)}
+#esc-zoom{position:fixed;inset:0;z-index:99800;display:grid;place-items:center;opacity:0;transition:opacity .25s}#esc-zoom.on{opacity:1}
+#esc-zoom figure{position:relative;margin:0;max-width:92vw;max-height:92vh;text-align:center;transform:scale(.96);transition:transform .35s cubic-bezier(.19,1,.22,1)}#esc-zoom.on figure{transform:none}
+#esc-zoom img{max-width:92vw;max-height:84vh;border-radius:10px;display:block;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#esc-zoom figcaption{margin-top:10px;color:#fff;font:13px system-ui,sans-serif;opacity:.85}
+#esc-zoom .esc-pop-x{position:absolute;top:18px;right:20px}
+.esc-login{text-align:center}.esc-login-logo{height:34px;width:auto;margin:6px auto 10px;display:block}#esc-pop.esc-acesa .esc-login-logo{filter:invert(1)}
+.esc-login form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.esc-login input{background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 12px;font:14px system-ui,sans-serif;border-radius:8px}
+.esc-login-ou{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--text3);font:11px system-ui,sans-serif}.esc-login-ou:before,.esc-login-ou:after{content:'';flex:1;border-top:1px solid var(--border)}
+.esc-mais{padding:18px 0 40px}

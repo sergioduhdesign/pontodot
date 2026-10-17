@@ -203,7 +203,7 @@
                 <div id="esc-minha" class="esc-minha"></div>
                 <h3>Alunos matriculados</h3>
                 <div id="esc-alunos"></div>
-                <button class="esc-link" onclick="escFechadas()">Ver todos os alunos…</button>
+                <button class="esc-link" onclick="escTodosAlunos()">Ver todos</button>
                 <p class="esc-aviso">Inscrições para humanos fechadas. Em breve abriremos.</p>
               </aside>
               <main class="esc-meio">
@@ -2836,7 +2836,7 @@ function renderEscola(){
   if (po){
     const p = ESC.postais.length ? escPick(ESC.postais, escRng('postal'+hoje)) : null;
     const leg = p ? escLegendaPostal(p.nome) : null;
-    po.innerHTML = p ? `<img src="${escSafe(p.src_m||p.src)}" alt="${escSafe(leg.local + (leg.desc?' — '+leg.desc:''))}" loading="lazy"><small><b>${escSafe(leg.local)}</b>${leg.desc?' · '+escSafe(leg.desc):''}</small>`
+    po.innerHTML = p ? `<img onclick="escAmpliar(this.dataset.full,this.alt)" style="cursor:zoom-in" data-full="${escSafe(p.src)}" src="${escSafe(p.src_m||p.src)}" alt="${escSafe(leg.local + (leg.desc?' — '+leg.desc:''))}" loading="lazy"><small><b>${escSafe(leg.local)}</b>${leg.desc?' · '+escSafe(leg.desc):''}</small>`
                      : `<div class="esc-postal-vazio">Mufun</div><small>Cartão-postal em breve</small>`;
   }
   // cursos
@@ -2849,7 +2849,7 @@ function renderEscola(){
     const conv = escConversa(p.c, p.data); const ult = n === lista.length - 1;
     return `<article class="esc-post ${ult?'esc-ultimo':''}">
       <div class="esc-cab-post"><img src="${escSafe(escFoto(p.id,'avatar'))}" alt="" onclick="escPerfil('${p.id}')" style="cursor:pointer"><b onclick="escPerfil('${p.id}')" style="cursor:pointer">${escSafe(p.c.name)}</b><span>${escSafe(escDia(p.data))}</span></div>
-      <div class="esc-foto-col"><img src="${escSafe(escFotoPost(p))}" alt="${escSafe(p.c.name)} em Mufun (ficção)" loading="lazy"></div>
+      <div class="esc-foto-col"><img onclick="escAmpliar(this.src,this.alt)" style="cursor:zoom-in" src="${escSafe(escFotoPost(p))}" alt="${escSafe(p.c.name)} em Mufun (ficção)" loading="lazy"></div>
       <div class="esc-txt-col">
                 ${p.titulo?`<h4>${escSafe(p.titulo)}</h4>`:''}<p>${escSafe(p.texto)}</p>
         ${p.historia && p.historia!==p.texto ? `<details><summary>ler a história</summary><p>${escSafe(p.historia)}</p></details>`:''}
@@ -2860,8 +2860,9 @@ function renderEscola(){
           ${reais.map(x => `<div class="real"><b>${escSafe(x.autor||'Alguém da casa')}</b> ${escSafe(x.texto)} <small>${escSafe(escQuando(x.criado_em))}</small>${x.user_id===profile.id?` <button class="esc-x" onclick="escApagarCom('${x.id}','${escSafe(k)}')" aria-label="Apagar">✕</button>`:''}</div>`).join('')}</div>
           <form class="esc-comenta" onsubmit="escComentar('${escSafe(k)}',event)"><input data-ck="${escSafe(k)}" maxlength="600" placeholder="Comente algo…" autocomplete="off"><button>Enviar</button></form>`; })()}
       </div></article>`;
-  }).join('') + `<div class="esc-mais">Há mais publicações da turma. <button class="esc-link" onclick="escFechadas()">Inscreva-se para ver</button></div>`
+  }).join('') + `<div class="esc-mais" id="esc-fim">Carregando mais publicações…</div>`
     || '<div class="esc-vazio">Nada publicado ainda.</div>';
+  escVigiaFim();
 }
 
 // ---- cidade e clima (sorteados por dia: o mesmo dia mostra sempre o mesmo clima) ----
@@ -2902,9 +2903,9 @@ function escAlternarLuz(){
 }
 
 // ---- pop-up simples ----
-function escPop(html){
+function escPop(html, larga){
   document.getElementById('esc-pop')?.remove();
-  const d = document.createElement('div'); d.id = 'esc-pop';
+  const d = document.createElement('div'); d.id = 'esc-pop'; if (larga) d.classList.add('larga');
   d.innerHTML = `<div class="esc-pop-fundo" onclick="escFecharPop()"></div><div class="esc-pop-caixa">${escBarrado()}<button class="esc-pop-x" onclick="escFecharPop()" aria-label="Fechar">✕</button><div class="esc-pop-corpo">${html}</div></div>`;
   document.body.appendChild(d); try { escAplicaLuz(); } catch(e){} requestAnimationFrame(() => d.classList.add('on'));
 }
@@ -2937,9 +2938,43 @@ function escTodosCursos(){
   escPop(`<h3>Todos os cursos</h3>` + grupos.map(g => { const L = ESC_CURSOS.filter(c => escChar(c.quem)?.narrative_archetype === g); if (!L.length) return '';
     return `<small class="esc-area">${g}es</small>` + L.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(escChar(c.quem)?.name||'')} · ${escSafe(c.area)}</small></button>`).join(''); }).join(''));
 }
+function escTodosAlunos(){
+  const L = [...ESC_IDS].sort((x,y)=> escEhUsuario(y)-escEhUsuario(x) || ESC_IDS.indexOf(x)-ESC_IDS.indexOf(y));
+  escPop(`<h3>Alunos de Mufun</h3><div class="esc-roda">` + L.map(id => { const c = escChar(id); if (!c) return '';
+    return `<button class="esc-bola" onclick="escPerfil('${id}')"><span style="background:${escSafe(c.appearance?.avatar_background||'#333')}"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy"></span><b>${escSafe(c.name)}</b>${escEhUsuario(id)?'<small>ativo</small>':''}</button>`; }).join('') + `</div>`, true);
+}
+function escAmpliar(src, legenda){
+  if (!src) return; document.getElementById('esc-zoom')?.remove();
+  const d = document.createElement('div'); d.id = 'esc-zoom';
+  d.innerHTML = `<div class="esc-pop-fundo" onclick="escFecharZoom()"></div><figure><img src="${escSafe(src)}" alt=""><figcaption>${escSafe(legenda||'')}</figcaption></figure><button class="esc-pop-x" onclick="escFecharZoom()" aria-label="Fechar">✕</button>`;
+  document.body.appendChild(d); requestAnimationFrame(() => d.classList.add('on'));
+}
+function escFecharZoom(){ const d = document.getElementById('esc-zoom'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharZoom(); });
+// rolou até o fundo do mural: pede o login (é só a cara de rede social; não dá para entrar)
+let ESC_IO = null, ESC_FIM_VISTO = false;
+function escVigiaFim(){
+  const el = document.getElementById('esc-fim'); if (!el || !('IntersectionObserver' in window)) return;
+  if (ESC_IO) ESC_IO.disconnect();
+  ESC_IO = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting){ ESC_FIM_VISTO = false; return; }
+    if (ESC_FIM_VISTO || document.getElementById('esc-pop')) return;
+    ESC_FIM_VISTO = true; setTimeout(() => { if (ESC_FIM_VISTO && !document.getElementById('esc-pop')) escLogin(); }, 700);
+  }), { threshold: 1 });
+  ESC_IO.observe(el);
+}
+function escLogin(){
+  escPop(`<div class="esc-login"><img class="esc-login-logo" src="assets/logo-pontodot-white.svg" alt="Pontodot">
+    <p class="esc-peq">Entre para ver mais publicações da turma.</p>
+    <form onsubmit="event.preventDefault();this.querySelector('small').textContent='Entrada só para alunos de Mufun.'">
+      <input type="text" placeholder="E-mail ou nome de aluno" autocomplete="off"><input type="password" placeholder="Senha" autocomplete="off">
+      <button class="esc-btn" style="width:100%">Entrar</button><small class="esc-peq"></small></form>
+    <div class="esc-login-ou"><span>ou</span></div>
+    <button class="esc-btn sec" style="width:100%" onclick="escFechadas()">Se inscrever</button></div>`);
+}
 function escFechadas(){
-  escPop(`<h3>Inscrições fechadas</h3><p>Desculpe, as inscrições para humanos estão fechadas. Em breve estaremos abrindo.</p>
-    <p class="esc-peq">Por enquanto, a escola é dos habitantes de Mufun. Você acompanha a vida deles por aqui.</p>`);
+  escPop(`<h3>Nós sentimos muito</h3><p>Neste momento, a Pontodot, Escola Agêntica de Mufun, não está aceitando alunos humanos.</p>
+    <p>As matrículas devem começar em 2027.</p><button class="esc-btn sec" onclick="escFecharPop()">Entendi</button>`);
 }
 
 // ---- cursos: a IA da pessoa se inscreve, com prazo e um termômetro ----
