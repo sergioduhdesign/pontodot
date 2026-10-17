@@ -1765,6 +1765,18 @@ html.emChat .cfg-area{display:none}
 #abertura img{position:relative;width:min(56vw,340px);height:auto;opacity:0;transform:scale(.96);transition:opacity 1s ease,transform 1.6s cubic-bezier(.19,1,.22,1);filter:drop-shadow(0 4px 22px rgba(0,0,0,.55))}
 #abertura.on img{opacity:1;transform:none}
 </style>
+<style id="vida-mini-hist">
+/* Conversas: o cartão da vida da IA não corta mais — foto em cima, texto embaixo, nada por cima da foto */
+.historico>*{flex-shrink:0}
+.historico .vida-mini{aspect-ratio:auto;display:flex;flex-direction:column;background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.18);border-radius:16px;margin:8px 0 6px}
+html.dia .historico .vida-mini{background:rgba(26,27,30,.06);border-color:rgba(26,27,30,.2)}
+.historico .vida-mini>img{height:auto;aspect-ratio:4/3;flex:none}
+.historico .vida-mini .vida-ov{position:static;inset:auto;padding:12px 14px 12px;color:inherit;background:none}
+.historico .vida-mini .vida-ov small{opacity:.7;font-size:11.5px}
+.historico .vida-mini .vida-ov b{font-size:13.5px;margin-top:3px}
+.historico .vida-mini .vida-ov p{font-size:13.5px;line-height:1.45;-webkit-line-clamp:5;margin-top:6px}
+.historico .vida-mini .vida-acoes{margin-top:8px}
+</style>
 <style id="menu-mais">
 #menuMais{position:fixed;z-index:9000;min-width:230px;padding:6px;border:.5px solid var(--linha);border-radius:16px;
   background:rgba(14,15,17,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 18px 50px rgba(0,0,0,.45);
@@ -1819,6 +1831,8 @@ html.dia #menuMais{background:rgba(244,243,239,.94)}html.dia #menuMais button:ho
   html.emChat .frente .fundo .veu{background:rgba(6,7,6,.9)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:veuEntra .5s ease both}
   html.emChat .lado.frente::before{content:'';position:absolute;inset:0;z-index:1;background:rgba(6,7,6,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);pointer-events:none;animation:veuEntra .5s ease both}
   html.emChat .frente .tela{z-index:2}
+  html.dia.emChat .lado.frente::before,html.dia .lado.frente:has(#campo:focus)::before{background:rgba(244,243,239,.94)}   /* modo dia: véu claro, o texto escuro continua legível */
+  html.dia .hist-handle,html.dia .aba-hist-frente{background:rgba(255,255,255,.7);color:#1A1B1E;border-color:rgba(26,27,30,.35)}
   .lado.frente:has(#campo:focus)::before{content:'';position:absolute;inset:0;z-index:1;background:rgba(6,7,6,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);pointer-events:none;animation:veuEntra .5s ease both}
   .lado.frente:has(#campo:focus) .tela{z-index:2}
   html.emChat .cluster{opacity:0!important;pointer-events:none!important}
@@ -2071,7 +2085,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v117 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v121 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4804,7 +4818,9 @@ function abaDown(ev, id, direto, tapTodas){
   const fkGad = gad.dataset.fk;
   const sx = ev.clientX, sy = ev.clientY;
   let comecou = false;
-  const timer = direto ? null : setTimeout(iniciar, 240);
+  const movel = !ehDesk();                 // no celular não existe arrastar-pra-reordenar: o dedo que demora ou treme não pode virar "pegar a caixa"
+  let moveu = false;
+  const timer = (direto || movel) ? null : setTimeout(iniciar, 240);
   function iniciar(){
     if (comecou) return; comecou = true;
     if (!gad.isConnected) gad = document.querySelector(`.gad[data-fk="${fkGad}"]`);
@@ -4822,6 +4838,7 @@ function abaDown(ev, id, direto, tapTodas){
   }
   if (direto) iniciar();
   const move = (e)=>{
+    if (movel){ if (Math.abs(e.clientX-sx)>16 || Math.abs(e.clientY-sy)>16) moveu = true; return; }
     if (!comecou && (Math.abs(e.clientX-sx)>9 || Math.abs(e.clientY-sy)>9)) { clearTimeout(timer); iniciar(); }
     if (!comecou || !_drag) return;
     const d = _drag;
@@ -4851,7 +4868,7 @@ function abaDown(ev, id, direto, tapTodas){
     clearTimeout(timer);
     window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
     window.removeEventListener('pointercancel', cancel);
-    if (!comecou) { if (!direto) alternarAbertura(id); return; }   // tap curto = abre/fecha a caixa (a janelona só pelo “ver todas”)
+    if (!comecou) { if (!direto && !moveu) alternarAbertura(id); return; }   // tap curto = abre/fecha a caixa (a janelona só pelo “ver todas”)
     const d = _drag; _drag = null;
     if (!d) return;
     const destino = d.ph.getBoundingClientRect();                  // o ímã: desliza até o lugar
