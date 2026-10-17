@@ -1775,6 +1775,7 @@ html.emChat .cfg-area{display:none}
 #menuMais b{font-weight:500;font-size:14.5px}#menuMais small{font-size:11.5px;opacity:.6}
 html.dia #menuMais{background:rgba(244,243,239,.94)}html.dia #menuMais button:hover{background:rgba(0,0,0,.07)}
 </style>
+<style id="ct-hist-css">.chat-topo .ct-hist{display:none}</style>
 <style id="mobile-meio">
 /* ===== CELULAR: os botões das caixinhas ficam no MEIO da tela, leves, sem espremer =====
    Clicou: abre a caixa inteira (as outras saem de cena). Usou: X e volta tudo.
@@ -1799,8 +1800,10 @@ html.dia #menuMais{background:rgba(244,243,239,.94)}html.dia #menuMais button:ho
   html.emChat .frente .tela{z-index:2}
   html.emChat .cluster{opacity:0!important;pointer-events:none!important}
   html.emChat .faixa-legal{display:none!important}
-  html.emChat .tela.em-chat .chat-topo{justify-content:flex-end;min-height:48px;padding:0 6px;background:none;border:0}
-  html.emChat .tela.em-chat .chat-topo .ct-volta,html.emChat .tela.em-chat .chat-topo .ct-rotulo,html.emChat .tela.em-chat .chat-topo .ct-novo{display:none!important}
+  html.emChat .tela.em-chat .chat-topo{justify-content:flex-start;gap:6px;min-height:48px;padding:0 6px 0 10px;background:none;border:0}
+  html.emChat .tela.em-chat .chat-topo .ct-volta,html.emChat .tela.em-chat .chat-topo .ct-novo{display:none!important}
+  html.emChat .tela.em-chat .chat-topo .ct-hist,html.emChat .tela.em-chat .chat-topo .ct-rotulo{display:inline-flex!important;align-items:center;margin:0;padding:9px 13px;border:.5px solid var(--linha);border-radius:999px;background:rgba(255,255,255,.07);color:var(--branco);font-size:12.5px;letter-spacing:.02em;opacity:.95;max-width:48vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.emChat .tela.em-chat .chat-topo .x-chat{margin-left:auto}
   html.emChat .tela.em-chat .chat-topo .x-chat{display:inline-grid!important;width:46px;height:46px;font-size:17px;opacity:.9}
   /* no chat: nada de fileira espremida em cima do conjunto */
   html.emChat .board{top:0;bottom:auto;height:0;padding:0}
@@ -2045,7 +2048,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v113 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v114 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2748,6 +2751,7 @@ function htmlConversa(){
     ${SUGESTOES.map((x,i)=>`<button class="sug" onclick="sugerir(${i})"><i style="font-size:${i?'7px':'13px'}">${x[0]}</i>${x[1]}</button>`).join('')}</div>` : '';
   return `<div class="chat-topo" role="button" onclick="modoChat(false)" title="Voltar pro painel">
       ${atual!=='sd'?`<button class="ct-volta" onclick="event.stopPropagation();voltarConversas()">‹ conversas</button>`:'<span class="ct-volta" style="opacity:.8">∧&nbsp; painel</span>'}
+      <button class="ct-hist" onclick="event.stopPropagation();alternarHist()" title="Histórico">Histórico</button>
       <button class="ct-rotulo" onclick="event.stopPropagation();abrirPickerConversas(event)" title="Trocar de conversa">${rotuloConversa()} &nbsp;∨</button>
       ${atual==='sd' && (THREADS.sd||[]).length ? `<button class="ct-novo" onclick="event.stopPropagation();novoChat()" title="Começar um chat novo"><i>+</i> novo chat</button>`:''}
       <button class="x-chat" onclick="event.stopPropagation();modoChat(false)" aria-label="Fechar conversa">✕</button>
