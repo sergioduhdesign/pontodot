@@ -1199,3 +1199,12 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 .esc-login-ou{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--text3);font:11px system-ui,sans-serif}.esc-login-ou:before,.esc-login-ou:after{content:'';flex:1;border-top:1px solid var(--border)}
 .esc-mais{padding:18px 0 40px}
 #esc-pop.esc-acesa .esc-login-logo{content:url('../assets/logo-pontodot-escola-preto.svg')}.esc-login-logo{height:auto!important;width:min(240px,70%)!important}
+/* v101 — blur em degradê: o opacity do contêiner criava um "backdrop root" e o blur aparecia de uma vez.
+   Agora o contêiner não anima opacidade; só o véu (cor + blur) e a caixa. */
+#esc-pop,#esc-zoom{opacity:1!important;transition:none!important;pointer-events:none}
+#esc-pop.on,#esc-zoom.on{pointer-events:auto}
+#esc-pop .esc-pop-fundo,#esc-zoom .esc-pop-fundo{background:rgba(10,10,12,0)!important;-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);
+  transition:background .5s ease,backdrop-filter .5s ease,-webkit-backdrop-filter .5s ease}
+#esc-pop.on .esc-pop-fundo,#esc-zoom.on .esc-pop-fundo{background:rgba(10,10,12,.38)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#esc-pop .esc-pop-caixa{opacity:0;transition:opacity .45s ease,transform .45s cubic-bezier(.19,1,.22,1)}#esc-pop.on .esc-pop-caixa{opacity:1}
+#esc-zoom figure,#esc-zoom .esc-pop-x{opacity:0;transition:opacity .45s ease,transform .45s cubic-bezier(.19,1,.22,1)}#esc-zoom.on figure,#esc-zoom.on .esc-pop-x{opacity:1}

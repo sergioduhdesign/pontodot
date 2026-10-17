@@ -771,6 +771,9 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
   background:rgba(5,6,5,.3);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   padding:calc(10px + env(safe-area-inset-top)) 0 calc(10px + env(safe-area-inset-bottom))}
 html.dia .frente .tarefa-cheia{background:rgba(244,243,239,.3)}
+/* o véu entra em degradê (blur 0→14, cor 0→30%), não de um pulo */
+@keyframes veuEntra{from{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background-color:rgba(5,6,5,0)}}
+.tarefa-cheia:not(.oculto){animation:veuEntra .5s ease both}
 .tc-caixa{width:88vw;height:82dvh;max-width:none;min-height:0;display:flex;flex-direction:column;padding:18px 16px 14px}
 @media(min-width:1000px){.tc-caixa{width:72vw;height:72vh;max-width:1150px;padding:22px 26px 18px}}
 .j-caixa{width:88vw;max-height:82dvh;overflow-y:auto;border-radius:var(--r)}
@@ -1967,7 +1970,7 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v100 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v101 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
