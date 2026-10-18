@@ -6390,15 +6390,19 @@ async function renderContasFila(){
         <div style="padding:11px 14px;font-size:13px;font-weight:700;color:#ea580c">Esperando vínculo · ${semCli.length}</div>${semCli.map(x=>linha(x,false)).join('')}</div>` : ''}
       ${Object.entries(porCli).filter(([k])=>k!=='_').sort((p,q)=>((clients.find(c=>c.id===p[0])||{}).name||'').localeCompare((clients.find(c=>c.id===q[0])||{}).name||'')).map(([k,l])=>cartao(k,l)).join('')}
     </div>` : '';
-  box.innerHTML = `<button onclick="alternarContasFila()" style="display:flex;align-items:center;gap:10px;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)">Contas conectadas</span>
-      <span style="font-size:12px;color:var(--text2)">${nClientes} cliente${nClientes===1?'':'s'} · ${ativos.length} ativos</span>
-      ${semCli.length ? `<span style="font-size:11px;color:#ea580c">● ${semCli.length} sem cliente</span>` : ''}
-      ${problemas ? `<span style="font-size:11px;color:#dc2626">● ${problemas} para reconectar</span>` : ''}
-      <span style="font-size:11px;color:var(--accent)">${filaContasSel.size ? '● vendo '+filaContasSel.size+' na lista' : ''}</span>
-      <span style="font-size:11px;color:var(--text3)">${_contasAberto?'▲':'▼'}</span></button>
-    ${filaContasSel.size ? `<button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="limparContasSel()">Ver todas</button>` : ''}
-    <button class="btn btn-primary btn-sm" data-perm="social.conectar" style="${filaContasSel.size?'':'margin-left:auto'}" onclick="conectarInstagram()">＋ Conectar conta</button>${corpo}`;
+  const chip = (txt, cor) => `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid ${cor||'var(--border)'};color:${cor||'var(--text2)'}">${txt}</span>`;
+  box.innerHTML = `<div style="flex-basis:100%;display:flex;align-items:center;gap:10px">
+      <button onclick="alternarContasFila()" aria-label="${_contasAberto?'Recolher':'Abrir'} contas conectadas" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;text-align:left">
+        <span style="font-size:14px;font-weight:700">Contas conectadas</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;color:var(--text3);transition:transform .25s ease;transform:rotate(${_contasAberto?180:0}deg)"><path d="m6 9 6 6 6-6"/></svg></button>
+      ${filaContasSel.size ? `<button class="btn btn-secondary btn-sm" onclick="limparContasSel()">Ver todas</button>` : ''}
+      <button class="btn btn-primary btn-sm" data-perm="social.conectar" onclick="conectarInstagram()" aria-label="Conectar conta" title="Conectar conta">＋ <span class="desktop-only">Conectar conta</span></button>
+    </div>
+    <div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px">
+      ${chip(nClientes+' cliente'+(nClientes===1?'':'s'))}${chip(ativos.length+' conta'+(ativos.length===1?'':'s'))}
+      ${semCli.length ? chip('● '+semCli.length+' sem cliente','#ea580c') : ''}${problemas ? chip('● '+problemas+' para reconectar','#dc2626') : ''}
+      ${filaContasSel.size ? chip('vendo '+filaContasSel.size+' na lista','var(--accent)') : ''}
+    </div>${corpo}`;
   aplicarPermissoesUI();
 }
 

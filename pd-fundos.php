@@ -39,7 +39,7 @@ function pdf_ponte($acao, $dados) {
 // lê uma pasta do Drive (com cache em disco; se a Ponte cair, devolve a última lista boa)
 function pdf_drive($chave, $folderId) {
     if (!is_dir(PDF_CACHE)) { @mkdir(PDF_CACHE, 0755, true); @file_put_contents(PDF_CACHE . '/.htaccess', "Deny from all\n"); }
-    $arq = PDF_CACHE . '/fundos-' . $chave . '-s1.json';
+    $arq = PDF_CACHE . '/fundos-' . $chave . '-s2.json';
     $v = is_file($arq) ? json_decode((string)file_get_contents($arq), true) : null;
     if (is_array($v) && (time() - (int)($v['em'] ?? 0)) < PDF_VALIDADE) return $v['arquivos'];
     try {
@@ -82,56 +82,33 @@ function pdf_ordena(&$arr) { usort($arr, fn($a, $b) => strnatcasecmp($a['path'],
 
 $albuns = [];
 $id = preg_replace('/[^a-z0-9_\-]/i', '', (string)($_GET['ia'] ?? ''));
+$disp = (($_GET['d'] ?? 'm') === 'd') ? 'd' : 'm';   // m = celular (vertical) · d = computador (horizontal)
 
-// ---------- ÁLBUM DA IA ----------
+// ---------- SÓ o álbum da IA da pessoa — e só as fotos do formato do aparelho ----------
 if ($id !== '') {
     $imgs = []; $minis = [];
     $pastaP = defined('PD_PASTA_PERSONAGENS') ? PD_PASTA_PERSONAGENS : '';
     if ($pastaP !== '') {
-        $mob = []; $vida = [];
+        $fmt = []; $vida = [];
         foreach (pdf_drive('personagens', $pastaP) as $f) {
             $partes = explode('/', $f['path']);
             if (count($partes) < 2) continue;
             $quem = preg_replace('/[^a-z0-9_\-]/', '', preg_replace('/^\d+[\s_\-]*/', '', strtolower(trim($partes[0]))));
             if ($quem !== strtolower($id)) continue;
             $caminho = strtolower($f['path']);
-            if (preg_match('#(^|/)mobile(/|$)#', $caminho) || strpos($caminho, 'mobile') !== false) $mob[] = $f;
-            elseif (preg_match('/vida|avatar|nascimento/', strtolower(end($partes)))) $vida[] = $f;
+            $ehMob = strpos($caminho, 'mobile') !== false;
+            $ehDesk = (bool)preg_match('/desktop|wide|horizontal|paisagem|16x9|cabecalho|cabeçalho|header/', $caminho);
+            if (($disp === 'm' && $ehMob) || ($disp === 'd' && $ehDesk && !$ehMob)) $fmt[] = $f;
+            elseif (!$ehMob && !$ehDesk && preg_match('/vida|avatar|nascimento/', strtolower(end($partes)))) $vida[] = $f;
         }
-        $usa = $mob ?: $vida;
+        $usa = $fmt ?: $vida;   // sem fotos do formato: as de vida (o app confere a proporção ao carregar)
         pdf_ordena($usa);
         foreach (array_slice($usa, 0, PDF_MAX_POR_ALBUM) as $f) { $i = pdf_img($f); $imgs[] = $i['full']; $minis[] = $i['mini']; }
     }
     if (!$imgs) {   // servidor local, se existir
-        $imgs = pdf_lista("$raiz/pd/personagens/$id/mobile", "/pd/personagens/$id/mobile"); $minis = $imgs;
+        $sub = $disp === 'm' ? 'mobile' : 'desktop';
+        $imgs = pdf_lista("$raiz/pd/personagens/$id/$sub", "/pd/personagens/$id/$sub"); $minis = $imgs;
     }
     if ($imgs) $albuns[] = ['id' => 'ia', 'nome' => 'Minha IA', 'imagens' => $imgs, 'miniaturas' => $minis];
-}
-
-// ---------- ÁLBUNS DO DRIVE: cada subpasta é um álbum ----------
-$pastaF = defined('PD_PASTA_FUNDOS') && PD_PASTA_FUNDOS !== '' ? PD_PASTA_FUNDOS : '102QQvyt76wJJ4Qv0BbLYEcIuVx5ZXJbi';
-$porAlbum = [];
-foreach (pdf_drive('fundos', $pastaF) as $f) {
-    $partes = explode('/', $f['path']);
-    $alb = count($partes) > 1 ? $partes[0] : 'Fotos';   // foto solta na raiz vira o álbum "Fotos"
-    $porAlbum[$alb][] = $f;
-}
-ksort($porAlbum, SORT_NATURAL | SORT_FLAG_CASE);
-foreach ($porAlbum as $nome => $fs) {
-    pdf_ordena($fs);
-    $imgs = []; $minis = [];
-    foreach (array_slice($fs, 0, PDF_MAX_POR_ALBUM) as $f) { $i = pdf_img($f); $imgs[] = $i['full']; $minis[] = $i['mini']; }
-    $albuns[] = ['id' => pdf_slug(pdf_nome($nome)), 'nome' => pdf_nome($nome), 'imagens' => $imgs, 'miniaturas' => $minis];
-}
-
-// ---------- servidor local (opcional) ----------
-$base = "$raiz/pd/fundos";
-if (is_dir($base)) {
-    foreach (scandir($base) as $d) {
-        if ($d[0] === '.' || !is_dir("$base/$d")) continue;
-        $slug = preg_replace('/[^a-z0-9_\-]/i', '', $d);
-        $imgs = pdf_lista("$base/$d", '/pd/fundos/' . rawurlencode($d));
-        if ($imgs) $albuns[] = ['id' => $slug, 'nome' => ucfirst(str_replace(['-', '_'], ' ', $d)), 'imagens' => $imgs, 'miniaturas' => $imgs];
-    }
 }
 echo json_encode(['ok' => true, 'albuns' => $albuns] + ($albuns || $PDF_AVISO === '' ? [] : ['aviso' => $PDF_AVISO]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

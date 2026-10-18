@@ -697,7 +697,7 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 @keyframes fioVolta{to{stroke-dashoffset:100}}
 .caixa.sem-borda{border-color:transparent!important;transition:none}
 .caixa.surge{animation:surge .9s cubic-bezier(.19,1,.22,1) both}
-@keyframes surge{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes surge{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);box-shadow:0 0 0 rgba(0,0,0,0);transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
 /* caixa recém-aberta: invertida — marfim sujo + grafite */
 .caixa.invertida{--branco:#1D1E22;--branco2:rgba(29,30,34,.6);--branco3:rgba(29,30,34,.38);--linha:rgba(29,30,34,.45);
   background:#E4E3DE;color:#1D1E22;box-shadow:0 12px 30px rgba(0,0,0,.38)}
@@ -1488,7 +1488,7 @@ html.dia .cl-res{background:rgba(244,243,239,.96)}
 
 
 /* ===== caixinhas: abrir e fechar sem pulo nem corte ===== */
-@keyframes gadFade{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes gadFade{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);box-shadow:0 0 0 rgba(0,0,0,0);transform:translateY(-5px)}to{opacity:1;transform:none}}
 @keyframes bolPop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
 .gad:not(.gad-ia).abrindo,.gad:not(.gad-ia).fechando{overflow:hidden}
 .gad.abrindo .gad-aba,.gad.abrindo .gad-corpo{animation:gadFade .42s cubic-bezier(.22,1,.36,1) .12s both}
@@ -2031,11 +2031,58 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
 </style>
 <style id="fade-blur-e-barras">
 /* o blur ACOMPANHA o fade (o navegador do celular não esmaece o blur junto com a opacidade): entra e sai em degradê */
-.j-caixa,.caixa{transition:backdrop-filter .45s ease,-webkit-backdrop-filter .45s ease}
 /* caixas de canto arredondado: sem barra de rolar aparecendo nas pontas (rola igual, só não mostra a barra) */
 .caixa,.j-caixa,.tc-caixa,.det-pop,.menu-ctx,.gad-corpo,.historico,#janela,#janela *,.picker-pop,.mc-corpo,.board-rolo{scrollbar-width:none}
 .caixa::-webkit-scrollbar,.j-caixa::-webkit-scrollbar,.tc-caixa::-webkit-scrollbar,.det-pop::-webkit-scrollbar,.menu-ctx::-webkit-scrollbar,.gad-corpo::-webkit-scrollbar,.historico::-webkit-scrollbar,#janela *::-webkit-scrollbar,.picker-pop::-webkit-scrollbar,.mc-corpo::-webkit-scrollbar,.board-rolo::-webkit-scrollbar{display:none;width:0;height:0}
 @media(max-width:999px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
+</style>
+<style id="lote-161">
+/* FADE DE VERDADE: opacidade num PAI de um elemento com blur faz o blur pular (o pai vira "raiz" do fundo).
+   Por isso o fade agora mora na PRÓPRIA caixa de vidro, e o blur desce junto, com a sombra. */
+@keyframes caixaSai{to{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);box-shadow:0 0 0 rgba(0,0,0,0);transform:translateY(8px) scale(.985)}}
+.gad{transition:width .55s cubic-bezier(.19,1,.22,1),box-shadow .45s ease}
+.gad.fechando:not(.fechado){box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.gad.abrindo .gad-aba,.gad.abrindo .gad-corpo{animation:none}
+.gad.abrindo .gad-aba,.gad.abrindo .gad-corpo .caixa,.gad.abrindo .gad-corpo>*:not(:has(.caixa)){animation:gadFade .42s cubic-bezier(.22,1,.36,1) .12s both}
+.gad.fechando .gad-aba,.gad.fechando .gad-corpo{opacity:1;transition:none}
+.gad.fechando .gad-aba,.gad.fechando .gad-corpo .caixa,.gad.fechando .gad-corpo>*:not(:has(.caixa)){animation:caixaSai .4s ease both}
+#janela.saindo .j-caixa{opacity:1;transform:none;transition:none}
+#janela.saindo .j-caixa .caixa{animation:caixaSai .3s ease both}
+/* limpezas pedidas */
+.board-cab .tit{display:none}
+.faixa-legal{font-size:9px}
+@media(max-width:700px){.faixa-legal{font-size:8px!important}}
+@media(max-width:999px){
+  .frase{font-size:clamp(14.5px,4.3vw,19.5px)}
+  .frase.longa{font-size:clamp(10.5px,2.5vw,13.5px)}
+  .frase .autor{font-size:8.5px;margin-top:10px}
+}
+/* nome da tela, no meio do topo */
+#clTitulo{display:none}
+@media(max-width:999px){
+  #histHandle,#abaHistFrente,#histPainel,#histVeu{display:none!important}
+}
+@media(max-width:999px){
+  #clTitulo{display:block;position:fixed;z-index:41;top:calc(12px + env(safe-area-inset-top));left:64px;right:64px;height:44px;line-height:44px;text-align:center;
+    font-size:12.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.5);pointer-events:none;transition:opacity .3s ease}
+  html.dia #clTitulo{color:#111;text-shadow:none}
+  html:has(.cl-busca.aberta) #clTitulo{opacity:0}
+}
+/* ícones no menu de botão direito */
+.menu-ctx button svg{width:18px;height:18px;flex:none;opacity:.8}
+/* menu cheio: seção Pontodot com dois botões */
+#menuCheio .mc-esc-sec{margin-top:28px}
+#menuCheio .mc-esc-sec .mc-esc{margin-top:0}
+#menuCheio .mc-esc-sec .mc-esc+.mc-esc{margin-top:10px}
+#menuCheio .mc-esc-sec .mc-g{margin:0 0 10px}
+#menuCheio .mc-esc.mc-int svg:first-child{width:24px;height:24px;flex:none}
+/* habilidades: abas */
+.hab-abas{display:flex;gap:6px;margin:12px 0 4px;flex:none}
+.hab-abas button{flex:1;min-height:40px;padding:0 10px;border-radius:12px;border:.5px solid var(--linha);background:none;color:inherit;font:inherit;font-size:13px;opacity:.65;cursor:pointer}
+.hab-abas button.on{opacity:1;background:rgba(127,127,127,.18);font-weight:600}
+/* conversas num lugar só (celular) */
+.conv-uni .hist-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 4px;border:0;border-radius:0;border-bottom:.5px solid var(--linha);box-shadow:none;color:inherit;background:none;min-height:56px}
 </style>
 </head>
 <body>
@@ -2130,7 +2177,7 @@ pdAbertura(false);
   <div class="barra-chat" id="barraChat"></div>
   <div class="det-pop oculto" id="detPop"></div>
 
-  <div class="faixa-legal"><span>© 2026 Pontodot · NOVA HORDA SERVIÇOS &amp; NEGÓCIOS LTDA · CNPJ 43.383.376/0001-35 · Criado por <a href="https://sergioduh.com" target="_blank" rel="noopener">sergioduh.com</a></span></div>
+  <div class="faixa-legal"><span>© 2026 Pontodot · NOVA HORDA SERVIÇOS &amp; NEGÓCIOS LTDA · CNPJ 43.383.376/0001-35 · <a href="https://sergioduh.com" target="_blank" rel="noopener">Criado por SD</a></span></div>
 </section>
 
 <!-- ======================= VERSO: o SD completo, como é hoje, com a pele nova ======================== -->
@@ -2222,6 +2269,7 @@ pdAbertura(false);
 </div></div>
 
 <!-- globais: valem na frente e no verso -->
+<div id="clTitulo" aria-live="polite"></div>
 <nav class="cluster" id="cluster" aria-label="Atalhos">
   <div class="cl-busca" id="clBusca">
     <input id="clInput" type="text" placeholder="Buscar tarefa, cliente, pessoa…" autocomplete="off" spellcheck="false"
@@ -2262,7 +2310,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v160 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v161 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2580,7 +2628,7 @@ function htmlMinhaIA(){
         ${ts.length ? `<div class="mia-tt"><span>Tarefas</span><button onclick="verTodasMinhas()">Ver todas tarefas</button></div>
         ${ts.map(t => `<button class="mia-t" onclick="${t.abrir}"><i aria-hidden="true"></i><span>${esc(t.nome)}</span></button>`).join('')}` : ''}
         <div class="mia-acoes">
-          <button onclick="abrirJeito()">Como ela trabalha comigo</button>
+          <button onclick="abrirHabilidades('jeito')">Habilidades</button>
           <button onclick="abrirMemoria()">O que ela sabe</button>
           <button onclick="avisosSituacao()">Avisos</button>
           <button onclick="abrirBatismo()">Mudar o nome</button>
@@ -3070,14 +3118,16 @@ function selecionar(i){
   }
   selecionada = selecionada===i ? -1 : i; if (selecionada===-1) playFlash=null; renderFlip();
 }
+let _tJan = '';   // nome da janela aberta (vai pro meio do topo)
 function abrirJanela(html, grande){
+  { const mt = String(html).match(/<h3[^>]*>([^<]+)</); _tJan = mt ? mt[1].trim() : ''; }
   document.documentElement.classList.add('comJanela');
   const j = $('#janela'); clearTimeout(_janSai); j.classList.remove('saindo'); j.innerHTML = `<div class="j-caixa ${grande?'grande':''}">${html}</div>`;
   j.classList.remove('oculto');
   const cx = j.querySelector('.caixa'); if (cx && !cx.hasAttribute('data-sem-fio')){ cx.classList.add('surge'); delete cx.dataset.fio; fio(cx); }
 }
 let _janSai = null;
-function fecharJanela(){ const j=$('#janela'); if (!j) return;
+function fecharJanela(){ const j=$('#janela'); if (!j) return; _tJan = '';
   document.documentElement.classList.remove('comJanela');
   if (j.classList.contains('oculto')) return;
   j.classList.add('saindo'); clearTimeout(_janSai);
@@ -3501,6 +3551,7 @@ function trocarFundo(){
   if (!urlAlb) fundoN = fundoN % 30 + 1;
   const img = new Image();
   img.onload = () => {
+    if (urlAlb && tentativasFundo < 14 && ((ehDesk() && img.naturalHeight > img.naturalWidth * 1.1) || (!ehDesk() && img.naturalWidth > img.naturalHeight * 1.1))){ tentativasFundo++; _fundoAtual = urlAlb; trocarFundo(); return; }   // formato errado pro aparelho: pula
     tentativasFundo = 0; _fundoAtual = urlAlb || '';
     const entra = ladoBg ? A : B, sai = ladoBg ? B : A;
     ladoBg = !ladoBg;
@@ -3564,22 +3615,21 @@ function abrirMenuCtx(x,y){
   m.innerHTML = `
     <div class="puxador"></div>
     <div class="mini">APARÊNCIA</div>
-    ${ehDesk()?'<button onclick="fecharMenuCtx();abrirPicker()">Configurar área de trabalho…</button>':''}
-    <button onclick="fecharMenuCtx();abrirFundos()">Trocar a imagem de fundo…</button>
-    <button onclick="fecharMenuCtx();alternarFotos()">${fundoDesligado?'Ligar':'Desligar'} as fotos de fundo</button>
-    <button onclick="fecharMenuCtx();alternarTema()">Inverter dia e noite</button>
+    ${ehDesk()?'<button onclick="fecharMenuCtx();abrirPicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>Configurar área de trabalho…</button>':''}
+    <button onclick="fecharMenuCtx();abrirFundos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>Trocar a imagem de fundo…</button>
+    <button onclick="fecharMenuCtx();alternarFotos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${fundoDesligado?'Ligar':'Desligar'} as fotos de fundo</button>
+    <button onclick="fecharMenuCtx();alternarTema()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Inverter dia e noite</button>
     <div class="sep"></div>
     <div class="mini">A IA</div>
-    <button onclick="fecharMenuCtx();abrirMemoria()">Sua IA…</button>
-    <button onclick="fecharMenuCtx();abrirJeito()">Nosso jeito de trabalhar…</button>
-    <button onclick="fecharMenuCtx();abrirCarinhas()">Trocar a carinha dela…</button>
-    <button onclick="fecharMenuCtx();alternarSom()">${somLigado?'Desligar':'Ligar'} o som das respostas</button>
-    <button onclick="fecharMenuCtx();avisosSituacao()">Avisos de prazo…</button>
+    <button onclick="fecharMenuCtx();abrirHabilidades()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.6 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>Habilidades…</button>
+    <button onclick="fecharMenuCtx();abrirCarinhas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2M9 9.5h.01M15 9.5h.01"/></svg>Trocar a carinha dela…</button>
+    <button onclick="fecharMenuCtx();alternarSom()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>${somLigado?'Desligar':'Ligar'} o som das respostas</button>
+    <button onclick="fecharMenuCtx();avisosSituacao()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Avisos de prazo…</button>
     <div class="sep"></div>
-    <button onclick="location.reload()">Atualizar o navegador</button>
-    ${window.REAL?'<button onclick="fecharMenuCtx();sairConta()">Sair da conta</button>':''}
+    <button onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Atualizar o navegador</button>
+    ${window.REAL?'<button onclick="fecharMenuCtx();sairConta()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair da conta</button>':''}
     <div class="sep"></div>
-    <button onclick="fecharMenuCtx();toast('pontodot '+(window.SD_VERSAO||'')+' — o estúdio inteiro numa tela.')">Ver versão · ${(window.SD_VERSAO||'').split(' ')[0]}</button>`;
+    <button onclick="fecharMenuCtx();toast('pontodot '+(window.SD_VERSAO||'')+' — o estúdio inteiro numa tela.')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Ver versão · ${(window.SD_VERSAO||'').split(' ')[0]}</button>`;
   m.classList.remove('oculto');
   if (!ehDesk()){                       // folha de baixo: o CSS manda, não as coordenadas
     m.classList.add('folha'); m.style.left=''; m.style.top=''; return;
@@ -3933,7 +3983,7 @@ function htmlPerfilIA(){
         ${etapaDaIA() ? `<span class="pia-etapa">School for AI · ${ETAPAS_ESCOLA[etapaDaIA()]}</span>` : ''}</div>
     </div>
     <div class="pia-bts">
-      <button class="btn" onclick="fecharJanela();abrirJeito()">Como ela trabalha comigo</button>
+      <button class="btn" onclick="fecharJanela();abrirHabilidades('jeito')">Habilidades</button>
       ${btTeste}
       <button class="btn" onclick="fecharJanela();abrirBatismo()">Mudar o nome</button>
       <button class="btn" onclick="fecharJanela();abrirSeletor()">Trocar personagem</button>
@@ -4705,7 +4755,28 @@ const HIST_SD = [
 ];
 let histAberto = false;
 let histFixo = false; try { histFixo = localStorage.getItem('sd_hist_fixo') === '1'; } catch(e){}
-function alternarHist(){ histAberto = !histAberto; if (!histAberto && histFixo){ histFixo = false; try{localStorage.setItem('sd_hist_fixo','0');}catch(e){} } pintarHist(); }
+function alternarHist(){ if (!ehDesk()){ abrirConversasMovel(); return; } histAberto = !histAberto; if (!histAberto && histFixo){ histFixo = false; try{localStorage.setItem('sd_hist_fixo','0');}catch(e){} } pintarHist(); }
+
+// CONVERSAS NO CELULAR: um lugar só, tela cheia, central — pessoas, equipe e IA juntas
+function abrirConversasMovel(){
+  const nome = aindaNao(() => temIA(), false) ? (jeito.apelido || personagemAtual()?.name || 'ela') : 'a pontodot';
+  const ico = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const dmini = iso => { if (!iso) return ''; const d=new Date(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; };
+  const salvas = window.REAL ? threadsSalvas : [];
+  const nBadge = ($('#clBadge')?.classList.contains('on') ? ($('#clBadge').textContent || '') : '');
+  _tJan = 'Conversas';
+  abrirJanela(`<div class="caixa invertida conv-uni" data-sem-fio style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Conversas</h3>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div style="flex:1;min-height:0;overflow-y:auto;margin-top:10px">
+      <button class="hist-item" onclick="fecharJanela();novoChat()"><span class="hq">${miniCaraIA()}</span><span class="ht"><span class="h1">Nova conversa com ${esc(nome)}</span><span class="h2">começar do zero</span></span></button>
+      <button class="hist-item" onclick="fecharJanela();abrirChatEquipe()"><span class="hq">${ico('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>')}</span><span class="ht"><span class="h1">Chat da equipe ${nBadge?`<b style="background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${nBadge}</b>`:''}</span><span class="h2">todo mundo da casa</span></span></button>
+      ${CONVERSAS.map(c=>`<button class="hist-item" onclick="fecharJanela();abrirChatCom('${c.quem.replace(/'/g,'’')}')">
+        <span class="hq">${c.av?`<img src="${c.av}" alt="">`:c.ini}</span><span class="ht"><span class="h1">${esc(c.quem)} <span style="opacity:.5;font-weight:400">· ${c.h}</span></span><span class="h2">${esc(c.ultima)}</span></span></button>`).join('')}
+      ${salvas.length ? `<div class="hist-sec" style="margin-top:14px">SALVAS COM ${esc(String(nome).toUpperCase())}</div>` + salvas.map(t=>`<button class="hist-item" onclick="fecharJanela();abrirThreadSalva('${t.id}')">
+        <span class="hq">${miniCaraIA()}</span><span class="ht"><span class="h1">${esc(t.titulo||'Conversa')}</span><span class="h2">${t.user_id===(perfil&&perfil.id)?(t.publico?'sua · pública':'sua · particular'):('de '+((t.profiles?.name||'').split(' ')[0]||'equipe'))} · ${dmini(t.updated_at)}</span></span></button>`).join('') : ''}
+    </div></div>`, true);
+}
 function fixarHist(){
   histFixo = !histFixo;
   histAberto = histFixo;              // fixou = fica; soltou = já fecha
@@ -4804,7 +4875,7 @@ function atualizarIconeApp(id){
 async function carregarFundos(){
   try {
     const id = (aindaNao(()=>personagemAtual(),null)||{}).id || '';
-    const j = await (await fetch('/pd-fundos.php?ia=' + encodeURIComponent(id))).json();
+    const j = await (await fetch('/pd-fundos.php?d=' + (ehDesk() ? 'd' : 'm') + '&ia=' + encodeURIComponent(id))).json();
     FUNDOS.albuns = (j && j.albuns) || []; FUNDOS.aviso = (j && j.aviso) || '';
     const ia = FUNDOS.albuns.find(a => a.id === 'ia');
     try { localStorage.setItem('pd_ia_mobile', JSON.stringify(ia ? ia.imagens.slice(0, 12) : [])); } catch(e){}
@@ -4837,9 +4908,9 @@ function abrirFundos(){
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 18px 18px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:21px;font-weight:400">Fundo do app</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div class="nota" style="margin:4px 0 12px">Escolha um álbum. O fundo gira sozinho, bem devagar.</div>
+    <div class="nota" style="margin:4px 0 12px">Só as imagens da sua IA. O fundo gira sozinho, bem devagar.</div>
     ${albs.length ? `<div class="fundo-grade"><button class="fundo-alb ${!fundoCfg.album?'on':''}" onclick="fundoCfg.album='';salvarFundo();abrirFundos()"><span class="fundo-pil" style="background:#0B0C0B"></span><b>Fotos da casa</b><small>padrão do Pontodot</small></button>${albs.map(alb).join('')}</div>`
-      : `<div class="nota">${FUNDOS.aviso ? 'Não consegui ler o Drive agora: ' + esc(FUNDOS.aviso) + '. ' : ''}Ainda não há álbuns. Crie subpastas com fotos na pasta de fundos do Drive.</div>`}
+      : `<div class="nota">${FUNDOS.aviso ? 'Não consegui ler o Drive agora: ' + esc(FUNDOS.aviso) + '. ' : ''}Ainda não há fotos da sua IA para este aparelho. Peça pra incluir imagens na pasta dela (celular: vertical; computador: horizontal).</div>`}
     <label style="display:flex;gap:9px;align-items:center;margin-top:14px;font-size:13px"><input type="checkbox" ${fundoCfg.modo!=='fixo'?'checked':''} onchange="fundoCfg.modo=this.checked?'roda':'fixo';salvarFundo()"> Girar as imagens do álbum</label>
     ${fundoCfg.album ? `<button class="mia-t" style="margin-top:12px;width:100%;justify-content:center" onclick="proximaImagemFundo()">Próxima imagem do álbum</button>` : ''}</div>`);
 }
@@ -5204,10 +5275,9 @@ function menuCheio(){
     ${acao('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>','Histórico de ações','abrirHistoricoDoApp()')}
     ` : ''}
     <div class="mc-g">Conversas</div>
-    ${acao('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','Chat da equipe','abrirChatEquipe()', nBadge ? `<em class="mc-n">${nBadge}</em>` : '')}
-    ${acao('<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/>','Conversas com a IA','alternarHist()')}
-    ${ehAdmin() ? `<div class="mc-g">Administração</div>${ITENS_ADMIN.map(nav).join('')}` : ''}
-    ${liberado ? `<button class="mc-esc" onclick="fecharMenuCheio();irAdmin('feed')"><img src="assets/logo-pontodot-escola-white.svg" class="m-escuro" alt="pontodot"><img src="assets/logo-pontodot-escola-preto.svg" class="m-claro" alt="pontodot"><span>Aprenda com as IAs que trabalham aqui.</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>` : ''}
+    ${acao('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','Conversas','alternarHist()', nBadge ? `<em class="mc-n">${nBadge}</em>` : '')}
+    ${ehAdmin() ? `<div class="mc-g">Administração</div>${ITENS_ADMIN.filter(x=>x[0]!=='intensivo').map(nav).join('')}` : ''}
+    ${liberado ? `<div class="mc-esc-sec"><div class="mc-g">Pontodot</div><button class="mc-esc" onclick="fecharMenuCheio();irAdmin('feed')"><img src="assets/logo-pontodot-escola-white.svg" class="m-escuro" alt="pontodot"><img src="assets/logo-pontodot-escola-preto.svg" class="m-claro" alt="pontodot"><span>Aprenda com as IAs que trabalham aqui.</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>${ehAdmin() ? `<button class="mc-esc mc-int" onclick="fecharMenuCheio();irAdmin('intensivo')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>Intensivo PD</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>` : ''}</div>` : ''}
     </div>`;
   try{
     const r = document.querySelector('.rodape');
@@ -5263,6 +5333,7 @@ function abrirAppMovel(view){
       const d = f.contentDocument; if (!d || d.getElementById('mundo')) return;
       d.documentElement.setAttribute('data-theme', (localStorage.getItem('sd_theme')||'') === 'light' ? 'sdnovo-claro' : 'sdnovo');
       d.getElementById('splash-screen')?.remove();
+      if (!d.__sw && window.pdSwipe){ d.__sw = 1; window.pdSwipe(d, () => f.getBoundingClientRect().top); }
     } catch(e){} };
     f.addEventListener('load', () => { vestir(); setTimeout(vestir, 1200); });
     f.src = 'app.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now());
@@ -5693,6 +5764,28 @@ function jeitoCompleto(){
   return { feitos, total, pronto: feitos === total };
 }
 
+
+// HABILIDADES: o que ela sabe + como trabalha comigo + o que já aprendeu/está aprendendo — um lugar só
+function abasHab(ativa){
+  return `<div class="hab-abas">${[['sabe','O que ela sabe'],['jeito','Como trabalha'],['aulas','Aulas']].map(([k,n])=>`<button class="${k===ativa?'on':''}" onclick="abrirHabilidades('${k}')">${n}</button>`).join('')}</div>`;
+}
+async function abrirHabilidades(aba){
+  aba = aba || 'sabe'; _tJan = 'Habilidades';
+  if (aba === 'jeito') await abrirJeito(); else if (aba === 'aulas') abrirAulasIA(); else await abrirMemoria();
+  const cx = document.querySelector('#janela .caixa'); if (!cx) return;
+  const cab = cx.firstElementChild; const h = cab && cab.querySelector('h3'); if (h) h.textContent = 'Habilidades';
+  if (cab && !cx.querySelector('.hab-abas')) cab.insertAdjacentHTML('afterend', abasHab(aba));
+  _tJan = 'Habilidades';
+}
+function abrirAulasIA(){
+  const et = aindaNao(() => etapaDaIA(), null);
+  const txt = et === 'formada' ? 'Formada na Escola Agêntica. Tudo o que ela aprendeu está valendo.' : et === 'conhecendo' ? 'Em treinamento: ainda aprendendo o seu jeito de trabalhar.' : 'Ainda não começou as aulas.';
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Habilidades</h3>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div style="flex:1;min-height:0;overflow-y:auto"><div class="ia-linha" style="align-items:flex-start;margin-top:8px"><div class="c"><div class="n">Situação</div><div class="d">${txt}</div></div></div>
+    <button class="btn cheio" style="background:#15803D;width:100%;margin-top:14px" onclick="fecharJanela();${et==='formada'?"irAdmin('feed')":(et?'matricularIA()':'abrirEscola()')}">${et==='formada'?'Ver a Escola':et?'Continuar as aulas':'Matricular minha IA'}</button></div></div>`, true);
+}
 async function abrirJeito(){
   abrirJanela(`<div class="caixa invertida" id="cxJeito" style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -7165,6 +7258,7 @@ function irParaEscola(){
   fecharJanela(); abrirNoVerso('feed');
 }
 function abrirNoVerso(view){
+  if (!ehDesk()){ abrirAppMovel(view); return; }
   const m = $('#mundo');
   const vai = ()=>{ try { const w = $('#appFrame')?.contentWindow; if (w && typeof w.setView==='function') w.setView(view); } catch(e){} };
   if (!m.classList.contains('virado')){ virar(); setTimeout(vai, 1400); } else vai();
@@ -8784,6 +8878,60 @@ async function abrirArtesReais(taskId){
 }
 
 bootReal();
+</script>
+<script id="lote-161-js">
+/* nome da tela no meio do topo + gestos do celular */
+(function(){
+  const NOMES = {feed:'Escola Agêntica',kanban:'Funil',lista:'Lista',gantt:'Fluxo',mural:'Mural',fila:'Redes sociais',clientes:'Clientes',saude:'Saúde',intensivo:'Intensivo PD',admin:'Painel'};
+  let ult = null;
+  function viewApp(){ try { const w = document.getElementById('appMovelFrame')?.contentWindow; return w ? w.eval('currentView') : ''; } catch(e){ return ''; } }
+  function titulo(){
+    const R = document.documentElement;
+    if (R.classList.contains('app-menu')) return 'Menu';
+    const j = document.getElementById('janela');
+    if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo') && _tJan) return _tJan;
+    if (R.classList.contains('app-movel')) return NOMES[viewApp()] || 'Pontodot';
+    try { if (chat) return 'Conversa'; } catch(e){}
+    return 'Início';
+  }
+  setInterval(() => { const el = document.getElementById('clTitulo'); if (!el) return; const t = titulo(); if (t !== ult){ ult = t; el.textContent = t; } }, 300);
+
+  // ---- gestos ----
+  const movel = () => !ehDesk();
+  function rolavel(el){ while (el && el.nodeType === 1 && el !== document.body){ const cs = getComputedStyle(el); if (/(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 4) return true; el = el.parentElement; } return false; }
+  window.abrirIADeBaixo = function(){
+    try { fecharMenuCtx(); } catch(e){}
+    try { if (!document.getElementById('janela').classList.contains('oculto')) fecharJanela(); } catch(e){}
+    modoChat(true);
+    setTimeout(() => { const c = document.getElementById('campo'); if (c) c.focus(); }, 160);
+  };
+  window.pdSwipe = function(doc, offYfn){
+    let t0 = null;
+    doc.addEventListener('touchstart', e => { const t = e.touches[0]; const off = typeof offYfn === 'function' ? offYfn() : 0;
+      t0 = e.touches.length === 1 ? { x:t.clientX, y:t.clientY + off, alvo:e.target, tm:Date.now(), off } : null; }, { passive:true });
+    doc.addEventListener('touchend', e => {
+      if (!t0) return; const t = e.changedTouches[0], a = t0; t0 = null;
+      const dx = t.clientX - a.x, dy = (t.clientY + a.off) - a.y;
+      if (dy > -80 || Math.abs(dx) > 70 || Math.abs(dy) < Math.abs(dx) * 1.6 || Date.now() - a.tm > 700) return;
+      if (!movel()) return;
+      const R = document.documentElement;
+      if (R.classList.contains('app-menu') || R.classList.contains('emChat')) return;
+      if (a.alvo && a.alvo.closest && a.alvo.closest('input,textarea,select,[contenteditable],.rodape,.mc-ia')) return;
+      if (!(a.y > innerHeight * 0.72) && rolavel(a.alvo)) return;     // no meio de uma lista, é rolagem; da borda de baixo, é o gesto
+      window.abrirIADeBaixo();
+    }, { passive:true });
+  };
+  window.pdSwipe(document, 0);
+  function descer(id, fn){
+    const b = document.getElementById(id); if (!b) return; let s = null, bloq = 0;
+    b.addEventListener('touchstart', e => { const t = e.touches[0]; s = { x:t.clientX, y:t.clientY }; }, { passive:true });
+    b.addEventListener('touchend', e => { if (!s) return; const t = e.changedTouches[0], dy = t.clientY - s.y, dx = t.clientX - s.x; s = null;
+      if (dy > 26 && Math.abs(dx) < dy * 0.7){ bloq = Date.now(); fn(); } }, { passive:true });
+    b.addEventListener('click', e => { if (Date.now() - bloq < 500){ e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  }
+  descer('clAdmin', () => { if (movel()) clAdmin(); });
+  descer('clBtnBusca', () => { if (movel()) clAbrirBusca(); });
+})();
 </script>
 </body>
 </html>
