@@ -1901,6 +1901,25 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
   #appMovel .am-bar{display:none}
   html.app-movel #abaHistFrente,html.app-movel #histHandle{display:none!important}
 }
+
+@media(max-width:999px){
+  html.emChat .frente .tela{padding-top:calc(4px + env(safe-area-inset-top))!important}
+  html.emChat .tela.em-chat .chat-topo .ct-hist{width:44px;height:44px;padding:0!important;justify-content:center;border-radius:14px!important}
+  /* menu da engrenagem em tela cheia: lista grande, por assunto, sem caixinhas */
+  #menuCheio{position:fixed;inset:0;z-index:99800;display:none;flex-direction:column;background:rgba(8,9,8,.94);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);color:#fff}
+  #menuCheio.on{display:flex}
+  #menuCheio .mc-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 20px 6px}
+  #menuCheio .mc-top span{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.55}
+  #menuCheio .mc-x{width:46px;height:46px;border-radius:14px;border:.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:#fff;font-size:18px}
+  #menuCheio .mc-corpo{flex:1;overflow-y:auto;padding:0 20px calc(24px + env(safe-area-inset-bottom));scrollbar-width:none}
+  #menuCheio .mc-g{font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.5;margin:28px 2px 4px}
+  #menuCheio .mc-i{display:flex;align-items:center;gap:18px;width:100%;min-height:68px;padding:0 2px;border:0;border-bottom:.5px solid rgba(255,255,255,.14);background:none;color:#fff;font:inherit;font-size:21px;font-weight:400;letter-spacing:-.01em;text-align:left}
+  #menuCheio .mc-i svg{width:26px;height:26px;flex:none;opacity:.8}
+  #menuCheio .mc-i:active{background:rgba(255,255,255,.07)}
+  /* a IA do rodapé fica no mesmo lugar quando a Pontodot completa abre: a tela cheia pára em cima dela */
+  html.app-movel #appMovel{bottom:var(--rodape-h,96px)}
+  html.app-movel .faixa-legal{display:none!important}
+}
 </style>
 <style id="sem-selecao">
 /* no dedo: segurar não seleciona texto nem abre o "copiar" do navegador, exceto onde a gente copia e cola */
@@ -2141,7 +2160,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v126 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v127 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2844,8 +2863,8 @@ function htmlConversa(){
     ${SUGESTOES.map((x,i)=>`<button class="sug" onclick="sugerir(${i})"><i style="font-size:${i?'7px':'13px'}">${x[0]}</i>${x[1]}</button>`).join('')}</div>` : '';
   return `<div class="chat-topo" role="button" onclick="modoChat(false)" title="Voltar pro painel">
       ${atual!=='sd'?`<button class="ct-volta" onclick="event.stopPropagation();voltarConversas()">‹ conversas</button>`:'<span class="ct-volta" style="opacity:.8">∧&nbsp; painel</span>'}
-      <button class="ct-hist" onclick="event.stopPropagation();alternarHist()" title="Conversas">Conversas</button>
-      <button class="ct-hist" onclick="event.stopPropagation();abrirHistoricoDoApp()" title="Histórico de ações da equipe">Histórico</button>
+      <button class="ct-hist" onclick="event.stopPropagation();alternarHist()" title="Conversas" aria-label="Conversas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg></button>
+      <button class="ct-hist" onclick="event.stopPropagation();abrirHistoricoDoApp()" title="Histórico de ações da equipe" aria-label="Histórico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>
       <button class="ct-rotulo" onclick="event.stopPropagation();abrirPickerConversas(event)" title="Trocar de conversa">${rotuloConversa()} &nbsp;∨</button>
       ${atual==='sd' && (THREADS.sd||[]).length ? `<button class="ct-novo" onclick="event.stopPropagation();novoChat()" title="Começar um chat novo"><i>+</i> novo chat</button>`:''}
       <button class="x-chat" onclick="event.stopPropagation();modoChat(false)" aria-label="Fechar conversa">✕</button>
@@ -3095,6 +3114,7 @@ function layoutChatDesk(aberto, semAnim){
 window.addEventListener('resize', ()=>layoutChatDesk(chat, true));
 let _gadsAntesChat = null;
 function modoChat(liga){
+  try{ if (arguments[0] && document.documentElement.classList.contains('app-movel')) fecharAppMovel(); }catch(e){}
   if (!liga){ atual = 'sd'; mostrarSug = false; try { const a = document.activeElement; if (a && /^(TEXTAREA|INPUT)$/.test(a.tagName)) a.blur(); } catch(e){} }   // fechou: o teclado desce e a tela volta inteira
   if (chat === liga) return;
   chat = liga; if (liga) window._chatAbriuEm = Date.now();
@@ -3419,26 +3439,21 @@ function abrirMenuCtx(x,y){
   const m = $('#menuCtx'); if (!m) return;
   m.innerHTML = `
     <div class="puxador"></div>
-    <div class="mini">ÁREA DE TRABALHO</div>
+    <div class="mini">APARÊNCIA</div>
     ${ehDesk()?'<button onclick="fecharMenuCtx();abrirPicker()">Configurar área de trabalho…</button>':''}
     <button onclick="fecharMenuCtx();proximoFundo()">Trocar a imagem de fundo</button>
     <button onclick="fecharMenuCtx();alternarFotos()">${fundoDesligado?'Ligar':'Desligar'} as fotos de fundo</button>
-    <div class="sep"></div>
     <button onclick="fecharMenuCtx();alternarTema()">Inverter dia e noite</button>
-    <button onclick="fecharMenuCtx();alternarHist()">Histórico de conversas</button>
+    <div class="sep"></div>
+    <div class="mini">A IA</div>
     <button onclick="fecharMenuCtx();abrirMemoria()">O que a pontodot sabe…</button>
-    <button onclick="fecharMenuCtx();forcarSaudacao()">Pedir pra ela falar comigo</button>
     <button onclick="fecharMenuCtx();abrirJeito()">Nosso jeito de trabalhar…</button>
     <button onclick="fecharMenuCtx();abrirCarinhas()">Trocar a carinha dela…</button>
-    <button onclick="fecharMenuCtx();avisosSituacao()">Avisos de prazo…</button>
     <button onclick="fecharMenuCtx();alternarSom()">${somLigado?'Desligar':'Ligar'} o som das respostas</button>
-    <button onclick="fecharMenuCtx();diagnosticoSD()">Diagnóstico…</button>
+    <button onclick="fecharMenuCtx();avisosSituacao()">Avisos de prazo…</button>
     <div class="sep"></div>
     <button onclick="location.reload()">Atualizar o navegador</button>
-    ${window.REAL?'<button onclick="fecharMenuCtx();sairConta()">Sair da conta</button>':''}
-    <div class="sep"></div>
-    <button onclick="fecharMenuCtx();toast('pontodot '+(window.SD_VERSAO||'')+' — o estúdio inteiro numa tela.')">Sobre a pontodot</button>
-    <button onclick="fecharMenuCtx();novoChat();setTimeout(()=>{$('#campo').value='Me ajuda a usar a área de trabalho';enviar()},150)">Ajuda</button>`;
+    ${window.REAL?'<button onclick="fecharMenuCtx();sairConta()">Sair da conta</button>':''}`;
   m.classList.remove('oculto');
   if (!ehDesk()){                       // folha de baixo: o CSS manda, não as coordenadas
     m.classList.add('folha'); m.style.left=''; m.style.top=''; return;
@@ -5021,8 +5036,28 @@ function sincronizarManda(el){
 }
 const ITENS_ADMIN = [['admin','Painel'],['clientes','Clientes'],['saude','Saúde da plataforma'],['intensivo','Intensivo PD']];
 const ITENS_TOPO = [['feed','Escola Agêntica'],['kanban','Funil'],['lista','Lista'],['gantt','Fluxo'],['mural','Mural'],['fila','Redes sociais']];
+
+const MC_ICO = {feed:'<path d="M3 11 12 3l9 8v10H3z"/>',kanban:'<rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="11" rx="1.5"/>',
+  lista:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',gantt:'<path d="M4 6h10M8 12h12M6 18h9"/>',
+  mural:'<path d="M12 17v5M8 3h8l-1 7 3 3v4H6v-4l3-3z"/>',fila:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+  admin:'<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4"/>',
+  clientes:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+  saude:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',intensivo:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'};
+function menuCheio(){
+  let m = $('#menuCheio');
+  if (!m){ m = document.createElement('div'); m.id = 'menuCheio'; document.body.appendChild(m); }
+  const it = ([v,n]) => `<button class="mc-i" onclick="fecharMenuCheio();irAdmin('${v}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${MC_ICO[v]||''}</svg>${n}</button>`;
+  const por = n => ITENS_TOPO.filter(x => n.includes(x[0]));
+  m.innerHTML = `<div class="mc-top"><span>Pontodot completa</span><button class="mc-x" onclick="fecharMenuCheio()" aria-label="Fechar">✕</button></div>
+    <div class="mc-corpo"><div class="mc-g">Trabalho</div>${por(['feed','kanban','lista','gantt']).map(it).join('')}
+    <div class="mc-g">Conteúdo</div>${por(['mural','fila']).map(it).join('')}
+    ${ehAdmin() ? `<div class="mc-g">Administração</div>${ITENS_ADMIN.map(it).join('')}` : ''}</div>`;
+  m.classList.add('on');
+}
+function fecharMenuCheio(){ $('#menuCheio')?.classList.remove('on'); }
 function clAdmin(ev){
   ev && ev.stopPropagation();
+  if (!ehDesk()){ $('#clMenu')?.classList.remove('on'); menuCheio(); return; }
   const m = $('#clMenu'); if (!m) return;
   if (m.classList.contains('on')){ m.classList.remove('on'); return; }
   $('#clRes').classList.remove('on');
@@ -5049,6 +5084,7 @@ function abrirAppMovel(view){
     f.addEventListener('load', () => { vestir(); setTimeout(vestir, 1200); });
     f.src = 'app.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now());
   }
+  try{ const r = document.querySelector('.rodape'); if (r){ const b = r.getBoundingClientRect(); if (b.height) document.documentElement.style.setProperty('--rodape-h', Math.max(70, Math.round(innerHeight - b.top + 2)) + 'px'); } }catch(e){}
   ov.classList.add('on'); document.documentElement.classList.add('app-movel');
   try{ history.pushState({appMovel:1}, ''); }catch(e){}
   $('#clMenu')?.classList.remove('on');

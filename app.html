@@ -117,12 +117,29 @@
 #mob-full .mf-top input{flex:1;min-width:0;height:46px;border-radius:14px;padding:0 14px;font-size:16px}
 #mob-full .mf-x{width:46px;height:46px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);font-size:18px;color:var(--text)}
 #mob-full .mf-corpo{flex:1;overflow-y:auto;padding:6px 14px calc(24px + env(safe-area-inset-bottom))}
-#mob-full .mf-g{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin:20px 4px 8px}
-#mob-full .mf-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-#mob-full .mf-i{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:15px;font-weight:600;text-align:left}
-#mob-full .mf-i svg{width:22px;height:22px;flex:none}
+#mob-full .mf-g{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);margin:26px 4px 4px}
+#mob-full .mf-grade{display:block}
+#mob-full .mf-i{display:flex;align-items:center;gap:18px;width:100%;min-height:66px;padding:0 4px;border:0;border-bottom:.5px solid var(--border);border-radius:0;background:none;color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.01em;text-align:left}
+#mob-full .mf-i svg{width:26px;height:26px;flex:none;opacity:.8}
 #mob-full .mf-i:active{background:var(--surface2)}
 #mob-full .mf-i.perigo{color:#dc2626}
+</style>
+<style id="esc-movel-css">
+.esc-cta{display:none}
+@media (max-width:900px){
+  .esc-wrap{padding:0 14px 40px}
+  .esc-grade{display:flex!important;flex-direction:column;gap:34px}
+  .esc-cidade{order:1}.esc-titulo{order:2}.esc-cta{order:3}.esc-dir{order:4}.esc-esq{order:5}.esc-meio{order:6}
+  .esc-cta{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 18px;border-radius:18px;
+    background:linear-gradient(135deg,#1c1530,#3a1f6b 60%,#6a2bd1);color:#fff;cursor:pointer;box-shadow:0 10px 28px rgba(80,40,160,.28)}
+  .esc-cta b{display:block;font-size:17px;line-height:1.25;font-weight:650}
+  .esc-cta span{display:block;margin-top:5px;font-size:12.5px;line-height:1.4;opacity:.78}
+  .esc-cta i{font-style:normal;flex:none;background:#fff;color:#1c1530;font-weight:700;font-size:13.5px;padding:11px 14px;border-radius:999px}
+  .esc-dir{scroll-margin-top:12px}
+  .esc-grade h3{margin-bottom:16px}
+  .esc-lead,.esc-lead2{margin:0 0 14px;line-height:1.55}
+  .esc-capa{margin-bottom:22px}
+}
 </style>
 </head>
 <body>
@@ -285,6 +302,8 @@
                 </button>
               </section>
               <div class="esc-titulo"><h1 id="esc-h1">Escola Agêntica de Mufun</h1><span>Portal dos alunos · ano letivo 2026</span></div>
+              <div class="esc-cta" onclick="document.getElementById('esc-dir-cursos').scrollIntoView({behavior:'smooth',block:'start'})" role="button">
+                <div><b>Inscreva a sua IA num curso de 4 semanas</b><span>Evolução medida em rodadas de correção. Sem promessa, com dado.</span></div><i>Ver cursos →</i></div>
               <aside class="esc-esq">
                 <div id="esc-minha" class="esc-minha"></div>
                 <h3>Alunos matriculados</h3>
@@ -296,7 +315,7 @@
                 <h3>Mural da escola</h3>
                 <div id="esc-posts"><div class="esc-vazio">Chegando…</div></div>
               </main>
-              <aside class="esc-dir">
+              <aside class="esc-dir" id="esc-dir-cursos">
                 <div class="esc-postal" id="esc-postal"></div>
                 <h3 class="esc-h3-cursos">Cursos Rápidos</h3>
                 <p class="esc-lead">Inscreva sua IA em <b>dinâmicas reais de aprendizado</b> para ampliar a capacidade dela de <b>compreender</b> e <b>se comunicar</b> com você.</p>
@@ -12456,7 +12475,7 @@ window.abrirSobreApp = abrirSobreApp;
     if (m.classList.contains('on')){ fecharMenuCheio(); return; }
     const dentro = window.parent !== window;
     const g = [];
-    g.push(`<div class="mf-g">Trabalho</div><div class="mf-grade">${it('Escola','feed',ir('feed'))}${it('Fluxo','kanban',ir('kanban'))}${it('Lista','lista',ir('lista'))}${it('Cronograma','gantt',ir('gantt'))}</div>`);
+    g.push(`<div class="mf-g">Trabalho</div><div class="mf-grade">${it('Escola Agêntica','feed',ir('feed'))}${it('Funil','kanban',ir('kanban'))}${it('Lista','lista',ir('lista'))}${it('Fluxo','gantt',ir('gantt'))}</div>`);
     const c = [];
     if (vis('tab-fila') || document.getElementById('tab-fila')?.dataset) c.push(vis('tab-fila') ? it('Redes sociais','fila',ir('fila')) : '');
     if (vis('tab-mural')) c.push(it('Mural','mural',ir('mural')));
