@@ -129,16 +129,16 @@
   #view-lista>div:first-child{padding:6px 12px!important}
   #view-lista .btn{font-size:0!important;gap:0!important;padding:8px 10px!important}
   #view-lista .btn svg{width:17px!important;height:17px!important}
-  .list-scroll{padding:0!important}
-  .list-tbl{min-width:0!important;table-layout:auto!important;display:block}
-  .list-tbl thead{display:none}
-  .list-tbl tbody{display:block}
-  .list-tbl tr{display:flex;align-items:center;gap:8px;padding:0 12px;min-height:38px;border-bottom:1px solid var(--border)}
-  .list-tbl td{display:none;border:0!important;padding:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
-  .list-tbl td:nth-child(3){display:block;flex:0 0 22%;font-weight:600}
-  .list-tbl td:nth-child(6){display:block;flex:1;min-width:0}
-  .list-tbl td:nth-child(8){display:block;flex:0 0 auto}
-  .list-tbl td:nth-child(10){display:block;flex:0 0 auto;color:var(--text3);font-size:11.5px}
+  #view-lista .list-scroll{padding:0!important}
+  #view-lista .list-tbl{min-width:0!important;table-layout:auto!important;display:block}
+  #view-lista .list-tbl thead{display:none}
+  #view-lista .list-tbl tbody{display:block}
+  #view-lista .list-tbl tr{display:flex;align-items:center;gap:8px;padding:0 12px;min-height:38px;border-bottom:1px solid var(--border)}
+  #view-lista .list-tbl td{display:none;border:0!important;padding:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+  #view-lista .list-tbl td:nth-child(3){display:block;flex:0 0 22%;font-weight:600}
+  #view-lista .list-tbl td:nth-child(6){display:block;flex:1;min-width:0}
+  #view-lista .list-tbl td:nth-child(8){display:block;flex:0 0 auto}
+  #view-lista .list-tbl td:nth-child(10){display:block;flex:0 0 auto;color:var(--text3);font-size:11.5px}
   #view-gantt #crono-switch{padding:6px 12px 0!important;gap:6px!important;flex-wrap:nowrap!important}
   #fluxo-toolbar{flex-wrap:nowrap!important}
   #fluxo-toolbar .btn{padding:7px 9px!important}
@@ -146,11 +146,25 @@
   #fluxo-outer{margin:6px 0 0!important}
   #fluxo-ruler{border-radius:0!important;border-left:0!important;border-right:0!important}
   #fluxo-wrap{border-radius:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important}
-  #view-fila .btn{font-size:0!important;gap:0!important;padding:8px 10px!important}
-  #view-fila .btn svg{width:17px!important;height:17px!important}
+  #view-fila .list-tbl{min-width:0!important;table-layout:auto!important;display:block}
+  #view-fila .list-tbl thead{display:none}
+  #view-fila .list-tbl tbody{display:block}
+  #view-fila .list-tbl tr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 12px;border-bottom:1px solid var(--border)}
+  #view-fila .list-tbl td{display:none;border:0!important;padding:0!important}
+  #view-fila .list-tbl td:first-child:last-child{display:block;width:100%}
+  #view-fila .list-tbl td:nth-child(2){display:block;flex:0 0 auto}
+  #view-fila .list-tbl td:nth-child(3){display:block;flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis}
+  #view-fila .list-tbl td:nth-child(7){display:block;flex:0 0 auto}
+  #view-fila .list-tbl td:nth-child(10){display:block;flex:0 0 auto}
+  #view-fila .list-tbl td:nth-child(6){display:block;flex:0 0 100%;order:5;max-width:none!important;white-space:normal!important;font-size:12.5px}
+  #view-fila .list-tbl td:nth-child(8){display:block;flex:0 0 auto;order:6}
+  #view-fila .list-tbl td:nth-child(9){display:block;flex:1;order:7;white-space:normal!important}
   #view-fila>div:first-child{padding:6px 12px 0!important}
-  #fila-contas{max-height:none!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;padding:6px 12px!important}
-  #view-fila>div:nth-child(3){padding:6px 12px!important;gap:6px!important;flex-wrap:nowrap!important}
+  #fila-contas{max-height:70vh!important;flex-wrap:wrap!important;overflow-x:hidden!important;overflow-y:auto!important;padding:8px 12px!important;gap:6px 10px!important}
+  #fila-contas>div[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important;margin-top:8px!important}
+  #fila-contas select{max-width:120px!important}
+  #fila-contas>button:first-child{flex-wrap:wrap;text-align:left;gap:4px 10px!important}
+  #view-fila>div:nth-child(3){padding:6px 12px!important;gap:6px!important;flex-wrap:wrap!important}
   #fila-bulk-bar{padding:6px 12px!important}
   #view-kanban>div:first-child{padding:6px 12px!important;gap:6px!important}
   #view-kanban .fx-lbl{display:none}
@@ -10250,7 +10264,7 @@ document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',e
     const dy=Math.abs(e.changedTouches[0].clientY-startY);
     if(dy>50){dragging=false;return;} // scroll vertical, ignora
     // Swipe da direita pra esquerda (>60px) abre gaveta
-    if(dx<-60&&startX>window.innerWidth-80&&!activityDrawerOpen){
+    if(dx<-60&&startX>window.innerWidth-80&&!activityDrawerOpen&&window.innerWidth>768){
       toggleActivityDrawer();
     }
     // Swipe da esquerda pra direita dentro da gaveta fecha
