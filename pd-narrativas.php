@@ -31,7 +31,9 @@ header('X-Content-Type-Options: nosniff');
 
 function pdn_sai($d) {
     header('Cache-Control: public, max-age=600');
-    echo json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    // Mufun/Mufum são nomes legados: quem lê vê Catum (resolvedor de nome; o Doc de origem não muda)
+    echo preg_replace(['/Salão de Mufu[nm]/u', '/Mufu[nm]/u', '/MUFU[NM]/u'], ['Salão das Artes', 'Catum', 'CATUM'],
+        json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     exit;
 }
 function pdn_ponte($acao, $dados) {

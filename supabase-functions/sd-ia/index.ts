@@ -90,7 +90,9 @@ const cors = {
 
 type Registro = Record<string, unknown>;
 const objeto = (v: unknown): v is Registro => !!v && typeof v === "object" && !Array.isArray(v);
-const json = (v: unknown, status = 200) => new Response(JSON.stringify(v), {
+// Mufun/Mufum são nomes legados: o que a pessoa lê sai como Catum (resolvedor de nome, sem tocar nos dados).
+const nomeAtual = (t: string) => t.replace(/Salão de Mufu[nm]/g, "Salão das Artes").replace(/Mufu[nm]/g, "Catum").replace(/MUFU[NM]/g, "CATUM");
+const json = (v: unknown, status = 200) => new Response(nomeAtual(JSON.stringify(v)), {
   status, headers: { ...cors, "content-type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
 });
 class Falha extends Error { constructor(public status: number, message: string) { super(message); } }
