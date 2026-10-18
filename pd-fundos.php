@@ -2,7 +2,10 @@
 // =====================================================================
 // pontodot — FUNDOS DO APP (celular)
 //   GET /pd-fundos.php?ia=<id>   → álbuns disponíveis:
-//     · "ia"  : as fotos da IA da pessoa (Drive: pasta dos personagens › <id> ›
+//     · SÓ "ia": as fotos da IA da pessoa (nada de imagem genérica)
+//       ROTINA: na pasta do personagem (01_Nix/) o GPT solta *_vida_<data>.png e *_nascimento.png; pra fundo sob medida, nomeie
+//       com 'mobile' (vertical) ou 'desktop' (horizontal) no nome ou numa subpasta (01_Nix/mobile/…). O mais novo entra primeiro.
+//     (antes:) "ia"  : as fotos da IA da pessoa (Drive: pasta dos personagens › <id> ›
 //               subpasta "mobile"; sem ela, as fotos de vida/avatar dela)
 //     · outros: cada SUBPASTA da pasta de fundos no Drive é um álbum
 //               (padrão: "Pontodot - Mobile 9x16 - Selfies Moda Podcasts";
@@ -99,10 +102,10 @@ if ($id !== '') {
             $ehMob = strpos($caminho, 'mobile') !== false;
             $ehDesk = (bool)preg_match('/desktop|wide|horizontal|paisagem|16x9|cabecalho|cabeçalho|header/', $caminho);
             if (($disp === 'm' && $ehMob) || ($disp === 'd' && $ehDesk && !$ehMob)) $fmt[] = $f;
-            elseif (!$ehMob && !$ehDesk && preg_match('/vida|avatar|nascimento/', strtolower(end($partes)))) $vida[] = $f;
+            elseif (!$ehMob && !$ehDesk && preg_match('/vida|nascimento|cena|fundo/', strtolower(end($partes))) && !preg_match('/avatar/', strtolower(end($partes)))) $vida[] = $f;   // avatar é rosto recortado: não serve de fundo
         }
         $usa = $fmt ?: $vida;   // sem fotos do formato: as de vida (o app confere a proporção ao carregar)
-        pdf_ordena($usa);
+        usort($usa, fn($a, $b) => ($b["em"] <=> $a["em"]));
         foreach (array_slice($usa, 0, PDF_MAX_POR_ALBUM) as $f) { $i = pdf_img($f); $imgs[] = $i['full']; $minis[] = $i['mini']; }
     }
     if (!$imgs) {   // servidor local, se existir
