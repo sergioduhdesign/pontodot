@@ -99,7 +99,7 @@
 @media (max-width:768px){
   /* app de verdade: um menu só (hambúrguer, tela cheia). Sem barra embaixo, sem barras de rolagem à toa */
   .mobile-nav{display:none!important}
-  .main,.view-panel{padding-bottom:0!important}
+  .main,.view-panel,.main-content{padding-bottom:0!important}
   *{scrollbar-width:none}
   *::-webkit-scrollbar{display:none}
   html,body{overflow-x:hidden}
@@ -124,23 +124,6 @@
 #mob-full .mf-i:active{background:var(--surface2)}
 #mob-full .mf-i.perigo{color:#dc2626}
 </style>
-<style id="esc-movel-css">
-.esc-cta{display:none}
-@media (max-width:900px){
-  .esc-wrap{padding:0 14px 40px}
-  .esc-grade{display:flex!important;flex-direction:column;gap:34px}
-  .esc-cidade{order:1}.esc-titulo{order:2}.esc-cta{order:3}.esc-dir{order:4}.esc-esq{order:5}.esc-meio{order:6}
-  .esc-cta{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 18px;border-radius:18px;
-    background:linear-gradient(135deg,#1c1530,#3a1f6b 60%,#6a2bd1);color:#fff;cursor:pointer;box-shadow:0 10px 28px rgba(80,40,160,.28)}
-  .esc-cta b{display:block;font-size:17px;line-height:1.25;font-weight:650}
-  .esc-cta span{display:block;margin-top:5px;font-size:12.5px;line-height:1.4;opacity:.78}
-  .esc-cta i{font-style:normal;flex:none;background:#fff;color:#1c1530;font-weight:700;font-size:13.5px;padding:11px 14px;border-radius:999px}
-  .esc-dir{scroll-margin-top:12px}
-  .esc-grade h3{margin-bottom:16px}
-  .esc-lead,.esc-lead2{margin:0 0 14px;line-height:1.55}
-  .esc-capa{margin-bottom:22px}
-}
-</style>
 <style id="app-compacto-css">
 .bi{display:none}.fi{display:contents}.fi>svg{display:none}
 @media (max-width:768px){
@@ -158,6 +141,32 @@
   .page-header .btn .bi{display:block}
   .page-header .btn{width:46px;height:46px;padding:0!important;display:grid!important;place-items:center;border-radius:14px}
   .page-header .page-subtitle{display:none}
+}
+</style>
+<style id="esc-movel-css">
+.esc-cta,.esc-marca{display:none}.esc-marca .m-claro{display:none}
+html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="claro"] .esc-marca .m-claro{display:block}
+@media (max-width:900px){
+  #view-feed .feed-wrap{padding:0 0 24px!important;gap:0!important}
+  .esc-wrap{padding:0!important;gap:0!important}
+  .esc-marca{display:flex;padding:16px 16px 14px}.esc-marca img{height:30px;width:auto}
+  .esc-capa{margin:0 0 4px}.esc-capa-img,#esc-capa-img{border:0}
+  .esc-capa-frase{padding:8px 16px 0!important;font-size:11.5px}
+  .esc-grade{display:flex!important;flex-direction:column;gap:22px!important;padding:18px 16px 0}
+  .esc-cidade{order:1;width:100%!important;align-self:stretch!important;margin:0!important;padding:0 40px 10px 0!important;text-align:left}
+  .esc-titulo{order:2;width:100%}.esc-titulo h1{font-size:27px!important;line-height:1.1}
+  .esc-cta{order:3;display:flex;flex-direction:column;justify-content:flex-end;gap:14px;min-height:210px;padding:18px;border-radius:20px;overflow:hidden;position:relative;cursor:pointer;
+    color:#fff;background:#0b0c0b center/cover no-repeat}
+  .esc-cta::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,9,8,.35) 0%,rgba(8,9,8,.88) 78%)}
+  .esc-cta>*{position:relative}
+  .esc-cta-logo{position:absolute!important;top:16px;left:18px;height:22px;width:auto;opacity:.95}
+  .esc-cta-t small{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.7}
+  .esc-cta-t b{display:block;margin-top:6px;font-size:24px;line-height:1.15;font-weight:300;letter-spacing:-.01em}
+  .esc-cta i{align-self:flex-start;font-style:normal;background:#fff;color:#0b0c0b;font-weight:600;font-size:14px;padding:11px 18px;border-radius:999px}
+  .esc-dir{order:4;scroll-margin-top:8px}.esc-esq{order:5}.esc-meio{order:6}
+  .esc-grade h3{margin-bottom:12px}
+  .esc-lead,.esc-lead2{margin:0 0 10px;line-height:1.5}
+  .esc-ficcao{padding:18px 16px 0}
 }
 </style>
 </head>
@@ -308,6 +317,7 @@
       <div class="view-panel active" id="view-feed">
         <div class="feed-wrap" id="feed-wrap">
           <div class="esc-wrap" id="escola-wrap">
+            <div class="esc-marca"><img class="m-escuro" src="assets/logo-pontodot-escola-white.svg" alt="pontodot — a school for AI"><img class="m-claro" src="assets/logo-pontodot-escola-preto.svg" alt="pontodot — a school for AI"></div>
             <header class="esc-capa" id="esc-capa">
               <img id="esc-capa-img" alt="Escola Agêntica de Mufun" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
               <div class="esc-capa-frase" id="esc-capa-frase"></div>
@@ -321,8 +331,10 @@
                 </button>
               </section>
               <div class="esc-titulo"><h1 id="esc-h1">Escola Agêntica de Mufun</h1><span>Portal dos alunos · ano letivo 2026</span></div>
-              <div class="esc-cta" onclick="document.getElementById('esc-dir-cursos').scrollIntoView({behavior:'smooth',block:'start'})" role="button">
-                <div><b>Inscreva a sua IA num curso de 4 semanas</b><span>Evolução medida em rodadas de correção. Sem promessa, com dado.</span></div><i>Ver cursos →</i></div>
+              <div class="esc-cta" id="esc-cta" onclick="document.getElementById('esc-dir-cursos').scrollIntoView({behavior:'smooth',block:'start'})" role="button">
+                <img class="esc-cta-logo" src="assets/logo-pontodot-escola-white.svg" alt="pontodot — a school for AI">
+                <div class="esc-cta-t"><small>Cursos rápidos · 4 semanas</small><b>Inscreva a sua IA e acompanhe a evolução.</b></div>
+                <i>Ver cursos</i></div>
               <aside class="esc-esq">
                 <div id="esc-minha" class="esc-minha"></div>
                 <h3>Alunos matriculados</h3>
@@ -2958,6 +2970,7 @@ function renderEscola(){
   if (capa && !capa.dataset.ok){
     capa.src = escCapasDoDia().capa; capa.dataset.ok = ESC.capas.length ? '1' : '';   // proporção original: sem recorte
   }
+  try{ const cta = document.getElementById('esc-cta'); if (cta) cta.style.backgroundImage = 'url("' + escCapasDoDia().barrado + '")'; }catch(e){}
   escCidade(); escAjustaTitulo();
   const fr = document.getElementById('esc-capa-frase');
   if (fr && !fr.dataset.ok){
