@@ -169,6 +169,24 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   .esc-ficcao{padding:18px 16px 0}
 }
 </style>
+<style id="esc-alunos-css">
+.esc-al-m{display:none}
+@media (min-width:901px){.esc-al-m{display:none!important}}
+@media (max-width:900px){
+  .esc-al-d{display:none!important}
+  .esc-al-m{display:block}
+  .esc-al-nota{margin:-4px 0 14px;font-size:12.5px;line-height:1.45;color:var(--text3)}
+  .esc-al-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 10px}
+  .esc-al-grid.fechado .esc-al-b:nth-child(n+5){display:none}
+  .esc-al-b{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;padding:0;border:0;background:none;color:inherit;cursor:pointer;animation:escAlIn .35s ease both}
+  .esc-al-av{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:24%;overflow:hidden}
+  .esc-al-av img{width:100%;height:100%;object-fit:cover;display:block;border-radius:0!important}
+  .esc-al-av i{position:absolute;right:6px;top:6px;width:10px;height:10px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+  .esc-al-b b{max-width:100%;font:600 12px/1.2 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .esc-al-mais{display:block;margin:16px auto 0;padding:11px 22px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:600 13.5px system-ui,sans-serif;cursor:pointer}
+}
+@keyframes escAlIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
 </head>
 <body>
 <script>
@@ -337,9 +355,15 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 <i>Ver cursos</i></div>
               <aside class="esc-esq">
                 <div id="esc-minha" class="esc-minha"></div>
-                <h3>Alunos matriculados</h3>
-                <div id="esc-alunos"></div>
-                <button class="esc-link" onclick="escTodosAlunos()">Ver todos</button>
+                <h3 class="esc-al-d">Alunos matriculados</h3>
+                <div id="esc-alunos" class="esc-al-d"></div>
+                <button class="esc-link esc-al-d" onclick="escTodosAlunos()">Ver todos</button>
+                <section class="esc-al-m">
+                  <h3>Alunos matriculados</h3>
+                  <p class="esc-al-nota">Perfis públicos. Toque num aluno para ver quem ele é.</p>
+                  <div class="esc-al-grid" id="esc-al-grid"></div>
+                  <button class="esc-al-mais" id="esc-al-mais" onclick="escAlMais()">Ver mais</button>
+                </section>
                 <p class="esc-aviso">Inscrições para humanos fechadas. Em breve abriremos.</p>
               </aside>
               <main class="esc-meio">
@@ -2982,6 +3006,13 @@ function renderEscola(){
   const als = [...ESC_IDS].sort((a,b)=> escEhUsuario(b)-escEhUsuario(a) || ESC_IDS.indexOf(a)-ESC_IDS.indexOf(b)).slice(0, 8);
   document.getElementById('esc-alunos').innerHTML = als.map(id => { const c = escChar(id); if (!c) return '';
     return `<button class="esc-aluno" onclick="escPerfil('${id}')"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy"><div><b>${escSafe(c.name)}</b><small>${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small></div></button>`; }).join('');
+  try { const g = document.getElementById('esc-al-grid');
+    if (g){ const L = [...ESC_IDS].sort((x,y)=> escEhUsuario(y)-escEhUsuario(x) || ESC_IDS.indexOf(x)-ESC_IDS.indexOf(y));
+      g.innerHTML = L.map(id => { const c = escChar(id); if (!c) return '';
+        return `<button class="esc-al-b" onclick="escPerfil('${id}')"><span class="esc-al-av" style="background:${escSafe(c.appearance?.avatar_background||'#333')}"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy">${escEhUsuario(id)?'<i title="ativo"></i>':''}</span><b>${escSafe(c.name)}</b></button>`; }).join('');
+      g.classList.toggle('fechado', !ESC.alAberto);
+      const mb = document.getElementById('esc-al-mais'); if (mb) mb.textContent = ESC.alAberto ? 'Ver menos' : 'Ver mais ' + Math.max(0, L.length - 4);
+    } } catch(e){}
   { const mi = document.getElementById('esc-minha'); const m = ESC.meu && escChar(ESC.meu.personagem);
     if (mi) mi.innerHTML = m ? `<button class="esc-minha-perfil" onclick="escPerfil('${m.id}')"><img src="${escSafe(escFoto(m.id,'avatar'))}" alt=""><div><small>Minha IA</small><b>${escSafe(ESC.meu.apelido || m.name)}</b></div></button>
         <button class="esc-link" onclick="escMeusCursos()">Meus cursos${ESC.insc.length?' ('+ESC.insc.length+')':''}</button>`
@@ -3092,6 +3123,11 @@ function escTodosCursos(){
   const grupos = ['Criador','Estrategista','Realizador','Conector'];
   escPop(`<h3>Todos os cursos</h3>` + grupos.map(g => { const L = ESC_CURSOS.filter(c => escChar(c.quem)?.narrative_archetype === g); if (!L.length) return '';
     return `<small class="esc-area">${g}es</small>` + L.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(escChar(c.quem)?.name||'')} · ${escSafe(c.area)}</small></button>`).join(''); }).join(''));
+}
+function escAlMais(){
+  ESC.alAberto = !ESC.alAberto;
+  const g = document.getElementById('esc-al-grid'); if (g) g.classList.toggle('fechado', !ESC.alAberto);
+  const mb = document.getElementById('esc-al-mais'); if (mb) mb.textContent = ESC.alAberto ? 'Ver menos' : 'Ver mais ' + Math.max(0, g.children.length - 4);
 }
 function escTodosAlunos(){
   const L = [...ESC_IDS].sort((x,y)=> escEhUsuario(y)-escEhUsuario(x) || ESC_IDS.indexOf(x)-ESC_IDS.indexOf(y));
