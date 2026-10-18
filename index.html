@@ -491,7 +491,7 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
   .esc-cta{width:100%}
 }
 @keyframes escFundo{from{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background-color:rgba(8,9,10,0)}}
-@keyframes escSurge{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes escSurge{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){
   #escola,#escola.saindo,.esc-janela{animation:none}
   .esc-cena,.esc-ponto i,.esc-cta{transition:none}
@@ -668,7 +668,7 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .sugs .sug:nth-of-type(1){animation-delay:.2s}.sugs .sug:nth-of-type(2){animation-delay:.15s}
 .sugs .sug:nth-of-type(3){animation-delay:.1s}.sugs .sug:nth-of-type(4){animation-delay:.05s}
 .sugs .sug:nth-of-type(5){animation-delay:0s}
-@keyframes subirSug{from{opacity:0;transform:translateY(22px)}to{opacity:.92;transform:none}}
+@keyframes subirSug{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(22px)}to{opacity:.92;transform:none}}
 .sug i{font-style:normal;flex-shrink:0;opacity:.8}
 /* rodapé */
 .rodape{display:flex;align-items:flex-end;gap:10px;margin-top:10px}
@@ -697,7 +697,7 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 @keyframes fioVolta{to{stroke-dashoffset:100}}
 .caixa.sem-borda{border-color:transparent!important;transition:none}
 .caixa.surge{animation:surge .9s cubic-bezier(.19,1,.22,1) both}
-@keyframes surge{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes surge{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
 /* caixa recém-aberta: invertida — marfim sujo + grafite */
 .caixa.invertida{--branco:#1D1E22;--branco2:rgba(29,30,34,.6);--branco3:rgba(29,30,34,.38);--linha:rgba(29,30,34,.45);
   background:#E4E3DE;color:#1D1E22;box-shadow:0 12px 30px rgba(0,0,0,.38)}
@@ -920,7 +920,7 @@ html.dia .verso{--vb:#101113;--vcard:#1B1C1F;--vtx:#F2F2EE;--vtx2:rgba(242,242,2
   .tela.em-chat .chat-topo .x-chat{display:none}
   .tela.em-chat .chat-topo span.ct-volta{display:none}
   .conversa.chega{animation:chegaChat .55s cubic-bezier(.19,1,.22,1)}
-  @keyframes chegaChat{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes chegaChat{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(16px)}to{opacity:1;transform:none}}
   .tela.em-chat .conversa{scrollbar-width:none}
   .tela.em-chat .conversa::-webkit-scrollbar{display:none}
   .barra-chat{position:fixed;right:6px;width:13px;border-radius:8px;background:rgba(255,255,255,.2);
@@ -1257,7 +1257,7 @@ html.dia .frente .av-caixa{background:rgba(240,239,235,.85)}
 .detalhe>.acao-cab::after{inset:-18px}
 .oculto{display:none!important}
 .fk-mover{transition:transform .58s cubic-bezier(.19,1,.22,1)}
-@keyframes entraV{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes entraV{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
 .mundo.virado .v-mod{animation:entraV .5s cubic-bezier(.22,1,.36,1) backwards}
 .mundo.virado #vGrade1 .v-mod:nth-child(1){animation-delay:.03s}
 .mundo.virado #vGrade1 .v-mod:nth-child(2){animation-delay:.08s}
@@ -1488,7 +1488,7 @@ html.dia .cl-res{background:rgba(244,243,239,.96)}
 
 
 /* ===== caixinhas: abrir e fechar sem pulo nem corte ===== */
-@keyframes gadFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes gadFade{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transform:translateY(-5px)}to{opacity:1;transform:none}}
 @keyframes bolPop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
 .gad:not(.gad-ia).abrindo,.gad:not(.gad-ia).fechando{overflow:hidden}
 .gad.abrindo .gad-aba,.gad.abrindo .gad-corpo{animation:gadFade .42s cubic-bezier(.22,1,.36,1) .12s both}
@@ -2025,6 +2025,17 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
   #menuCheio .mc-home{height:var(--btn)!important;padding:0 14px 0 0!important}
   #menuCheio .mc-tiles{padding:14px var(--lado) 18px!important}
 }
+@keyframes veuSai{to{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background-color:rgba(5,6,5,0)}}
+#janela.saindo{animation:veuSai .3s ease both!important;pointer-events:none}
+#janela.saindo .j-caixa{opacity:0;transform:translateY(8px) scale(.985);transition:opacity .28s ease,transform .28s ease}
+</style>
+<style id="fade-blur-e-barras">
+/* o blur ACOMPANHA o fade (o navegador do celular não esmaece o blur junto com a opacidade): entra e sai em degradê */
+.j-caixa,.caixa{transition:backdrop-filter .45s ease,-webkit-backdrop-filter .45s ease}
+/* caixas de canto arredondado: sem barra de rolar aparecendo nas pontas (rola igual, só não mostra a barra) */
+.caixa,.j-caixa,.tc-caixa,.det-pop,.menu-ctx,.gad-corpo,.historico,#janela,#janela *,.picker-pop,.mc-corpo,.board-rolo{scrollbar-width:none}
+.caixa::-webkit-scrollbar,.j-caixa::-webkit-scrollbar,.tc-caixa::-webkit-scrollbar,.det-pop::-webkit-scrollbar,.menu-ctx::-webkit-scrollbar,.gad-corpo::-webkit-scrollbar,.historico::-webkit-scrollbar,#janela *::-webkit-scrollbar,.picker-pop::-webkit-scrollbar,.mc-corpo::-webkit-scrollbar,.board-rolo::-webkit-scrollbar{display:none;width:0;height:0}
+@media(max-width:999px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
 </style>
 </head>
 <body>
@@ -2251,7 +2262,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v159 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v160 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3061,12 +3072,16 @@ function selecionar(i){
 }
 function abrirJanela(html, grande){
   document.documentElement.classList.add('comJanela');
-  const j = $('#janela'); j.innerHTML = `<div class="j-caixa ${grande?'grande':''}">${html}</div>`;
+  const j = $('#janela'); clearTimeout(_janSai); j.classList.remove('saindo'); j.innerHTML = `<div class="j-caixa ${grande?'grande':''}">${html}</div>`;
   j.classList.remove('oculto');
   const cx = j.querySelector('.caixa'); if (cx && !cx.hasAttribute('data-sem-fio')){ cx.classList.add('surge'); delete cx.dataset.fio; fio(cx); }
 }
-function fecharJanela(){ const j=$('#janela'); j.classList.add('oculto'); j.innerHTML='';
-  document.documentElement.classList.remove('comJanela'); }
+let _janSai = null;
+function fecharJanela(){ const j=$('#janela'); if (!j) return;
+  document.documentElement.classList.remove('comJanela');
+  if (j.classList.contains('oculto')) return;
+  j.classList.add('saindo'); clearTimeout(_janSai);
+  _janSai = setTimeout(()=>{ j.classList.add('oculto'); j.classList.remove('saindo'); j.innerHTML=''; }, 300); }
 // O filtro das tarefas LEMBRA. Escolheu "só as minhas"? Fica assim até você
 // mudar ou limpar — fechar a janela não apaga a sua escolha.
 const fTvazio = () => ({resp:'',cli:'',st:'',q:'',atras:false,ia:false});

@@ -1226,3 +1226,8 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 #esc-zoom figcaption{position:absolute;left:0;right:0;bottom:0;margin:0;padding:34px 16px 12px;line-height:1.35;text-align:left;border-radius:0 0 10px 10px;
   background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font:13.5px system-ui,sans-serif;opacity:1}
 #esc-zoom figcaption:empty{display:none}
+
+/* sem barra de rolar aparecendo nas pontas das caixas arredondadas (o conteúdo rola igual) */
+.modal,.modal-body,.overlay>*,.overlay [style*="overflow"]{scrollbar-width:none}
+.modal::-webkit-scrollbar,.modal-body::-webkit-scrollbar,.overlay>*::-webkit-scrollbar,.overlay [style*="overflow"]::-webkit-scrollbar{display:none}
+@media(max-width:768px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
