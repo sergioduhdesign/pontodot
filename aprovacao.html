@@ -60,6 +60,20 @@ body.embed .ap-board{padding-top:16px}
 .ap-chip[data-f="ajustar"].on{background:#db2777;border-color:#db2777;color:#fff}
 .ap-chip .n{opacity:.6;margin-left:5px;font-variant-numeric:tabular-nums}
 
+
+/* ---------- celular: filtro num seletor só + ações num menu ⋯ ---------- */
+.ap-sel,.ap-mais,.ap-mais-pop{display:none}
+@media(max-width:700px){
+  .ap-bar{flex-wrap:nowrap;gap:8px;padding:8px 12px}
+  .ap-chip{display:none}
+  .ap-sel{display:block;flex:1;min-width:0;height:38px;border:1px solid var(--border);border-radius:20px;background:var(--surface2,transparent);color:var(--text);font:inherit;font-size:13.5px;font-weight:600;padding:0 14px}
+  .ap-bar #btnAgendar,.ap-bar #btnTudo{margin-left:0!important;white-space:nowrap;padding:8px 14px!important;font-size:12.5px!important;flex:0 0 auto}
+  .ap-mais{display:grid!important;place-items:center;flex:0 0 38px;width:38px;height:38px;border:1px solid var(--border);border-radius:50%;background:transparent;color:var(--text);font-size:20px;line-height:1;cursor:pointer;margin-left:0;order:99}
+  .ap-mais-pop{position:fixed;right:12px;top:var(--ap-pop-top,110px);z-index:60;flex-direction:column;gap:6px;padding:10px;min-width:220px;max-width:calc(100vw - 24px);background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+  .ap-mais-pop.on{display:flex}
+  .ap-mais-pop>button{width:100%;margin:0!important;justify-content:flex-start;text-align:left;border-radius:10px!important}
+}
+
 /* ---------- Board ---------- */
 .ap-board{padding:24px clamp(16px,4vw,44px) 60px;max-width:1400px;margin:0 auto}
 .ap-cols{display:flex;gap:20px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
@@ -355,6 +369,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 </div>
 
 <div class="ap-bar">
+  <select id="apSel" class="ap-sel" aria-label="Filtrar peças"></select>
   <button class="ap-chip on" data-f="all">Tudo <span class="n" id="nAll"></span></button>
   <button class="ap-chip" data-f="pendente">Pendentes <span class="n" id="nPend"></span></button>
   <button class="ap-chip" data-f="aprovado">Aprovados <span class="n" id="nOk"></span></button>
@@ -375,6 +390,8 @@ details.ap-cap[open] summary::before{content:"▾"}
     font-weight:700;cursor:pointer;font-family:inherit">⤓ Baixar conteúdo</button>
 </div>
 
+<button id="apMaisBtn" class="ap-mais" aria-label="Mais ações" style="display:none">⋯</button>
+<div id="apMaisPop" class="ap-mais-pop"></div>
 <div id="apAviso"></div>
 
 <div class="ap-board" id="apBoard">
@@ -2204,6 +2221,32 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') lbGo(1);
 });
 </script>
-<script src="/js/protege.js?v=1"></script>
+<script src="/js/protege.js?v=1">
+// celular: seletor de filtro + menu ⋯ com as ferramentas (os botões continuam os mesmos, só mudam de lugar)
+(function(){
+  const sel = document.getElementById('apSel'), pop = document.getElementById('apMaisPop'), mais = document.getElementById('apMaisBtn');
+  if (!sel || !pop || !mais) return;
+  const mq = window.matchMedia('(max-width:700px)');
+  const rot = { all:['Tudo','nAll'], pendente:['Pendentes','nPend'], aprovado:['Aprovados','nOk'], ajustar:['Com ajustes','nFix'] };
+  sel.innerHTML = Object.entries(rot).map(([k,[t]]) => `<option value="${k}">${t}</option>`).join('');
+  sel.onchange = () => document.querySelector('.ap-chip[data-f="' + sel.value + '"]')?.click();
+  function sync(){
+    Object.entries(rot).forEach(([k,[t,id]],i) => { const o = sel.options[i]; const n = document.getElementById(id)?.textContent || ''; if (o) o.textContent = t + (n ? ' · ' + n : ''); });
+    const on = document.querySelector('.ap-chip.on')?.dataset.f; if (on && sel.value !== on) sel.value = on;
+    const tem = ['btnIA','btnCorr','btnXls','btnPdf','btnZip'].some(id => { const b = document.getElementById(id); return b && b.style.display !== 'none'; });
+    mais.style.display = mq.matches && tem ? 'grid' : 'none';
+  }
+  function mover(){
+    const bar = document.querySelector('.ap-bar');
+    ['btnIA','btnCorr','btnXls','btnPdf','btnZip'].forEach(id => { const b = document.getElementById(id); if (!b) return;
+      if (mq.matches) pop.appendChild(b); else bar.appendChild(b); });
+    pop.classList.remove('on'); sync();
+  }
+  mais.onclick = ev => { ev.stopPropagation(); const r = document.querySelector('.ap-bar').getBoundingClientRect(); pop.style.setProperty('--ap-pop-top', Math.round(r.bottom + 6) + 'px'); pop.classList.toggle('on'); };
+  document.addEventListener('click', ev => { if (!ev.target.closest('#apMaisPop')) pop.classList.remove('on'); });
+  pop.addEventListener('click', ev => { if (ev.target.closest('button')) setTimeout(() => pop.classList.remove('on'), 50); });
+  mq.addEventListener?.('change', mover); mover(); setInterval(sync, 700);
+})();
+</script>
 </body>
 </html>
