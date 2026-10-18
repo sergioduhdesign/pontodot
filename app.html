@@ -268,6 +268,14 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   .esc-grade{padding-top:6px!important}
 }
 </style>
+<style id="esc-ordem-css">
+@media (max-width:900px){
+  /* ordem no celular: cabeçalho · título · Catum · banner · alunos (minha IA e outros) · mural · cursos */
+  .esc-marca{display:none!important}
+  .esc-titulo{order:1!important}.esc-cidade{order:2!important}.esc-cta{order:3!important}
+  .esc-esq{order:4!important}.esc-meio{order:5!important}.esc-dir{order:6!important}
+}
+</style>
 </head>
 <body>
 <script>
