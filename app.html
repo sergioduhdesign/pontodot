@@ -6092,7 +6092,19 @@ function lotesSelecionadosAlvoIds(){
 // ----------------------------------------------------------------
 async function filaPublicarAgora(targetIds){
   if (!targetIds.length) return;
-  if (!confirm(`Publicar ${targetIds.length > 1 ? targetIds.length + ' peças' : 'esta peça'} agora, de verdade, nas redes? Isso não tem volta.`)) return;
+  // peças com data no futuro (> 10 min): confirmação reforçada — digitar PUBLICAR (um toque sem querer não basta)
+  const futuros = [];
+  filaLotes.forEach(g => g.posts.forEach(po => po.alvos.forEach(a => {
+    if (!targetIds.includes(a.id)) return;
+    const t = new Date(a.scheduled_at_override || po.scheduled_at || 0).getTime();
+    if (t > Date.now() + 600000) futuros.push(t);
+  })));
+  futuros.sort((x,y) => x - y);
+  if (futuros.length) {
+    const d = t => new Date(t).toLocaleDateString('pt-BR');
+    const r = prompt(`ATENÇÃO: ${futuros.length} peça(s) estão agendadas para o FUTURO (de ${d(futuros[0])} a ${d(futuros[futuros.length-1])}) e vão sair AGORA, de verdade, nas redes. Não tem volta.\n\nPara confirmar, digite PUBLICAR:`);
+    if (!r || r.trim().toUpperCase() !== 'PUBLICAR') { showToast('Cancelado — nada foi publicado.', 'info'); return; }
+  } else if (!confirm(`Publicar ${targetIds.length > 1 ? targetIds.length + ' peças' : 'esta peça'} agora, de verdade, nas redes? Isso não tem volta.`)) return;
 
   showToast('Publicando… isso pode levar alguns segundos por peça.', 'info');
 
