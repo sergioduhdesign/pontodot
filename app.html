@@ -150,7 +150,6 @@
   #view-fila>*{flex-shrink:0;max-width:100%;box-sizing:border-box}
   #view-fila #fila-tabela-wrap{flex:none!important;overflow:visible!important;min-height:0!important}
   #view-fila #fila-comentarios-wrap{flex:none!important;overflow:visible!important}
-  #view-fila .filter-sel,#view-fila .fi{flex:1 1 40%;min-width:0;max-width:100%}
   #view-fila .list-tbl{width:100%!important;max-width:100%;min-width:0!important;table-layout:auto!important;display:block}
   #view-fila .list-tbl thead{display:none}
   #view-fila .list-tbl tbody{display:block}
@@ -170,13 +169,23 @@
   #fila-contas>div[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important;margin-top:8px!important}
   #fila-contas select{max-width:120px!important}
   #fila-contas>button:first-child{flex-wrap:wrap;text-align:left;gap:4px 10px!important}
-  #view-fila>div:nth-child(3){padding:6px 12px!important;gap:6px!important;flex-wrap:wrap!important}
+
   #fila-bulk-bar{padding:6px 12px!important}
   #view-kanban>div:first-child{padding:6px 12px!important;gap:6px!important}
   #view-kanban .fx-lbl{display:none}
   .client-scroll{padding:8px 10px!important}
   .client-group{margin-bottom:10px!important}
   .client-group-head{padding:10px 12px!important}
+}
+
+/* ===== v145: cabeça de filtros igual em Funil, Fluxo, Lista e Redes: "Refinar pesquisa" à esquerda, ícones à direita ===== */
+@media (max-width:768px){
+  #main-toolbar,#fila-filtros{display:flex;align-items:center;flex-wrap:nowrap!important;gap:10px!important;padding:8px 12px!important;overflow:visible!important}
+  #main-toolbar::before,#fila-filtros::before{content:'Refinar pesquisa';flex:1;min-width:0;font-size:15px;font-weight:600;color:var(--text2);white-space:nowrap}
+  #main-toolbar>#clear-btn{order:9}
+  #fila-count{display:none}
+  #fila-filtros .btn{font-size:0!important;gap:0!important;padding:0!important;width:46px;height:46px;flex:none;display:grid;place-items:center;border-radius:14px}
+  #fila-filtros .btn svg{width:22px!important;height:22px!important;margin:0!important}
 }
 </style>
 <style id="app-compacto-css">
@@ -594,7 +603,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comentários</button>
         </div>
         <div id="fila-contas" style="max-height:34vh;overflow-y:auto;flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <div id="fila-filtros" style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
           <select class="filter-sel" id="fila-filter-client" onchange="renderFila()"><option value="">Todos os clientes</option></select>
           <select class="filter-sel" id="fila-filter-project" onchange="renderFila()"><option value="">Todos os projetos</option></select>
           <select class="filter-sel" id="fila-filter-platform" onchange="desenharFila()">
@@ -12699,7 +12708,10 @@ window.abrirSobreApp = abrirSobreApp;
   const I = {'filter-client':S('<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/>'),
     'filter-resp':S('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
     'filter-status':S('<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>'),
-    'filter-product':S('<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>')};
+    'filter-product':S('<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),
+    'fila-filter-client':S('<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/>'),
+    'fila-filter-project':S('<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),
+    'fila-filter-platform':S('<circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="M8.3 10.8l7.4-3.6M8.3 13.2l7.4 3.6"/>')};
   const feitos = [];
   Object.keys(I).forEach(id => { const el = document.getElementById(id); if (!el) return;
     const w = document.createElement('span'); w.className = 'fi'; w.title = el.options && el.options[0] ? el.options[0].text : '';
