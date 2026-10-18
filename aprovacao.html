@@ -1335,7 +1335,10 @@ async function abrirStatusPublicacao(){
   ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
   const bt = ov.querySelector('#stAgora');
   if (bt) bt.onclick = async () => {
-    if (!confirm(`Publicar ${faltam.length} agora, de verdade, nas redes? Não tem volta.`)) return;
+    const futuros = (alvos||[]).filter(a => faltam.includes(a.id)).map(a => new Date(a.scheduled_at_override || (porPost[a.post_id]||{}).scheduled_at || 0).getTime()).filter(t => t > Date.now() + 600000).sort((x,y) => x - y);
+    const aviso = futuros.length
+      ? `ATENÇÃO: ${futuros.length} dessas peças estão agendadas para o futuro (a primeira para ${new Date(futuros[0]).toLocaleDateString('pt-BR')}, a última para ${new Date(futuros[futuros.length-1]).toLocaleDateString('pt-BR')}) e vão sair AGORA, antes da data.\n\n` : '';
+    if (!confirm(`${aviso}Publicar ${faltam.length} agora, de verdade, nas redes? Não tem volta.`)) return;
     bt.disabled = true; bt.textContent = 'Publicando…';
     let ok = 0, falha = 0, msg = '';
     for (let i = 0; i < faltam.length; i += 30) {
