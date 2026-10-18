@@ -1912,7 +1912,7 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
   html.dia #menuCheio{background:#f5f5f2;color:#111}
   html.dia #menuCheio .mc-i{color:#111;border-bottom-color:rgba(0,0,0,.12)}
   html.dia #menuCheio .mc-x{color:#111;border-color:rgba(0,0,0,.2);background:rgba(0,0,0,.05)}
-  #menuCheio .mc-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 20px 6px}
+  #menuCheio .mc-top{display:flex;align-items:flex-start;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 6px}
   #menuCheio .mc-top span{font-size:12px;letter-spacing:.16em;text-transform:uppercase;opacity:.55}
   #menuCheio .mc-x{width:46px;height:46px;border-radius:14px;border:.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:#fff;font-size:18px}
   #menuCheio .mc-corpo{flex:1;overflow-y:auto;padding:0 20px calc(24px + env(safe-area-inset-bottom));scrollbar-width:none}
@@ -1927,6 +1927,8 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
   #appMovel.on{opacity:1;pointer-events:auto}
   html.app-menu #appMovel::after{content:'';position:absolute;left:0;right:0;bottom:0;height:var(--rodape-h,96px);background:#0b0c0b;pointer-events:none}
   html.app-movel .cl-b,html.app-movel .cl-busca input{background:rgba(18,19,21,.94);color:#fff;border-color:rgba(255,255,255,.18);-webkit-backdrop-filter:none;backdrop-filter:none}
+  html.dia.app-movel .cl-b,html.dia.app-movel .cl-busca input{background:rgba(250,249,246,.97);color:#111;border-color:rgba(0,0,0,.14)}
+  html.dia.app-movel #appMovel{background:#f5f5f2}
   /* a IA: só aparece no verso quando o menu está aberto, no mesmo lugar de sempre, com ease e fade */
   .rodape{transition:opacity .35s ease,transform .35s ease}
   html.app-movel .rodape:not(.mc-ia){position:relative;z-index:50}
@@ -1942,6 +1944,12 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
   /* menu em tela cheia de verdade: a IA mora DENTRO dele, no lugar de sempre */
   #menuCheio{bottom:0!important}
   #menuCheio .mc-corpo{margin-bottom:var(--mc-pe,110px);padding-bottom:12px}
+  #menuCheio .mc-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;flex:1;margin-right:10px}
+  #menuCheio .mc-t{aspect-ratio:1;max-height:84px;display:grid;place-items:center;padding:0;border-radius:18px;border:.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;overflow:hidden}
+  #menuCheio .mc-t svg{width:28px;height:28px}
+  #menuCheio .mc-t-av{font-size:15px;font-weight:600}
+  #menuCheio .mc-t-av img{width:100%;height:100%;object-fit:cover}
+  html.dia #menuCheio .mc-t{color:#111;border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.05)}
   #menuCheio .mc-x{display:grid;place-items:center;padding:0;min-width:0;width:42px;height:42px;flex:none;border-radius:12px}
   #menuCheio .mc-x svg{width:20px;height:20px}
   #menuCheio .mc-ia{position:absolute;left:0;right:0;top:var(--mc-ia-top,calc(100% - 110px));margin:0!important;padding:0 16px;box-sizing:border-box;background:#0b0c0b}
@@ -1953,7 +1961,7 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
 
 @media(max-width:999px){
   .cluster{left:12px;right:12px;justify-content:space-between}
-  .cluster>.cl-b:not(#clAdmin):not(#clAv),.cluster>.cl-busca:not(.aberta){display:none!important}
+  .cluster>.cl-b:not(#clAdmin){display:none!important}
   #clAdmin{display:grid!important}
   #clAdmin.tem::after{content:'';position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#dc2626;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
 }
@@ -2199,7 +2207,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v132 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v133 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5097,19 +5105,22 @@ function menuCheio(){
   const por = n => ITENS_TOPO.filter(x => n.includes(x[0]));
   const liberado = versoMovelLiberado();
   const nBadge = ($('#clBadge')?.classList.contains('on') ? ($('#clBadge').textContent || '') : '');
-  m.innerHTML = `<div class="mc-top"><span>Menu</span><button class="mc-x" onclick="fecharMenuCheio()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  const tl = (ico, nome, js) => `<button class="mc-t" onclick="fecharMenuCheio();${js}" aria-label="${nome}" title="${nome}">${sv(ico)}</button>`;
+  const avSrc = $('#clAv')?.innerHTML || '';
+  m.innerHTML = `<div class="mc-top"><div class="mc-tiles">
+      ${tl('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>','Buscar','clAbrirBusca()')}
+      ${liberado ? tl('<path d="M12 5v14M5 12h14"/>','Nova tarefa','menuNovaTarefa()') : ''}
+      ${tl('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>','Claro / escuro','alternarTema()')}
+      <button class="mc-t mc-t-av" onclick="fecharMenuCheio();abrirPerfil()" aria-label="Sua conta">${avSrc}</button>
+    </div><button class="mc-x" onclick="fecharMenuCheio()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="mc-corpo">
-    ${liberado ? `<div class="mc-g">Trabalho</div>${por(['feed','kanban','lista','gantt']).map(nav).join('')}
-    <div class="mc-g">Conteúdo</div>${por(['mural','fila']).map(nav).join('')}` : ''}
-    <div class="mc-g">Conversas</div>
-    ${acao('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','Chat da equipe','clChat()', nBadge ? `<em class="mc-n">${nBadge}</em>` : '')}
-    ${acao('<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/>','Conversas com a IA','alternarHist()')}
+    ${liberado ? `<div class="mc-g">Organização</div>${por(['kanban','lista','gantt','mural']).map(nav).join('')}
     ${acao('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>','Histórico de ações','abrirHistoricoDoApp()')}
+    <div class="mc-g">Conteúdo</div>${por(['fila','feed']).map(nav).join('')}` : ''}
+    <div class="mc-g">Conversas</div>
+    ${acao('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','Chat da equipe','abrirChatEquipe()', nBadge ? `<em class="mc-n">${nBadge}</em>` : '')}
+    ${acao('<path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/>','Conversas com a IA','alternarHist()')}
     ${ehAdmin() ? `<div class="mc-g">Administração</div>${ITENS_ADMIN.map(nav).join('')}` : ''}
-    <div class="mc-g">Atalhos</div>
-    ${acao('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>','Buscar','clAbrirBusca()')}
-    ${liberado ? acao('<path d="M12 5v14M5 12h14"/>','Nova tarefa','menuNovaTarefa()') : ''}
-    ${acao('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>','Claro / escuro','alternarTema()')}
     </div>`;
   try{
     const r = document.querySelector('.rodape');
@@ -5128,6 +5139,16 @@ function menuCheio(){
   }catch(e){}
   document.documentElement.classList.add('app-menu');
   m.classList.add('on');
+}
+function abrirChatEquipe(){
+  if (ehDesk()){ clChat(); return; }
+  abrirAppMovel();
+  const vai = (n = 0) => { let ok = false;
+    try { const w = $('#appMovelFrame').contentWindow;
+      if (w && typeof w.toggleChat === 'function' && w.eval("!!document.getElementById('app') && document.getElementById('app').style.display !== 'none'")){
+        if (!w.eval('chatOpen')) w.toggleChat(); ok = true; } } catch(e){}
+    if (!ok && n < 60) setTimeout(() => vai(n + 1), 300); };
+  vai();
 }
 function fecharMenuCheio(){ $('#menuCheio')?.classList.remove('on'); document.documentElement.classList.remove('app-menu'); }
 function clAdmin(ev){
