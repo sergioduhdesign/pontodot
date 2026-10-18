@@ -289,6 +289,16 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   .esc-esq{order:4!important}.esc-meio{order:5!important}.esc-dir{order:6!important}
 }
 </style>
+<style id="simetria-interna">
+/* SIMETRIA (igual ao shell): botão 44px, 12px de respiro em cima e embaixo da faixa, 16px de lado */
+@media (max-width:768px){
+  :root{--btn:44px;--vf:12px;--lado:16px}
+  .page-header{padding:var(--vf) var(--lado)!important;align-items:center!important}
+  .page-header .btn,#fila-filtros .btn,.fi{width:var(--btn)!important;height:var(--btn)!important;border-radius:14px!important}
+  #main-toolbar,#fila-filtros,.toolbar{padding:var(--vf) var(--lado)!important;gap:10px!important;align-items:center!important}
+  #view-mural>div:first-child{padding:var(--vf) var(--lado)!important}
+}
+</style>
 </head>
 <body>
 <script>
