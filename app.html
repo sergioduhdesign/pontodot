@@ -95,6 +95,35 @@
   .copiavel,.copiavel *,#chat-convo,#chat-convo *,#d-comments,#d-comments *,#chat-list,#chat-list *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 }
 </style>
+<style id="app-movel-css">
+@media (max-width:768px){
+  /* app de verdade: um menu só (hambúrguer, tela cheia). Sem barra embaixo, sem barras de rolagem à toa */
+  .mobile-nav{display:none!important}
+  .main,.view-panel{padding-bottom:0!important}
+  *{scrollbar-width:none}
+  *::-webkit-scrollbar{display:none}
+  html,body{overflow-x:hidden}
+  .cards-grid-4,.cards-grid-3,.cards-grid-2{grid-template-columns:minmax(0,1fr)!important}
+  .entity-card{min-width:0}
+  .page-header{flex-wrap:wrap;gap:10px;height:auto!important}
+  .page-header>div{min-width:0}
+  .page-header>div:last-child{flex-wrap:wrap}
+  .toolbar{flex-wrap:wrap!important;overflow:visible!important;gap:8px;padding:8px 12px}
+  .toolbar .filter-sel{flex:1 1 calc(50% - 8px);min-width:0;max-width:none}
+}
+#mob-full{position:fixed;inset:0;z-index:99700;background:var(--bg,#fff);color:var(--text);display:none;flex-direction:column}
+#mob-full.on{display:flex}
+#mob-full .mf-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--border)}
+#mob-full .mf-top input{flex:1;min-width:0;height:46px;border-radius:14px;padding:0 14px;font-size:16px}
+#mob-full .mf-x{width:46px;height:46px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);font-size:18px;color:var(--text)}
+#mob-full .mf-corpo{flex:1;overflow-y:auto;padding:6px 14px calc(24px + env(safe-area-inset-bottom))}
+#mob-full .mf-g{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin:20px 4px 8px}
+#mob-full .mf-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#mob-full .mf-i{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 14px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:15px;font-weight:600;text-align:left}
+#mob-full .mf-i svg{width:22px;height:22px;flex:none}
+#mob-full .mf-i:active{background:var(--surface2)}
+#mob-full .mf-i.perigo{color:#dc2626}
+</style>
 </head>
 <body>
 <script>
@@ -12400,5 +12429,54 @@ function abrirSobreApp(){
 window.abrirSobreApp = abrirSobreApp;
 </script>
 
+
+<script id="menu-cheio-js">
+// MENU ÚNICO do mobile: hambúrguer abre tela cheia com os assuntos agrupados
+(function(){
+  const I = {
+    feed:'<path d="M3 11 12 3l9 8v10H3z"/>', kanban:'<rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="11" rx="1.5"/>',
+    lista:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>', gantt:'<path d="M4 6h10M8 12h12M6 18h9"/>',
+    fila:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>', mural:'<path d="M12 17v5M8 3h8l-1 7 3 3v4H6v-4l3-3z"/>',
+    clientes:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+    admin:'<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4"/>',
+    saude:'<path d="M3 12h4l3-8 4 16 3-8h4"/>', intensivo:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+    tarefa:'<path d="M12 5v14M5 12h14"/>', chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    tema:'<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2"/>',
+    eu:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', sair:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+    voltar:'<path d="m15 18-6-6 6-6"/>'
+  };
+  const vis = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
+  const ic = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
+  function it(label, k, acao, extra){ return `<button class="mf-i ${extra||''}" onclick="${acao}">${ic(k)}<span>${label}</span></button>`; }
+  const ir = v => `fecharMenuCheio();setView('${v}')`;
+  window.fecharMenuCheio = function(){ document.getElementById('mob-full')?.classList.remove('on'); };
+  window.toggleMobMenu = function(){
+    let m = document.getElementById('mob-full');
+    if (!m){ m = document.createElement('div'); m.id = 'mob-full'; document.body.appendChild(m); }
+    if (m.classList.contains('on')){ fecharMenuCheio(); return; }
+    const dentro = window.parent !== window;
+    const g = [];
+    g.push(`<div class="mf-g">Trabalho</div><div class="mf-grade">${it('Escola','feed',ir('feed'))}${it('Fluxo','kanban',ir('kanban'))}${it('Lista','lista',ir('lista'))}${it('Cronograma','gantt',ir('gantt'))}</div>`);
+    const c = [];
+    if (vis('tab-fila') || document.getElementById('tab-fila')?.dataset) c.push(vis('tab-fila') ? it('Redes sociais','fila',ir('fila')) : '');
+    if (vis('tab-mural')) c.push(it('Mural','mural',ir('mural')));
+    if (vis('tab-admin-wrap')) c.push(it('Clientes','clientes',ir('clientes')));
+    if (c.filter(Boolean).length) g.push(`<div class="mf-g">Conteúdo</div><div class="mf-grade">${c.join('')}</div>`);
+    if (vis('tab-admin-wrap')){
+      const ad = [it('Painel admin','admin',ir('admin'))];
+      if (vis('adm-mi-saude')) ad.push(it('Saúde','saude',ir('saude')));
+      if (vis('adm-mi-intensivo')) ad.push(it('Intensivo PD','intensivo',ir('intensivo')));
+      g.push(`<div class="mf-g">Administração</div><div class="mf-grade">${ad.join('')}</div>`);
+    }
+    const eu = [it('Nova tarefa','tarefa',"fecharMenuCheio();openNewTaskModal()"), it('Chat da equipe','chat',"fecharMenuCheio();toggleChat()"),
+      it('Claro / escuro','tema',"fecharMenuCheio();Theme.toggle()"), it('Meu perfil','eu',"fecharMenuCheio();openMyProfile()"),
+      it('Sair','sair',"Auth.signOut()",'perigo')];
+    g.push(`<div class="mf-g">Você</div><div class="mf-grade">${eu.join('')}</div>`);
+    if (dentro) g.unshift(`<div class="mf-grade" style="margin-top:12px">${it('Voltar à home','voltar',"fecharMenuCheio();parent.fecharAppMovel&&parent.fecharAppMovel()")}</div>`);
+    m.innerHTML = `<div class="mf-top"><input class="field-input" id="mf-busca" placeholder="Buscar #tipo @pessoa…" oninput="onGlobalSearch(this.value)" autocomplete="off"><button class="mf-x" onclick="fecharMenuCheio()" aria-label="Fechar">✕</button></div><div class="mf-corpo">${g.join('')}</div>`;
+    m.classList.add('on');
+  };
+})();
+</script>
 </body>
 </html>
