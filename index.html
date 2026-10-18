@@ -2232,7 +2232,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v154 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v155 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4755,7 +4755,7 @@ async function carregarFundos(){
   try {
     const id = (aindaNao(()=>personagemAtual(),null)||{}).id || '';
     const j = await (await fetch('/pd-fundos.php?ia=' + encodeURIComponent(id))).json();
-    FUNDOS.albuns = (j && j.albuns) || [];
+    FUNDOS.albuns = (j && j.albuns) || []; FUNDOS.aviso = (j && j.aviso) || '';
     const ia = FUNDOS.albuns.find(a => a.id === 'ia');
     try { localStorage.setItem('pd_ia_mobile', JSON.stringify(ia ? ia.imagens.slice(0, 12) : [])); } catch(e){}
     atualizarIconeApp(id);
@@ -4776,8 +4776,10 @@ function proximaImagemFundo(){
   fundoCfg.modo = 'fixo'; fundoCfg.idx = (atual + 1) % alb.imagens.length; salvarFundo(); abrirFundos();
 }
 function salvarFundo(){ try { localStorage.setItem('sd_fundo', JSON.stringify(fundoCfg)); } catch(e){} aplicarFundo(); }
+let _fundosRecarregou = false;
 function abrirFundos(){
   const albs = FUNDOS.albuns || [];
+  if (!albs.length && !_fundosRecarregou){ _fundosRecarregou = true; carregarFundos().then(() => { _fundosRecarregou = false; if ((FUNDOS.albuns||[]).length) abrirFundos(); }); }
   const alb = a => `<button class="fundo-alb ${fundoCfg.album===a.id?'on':''}" onclick="fundoCfg.album='${esc(a.id)}';salvarFundo();abrirFundos()">
       <span class="fundo-pil">${(a.miniaturas||a.imagens).slice(0,3).map(u=>`<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</span><b>${esc(a.nome)}</b><small>${a.imagens.length} imagens</small></button>`;
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 18px 18px">
@@ -4785,7 +4787,7 @@ function abrirFundos(){
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div class="nota" style="margin:4px 0 12px">Escolha um álbum. O fundo troca sozinho uma vez por semana.</div>
     ${albs.length ? `<div class="fundo-grade"><button class="fundo-alb ${!fundoCfg.album?'on':''}" onclick="fundoCfg.album='';salvarFundo();abrirFundos()"><span class="fundo-pil" style="background:#0B0C0B"></span><b>Fotos da casa</b><small>padrão do Pontodot</small></button>${albs.map(alb).join('')}</div>`
-      : '<div class="nota">Ainda não há álbuns. Crie subpastas com fotos na pasta de fundos do Drive, ou coloque imagens em <b>pd/personagens/&lt;sua IA&gt;/mobile/</b> ou em <b>pd/fundos/&lt;álbum&gt;/</b>.</div>'}
+      : '<div class="nota">${FUNDOS.aviso ? 'Não consegui ler o Drive agora: ' + esc(FUNDOS.aviso) + '. ' : ''}Ainda não há álbuns. Crie subpastas com fotos na pasta de fundos do Drive, ou coloque imagens em <b>pd/personagens/&lt;sua IA&gt;/mobile/</b> ou em <b>pd/fundos/&lt;álbum&gt;/</b>.</div>'}
     <label style="display:flex;gap:9px;align-items:center;margin-top:14px;font-size:13px"><input type="checkbox" ${fundoCfg.modo==='semana'?'checked':''} onchange="fundoCfg.modo=this.checked?'semana':'fixo';salvarFundo()"> Trocar de imagem toda semana</label>
     ${fundoCfg.album ? `<button class="mia-t" style="margin-top:12px;width:100%;justify-content:center" onclick="proximaImagemFundo()">Próxima imagem do álbum</button>` : ''}</div>`);
 }

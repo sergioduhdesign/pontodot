@@ -13,8 +13,10 @@
 // =====================================================================
 require_once __DIR__ . '/../sd-private/sd-config.php';
 header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: public, max-age=300');
+header('Cache-Control: no-cache');
 
+@set_time_limit(80);
+$PDF_AVISO = '';
 const PDF_CACHE = __DIR__ . '/.cache-pd';
 const PDF_VALIDADE = 21600;
 const PDF_MAX_POR_ALBUM = 40;
@@ -28,7 +30,7 @@ function pdf_ponte($acao, $dados) {
     $ch = curl_init(SD_PONTE_URL);
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($dados),
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 25]);
+        CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 70]);
     $raw = curl_exec($ch); curl_close($ch);
     $j = json_decode((string)$raw, true);
     if (!is_array($j) || empty($j['ok'])) throw new Exception('ponte: ' . (is_array($j) ? ($j['erro'] ?? 'erro') : 'sem resposta'));
@@ -53,6 +55,7 @@ function pdf_drive($chave, $folderId) {
         if ($out) @file_put_contents($arq, json_encode(['em' => time(), 'arquivos' => $out], JSON_UNESCAPED_UNICODE), LOCK_EX);
         return $out;
     } catch (Exception $e) {
+        $GLOBALS['PDF_AVISO'] = $e->getMessage();
         return is_array($v) ? ($v['arquivos'] ?? []) : [];
     }
 }
@@ -131,4 +134,4 @@ if (is_dir($base)) {
         if ($imgs) $albuns[] = ['id' => $slug, 'nome' => ucfirst(str_replace(['-', '_'], ' ', $d)), 'imagens' => $imgs, 'miniaturas' => $imgs];
     }
 }
-echo json_encode(['ok' => true, 'albuns' => $albuns], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => true, 'albuns' => $albuns] + ($albuns || $PDF_AVISO === '' ? [] : ['aviso' => $PDF_AVISO]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
