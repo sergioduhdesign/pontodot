@@ -141,6 +141,25 @@
   .esc-capa{margin-bottom:22px}
 }
 </style>
+<style id="app-compacto-css">
+.bi{display:none}.fi{display:contents}.fi>svg{display:none}
+@media (max-width:768px){
+  html.em-moldura .header,html.em-moldura #activity-tab{display:none!important}
+  #activity-tab{display:none!important}
+  .toolbar{flex-wrap:nowrap!important;gap:10px!important;padding:8px 12px!important;overflow:visible!important}
+  .fi{display:grid;position:relative;place-items:center;width:46px;height:46px;flex:none;border:1px solid var(--border);border-radius:14px;background:var(--surface2);color:var(--text2)}
+  .fi>svg{display:block;width:22px;height:22px}
+  .fi select{position:absolute;inset:0;width:100%;height:100%;max-width:none;min-width:0;opacity:0;font-size:16px;flex:none}
+  .fi.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+  .fx-lbl{display:none}
+  #view-kanban>div:first-child{padding:6px 12px!important;gap:6px!important}
+  .gantt-range-btn{padding:6px 10px!important;font-size:12px!important}
+  .page-header .btn .lbl{display:none}
+  .page-header .btn .bi{display:block}
+  .page-header .btn{width:46px;height:46px;padding:0!important;display:grid!important;place-items:center;border-radius:14px}
+  .page-header .page-subtitle{display:none}
+}
+</style>
 </head>
 <body>
 <script>
@@ -364,7 +383,7 @@
 
       <div class="view-panel" id="view-kanban">
   <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Fluxo padrão</span>
+    <span class="fx-lbl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Fluxo padrão</span>
     <div style="display:flex;gap:4px;margin-left:4px">
       <button class="gantt-range-btn active" id="kwk-1" onclick="setKanbanWeek(1,this)">1 sem</button>
       <button class="gantt-range-btn" id="kwk-2" onclick="setKanbanWeek(2,this)">2 sem</button>
@@ -629,10 +648,10 @@
         <div class="page-header">
           <div><div class="page-title">Administração</div><div class="page-subtitle">Clientes, usuários e configurações</div></div>
           <div style="display:flex;gap:8px;position:relative">
-            <button class="btn" style="background:var(--accent);color:var(--accent-fg)" onclick="openModal('modal-new-client')">＋ Cliente</button>
-            <button class="btn" style="background:var(--accent);color:var(--accent-fg)" onclick="openModal('modal-new-user')">＋ Usuário</button>
+            <button class="btn" style="background:var(--accent);color:var(--accent-fg)" onclick="openModal('modal-new-client')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" class="bi"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg><span class="lbl">＋ Cliente</span></button>
+            <button class="btn" style="background:var(--accent);color:var(--accent-fg)" onclick="openModal('modal-new-user')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" class="bi"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="lbl">＋ Usuário</span></button>
             <div data-perm="social.conectar" style="position:relative">
-              <button class="btn btn-secondary" onclick="toggleContaDropdown()">＋ Conta ▾</button>
+              <button class="btn btn-secondary" onclick="toggleContaDropdown()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" class="bi"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="lbl">＋ Conta ▾</span></button>
               <div id="conta-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:200;
                    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
                    box-shadow:0 12px 30px rgba(0,0,0,.18);padding:6px;min-width:170px">
@@ -12488,13 +12507,30 @@ window.abrirSobreApp = abrirSobreApp;
       g.push(`<div class="mf-g">Administração</div><div class="mf-grade">${ad.join('')}</div>`);
     }
     const eu = [it('Nova tarefa','tarefa',"fecharMenuCheio();openNewTaskModal()"), it('Chat da equipe','chat',"fecharMenuCheio();toggleChat()"),
-      it('Claro / escuro','tema',"fecharMenuCheio();Theme.toggle()"), it('Meu perfil','eu',"fecharMenuCheio();openMyProfile()"),
+      it('Claro / escuro','tema',"fecharMenuCheio();Theme.toggle()"), it('Meu perfil','eu',"fecharMenuCheio();openMyProfile()"), it('Histórico de ações','tema',"fecharMenuCheio();toggleActivityDrawer()"),
       it('Sair','sair',"Auth.signOut()",'perigo')];
     g.push(`<div class="mf-g">Você</div><div class="mf-grade">${eu.join('')}</div>`);
     if (dentro) g.unshift(`<div class="mf-grade" style="margin-top:12px">${it('Voltar à home','voltar',"fecharMenuCheio();parent.fecharAppMovel&&parent.fecharAppMovel()")}</div>`);
     m.innerHTML = `<div class="mf-top"><input class="field-input" id="mf-busca" placeholder="Buscar #tipo @pessoa…" oninput="onGlobalSearch(this.value)" autocomplete="off"><button class="mf-x" onclick="fecharMenuCheio()" aria-label="Fechar">✕</button></div><div class="mf-corpo">${g.join('')}</div>`;
     m.classList.add('on');
   };
+})();
+</script>
+
+<script id="filtros-icone-js">
+(function(){
+  const S = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const I = {'filter-client':S('<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/>'),
+    'filter-resp':S('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    'filter-status':S('<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>'),
+    'filter-product':S('<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>')};
+  const feitos = [];
+  Object.keys(I).forEach(id => { const el = document.getElementById(id); if (!el) return;
+    const w = document.createElement('span'); w.className = 'fi'; w.title = el.options && el.options[0] ? el.options[0].text : '';
+    el.parentNode.insertBefore(w, el); w.innerHTML = I[id]; w.appendChild(el); feitos.push([w, el]); });
+  const atualiza = () => feitos.forEach(([w, el]) => w.classList.toggle('on', !!el.value));
+  setInterval(atualiza, 700); document.addEventListener('change', atualiza);
+  try { if (window.parent !== window && innerWidth <= 768) document.documentElement.classList.add('em-moldura'); } catch(e){}
 })();
 </script>
 </body>
