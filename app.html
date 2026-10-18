@@ -87,6 +87,14 @@
 .ip-calib label{font-size:11px;display:flex;flex-direction:column;gap:3px}
 .ip-calib input{height:32px;padding:0 8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:7px;font-size:13px}
 </style>
+<style id="sem-selecao-app">
+@media (pointer:coarse){
+  html{-webkit-touch-callout:none}
+  body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  :is(input,textarea,select,[contenteditable="true"]),
+  .copiavel,.copiavel *,#chat-convo,#chat-convo *,#d-comments,#d-comments *,#chat-list,#chat-list *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+}
+</style>
 </head>
 <body>
 <script>

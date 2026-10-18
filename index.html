@@ -1894,6 +1894,22 @@ html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,
 #appMovel .am-bar span{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.6)}
 #appMovelFrame{flex:1;width:100%;border:0;background:var(--bg,#fff)}
 </style>
+<style id="sem-selecao">
+/* no dedo: segurar não seleciona texto nem abre o "copiar" do navegador, exceto onde a gente copia e cola */
+@media (pointer:coarse){
+  html{-webkit-touch-callout:none}
+  body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  :is(input,textarea,select,[contenteditable="true"]),
+  .copiavel,.copiavel *,
+  .conversa,.conversa *,.v-conversa,.v-conversa *,.chat-palco,.chat-palco *,
+  .tc-rolo,.tc-rolo *,.tc-obs,.tc-obs *,.tc-balao,.tc-balao *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+}
+.tc-copiar{position:absolute;top:12px;right:58px;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;
+  border:.5px solid rgba(127,127,127,.35);background:rgba(127,127,127,.12);color:var(--branco);cursor:pointer;padding:0;z-index:2}
+.tc-copiar svg{width:18px;height:18px}
+.tc-copiar:active{transform:scale(.94)}
+@media(max-width:999px){.tc-copiar{top:10px;right:60px;width:44px;height:44px}.tc-topo{padding-right:100px!important}}
+</style>
 </head>
 <body>
 <script>
@@ -2117,7 +2133,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v124 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v125 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -7058,6 +7074,8 @@ async function abrirTarefaReal(id){
         <div class="tc-cli">${esc((t.clients?.name||'SD').toUpperCase())}</div>
       </div>
       ${t.cover_url?`<img src="${t.cover_url}" style="width:64px;height:64px;object-fit:cover;border-radius:12px;flex-shrink:0">`:''}
+      <button class="tc-copiar" onclick="copiarTarefa('${t.id}',this)" aria-label="Copiar toda a informação da tarefa" title="Copiar tudo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.4"/><path d="M5 15V6.4A2.4 2.4 0 0 1 7.4 4H15"/></svg></button>
       <button class="fechar tc-x" onclick="fecharTarefa()" aria-label="Fechar">✕</button>
     </div>
     <div class="tc-social">
@@ -7382,6 +7400,39 @@ async function carregarEventos(id){
     }).join('') : '<div class="nota" style="padding:14px 4px">Sem conversa ainda — começa aqui embaixo.</div>';
     ev.scrollTop = ev.scrollHeight;
   } catch(e){ const ev=$('#tcEventos'); if (ev) ev.innerHTML = '<div class="nota">Não consegui puxar a conversa: '+e.message+'</div>'; }
+}
+
+// copia a tarefa INTEIRA como texto: dados, prompt, detalhes e a conversa — pronto pra colar no GPT, num e-mail, onde for
+function copiarTexto(txt){
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(txt);
+  return new Promise((ok, no) => { try {
+    const a = document.createElement('textarea'); a.value = txt; a.setAttribute('readonly','');
+    a.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(a); a.select();
+    const r = document.execCommand('copy'); a.remove(); r ? ok() : no(new Error('sem permissão'));
+  } catch(e){ no(e); } });
+}
+async function copiarTarefa(id, btn){
+  const t = tasksReais.find(x => x.id === id); if (!t){ toast('Não achei a tarefa.'); return; }
+  const fd = d => d ? new Date(String(d).length <= 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '—';
+  const lin = [`${t.id} — ${t.action || ''}`.trim(), ''];
+  [['Cliente', t.clients?.name || 'SD'], ['Produto', t.products?.name], ['Projeto', t.project || 'GERAL'], ['Responsável', t.resp],
+   ['Status', (t.status||'').toLowerCase()], ['Semana', (t.week||'').toLowerCase()],
+   ['Data interna', fd(t.date_int)], ['Data cliente', fd(t.date_cli)]]
+    .forEach(([k, v]) => { if (v && v !== '—') lin.push(`${k}: ${v}`); });
+  if (t.obs){ lin.push('', 'DETALHES', String(t.obs)); }
+  if (t.prompt_ia){ lin.push('', 'PROMPT DA TAREFA', String(t.prompt_ia)); }
+  try {
+    const { data } = await sbR.from('comments').select('body,created_at,profiles(name)').eq('task_id', id).order('created_at', { ascending:true }).limit(200);
+    if (data && data.length){
+      lin.push('', 'CONVERSA');
+      data.forEach(c => { const dt = new Date(c.created_at);
+        lin.push(`[${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}] ${(c.profiles?.name||'Equipe').split(' ')[0]}: ${c.body||''}`); });
+    }
+  } catch(e){}
+  lin.push('', `Copiado da pontodot em ${new Date().toLocaleString('pt-BR')}`);
+  try { await copiarTexto(lin.join('\n')); toast('Tarefa copiada — informações, prompt e conversa.');
+    if (btn){ btn.style.color = 'var(--verde)'; setTimeout(() => btn.style.color = '', 1400); }
+  } catch(e){ toast('Não consegui copiar. Segure no texto da conversa e copie por lá.'); }
 }
 async function comentarReal(id){
   const c = $('#tcCampo'); const v = (c && c.value || '').trim(); if (!v) return;
@@ -8158,7 +8209,7 @@ async function verPromptTarefa(id){
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button>
     </div>
     <div style="flex:1;min-height:0;overflow-y:auto;margin-top:12px;white-space:pre-wrap;font-size:13px;line-height:1.6;
-      background:rgba(127,127,127,.09);border-radius:14px;padding:14px 16px">${esc(p)}</div>
+      background:rgba(127,127,127,.09);border-radius:14px;padding:14px 16px" class="copiavel">${esc(p)}</div>
   </div>`, true);
 }
 function copiarPrompt(){
