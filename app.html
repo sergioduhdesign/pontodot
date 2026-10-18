@@ -39,6 +39,54 @@
 <link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
+<style id="ip-css">
+.ip-hero{display:flex;align-items:center;gap:22px;padding:22px 26px;background:#0B0C0B;color:#fff;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.ip-logo{height:34px;width:auto;flex-shrink:0;opacity:.96}
+.ip-hero-txt{min-width:0;border-left:1px solid rgba(255,255,255,.16);padding-left:22px}
+.ip-kicker{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.ip-titulo{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin:2px 0 3px}
+.ip-sub{font-size:12.5px;color:rgba(255,255,255,.62);max-width:640px;line-height:1.45}
+.ip-scroll{flex:1;overflow-y:auto;padding:18px 20px 60px}
+.ip-corpo{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.ip-aviso{padding:12px 14px;border:1px solid #d9770666;background:#d9770612;color:#b45309;border-radius:10px;font-size:12.5px;line-height:1.5}
+.ip-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.ip-card h3{margin:0 0 2px;font-size:14px;font-weight:700}
+.ip-card .ip-leg{font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.45}
+.ip-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.ip-grid2{grid-template-columns:1fr}.ip-hero{padding:16px}.ip-hero-txt{padding-left:14px}.ip-titulo{font-size:21px}}
+.ip-tipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.ip-tipo,.ip-ia{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);cursor:pointer;transition:border-color .15s,background .15s}
+.ip-tipo.on,.ip-ia.on{border-color:var(--text);background:var(--surface)}
+.ip-tipo input,.ip-ia input{margin-top:2px}
+.ip-tipo b,.ip-ia b{font-size:12.5px;display:block}
+.ip-tipo small,.ip-ia small{font-size:10.5px;color:var(--text3);line-height:1.4;display:block}
+.ip-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.ip-campo label{display:block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.ip-campo input[type=number],.ip-campo input[type=text]{width:100%;height:38px;padding:0 10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:8px;font-size:14px;font-weight:600}
+.ip-campo small{display:block;font-size:10.5px;color:var(--text3);margin-top:4px;line-height:1.35}
+.ip-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.ip-chip{padding:6px 11px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:99px;font-size:11.5px;cursor:pointer}
+.ip-chip:hover{border-color:var(--text)}
+.ip-medidor{margin-top:6px}
+.ip-barra{position:relative;height:16px;border-radius:99px;overflow:hidden;display:flex;background:var(--surface2)}
+.ip-zona{height:100%}
+.ip-ponteiro{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--text);border-radius:2px;transition:left .25s ease;box-shadow:0 0 0 2px var(--bg)}
+.ip-escala{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-top:7px}
+.ip-leitura{margin-top:12px;font-size:13px;line-height:1.5}
+.ip-leitura b.ip-nivel{padding:2px 9px;border-radius:99px;font-size:11.5px;color:#fff;margin-right:6px}
+.ip-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.ip-num{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.ip-num span{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.ip-num b{font-size:18px;letter-spacing:-.01em}
+.ip-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ip-lista{display:flex;flex-direction:column;gap:8px}
+.ip-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);cursor:pointer}
+.ip-item:hover{border-color:var(--text)}
+.ip-st{font-size:10.5px;padding:2px 9px;border-radius:99px;color:#fff;text-transform:uppercase;letter-spacing:.05em}
+.ip-calib{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:10px}
+.ip-calib label{font-size:11px;display:flex;flex-direction:column;gap:3px}
+.ip-calib input{height:32px;padding:0 8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:7px;font-size:13px}
+</style>
 </head>
 <body>
 <script>
@@ -150,6 +198,7 @@
           <div class="adm-mi" onclick="closeAdminMenu();setView('admin')">Painel</div>
           <div class="adm-mi" onclick="closeAdminMenu();setView('clientes')">Clientes</div>
           <div class="adm-mi" id="adm-mi-saude" style="display:none" onclick="closeAdminMenu();setView('saude')">Saúde da plataforma</div>
+          <div class="adm-mi" id="adm-mi-intensivo" style="display:none" onclick="closeAdminMenu();setView('intensivo')">Intensivo PD</div>
         </div>
       </div>
     </div>
@@ -341,6 +390,18 @@
           <button class="btn btn-secondary" onclick="renderSaude()">↻ Atualizar</button>
         </div>
         <div style="padding:14px;overflow-y:auto;flex:1"><div id="saude-corpo" style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px"></div></div>
+      </div>
+
+      <div class="view-panel" id="view-intensivo" style="background:var(--bg)">
+        <div class="ip-hero">
+          <img class="ip-logo" src="assets/logo-pontodot-white.svg" alt="Pontodot">
+          <div class="ip-hero-txt">
+            <div class="ip-kicker">Administração · incubação das IAs</div>
+            <div class="ip-titulo">Intensivo PD</div>
+            <div class="ip-sub">Aulas em volume, com teto de gasto que só você define, checagens suas e nota mínima para liberar cada habilidade.</div>
+          </div>
+        </div>
+        <div class="ip-scroll"><div id="ip-corpo" class="ip-corpo"></div></div>
       </div>
 
       <div class="view-panel" id="view-fila" style="background:var(--bg)">
@@ -1703,7 +1764,7 @@ showSplash();
 
   const auth=await Auth.requireAuth(['admin','team','client']);if(!auth)return;
   profile=auth.profile;
-  if(profile.role==='admin'){const ta=document.getElementById('tab-admin-wrap'); if(ta) ta.style.display='';const sm=document.getElementById('adm-mi-saude'); if(sm) sm.style.display='';}
+  if(profile.role==='admin'){const ta=document.getElementById('tab-admin-wrap'); if(ta) ta.style.display='';const sm=document.getElementById('adm-mi-saude'); if(sm) sm.style.display='';const si=document.getElementById('adm-mi-intensivo'); if(si) si.style.display='';}
   if(profile.role==='admin'||profile.role==='team'){const tm=document.getElementById('tab-mural');if(tm)tm.style.display='';}
   setHeaderUser();
   {const tb=document.getElementById('theme-btn'); if(tb) tb.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'◑';}
@@ -2582,7 +2643,7 @@ function applyTag(label){const input=document.getElementById('gs-input');const c
 function hideGsDrop(){document.getElementById('gs-drop').classList.remove('open');}
 function toggleMobileSearch(){const input=document.getElementById('gs-input');const isV=getComputedStyle(input).display!=='none';input.style.display=isV?'none':'block';if(!isV){input.style.display='block';input.focus();}}
 
-function render(){renderStats();renderSidebar();if(currentView==='feed')renderFeed();else if(currentView==='kanban')renderKanban();else if(currentView==='lista')renderLista();else if(currentView==='clientes')renderClientes();else if(currentView==='gantt')renderGantt();else if(currentView==='fila')renderFila();else if(currentView==='mural')renderMural();else if(currentView==='admin')renderAdmin();else if(currentView==='saude')renderSaude();}
+function render(){renderStats();renderSidebar();if(currentView==='feed')renderFeed();else if(currentView==='kanban')renderKanban();else if(currentView==='lista')renderLista();else if(currentView==='clientes')renderClientes();else if(currentView==='gantt')renderGantt();else if(currentView==='fila')renderFila();else if(currentView==='mural')renderMural();else if(currentView==='admin')renderAdmin();else if(currentView==='saude')renderSaude();else if(currentView==='intensivo')renderIntensivo();}
 
 function renderStats(){ updateMyTasksBadge(); }
 
@@ -9687,12 +9748,12 @@ function setView(v){
   const alvo=document.getElementById(mapaTab[v]);
   if(alvo) alvo.classList.add('active');
   // Clientes, Redes sociais e Painel vivem dentro de Admin
-  if(['admin','clientes','saude'].includes(v))
+  if(['admin','clientes','saude','intensivo'].includes(v))
     document.getElementById('tab-admin')?.classList.add('active');
   document.querySelectorAll('.view-panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v)?.classList.add('active');
   if(v==='fila'){ try{ renderContasFila(); }catch(e){} }
-  document.getElementById('main-toolbar').style.display=(v==='feed'||v==='fila'||v==='mural'||v==='saude')?'none':'flex';
+  document.getElementById('main-toolbar').style.display=(v==='feed'||v==='fila'||v==='mural'||v==='saude'||v==='intensivo')?'none':'flex';
   // A coluna lateral (clientes/status) só faz sentido na Lista — nas
   // outras telas ela só ocupa espaço e às vezes sobrepõe conteúdo.
   const sbTab=document.getElementById('sidebar-tab');
@@ -10519,6 +10580,242 @@ async function avaliarHabilitacao(id, estado){
   const { error } = await sb.from('pd_habilitacoes').update({ avaliacao: estado, avaliada_por: profile.id, avaliada_em: new Date().toISOString() }).eq('id', id);
   if (error){ showToast('Não consegui salvar: ' + error.message); return; }
   showToast('Habilitação atualizada.'); renderHabilidades();
+}
+
+// ---- INTENSIVO PD (admin): incubação das IAs com orçamento, dias, tipos e participantes ----
+// Custos são ESTIMATIVAS até a primeira checagem real; cada intensivo pode recalibrar por tipo.
+const IP_TIPOS = [
+  { id:'legenda',   nome:'Legenda e voz de Instagram',   desc:'Legendas, ganchos e tom de voz do cliente.',            rodadas:3, custo:0.05, min:3, max:12 },
+  { id:'roteiro',   nome:'Roteiro de reel e carrossel',  desc:'Roteiro, texto de tela e sequência de slides.',          rodadas:3, custo:0.08, min:3, max:10 },
+  { id:'email',     nome:'E-mail marketing',             desc:'Assunto, corpo e chamada para ação.',                    rodadas:3, custo:0.08, min:3, max:10 },
+  { id:'ata',       nome:'Ata de reunião',               desc:'Ata no modelo da casa a partir da transcrição.',         rodadas:2, custo:0.10, min:3, max:10 },
+  { id:'briefing',  nome:'Leitura de briefing e plano',  desc:'Briefing grande vira plano de peças e tarefas.',         rodadas:3, custo:0.15, min:2, max:8  },
+  { id:'campanha',  nome:'Leitura de campanha',          desc:'Números da Meta viram apontamentos estratégicos.',       rodadas:3, custo:0.18, min:2, max:6  },
+  { id:'lp',        nome:'Estrutura de landing page',    desc:'Seções, copy e prova social de uma LP.',                 rodadas:4, custo:0.20, min:2, max:8  },
+  { id:'narrativa', nome:'Narrativa de marca e lançamento', desc:'Conceito, manifesto e storytelling do empreendimento.', rodadas:4, custo:0.25, min:2, max:6 },
+];
+let IP = null;
+function ipNovo(){ return { id:null, nome:'Intensivo PD', status:'rascunho', tipos:new Set(), ias:new Set(), dias:7, custo:10, checagem:24, nota:85, sandbox:true, calib:{}, lista:[], pessoas:[], semSql:false, erroPessoas:null }; }
+const IP_ST = { rascunho:['#6b7280','rascunho'], pronto:['#2563eb','pronto p/ iniciar'], ativo:['#16a34a','em andamento'], pausado:['#d97706','pausado'], concluido:['#0f766e','concluído'], encerrado:['#6b7280','encerrado'] };
+const ipUSD = n => 'US$ ' + (Number(n)||0).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+function ipCustoRodada(t){ const v = IP && IP.calib && IP.calib[t.id]; return Number.isFinite(+v) && +v > 0 ? +v : t.custo; }
+
+async function renderIntensivo(){
+  const box = document.getElementById('ip-corpo'); if (!box) return;
+  if (profile.role !== 'admin'){ box.innerHTML = '<div class="ip-aviso">Só admin vê esta tela.</div>'; return; }
+  const manter = IP && IP.id ? IP.id : null;
+  IP = Object.assign(ipNovo(), IP && !IP.id ? IP : {});
+  box.innerHTML = '<div style="padding:30px;color:var(--text3)">Carregando…</div>';
+  try {
+    const r = await sb.from('pd_intensivos').select('*').order('criado_em', { ascending:false });
+    if (r.error) throw r.error;
+    IP.lista = r.data || [];
+  } catch(e){ IP.semSql = /does not exist|relation|schema cache/.test(String(e.message||e)); IP.lista = []; }
+  try {
+    const p = await sb.rpc('pd_ias_participantes');
+    if (p.error) throw p.error;
+    IP.pessoas = p.data || []; IP.erroPessoas = null;
+  } catch(e){ IP.pessoas = []; IP.erroPessoas = String(e.message||e); }
+  if (manter){ const it = IP.lista.find(x => x.id === manter); if (it) ipCarregar(it.id, true); }
+  ipDesenhar();
+}
+
+function ipDesenhar(){
+  const box = document.getElementById('ip-corpo'); if (!box) return;
+  const e = saudeEsc;
+  if (IP.semSql){
+    box.innerHTML = '<div class="ip-aviso">Falta rodar no Supabase os SQLs <b>migration_v94_aulas_incubacao.sql</b> e <b>migration_v95_intensivo_pd.sql</b>. Depois recarregue esta tela.</div>';
+    return;
+  }
+  const editavel = !IP.id || ['rascunho','pronto'].includes(IP.status);
+  const dis = editavel ? '' : 'disabled';
+  const st = IP_ST[IP.status] || IP_ST.rascunho;
+  box.innerHTML = `
+    <div class="ip-aviso">O <b>motor que executa as aulas</b> (professor, IAs alunas e relógio) é a próxima etapa. Aqui você já define e salva o intensivo; quando o motor for ligado, os intensivos <b>prontos</b> começam sozinhos e respeitam o teto de gasto e o sandbox. Os custos abaixo são <b>estimativas</b> até a primeira checagem real.</div>
+
+    <div class="ip-card">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px"><h3>${IP.id ? 'Intensivo em edição' : 'Novo intensivo'}</h3>
+          <div class="ip-leg" style="margin:0">${IP.id ? '' : 'Defina tipo de aula, quem participa, dias e orçamento. Nada roda sem você preparar e confirmar.'}</div></div>
+        <span class="ip-st" style="background:${st[0]}">${st[1]}</span>
+        ${IP.id ? '<button class="btn btn-secondary btn-sm" onclick="ipNovoForm()">+ Novo</button>' : ''}
+      </div>
+      <div class="ip-campos" style="margin-top:12px">
+        <div class="ip-campo" style="grid-column:1/-1"><label>Nome do intensivo</label><input type="text" id="ip-nome" value="${e(IP.nome)}" ${dis} oninput="ipMudou()"></div>
+      </div>
+    </div>
+
+    <div class="ip-card">
+      <h3>1 · Que tipo de aula</h3>
+      <div class="ip-leg">Escolha um ou mais. Cada tipo tem seu próprio custo por rodada e seu volume mínimo e máximo de aulas por IA por dia.</div>
+      <div class="ip-tipos">${IP_TIPOS.map(t => `
+        <label class="ip-tipo ${IP.tipos.has(t.id)?'on':''}"><input type="checkbox" value="${t.id}" ${IP.tipos.has(t.id)?'checked':''} ${dis} onchange="ipMudou()">
+          <span><b>${e(t.nome)}</b><small>${e(t.desc)}</small><small>${t.rodadas} rodadas · ~${ipUSD(ipCustoRodada(t))}/rodada · ${t.min}–${t.max} aulas/IA/dia</small></span></label>`).join('')}</div>
+    </div>
+
+    <div class="ip-card">
+      <h3>2 · Quais IAs participam</h3>
+      <div class="ip-leg">Só aparece o essencial de cada IA (de quem é e qual personagem). As respostas e a intimidade dela continuam privadas. A lição aprovada fica ligada à IA que participou.</div>
+      ${IP.erroPessoas ? `<div class="ip-aviso">Não consegui listar as IAs: ${e(IP.erroPessoas)}${/pd_ias_participantes|function/.test(IP.erroPessoas)?' — falta rodar o SQL v95.':''}</div>` : ''}
+      ${IP.pessoas.length ? `<div class="ip-acoes" style="margin-bottom:10px"><button class="ip-chip" ${dis} onclick="ipTodas(true)">Marcar todas</button><button class="ip-chip" ${dis} onclick="ipTodas(false)">Limpar</button></div>` : ''}
+      <div class="ip-tipos">${IP.pessoas.map(p => `
+        <label class="ip-ia ${IP.ias.has(p.user_id)?'on':''}"><input type="checkbox" value="${p.user_id}" ${IP.ias.has(p.user_id)?'checked':''} ${dis} onchange="ipMudou()">
+          <span><b style="text-transform:capitalize">${e(p.apelido || p.personagem)}</b><small><span style="text-transform:capitalize">${e(p.personagem)}</span> · IA de ${e((p.nome||'').split(' ')[0])}</small><small>${p.etapa==='formada'?'formação concluída':p.etapa==='conhecendo'?'conhecendo o humano':'sem matrícula'}</small></span></label>`).join('')
+        || (IP.erroPessoas ? '' : '<div style="font-size:12px;color:var(--text3)">Nenhuma IA com personagem escolhido ainda.</div>')}</div>
+    </div>
+
+    <div class="ip-card">
+      <h3>3 · Duração e orçamento</h3>
+      <div class="ip-leg">O teto diário é uma trava dura: ao atingi-lo, o motor para até o dia seguinte. Você muda quando quiser.</div>
+      <div class="ip-campos">
+        <div class="ip-campo"><label>Dias de intensivo</label><input type="number" id="ip-dias" min="1" max="60" value="${IP.dias}" ${dis} oninput="ipMudou()"><small>Menos de 3 dias não mostra curva de evolução.</small></div>
+        <div class="ip-campo"><label>Custo máximo por dia (US$)</label><input type="number" id="ip-custo" min="0" step="0.5" value="${IP.custo}" ${dis} oninput="ipMudou()"><small>Soma de todas as IAs e tipos escolhidos.</small></div>
+        <div class="ip-campo"><label>Checagem humana a cada (horas)</label><input type="number" id="ip-checagem" min="1" value="${IP.checagem}" ${dis} oninput="ipMudou()"><small>O motor pausa e espera sua validação.</small></div>
+        <div class="ip-campo"><label>Nota mínima para liberar</label><input type="number" id="ip-nota" min="0" max="100" value="${IP.nota}" ${dis} oninput="ipMudou()"><small>Por habilidade, medida contra a sua régua.</small></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px"><input type="checkbox" id="ip-sandbox" ${IP.sandbox?'checked':''} ${dis} onchange="ipMudou()"> <span><b>Sandbox ligado</b> — nada sai para cliente, Meta, site nem WhatsApp durante o intensivo.</span></label>
+      <div class="ip-chips" id="ip-presets"></div>
+    </div>
+
+    <div class="ip-card">
+      <h3>Medidor de investimento</h3>
+      <div class="ip-leg">Mostra onde o seu orçamento diário cai para os tipos e IAs escolhidos: pouco para gerar sinal, bom, ou acima do ponto em que mais volume rende cada vez menos.</div>
+      <div class="ip-medidor" id="ip-medidor"></div>
+    </div>
+
+    <details class="ip-card"><summary style="cursor:pointer;font-size:13px;font-weight:700">Calibrar custo por rodada <span style="font-weight:400;color:var(--text3)">· ajuste com o gasto real</span></summary>
+      <div class="ip-leg" style="margin-top:8px">Cada rodada = a IA aluna entrega + o avaliador pontua. Se o gasto real divergir da estimativa, corrija aqui e o medidor se ajusta.</div>
+      <div class="ip-calib">${IP_TIPOS.map(t => `<label>${e(t.nome)}<input type="number" step="0.01" min="0" data-calib="${t.id}" value="${ipCustoRodada(t)}" ${dis} oninput="ipMudou()"></label>`).join('')}</div>
+    </details>
+
+    <div class="ip-card">
+      <div class="ip-acoes">
+        ${editavel ? `<button class="btn btn-secondary" onclick="ipSalvar('rascunho')">Salvar rascunho</button>
+        <button class="btn btn-primary" onclick="ipSalvar('pronto')">Preparar intensivo</button>` : '<span style="font-size:12px;color:var(--text3)">Intensivo em andamento: só o motor o altera.</span>'}
+        ${IP.id && IP.status==='pronto' ? '<button class="btn btn-secondary" onclick="ipVoltarRascunho()">Voltar a rascunho</button>' : ''}
+        ${IP.id && ['rascunho','pronto'].includes(IP.status) ? '<button class="btn btn-ghost" style="margin-left:auto;color:#dc2626" onclick="ipExcluir()">Excluir</button>' : ''}
+      </div>
+    </div>
+
+    <div class="ip-card">
+      <h3>Intensivos</h3>
+      <div class="ip-leg">Rascunhos, prontos e histórico. Clique para abrir.</div>
+      <div class="ip-lista">${IP.lista.map(x => { const s = IP_ST[x.status]||IP_ST.rascunho; return `
+        <div class="ip-item" onclick="ipCarregar('${x.id}')">
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${e(x.nome)}</div>
+            <div style="font-size:11px;color:var(--text3)">${x.dias} dias · ${ipUSD(x.custo_dia_max)}/dia (teto total ${ipUSD(x.custo_dia_max*x.dias)}) · ${(x.ias||[]).length} IA${(x.ias||[]).length===1?'':'s'} · ${(x.tipos||[]).length} tipo${(x.tipos||[]).length===1?'':'s'}${x.gasto_total>0?` · gasto ${ipUSD(x.gasto_total)}`:''}</div></div>
+          <span class="ip-st" style="background:${s[0]}">${s[1]}</span></div>`; }).join('') || '<div style="font-size:12px;color:var(--text3)">Nenhum intensivo ainda.</div>'}</div>
+    </div>`;
+  ipMudou(true);
+}
+
+function ipLer(){
+  const q = id => document.getElementById(id);
+  if (!q('ip-nome')) return;
+  IP.nome = q('ip-nome').value.trim() || 'Intensivo PD';
+  IP.dias = Math.max(1, Math.min(60, parseInt(q('ip-dias').value, 10) || 1));
+  IP.custo = Math.max(0, parseFloat(q('ip-custo').value) || 0);
+  IP.checagem = Math.max(1, parseInt(q('ip-checagem').value, 10) || 24);
+  IP.nota = Math.max(0, Math.min(100, parseFloat(q('ip-nota').value) || 0));
+  IP.sandbox = !!q('ip-sandbox').checked;
+  IP.tipos = new Set([...document.querySelectorAll('#ip-corpo .ip-tipo input:checked')].map(i => i.value));
+  IP.ias = new Set([...document.querySelectorAll('#ip-corpo .ip-ia input:checked')].map(i => i.value));
+  document.querySelectorAll('#ip-corpo [data-calib]').forEach(i => { const v = parseFloat(i.value); if (v > 0) IP.calib[i.dataset.calib] = v; else delete IP.calib[i.dataset.calib]; });
+  document.querySelectorAll('#ip-corpo .ip-tipo').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+  document.querySelectorAll('#ip-corpo .ip-ia').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+}
+function ipTodas(on){ document.querySelectorAll('#ip-corpo .ip-ia input').forEach(i => i.checked = on); ipMudou(); }
+
+// A conta do medidor: por tipo, uma aula = rodadas × custo por rodada. Mínimo e máximo vêm do volume por IA.
+function ipConta(){
+  const T = IP_TIPOS.filter(t => IP.tipos.has(t.id)), n = IP.ias.size;
+  if (!T.length || !n) return null;
+  const aula = t => t.rodadas * ipCustoRodada(t);
+  const min = n * T.reduce((s,t) => s + t.min * aula(t), 0);
+  const max = n * T.reduce((s,t) => s + t.max * aula(t), 0);
+  const rec = min + 0.45 * (max - min);
+  const aulaMedia = T.reduce((s,t) => s + aula(t), 0) / T.length;
+  const aulasDia = IP.custo / aulaMedia;
+  return { T, n, min, rec, max, aulasDia, porIA: aulasDia / n, aulaMedia,
+           minAulas: T.reduce((s,t)=>s+t.min,0)/T.length, maxAulas: T.reduce((s,t)=>s+t.max,0)/T.length };
+}
+
+function ipMudou(inicial){
+  if (!inicial) ipLer();
+  const q = document.getElementById('ip-medidor'), pre = document.getElementById('ip-presets');
+  if (!q) return;
+  const c = ipConta();
+  if (!c){
+    q.innerHTML = '<div style="font-size:12.5px;color:var(--text3)">Escolha pelo menos um tipo de aula e uma IA para ver o medidor.</div>';
+    if (pre) pre.innerHTML = '';
+    return;
+  }
+  const topo = c.max * 1.3 || 1, pct = v => Math.min(100, v / topo * 100);
+  const z = [
+    { de:0, ate:c.min, cor:'#dc2626' }, { de:c.min, ate:c.rec, cor:'#d97706' },
+    { de:c.rec, ate:c.max, cor:'#16a34a' }, { de:c.max, ate:topo, cor:'#6b7280' } ];
+  let nivel, cor, texto;
+  if (IP.custo < c.min){ nivel='Abaixo do mínimo'; cor='#dc2626'; texto=`Com ${ipUSD(IP.custo)}/dia saem só ~${c.aulasDia.toFixed(1)} aulas por dia (≈${c.porIA.toFixed(1)} por IA). O mínimo para as IAs terem sinal é cerca de ${c.minAulas.toFixed(0)} por IA — falta investimento.`; }
+  else if (IP.custo < c.rec){ nivel='Mínimo viável'; cor='#d97706'; texto=`Dá para começar: ~${c.porIA.toFixed(1)} aulas por IA por dia. A evolução aparece, mas mais devagar; os dias fazem a diferença.`; }
+  else if (IP.custo <= c.max){ nivel='Recomendado'; cor='#16a34a'; texto=`Bom volume: ~${c.porIA.toFixed(1)} aulas por IA por dia, suficiente para uma curva clara de evolução sem desperdiçar.`; }
+  else { nivel='Passou do ponto'; cor='#6b7280'; texto=`Acima de ~${c.maxAulas.toFixed(0)} aulas por IA por dia o ganho cai (as IAs repetem o que já sabem). Você pode reduzir o teto sem perder aprendizado.`; }
+  const total = IP.custo * IP.dias;
+  q.innerHTML = `
+    <div class="ip-barra">${z.map(x => `<div class="ip-zona" style="width:${pct(x.ate)-pct(x.de)}%;background:${x.cor};opacity:.85"></div>`).join('')}
+      <div class="ip-ponteiro" style="left:calc(${pct(IP.custo)}% - 1.5px)"></div></div>
+    <div class="ip-escala"><span>0</span><span>mínimo ${ipUSD(c.min)}</span><span>recomendado ${ipUSD(c.rec)}</span><span>máximo útil ${ipUSD(c.max)}</span></div>
+    <div class="ip-leitura"><b class="ip-nivel" style="background:${cor}">${nivel}</b>${saudeEsc(texto)}</div>
+    <div class="ip-nums">
+      <div class="ip-num"><span>Teto total do intensivo</span><b>${ipUSD(total)}</b></div>
+      <div class="ip-num"><span>Aulas por dia (estimado)</span><b>${c.aulasDia.toFixed(1)}</b></div>
+      <div class="ip-num"><span>Aulas no intensivo</span><b>${Math.round(c.aulasDia * IP.dias)}</b></div>
+      <div class="ip-num"><span>IAs × tipos</span><b>${c.n} × ${c.T.length}</b></div>
+      <div class="ip-num"><span>Checagens suas</span><b>${Math.max(1, Math.floor(IP.dias * 24 / IP.checagem))}</b></div>
+    </div>`;
+  if (pre){
+    const editavel = !document.querySelector('#ip-nome[disabled]');
+    pre.innerHTML = editavel ? `<span style="font-size:11px;color:var(--text3);align-self:center">Ajustar teto diário para:</span>
+      <button class="ip-chip" onclick="ipPreset(${c.min.toFixed(2)})">Mínimo ${ipUSD(c.min)}</button>
+      <button class="ip-chip" onclick="ipPreset(${c.rec.toFixed(2)})">Recomendado ${ipUSD(c.rec)}</button>
+      <button class="ip-chip" onclick="ipPreset(${c.max.toFixed(2)})">Máximo útil ${ipUSD(c.max)}</button>` : '';
+  }
+}
+function ipPreset(v){ const i = document.getElementById('ip-custo'); if (i){ i.value = (Math.ceil(v * 2) / 2).toFixed(2); ipMudou(); } }
+
+function ipNovoForm(){ IP = Object.assign(ipNovo(), { lista:IP.lista, pessoas:IP.pessoas, erroPessoas:IP.erroPessoas }); ipDesenhar(); }
+function ipCarregar(id, mudo){
+  const x = IP.lista.find(i => i.id === id); if (!x) return;
+  Object.assign(IP, { id:x.id, nome:x.nome, status:x.status, tipos:new Set(x.tipos||[]), ias:new Set(x.ias||[]), dias:x.dias,
+    custo:+x.custo_dia_max, checagem:x.checagem_horas, nota:+x.nota_minima, sandbox:x.sandbox, calib:x.calibracao||{} });
+  if (!mudo){ ipDesenhar(); document.querySelector('#view-intensivo .ip-scroll')?.scrollTo({ top:0, behavior:'smooth' }); }
+}
+async function ipSalvar(status){
+  ipLer();
+  if (!IP.tipos.size){ showToast('Escolha pelo menos um tipo de aula.'); return; }
+  if (status === 'pronto'){
+    if (!IP.ias.size){ showToast('Escolha pelo menos uma IA para participar.'); return; }
+    if (!IP.custo){ showToast('Defina o custo máximo por dia.'); return; }
+    if (!confirm(`Preparar "${IP.nome}"?\n\n${IP.dias} dias · até ${ipUSD(IP.custo)}/dia · teto total ${ipUSD(IP.custo*IP.dias)}\n${IP.ias.size} IA(s) · ${IP.tipos.size} tipo(s) de aula · sandbox ${IP.sandbox?'ligado':'DESLIGADO'}\n\nNada gasta até o motor ser ligado, e você pode voltar a rascunho.`)) return;
+  }
+  const linha = { nome:IP.nome, status, tipos:[...IP.tipos], ias:[...IP.ias], dias:IP.dias, custo_dia_max:IP.custo,
+    checagem_horas:IP.checagem, nota_minima:IP.nota, sandbox:IP.sandbox, calibracao:IP.calib, atualizado_em:new Date().toISOString() };
+  const r = IP.id ? await sb.from('pd_intensivos').update(linha).eq('id', IP.id).select().single()
+                  : await sb.from('pd_intensivos').insert({ ...linha, criado_por:profile.id }).select().single();
+  if (r.error){ showToast('Não consegui salvar: ' + (/does not exist|relation/.test(r.error.message) ? 'falta rodar o SQL v95.' : r.error.message)); return; }
+  IP.id = r.data.id; IP.status = r.data.status;
+  showToast(status === 'pronto' ? 'Intensivo preparado.' : 'Rascunho salvo.');
+  renderIntensivo();
+}
+async function ipVoltarRascunho(){
+  const { error } = await sb.from('pd_intensivos').update({ status:'rascunho', atualizado_em:new Date().toISOString() }).eq('id', IP.id);
+  if (error){ showToast('Não consegui: ' + error.message); return; }
+  IP.status = 'rascunho'; showToast('Voltou a rascunho.'); renderIntensivo();
+}
+async function ipExcluir(){
+  if (!IP.id || !confirm('Excluir este intensivo? Isso não pode ser desfeito.')) return;
+  const { error } = await sb.from('pd_intensivos').delete().eq('id', IP.id);
+  if (error){ showToast('Não consegui excluir: ' + error.message); return; }
+  IP = ipNovo(); showToast('Excluído.'); renderIntensivo();
 }
 
 async function renderIAsCasa(){
