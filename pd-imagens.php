@@ -32,7 +32,7 @@ $PASTAS = [
     'cartazes'    => defined('PD_PASTA_CARTAZES')    ? PD_PASTA_CARTAZES    : '10l5vwNKeD8y-azlpe-3vvcVHfEVrf2zn',
     'personagens' => defined('PD_PASTA_PERSONAGENS') ? PD_PASTA_PERSONAGENS : '',
 ];
-// postais de Mufun: pasta própria (PD_PASTA_POSTAIS) ou, se não houver, uma subpasta
+// postais de Catum: pasta própria (PD_PASTA_POSTAIS) ou, se não houver, uma subpasta
 // "postais" (ou arquivo que comece com "postal") dentro da pasta de capas.
 $POSTAIS_PROPRIA = defined('PD_PASTA_POSTAIS') && PD_PASTA_POSTAIS !== '';
 $PASTAS['postais'] = $POSTAIS_PROPRIA ? PD_PASTA_POSTAIS : $PASTAS['capas'];

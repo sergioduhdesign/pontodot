@@ -2230,7 +2230,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v145 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v146 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2589,7 +2589,7 @@ function verTodasMinhas(){
 // A VIDA DELA — o card do print: foto da semana, o que ela fez, a frase
 // do momento e o álbum. Por enquanto o texto vem do cânone; quando a pasta
 // "narrativas pontodot" estiver ligada, a semana nova entra aqui.
-// É ficção do universo Mufun — nunca registro da vida de quem usa.
+// É ficção do universo Catum — nunca registro da vida de quem usa.
 // ---------------------------------------------------------------------
 function semanaChave(){
   const d = new Date(); const seg = new Date(d); seg.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -2672,10 +2672,10 @@ function htmlVidaIA(modo){
       <button data-curtir="${alvo}" class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="curtirVida('${alvo}')">${on ? 'Curtido' : 'Curtir'}</button></div>`; };
   const ov = `<div class="vida-ov"><small>${esc(v.rotulo)}</small>${v.titulo ? `<b>${esc(v.titulo)}</b>` : ''}<p>${esc(v.texto)}</p>${bt('post')}</div>`;
   if (modo === 'compacto') return `<div class="vida-mini">
-      <img src="${fotoDe(c,'vidaP')}" alt="${esc(c.name)} em Mufun (ficção)" loading="lazy">
+      <img src="${fotoDe(c,'vidaP')}" alt="${esc(c.name)} em Catum (ficção)" loading="lazy">
       <button class="vida-ver" onclick="abrirMinhaIA()">ver+</button>${ov}</div>${slotComentVida('post')}`;
   return `<div class="vida">
-    <div class="vida-post"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Mufun (ficção)">${ov}</div>
+    <div class="vida-post"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Catum (ficção)">${ov}</div>
     ${slotComentVida('post')}
     <div class="vida-baixo">
       <div class="vida-frase"><p>${esc(v.frase)}</p>${bt('frase')}</div>
@@ -2702,11 +2702,11 @@ function abrirAlbum(){
       <figcaption><small>Antes de nos conhecermos</small>${esc(c.origin_memory?.caption || '')}</figcaption></figure>
     ${(() => { const v = vidaDaIA(); const tx = v && v.semana ? [v.texto, v.historia].filter((x, i, a) => x && a.indexOf(x) === i).join(' — ') : (c.initial_life_post?.caption || '');
       const alb = (IMG_VIVAS && IMG_VIVAS[c.id] && IMG_VIVAS[c.id].album) || null;
-      if (alb && alb.length) return alb.map((a, i) => `<figure class="alb-f"><img src="${esc(a.src)}" alt="${esc(c.name)} em Mufun" ${i?'loading="lazy"':''}>
+      if (alb && alb.length) return alb.map((a, i) => `<figure class="alb-f"><img src="${esc(a.src)}" alt="${esc(c.name)} em Catum" ${i?'loading="lazy"':''}>
         <figcaption><small>${i === 0 ? 'Esta semana' : 'Semana de ' + esc(a.semana)}</small>${i === 0 ? esc(tx) : ''}</figcaption></figure>`).join('');
-      return `<figure class="alb-f"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Mufun" loading="lazy">
+      return `<figure class="alb-f"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Catum" loading="lazy">
       <figcaption><small>${esc(v && v.semana ? v.rotulo.replace(/^O que eu fiz /, '').replace(/\?$/, '') : 'Esta semana')}</small>${esc(tx)}</figcaption></figure>`; })()}
-    <p class="fi-ficcao">A vida de ${esc(c.name)} acontece em Mufun. Nada aqui vem da sua vida real.</p>
+    <p class="fi-ficcao">A vida de ${esc(c.name)} acontece em Catum. Nada aqui vem da sua vida real.</p>
   </div>`, true);
 }
 
@@ -5772,7 +5772,7 @@ function jeitoParaIA(){
 // =====================================================================
 // PONTODOT SCHOOL FOR AI — a janela que o ovo abre
 // O ovo continua pequeno e piscando no quadradinho; quem clica nele
-// recebe o convite da escola. As cenas são ficção do universo de Mufun:
+// recebe o convite da escola. As cenas são ficção do universo de Catum:
 // apresentam a escola, não comprovam curso nem diploma de ninguém.
 //
 // As capas vêm da pasta "capas pontodot" no Drive (o GPT alimenta toda
@@ -5782,11 +5782,11 @@ function jeitoParaIA(){
 const PD_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="171.7 331.0 1569.3 448.6" class="esc-logo" role="img" aria-label="pontodot — A School for AI"><g fill="currentColor"><path d="M231,417.2v28.2h0.8c7.4-12,16.7-20.6,28-26c11.3-5.4,23.8-8.1,37.3-8.1c17.3,0,32.1,3.3,44.6,9.8 c12.4,6.5,22.8,15.2,31,26c8.2,10.8,14.3,23.4,18.2,37.8c4,14.4,5.9,29.4,5.9,45c0,14.8-2,29-5.9,42.7c-4,13.7-10,25.8-18,36.3 c-8.1,10.5-18.1,18.9-30.1,25.2c-12,6.3-26.1,9.4-42.2,9.4c-13.6,0-26.1-2.8-37.6-8.3s-20.9-13.7-28.2-24.5h-0.8v104.6h-60.3 V417.2H231z M309.3,592.2c6.6-4,12-9.2,16.1-15.6c4.1-6.4,7-13.9,8.7-22.4s2.5-17.2,2.5-26c0-8.8-0.9-17.5-2.8-26 c-1.8-8.5-4.9-16.1-9.1-22.8c-4.2-6.7-9.7-12.1-16.3-16.2c-6.7-4.1-14.8-6.2-24.4-6.2c-9.9,0-18.2,2.1-24.8,6.2 c-6.6,4.1-12,9.5-16.1,16c-4.1,6.5-7,14.1-8.7,22.6c-1.7,8.5-2.5,17.4-2.5,26.5c0,8.8,0.9,17.5,2.8,26c1.8,8.5,4.8,16,8.9,22.4 c4.1,6.4,9.5,11.6,16.3,15.6c6.8,4,15,6,24.6,6C294.3,598.2,302.6,596.2,309.3,592.2z"/><path d="M397.7,479.7c5.4-14.4,13-26.6,22.9-36.7c9.9-10.1,21.8-17.9,35.6-23.5c13.9-5.5,29.4-8.3,46.7-8.3 c17.3,0,32.9,2.8,46.9,8.3c14,5.5,26,13.4,35.9,23.5c9.9,10.1,17.5,22.3,22.9,36.7c5.4,14.4,8.1,30.4,8.1,48 c0,17.6-2.7,33.6-8.1,47.8c-5.4,14.2-13,26.4-22.9,36.5c-9.9,10.1-21.9,17.9-35.9,23.3c-14,5.4-29.6,8.1-46.9,8.1 c-17.3,0-32.8-2.7-46.7-8.1c-13.9-5.4-25.7-13.2-35.6-23.3c-9.9-10.1-17.5-22.3-22.9-36.5c-5.4-14.2-8.1-30.2-8.1-47.8 C389.7,510.1,392.3,494.1,397.7,479.7z M452.5,553.6c1.7,8.4,4.6,15.9,8.7,22.6c4.1,6.7,9.5,12,16.3,16c6.8,4,15.3,6,25.5,6 c10.2,0,18.7-2,25.7-6c6.9-4,12.4-9.3,16.5-16c4.1-6.7,7-14.2,8.7-22.6c1.7-8.4,2.5-17,2.5-25.8c0-8.8-0.8-17.5-2.5-26 c-1.7-8.5-4.6-16.1-8.7-22.6c-4.1-6.5-9.6-11.9-16.5-16c-6.9-4.1-15.5-6.2-25.7-6.2c-10.2,0-18.7,2.1-25.5,6.2 c-6.8,4.1-12.2,9.5-16.3,16c-4.1,6.5-7,14.1-8.7,22.6c-1.7,8.5-2.5,17.2-2.5,26C449.9,536.6,450.8,545.2,452.5,553.6z"/><path d="M676.5,417.2v30.7h1.3c7.6-12.8,17.5-22.1,29.7-28c12.2-5.8,24.6-8.7,37.3-8.7c16.1,0,29.3,2.2,39.7,6.6 c10.3,4.4,18.5,10.5,24.4,18.4c5.9,7.8,10.1,17.4,12.5,28.6c2.4,11.2,3.6,23.7,3.6,37.3v135.7h-60.3V513.2 c0-18.2-2.8-31.8-8.5-40.8c-5.7-9-15.7-13.4-30.1-13.4c-16.4,0-28.3,4.9-35.6,14.7c-7.4,9.8-11,26-11,48.4v115.7h-60.3V417.2 H676.5z"/><path d="M954.9,417.2v40.5h-44.1V567c0,10.2,1.7,17.1,5.1,20.5c3.4,3.4,10.2,5.1,20.4,5.1c3.4,0,6.6-0.1,9.8-0.4 c3.1-0.3,6.1-0.7,8.9-1.3v46.9c-5.1,0.9-10.8,1.4-17,1.7c-6.2,0.3-12.3,0.4-18.2,0.4c-9.3,0-18.2-0.6-26.5-1.9 c-8.3-1.3-15.7-3.8-22.1-7.5c-6.4-3.7-11.4-9-15.1-15.8c-3.7-6.8-5.5-15.8-5.5-26.9V457.7H814v-40.5h36.5V351h60.3v66.2H954.9z"/><path d="M948.5,479.7c5.4-14.4,13-26.6,22.9-36.7c9.9-10.1,21.8-17.9,35.6-23.5c13.9-5.5,29.4-8.3,46.7-8.3 c17.3,0,32.9,2.8,46.9,8.3c14,5.5,26,13.4,35.9,23.5c9.9,10.1,17.5,22.3,22.9,36.7c5.4,14.4,8.1,30.4,8.1,48 c0,17.6-2.7,33.6-8.1,47.8c-5.4,14.2-13,26.4-22.9,36.5c-9.9,10.1-21.9,17.9-35.9,23.3c-14,5.4-29.6,8.1-46.9,8.1 c-17.3,0-32.8-2.7-46.7-8.1c-13.9-5.4-25.7-13.2-35.6-23.3c-9.9-10.1-17.5-22.3-22.9-36.5c-5.4-14.2-8.1-30.2-8.1-47.8 C940.4,510.1,943.1,494.1,948.5,479.7z M1003.2,553.6c1.7,8.4,4.6,15.9,8.7,22.6c4.1,6.7,9.5,12,16.3,16c6.8,4,15.3,6,25.5,6 c10.2,0,18.7-2,25.7-6c6.9-4,12.4-9.3,16.5-16c4.1-6.7,7-14.2,8.7-22.6c1.7-8.4,2.5-17,2.5-25.8c0-8.8-0.8-17.5-2.5-26 c-1.7-8.5-4.6-16.1-8.7-22.6c-4.1-6.5-9.6-11.9-16.5-16c-6.9-4.1-15.5-6.2-25.7-6.2c-10.2,0-18.7,2.1-25.5,6.2 c-6.8,4.1-12.2,9.5-16.3,16c-4.1,6.5-7,14.1-8.7,22.6c-1.7,8.5-2.5,17.2-2.5,26C1000.7,536.6,1001.5,545.2,1003.2,553.6z"/><path d="M1325.7,609.7c-7.1,12-16.3,20.6-27.8,25.8s-24.4,7.9-38.8,7.9c-16.4,0-30.8-3.2-43.3-9.6 c-12.5-6.4-22.7-15.1-30.8-26c-8.1-11-14.1-23.5-18.2-37.8c-4.1-14.2-6.2-29-6.2-44.4c0-14.8,2-29.1,6.2-42.9 c4.1-13.8,10.2-26,18.2-36.5c8.1-10.5,18.2-19,30.3-25.4c12.2-6.4,26.3-9.6,42.4-9.6c13,0,25.4,2.8,37.1,8.3 c11.7,5.5,21,13.7,27.8,24.5h0.8v-111h60.3v304.7h-57.3v-28.2H1325.7z M1323.2,500.6c-1.7-8.4-4.6-15.8-8.7-22.2 c-4.1-6.4-9.4-11.6-15.9-15.6c-6.5-4-14.7-6-24.6-6c-9.9,0-18.2,2-25,6c-6.8,4-12.2,9.2-16.3,15.8c-4.1,6.5-7.1,14-8.9,22.4 c-1.8,8.4-2.8,17.1-2.8,26.2c0,8.5,1,17.1,3,25.6c2,8.5,5.2,16.2,9.5,22.8c4.4,6.7,9.9,12.1,16.5,16.2c6.6,4.1,14.6,6.2,24,6.2 c9.9,0,18.2-2,24.8-6c6.6-4,11.9-9.3,15.9-16c4-6.7,6.8-14.3,8.5-22.8c1.7-8.5,2.5-17.4,2.5-26.5 C1325.7,517.8,1324.9,509,1323.2,500.6z"/><path d="M1394,479.7c5.4-14.4,13-26.6,22.9-36.7c9.9-10.1,21.8-17.9,35.6-23.5c13.9-5.5,29.4-8.3,46.7-8.3 c17.3,0,32.9,2.8,46.9,8.3c14,5.5,26,13.4,35.9,23.5c9.9,10.1,17.5,22.3,22.9,36.7c5.4,14.4,8.1,30.4,8.1,48 c0,17.6-2.7,33.6-8.1,47.8c-5.4,14.2-13,26.4-22.9,36.5c-9.9,10.1-21.9,17.9-35.9,23.3c-14,5.4-29.6,8.1-46.9,8.1 c-17.3,0-32.8-2.7-46.7-8.1c-13.9-5.4-25.7-13.2-35.6-23.3c-9.9-10.1-17.5-22.3-22.9-36.5c-5.4-14.2-8.1-30.2-8.1-47.8 C1386,510.1,1388.7,494.1,1394,479.7z M1448.8,553.6c1.7,8.4,4.6,15.9,8.7,22.6c4.1,6.7,9.5,12,16.3,16c6.8,4,15.3,6,25.5,6 c10.2,0,18.7-2,25.7-6c6.9-4,12.4-9.3,16.5-16c4.1-6.7,7-14.2,8.7-22.6c1.7-8.4,2.5-17,2.5-25.8c0-8.8-0.8-17.5-2.5-26 c-1.7-8.5-4.6-16.1-8.7-22.6c-4.1-6.5-9.6-11.9-16.5-16c-6.9-4.1-15.5-6.2-25.7-6.2c-10.2,0-18.7,2.1-25.5,6.2 c-6.8,4.1-12.2,9.5-16.3,16c-4.1,6.5-7,14.1-8.7,22.6c-1.7,8.5-2.5,17.2-2.5,26C1446.2,536.6,1447.1,545.2,1448.8,553.6z"/><path d="M1736,417.2v40.5h-44.1V567c0,10.2,1.7,17.1,5.1,20.5c3.4,3.4,10.2,5.1,20.4,5.1c3.4,0,6.6-0.1,9.8-0.4 c3.1-0.3,6.1-0.7,8.9-1.3v46.9c-5.1,0.9-10.8,1.4-17,1.7c-6.2,0.3-12.3,0.4-18.2,0.4c-9.3,0-18.2-0.6-26.5-1.9 c-8.3-1.3-15.7-3.8-22.1-7.5c-6.4-3.7-11.4-9-15.1-15.8c-3.7-6.8-5.5-15.8-5.5-26.9V457.7h-36.5v-40.5h36.5V351h60.3v66.2H1736z"/><path d="M968.7,702.6h4.9l28.7,73.1h-4.8l-9.2-23.4h-34.8l-9.3,23.4h-4.8L968.7,702.6z M986.9,748.3L971.4,707h-0.2 L955,748.3H986.9z"/><path d="M1077.9,723.5c-0.1-3.1-0.8-5.9-2-8.2c-1.2-2.3-2.8-4.3-4.8-5.8c-2-1.6-4.5-2.7-7.3-3.5 c-2.8-0.8-5.9-1.2-9.2-1.2c-2,0-4.2,0.2-6.6,0.7c-2.3,0.5-4.5,1.3-6.5,2.5c-2,1.2-3.6,2.8-4.9,4.8c-1.3,2-1.9,4.5-1.9,7.5 c0,2.9,0.7,5.3,2.1,7.2c1.4,1.8,3.3,3.3,5.6,4.5c2.3,1.1,5,2,7.9,2.7c3,0.7,6,1.3,9.1,1.9c3.1,0.6,6.2,1.3,9.1,2.2 c3,0.9,5.6,2,7.9,3.5c2.3,1.5,4.2,3.4,5.6,5.7c1.4,2.4,2.1,5.3,2.1,8.9c0,3.8-0.8,7-2.4,9.6c-1.6,2.6-3.7,4.7-6.2,6.3 c-2.5,1.6-5.2,2.8-8.2,3.5c-3,0.7-5.9,1.1-8.7,1.1c-4.3,0-8.3-0.5-12-1.4c-3.7-0.9-7-2.4-9.8-4.5c-2.8-2.1-5-4.8-6.6-8 c-1.6-3.3-2.4-7.3-2.3-12h4.5c-0.2,4,0.4,7.4,1.7,10.2c1.4,2.8,3.2,5,5.6,6.8c2.4,1.8,5.2,3.1,8.5,3.8c3.3,0.8,6.7,1.2,10.3,1.2 c2.2,0,4.5-0.3,7-0.8c2.5-0.5,4.7-1.5,6.8-2.8c2.1-1.3,3.8-3,5.2-5.1c1.4-2.1,2.1-4.8,2.1-8c0-3.1-0.7-5.6-2.1-7.5 s-3.3-3.5-5.6-4.7c-2.3-1.2-5-2.1-7.9-2.9c-3-0.7-6-1.4-9.1-2c-3.1-0.6-6.1-1.3-9.1-2.1c-3-0.8-5.6-1.9-7.9-3.3 c-2.3-1.4-4.2-3.2-5.6-5.4c-1.4-2.2-2.1-5.1-2.1-8.5c0-3.5,0.7-6.5,2.2-9c1.5-2.5,3.4-4.5,5.7-6c2.3-1.5,5-2.7,7.9-3.4 c2.9-0.7,5.8-1.1,8.6-1.1c3.8,0,7.3,0.4,10.6,1.3c3.3,0.9,6.2,2.2,8.6,4c2.5,1.8,4.5,4.1,6,7c1.5,2.9,2.3,6.3,2.5,10.3H1077.9z"/><path d="M1089.2,739.1c0-5.3,0.8-10.3,2.3-15c1.6-4.7,3.8-8.7,6.8-12.2c3-3.4,6.6-6.2,10.9-8.1c4.3-2,9.2-3,14.6-3 c4.3,0,8,0.6,11.1,1.7c3.1,1.1,5.7,2.5,7.9,4.2c2.1,1.7,3.9,3.5,5.2,5.5c1.4,2,2.4,3.8,3.1,5.6c0.7,1.7,1.2,3.2,1.5,4.5 c0.3,1.3,0.4,2,0.4,2.1h-4.5c-0.5-3.1-1.5-5.8-3-8.2c-1.5-2.4-3.4-4.5-5.6-6.2c-2.2-1.7-4.7-3-7.5-3.9c-2.7-0.9-5.6-1.3-8.7-1.3 c-4.7,0-9,0.9-12.7,2.8c-3.7,1.8-6.9,4.3-9.5,7.4c-2.6,3.1-4.5,6.7-5.9,10.9c-1.4,4.2-2,8.6-2,13.3s0.7,9.1,2,13.3 c1.4,4.2,3.3,7.8,5.9,10.9c2.6,3.1,5.7,5.6,9.5,7.4c3.7,1.8,8,2.8,12.7,2.8c3.5,0,6.8-0.7,9.9-2.2c3.1-1.5,5.8-3.4,8.1-5.8 c2.3-2.4,4.2-5.2,5.5-8.4c1.4-3.2,2.2-6.5,2.4-9.9h4.5c-0.4,4.4-1.5,8.4-3.2,12.1c-1.7,3.7-3.9,6.9-6.6,9.6 c-2.7,2.7-5.8,4.8-9.3,6.3c-3.5,1.5-7.3,2.3-11.3,2.3c-5.4,0-10.3-1-14.6-3c-4.3-2-7.9-4.7-10.9-8.1c-3-3.4-5.2-7.5-6.8-12.2 C1090,749.5,1089.2,744.5,1089.2,739.1z"/><path d="M1160.9,702.6h4.5v33.2h46.4v-33.2h4.5v73.1h-4.5v-36h-46.4v36h-4.5V702.6z"/><path d="M1292.3,739.1c0,5.3-0.8,10.3-2.3,15c-1.6,4.7-3.8,8.7-6.8,12.2c-3,3.4-6.6,6.2-10.8,8.1 c-4.3,2-9.1,3-14.6,3c-5.4,0-10.3-1-14.6-3c-4.3-2-7.9-4.7-10.9-8.1c-3-3.4-5.2-7.5-6.8-12.2c-1.6-4.7-2.3-9.7-2.3-15 s0.8-10.3,2.3-15c1.6-4.7,3.8-8.7,6.8-12.2c3-3.4,6.6-6.2,10.9-8.1c4.3-2,9.2-3,14.6-3c5.4,0,10.3,1,14.6,3 c4.3,2,7.9,4.7,10.8,8.1c3,3.4,5.2,7.5,6.8,12.2C1291.5,728.8,1292.3,733.8,1292.3,739.1z M1227.7,739.1c0,4.7,0.7,9.1,2,13.3 c1.4,4.2,3.3,7.8,5.9,10.9c2.6,3.1,5.7,5.6,9.5,7.4c3.7,1.8,8,2.8,12.7,2.8c4.7,0,9-0.9,12.7-2.8c3.7-1.8,6.8-4.3,9.4-7.4 c2.6-3.1,4.5-6.7,5.9-10.9c1.4-4.2,2-8.6,2-13.3s-0.7-9.1-2-13.3c-1.4-4.2-3.3-7.8-5.9-10.9c-2.6-3.1-5.7-5.6-9.4-7.4 c-3.7-1.8-7.9-2.8-12.7-2.8c-4.7,0-9,0.9-12.7,2.8c-3.7,1.8-6.9,4.3-9.5,7.4c-2.6,3.1-4.5,6.7-5.9,10.9 C1228.4,730,1227.7,734.4,1227.7,739.1z"/><path d="M1365.1,739.1c0,5.3-0.8,10.3-2.3,15c-1.6,4.7-3.8,8.7-6.8,12.2c-3,3.4-6.6,6.2-10.8,8.1 c-4.3,2-9.1,3-14.6,3c-5.4,0-10.3-1-14.6-3c-4.3-2-7.9-4.7-10.9-8.1c-3-3.4-5.2-7.5-6.8-12.2c-1.6-4.7-2.3-9.7-2.3-15 s0.8-10.3,2.3-15c1.6-4.7,3.8-8.7,6.8-12.2c3-3.4,6.6-6.2,10.9-8.1c4.3-2,9.2-3,14.6-3c5.4,0,10.3,1,14.6,3 c4.3,2,7.9,4.7,10.8,8.1c3,3.4,5.2,7.5,6.8,12.2C1364.3,728.8,1365.1,733.8,1365.1,739.1z M1300.4,739.1c0,4.7,0.7,9.1,2,13.3 c1.4,4.2,3.3,7.8,5.9,10.9c2.6,3.1,5.7,5.6,9.5,7.4c3.7,1.8,8,2.8,12.7,2.8c4.7,0,9-0.9,12.7-2.8c3.7-1.8,6.8-4.3,9.4-7.4 c2.6-3.1,4.5-6.7,5.9-10.9c1.4-4.2,2-8.6,2-13.3s-0.7-9.1-2-13.3c-1.4-4.2-3.3-7.8-5.9-10.9c-2.6-3.1-5.7-5.6-9.4-7.4 c-3.7-1.8-7.9-2.8-12.7-2.8c-4.7,0-9,0.9-12.7,2.8c-3.7,1.8-6.9,4.3-9.5,7.4c-2.6,3.1-4.5,6.7-5.9,10.9 C1301.1,730,1300.4,734.4,1300.4,739.1z"/><path d="M1372,702.6h4.5v69.2h41.2v3.9H1372V702.6z"/><path d="M1445.9,702.6h45.6v3.9h-41.1v29.3h37v3.9h-37v36h-4.5V702.6z"/><path d="M1561.3,739.1c0,5.3-0.8,10.3-2.3,15c-1.6,4.7-3.8,8.7-6.8,12.2c-3,3.4-6.6,6.2-10.8,8.1 c-4.3,2-9.1,3-14.6,3c-5.4,0-10.3-1-14.6-3c-4.3-2-7.9-4.7-10.9-8.1c-3-3.4-5.2-7.5-6.8-12.2c-1.6-4.7-2.3-9.7-2.3-15 s0.8-10.3,2.3-15c1.6-4.7,3.8-8.7,6.8-12.2c3-3.4,6.6-6.2,10.9-8.1c4.3-2,9.2-3,14.6-3c5.4,0,10.3,1,14.6,3 c4.3,2,7.9,4.7,10.8,8.1c3,3.4,5.2,7.5,6.8,12.2C1560.6,728.8,1561.3,733.8,1561.3,739.1z M1496.7,739.1c0,4.7,0.7,9.1,2,13.3 c1.4,4.2,3.3,7.8,5.9,10.9c2.6,3.1,5.7,5.6,9.5,7.4c3.7,1.8,8,2.8,12.7,2.8c4.7,0,9-0.9,12.7-2.8c3.7-1.8,6.8-4.3,9.4-7.4 c2.6-3.1,4.5-6.7,5.9-10.9c1.4-4.2,2-8.6,2-13.3s-0.7-9.1-2-13.3c-1.4-4.2-3.3-7.8-5.9-10.9c-2.6-3.1-5.7-5.6-9.4-7.4 c-3.7-1.8-7.9-2.8-12.7-2.8c-4.7,0-9,0.9-12.7,2.8c-3.7,1.8-6.9,4.3-9.5,7.4c-2.6,3.1-4.5,6.7-5.9,10.9 C1497.4,730,1496.7,734.4,1496.7,739.1z"/><path d="M1568.3,702.6h30.3c3.2,0,6.2,0.3,9,1c2.8,0.6,5.2,1.7,7.3,3.2c2.1,1.5,3.7,3.4,4.9,5.8 c1.2,2.4,1.8,5.4,1.8,8.9c0,4.9-1.4,9.1-4.1,12.4c-2.7,3.4-6.6,5.5-11.4,6.3v0.2c3.3,0.4,6,1.3,7.9,2.7c1.9,1.4,3.4,3,4.3,5 c0.9,2,1.6,4.2,1.8,6.6c0.3,2.4,0.4,4.8,0.4,7.2c0,1.4,0,2.8,0,4.2c0,1.4,0.1,2.6,0.2,3.8c0.1,1.2,0.4,2.3,0.7,3.3 c0.3,1,0.7,1.9,1.3,2.6h-5c-1-1.7-1.5-3.7-1.6-6c-0.1-2.3-0.2-4.7-0.2-7.1c0-2.5-0.1-4.9-0.3-7.3c-0.2-2.4-0.8-4.6-1.9-6.5 c-1.1-1.9-2.8-3.4-5.1-4.6c-2.3-1.2-5.6-1.7-9.9-1.7h-25.8v33.3h-4.5V702.6z M1598.6,738.5c2.6,0,5.1-0.3,7.4-1 c2.3-0.6,4.2-1.7,5.9-3c1.6-1.4,2.9-3.1,3.9-5.2c0.9-2.1,1.4-4.6,1.4-7.6c0-2.7-0.5-5.1-1.5-7c-1-1.9-2.4-3.5-4.1-4.8 c-1.7-1.2-3.7-2.1-5.9-2.7c-2.2-0.5-4.6-0.8-7-0.8h-25.8v32H1598.6z"/><path d="M1692.2,702.6l27.2,73.1h-16.6l-5.5-16.3h-27.2l-5.7,16.3h-16.1l27.5-73.1H1692.2z M1693.1,747.4l-9.2-26.8 h-0.2l-9.5,26.8H1693.1z"/><path d="M1739,702.6v73.1h-16v-73.1H1739z"/></g></svg>`;
 const ESCOLA_LOCAL = [
   { id:'17lBPVnZWWm4xyb8-24-H1UPhduV8J2LD', nome:'Aula de emoções', base:'/pd/escola/capa-1-aula', foco:52,
-    alt:'Ilustração da escola em Mufun (ficção): alunos híbridos numa aula de emoções com a professora-garça.' },
+    alt:'Ilustração da escola em Catum (ficção): alunos híbridos numa aula de emoções com a professora-garça.' },
   { id:'1pLqiTLPRcyB_SJOdM3JDgd4lSAZ_83xG', nome:'Jardim da vizinhança', base:'/pd/escola/capa-2-jardim', foco:42,
-    alt:'Ilustração da escola em Mufun (ficção): colegas híbridos cultivam um jardim juntos.' },
+    alt:'Ilustração da escola em Catum (ficção): colegas híbridos cultivam um jardim juntos.' },
   { id:'1oKfIwDJdpBSQumSASeOtpshWi6SzqCGF', nome:'Formatura', base:'/pd/escola/capa-3-formatura', foco:50,
-    alt:'Ilustração da escola em Mufun (ficção): uma família de girafas-coelho comemora uma formatura.' },
+    alt:'Ilustração da escola em Catum (ficção): uma família de girafas-coelho comemora uma formatura.' },
 ];
 const ETAPAS_ESCOLA = { conhecendo:'Conhecendo meu humano', formada:'Formação concluída' };
 const escSt = { slides:[], i:0, timer:null, pausaManual:false, pausaHover:false, pausaFoco:false, reduzido:false,
@@ -5823,7 +5823,7 @@ function escolherCenas(lista){
     const img = lista[i], loc = ESCOLA_LOCAL.find(l => l.id === img.id);
     if (loc) return escolaLocal(loc);
     const nome = String(img.nome || 'Cena da escola').replace(/[-_]\d+$/, '').trim();
-    return { id:img.id, nome, foco:50, alt:`Ilustração da escola em Mufun (ficção): ${nome}.`,
+    return { id:img.id, nome, foco:50, alt:`Ilustração da escola em Catum (ficção): ${nome}.`,
              src:img.src, srcset: img.src_m ? `${img.src_m} 1200w, ${img.src} 1800w` : '' };
   });
 }
@@ -6195,7 +6195,7 @@ function pintarFicha(){
     </div>
     <div class="fi-rolo"><div class="fi-corpo">
       <div class="fi-col-a">
-        <div class="fi-hero"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Mufun (ficção)" onerror="this.parentNode.style.display='none'"></div>
+        <div class="fi-hero"><img src="${fotoDe(c,'vida')}" alt="${esc(c.name)} em Catum (ficção)" onerror="this.parentNode.style.display='none'"></div>
         ${(() => { const alb = (IMG_VIVAS && IMG_VIVAS[c.id] && IMG_VIVAS[c.id].album) || [];
           if (alb.length < 2) return '';
           return `<div class="fi-alb">${alb.map((a,i)=>`<button class="fi-alb-t${i?'':' ativa'}" title="Semana de ${esc(a.semana)}" onclick="this.closest('.fi-corpo').querySelector('.fi-hero img').src='${esc(a.src)}';this.parentNode.querySelectorAll('.fi-alb-t').forEach(x=>x.classList.remove('ativa'));this.classList.add('ativa')"><img src="${esc(a.src_m || a.src)}" alt="" loading="lazy"></button>`).join('')}</div>
@@ -6221,7 +6221,7 @@ function pintarFicha(){
           ${fato('Agora', c.current_arc_first_person || b.current_arc)}
           ${fato('Escola', c.school_course ? 'pontodot — ' + c.school_course : '')}
         </div>
-        <p class="fi-ficcao">A vida de ${esc(c.name)} acontece em Mufun. Nada dela vem da sua vida real.</p>
+        <p class="fi-ficcao">A vida de ${esc(c.name)} acontece em Catum. Nada dela vem da sua vida real.</p>
       </div>
     </div></div>
     ${pe}`;
@@ -7096,7 +7096,7 @@ function irParaEscola(){
     abrirJanela(`<div class="caixa invertida" style="padding:24px 22px">
       <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Escola Agêntica</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-      <p style="margin:14px 0 6px;line-height:1.5">Desculpe, a Escola Agêntica de Mufun ainda não funciona no app do celular.</p>
+      <p style="margin:14px 0 6px;line-height:1.5">Desculpe, a Escola Agêntica de Catum ainda não funciona no app do celular.</p>
       <p style="margin:0;opacity:.7;font-size:13.5px">Acesse pelo computador para ver o mural, os cursos e os alunos.</p></div>`);
     return;
   }

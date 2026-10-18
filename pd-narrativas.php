@@ -1,6 +1,6 @@
 <?php
 // =====================================================================
-// pontodot — AS SEMANAS DE MUFUN (o card da vida dela)
+// pontodot — AS SEMANAS DE CATUM (o card da vida dela)
 //
 // O GPT deixa na pasta "narrativas pontodot" um Doc por semana, com o
 // nome da segunda-feira (2026-10-12) e um bloco por personagem:

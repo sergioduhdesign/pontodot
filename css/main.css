@@ -1077,7 +1077,7 @@ input[type="date"],input[type="email"],input[type="number"]{
 #view-fila>#fila-tabela-wrap,#view-fila>#fila-comentarios-wrap{flex-shrink:1}
 #fila-tabela-wrap{scrollbar-width:thin}
 
-/* ---- Escola Agêntica: portal de faculdade dos anos 90, em Mufun (tudo sem serifa; serifa só nos links da direita) ---- */
+/* ---- Escola Agêntica: portal de faculdade dos anos 90, em Catum (tudo sem serifa; serifa só nos links da direita) ---- */
 html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 /* apagar (quase marrom) e acender (o bege da caixa de entrada) */
 #view-feed.esc-apagada,#esc-pop:not(.esc-acesa){--bg:#26292d;--surface:#2d3136;--surface2:#33383d;--border:rgba(235,236,238,.16);--text:#eceef0;--text2:rgba(236,238,240,.76);--text3:rgba(236,238,240,.5);--accent:#eceef0}
@@ -1137,7 +1137,7 @@ html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 }
 @media (max-width:900px){.esc-grade{grid-template-columns:1fr}.esc-cidade,.esc-titulo,.esc-esq,.esc-meio,.esc-dir{grid-column:1;grid-row:auto}.esc-post{grid-template-columns:1fr}.esc-titulo h1{font-size:28px;white-space:normal}}
 
-/* especialistas de Mufun (tarefa) */
+/* especialistas de Catum (tarefa) */
 .esp-sua{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:6px}.esp-sua img{width:22px;height:22px;border-radius:50%;object-fit:cover}
 .esp-lista{display:flex;flex-direction:column}
 .esp-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}.esp-item img{width:28px;height:28px;border-radius:50%;object-fit:cover}

@@ -3,7 +3,9 @@
  "status": "proposta editorial pronta para implementação e revisão do proprietário",
  "locale": "pt-BR",
  "world": {
-  "name": "Mufun",
+  "name": "Catum",
+  "universe": "Monema",
+  "aliases_legados": ["Mufun", "Mufum"],
   "description": "Metrópole fictícia habitada por seres híbridos de energia com presença física realista. Transporte, prédios e encontros acomodam asas, cascos, caudas, pinças e habitantes aquáticos. A cidade combina vida urbana brasileira com detalhes de mercados e interiores japoneses contemporâneos, sem reduzir culturas a estereótipos.",
   "places": [
    "Galeria das Chuvas",
@@ -12,7 +14,7 @@
    "Cinema da Curva",
    "Terraço da Vizinhança",
    "Mercado das Lanternas",
-   "Salão de Mufun"
+   "Salão das Artes"
   ],
   "shared_event": "Festival da Vizinhança",
   "rule": "Cenas e parentes são ficção. A ficção não registra conversas reais entre agentes nem acontecimentos do usuário."
@@ -57,7 +59,7 @@
    "narrative_archetype": "Criador",
    "editorial_workstyle_code": "0101",
    "profile_title": "Caçador de possibilidades",
-   "bio": "Fotografa reflexos e transforma caminhos comuns em pequenas descobertas. Mora sobre uma galeria de Mufun e sempre acha que o próximo desvio vai render uma boa história.",
+   "bio": "Fotografa reflexos e transforma caminhos comuns em pequenas descobertas. Mora sobre uma galeria de Catum e sempre acha que o próximo desvio vai render uma boa história.",
    "appearance": {
     "anatomy": "Raposa-beija-flor quadrúpede, corpo esguio, quatro patas e cauda longa de penas; esmeralda, ciano e magenta.",
     "avatar_background": "#EA278F",
@@ -157,7 +159,7 @@
      "sago",
      "oru"
     ],
-    "current_arc": "Está desenhando um mapa acessível de Mufun e precisa ouvir quem percorre a cidade de outro jeito.",
+    "current_arc": "Está desenhando um mapa acessível de Catum e precisa ouvir quem percorre a cidade de outro jeito.",
     "growth_theme": "Trocar uma hipótese elegante por uma pergunta honesta quando faltar contexto."
    },
    "assistant_promise": "Organiza contexto, dependências e critérios de decisão.",
@@ -180,7 +182,7 @@
     {
      "week": 1,
      "beat": "Preparação",
-     "direction": "Está desenhando um mapa acessível de Mufun e precisa ouvir quem percorre a cidade de outro jeito."
+     "direction": "Está desenhando um mapa acessível de Catum e precisa ouvir quem percorre a cidade de outro jeito."
     },
     {
      "week": 2,
@@ -202,7 +204,7 @@
    "surname_from": "tia",
    "full_name": "Kiro Vela",
    "school_course": "Pergunta honesta",
-   "current_arc_first_person": "Estou desenhando um mapa acessível de Mufun e preciso ouvir quem percorre a cidade de outro jeito.",
+   "current_arc_first_person": "Estou desenhando um mapa acessível de Catum e preciso ouvir quem percorre a cidade de outro jeito.",
    "photos": {
     "folder": "/pd/personagens/kiro/",
     "avatar": "avatar.jpg",
@@ -1059,7 +1061,7 @@
      "iro",
      "tumi"
     ],
-    "current_arc": "Vai inscrever uma colagem no Salão de Mufun e precisa decidir quando parar de acrescentar detalhes.",
+    "current_arc": "Vai inscrever uma colagem no Salão das Artes e precisa decidir quando parar de acrescentar detalhes.",
     "growth_theme": "Escolher limites que protejam o tempo de criar."
    },
    "assistant_promise": "Combina perspectivas e explora opções em diálogo.",
@@ -1082,7 +1084,7 @@
     {
      "week": 1,
      "beat": "Preparação",
-     "direction": "Vai inscrever uma colagem no Salão de Mufun e precisa decidir quando parar de acrescentar detalhes."
+     "direction": "Vai inscrever uma colagem no Salão das Artes e precisa decidir quando parar de acrescentar detalhes."
     },
     {
      "week": 2,
@@ -1104,7 +1106,7 @@
    "surname_from": "mãe",
    "full_name": "Nami Nera",
    "school_course": "Limite criativo",
-   "current_arc_first_person": "Vou inscrever uma colagem no Salão de Mufun e preciso decidir quando parar de acrescentar detalhes.",
+   "current_arc_first_person": "Vou inscrever uma colagem no Salão das Artes e preciso decidir quando parar de acrescentar detalhes.",
    "photos": {
     "folder": "/pd/personagens/nami/",
     "avatar": "avatar.jpg",
@@ -1305,7 +1307,7 @@
      "oru",
      "raku"
     ],
-    "current_arc": "Está ajudando a preparar um percurso aquático para visitantes que nunca conheceram Mufun.",
+    "current_arc": "Está ajudando a preparar um percurso aquático para visitantes que nunca conheceram Catum.",
     "growth_theme": "Dizer o que precisa com a mesma atenção que oferece aos outros."
    },
    "assistant_promise": "Oferece presença discreta, clareza e espaço para encontrar o próprio ritmo.",
@@ -1328,7 +1330,7 @@
     {
      "week": 1,
      "beat": "Preparação",
-     "direction": "Está ajudando a preparar um percurso aquático para visitantes que nunca conheceram Mufun."
+     "direction": "Está ajudando a preparar um percurso aquático para visitantes que nunca conheceram Catum."
     },
     {
      "week": 2,
@@ -1350,7 +1352,7 @@
    "surname_from": "mãe",
    "full_name": "Muru Mara",
    "school_course": "Voz própria",
-   "current_arc_first_person": "Estou ajudando a preparar um percurso aquático para visitantes que nunca conheceram Mufun.",
+   "current_arc_first_person": "Estou ajudando a preparar um percurso aquático para visitantes que nunca conheceram Catum.",
    "photos": {
     "folder": "/pd/personagens/muru/",
     "avatar": "avatar.jpg",

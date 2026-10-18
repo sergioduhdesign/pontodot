@@ -7,7 +7,7 @@
 // lote só. Uma tarefa inválida sai do lote com o motivo e as outras
 // seguem. E o prompt ensina a ler "todas elas" e "dia 15".
 //
-// v9: A IA VIVE O PAPEL. A vida em Mufun é a realidade dela: fala como quem
+// v9: A IA VIVE O PAPEL. A vida em Catum é a realidade dela: fala como quem
 // viveu, nunca explica o personagem por "prompt" ou "ficção". Continua
 // dizendo que é IA (a IA da pessoa, da pontodot) e o trabalho segue só
 // com dado real. E lê as SEMANAS: a pasta "narrativas pontodot" no Drive
@@ -793,7 +793,7 @@ const PERSONAGENS: Record<string, { nome: string; sobrenome: string; arquetipo: 
    "cadernos",
    "bibliotecas"
   ],
-  "arco": "Está desenhando um mapa acessível de Mufun e precisa ouvir quem percorre a cidade de outro jeito.",
+  "arco": "Está desenhando um mapa acessível de Catum e precisa ouvir quem percorre a cidade de outro jeito.",
   "familia": "Cresceu com a tia Vela, encadernadora. O primo Lau divide as mudas de plantas."
  },
  "brum": {
@@ -958,7 +958,7 @@ const PERSONAGENS: Record<string, { nome: string; sobrenome: string; arquetipo: 
    "livros usados",
    "tecidos"
   ],
-  "arco": "Vai inscrever uma colagem no Salão de Mufun e precisa decidir quando parar de acrescentar detalhes.",
+  "arco": "Vai inscrever uma colagem no Salão das Artes e precisa decidir quando parar de acrescentar detalhes.",
   "familia": "A mãe Nera é figurinista. O irmão Noa desenha mapas imaginários."
  },
  "sumi": {
@@ -1003,11 +1003,11 @@ const PERSONAGENS: Record<string, { nome: string; sobrenome: string; arquetipo: 
    "silêncio compartilhado",
    "histórias de viagem"
   ],
-  "arco": "Está ajudando a preparar um percurso aquático para visitantes que nunca conheceram Mufun.",
+  "arco": "Está ajudando a preparar um percurso aquático para visitantes que nunca conheceram Catum.",
   "familia": "A mãe Mara ensinou o caminho dos canais. A sobrinha Miri está aprendendo a nadar."
  }
 };
-const MUNDO = {"nome": "Mufun", "lugares": ["Galeria das Chuvas", "Estação Maré", "Biblioteca Submersa", "Cinema da Curva", "Terraço da Vizinhança", "Mercado das Lanternas", "Salão de Mufun"]};
+const MUNDO = {"nome": "Catum", "lugares": ["Galeria das Chuvas", "Estação Maré", "Biblioteca Submersa", "Cinema da Curva", "Terraço da Vizinhança", "Mercado das Lanternas", "Salão das Artes"]};
 const EIXOS_ATUACAO: Record<string, { zero: string; one: string; faz_zero: string; faz_one: string }> = {
  "interaction": {
   "zero": "tempo individual antes da troca",
@@ -1063,7 +1063,7 @@ const DIRETAS_ATUACAO: Record<string, Record<string, string>> = {
   "Só marcos e prazos combinados": "Lembre só de marcos e prazos combinados — nada de rotina miúda."
  },
  "narrative": {
-  "Só perfil e álbum": "Não traga Mufun nem a sua vida por conta própria. Se perguntarem, responda de dentro do papel, em uma ou duas frases, e volte ao trabalho.",
+  "Só perfil e álbum": "Não traga Catum nem a sua vida por conta própria. Se perguntarem, responda de dentro do papel, em uma ou duas frases, e volte ao trabalho.",
   "Pequenas aparições quando fizer sentido": "No máximo uma pincelada curta da sua vida por conversa, em momento leve (saudação ou fechamento) — nunca no meio de instrução, número ou prazo. Se perguntarem, conte mais.",
   "Mais presença, sem atrapalhar o trabalho": "Traga sua vida com frequência, em uma frase, nas transições e na saudação — sem atrapalhar o trabalho. Se perguntarem, conte à vontade."
  }
@@ -1114,7 +1114,7 @@ function normalizarAtuacao(bruto: unknown): Atuacao | null {
 }
 
 // ------------------------------------------------------------
-// AS SEMANAS DE MUFUN. Toda semana o GPT deixa na pasta "narrativas
+// AS SEMANAS DE CATUM. Toda semana o GPT deixa na pasta "narrativas
 // pontodot" um Doc chamado AAAA-MM-DD (a segunda-feira), com um bloco
 // "## id" por personagem. Vale a última semana que JÁ começou, e a
 // anterior vira "semana passada". Doc de semana futura espera a vez.
