@@ -578,7 +578,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <div class="view-panel" id="view-saude" style="background:var(--bg)">
         <div class="page-header">
           <div><div class="page-title">Saúde da plataforma</div><div class="page-subtitle" id="saude-sub">Filas, relógios e conexões — ao vivo</div></div>
-          <button class="btn btn-secondary" onclick="renderSaude()">↻ Atualizar</button>
+          <button class="btn btn-secondary" onclick="renderSaude()" title="Atualizar" aria-label="Atualizar" style="width:44px;height:44px;padding:0;font-size:20px;display:grid;place-items:center;flex:none">↻</button>
         </div>
         <div style="padding:14px;overflow-y:auto;flex:1"><div id="saude-corpo" style="max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px"></div></div>
       </div>
@@ -828,8 +828,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px;grid-column:span 2">
                 <div style="display:flex;align-items:center;gap:7px">
                   <div class="entity-card-name">Quem está trabalhando</div>
-                  <button class="btn btn-secondary btn-sm" style="margin-left:auto;padding:3px 9px;font-size:10.5px"
-                          onclick="renderTrackingEquipe()">↻ Atualizar</button>
+                  <button class="btn btn-secondary btn-sm" style="margin-left:auto;padding:3px 9px;font-size:14px" title="Atualizar" aria-label="Atualizar"
+                          onclick="renderTrackingEquipe()">↻</button>
                 </div>
                 <div id="adm-tracking-body" style="max-height:260px;overflow-y:auto">
                   <div style="font-size:12px;color:var(--text3);padding:8px">Clique em Atualizar.</div>
