@@ -3010,6 +3010,8 @@ async function escApagarCom(id, key){
   ESC.com[key] = (ESC.com[key]||[]).filter(x => x.id !== id); renderEscola();
 }
 // o barrado: a mesma capa em todas as caixinhas, trocando junto com a capa do topo (nunca repete a do topo)
+// a fotinha quadrada é de Catum (cartão-postal do dia), nunca imagem de cabeçalho
+function escPostalDoDia(){ return ESC.postais && ESC.postais.length ? escPick(ESC.postais, escRng('postal'+new Date().toISOString().slice(0,10))) : null; }
 function escCapasDoDia(){
   const L = ESC.capas.length ? ESC.capas.map(i => i.src) : ['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
   const d = Math.floor(Date.now() / 864e5), n = L.length;
@@ -3084,7 +3086,7 @@ function renderEscola(){
   if (capa && !capa.dataset.ok){
     capa.src = escCapasDoDia().capa; capa.dataset.ok = ESC.capas.length ? '1' : '';   // proporção original: sem recorte
   }
-  try{ const th = document.querySelector('#esc-cidade-foto img'); if (th) th.src = escCapasDoDia().cidade; }catch(e){}
+  try{ const th = document.querySelector('#esc-cidade-foto img'); if (th){ const pp = escPostalDoDia(); th.src = pp ? (pp.src_m||pp.src) : escCapasDoDia().cidade; } }catch(e){}
   try{ const cta = document.getElementById('esc-cta'); if (cta) cta.style.backgroundImage = 'url("' + escCapasDoDia().barrado + '")'; }catch(e){}
   escCidade(); escAjustaTitulo();
   const fr = document.getElementById('esc-capa-frase');
@@ -3215,7 +3217,7 @@ function escTodosCursos(){
   escPop(`<h3>Todos os cursos</h3>` + grupos.map(g => { const L = ESC_CURSOS.filter(c => escChar(c.quem)?.narrative_archetype === g); if (!L.length) return '';
     return `<small class="esc-area">${g}es</small>` + L.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(escChar(c.quem)?.name||'')} · ${escSafe(c.area)}</small></button>`).join(''); }).join(''));
 }
-function escAmpliarCapa(){ const f = document.getElementById('esc-capa-frase'); escAmpliar(escCapasDoDia().cidade, f ? f.textContent.trim() : 'Catum'); }
+function escAmpliarCapa(){ const f = document.getElementById('esc-capa-frase'); escAmpliar((escPostalDoDia()||{}).src || escCapasDoDia().cidade, f ? f.textContent.trim() : 'Catum'); }
 function escAlMais(){
   ESC.alAberto = !ESC.alAberto;
   const g = document.getElementById('esc-al-grid'); if (g) g.classList.toggle('fechado', !ESC.alAberto);
