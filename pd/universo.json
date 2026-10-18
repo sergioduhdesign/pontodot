@@ -128,7 +128,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Criação · alternativas"
   },
   {
    "id": "kiro",
@@ -209,7 +210,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Estratégia · revisão"
   },
   {
    "id": "brum",
@@ -290,7 +292,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Operação · planos e prazos"
   },
   {
    "id": "gigi",
@@ -371,7 +374,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Atendimento · alinhamento"
   },
   {
    "id": "iro",
@@ -452,7 +456,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Criação · testes de campanha"
   },
   {
    "id": "sago",
@@ -533,7 +538,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Atendimento · briefing"
   },
   {
    "id": "taro",
@@ -614,7 +620,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Operação · próxima ação"
   },
   {
    "id": "raku",
@@ -695,7 +702,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Atendimento · feedback"
   },
   {
    "id": "zumi",
@@ -776,7 +784,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Conteúdo · conversa com cliente"
   },
   {
    "id": "oru",
@@ -857,7 +866,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Estratégia · síntese"
   },
   {
    "id": "koda",
@@ -938,7 +948,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Gestão · riscos e combinados"
   },
   {
    "id": "tumi",
@@ -1019,7 +1030,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Rede · conexões"
   },
   {
    "id": "nami",
@@ -1100,7 +1112,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Páginas e sites · estrutura"
   },
   {
    "id": "sumi",
@@ -1181,7 +1194,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Mídia · resultados de anúncios"
   },
   {
    "id": "boku",
@@ -1262,7 +1276,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Operação · orçamento"
   },
   {
    "id": "muru",
@@ -1343,7 +1358,8 @@
     "life_small": "vida-p.jpg",
     "birth": "nascimento.jpg",
     "birth_small": "nascimento-p.jpg"
-   }
+   },
+   "especialidade": "Acompanhamento · ritmo"
   }
  ],
  "naming": {

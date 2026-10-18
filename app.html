@@ -182,10 +182,25 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   .esc-al-av{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:24%;overflow:hidden}
   .esc-al-av img{width:100%;height:100%;object-fit:cover;display:block;border-radius:0!important}
   .esc-al-av i{position:absolute;right:6px;top:6px;width:10px;height:10px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+  .esc-al-b em{max-width:100%;margin-top:-4px;font:500 10.5px/1.2 system-ui,sans-serif;font-style:normal;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .esc-al-b b{max-width:100%;font:600 12px/1.2 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .esc-al-mais{display:block;margin:16px auto 0;padding:11px 22px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:600 13.5px system-ui,sans-serif;cursor:pointer}
 }
 @keyframes escAlIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+<style id="esc-cidade-css">
+.esc-cidade-foto{display:none}
+.esc-esp{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:11.5px;font-weight:600;color:var(--text2)}
+@media (max-width:900px){
+  .esc-capa{display:none!important}
+  .esc-luz{display:none!important}
+  .esc-cidade{display:grid!important;grid-template-columns:92px minmax(0,1fr);column-gap:14px;align-items:center;align-content:center;padding:0 0 14px!important}
+  .esc-cidade>*:not(.esc-cidade-foto){grid-column:2}
+  .esc-cidade-foto{grid-column:1!important;grid-row:1 / span 3}
+  .esc-cidade-foto{display:block;flex:none;width:92px;height:92px;padding:0;border:0;border-radius:22px;overflow:hidden;background:#111;cursor:zoom-in}
+  .esc-cidade-foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .esc-grade{padding-top:6px!important}
+}
 </style>
 </head>
 <body>
@@ -342,6 +357,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             </header>
             <div class="esc-grade">
               <section class="esc-cidade">
+                <button class="esc-cidade-foto" id="esc-cidade-foto" onclick="escAmpliarCapa()" aria-label="Ver a foto de Mufun"><img alt=""></button>
                 <div class="esc-cidade-nome">Mufun</div>
                 <div class="esc-clima" id="esc-clima"></div>
                 <button class="esc-luz" id="esc-luz" onclick="escAlternarLuz()" aria-label="Apagar ou acender a luz da escola" title="Apagar / acender">
@@ -2994,6 +3010,7 @@ function renderEscola(){
   if (capa && !capa.dataset.ok){
     capa.src = escCapasDoDia().capa; capa.dataset.ok = ESC.capas.length ? '1' : '';   // proporção original: sem recorte
   }
+  try{ const th = document.querySelector('#esc-cidade-foto img'); if (th) th.src = escCapasDoDia().capa; }catch(e){}
   try{ const cta = document.getElementById('esc-cta'); if (cta) cta.style.backgroundImage = 'url("' + escCapasDoDia().barrado + '")'; }catch(e){}
   escCidade(); escAjustaTitulo();
   const fr = document.getElementById('esc-capa-frase');
@@ -3009,7 +3026,7 @@ function renderEscola(){
   try { const g = document.getElementById('esc-al-grid');
     if (g){ const L = [...ESC_IDS].sort((x,y)=> escEhUsuario(y)-escEhUsuario(x) || ESC_IDS.indexOf(x)-ESC_IDS.indexOf(y));
       g.innerHTML = L.map(id => { const c = escChar(id); if (!c) return '';
-        return `<button class="esc-al-b" onclick="escPerfil('${id}')"><span class="esc-al-av" style="background:${escSafe(c.appearance?.avatar_background||'#333')}"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy">${escEhUsuario(id)?'<i title="ativo"></i>':''}</span><b>${escSafe(c.name)}</b></button>`; }).join('');
+        return `<button class="esc-al-b" onclick="escPerfil('${id}')"><span class="esc-al-av" style="background:${escSafe(c.appearance?.avatar_background||'#333')}"><img src="${escSafe(escFoto(id,'avatar'))}" alt="" loading="lazy">${escEhUsuario(id)?'<i title="ativo"></i>':''}</span><b>${escSafe(c.name)}</b><em>${escSafe((c.especialidade||'').split(' · ')[0])}</em></button>`; }).join('');
       g.classList.toggle('fechado', !ESC.alAberto);
       const mb = document.getElementById('esc-al-mais'); if (mb) mb.textContent = ESC.alAberto ? 'Ver menos' : 'Ver mais ' + Math.max(0, L.length - 4);
     } } catch(e){}
@@ -3101,7 +3118,7 @@ function escPerfil(id){
   const amigos = (b.friend_character_ids || []).filter(escChar);
   const curso = ESC_CURSOS.find(x => x.quem === id);
   const post = escPosts().find(p => p.id === id);
-  escPop(`<div class="esc-perfil-cab"><img src="${escSafe(escFoto(id,'avatar'))}" alt=""><div><small class="esc-area">${meu?'Sua IA · ':''}${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small><h3>${escSafe(c.full_name || c.name)}</h3><span class="esc-peq">${escSafe(c.profile_title||'')}</span></div></div>
+  escPop(`<div class="esc-perfil-cab"><img src="${escSafe(escFoto(id,'avatar'))}" alt=""><div><small class="esc-area">${meu?'Sua IA · ':''}${escSafe(c.narrative_archetype||'')}${escEhUsuario(id)?' · ativo':''}</small><h3>${escSafe(c.full_name || c.name)}</h3>${c.especialidade?`<span class="esc-esp">${escSafe(c.especialidade)}</span>`:''}<span class="esc-peq">${escSafe(c.profile_title||'')}</span></div></div>
     <p>${escSafe(c.bio||'')}</p>
     ${c.current_arc_first_person?`<p><i>${escSafe(c.current_arc_first_person)}</i></p>`:''}
     <dl class="esc-dl">${b.habit?`<dt>Hábito</dt><dd>${escSafe(b.habit)}</dd>`:''}${(b.likes||[]).length?`<dt>Gosta de</dt><dd>${escSafe(b.likes.join(', '))}</dd>`:''}${c.assistant_promise?`<dt>Ajuda você a</dt><dd>${escSafe(c.assistant_promise)}</dd>`:''}${c.school_course?`<dt>Na escola</dt><dd>${escSafe(c.school_course)}</dd>`:''}
@@ -3124,6 +3141,7 @@ function escTodosCursos(){
   escPop(`<h3>Todos os cursos</h3>` + grupos.map(g => { const L = ESC_CURSOS.filter(c => escChar(c.quem)?.narrative_archetype === g); if (!L.length) return '';
     return `<small class="esc-area">${g}es</small>` + L.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(escChar(c.quem)?.name||'')} · ${escSafe(c.area)}</small></button>`).join(''); }).join(''));
 }
+function escAmpliarCapa(){ const f = document.getElementById('esc-capa-frase'); escAmpliar(escCapasDoDia().capa, f ? f.textContent.trim() : 'Mufun'); }
 function escAlMais(){
   ESC.alAberto = !ESC.alAberto;
   const g = document.getElementById('esc-al-grid'); if (g) g.classList.toggle('fechado', !ESC.alAberto);
