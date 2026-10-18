@@ -5937,6 +5937,7 @@ function desenharDetalheLote(g){
     if (t.permalink) acoes.push(`<a href="${t.permalink}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-secondary btn-sm">${iconeAcao('externo',13)} Ver publicado</a>`);
     if (t.status === 'publicado') {
       acoes.push(`<button onclick="event.stopPropagation();filaVerMetricas(['${t.id}'])" class="btn btn-secondary btn-sm">${iconeAcao('grafico',13)} Métricas</button>`);
+      acoes.push(`<button onclick="event.stopPropagation();filaDespublicar('${t.id}','${t.platform}')" class="btn btn-secondary btn-sm" style="color:#dc2626">${iconeAcao('desfazer',13)} Despublicar</button>`);
     }
     if (t.status === 'cancelado') {
       acoes.push(`<button onclick="event.stopPropagation();filaReativar('${t.id}')" class="btn btn-secondary btn-sm">${iconeAcao('desfazer',13)} Reativar</button>`);
@@ -5982,6 +5983,21 @@ async function filaCancelar(targetId){
     .update({ status:'cancelado' }).eq('id', targetId);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('Cancelado — continua na aba "Ver cancelados".','success');
+  renderFila();
+}
+
+// DESPUBLICAR: o Instagram NÃO deixa o app apagar post (limitação da Meta) — apague lá no aplicativo.
+// Aqui o status volta para a fila, sem link nem ID, e o post pode ser reagendado ou cancelado.
+async function filaDespublicar(targetId, plataforma){
+  const aviso = plataforma === 'instagram'
+    ? 'O Instagram não permite que o sistema apague o post. Se ele ainda estiver no ar, apague no aplicativo do Instagram.\n\n'
+    : 'Se o post ainda estiver no ar, apague na própria rede.\n\n';
+  if (!confirm(aviso + 'Tirar o status "Publicado" e voltar esta peça para a fila (agendada)?')) return;
+  const { error } = await sb.from('scheduled_post_targets')
+    .update({ status:'agendado', platform_post_id:null, permalink:null, published_at:null, error_message:null })
+    .eq('id', targetId);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  showToast('Voltou para a fila como agendada. Confira a data e, se preferir, cancele.','success');
   renderFila();
 }
 
