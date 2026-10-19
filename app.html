@@ -12734,7 +12734,7 @@ window.abrirSobreApp = abrirSobreApp;
       it('Claro / escuro','tema',"fecharMenuCheio();Theme.toggle()"), it('Meu perfil','eu',"fecharMenuCheio();openMyProfile()"), it('Histórico de ações','tema',"fecharMenuCheio();toggleActivityDrawer()"),
       it('Sair','sair',"Auth.signOut()",'perigo')];
     g.push(`<div class="mf-g">Você</div><div class="mf-grade">${eu.join('')}</div>`);
-    if (dentro) g.unshift(`<div class="mf-grade" style="margin-top:12px">${it('Joyce','voltar',"fecharMenuCheio();parent.fecharAppMovel&&parent.fecharAppMovel()")}</div>`);
+    if (dentro) g.unshift(`<div class="mf-grade" style="margin-top:12px">${it('Voltar à home','voltar',"fecharMenuCheio();parent.fecharAppMovel&&parent.fecharAppMovel()")}</div>`);
     m.innerHTML = `<div class="mf-top"><input class="field-input" id="mf-busca" placeholder="Buscar #tipo @pessoa…" oninput="onGlobalSearch(this.value)" autocomplete="off"><button class="mf-x" onclick="fecharMenuCheio()" aria-label="Fechar">✕</button></div><div class="mf-corpo">${g.join('')}</div>`;
     m.classList.add('on');
   };
