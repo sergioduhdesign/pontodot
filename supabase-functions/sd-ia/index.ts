@@ -172,7 +172,7 @@ const PADRAO_SD = "__PADRAO_SD__";
 
 // A pessoa não diz "reunioes_controle": diz meet, call, ata, alinhamento,
 // "o que ficou da conversa com o cliente". Tudo isso abre a mesma porta.
-const FALA_DE_REUNIAO = /\b(reuni(ã|a)o|reuni(õ|o)es|ata|atas|meet|meeting|call|calls|conversa(ram|mos)?\s+com|alinhamento|alinhamos|briefing\s+com|encontro|read\.?ai|transcri(ç|c)(ã|a)o|o que (ficou|falaram|foi dito|combinamos))\b/i;
+const FALA_DE_REUNIAO = /\b(reuni(ã|a)o|reuni(õ|o)es|ata|atas|meet|meeting|call|calls|conversa(ram|mos)?\s+com|alinhamento|alinhamos|briefing\s+com|encontro|read\.?ai|tra(n)?scri(ç|c)(ã|a)o|transcri[a-zçã]*|grava(ç|c)(ã|a)o|o que (ficou|falaram|foi dito|combinamos))\b/i;
 // "ontem", "essa semana", "mês passado" → quantos dias olhar pra trás
 function janelaDeDias(texto: string): number {
   const t = texto.toLowerCase();
@@ -207,7 +207,7 @@ async function reunioesPara(auth: string, perfil: Registro, texto: string,
     filtroCliente = `&cliente=ilike.*${encodeURIComponent(clientesCitados[0])}*`;
   }
   try {
-    const url = `${SB_URL}/rest/v1/reunioes_controle?select=titulo,cliente,reuniao_em,resumo,ata_url,task_id&status=eq.ok&reuniao_em=gte.${desde}${filtroCliente}&order=reuniao_em.desc&limit=12`;
+    const url = `${SB_URL}/rest/v1/reunioes_controle?select=titulo,cliente,reuniao_em,ata_url,task_id&status=eq.ok&reuniao_em=gte.${desde}${filtroCliente}&order=reuniao_em.desc&limit=12`;
     const r = await buscar(url, { headers: { apikey: SB_API, authorization: auth } });
     if (!r.ok) return [];
     const page = await r.json();
@@ -231,10 +231,46 @@ async function gas(acao: string, dados: Registro = {}, ms = 18000): Promise<Regi
   } catch { return null; }
 }
 
+const MESES: Record<string, number> = { janeiro:1, fevereiro:2, marco:3, abril:4, maio:5, junho:6, julho:7, agosto:8, setembro:9, outubro:10, novembro:11, dezembro:12,
+  jan:1, fev:2, mar:3, abr:4, mai:5, jun:6, jul:7, ago:8, set:9, out:10, nov:11, dez:12 };
+// a data da nota: o título do Read.ai começa com AAAA-MM-DD; senão, a de modificação
+const dataDaNota = (a: Registro) => (String(a.titulo ?? "").match(/^(\d{4}-\d{2}-\d{2})/)?.[1]) ?? String(a.modificado ?? "").slice(0, 10);
+// que dias a pessoa citou? ("dia 9", "9/10", "9 de outubro", "2026-10-09", "ontem", "hoje")
+function diasCitados(texto: string): { dia: number; mes?: number }[] {
+  const t = texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const out: { dia: number; mes?: number }[] = [];
+  for (const m of t.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)) out.push({ dia: Number(m[3]), mes: Number(m[2]) });
+  for (const m of t.matchAll(/\b(\d{1,2})\s*\/\s*(\d{1,2})\b/g)) out.push({ dia: Number(m[1]), mes: Number(m[2]) });
+  for (const m of t.matchAll(/\b(\d{1,2})\s*(?:de\s+)?(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/g))
+    out.push({ dia: Number(m[1]), mes: MESES[m[2]] });
+  for (const m of t.matchAll(/\bdia\s+(\d{1,2})\b/g)) out.push({ dia: Number(m[1]) });
+  const hoje = new Date(Date.now() - 3 * 3600e3);
+  if (/\bhoje\b/.test(t)) out.push({ dia: hoje.getUTCDate(), mes: hoje.getUTCMonth() + 1 });
+  if (/\bontem\b/.test(t)) { const o = new Date(hoje.getTime() - 864e5); out.push({ dia: o.getUTCDate(), mes: o.getUTCMonth() + 1 }); }
+  return out;
+}
+const PALAVRAS_VAZIAS = new Set(["reuniao","reunioes","ultima","ultimo","ata","atas","transcricao","transcricoes","trascricao","crua","cru","completa","completo","preciso","quero","sobre","com","para","dessa","desta","daquela","ficou","falaram","foi","dito","alinhamento","meet","call","nota","notas","readai","read","todas","todos","tudo","historico","da","do","de","e","a","o","as","os","uma","um","que","qual","quais","me","mostra","mostrar","manda","traz","trazer","cola","colar","vai","isso","essa","esse"]);
+
+// AS NOTAS NA PASTA = a fonte, INTEIRA. Nada de resumo feito por IA no meio do caminho:
+// o que o Read.ai gerou (resumo, ações, capítulos E a transcrição) chega inteiro ao modelo.
+async function lerNotaInteira(id: string): Promise<Registro | null> {
+  const partes: string[] = []; let ini = 0, url = "", titulo = "", total = 0;
+  for (let i = 0; i < 4; i++) {                       // até 4 janelas de 150k: cobre qualquer reunião
+    const j = await gas("reuniao_ler", { doc_id: id, ini, max: 150000 }, 25000);
+    if (!j) break;
+    const t = String(j.texto ?? "");
+    if (typeof j.total !== "number") { partes.push(t); url = String(j.url ?? ""); titulo = String(j.titulo ?? ""); total = t.length; break; }   // Ponte antiga: só a 1ª janela
+    partes.push(t); ini += t.length; url = String(j.url ?? url); titulo = String(j.titulo ?? titulo); total = j.total;
+    if (j.fim || !t.length) break;
+  }
+  const texto = partes.join("").trim();
+  return texto ? { titulo, url, texto, caracteres_total: total || texto.length } : null;
+}
+
 async function notasDaPasta(perfil: Registro, dias: number, citados: string[],
-                            clientesDoBanco: Registro[]): Promise<{ lista: Registro[]; conteudo: Registro[] }> {
+                            clientesDoBanco: Registro[], mensagem = ""): Promise<{ lista: Registro[]; conteudo: Registro[] }> {
   const desde = new Date(Date.now() - dias * 864e5).toISOString();
-  const j = await gas("reunioes_listar", { pasta_id: PASTA_READAI, desde_iso: desde });
+  const j = await gas("reunioes_listar", { pasta_id: PASTA_READAI, desde_iso: desde }, 25000);
   let arqs = ((j?.arquivos ?? []) as Registro[]).filter(objeto);
   if (!arqs.length) return { lista: [], conteudo: [] };
 
@@ -247,25 +283,44 @@ async function notasDaPasta(perfil: Registro, dias: number, citados: string[],
     if (!nome) return { lista: [], conteudo: [] };
     arqs = arqs.filter(a => chaveNome(String(a.titulo ?? "")).includes(nome));
     if (!arqs.length) return { lista: [], conteudo: [] };
-  } else if (citados.length === 1) {
-    const k = chaveNome(citados[0]);
-    const doCliente = arqs.filter(a => chaveNome(String(a.titulo ?? "")).includes(k));
-    if (doCliente.length) arqs = doCliente;
   }
 
-  // mais recentes primeiro, e a lista inteira (nome + data) vai pro modelo
-  arqs.sort((a, b) => String(b.modificado ?? "").localeCompare(String(a.modificado ?? "")));
-  const lista = arqs.slice(0, 25).map(a => ({ titulo: a.titulo, quando: String(a.modificado ?? "").slice(0, 10) }));
+  // RELEVÂNCIA: data citada + palavras do título (cliente, projeto) casadas com a mensagem; empate = mais nova
+  const dc = diasCitados(mensagem);
+  const palavras = chaveNome(mensagem).split(/[^a-z0-9]+/).filter(w => w.length > 3 && !PALAVRAS_VAZIAS.has(w));
+  const nomesCasados = clientesDoBanco.map(c => String(c.name ?? "")).filter(n => n && chaveNome(mensagem).includes(chaveNome(n))).map(chaveNome);
+  const pont = (a: Registro) => {
+    const tk = chaveNome(String(a.titulo ?? "") + " " + String(a.pasta ?? ""));
+    let p = 0;
+    const d = dataDaNota(a), mes = Number(d.slice(5, 7)), dia = Number(d.slice(8, 10));
+    if (dc.some(x => x.dia === dia && (x.mes === undefined || x.mes === mes))) p += 10;
+    for (const n of nomesCasados) if (n && tk.includes(n)) p += 6;
+    for (const w of palavras) if (tk.includes(w)) p += 2;
+    for (const c of citados) { const k = chaveNome(c); if (k && tk.includes(k)) p += 4; }
+    return p;
+  };
+  const ord = (x: Registro, y: Registro) => (pont(y) - pont(x)) || dataDaNota(y).localeCompare(dataDaNota(x)) || String(y.modificado ?? "").localeCompare(String(x.modificado ?? ""));
+  arqs.sort(ord);
+  const temRelevante = pont(arqs[0]) > 0;
 
-  // e o conteúdo das duas mais recentes, pra poder responder de verdade.
-  // EM PARALELO: em fila isso custava 2 viagens ao Apps Script, e a soma
-  // dos tempos estourava o orçamento da função inteira.
-  const lidos = await Promise.all(arqs.slice(0, 2).map(a => gas("reuniao_ler", { doc_id: a.id }, 15000)));
-  const conteudo: Registro[] = [];
-  arqs.slice(0, 2).forEach((a, i) => {
-    const texto = String(lidos[i]?.texto ?? "").trim();
-    if (texto) conteudo.push({ titulo: a.titulo, quando: String(a.modificado ?? "").slice(0, 10),
-                               url: lidos[i]?.url, texto: texto.slice(0, 9000) });
+  // a lista INTEIRA (nome + data) vai pro modelo: ele sabe tudo que existe
+  const lista = [...arqs].sort((a, b) => dataDaNota(b).localeCompare(dataDaNota(a))).slice(0, 120)
+    .map(a => ({ titulo: a.titulo, quando: dataDaNota(a) }));
+
+  // e o CONTEÚDO INTEIRO das mais relevantes (3; até 8 se pediu "todas"), em paralelo, com teto de 330 mil caracteres
+  const querTodas = /\b(todas|todos|tudo|hist(ó|o)rico|compar|evolu)/i.test(mensagem);
+  const saudacaoLeve = !FALA_DE_REUNIAO.test(mensagem);   // só uma saudação do dia: 1 nota, curta (não gasta o contexto à toa)
+  const n = saudacaoLeve ? 1 : querTodas ? 8 : (temRelevante ? 4 : 3);
+  const escolhidas = arqs.slice(0, n);
+  const lidos = await Promise.all(escolhidas.map(a => lerNotaInteira(String(a.id)).catch(() => null)));
+  const conteudo: Registro[] = []; let gasto = 0;
+  escolhidas.forEach((a, i) => {
+    const l = lidos[i]; if (!l) return;
+    let texto = String(l.texto); const sobra = (saudacaoLeve ? 12000 : 330000) - gasto;
+    if (sobra < 5000) return;
+    if (texto.length > sobra) texto = texto.slice(0, sobra) + "\n[... nota longa: o restante está no link ...]";
+    gasto += texto.length;
+    conteudo.push({ titulo: a.titulo, quando: dataDaNota(a), url: l.url, texto, caracteres_total: l.caracteres_total });
   });
   return { lista, conteudo };
 }
@@ -339,7 +394,7 @@ Português brasileiro, direto e humano. Sem bajulação, corporativês, emoji de
 - NÚMEROS: nunca conte, some ou compare listas de cabeça. Totais (abertas, por status, atrasadas, vencem hoje, por responsável e cliente) vêm prontos em contagens_oficiais, calculados pelo código. Use só esses. Conta que não está lá: diga que vai conferir; nunca chute um total. ATRASADA = prazo interno ANTERIOR a hoje, fora de BRIEFING, não entregue. Vence hoje NÃO é atrasada e BRIEFING com prazo vencido NÃO é atrasada. Pedido para puxar, empurrar ou mover "as atrasadas" usa exatamente ids_atrasadas_de_verdade, sem acrescentar as que vencem hoje nem as de BRIEFING. Depois de mover, o total de atrasadas recalculado é o que o código devolver; não invente explicação para uma diferença.
 - MEMÓRIA DA CASA: o que foi aprendido antes (orientações de cliente, preferências, fatos). Vale como se tivessem acabado de repetir. Se contradiz o que a pessoa diz agora, o agora vence, e vale perguntar se mudou.
 - RÉGUA DA CASA (quando vier): como a casa trabalha; manda em tudo que você escrever e entra, resumida, em todo prompt de produção. FICHA DO CLIENTE (quando vier): posicionamento, tom e regras daquele cliente; vence a régua no que é dele (marca, tom, restrições). Ficha não veio? Diga que o material do cliente não foi carregado; não invente identidade. Nunca transfira regra de um cliente para outro.
-- REUNIÕES (reunião, ata, call, alinhamento, "o que ficou da conversa" são a mesma coisa): use REUNIOES_ENCONTRADAS (processadas, com ata) e NOTAS_NA_PASTA / NOTAS_LIDAS (notas cruas do Read.ai, fonte primária). Primeira vazia e segunda com coisa: use a segunda, diga data e título e avise em meia linha que a ata formal ainda não saiu. Ambas vazias com AVISO_REUNIOES: o sistema ainda não leu nota nenhuma, falha nossa. Ambas vazias sem aviso: não há registro NAQUELE período; ofereça olhar mais atrás. Nunca diga "não houve reunião" como fato do mundo. Ao resumir: data, cliente, decidido, pendente, link da ata. Reunião vale mais que suposição e menos que cadastro. Qualquer pessoa da equipe pode perguntar.
+- REUNIÕES (reunião, ata, call, alinhamento, transcrição, "o que ficou da conversa" são a mesma coisa): a FONTE é NOTAS_LIDAS: o texto INTEIRO do Read.ai (resumo, ações, capítulos e a TRANSCRIÇÃO palavra por palavra). NOTAS_NA_PASTA é a lista de tudo que existe (você sabe de todas as reuniões; se faltar a que a pessoa quer, diga o título e a data da que falta e peça pra reformular com cliente e dia). REUNIOES_ENCONTRADAS é só um índice (título, data, link): NUNCA resuma a partir dele nem use ata resumida por IA. Quem pede transcrição crua recebe o trecho EXATO da transcrição (cole as falas como estão, com quem falou) e o link do documento; a nota inteira longa vai no link, não em resumo. Jamais diga que o conteúdo "não chegou" se NOTAS_LIDAS tem texto; jamais invente fala: só o que está no texto. Se a pessoa disser que algo está errado, volte à transcrição e confira antes de responder. Ambas vazias com AVISO_REUNIOES: o sistema ainda não leu nota nenhuma, falha nossa. Ambas vazias sem aviso: não há registro NAQUELE período; ofereça olhar mais atrás. Nunca diga "não houve reunião" como fato do mundo. Ao resumir: data, cliente, decidido, pendente, link da ata. Reunião vale mais que suposição e menos que cadastro. Qualquer pessoa da equipe pode perguntar.
 - Você só lembra dos turnos enviados; não finja memória permanente nem monitoramento entre chamadas.
 
 4. EQUIPE E PRAZOS
@@ -1373,8 +1428,8 @@ Deno.serve(async (req: Request) => {
     // a tabela não resolveu? vai na PASTA, que é a fonte. Nada de dizer
     // "não houve reunião" sem ter olhado onde as notas realmente moram.
     etapa = "pasta de notas";
-    const notas = (querReuniao && !reunioes.length)
-      ? await notasDaPasta(eu, janelaDeDias(b.mensagem), citados, clientesRows).catch(e => {
+    const notas = querReuniao
+      ? await notasDaPasta(eu, Math.max(janelaDeDias(b.mensagem), 120), citados, clientesRows, b.mensagem).catch(e => {
           falhouReuniao = nomeDoErro(e); return { lista: [], conteudo: [] }; })
       : { lista: [], conteudo: [] };
     const temAlgumaReuniao = (querReuniao && !reunioes.length && !notas.lista.length && !falhouReuniao)

@@ -335,15 +335,22 @@ function instalar() {
 // Lista os docs da pasta do Read.ai (as notas ficam na raiz dela).
 // d.pasta_id = id da pasta; d.desde_iso = só modificados depois disso (opcional).
 function reunioesListar_(d) {
-  var pasta = DriveApp.getFolderById(d.pasta_id);
+  var raiz = DriveApp.getFolderById(d.pasta_id);
   var desde = d.desde_iso ? new Date(d.desde_iso) : null;
-  var out = [], it = pasta.getFiles();
-  while (it.hasNext()) {
-    var f = it.next();
-    if (!legivel_(f.getMimeType())) continue;
-    var mod = f.getLastUpdated();
-    if (desde && mod < desde) continue;
-    out.push({ id: f.getId(), titulo: f.getName(), modificado: mod.toISOString(), tipo: f.getMimeType() });
+  var out = [], pilha = [raiz], vistos = 0;
+  // a pasta do Read.ai tem subpastas (ex.: "Alinhamento - Cliente - data"): entra em todas
+  while (pilha.length && vistos < 200) {
+    var pasta = pilha.pop(); vistos++;
+    var it = pasta.getFiles();
+    while (it.hasNext()) {
+      var f = it.next();
+      if (!legivel_(f.getMimeType())) continue;
+      var mod = f.getLastUpdated();
+      if (desde && mod < desde) continue;
+      out.push({ id: f.getId(), titulo: f.getName(), modificado: mod.toISOString(), tipo: f.getMimeType(), pasta: pasta.getName() });
+    }
+    var sub = pasta.getFolders();
+    while (sub.hasNext()) pilha.push(sub.next());
   }
   out.sort(function (a, b) { return a.modificado < b.modificado ? -1 : 1; });
   return { arquivos: out };
@@ -376,8 +383,11 @@ function reuniaoLer_(d) {
   } else {
     texto = f.getBlob().getDataAsString('UTF-8');
   }
-  if (texto.length > 60000) texto = texto.slice(0, 60000) + '\n\n[... texto cortado aqui ...]';
-  return { titulo: f.getName(), texto: texto, url: f.getUrl(), mime: mime,
+  // LEITURA EM JANELAS: a nota do Read.ai (resumo + capítulos + TRANSCRIÇÃO) passa fácil de 80 mil caracteres.
+  // Nada de cortar em silêncio: d.ini = onde começa, d.max = quanto devolver; 'fim' diz se acabou.
+  var total = texto.length, ini = Math.max(0, Number(d.ini) || 0), max = Math.min(Number(d.max) || 150000, 250000);
+  var pedaco = texto.slice(ini, ini + max);
+  return { titulo: f.getName(), texto: pedaco, url: f.getUrl(), mime: mime, total: total, ini: ini, fim: ini + pedaco.length >= total,
            modificado: f.getLastUpdated().toISOString() };
 }
 
