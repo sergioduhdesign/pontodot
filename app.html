@@ -2780,7 +2780,7 @@ async function abrirAvisos(){
   AV.dados=data||[]; AV.sel=null; avRender();
 }
 function avFiltro(b){AV.filtro=b.dataset.f;document.querySelectorAll('.av-filtros button').forEach(x=>x.classList.toggle('on',x===b));AV.sel=null;avRender();}
-function avDig(x){return String(x||'').replace(/\D/g,'');}
+function avDig(x){let d=String(x||'').replace(/\D/g,'');if(d.length===12&&d.startsWith('55')&&'6789'.includes(d[4]))d=d.slice(0,4)+'9'+d.slice(4);return d;}
 function avChave(r){
   if(r.canal==='whatsapp') return avDig(r.para)||String(r.para);
   const z=r.ref?AV.dados.find(x=>x.ref===r.ref&&x.canal==='whatsapp'):null;
@@ -2810,6 +2810,7 @@ function avConversa(rows){
     const tik=r.status==='erro'?'⚠':(r.entrega==='read'||r.entrega==='delivered')?'✓✓':'✓';
     const rod=ehZ?`${em?`<div class="av-em">✉ também enviado por e-mail para ${escSafe(em.para)}</div>`:''}`:`<div class="av-em">✉ e-mail para ${escSafe(r.para)}${r.assunto?' · '+escSafe(r.assunto):''}</div>`;
     const st=r.status==='erro'?`<div class="av-err">Não foi entregue: ${escSafe(r.erro||'erro')}</div>`:r.status==='manual'?'<div class="av-err">Sem API ativa: ficou como aviso para envio manual.</div>':'';
+    if(r.direcao==='entrada') return sep+`<div class="av-bolha mail in"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div><div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}</div></div>`;
     return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.entrega==='read'?'ok':''}" title="${escSafe(r.entrega==='read'?'Lida':r.entrega==='delivered'?'Entregue':r.entrega==='failed'?'Falhou':'Enviada ao WhatsApp (aguardando entrega)')}">${tik}</span></div></div>`;
   }).join('');
   const k=AV.sel, tel=rows[0].canal==='whatsapp'?rows[0].para:(rows.find(x=>x.canal==='whatsapp')||{}).para||rows[0].para;

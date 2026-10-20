@@ -8,6 +8,7 @@
 //   define('SD_ZAP_APP_SECRET', '...');   // opcional: segredo do app do WhatsApp (se não for o mesmo SD_META_APP_SECRET)
 // =====================================================================
 require_once __DIR__ . '/sd-auth.php';
+require_once __DIR__ . '/pd-lib.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
     $tok = (string)($_GET['hub_verify_token'] ?? ''); $des = (string)($_GET['hub_challenge'] ?? '');
@@ -26,6 +27,27 @@ if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
 $j = json_decode((string)$cru, true);
 if (!is_array($j)) exit;
 foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? []) as $c) {
+    // ---- mensagens que CHEGAM (alguém respondeu o número da plataforma) ----
+    $nomes = [];
+    foreach ((array)($c['value']['contacts'] ?? []) as $ct) $nomes[preg_replace('/\D/', '', (string)($ct['wa_id'] ?? ''))] = $ct['profile']['name'] ?? null;
+    foreach ((array)($c['value']['messages'] ?? []) as $m) {
+        $id = (string)($m['id'] ?? ''); $de = preg_replace('/\D/', '', (string)($m['from'] ?? '')); if ($id === '' || $de === '') continue;
+        $ja = sd_supabase('/rest/v1/pd_avisos_log?wamid=eq.' . rawurlencode($id) . '&select=id&limit=1');
+        if (!empty($ja['body'])) continue;                                   // a Meta reenvia: não duplica
+        $t = $m['type'] ?? 'text';
+        $txt = $t === 'text' ? ($m['text']['body'] ?? '')
+             : ($t === 'button' ? ($m['button']['text'] ?? '')
+             : ($t === 'interactive' ? ($m['interactive']['button_reply']['title'] ?? ($m['interactive']['list_reply']['title'] ?? '')) : ''));
+        if ($txt === '') $txt = '[' . ($t === 'image' ? 'imagem' : ($t === 'audio' ? 'áudio' : ($t === 'document' ? 'documento' : ($t === 'video' ? 'vídeo' : $t)))) . ']' . (!empty($m[$t]['caption']) ? ' ' . $m[$t]['caption'] : '');
+        $para = pdZapNormaliza($de);
+        // quem é? (por número: equipe ou cliente)
+        $quem = $nomes[$de] ?? null; $cid = null;
+        foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&select=name,zap')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) { $quem = $p['name']; break; }
+        if (!$cid) foreach ((array)(sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap')['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; break; }
+        sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $quem, 'corpo' => mb_substr($txt, 0, 2000),
+            'status' => 'recebida', 'origem' => 'entrada', 'direcao' => 'entrada', 'wamid' => $id, 'client_id' => $cid]);
+        try { pdAlarme('outro', 'WhatsApp de ' . ($quem ?: '+' . $para), mb_substr($txt, 0, 300), null, null, true); } catch (Throwable $e) {}
+    }
     foreach ((array)($c['value']['statuses'] ?? []) as $s) {
         $id = (string)($s['id'] ?? ''); $st = (string)($s['status'] ?? ''); if ($id === '' || $st === '') continue;
         $patch = ['entrega' => $st];

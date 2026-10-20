@@ -114,6 +114,8 @@ function pdBatata($taskId, $quem) {
         ['batata' => $quem, 'batata_em' => date('c')]);
 }
 // Histórico de avisos externos (WhatsApp + e-mail). Silencioso se o SQL v98b ainda não rodou.
+// 5511 6706-7100 e 55 11 96706-7100 são o mesmo número: o WhatsApp às vezes tira o 9. Normaliza pra 13 dígitos.
+function pdZapNormaliza($d) { $d = preg_replace('/\D/', '', (string)$d); if (strlen($d) === 12 && strpos($d, '55') === 0 && in_array($d[4], ['6','7','8','9'], true)) $d = substr($d, 0, 4) . '9' . substr($d, 4); return $d; }
 function pdWamid($raw) { $j = json_decode((string)$raw, true); return is_array($j) ? ($j['messages'][0]['id'] ?? null) : null; }
 function pdAvisoLog($canal, $para, $quem, $assunto, $corpo, $status = 'enviado', $erro = null, $origem = 'sistema', $ref = null, $clientId = null, $wamid = null) {
     try { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ($wamid ? ['wamid' => $wamid] : []) + ['ref' => $ref, 'canal' => $canal, 'para' => (string)$para, 'quem' => $quem,
