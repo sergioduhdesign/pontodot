@@ -132,8 +132,8 @@ async function perfis(auth: string): Promise<Registro[]> {
 async function memoriaDe(auth: string, userId: string, clientesIds: string[]): Promise<Registro[]> {
   try {
     const escopos = [`and(escopo.eq.agencia)`, `and(escopo.eq.pessoa,escopo_id.eq.${userId})`];
-    for (const cid of clientesIds.slice(0, 3)) escopos.push(`and(escopo.eq.cliente,escopo_id.eq.${cid})`);
-    const url = `${SB_URL}/rest/v1/sd_memoria?select=escopo,assunto,conteudo,natureza,origem,created_at&ativo=is.true&or=(${escopos.join(",")})&order=created_at.desc&limit=30`;
+    escopos.push(`and(escopo.eq.cliente)`);   // o aprendido sobre qualquer cliente vale pra equipe toda (a RLS ainda corta o que a pessoa não pode ver)
+    const url = `${SB_URL}/rest/v1/sd_memoria?select=escopo,assunto,conteudo,natureza,origem,created_at&ativo=is.true&or=(${escopos.join(",")})&order=created_at.desc&limit=80`;
     const r = await buscar(url, { headers: { apikey: SB_API, authorization: auth } });
     if (!r.ok) return [];
     const page = await r.json();

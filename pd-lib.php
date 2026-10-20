@@ -581,10 +581,10 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     $kr = ['body' => array_values(array_filter($todasF, fn($f) => $f['cliente_nome'] === '__PADRAO_SD__' || in_array($f['cliente_nome'], $top, true)))];
     foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
     // MEMÓRIA DA CASA (sd_memoria): o que já foi ensinado — agência, esta pessoa e os clientes citados
-    $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.pessoa,escopo_id.eq.' . ($p['id'] ?? '') . ')'];
-    foreach (array_slice(array_unique($citados), 0, 3) as $nmC) if (!empty($clientesIds[$nmC])) $escMem[] = 'and(escopo.eq.cliente,escopo_id.eq.' . $clientesIds[$nmC] . ')';
-    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=30');
-    $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
+    $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.cliente)', 'and(escopo.eq.pessoa,escopo_id.eq.' . ($p['id'] ?? '') . ')'];   // o que a casa aprendeu vale para TODA a equipe
+    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
+    $nomeDe = array_flip($clientesIds);
+    $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
                  'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas, 'memoria_da_casa_ensinada_pela_equipe' => $memoria];
     // o personagem que a pessoa escolheu na plataforma (pd_jeito): é a MESMA IA, agora no WhatsApp
