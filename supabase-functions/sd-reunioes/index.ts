@@ -46,15 +46,24 @@ const chave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerC
 const conta = (hay: string, k: string) => { let n = 0, i = 0; while ((i = hay.indexOf(k, i)) >= 0) { n++; i += k.length; } return n; };
 
 // ------------------- QUAL CLIENTE É? título → conteúdo → IA -------------------
-type Cli = { id: string; name: string; k: string };
+type Cli = { id: string; name: string; k: string; al: string[] };
+// apelidos: como o cliente aparece no título das reuniões (chave = nome cadastrado normalizado)
+const APELIDOS: Record<string, string[]> = {
+  "geoville urbanismo": ["geoville", "geo 2030"], "sela": ["selah", "refugio sela", "refugio selah"], "unio88": ["unio 88"],
+  "sd stratesign": ["strat", "stratesign"], "278 empreendimentos": ["278"], "l atelier": ["latelier", "atelier"],
+  "vf empreendimentos": ["vf"], "grupo taiwan": ["taiwan"], "mdx": ["mdxr"], "mylife residence": ["mylife", "my life"],
+  "imovelbooks": ["imovel books"], "rhla": [], "datastore": [],
+};
+const chavesDe = (c: Cli) => [c.k, ...c.al].filter(x => x.length >= 2);
 async function achaCliente(clientes: Cli[], titulo: string, pasta: string, texto: string): Promise<{ c: Cli | null; como: string }> {
   const tk = " " + chave(titulo + " " + pasta) + " ";
   // 1) o nome do cliente está no título/pasta? (o mais específico ganha)
-  const noTitulo = clientes.filter(c => tk.includes(" " + c.k + " ")).sort((a, b) => b.k.length - a.k.length);
-  if (noTitulo.length && (noTitulo.length === 1 || noTitulo[0].k.length > noTitulo[1].k.length)) return { c: noTitulo[0], como: "titulo" };
+  const tam = (c: Cli) => Math.max(...chavesDe(c).filter(k => tk.includes(" " + k + " ")).map(k => k.length), 0);
+  const noTitulo = clientes.filter(c => tam(c) > 0).sort((a, b) => tam(b) - tam(a));
+  if (noTitulo.length && (noTitulo.length === 1 || tam(noTitulo[0]) > tam(noTitulo[1]))) return { c: noTitulo[0], como: "titulo" };
   // 2) quem é mais citado no texto?
   const corpo = " " + chave(texto.slice(0, 30000)) + " ";
-  const placar = clientes.map(c => ({ c, n: conta(corpo, " " + c.k + " ") })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+  const placar = clientes.map(c => ({ c, n: chavesDe(c).reduce((t, k) => t + conta(corpo, " " + k + " "), 0) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
   if (placar.length && placar[0].n >= 3 && (placar.length === 1 || placar[0].n >= 2 * placar[1].n)) return { c: placar[0].c, como: "conteudo" };
   // 3) a IA desempata (só o título e o começo; barato)
   if (IA_KEY) {
@@ -94,7 +103,7 @@ async function ciclo(opts: { reclassificar?: boolean; dias?: number }) {
   const ini = Date.now(), log: string[] = [];
   try {
     const clientes: Cli[] = ((await db("clients?select=id,name")) ?? [])
-      .map((c: Reg) => ({ id: String(c.id), name: String(c.name ?? ""), k: chave(String(c.name ?? "")) })).filter((c: Cli) => c.k.length >= 2);
+      .map((c: Reg) => ({ id: String(c.id), name: String(c.name ?? ""), k: chave(String(c.name ?? "")), al: (APELIDOS[chave(String(c.name ?? ""))] ?? []).map(chave) })).filter((c: Cli) => c.k.length >= 2);
 
     if (opts.reclassificar) {                         // refaz só a identificação do cliente, sem ir ao Drive
       const linhas = (await db("reunioes_texto?select=file_id,titulo,pasta,texto&client_id=is.null&limit=40")) ?? [];
