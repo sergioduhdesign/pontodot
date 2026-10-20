@@ -358,7 +358,7 @@ function w_rotina_zap() {
     $slot = null; foreach ($slots as $k => $ini) if ($min >= $ini && $min < $ini + 180) $slot = $k;   // janela de 3 h pra recuperar se o relógio falhar
     if (!$slot) return 'fora de horário';
     $hoje = $sp->format('Y-m-d');
-    $ps = sd_supabase('/rest/v1/profiles?zap_ativo=eq.true&active=eq.true&zap=not.is.null&select=id,name,team_key,role');
+    $ps = sd_supabase('/rest/v1/profiles?zap_ativo=eq.true&active=eq.true&zap=not.is.null&role=in.(admin,team)&select=id,name,team_key,role');
     if (($ps['code'] ?? 500) >= 300) return 'rode o SQL v97';
     $feitas = 0; $tenta = 0;
     foreach ((array)$ps['body'] as $p) {
