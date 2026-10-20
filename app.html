@@ -826,6 +826,13 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                   <div style="font-size:11px;color:var(--text3)">Carregando…</div>
                 </div>
               </div>
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
+                <div>
+                  <div class="entity-card-name">Avisos externos</div>
+                  <div class="entity-card-meta">WhatsApp e e-mail: histórico de tudo que a plataforma enviou</div>
+                </div>
+                <div><button class="btn btn-secondary btn-sm" onclick="abrirAvisos()">Abrir histórico →</button></div>
+              </div>
               <div class="entity-card" id="card-pd-design" style="display:none;flex-direction:column;align-items:stretch;gap:9px">
                 <div>
                   <div class="entity-card-name">Pontodot Design</div>
@@ -1524,6 +1531,21 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <div class="field" id="u-client-wrap" style="display:none"><div class="field-label">Cliente</div><select class="field-select" id="u-client-sel"><option value="">Selecione...</option></select></div>
     </div>
     <div class="modal-foot"><button class="btn btn-secondary" onclick="closeModal('modal-new-user')">Cancelar</button><button class="btn btn-primary" onclick="saveUser()">Gerar Link de Acesso</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-avisos">
+  <div class="modal av-modal">
+    <div class="modal-head"><div class="modal-title">Avisos externos</div><button class="modal-close" onclick="closeModal('modal-avisos')">✕</button></div>
+    <div class="av-nota">Toda mensagem enviada por WhatsApp também é enviada por e-mail.</div>
+    <div class="av-corpo">
+      <div class="av-lista">
+        <div class="av-busca"><input id="av-q" placeholder="Buscar" oninput="avRender()"></div>
+        <div class="av-filtros"><button class="on" data-f="todos" onclick="avFiltro(this)">Todos</button><button data-f="whatsapp" onclick="avFiltro(this)">WhatsApp</button><button data-f="email" onclick="avFiltro(this)">E-mail</button></div>
+        <div id="av-contatos"></div>
+      </div>
+      <div class="av-conversa" id="av-conversa"><div class="av-vazio">Escolha uma conversa</div></div>
+    </div>
   </div>
 </div>
 
@@ -2706,6 +2728,48 @@ async function loadClients(){
   const[{data:c},{data:p}]=await Promise.all([sb.from('clients').select('*').order('name'),sb.from('products').select('*').order('name')]);
   clients=c||[];products=p||[];populateFilters();
 }
+
+// ---- AVISOS EXTERNOS: histórico (WhatsApp + e-mail), cara de WhatsApp ----
+let AV={dados:[],filtro:'todos',sel:null};
+async function abrirAvisos(){
+  openModal('modal-avisos');
+  document.getElementById('av-contatos').innerHTML='<div class="av-vazio">Carregando…</div>';
+  const{data,error}=await sb.from('pd_avisos_log').select('*').order('criado_em',{ascending:false}).limit(1000);
+  if(error){document.getElementById('av-contatos').innerHTML='<div class="av-vazio">'+(/does not exist|relation/.test(error.message)?'Falta rodar o SQL v98b no Supabase.':escSafe(error.message))+'</div>';return;}
+  AV.dados=data||[]; AV.sel=null; avRender();
+}
+function avFiltro(b){AV.filtro=b.dataset.f;document.querySelectorAll('.av-filtros button').forEach(x=>x.classList.toggle('on',x===b));AV.sel=null;avRender();}
+function avChave(r){return (r.quem||r.para||'?')+'';}
+function avRender(){
+  const q=(document.getElementById('av-q').value||'').toLowerCase();
+  const ls=AV.dados.filter(r=>(AV.filtro==='todos'||r.canal===AV.filtro)&&(!q||((r.quem||'')+' '+r.para+' '+(r.corpo||'')).toLowerCase().includes(q)));
+  const g={}; ls.forEach(r=>{const k=avChave(r);(g[k]=g[k]||[]).push(r);});
+  const chaves=Object.keys(g);
+  document.getElementById('av-contatos').innerHTML=chaves.map(k=>{const u=g[k][0];const ini=k.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="av-c ${AV.sel===k?'on':''}" onclick="avAbre(this.dataset.k)" data-k="${escSafe(k)}"><div class="av-av">${escSafe(ini)}</div><div class="av-t"><b>${escSafe(k)}</b><small>${escSafe((u.corpo||'').replace(/\s+/g,' ').slice(0,60))}</small></div><span class="av-h">${escSafe(avHora(u.criado_em))}</span></div>`;}).join('')||'<div class="av-vazio">Nenhum aviso enviado ainda.</div>';
+  if(AV.sel&&g[AV.sel])avConversa(g[AV.sel]);
+}
+function avHora(i){const d=new Date(i),h=new Date();return d.toDateString()===h.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
+function avAbre(k){AV.sel=k;document.getElementById('modal-avisos').classList.add('av-aberta');avRender();}
+function avConversa(rows){
+  // junta o e-mail espelho à bolha do WhatsApp (mesma ref)
+  const porRef={}; rows.forEach(r=>{if(r.ref&&r.canal==='email')porRef[r.ref]=r;});
+  const itens=rows.filter(r=>!(r.canal==='email'&&r.ref&&rows.some(x=>x.ref===r.ref&&x.canal==='whatsapp'))).slice().reverse();
+  let dia='';
+  const html=itens.map(r=>{
+    const d=new Date(r.criado_em).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+    const sep=d!==dia?`<div class="av-dia"><span>${escSafe(d)}</span></div>`:''; dia=d;
+    const em=r.ref?porRef[r.ref]:null, ehZ=r.canal==='whatsapp';
+    const tik=r.status==='enviado'?'✓✓':r.status==='erro'?'⚠':'…';
+    const rod=ehZ?`${em?`<div class="av-em">✉ também enviado por e-mail para ${escSafe(em.para)}</div>`:''}`:`<div class="av-em">✉ e-mail para ${escSafe(r.para)}${r.assunto?' · '+escSafe(r.assunto):''}</div>`;
+    const st=r.status==='erro'?`<div class="av-err">Não foi entregue: ${escSafe(r.erro||'erro')}</div>`:r.status==='manual'?'<div class="av-err">Sem API ativa: ficou como aviso para envio manual.</div>':'';
+    return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.status==='enviado'?'ok':''}">${tik}</span></div></div>`;
+  }).join('');
+  const k=AV.sel, tel=rows[0].canal==='whatsapp'?rows[0].para:(rows.find(x=>x.canal==='whatsapp')||{}).para||rows[0].para;
+  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe(k.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase())}</div><div><b>${escSafe(k)}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>`;
+  const f=document.querySelector('#av-conversa .av-fio'); if(f)f.scrollTop=f.scrollHeight;
+}
+
 async function loadPosts(){
   const{data}=await sb.from('posts').select('id,user_id,body,image_url,pinned,created_at,profiles:user_id(id,name,avatar_url)').order('created_at',{ascending:false}).limit(50);
   posts=data||[];if(currentView==='feed')renderFeed();

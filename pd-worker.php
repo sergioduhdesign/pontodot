@@ -264,6 +264,8 @@ function w_zap() {
                 mb_substr($texto, 0, 180), $z['task_id'] ?? null,
                 'https://wa.me/' . $tel . '?text=' . rawurlencode(mb_substr($texto, 0, 900)), true);
             $manuais++;
+            pdAvisoLog('whatsapp', $z['para'], $z['quem'] ?? null, null, $texto, 'manual', 'sem API de WhatsApp configurada', empty($z['client_id']) ? 'equipe' : 'cliente', 'z' . $z['id'], $z['client_id'] ?? null);
+            if (empty($z['client_id'])) pdEmailEspelho($tel, $texto, 'z' . $z['id']);
             continue;
         }
         [$code, $raw] = pdZapEnviar(preg_replace('/\D/', '', (string)$z['para']), $texto);
@@ -271,8 +273,15 @@ function w_zap() {
             sd_supabase('/rest/v1/pd_zap?id=eq.' . (int)$z['id'], 'PATCH', ['status' => 'enviado', 'enviado_em' => date('c')]);
             if (!empty($z['task_id'])) pdEvento($z['task_id'], 'zap', 'Zap enviado', ($z['quem'] ?: $z['para']) . ': ' . mb_substr($z['corpo'], 0, 120), 'Robô', 'robo');
             $enviados++;
+            $dg = preg_replace('/\D/', '', (string)$z['para']);
+            pdAvisoLog('whatsapp', $z['para'], $z['quem'] ?? null, null, $texto, 'enviado', null, empty($z['client_id']) ? 'equipe' : 'cliente', 'z' . $z['id'], $z['client_id'] ?? null);
+            if (empty($z['client_id'])) pdEmailEspelho($dg, $texto, 'z' . $z['id']);
         } else {
             $t = (int)($z['tentativas'] ?? 0) + 1;
+            if ($t >= 3) {
+                pdAvisoLog('whatsapp', $z['para'], $z['quem'] ?? null, null, $texto, 'erro', 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200), empty($z['client_id']) ? 'equipe' : 'cliente', 'z' . $z['id'], $z['client_id'] ?? null);
+                if (empty($z['client_id'])) pdEmailEspelho(preg_replace('/\D/', '', (string)$z['para']), $texto, 'z' . $z['id']);
+            }
             sd_supabase('/rest/v1/pd_zap?id=eq.' . (int)$z['id'], 'PATCH',
                 ['tentativas' => $t, 'status' => $t >= 3 ? 'erro' : 'fila', 'erro' => 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 300)]);
         }

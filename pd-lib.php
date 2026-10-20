@@ -113,6 +113,24 @@ function pdBatata($taskId, $quem) {
     sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($taskId), 'PATCH',
         ['batata' => $quem, 'batata_em' => date('c')]);
 }
+// Histórico de avisos externos (WhatsApp + e-mail). Silencioso se o SQL v98b ainda não rodou.
+function pdAvisoLog($canal, $para, $quem, $assunto, $corpo, $status = 'enviado', $erro = null, $origem = 'sistema', $ref = null, $clientId = null) {
+    try { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['ref' => $ref, 'canal' => $canal, 'para' => (string)$para, 'quem' => $quem,
+        'assunto' => $assunto ? mb_substr((string)$assunto, 0, 200) : null, 'corpo' => mb_substr((string)$corpo, 0, 2000),
+        'status' => $status, 'erro' => $erro ? mb_substr((string)$erro, 0, 300) : null, 'origem' => $origem, 'client_id' => $clientId]); } catch (Throwable $e) {}
+}
+// Regra da casa: toda mensagem de WhatsApp da EQUIPE também sai por e-mail.
+function pdEmailEspelho($telDigitos, $texto, $ref) {
+    $r = sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=name,email,zap');
+    foreach ((array)($r['body'] ?? []) as $p) {
+        if (preg_replace('/\D/', '', (string)$p['zap']) !== $telDigitos || empty($p['email'])) continue;
+        $linhas = explode("\n", $texto); $assunto = trim(preg_replace('/^🔔\s*/u', '', $linhas[0]));
+        $ok = @mail($p['email'], '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPontodot\nhttps://sd.sergioduh.com",
+            "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+        pdAvisoLog('email', $p['email'], $p['name'] ?? null, $assunto, $texto, $ok ? 'enviado' : 'erro', $ok ? null : 'mail() falhou', 'equipe', $ref);
+        return;
+    }
+}
 // Alarme: pisca e apita na tela de todo mundo da equipe até alguém cuidar
 function pdAlarme($tipo, $titulo, $corpo = null, $taskId = null, $link = null, $semZap = false) {
     sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => $tipo, 'titulo' => mb_substr($titulo, 0, 140),
@@ -169,8 +187,9 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
         if (!empty($p['email'])) {
             $msg = 'Olá, ' . ($p['name'] ?: '') . "!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link
                  . "\n\nVocê pode aprovar tudo de uma vez ou pedir ajuste peça por peça.\n\nPontodot\nhttps://sd.sergioduh.com";
-            @mail($p['email'], '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
+            $okm = @mail($p['email'], '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
                 "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+            pdAvisoLog('email', $p['email'], $p['name'] ?? null, $titulo, $msg, $okm ? 'enviado' : 'erro', $okm ? null : 'mail() falhou', 'cliente', null, $clientId);
         }
         $n++;
     }
@@ -178,8 +197,9 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
     $ea = $ligado ? trim((string)($zc['body'][0]['email_aviso'] ?? '')) : '';
     if ($ea !== '' && filter_var($ea, FILTER_VALIDATE_EMAIL)) {
         $msg = "Olá!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link . "\n\nPontodot\nhttps://sd.sergioduh.com";
-        @mail($ea, '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
+        $okm = @mail($ea, '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
             "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+        pdAvisoLog('email', $ea, $zc['body'][0]['name'] ?? null, $titulo, $msg, $okm ? 'enviado' : 'erro', $okm ? null : 'mail() falhou', 'cliente', null, $clientId);
     }
     return $n;
 }
