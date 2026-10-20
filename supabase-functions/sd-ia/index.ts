@@ -382,7 +382,7 @@ async function notasDaPasta(perfil: Registro, dias: number, citados: string[],
 // de ninguém que está perguntando.
 async function existeAlgumaReuniao(auth: string): Promise<boolean> {
   try {
-    const r = await buscar(`${SB_URL}/rest/v1/reunioes_controle?select=file_id&limit=1`,
+    const r = await buscar(`${SB_URL}/rest/v1/reunioes_texto?select=file_id&limit=1`,
       { headers: { apikey: SB_API, authorization: auth } });
     if (!r.ok) return true;              // na dúvida, não acusa o sistema
     const page = await r.json();
@@ -1496,8 +1496,11 @@ Deno.serve(async (req: Request) => {
     // "não houve reunião" sem ter olhado onde as notas realmente moram.
     etapa = "pasta de notas";
     const notas = querReuniao
-      ? await notasDaPasta(eu, Math.max(janelaDeDias(b.mensagem), 120), citados, clientesRows, b.mensagem).catch(e => {
-          falhouReuniao = nomeDoErro(e); return { lista: [], conteudo: [] }; })
+      ? await (async () => {
+          const dd = Math.max(janelaDeDias(b.mensagem), 120);
+          const esp = await notasDoEspelho(auth, dd, citados, clientesRows, b.mensagem);   // 1º o espelho no Supabase (texto inteiro)
+          return esp ?? await notasDaPasta(eu, dd, citados, clientesRows, b.mensagem);     // reserva: a pasta no Drive
+        })().catch(e => { falhouReuniao = nomeDoErro(e); return { lista: [], conteudo: [] }; })
       : { lista: [], conteudo: [] };
     const temAlgumaReuniao = (querReuniao && !reunioes.length && !notas.lista.length && !falhouReuniao)
       ? await existeAlgumaReuniao(auth).catch(() => true) : true;

@@ -513,8 +513,8 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
               'atrasada' => $di && $di < $hoje && ($t['status'] ?? '') !== 'BRIEFING', 'obs' => mb_substr((string)($t['obs'] ?? ''), 0, 120)];
         $todas[] = $i; if ($key !== '' && ($t['resp'] ?? '') === $key) $minhas[] = $i;
     }
-    $rr = sd_supabase('/rest/v1/reunioes_controle?reuniao_em=gte.' . rawurlencode(gmdate('c', time() - 10 * 86400)) . '&select=cliente,reuniao_em,resumo&order=reuniao_em.desc&limit=8');
-    $reun = array_map(fn($r) => ['cliente' => $r['cliente'] ?? '', 'quando' => $r['reuniao_em'] ?? '', 'resumo' => mb_substr((string)($r['resumo'] ?? ''), 0, 900)], (array)($rr['body'] ?? []));
+    $rr = sd_supabase('/rest/v1/reunioes_texto?reuniao_em=gte.' . rawurlencode(gmdate('Y-m-d', time() - 10 * 86400)) . '&select=cliente,titulo,reuniao_em,texto&order=reuniao_em.desc&limit=6');
+    $reun = array_map(fn($r) => ['cliente' => $r['cliente'] ?? '', 'quando' => $r['reuniao_em'] ?? '', 'titulo' => $r['titulo'] ?? '', 'resumo' => mb_substr((string)($r['texto'] ?? ''), 0, 900)], (array)($rr['body'] ?? []));
     $cl = sd_supabase('/rest/v1/clients?active=eq.true&select=name&limit=60');
     $clientes = array_map(fn($c) => $c['name'], (array)($cl['body'] ?? []));
     // memória curta da conversa: últimas mensagens (entrada e saída) deste número, nas últimas 24 h

@@ -381,8 +381,8 @@ function w_rotina_zap() {
         }
         $reun = [];
         if ($slot === 'tarde') {
-            $rr = sd_supabase('/rest/v1/reunioes_controle?reuniao_em=gte.' . rawurlencode(gmdate('c', time() - 30 * 3600)) . '&select=cliente,reuniao_em,resumo&order=reuniao_em.desc&limit=5');
-            foreach ((array)($rr['body'] ?? []) as $r) $reun[] = ['cliente' => $r['cliente'] ?? '', 'quando' => $r['reuniao_em'] ?? '', 'resumo' => mb_substr((string)($r['resumo'] ?? ''), 0, 500)];
+            $rr = sd_supabase('/rest/v1/reunioes_texto?reuniao_em=gte.' . rawurlencode(gmdate('Y-m-d', time() - 2 * 86400)) . '&select=cliente,titulo,reuniao_em,texto&order=reuniao_em.desc&limit=5');
+            foreach ((array)($rr['body'] ?? []) as $r) $reun[] = ['cliente' => $r['cliente'] ?? '', 'quando' => $r['reuniao_em'] ?? '', 'resumo' => mb_substr((string)($r['texto'] ?? ''), 0, 500), 'titulo' => $r['titulo'] ?? ''];
         }
         $primeiro = explode(' ', trim((string)$p['name']))[0];
         $texto = w_rotina_texto($slot, $primeiro, $tasks, $reun, $hoje);
