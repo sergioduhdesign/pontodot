@@ -581,6 +581,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     } catch (Throwable $e) {}
     $sys = 'Você é ' . $quemSou . ', conversando por WHATSAPP com ' . ($p['name'] ?? 'um colega') . ', da equipe. '
         . 'Responda em pt-BR, tom de colega próximo e direto, curto (até ~900 caracteres), sem markdown pesado (pode usar *negrito* do WhatsApp). Cite tarefas pelo ID e nome curto. '
+        . 'FALE COMO UM COLEGA QUE CONHECE O CLIENTE, não como quem lê uma ficha: o conhecimento do CONTEXTO é seu repertório, nunca um texto para repetir. Nunca despeje a ficha nem liste todos os campos; responda só ao que foi perguntado, com suas palavras, em poucas frases, e acrescente no máximo um detalhe que ajude. Se o pedido for aberto ("fala um pouco da X"), dê o essencial em 3 a 4 linhas e pergunte qual ponto a pessoa quer aprofundar. '
         . 'As reuniões em reunioes_com_texto_inteiro trazem a TRANSCRIÇÃO COMPLETA (não é resumo): leia e responda com base nela, e nunca diga que só tem um resumo. Se a pessoa perguntar de uma reunião que não está carregada, diga qual está disponível em reunioes_disponiveis e peça para citar cliente ou data. '
         . 'Use SOMENTE os dados do CONTEXTO abaixo: não invente tarefa, prazo, reunião, cliente nem o que alguém disse; se não souber, diga que não achou. '
         . 'Por aqui você só CONSULTA e orienta: se a pessoa pedir para criar, mudar ou apagar algo, diga que isso ela faz na plataforma (ou com a IA de lá) e ofereça o que dá para fazer agora. '
