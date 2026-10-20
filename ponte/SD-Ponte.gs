@@ -357,11 +357,18 @@ function reunioesListar_(d) {
 }
 
 // Lê o texto de uma nota/documento (Google Doc, .txt, PDF). d.doc_id.
+// Texto de um Google Doc SEM o serviço Docs (só a permissão do Drive, que já existe): exporta como texto puro.
+function docTexto_(id) {
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '/export?mimeType=text%2Fplain&supportsAllDrives=true',
+    { headers: token_(), muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) throw new Error('export do Doc falhou (' + r.getResponseCode() + '): ' + r.getContentText().slice(0, 160));
+  return r.getContentText('UTF-8').replace(/^\uFEFF/, '');
+}
 function reuniaoLer_(d) {
   var f = DriveApp.getFileById(d.doc_id);
   var mime = f.getMimeType(), texto = '';
   if (mime === MimeType.GOOGLE_DOCS) {
-    texto = DocumentApp.openById(d.doc_id).getBody().getText();
+    texto = docTexto_(d.doc_id);
   } else if (mime === MimeType.PDF) {
     // PDF vira Doc temporário só pra extrair o texto, e some em seguida
     var tmp = null;
@@ -372,7 +379,7 @@ function reuniaoLer_(d) {
       });
       if (r.getResponseCode() < 300) {
         tmp = JSON.parse(r.getContentText()).id;
-        texto = DocumentApp.openById(tmp).getBody().getText();
+        texto = docTexto_(tmp);
       }
     } catch (e) { texto = ''; }
     finally { if (tmp) { try { DriveApp.getFileById(tmp).setTrashed(true); } catch (e2) {} } }
