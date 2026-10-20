@@ -1,4 +1,4 @@
-# Publica as funções da IA no Supabase (sd-ia e pd-maestro) quando elas mudam.
+# Publica as funções no Supabase (sd-ia, pd-maestro e sd-reunioes) quando elas mudam.
 # Precisa de 2 segredos no GitHub (você cria; eu nunca vejo):
 #   SUPABASE_ACCESS_TOKEN  — token pessoal do Supabase (Account → Access Tokens)
 #   SUPABASE_PROJECT_REF   — ibkflplbraltewsjjsqm
@@ -35,3 +35,5 @@ jobs:
         run: supabase functions deploy sd-ia --project-ref "$SUPABASE_PROJECT_REF"
       - name: Publicar pd-maestro (a função confere o login por dentro, como já estava)
         run: supabase functions deploy pd-maestro --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
+      - name: Publicar sd-reunioes (o agendador do banco chama sem login; a função confere a chave dele por dentro)
+        run: supabase functions deploy sd-reunioes --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
