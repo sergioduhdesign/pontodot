@@ -2944,6 +2944,7 @@ function renderFeed(){
       <div class="feed-post-head">${av}<div><div class="feed-post-name">${name}</div><div class="feed-post-time">${time}</div></div>${p.pinned?'<div class="feed-post-pin">FIXADO</div>':''}${p.user_id===profile.id?`<button class="btn btn-ghost btn-icon" style="margin-left:auto;color:var(--text3)" onclick="deletePost('${p.id}')">✕</button>`:''}</div>
       ${p.image_url?`<img class="feed-post-image" src="${p.image_url}" style="object-fit:cover;object-position:center center;">` : ''}
       <div class="feed-post-body">${linkify(p.body)}</div>
+      <div class="feed-alunos" id="palu-${p.id}"></div>
       <div class="post-comments" id="pcmts-${p.id}" data-post-id="${p.id}"></div>
       <div class="feed-post-foot">
         <button class="feed-react-btn ${(localStorage.getItem('like_'+p.id))?'active':''}" id="like-btn-${p.id}" onclick="toggleLike('${p.id}',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> Curtir</button>
@@ -2955,6 +2956,23 @@ function renderFeed(){
   document.getElementById('feed-posts').innerHTML=html||'<div class="empty-state"><div class="empty-state-icon">📢</div><div class="empty-state-text">Nenhuma publicação ainda.</div></div>';
   // Carregar os 2 comentários mais recentes de cada post
   posts.forEach(p => loadPostCommentsPreview(p.id));
+  carregarReacoesAlunos(posts.map(p=>p.id));
+}
+async function carregarReacoesAlunos(ids){
+  if(!ids.length) return;
+  try{
+    const{data,error}=await sb.from('pd_post_reacoes').select('post_id,aluno,tipo,texto,criado_em').in('post_id',ids).order('criado_em',{ascending:true});
+    if(error||!data) return;
+    const nome=a=>{try{return escChar(a)?.name||a.charAt(0).toUpperCase()+a.slice(1);}catch(e){return a;}};
+    const foto=a=>{try{return escFoto(a,'avatar');}catch(e){return `/pd/personagens/${a}/avatar.jpg`;}};
+    ids.forEach(id=>{
+      const el=document.getElementById('palu-'+id); if(!el) return;
+      const r=data.filter(x=>x.post_id===id), cur=r.filter(x=>x.tipo==='curtida'), com=r.filter(x=>x.tipo==='comentario');
+      if(!r.length){ el.innerHTML=''; return; }
+      el.innerHTML=(cur.length?`<div class="fa-cur">♥ ${cur.length} ${cur.length>1?'curtidas':'curtida'} · ${cur.slice(0,3).map(x=>escSafe(nome(x.aluno))).join(', ')}${cur.length>3?'…':''}</div>`:'')
+        +com.map(x=>`<div class="fa-com"><img src="${escSafe(foto(x.aluno))}" alt=""><span><b>${escSafe(nome(x.aluno))}</b> ${escSafe(x.texto||'')}</span></div>`).join('');
+    });
+  }catch(e){}
 }
 
 

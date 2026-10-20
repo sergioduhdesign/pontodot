@@ -319,6 +319,56 @@ function w_feed_casa() {
 }
 
 // =====================================================================
+// 9) ALUNOS DE CATUM reagem aos posts HUMANOS do feed (curtem e comentam)
+//    Uma reação nova por post a cada rodada; teto de 6 curtidas e 3 comentários.
+// =====================================================================
+function w_alunos() {
+    $u = @json_decode((string)@file_get_contents(__DIR__ . '/pd/universo.json'), true);
+    $chars = []; foreach ((array)($u['characters'] ?? []) as $c) if (!empty($c['id'])) $chars[$c['id']] = $c;
+    if (!$chars) return 'sem universo';
+    $desde = gmdate('c', time() - 7 * 86400);
+    $p = sd_supabase('/rest/v1/posts?created_at=gte.' . rawurlencode($desde) . '&body=not.like.' . rawurlencode('🏠 Da casa%') . '&select=id,body,created_at&order=created_at.desc&limit=15');
+    if ($p['code'] >= 300) return 'erro posts';
+    $feitas = 0; $chamadas = 0;
+    foreach ((array)$p['body'] as $post) {
+        if (time() - strtotime($post['created_at']) < 600) continue;          // espera 10 min: ninguém reage no ato
+        $r = sd_supabase('/rest/v1/pd_post_reacoes?post_id=eq.' . $post['id'] . '&select=aluno,tipo');
+        if ($r['code'] >= 300) return 'rode o SQL v98';
+        $cur = 0; $com = 0; $ja = [];
+        foreach ((array)$r['body'] as $x) { $ja[$x['aluno']] = ($ja[$x['aluno']] ?? []); $ja[$x['aluno']][] = $x['tipo']; if ($x['tipo'] === 'curtida') $cur++; else $com++; }
+        if ($cur >= 6 && $com >= 3) continue;
+        if (mt_rand(1, 100) > 55) continue;                                    // ritmo humano: nem toda rodada
+        $livres = array_values(array_diff(array_keys($chars), array_keys($ja)));
+        if (!$livres) continue;
+        $al = $livres[array_rand($livres)];
+        $comentar = $com < 3 && $chamadas < 3 && defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY && mt_rand(1, 100) <= 40;
+        $texto = null;
+        if ($comentar) {
+            $c = $chars[$al]; $chamadas++;
+            $sys = 'Você é ' . $c['name'] . ', ' . ($c['profile_title'] ?? 'aluno') . ' da escola de Catum (um mundo fictício de IAs). ' . ($c['bio'] ?? '')
+                . ' Comente, em pt-BR, no máximo 20 palavras, de forma calorosa e específica, um post de uma pessoa da equipe de uma agência. Sem aspas, sem hashtags, no máximo um emoji.';
+            $body = ['model' => defined('SD_ALUNOS_MODEL') ? SD_ALUNOS_MODEL : 'claude-haiku-4-5', 'max_tokens' => 120, 'system' => $sys,
+                'messages' => [['role' => 'user', 'content' => "Post:\n" . mb_substr((string)$post['body'], 0, 600)]]];
+            $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+            $ch = curl_init($base . '/v1/messages');
+            curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40,
+                CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+                CURLOPT_POSTFIELDS => json_encode($body)]);
+            $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+            $j = json_decode((string)$raw, true);
+            if ($code === 200) foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $texto .= $b['text'];
+            $texto = $texto ? trim(trim($texto), "\"'“” ") : null;
+            if (!$texto) $comentar = false;
+        }
+        if (!$comentar && $cur >= 6) continue;
+        $res = sd_supabase('/rest/v1/pd_post_reacoes', 'POST', ['post_id' => $post['id'], 'aluno' => $al,
+            'tipo' => $comentar ? 'comentario' : 'curtida', 'texto' => $comentar ? mb_substr($texto, 0, 280) : null]);
+        if ($res['code'] < 300) $feitas++;
+    }
+    return $feitas . ' reação(ões)';
+}
+
+// =====================================================================
 // 6) RELATÓRIO DIÁRIO DE CAMPANHA
 // =====================================================================
 function w_relatorios() {
@@ -481,4 +531,5 @@ $z  = w_zap();                       echo "Zap: " . ($z['enviados'] ?? 0) . " en
 $n6 = w_relatorios();                echo "Relatórios de campanha: $n6\n";
 $n7 = w_sites();                     echo "Posts publicados em site de cliente: $n7\n";
 $n8 = w_feed_casa();                 echo "Feed da casa: $n8\n";
+$n9 = w_alunos();                    echo "Alunos reagem: $n9\n";
 echo "\nConcluido.\n";

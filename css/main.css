@@ -1246,3 +1246,13 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 .esc-cur-cta .esc-btn,.esc-cur-tx>.esc-btn{padding:12px 22px;font-size:14px;margin-top:0}
 .esc-cur-tx .esc-termo{border:1px solid var(--border);padding:12px 14px;margin-bottom:12px;font-size:13.5px}
 @media(max-width:700px){.esc-cur{grid-template-columns:1fr}.esc-cur-pf{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 12px;border-right:0;border-bottom:1px solid var(--border);padding:16px 20px}.esc-cur-foto{width:56px;margin:0}.esc-cur-meta{flex-direction:row;margin:0 0 0 auto}.esc-cur-tx{padding:20px}.esc-cur-tx h3{font-size:21px!important}}
+
+/* v173 — posts humanos do feed: mesma medida e ritmo dos posts dos estudantes, com um tom próprio */
+#feed-posts{max-width:none!important;gap:0!important}
+#feed-posts .feed-post{max-width:none;width:100%;margin-bottom:22px;border-radius:14px;box-shadow:none;background:color-mix(in srgb,var(--surface) 90%,var(--text) 10%);border:1px solid var(--border)}
+#feed-posts .feed-post:hover{box-shadow:none}
+#feed-posts .feed-post-head{padding:12px 14px}#feed-posts .feed-post-name{font-size:15px}
+#feed-posts .feed-post-image{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+#feed-posts .feed-post-body{padding:10px 16px 6px}
+.feed-alunos{padding:0 16px 4px;font-size:13px;color:var(--text2)}.fa-cur{margin:4px 0 6px}
+.fa-com{display:flex;gap:8px;align-items:flex-start;margin:6px 0;line-height:1.4}.fa-com img{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:0 0 22px}
