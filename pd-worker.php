@@ -369,7 +369,8 @@ function w_rotina_zap() {
         $erros = 0; $ok = false;
         foreach ((array)$ja['body'] as $x) { if ($x['ref'] === $ref && $x['status'] !== 'erro') $ok = true; if ($x['status'] === 'erro') $erros++; }
         if ($ok || $erros >= 3) continue;
-        $key = (string)($p['team_key'] ?? ''); if ($key === '' || $key === 'OUTROS') continue;
+        $key = (string)($p['team_key'] ?? ''); if ($key === '') $key = strtoupper(explode(' ', trim((string)$p['name']))[0]);   // sem team_key: usa o primeiro nome
+        if ($key === '' || $key === 'OUTROS' || $key === 'CLIENTE') continue;
         $tenta++;
         $tr = sd_supabase('/rest/v1/tasks?resp=eq.' . rawurlencode($key) . '&status=neq.ENTREGUE&select=id,action,status,date_int,date_cli,clients(name)&order=date_int.asc.nullslast&limit=40');
         $tasks = [];
