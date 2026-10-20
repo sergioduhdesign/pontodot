@@ -50,7 +50,12 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         if (!$cid) foreach ((array)(sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap')['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; break; }
         sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $quem, 'corpo' => mb_substr($txt, 0, 2000),
             'status' => 'recebida', 'origem' => 'entrada', 'direcao' => 'entrada', 'wamid' => $id, 'client_id' => $cid]);
-        try { pdAlarme('outro', 'WhatsApp de ' . ($quem ?: '+' . $para), mb_substr($txt, 0, 300), null, 'avisos:' . preg_replace('/\D/', '', $para), true); } catch (Throwable $e) {}
+        // alarme só quando NÃO é a equipe falando com a IA (a IA já responde) e só pros admins
+        if (!($membro && !$cid && ($membro['role'] ?? '') !== 'client')) { try {
+            foreach ((array)(sd_supabase('/rest/v1/profiles?role=eq.admin&active=eq.true&select=id')['body'] ?? []) as $ad)
+                sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'outro', 'user_id' => $ad['id'], 'titulo' => mb_substr('WhatsApp de ' . ($quem ?: '+' . $para), 0, 140),
+                    'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
+        } catch (Throwable $e) {} }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
     }

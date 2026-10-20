@@ -2786,6 +2786,17 @@ async function abrirAvisos(){
     (cc||[]).forEach(c=>{const k=avDig(c.zap);if(k)AV.av[k]={img:c.logo_url,nome:c.name,cor:c.color};});
   }catch(e){}
   avRender();
+  if(!AV.t) AV.t=setInterval(avAtualiza,6000);   // mensagem nova aparece sozinha, sem reabrir
+}
+async function avAtualiza(){
+  const m=document.getElementById('modal-avisos'); if(!m||!m.classList.contains('open')||document.hidden) return;
+  try{
+    const{data}=await sb.from('pd_avisos_log').select('*').order('criado_em',{ascending:false}).limit(1000);
+    if(!data) return;
+    const a=AV.dados[0]&&AV.dados[0].id, b=data[0]&&data[0].id, ent=x=>x.map(r=>r.id+(r.entrega||'')).join();
+    if(a===b&&data.length===AV.dados.length&&ent(data.slice(0,40))===ent(AV.dados.slice(0,40))) return;
+    AV.dados=data; avRender();
+  }catch(e){}
 }
 function avAvatar(k){
   const a=(AV.av||{})[k]; const nm=avNome(k);

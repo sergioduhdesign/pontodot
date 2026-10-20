@@ -175,7 +175,7 @@ PD.vigiarAlarmes = function(sb, perfil, opts){
     } catch(e){}
   };
   puxar();
-  setInterval(puxar, 45000);
+  setInterval(puxar, 15000);
   try {
     sb.channel('pd-alarmes').on('postgres_changes', { event: '*', schema: 'public', table: 'pd_alarmes' }, puxar).subscribe();
   } catch(e){}
