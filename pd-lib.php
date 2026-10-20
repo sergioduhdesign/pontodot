@@ -489,6 +489,16 @@ function pdPersonagens() { return [
   'boku' => ['Boku','Boro','Cuidador de projetos','Realizador','Ajuda a organizar a execução respeitando a capacidade das pessoas.'],
   'muru' => ['Muru','Mara','Companhia de travessia','Conector','Oferece presença discreta, clareza e espaço para encontrar o próprio ritmo.']
 ]; }
+// "digitando…" no WhatsApp da pessoa (some sozinho em ~25 s ou quando a resposta chega); também marca a mensagem como lida
+function pdZapDigitando($wamid) {
+    if (!$wamid || !(defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN && defined('SD_ZAP_PHONE_ID') && SD_ZAP_PHONE_ID)) return;
+    $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
+    $ch = curl_init($base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 6,
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN, 'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['messaging_product' => 'whatsapp', 'status' => 'read', 'message_id' => $wamid, 'typing_indicator' => ['type' => 'text']])]);
+    @curl_exec($ch); curl_close($ch);
+}
 function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     if (defined('SD_IA_ZAP') && SD_IA_ZAP === false) return;
     $falha = function ($motivo) use ($p, $tel) { error_log('ia-zap: ' . $motivo);

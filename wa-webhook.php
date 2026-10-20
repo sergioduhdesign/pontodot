@@ -73,7 +73,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
-        if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
+        if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
     }
     foreach ((array)($c['value']['statuses'] ?? []) as $s) {
         $id = (string)($s['id'] ?? ''); $st = (string)($s['status'] ?? ''); if ($id === '' || $st === '') continue;

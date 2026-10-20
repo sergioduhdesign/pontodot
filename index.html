@@ -2310,7 +2310,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v197 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v198 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2471,7 +2471,7 @@ function render(){
         <button class="x-chat" onclick="fecharConvVerso()" aria-label="Fechar conversa">✕</button></div>
       <div class="vc-rolo" id="vcRolo"><div class="chip-conv" style="align-self:center;border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.7)">${chipQuem()}</div>${th.map(m => m.eu
       ? `<div class="msg eu"><div><div class="quem" style="text-align:right">você · ${m.h}</div><div class="balao">${m.t}</div></div></div>`
-      : m.espera ? `<div class="msg"><div class="balao" style="letter-spacing:3px">···</div></div>`
+      : m.espera ? `<div class="msg"><div class="balao"><span class="pensa-pontos"><i></i><i></i><i></i></span><span id="esperaNota" class="pensa-nota">pensando…</span></div></div>`
       : `<div class="msg"><div><div class="quem">${m.de||nomeDaIA()} · ${m.h}</div><div class="balao">${m.t}${m.acoes?.length?`<div class="acoes">${m.acoes.map(([n,c,fn])=>`<button class="btn ${c?'cheio':''}" style="${c?`background:var(--${c})`:''}" onclick="${fn.replace(/"/g,'&quot;')}">${n}</button>`).join('')}</div>`:''}</div></div></div>`).join('')}</div></div>`;
     requestAnimationFrame(()=>{ const r = $('#vcRolo'); if (r) r.scrollTop = r.scrollHeight; });
   }
@@ -3031,8 +3031,8 @@ function htmlConversa(){
       <div class="msg eu">${avatarEu()}
         <div><div class="quem" style="text-align:right">você · ${m.h}</div><div class="balao">${m.mic?'<span style="opacity:.5;font-size:9.5px">● </span>':''}${m.t}</div></div></div>`
     : m.espera ? `
-      <div class="msg">${avatarZ(atual)}<div class="balao"><span style="letter-spacing:3px">···</span>
-        <span id="esperaNota" style="font-size:11px;opacity:.6;letter-spacing:0;margin-left:8px"></span></div></div>`
+      <div class="msg">${avatarZ(atual)}<div class="balao"><span class="pensa-pontos"><i></i><i></i><i></i></span>
+        <span id="esperaNota" class="pensa-nota">pensando…</span></div></div>`
     : `
       <div class="msg">${avatarZ(m.de ? (atual!=='sd' ? atual : m.de) : 'sd')}
         <div><div class="quem">${m.de||nomeDaIA()} · ${m.h}</div><div class="balao">${m.t}
@@ -3455,7 +3455,7 @@ function comecarEspera(txt){
   _esperaT = setInterval(()=>{
     const el = document.getElementById('esperaNota'); if (!el) return;
     const s = Math.round((Date.now()-t0)/1000);
-    if (s < 4) { el.textContent = ''; return; }
+    if (s < 4) { el.textContent = pesada ? 'lendo as notas…' : 'pensando…'; return; }
     el.textContent = s < 10 ? `${s}s`
       : s < 25 ? (pesada ? `${s}s · lendo as notas no Drive` : `${s}s · pensando`)
       : s < 50 ? `${s}s · consulta pesada, ainda rodando`
