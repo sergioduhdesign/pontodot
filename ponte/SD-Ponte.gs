@@ -604,3 +604,11 @@ function aprovConferir_(d) {
   }
   return { conferidos: out };
 }
+
+// Serve só pra liberar as permissões (Drive, Docs...): rode UMA vez pelo editor (Executar → autorizar).
+// Funções que terminam em _ são privadas e não aparecem na lista de execução; esta aparece.
+function autorizar() {
+  DriveApp.getRootFolder();
+  DocumentApp.getActiveDocument;      // só para o Google reconhecer o uso do serviço Docs
+  Logger.log('Autorizado: ' + Session.getEffectiveUser().getEmail());
+}

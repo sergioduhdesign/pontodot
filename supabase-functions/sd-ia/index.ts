@@ -267,6 +267,58 @@ async function lerNotaInteira(id: string): Promise<Registro | null> {
   return texto ? { titulo, url, texto, caracteres_total: total || texto.length } : null;
 }
 
+// O ESPELHO: o texto INTEIRO das reuniões já está no Supabase (tabela reunioes_texto, preenchida pela
+// função sd-reunioes), com o cliente identificado. É daqui que a IA lê primeiro — rápido e sem depender
+// do Drive. Cliente só enxerga o dele (a política da tabela decide, não a mensagem). Vazio → null (cai na pasta).
+async function notasDoEspelho(auth: string, dias: number, citados: string[],
+                              clientesDoBanco: Registro[], mensagem: string): Promise<{ lista: Registro[]; conteudo: Registro[] } | null> {
+  try {
+    const desde = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
+    const r = await buscar(`${SB_URL}/rest/v1/reunioes_texto?select=file_id,titulo,pasta,cliente,reuniao_em,url,caracteres&reuniao_em=gte.${desde}&order=reuniao_em.desc&limit=400`,
+      { headers: { apikey: SB_API, authorization: auth } }, 12000);
+    if (!r.ok) return null;
+    const rows = ((await r.json()) as Registro[]).filter(objeto);
+    if (!rows.length) return null;
+    const dc = diasCitados(mensagem);
+    const palavras = chaveNome(mensagem).split(/[^a-z0-9]+/).filter(w => w.length > 3 && !PALAVRAS_VAZIAS.has(w));
+    const nomesCasados = clientesDoBanco.map(c => String(c.name ?? "")).filter(n => n && chaveNome(mensagem).includes(chaveNome(n))).map(chaveNome);
+    const pont = (a: Registro) => {
+      const tk = chaveNome(String(a.titulo ?? "") + " " + String(a.pasta ?? "") + " " + String(a.cliente ?? ""));
+      let p = 0;
+      const d = String(a.reuniao_em ?? ""), mes = Number(d.slice(5, 7)), dia = Number(d.slice(8, 10));
+      if (dc.some(x => x.dia === dia && (x.mes === undefined || x.mes === mes))) p += 10;
+      const ck = chaveNome(String(a.cliente ?? ""));
+      for (const n of nomesCasados) if (n && (tk.includes(n) || (ck && ck === n))) p += 8;
+      for (const w of palavras) if (tk.includes(w)) p += 2;
+      for (const c of citados) { const k = chaveNome(c); if (k && (tk.includes(k) || ck === k)) p += 4; }
+      return p;
+    };
+    rows.sort((x, y) => (pont(y) - pont(x)) || String(y.reuniao_em ?? "").localeCompare(String(x.reuniao_em ?? "")));
+    const temRelevante = pont(rows[0]) > 0;
+    const lista = [...rows].sort((a, b) => String(b.reuniao_em ?? "").localeCompare(String(a.reuniao_em ?? ""))).slice(0, 120)
+      .map(a => ({ titulo: a.titulo, quando: a.reuniao_em, cliente: a.cliente ?? undefined }));
+    const querTodas = /\b(todas|todos|tudo|hist(ó|o)rico|compar|evolu)/i.test(mensagem);
+    const saudacaoLeve = !FALA_DE_REUNIAO.test(mensagem);
+    const n = saudacaoLeve ? 1 : querTodas ? 8 : (temRelevante ? 4 : 3);
+    const escolhidas = rows.slice(0, n);
+    const ids = escolhidas.map(a => `"${String(a.file_id).replace(/"/g, "")}"`).join(",");
+    const rt = await buscar(`${SB_URL}/rest/v1/reunioes_texto?select=file_id,texto&file_id=in.(${encodeURIComponent(ids)})`,
+      { headers: { apikey: SB_API, authorization: auth } }, 20000);
+    if (!rt.ok) return null;
+    const textos = new Map<string, string>(((await rt.json()) as Registro[]).filter(objeto).map((x): [string, string] => [String(x.file_id), String(x.texto ?? "")]));
+    const conteudo: Registro[] = []; let gasto = 0;
+    for (const a of escolhidas) {
+      let texto = textos.get(String(a.file_id)) ?? ""; if (!texto) continue;
+      const sobra = (saudacaoLeve ? 12000 : 330000) - gasto; if (sobra < 5000) break;
+      const total = texto.length;
+      if (texto.length > sobra) texto = texto.slice(0, sobra) + "\n[... nota longa: o restante está no link ...]";
+      gasto += texto.length;
+      conteudo.push({ titulo: a.titulo, quando: a.reuniao_em, cliente: a.cliente ?? undefined, url: a.url, texto, caracteres_total: total });
+    }
+    return { lista, conteudo };
+  } catch { return null; }
+}
+
 async function notasDaPasta(perfil: Registro, dias: number, citados: string[],
                             clientesDoBanco: Registro[], mensagem = ""): Promise<{ lista: Registro[]; conteudo: Registro[] }> {
   const desde = new Date(Date.now() - dias * 864e5).toISOString();
