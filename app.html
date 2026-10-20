@@ -1445,9 +1445,13 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           <div class="field-label" style="margin-bottom:8px">Zap do cliente</div>
           <div style="display:flex;gap:8px">
             <input id="mc-zap" placeholder="+55 19 99999-0000" style="flex:1;height:34px">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="mc-email-aviso" type="email" placeholder="e-mail para os avisos" style="flex:1;height:34px">
             <button class="btn btn-secondary btn-sm" onclick="pdZapSalvar()">Salvar</button>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:5px">Com o número salvo, os avisos de aprovação chegam também no WhatsApp do cliente.</div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="mc-zap-ativo"> <b>Avisar este cliente</b> <span style="color:var(--text3);font-weight:400">(WhatsApp e e-mail, nos lotes de aprovação)</span></label>
+          <div style="font-size:11px;color:var(--text3);margin-top:5px">Desligado, nenhum aviso sai para este cliente, mesmo com o número salvo.</div>
         </div>
       </div>
       <button class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px" onclick="closeModal('modal-client');openBriefingCenter(currentClientId)">
@@ -1550,6 +1554,12 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <div class="field-row">
         <div class="field"><div class="field-label">Aniversário</div><input class="field-input" type="date" id="prof-birthday"></div>
         <div class="field"><div class="field-label">Contato / WhatsApp</div><input class="field-input" id="prof-contact" placeholder="+55 11 9..."></div>
+        <div class="field" id="prof-zap-box" style="background:var(--surface2);border-radius:10px;padding:10px 12px">
+          <div class="field-label" style="display:flex;align-items:center;gap:8px">Alertas da equipe no WhatsApp
+            <label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:400;font-size:12px;cursor:pointer"><input type="checkbox" id="prof-zap-ativo"> ativar</label></div>
+          <input class="field-input" id="prof-zap" placeholder="+55 19 99999-0000 (número com WhatsApp)">
+          <div style="font-size:11px;color:var(--text3);margin-top:5px;line-height:1.45">Lote pronto, entrega travada, erro de publicação e outros alarmes chegam no seu WhatsApp, pelo número oficial do Pontodot.</div>
+        </div>
       </div>
       <div class="field-row">
         <div class="field"><div class="field-label">Rede social 1</div><input class="field-input" id="prof-social1" placeholder="instagram.com/usuario"></div>
@@ -6796,7 +6806,7 @@ async function pdPainelCliente(cid){
   const [{ data: contas }, adR, { data: cli }] = await Promise.all([
     sb.from('social_accounts').select('platform,account_name,status').eq('client_id', cid),
     sb.from('meta_ad_accounts').select('id,nome,moeda').eq('client_id', cid),
-    sb.from('clients').select('zap').eq('id', cid).single().then(r=>r, ()=>({data:null})),
+    sb.from('clients').select('zap,zap_ativo,email_aviso').eq('id', cid).single().then(r=>r, ()=>({data:null})),
   ]);
   const linhas = [];
   (contas||[]).forEach(c => linhas.push(`<div>${c.platform==='instagram'?'📷':'📘'} <b>${esc(c.account_name||'')}</b> <span style="color:var(--text3)">· ${c.status==='conectada'?'conectada':esc(c.status||'')}</span></div>`));
@@ -6804,6 +6814,8 @@ async function pdPainelCliente(cid){
   document.getElementById('mc-redes').innerHTML = linhas.join('') ||
     '<span style="color:var(--text3)">Nada conectado — conecte a Meta na frente (caixinha Anúncios) ou em Admin → Redes sociais.</span>';
   document.getElementById('mc-zap').value = (cli&&cli.zap)||'';
+  document.getElementById('mc-email-aviso').value = (cli&&cli.email_aviso)||'';
+  document.getElementById('mc-zap-ativo').checked = !!(cli&&cli.zap_ativo);
   // site
   const { data: site } = await sb.from('pd_sites').select('*').eq('client_id', cid).maybeSingle()
     .then(r=>r, ()=>({data:null}));
@@ -6829,9 +6841,24 @@ async function pdSiteSalvar(){
   const { error } = await sb.from('pd_sites').upsert(dados);
   showToast(error ? 'Não salvei: '+error.message : 'Site salvo.', error?'error':'success');
 }
+function pdZapPerfilCarregar(p){
+  const z=document.getElementById('prof-zap'),a=document.getElementById('prof-zap-ativo'); if(!z||!a) return;
+  z.value=(p&&p.zap)||''; a.checked=!!(p&&p.zap_ativo);
+}
+// grava à parte: se a coluna ainda não existe no banco, o resto do perfil já foi salvo e nada quebra
+async function pdZapPerfilSalvar(id,proprio){
+  const z=document.getElementById('prof-zap'),a=document.getElementById('prof-zap-ativo'); if(!z||!a) return;
+  const zap=z.value.replace(/[^\d+]/g,'')||null, zap_ativo=!!(a.checked&&zap);
+  const {error}=await sb.from('profiles').update({zap,zap_ativo}).eq('id',id);
+  if(error){ showToast('Perfil salvo, mas os alertas de WhatsApp não: '+error.message+' (rode o SQL v97).','warn'); return; }
+  if(proprio){ profile.zap=zap; profile.zap_ativo=zap_ativo; }
+}
 async function pdZapSalvar(){
-  const { error } = await sb.from('clients').update({ zap: document.getElementById('mc-zap').value.trim()||null }).eq('id', currentClientId);
-  showToast(error ? 'Não salvei: '+error.message : 'Zap do cliente salvo.', error?'error':'success');
+  const zap=document.getElementById('mc-zap').value.replace(/[^\d+]/g,'')||null;
+  const email_aviso=document.getElementById('mc-email-aviso').value.trim()||null;
+  const zap_ativo=!!document.getElementById('mc-zap-ativo').checked;
+  const { error } = await sb.from('clients').update({ zap, email_aviso, zap_ativo }).eq('id', currentClientId);
+  showToast(error ? 'Não salvei: '+error.message+' (rode o SQL v97).' : (zap_ativo?'Avisos ligados para este cliente.':'Dados salvos. Avisos desligados.'), error?'error':'success');
 }
 async function pdSiteTestar(){
   const st = document.getElementById('mc-site-st'); st.textContent = 'testando…';
@@ -8928,13 +8955,13 @@ async function openMyProfile(){closeUserMenu();editingUserId=null;if(document.ge
   document.getElementById('prof-aparencia-section').style.display='block';
   renderThemePanel();
   document.getElementById('prof-name').value=profile.name||'';document.getElementById('prof-email').value=profile.email||'';document.getElementById('prof-bio').value=profile.bio||'';const sectorLabels={'JOY':'Atendimento / Fluxo','LUANA':'Design / Produção','JUAN':'Web / Campanha','SERGIO':'Brand / Conceito / Design','OUTROS':'Outros','CLIENTE':'Cliente','admin':'Administrador','team':'Equipe','client':'Cliente'};
-  document.getElementById('prof-role-lbl').textContent=profile.team_key&&profile.team_key!=='OUTROS'?(sectorLabels[profile.team_key]||profile.team_key):(sectorLabels[profile.role]||profile.role);document.getElementById('prof-birthday').value=profile.birthday||'';document.getElementById('prof-contact').value=profile.contact||'';document.getElementById('prof-social1').value=profile.social1||'';document.getElementById('prof-social2').value=profile.social2||'';document.getElementById('prof-site').value=profile.site||'';const img=document.getElementById('prof-av-img'),ph=document.getElementById('prof-av-ph');if(profile.avatar_url){img.src=profile.avatar_url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';ph.style.cssText=`width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;background:${['#2563eb','#7c3aed','#dc2626'][profile.name.charCodeAt(0)%3]}`;ph.textContent=profile.name.substring(0,2).toUpperCase();}const myClients=[...new Set(tasks.filter(t=>t.resp===profile.team_key).map(t=>t.client_id))].filter(Boolean).map(id=>clients.find(c=>c.id===id)).filter(Boolean);if(myClients.length){document.getElementById('prof-clients-section').style.display='block';document.getElementById('prof-clients-list').innerHTML=myClients.map(c=>`<span style="background:${c.color||'#64748b'}18;border:1px solid ${c.color||'#64748b'}30;padding:3px 10px;border-radius:20px;font-size:12.5px;color:${c.color||'var(--text2)'}">${c.name}</span>`).join('');}openModal('modal-profile');}
+  document.getElementById('prof-role-lbl').textContent=profile.team_key&&profile.team_key!=='OUTROS'?(sectorLabels[profile.team_key]||profile.team_key):(sectorLabels[profile.role]||profile.role);document.getElementById('prof-birthday').value=profile.birthday||'';document.getElementById('prof-contact').value=profile.contact||'';pdZapPerfilCarregar(profile);document.getElementById('prof-social1').value=profile.social1||'';document.getElementById('prof-social2').value=profile.social2||'';document.getElementById('prof-site').value=profile.site||'';const img=document.getElementById('prof-av-img'),ph=document.getElementById('prof-av-ph');if(profile.avatar_url){img.src=profile.avatar_url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';ph.style.cssText=`width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;background:${['#2563eb','#7c3aed','#dc2626'][profile.name.charCodeAt(0)%3]}`;ph.textContent=profile.name.substring(0,2).toUpperCase();}const myClients=[...new Set(tasks.filter(t=>t.resp===profile.team_key).map(t=>t.client_id))].filter(Boolean).map(id=>clients.find(c=>c.id===id)).filter(Boolean);if(myClients.length){document.getElementById('prof-clients-section').style.display='block';document.getElementById('prof-clients-list').innerHTML=myClients.map(c=>`<span style="background:${c.color||'#64748b'}18;border:1px solid ${c.color||'#64748b'}30;padding:3px 10px;border-radius:20px;font-size:12.5px;color:${c.color||'var(--text2)'}">${c.name}</span>`).join('');}openModal('modal-profile');}
 async function openUserProfile(userId){const{data:u}=await sb.from('profiles').select('*').eq('id',userId).single();if(!u)return;editingUserId=userId;document.getElementById('prof-modal-title')?document.getElementById('prof-modal-title').textContent=u.name+' — Perfil':'';
   // Status de presença é pessoal — só o próprio usuário pode mudar o dele.
   document.getElementById('prof-presence-section').style.display='none';
   document.getElementById('prof-aparencia-section').style.display='none';
   document.getElementById('prof-name').value=u.name||'';document.getElementById('prof-email').value=u.email||'';document.getElementById('prof-bio').value=u.bio||'';const sl2={'JOY':'Atendimento / Fluxo','LUANA':'Design / Produção','JUAN':'Web / Campanha','SERGIO':'Brand / Conceito / Design','OUTROS':'Outros','admin':'Administrador','team':'Equipe','client':'Cliente'};
-  document.getElementById('prof-role-lbl').textContent=u.team_key&&u.team_key!=='OUTROS'?(sl2[u.team_key]||u.team_key):(sl2[u.role]||u.role);['birthday','contact','social1','social2','site'].forEach(k=>{document.getElementById(`prof-${k}`).value=u[k]||'';});const img=document.getElementById('prof-av-img'),ph=document.getElementById('prof-av-ph');if(u.avatar_url){img.src=u.avatar_url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';ph.textContent=u.name.substring(0,2).toUpperCase();}openModal('modal-profile');}
+  document.getElementById('prof-role-lbl').textContent=u.team_key&&u.team_key!=='OUTROS'?(sl2[u.team_key]||u.team_key):(sl2[u.role]||u.role);['birthday','contact','social1','social2','site'].forEach(k=>{document.getElementById(`prof-${k}`).value=u[k]||'';});pdZapPerfilCarregar(u);const img=document.getElementById('prof-av-img'),ph=document.getElementById('prof-av-ph');if(u.avatar_url){img.src=u.avatar_url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';ph.textContent=u.name.substring(0,2).toUpperCase();}openModal('modal-profile');}
 function onProfAvFile(input){if(!input.files[0])return;openCropModal(input.files[0],true,blob=>{profAvBlob=blob;const url=URL.createObjectURL(blob);document.getElementById('prof-av-img').src=url;document.getElementById('prof-av-img').style.display='block';document.getElementById('prof-av-ph').style.display='none';});}
 async function saveProfile(){
   const name=document.getElementById('prof-name').value.trim(),bio=document.getElementById('prof-bio').value.trim();
@@ -8960,6 +8987,7 @@ async function saveProfile(){
     }
     const{error}=await sb.from('profiles').update(updates).eq('id',editingUserId);
     if(error){showToast('Erro: '+error.message,'error');return;}
+    await pdZapPerfilSalvar(editingUserId);
     showToast('Perfil atualizado!','success');
     closeModal('modal-profile');
     editingUserId=null;
@@ -8973,6 +9001,7 @@ async function saveProfile(){
   const updates={name,bio:bio||null,avatar_url,birthday:document.getElementById('prof-birthday').value||null,contact:document.getElementById('prof-contact').value||null,social1:document.getElementById('prof-social1').value||null,social2:document.getElementById('prof-social2').value||null,site:document.getElementById('prof-site').value||null};
   await sb.from('profiles').update(updates).eq('id',profile.id);
   Object.assign(profile,updates);
+  await pdZapPerfilSalvar(profile.id,true);
   // Propaga nome e avatar no RESP_CFG em memória → reflete nos cards sem recarregar
   const myKey=profile.team_key||profile.role?.toUpperCase();
   if(myKey&&window.RESP_CFG&&RESP_CFG[myKey]){

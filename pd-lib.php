@@ -114,9 +114,25 @@ function pdBatata($taskId, $quem) {
         ['batata' => $quem, 'batata_em' => date('c')]);
 }
 // Alarme: pisca e apita na tela de todo mundo da equipe até alguém cuidar
-function pdAlarme($tipo, $titulo, $corpo = null, $taskId = null, $link = null) {
+function pdAlarme($tipo, $titulo, $corpo = null, $taskId = null, $link = null, $semZap = false) {
     sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => $tipo, 'titulo' => mb_substr($titulo, 0, 140),
         'corpo' => $corpo ? mb_substr($corpo, 0, 400) : null, 'task_id' => $taskId, 'link' => $link]);
+    if (!$semZap && $tipo !== 'flush_mensal') { try { pdZapEquipe($titulo, $corpo, $link); } catch (Throwable $e) {} }
+}
+// Alerta da equipe no WhatsApp: só quem ATIVOU no próprio perfil (profiles.zap + zap_ativo).
+// Não repete a mesma mensagem pra mesma pessoa em 6 h (robô que falha de 5 em 5 min não vira spam).
+function pdZapEquipe($titulo, $corpo, $link) {
+    $r = sd_supabase('/rest/v1/profiles?zap_ativo=eq.true&active=eq.true&zap=not.is.null&select=name,zap');
+    if (($r['code'] ?? 500) >= 300) return;
+    $texto = '🔔 ' . mb_substr($titulo, 0, 140) . ($corpo ? "\n" . mb_substr($corpo, 0, 300) : '');
+    $desde = rawurlencode(gmdate('c', time() - 6 * 3600));
+    foreach ((array)($r['body'] ?? []) as $p) {
+        $tel = preg_replace('/\D/', '', (string)($p['zap'] ?? '')); if ($tel === '') continue;
+        $ja = sd_supabase('/rest/v1/pd_zap?para=eq.' . $tel . '&corpo=eq.' . rawurlencode($texto) . '&criado_em=gte.' . $desde . '&select=id&limit=1');
+        if (!empty($ja['body'])) continue;
+        sd_supabase('/rest/v1/pd_zap', 'POST', ['para' => $tel, 'quem' => $p['name'] ?? null, 'corpo' => $texto,
+            'link' => ($link && preg_match('#^https?://#', $link)) ? $link : null]);
+    }
 }
 
 // Avisa quem cuida da tarefa (responsável) + admins: notificação no
@@ -138,8 +154,9 @@ function avisarGestor($t, $titulo, $corpo, $tipo = 'drive_entrega') {
 // sino + push + e-mail com o link de aprovação.
 function avisarCliente($clientId, $titulo, $corpo, $link) {
     // zap primeiro: é onde o cliente de verdade vê (fila do pd-worker)
-    $zc = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($clientId) . '&select=name,zap');
-    $zap = trim((string)($zc['body'][0]['zap'] ?? ''));
+    $zc = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($clientId) . '&select=name,zap,zap_ativo,email_aviso');
+    $ligado = !empty($zc['body'][0]['zap_ativo']);   // toggle do cliente: desligado = nenhum aviso sai
+    $zap = $ligado ? trim((string)($zc['body'][0]['zap'] ?? '')) : '';
     if ($zap !== '') sd_supabase('/rest/v1/pd_zap', 'POST', ['para' => $zap,
         'quem' => $zc['body'][0]['name'] ?? null, 'client_id' => $clientId,
         'corpo' => $titulo . "\n" . $corpo, 'link' => $link]);
@@ -156,6 +173,13 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
                 "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
         }
         $n++;
+    }
+    // e-mail extra cadastrado no cliente (campo "e-mail para os avisos"), só com o toggle ligado
+    $ea = $ligado ? trim((string)($zc['body'][0]['email_aviso'] ?? '')) : '';
+    if ($ea !== '' && filter_var($ea, FILTER_VALIDATE_EMAIL)) {
+        $msg = "Olá!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link . "\n\nPontodot\nhttps://sd.sergioduh.com";
+        @mail($ea, '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
+            "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
     }
     return $n;
 }

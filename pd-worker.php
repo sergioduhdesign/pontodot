@@ -262,7 +262,7 @@ function w_zap() {
             $tel = preg_replace('/\D/', '', (string)$z['para']);
             pdAlarme('outro', 'Zap pra mandar na mão — ' . ($z['quem'] ?: $z['para']),
                 mb_substr($texto, 0, 180), $z['task_id'] ?? null,
-                'https://wa.me/' . $tel . '?text=' . rawurlencode(mb_substr($texto, 0, 900)));
+                'https://wa.me/' . $tel . '?text=' . rawurlencode(mb_substr($texto, 0, 900)), true);
             $manuais++;
             continue;
         }
