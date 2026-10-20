@@ -8,7 +8,7 @@ header('Content-Type: text/html; charset=utf-8');
 $waba = '2626136097846397';
 $ok = false; $out = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $ok = defined('SD_ZAP_VERIFY') && SD_ZAP_VERIFY !== '' && hash_equals(SD_ZAP_VERIFY, (string)($_POST['senha'] ?? ''));
+    $ok = defined('SD_ZAP_VERIFY') && SD_ZAP_VERIFY !== '' && hash_equals(trim(SD_ZAP_VERIFY), trim((string)($_POST['senha'] ?? '')));
     if (!$ok) { $out = 'Senha não confere.'; }
     elseif (!defined('SD_ZAP_TOKEN') || !SD_ZAP_TOKEN) { $out = 'SD_ZAP_TOKEN não configurado.'; }
     else {
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body style="font:15px system-ui;max-width:640px;margin:30px auto;padding:0 16px">
 <h3>WhatsApp · inscrever webhook</h3>
 <form method="post">
-<p><input type="password" name="senha" placeholder="senha do webhook (SD_ZAP_VERIFY)" style="width:100%;padding:8px" autocomplete="off"></p>
+<p><input type="text" placeholder="senha do webhook (SD_ZAP_VERIFY)" style="width:100%;padding:8px" autocomplete="off" name="senha" data-lpignore="true"></p>
 <button name="acao" value="ver" style="padding:8px 14px">Só olhar</button>
 <button name="acao" value="inscrever" style="padding:8px 14px">Olhar e inscrever</button>
 </form>
