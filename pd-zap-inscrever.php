@@ -3,6 +3,7 @@
 //   https://sd.sergioduh.com/pd-zap-inscrever.php
 // Pede a senha SD_ZAP_VERIFY (a mesma do webhook). Usa o token do servidor (SD_ZAP_TOKEN):
 // lê as contas inscritas na conta do WhatsApp (WABA) e, se o app não estiver, inscreve.
+require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-lib.php';
 header('Content-Type: text/html; charset=utf-8');
 $waba = '2626136097846397';
