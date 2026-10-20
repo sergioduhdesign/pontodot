@@ -437,7 +437,9 @@ function pdPersonagens() { return [
 ]; }
 function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     if (defined('SD_IA_ZAP') && SD_IA_ZAP === false) return;
-    if (!(defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY)) return;
+    $falha = function ($motivo) use ($p, $tel) { error_log('ia-zap: ' . $motivo);
+        try { pdAvisoLog('whatsapp', $tel, $p['name'] ?? null, null, '[a IA não respondeu por WhatsApp] ' . $motivo, 'erro', $motivo, 'ia'); } catch (Throwable $e) {} };
+    if (!(defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY)) { $falha('falta SD_ANTHROPIC_KEY no sd-config.php (a chave da Anthropic)'); return; }
     $enviar = function ($msg) use ($p, $tel) {
         [$code, $raw] = pdZapEnviar($tel, $msg, true);   // a pessoa acabou de falar: janela aberta, texto livre
         pdAvisoLog('whatsapp', $tel, $p['name'] ?? null, null, $msg, $code === 200 ? 'enviado' : 'erro', $code === 200 ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 160), 'ia', null, null, $code === 200 ? pdWamid($raw) : null);
@@ -495,6 +497,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     $resp = '';
     if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text']; }
     $resp = trim($resp);
+    if ($code !== 200) $falha('Anthropic respondeu HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 160));
     if ($resp === '') { $enviar('Não consegui pensar nisso agora. Tenta de novo em instantes?'); return; }
     $enviar(mb_substr($resp, 0, 3500));
 }
