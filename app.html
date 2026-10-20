@@ -2936,7 +2936,7 @@ function renderFeed(){
     const pinLabel=isFromClient?'VEIO DO CLIENTE':'BUCHA';
     html+=`<div class="feed-post pinned" style="border-color:${cfg.color};cursor:pointer" onclick="openDetail('${t.id}')"><div class="feed-post-head"><div style="width:30px;height:30px;border-radius:50%;background:${cfg.color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="white" style="width:16px;height:16px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div class="feed-post-name">${t.project} · ${t.clients?.name||''}</div><div class="feed-post-time">${t.id}</div></div><div class="feed-post-pin" style="color:${pinColor};background:${pinColor}1a">${pinLabel}</div></div>${t.cover_url?`<img class="feed-post-image" src="${t.cover_url}">`:''}<div class="feed-post-body" style="padding-top:8px">${t.action}</div><div class="feed-post-foot"><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color}">${cfg.label}</span><span style="font-size:12px;color:var(--text3);margin-left:auto">${t.week||''}</span></div></div>`;
   });
-  posts.forEach(p=>{
+  [].forEach(p=>{   // posts humanos agora moram no mural (renderEscola)
     const name=p.profiles?.name||(p.user_id===profile.id?profile.name:'Equipe');
     const av=p.profiles?.avatar_url?`<img src="${p.profiles.avatar_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`:avatarHTML(name,'',34);
     const time=new Date(p.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -2953,26 +2953,9 @@ function renderFeed(){
       </div>
     </div>`;
   });
-  document.getElementById('feed-posts').innerHTML=html||'<div class="empty-state"><div class="empty-state-icon">📢</div><div class="empty-state-text">Nenhuma publicação ainda.</div></div>';
+  document.getElementById('feed-posts').innerHTML=html;
   // Carregar os 2 comentários mais recentes de cada post
-  posts.forEach(p => loadPostCommentsPreview(p.id));
-  carregarReacoesAlunos(posts.map(p=>p.id));
-}
-async function carregarReacoesAlunos(ids){
-  if(!ids.length) return;
-  try{
-    const{data,error}=await sb.from('pd_post_reacoes').select('post_id,aluno,tipo,texto,criado_em').in('post_id',ids).order('criado_em',{ascending:true});
-    if(error||!data) return;
-    const nome=a=>{try{return escChar(a)?.name||a.charAt(0).toUpperCase()+a.slice(1);}catch(e){return a;}};
-    const foto=a=>{try{return escFoto(a,'avatar');}catch(e){return `/pd/personagens/${a}/avatar.jpg`;}};
-    ids.forEach(id=>{
-      const el=document.getElementById('palu-'+id); if(!el) return;
-      const r=data.filter(x=>x.post_id===id), cur=r.filter(x=>x.tipo==='curtida'), com=r.filter(x=>x.tipo==='comentario');
-      if(!r.length){ el.innerHTML=''; return; }
-      el.innerHTML=(cur.length?`<div class="fa-cur">♥ ${cur.length} ${cur.length>1?'curtidas':'curtida'} · ${cur.slice(0,3).map(x=>escSafe(nome(x.aluno))).join(', ')}${cur.length>3?'…':''}</div>`:'')
-        +com.map(x=>`<div class="fa-com"><img src="${escSafe(foto(x.aluno))}" alt=""><span><b>${escSafe(nome(x.aluno))}</b> ${escSafe(x.texto||'')}</span></div>`).join('');
-    });
-  }catch(e){}
+  try{ renderEscola(); }catch(e){}
 }
 
 
@@ -3123,6 +3106,52 @@ function escFotoPost(p){
 }
 function escNomes(ids){ return ids.map(i => escChar(i)?.name || i); }
 
+function escHtmlHumano(h, ult){
+  const nome = h.profiles?.name || 'Equipe';
+  const av = h.profiles?.avatar_url ? `<img src="${escSafe(h.profiles.avatar_url)}" alt="">` : avatarHTML(nome,'',36);
+  const eu = typeof myLikes !== 'undefined' && myLikes.has(h.id);
+  return `<article class="esc-post esc-humano ${ult?'esc-ultimo':''}">
+    <div class="esc-cab-post">${av}<b>${escSafe(nome)}</b><span>${escSafe(escDia(String(h.created_at).slice(0,10)))}</span>${h.user_id===profile.id?`<button class="esc-x" style="margin-left:8px" onclick="deletePost('${h.id}')" aria-label="Apagar">✕</button>`:''}</div>
+    ${h.image_url?`<div class="esc-foto-col"><img onclick="escAmpliar(this.src,'')" style="cursor:zoom-in" src="${escSafe(h.image_url)}" alt="" loading="lazy"></div>`:''}
+    <div class="esc-txt-col"><p>${linkify(h.body||'')}</p>
+      <div class="esc-curt"><button class="esc-cora ${eu?'on':''}" id="hl-${h.id}" onclick="escCurtirHumano('${h.id}',this)" aria-label="Curtir">${eu?'♥':'♡'}</button> <span id="hn-${h.id}"></span></div>
+      <div class="esc-coms" id="hc-${h.id}"></div>
+      <form class="esc-comenta" onsubmit="escComentarHumano('${h.id}',event)"><input maxlength="600" placeholder="Comente algo…" autocomplete="off"><button>Enviar</button></form>
+    </div></article>`;
+}
+async function escCurtirHumano(id, btn){
+  await toggleLike(id, btn);
+  const on = myLikes.has(id); btn.textContent = on ? '♥' : '♡'; btn.classList.toggle('on', on);
+  escHumanosCarregar([id]);
+}
+async function escComentarHumano(id, ev){
+  ev.preventDefault(); const i = ev.target.querySelector('input'); const t = i.value.trim(); if (!t) return;
+  i.disabled = true;
+  const { error } = await sb.from('post_comments').insert({ post_id:id, user_id:profile.id, body:t });
+  i.disabled = false; if (error){ showToast('Erro ao comentar: ' + error.message, 'error'); return; }
+  i.value = ''; escHumanosCarregar([id]);
+}
+async function escHumanosCarregar(ids){
+  if (!ids.length) return;
+  try{
+    const [lk, cm, rb] = await Promise.all([
+      sb.from('post_likes').select('post_id').in('post_id', ids),
+      sb.from('post_comments').select('post_id,body,created_at,profiles(name)').in('post_id', ids).order('created_at'),
+      sb.from('pd_post_reacoes').select('post_id,aluno,tipo,texto,criado_em').in('post_id', ids).order('criado_em') ]);
+    const nomeA = a => escChar(a)?.name || a.charAt(0).toUpperCase() + a.slice(1);
+    ids.forEach(id => {
+      const likes = (lk.data||[]).filter(x=>x.post_id===id).length;
+      const rcur = (rb.data||[]).filter(x=>x.post_id===id && x.tipo==='curtida');
+      const n = likes + rcur.length, nomes = rcur.slice(0,2).map(x=>escSafe(nomeA(x.aluno)));
+      const sp = document.getElementById('hn-'+id); if (sp) sp.textContent = n ? n + ' curtidas' + (nomes.length ? ' · ' + nomes.map(x=>x.replace(/&amp;/g,'&')).join(', ') : '') : '';
+      const itens = [
+        ...(cm.data||[]).filter(x=>x.post_id===id).map(x=>({t:x.created_at, h:`<div class="real"><b>${escSafe(x.profiles?.name||'Equipe')}</b> ${escSafe(x.body)} <small>${escSafe(escQuando(x.created_at))}</small></div>`})),
+        ...(rb.data||[]).filter(x=>x.post_id===id && x.tipo==='comentario').map(x=>({t:x.criado_em, h:`<div>${escNome(x.aluno, escSafe(nomeA(x.aluno)))} ${escSafe(x.texto||'')} <small>${escSafe(escQuando(x.criado_em))}</small></div>`})) ].sort((a,b)=>String(a.t).localeCompare(String(b.t)));
+      const el = document.getElementById('hc-'+id); if (el) el.innerHTML = itens.map(x=>x.h).join('');
+    });
+  }catch(e){}
+}
+
 function renderEscola(){
   const box = document.getElementById('esc-posts'); if (!box) return;
   if (!ESC.u){ box.innerHTML = '<div class="esc-vazio">Chegando…</div>'; return; }
@@ -3170,8 +3199,10 @@ function renderEscola(){
     document.getElementById('esc-cursos').innerHTML = dest.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(c.area)} · ${c.semanas} semanas</small></button>`).join('')
       + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
-  const lista = escPosts();
+  const lista = escPosts().concat((posts||[]).filter(h=>!/^🏠 Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
+  lista.sort((a,b)=> String(b.data||'').localeCompare(String(a.data||'')) || ((b.humano?1:0)-(a.humano?1:0)));
   box.innerHTML = lista.map((p, n) => {
+    if (p.humano) return escHtmlHumano(p.h, n === lista.length - 1);
     const conv = escConversa(p.c, p.data); const ult = n === lista.length - 1;
     return `<article class="esc-post ${ult?'esc-ultimo':''}">
       <div class="esc-cab-post"><img src="${escSafe(escFoto(p.id,'avatar'))}" alt="" onclick="escPerfil('${p.id}')" style="cursor:pointer"><b onclick="escPerfil('${p.id}')" style="cursor:pointer">${escSafe(p.c.name)}</b><span>${escSafe(escDia(p.data))}</span></div>
@@ -3189,6 +3220,7 @@ function renderEscola(){
   }).join('') + `<div class="esc-mais" id="esc-fim">Carregando mais publicações…</div>`
     || '<div class="esc-vazio">Nada publicado ainda.</div>';
   escVigiaFim();
+  escHumanosCarregar(lista.filter(x=>x.humano).map(x=>x.h.id));
 }
 
 // ---- cidade e clima (sorteados por dia: o mesmo dia mostra sempre o mesmo clima) ----

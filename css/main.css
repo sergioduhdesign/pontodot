@@ -1256,3 +1256,13 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 #feed-posts .feed-post-body{padding:10px 16px 6px}
 .feed-alunos{padding:0 16px 4px;font-size:13px;color:var(--text2)}.fa-cur{margin:4px 0 6px}
 .fa-com{display:flex;gap:8px;align-items:flex-start;margin:6px 0;line-height:1.4}.fa-com img{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:0 0 22px}
+
+/* v174 — compose no mesmo cartão dos posts; posts humanos no mural */
+.esc-meio .feed-compose{max-width:none;width:100%;box-sizing:border-box;margin:0 0 22px;border-radius:14px;box-shadow:none;padding:14px;background:color-mix(in srgb,var(--surface) 90%,var(--text) 10%)}
+.esc-meio .feed-compose-top{align-items:center;gap:12px}.esc-meio .feed-compose-top #compose-av{width:36px;height:36px}.esc-meio .feed-compose-top #compose-av img,.esc-meio .feed-compose-top #compose-av>*{width:36px!important;height:36px!important}
+.esc-meio .feed-compose-input{min-width:0;border-radius:18px;height:40px;padding:10px 14px}.esc-meio .feed-compose-input:focus{height:84px;border-radius:14px}
+.esc-meio .feed-compose-top .btn-primary{background:var(--text)!important;color:var(--bg)!important;border:0;border-radius:18px;padding:9px 18px;font-weight:600;opacity:1!important}
+.esc-meio .feed-compose-actions{margin-top:12px}.esc-meio .feed-action-btn{border-radius:14px}
+.esc-humano{background:color-mix(in srgb,var(--surface) 90%,var(--text) 10%)!important}
+.esc-humano .esc-cab-post .avatar,.esc-humano .esc-cab-post>div:first-child{flex:0 0 36px}
+.esc-humano .esc-txt-col p{margin:0 0 8px;font-size:14.5px;line-height:1.5}
