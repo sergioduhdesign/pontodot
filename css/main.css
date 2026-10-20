@@ -1266,3 +1266,12 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 .esc-humano{background:color-mix(in srgb,var(--surface) 90%,var(--text) 10%)!important}
 .esc-humano .esc-cab-post .avatar,.esc-humano .esc-cab-post>div:first-child{flex:0 0 36px}
 .esc-humano .esc-txt-col p{margin:0 0 8px;font-size:14.5px;line-height:1.5}
+
+/* v175 — pop-up do curso: sem margem negativa (cortava o texto) e sem barras de rolagem */
+.esc-cur{margin:0!important}
+.esc-pop-caixa:has(.esc-cur){padding:0!important}
+.esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow:hidden;max-height:none}
+.esc-cur-pf{box-sizing:border-box;padding:24px 22px}
+.esc-cur-foto{max-width:190px}
+.esc-cur-tx{box-sizing:border-box;min-width:0}
+@media(max-width:700px){.esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow:auto;max-height:calc(86vh - 70px)}}
