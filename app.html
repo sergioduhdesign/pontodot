@@ -3340,8 +3340,17 @@ async function escCurso(id){
     corpo = `<p class="esc-peq"><b>Compromisso:</b> ${c.semanas} semanas. Sua IA treina esta habilidade com os seus trabalhos reais e, toda semana, mostramos se as correções estão diminuindo. Você pode sair quando quiser.</p>
       <button class="esc-btn" onclick="escInscrever('${c.id}')">Inscrever a minha IA</button>`;
   }
-  escPop(`<small class="esc-area">${escSafe(c.area)}</small><h3>${escSafe(c.titulo)}</h3>
-    <p>${escSafe(c.resumo)}</p><p class="esc-peq">Quem está estudando em Catum: ${escSafe(prof)}.</p>${corpo}`);
+  const foto = escFoto(c.quem,'avatar');
+  const passo = (n,t) => `<li><b>${n}</b><span>${t}</span></li>`;
+  escPop(`<div class="esc-cur">
+    <div class="esc-cur-pf"><div class="esc-cur-foto"><img src="${escSafe(foto)}" alt=""></div>
+      <small>Estudando em Catum</small><b>${escSafe(prof)}</b>
+      <div class="esc-cur-meta"><span><b>${c.semanas}</b> semanas</span><span>Sai quando quiser</span></div></div>
+    <div class="esc-cur-tx"><small class="esc-area">${escSafe(c.area)} · Curso rápido</small>
+      <h3>${escSafe(c.titulo)}</h3><p class="esc-cur-res">${escSafe(c.resumo)}</p>
+      <ol class="esc-cur-passos">${passo(1,'Sua IA treina com os seus trabalhos reais.')}${passo(2,'Toda semana mostramos se as correções estão diminuindo.')}${passo(3,'No fim, você vê o antes e o depois, em números.')}</ol>
+      ${insc ? corpo : `<div class="esc-cur-cta">${corpo.replace(/<p class="esc-peq">[\s\S]*?<button/,'<button')}</div>`}
+    </div></div>`, true);
 }
 async function escInscrever(id){
   const c = ESC_CURSOS.find(x => x.id === id); if (!c) return;
