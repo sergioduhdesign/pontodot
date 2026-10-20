@@ -18,9 +18,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
 }
 
 $cru = file_get_contents('php://input');
-$seg = defined('SD_ZAP_APP_SECRET') ? SD_ZAP_APP_SECRET : (defined('SD_META_APP_SECRET') ? SD_META_APP_SECRET : '');
+$segs = array_values(array_filter([defined('SD_ZAP_APP_SECRET') ? SD_ZAP_APP_SECRET : '', defined('SD_META_APP_SECRET') ? SD_META_APP_SECRET : '']));
 $assin = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
-if ($seg === '' || !$assin || !hash_equals('sha256=' . hash_hmac('sha256', (string)$cru, $seg), $assin)) { http_response_code(403); echo 'assinatura'; exit; }
+$vale = false;
+foreach ($segs as $seg) if ($assin && hash_equals('sha256=' . hash_hmac('sha256', (string)$cru, $seg), $assin)) { $vale = true; break; }
+if (!$vale) { error_log('wa-webhook: assinatura não confere (confira SD_ZAP_APP_SECRET = segredo do app do WhatsApp)'); http_response_code(403); echo 'assinatura'; exit; }
 http_response_code(200); header('Content-Type: application/json'); echo '{"ok":true}';
 if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
 
