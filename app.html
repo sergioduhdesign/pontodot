@@ -2055,9 +2055,11 @@ showSplash();
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'user_id=eq.'+profile.id},payload=>showNotifBalloon(payload.new))
     .subscribe();
   // o ALARME (v62): pisca e apita até alguém cuidar — mesmo módulo da frente
-  if (window.PDCARD && ['admin','team'].includes(profile.role)) PDCARD.vigiarAlarmes(sb, profile, { abrir: l => {
+  if (window.PDCARD && ['admin','team'].includes(profile.role)) PDCARD.vigiarAlarmes(sb, profile, { abrir: (l, a) => {
+    if (!l && a && /^WhatsApp de/.test(a.titulo || '')) l = 'avisos:';
     if (!l) return;
-    if (l.startsWith('task:')) openDetail(l.slice(5));
+    if (l.startsWith('avisos:')) abrirAvisos().then(()=>{ const k = l.slice(7); if (k) avAbre(k); });
+    else if (l.startsWith('task:')) openDetail(l.slice(5));
     else if (l.startsWith('/') || l.startsWith(location.origin)) location.href = l;
   }});
 })();
