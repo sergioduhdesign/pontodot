@@ -2310,7 +2310,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v189 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v190 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3746,10 +3746,19 @@ async function abrirHistoricoMobile(){
 function abrirHistoricoDoApp(){
   if (!ehDesk()){ abrirHistoricoMobile(); return; }
   const vira = !$('#mundo').classList.contains('virado');
-  if (vira) virar();
-  setTimeout(()=>{ try { const w = $('#appFrame').contentWindow; if (w && w.toggleActivityDrawer) w.toggleActivityDrawer(); } catch(e){} }, vira ? 1800 : 50);
+  if (vira) virarJa();
+  setTimeout(()=>{ try { const w = $('#appFrame').contentWindow; if (w && w.toggleActivityDrawer) w.toggleActivityDrawer(); } catch(e){} }, vira ? 250 : 50);
 }
 let _planoTimer = null;
+// vira de uma vez, sem girar: usado por tudo que abre pelo menu e pelos atalhos.
+// O giro fica só no botão do S, embaixo — é lá que a pessoa decide virar.
+function virarJa(){
+  const m = $('#mundo');
+  m.classList.add('sem-giro');
+  virar();
+  void m.offsetWidth;
+  setTimeout(()=>m.classList.remove('sem-giro'), 80);
+}
 function virar(){
   if (!$('#mundo').classList.contains('virado') && !versoLiberado()){ if (versoMovelLiberado()) abrirAppMovel(); else avisarVersoMobile(); return; }
   const m = $('#mundo');
@@ -3817,7 +3826,7 @@ function prepararVersoApp(){
       if (w && !w.__sdNovoCriar){
         w.__sdNovoCriar = 1;
         const paraOChat = (frase) => { try {
-          virar();
+          virarJa();
           setTimeout(()=>{ modoChat(true);
             const c = $('#campo'); if (c){ c.value = frase; c.focus();
               try { c.setSelectionRange(c.value.indexOf('['), c.value.lastIndexOf(']')+1); } catch(e){} }
@@ -3981,7 +3990,7 @@ async function salvarPerfilInline(){
 function editarPerfil(){
   fecharJanela();
   const vai = () => { try { const w = $('#appFrame')?.contentWindow; if (w && typeof w.openMyProfile === 'function') w.openMyProfile(); else toast('Abre o app e tenta de novo.'); } catch(e){} };
-  if (!$('#mundo').classList.contains('virado')){ virar(); setTimeout(vai, 1500); } else vai();
+  if (!$('#mundo').classList.contains('virado')){ virarJa(); setTimeout(vai, 250); } else vai();
 }
 /** "Minha IA" no perfil: quem é, quanto já te conhece, e onde mexer. */
 function htmlPerfilIA(){
@@ -4017,7 +4026,7 @@ function htmlPerfilIA(){
 }
 // os botões do verso abrem a coisa real na frente
 function vAbrir(nome){
-  virar();
+  virarJa();
   setTimeout(()=>{
     const abreGad = id => { if (!meusGadgets.includes(id)){ meusGadgets=[...meusGadgets,id]; salvarGadgets(); }
       gadsAbertos[id]=true; renderFlip(); };
@@ -4720,7 +4729,7 @@ function abrirCadastroCliente(cid){
     if (!ok && n < 40) setTimeout(()=>vai(n+1), 300);
     else if (!ok) toast('O cadastro não abriu — gira o S e abre o cliente por lá.');
   };
-  if (!m.classList.contains('virado')){ virar(); setTimeout(()=>vai(), 900); } else vai();
+  if (!m.classList.contains('virado')){ virarJa(); setTimeout(()=>vai(), 250); } else vai();
 }
 function abrirTodasResp(r){ fT.resp = r; guardarFiltro(); abrirTarefasTodas(); }
 function abrirTodasCliente(c){ fT.cli = c; guardarFiltro(); abrirTarefasTodas(); }
@@ -5261,7 +5270,7 @@ function abrirNovaTarefaCaixa(){
   const abre = (n = 0) => { const w = frameVerso();
     const f = w && (w.__openNewTaskOld || w.openNewTaskModal);
     if (typeof f === 'function') f(); else if (n < 30) setTimeout(() => abre(n + 1), 300); };
-  if (!noVersoAgora()){ virar(); setTimeout(() => abre(), 1000); } else abre();
+  if (!noVersoAgora()){ virarJa(); setTimeout(() => abre(), 250); } else abre();
 }
 function sincronizarManda(el){
   const caixa = el && el.closest('.rodape,.v-pe'); const bt = caixa && caixa.querySelector('.manda');
@@ -5387,7 +5396,7 @@ function irAdmin(v){
       if (w && typeof w.setView === 'function' && w.eval("!!document.getElementById('app') && document.getElementById('app').style.display !== 'none'")){ w.setView(v); ok = true; } } catch(e){}
     if (!ok && n < 40) setTimeout(()=>vai(n+1), 300);
   };
-  if (!noVersoAgora()){ virar(); setTimeout(()=>vai(), 900); } else vai();
+  if (!noVersoAgora()){ virarJa(); setTimeout(()=>vai(), 250); } else vai();
 }
 // o conjunto se alinha, na vertical, com as abas do app (Feed, Kanban…) — nos dois lados, no mesmo ponto
 let _clTop = null;
@@ -7297,7 +7306,7 @@ function abrirNoVerso(view){
   if (!ehDesk()){ abrirAppMovel(view); return; }
   const m = $('#mundo');
   const vai = ()=>{ try { const w = $('#appFrame')?.contentWindow; if (w && typeof w.setView==='function') w.setView(view); } catch(e){} };
-  if (!m.classList.contains('virado')){ virar(); setTimeout(vai, 1400); } else vai();
+  if (!m.classList.contains('virado')){ virarJa(); setTimeout(vai, 250); } else vai();
 }
 // ações reais sobre a tarefa (status, responsável) — grava no banco
 const STATUS_SD = ['BRIEFING','EM ANDAMENTO','ATENÇÃO','ALTERAÇÃO','BUCHA','DELEGADA','ENTREGUE'];
