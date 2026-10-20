@@ -2136,7 +2136,6 @@ function applyRoleUI(){
 
 // Home do usuário: cliente cai direto no Crono (o Feed é só da equipe)
 function goHome(){
-  if (profile.role !== 'client' && document.documentElement.classList.contains('esc-gaveta')){ alternarGaveta(); return; }   // já na Escola: o logo abre/fecha o menu
   setView(profile.role==='client' ? 'gantt' : 'feed');
 }
 
@@ -3362,7 +3361,7 @@ async function escSair(inscId){
 
 // ---- a gaveta: na Escola, o menu do topo recolhe para a direita (3 risquinhos) ----
 function gavetaDaView(v){
-  const ligada = v === 'feed' && window.matchMedia('(min-width:1000px)').matches;
+  const ligada = false;   // desk é desk: menu normal sempre visível, sem gaveta
   const h = document.documentElement;
   h.classList.toggle('esc-gaveta', ligada);
   if (!ligada) h.classList.remove('gaveta-aberta');
