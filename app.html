@@ -2805,7 +2805,7 @@ function avAvatar(k){
   return `<div class="av-av"${a&&a.cor?` style="background:${escSafe(a.cor)}"`:''}>${escSafe(ini)}</div>`;
 }
 function avFiltro(b){AV.filtro=b.dataset.f;document.querySelectorAll('.av-filtros button').forEach(x=>x.classList.toggle('on',x===b));AV.sel=null;avRender();}
-function avDig(x){let d=String(x||'').replace(/\D/g,'');if(d.length===12&&d.startsWith('55')&&'6789'.includes(d[4]))d=d.slice(0,4)+'9'+d.slice(4);return d;}
+function avDig(x){let d=String(x||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;if(d.length===12&&d.startsWith('55')&&'6789'.includes(d[4]))d=d.slice(0,4)+'9'+d.slice(4);return d;}
 function avChave(r){
   if(r.canal==='whatsapp') return avDig(r.para)||String(r.para);
   const z=r.ref?AV.dados.find(x=>x.ref===r.ref&&x.canal==='whatsapp'):null;
