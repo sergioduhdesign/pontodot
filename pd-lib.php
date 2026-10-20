@@ -549,8 +549,16 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
                    'transcricao_completa' => mb_substr((string)($x['body'][0]['texto'] ?? ''), 0, 70000)];
     }
     $reunDisp = array_map(fn($r) => ($r['reuniao_em'] ?? '') . ' · ' . ($r['cliente'] ?: 'sem cliente') . ' · ' . ($r['titulo'] ?? ''), array_slice($lista, 0, 40));
+    // O QUE A CASA SABE DOS CLIENTES: a régua da casa + a ficha de quem a conversa citou (mesma base da IA da plataforma)
+    $citados = [];
+    foreach ($clientes as $nm) { $kk = $norm($nm); foreach (array_filter(explode(' ', $kk), fn($w) => strlen($w) >= 4) as $w) if (strpos($pergunta, $w) !== false) { $citados[] = $nm; break; } }
+    foreach ($lista as $r) if (!empty($r['cliente']) && in_array($r['cliente'], $clientes, true) && in_array($r['file_id'], array_map(fn($e) => $lista[$e]['file_id'], $escolhidas), true)) $citados[] = $r['cliente'];
+    $quais = array_values(array_unique(array_merge(['__PADRAO_SD__'], array_slice(array_unique($citados), 0, 3))));
+    $fichas = [];
+    $kr = sd_supabase('/rest/v1/client_knowledge?select=cliente_nome,titulo,resumo&status=eq.ok&resumo=not.is.null&cliente_nome=in.(' . implode(',', array_map(fn($q) => '"' . str_replace('"', '', $q) . '"', $quais)) . ')&limit=8');
+    foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
-                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes];
+                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas];
     // o personagem que a pessoa escolheu na plataforma (pd_jeito): é a MESMA IA, agora no WhatsApp
     $quemSou = 'a IA de trabalho da Pontodot, colega sênior de uma agência de branding do mercado imobiliário';
     $primeiro = explode(' ', trim((string)($p['name'] ?? 'colega')))[0];
