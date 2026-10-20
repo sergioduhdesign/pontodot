@@ -523,7 +523,8 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
               'atrasada' => $di && $di < $hoje && ($t['status'] ?? '') !== 'BRIEFING', 'obs' => mb_substr((string)($t['obs'] ?? ''), 0, 120)];
         $todas[] = $i; if ($key !== '' && ($t['resp'] ?? '') === $key) $minhas[] = $i;
     }
-    $cl = sd_supabase('/rest/v1/clients?active=eq.true&select=name&limit=60');
+    $cl = sd_supabase('/rest/v1/clients?active=eq.true&select=id,name&limit=60');
+    $clientesIds = []; foreach ((array)($cl['body'] ?? []) as $c) $clientesIds[(string)$c['name']] = (string)$c['id'];
     $clientes = array_map(fn($c) => $c['name'], (array)($cl['body'] ?? []));
     // memória curta da conversa: últimas mensagens (entrada e saída) deste número, nas últimas 24 h
     $h = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $tel . '&canal=eq.whatsapp&criado_em=gte.' . rawurlencode(gmdate('c', time() - 24 * 3600)) . '&select=corpo,direcao,origem&order=criado_em.desc&limit=12');
@@ -578,8 +579,13 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     arsort($pp); $top = array_slice(array_keys($pp), 0, 3);
     $kr = ['body' => array_values(array_filter($todasF, fn($f) => $f['cliente_nome'] === '__PADRAO_SD__' || in_array($f['cliente_nome'], $top, true)))];
     foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
+    // MEMÓRIA DA CASA (sd_memoria): o que já foi ensinado — agência, esta pessoa e os clientes citados
+    $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.pessoa,escopo_id.eq.' . ($p['id'] ?? '') . ')'];
+    foreach (array_slice(array_unique($citados), 0, 3) as $nmC) if (!empty($clientesIds[$nmC])) $escMem[] = 'and(escopo.eq.cliente,escopo_id.eq.' . $clientesIds[$nmC] . ')';
+    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=30');
+    $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
-                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas];
+                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas, 'memoria_da_casa_ensinada_pela_equipe' => $memoria];
     // o personagem que a pessoa escolheu na plataforma (pd_jeito): é a MESMA IA, agora no WhatsApp
     $quemSou = 'a IA de trabalho da Pontodot, colega sênior de uma agência de branding do mercado imobiliário';
     $primeiro = explode(' ', trim((string)($p['name'] ?? 'colega')))[0];
@@ -591,6 +597,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     } catch (Throwable $e) {}
     $sys = 'Você é ' . $quemSou . ', conversando por WHATSAPP com ' . ($p['name'] ?? 'um colega') . ', da equipe. '
         . 'Responda em pt-BR, tom de colega próximo e direto, curto (até ~900 caracteres), sem markdown pesado (pode usar *negrito* do WhatsApp). Cite tarefas pelo ID e nome curto. '
+        . 'MEMÓRIA: quando a pessoa te ENSINAR algo duradouro (um fato sobre um cliente, uma regra da casa, uma preferência dela) ou pedir para você guardar/lembrar, responda normal e confirme em uma frase, e na ÚLTIMA linha da resposta, sozinha, escreva ##LEMBRAR## seguido de um JSON compacto: {"escopo":"cliente|agencia|pessoa","alvo":"NOME EXATO DO CLIENTE (só se escopo=cliente)","assunto":"título curto","conteudo":"o fato em 1 ou 2 frases, nas palavras da pessoa"}. Só quando for aprendizado de verdade, nunca para pergunta, conversa ou prazo de tarefa. Nunca diga que não consegue guardar: guardar é com você. O que já foi ensinado está em memoria_da_casa_ensinada_pela_equipe. '
         . 'FALE COMO UM COLEGA QUE CONHECE O CLIENTE, não como quem lê uma ficha: o conhecimento do CONTEXTO é seu repertório, nunca um texto para repetir. Nunca despeje a ficha nem liste todos os campos; responda só ao que foi perguntado, com suas palavras, em poucas frases, e acrescente no máximo um detalhe que ajude. Se o pedido for aberto ("fala um pouco da X"), dê o essencial em 3 a 4 linhas e pergunte qual ponto a pessoa quer aprofundar. '
         . 'As reuniões em reunioes_com_texto_inteiro trazem a TRANSCRIÇÃO COMPLETA (não é resumo): leia e responda com base nela, e nunca diga que só tem um resumo. Se a pessoa perguntar de uma reunião que não está carregada, diga qual está disponível em reunioes_disponiveis e peça para citar cliente ou data. '
         . 'Use SOMENTE os dados do CONTEXTO abaixo: não invente tarefa, prazo, reunião, cliente nem o que alguém disse; se não souber, diga que não achou. '
@@ -605,6 +612,19 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     $resp = '';
     if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text']; }
     $resp = trim($resp);
+    if (preg_match('/##LEMBRAR##\s*(\{.*\})\s*$/su', $resp, $mm)) {
+        $resp = trim(preg_replace('/##LEMBRAR##.*$/su', '', $resp));
+        $mj = json_decode($mm[1], true);
+        if (is_array($mj) && !empty($mj['assunto']) && !empty($mj['conteudo']) && in_array($mj['escopo'] ?? '', ['cliente', 'agencia', 'pessoa'], true)) {
+            $escId = null; $okMem = true;
+            if ($mj['escopo'] === 'cliente') { $escId = $clientesIds[(string)($mj['alvo'] ?? '')] ?? null; if (!$escId) foreach ($clientesIds as $nmC => $idC) if (mb_strtolower($nmC) === mb_strtolower((string)($mj['alvo'] ?? ''))) $escId = $idC; $okMem = (bool)$escId; }
+            elseif ($mj['escopo'] === 'pessoa') $escId = $p['id'] ?? null;
+            if ($okMem) { $gr = sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => $mj['escopo'], 'escopo_id' => $escId, 'assunto' => mb_substr((string)$mj['assunto'], 0, 120),
+                'conteudo' => mb_substr((string)$mj['conteudo'], 0, 2000), 'natureza' => 'orientacao', 'autor_id' => $p['id'] ?? null, 'origem' => 'zap']);
+                if (($gr['code'] ?? 500) >= 300) { $falha('memória não gravou: HTTP ' . ($gr['code'] ?? '?') . ' ' . mb_substr(json_encode($gr['body'] ?? ''), 0, 160)); $resp .= "\n\n(Tentei guardar isso, mas não consegui gravar. Avise o Sérgio.)"; } }
+            else $resp .= "\n\n(Não achei esse cliente no cadastro para guardar a informação. Me diga o nome como está na plataforma.)";
+        }
+    }
     if ($code !== 200) $falha('Anthropic respondeu HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 160));
     if ($resp === '') { $enviar('Não consegui pensar nisso agora. Tenta de novo em instantes?'); return; }
     $enviar(mb_substr($resp, 0, 3500));
