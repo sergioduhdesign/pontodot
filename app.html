@@ -2777,7 +2777,19 @@ async function abrirAvisos(){
   document.getElementById('av-contatos').innerHTML='<div class="av-vazio">Carregando…</div>';
   const{data,error}=await sb.from('pd_avisos_log').select('*').order('criado_em',{ascending:false}).limit(1000);
   if(error){document.getElementById('av-contatos').innerHTML='<div class="av-vazio">'+(/does not exist|relation/.test(error.message)?'Falta rodar o SQL v98b no Supabase.':escSafe(error.message))+'</div>';return;}
-  AV.dados=data||[]; AV.sel=null; avRender();
+  AV.dados=data||[]; AV.sel=null; AV.av={};
+  try{
+    const [{data:pp},{data:cc}]=await Promise.all([sb.from('profiles').select('zap,avatar_url,name').not('zap','is',null),sb.from('clients').select('zap,logo_url,name,color').not('zap','is',null)]);
+    (pp||[]).forEach(p=>{const k=avDig(p.zap);if(k)AV.av[k]={img:p.avatar_url,nome:p.name};});
+    (cc||[]).forEach(c=>{const k=avDig(c.zap);if(k)AV.av[k]={img:c.logo_url,nome:c.name,cor:c.color};});
+  }catch(e){}
+  avRender();
+}
+function avAvatar(k){
+  const a=(AV.av||{})[k]; const nm=avNome(k);
+  if(a&&a.img) return `<div class="av-av av-foto"><img src="${escSafe(a.img)}" alt=""></div>`;
+  const ini=(/^\+/.test(nm)?'#':nm.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
+  return `<div class="av-av"${a&&a.cor?` style="background:${escSafe(a.cor)}"`:''}>${escSafe(ini)}</div>`;
 }
 function avFiltro(b){AV.filtro=b.dataset.f;document.querySelectorAll('.av-filtros button').forEach(x=>x.classList.toggle('on',x===b));AV.sel=null;avRender();}
 function avDig(x){let d=String(x||'').replace(/\D/g,'');if(d.length===12&&d.startsWith('55')&&'6789'.includes(d[4]))d=d.slice(0,4)+'9'+d.slice(4);return d;}
@@ -2793,7 +2805,7 @@ function avRender(){
   const g={}; ls.forEach(r=>{const k=avChave(r);(g[k]=g[k]||[]).push(r);});
   const chaves=Object.keys(g);
   document.getElementById('av-contatos').innerHTML=chaves.map(k=>{const u=g[k][0];const nm=avNome(k);const ini=(/^\+/.test(nm)?'#':nm.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
-    return `<div class="av-c ${AV.sel===k?'on':''}" onclick="avAbre(this.dataset.k)" data-k="${escSafe(k)}"><div class="av-av">${escSafe(ini)}</div><div class="av-t"><b>${escSafe(nm)}</b><small>${escSafe((u.corpo||'').replace(/\s+/g,' ').slice(0,60))}</small></div><span class="av-h">${escSafe(avHora(u.criado_em))}</span></div>`;}).join('')||'<div class="av-vazio">Nenhum aviso enviado ainda.</div>';
+    return `<div class="av-c ${AV.sel===k?'on':''}" onclick="avAbre(this.dataset.k)" data-k="${escSafe(k)}">${avAvatar(k)}<div class="av-t"><b>${escSafe(nm)}</b><small>${escSafe((u.corpo||'').replace(/\s+/g,' ').slice(0,60))}</small></div><span class="av-h">${escSafe(avHora(u.criado_em))}</span></div>`;}).join('')||'<div class="av-vazio">Nenhum aviso enviado ainda.</div>';
   if(AV.sel&&g[AV.sel])avConversa(g[AV.sel]);
 }
 function avHora(i){const d=new Date(i),h=new Date();return d.toDateString()===h.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
@@ -2814,7 +2826,7 @@ function avConversa(rows){
     return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.entrega==='read'?'ok':''}" title="${escSafe(r.entrega==='read'?'Lida':r.entrega==='delivered'?'Entregue':r.entrega==='failed'?'Falhou':'Enviada ao WhatsApp (aguardando entrega)')}">${tik}</span></div></div>`;
   }).join('');
   const k=AV.sel, tel=rows[0].canal==='whatsapp'?rows[0].para:(rows.find(x=>x.canal==='whatsapp')||{}).para||rows[0].para;
-  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe((/^\+/.test(avNome(k))?'#':avNome(k).split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()))}</div><div><b>${escSafe(avNome(k))}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>${/^\d{10,}$/.test(k)?avCompositor('av-resp-t','avEnviarConversa()'):''}`;
+  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button>${avAvatar(k)}<div><b>${escSafe(avNome(k))}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>${/^\d{10,}$/.test(k)?avCompositor('av-resp-t','avEnviarConversa()'):''}`;
   const f=document.querySelector('#av-conversa .av-fio'); if(f)f.scrollTop=f.scrollHeight;
 }
 
