@@ -2310,7 +2310,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v167 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v168 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3937,20 +3937,24 @@ function htmlPerfilPessoa(){
         ${abertas != null ? dado('Tarefas abertas', String(abertas)) : ''}
         ${dado('Redes', [p.social1, p.social2].filter(Boolean).join(' · '))}${site}
       </div>
-      ${p.bio ? `<div class="pf-bio">${esc(p.bio)}</div>` : ''}
-      <div class="pf-zap" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12)">
-        <small style="display:block;margin-bottom:6px">Alertas no WhatsApp</small>
-        <input id="pfZap" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" inputmode="tel" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit">
-        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <div class="pf-zap" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12);max-height:42vh;overflow:auto">
+        <label style="display:block;font-size:12px;margin-top:8px">Nome<input id="pfNome" type="text" value="${esc(p.name||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Bio<textarea id="pfBio" rows="3" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px">${esc(p.bio||'')}</textarea></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Aniversário<input id="pfAniv" type="date" value="${esc(String(p.birthday||"").slice(0,10)||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Contato<input id="pfContato" type="text" value="${esc(p.contact||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Rede 1<input id="pfSoc1" type="text" value="${esc(p.social1||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Rede 2<input id="pfSoc2" type="text" value="${esc(p.social2||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Site<input id="pfSite" type="text" value="${esc(p.site||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">WhatsApp para alertas<input id="pfZap" type="text" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pfZapAtivo" ${p.zap_ativo?'checked':''}> Receber alertas</label>
-          <button onclick="salvarZapPerfil()" style="margin-left:auto">Salvar</button>
+          <button onclick="salvarPerfilInline()" style="margin-left:auto">Salvar</button>
         </div>
         <small id="pfZapMsg" style="display:block;margin-top:6px"></small>
       </div>
       ${IA ? `<button class="mia-t" style="margin-top:6px" onclick="fecharJanela();abrirFicha('${esc(IA.id)}','minhaia')"><i aria-hidden="true" style="overflow:hidden;border:0"><img src="${fotoDe(IA,'avatar')}" alt="" style="width:100%;height:100%;object-fit:cover"></i><span>Minha IA · ${esc(nomeDaIA())}</span></button>` : ''}
       <div class="mia-acoes">
         <button onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
-        <button onclick="editarPerfil()">Editar perfil</button>
         <button onclick="fecharJanela();abrirFundos()">Fundo do app</button>
         <button onclick="sairConta()" style="margin-left:auto;opacity:1;font-weight:500">Desconectar PD</button>
       </div>
@@ -3963,11 +3967,16 @@ function abrirPerfil(){
   // o conteúdo nasce completo e do tamanho final: o fio da borda mede a caixa uma vez só
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:0;overflow:hidden">${htmlPerfilPessoa()}</div>`);
 }
-async function salvarZapPerfil(){
-  const m=document.getElementById('pfZapMsg'), z=(document.getElementById('pfZap').value||'').trim(), at=document.getElementById('pfZapAtivo').checked;
-  const { error } = await sbR.from('profiles').update({ zap: z||null, zap_ativo: !!(at&&z) }).eq('id', perfil.id);
-  if(error){ m.textContent = /zap/i.test(error.message||'') ? 'Falta rodar o SQL v97 no Supabase.' : 'Erro: '+error.message; return; }
-  perfil.zap = z||null; perfil.zap_ativo = !!(at&&z); m.textContent = 'Salvo ✓';
+async function salvarPerfilInline(){
+  const g=id=>(document.getElementById(id).value||'').trim(), m=document.getElementById('pfZapMsg');
+  const z=g('pfZap'), at=document.getElementById('pfZapAtivo').checked;
+  const base={ name:g('pfNome')||perfil.name, bio:g('pfBio')||null, birthday:g('pfAniv')||null, contact:g('pfContato')||null, social1:g('pfSoc1')||null, social2:g('pfSoc2')||null, site:g('pfSite')||null };
+  let r=await sbR.from('profiles').update(base).eq('id',perfil.id);
+  if(r.error){ m.textContent='Erro: '+r.error.message; return; }
+  Object.assign(perfil,base);
+  r=await sbR.from('profiles').update({ zap:z||null, zap_ativo:!!(at&&z) }).eq('id',perfil.id);
+  if(r.error){ m.textContent=/zap/i.test(r.error.message||'')?'Perfil salvo. Falta rodar o SQL v97 para o WhatsApp.':'Erro: '+r.error.message; return; }
+  perfil.zap=z||null; perfil.zap_ativo=!!(at&&z); m.textContent='Salvo ✓';
 }
 function editarPerfil(){
   fecharJanela();
