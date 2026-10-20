@@ -389,22 +389,33 @@ async function existeAlgumaReuniao(auth: string): Promise<boolean> {
     return Array.isArray(page) && page.length > 0;
   } catch { return true; }
 }
-async function conhecimento(auth: string, texto: string, nomes: string[]): Promise<{ regua: Registro[]; fichas: Registro[] }> {
-  const alvo = chaveNome(texto);
-  const citados = nomes.filter(n => { const k = chaveNome(n); return k.length > 2 && alvo.includes(k); });
-  const quais = [PADRAO_SD, ...citados.slice(0, 3)];
+const APELIDOS_FICHA: Record<string, string[]> = {
+  "sela": ["selah", "refugio"], "sd stratesign": ["strat", "stratesign"], "grupo taiwan": ["taiwan"], "geoville urbanismo": ["geoville"],
+  "mylife aquarela": ["mylife", "aquarela"], "unio88": ["unio"], "vf empreendimentos": ["vf"], "278 empreendimentos": ["278"], "mdx": ["mdxr"],
+  "imovelbooks": ["imovel books", "imovelbook"], "jax imob": ["jax"], "faro imobiliario": ["faro"], "tamo seguros": ["tamo"], "ths acoustic guitars": ["ths"],
+};
+async function conhecimento(auth: string, texto: string, _nomes: string[]): Promise<{ regua: Registro[]; fichas: Registro[] }> {
+  const alvo = " " + chaveNome(texto) + " ";
   try {
-    const lista = quais.map(n => `"${n.replace(/"/g, "")}"`).join(",");
+    // todas as fichas (são poucas, ~2 mil caracteres cada): quem decide quem foi citado é o código, sem depender de nome exato
     const r = await buscar(
-      `${SB_URL}/rest/v1/client_knowledge?select=cliente_nome,titulo,resumo,url,modificado_em&status=eq.ok&resumo=not.is.null&cliente_nome=in.(${encodeURIComponent(lista)})&limit=8`,
+      `${SB_URL}/rest/v1/client_knowledge?select=cliente_nome,titulo,resumo,url,modificado_em&status=eq.ok&resumo=not.is.null&limit=60`,
       { headers: { apikey: SB_API, authorization: auth } });
     if (!r.ok) return { regua: [], fichas: [] };
     const page = await r.json();
     const linhas: Registro[] = Array.isArray(page) ? page.filter(objeto) : [];
-    return {
-      regua: linhas.filter(l => l.cliente_nome === PADRAO_SD),
-      fichas: linhas.filter(l => l.cliente_nome !== PADRAO_SD),
-    };
+    const regua = linhas.filter(l => l.cliente_nome === PADRAO_SD);
+    const placar = new Map<string, number>();
+    for (const l of linhas) {
+      const nome = String(l.cliente_nome ?? ""); if (nome === PADRAO_SD || !nome) continue;
+      const k = chaveNome(nome); let pt = 0;
+      if (k.length > 2 && alvo.includes(" " + k + " ")) pt += 5;
+      for (const w of k.split(" ").filter(w => w.length >= 4 && !["empreendimentos", "urbanismo", "imobiliario", "seguros"].includes(w))) if (alvo.includes(" " + w + " ")) pt += 3;
+      for (const w of APELIDOS_FICHA[k] ?? []) if (alvo.includes(" " + chaveNome(w) + " ")) pt += 3;
+      if (pt > 0) placar.set(nome, Math.max(placar.get(nome) ?? 0, pt));
+    }
+    const top = [...placar.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]);
+    return { regua, fichas: linhas.filter(l => top.includes(String(l.cliente_nome))) };
   } catch { return { regua: [], fichas: [] }; }
 }
 

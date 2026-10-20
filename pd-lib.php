@@ -555,7 +555,18 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     foreach ($lista as $r) if (!empty($r['cliente']) && in_array($r['cliente'], $clientes, true) && in_array($r['file_id'], array_map(fn($e) => $lista[$e]['file_id'], $escolhidas), true)) $citados[] = $r['cliente'];
     $quais = array_values(array_unique(array_merge(['__PADRAO_SD__'], array_slice(array_unique($citados), 0, 3))));
     $fichas = [];
-    $kr = sd_supabase('/rest/v1/client_knowledge?select=cliente_nome,titulo,resumo&status=eq.ok&resumo=not.is.null&cliente_nome=in.(' . implode(',', array_map(fn($q) => '"' . str_replace('"', '', $q) . '"', $quais)) . ')&limit=8');
+    $kr = sd_supabase('/rest/v1/client_knowledge?select=cliente_nome,titulo,resumo&status=eq.ok&resumo=not.is.null&limit=60');
+    $todasF = (array)($kr['body'] ?? []);
+    $ap = ['sela' => ['selah', 'refugio'], 'sd stratesign' => ['strat', 'stratesign'], 'grupo taiwan' => ['taiwan'], 'geoville urbanismo' => ['geoville'], 'mylife aquarela' => ['mylife', 'aquarela'],
+           'unio88' => ['unio'], 'vf empreendimentos' => ['vf'], '278 empreendimentos' => ['278'], 'mdx' => ['mdxr'], 'imovelbooks' => ['imovel books'], 'jax imob' => ['jax'], 'faro imobiliario' => ['faro'], 'tamo seguros' => ['tamo'], 'ths acoustic guitars' => ['ths']];
+    $pp = []; $alvoF = ' ' . trim($pergunta) . ' ';
+    foreach ($todasF as $f) { $nm = (string)$f['cliente_nome']; if ($nm === '__PADRAO_SD__') continue; $kk = trim($norm($nm)); $pt = 0;
+        if (strlen($kk) > 2 && strpos($alvoF, ' ' . $kk . ' ') !== false) $pt += 5;
+        foreach (array_filter(explode(' ', $kk), fn($w) => strlen($w) >= 4 && !in_array($w, ['empreendimentos', 'urbanismo', 'imobiliario', 'seguros'], true)) as $w) if (strpos($alvoF, ' ' . $w . ' ') !== false) $pt += 3;
+        foreach ($ap[$kk] ?? [] as $w) if (strpos($alvoF, ' ' . $w . ' ') !== false) $pt += 3;
+        if ($pt > 0) $pp[$nm] = max($pp[$nm] ?? 0, $pt); }
+    arsort($pp); $top = array_slice(array_keys($pp), 0, 3);
+    $kr = ['body' => array_values(array_filter($todasF, fn($f) => $f['cliente_nome'] === '__PADRAO_SD__' || in_array($f['cliente_nome'], $top, true)))];
     foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
                  'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas];
