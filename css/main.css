@@ -1301,3 +1301,9 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 .av-meta{text-align:right;font-size:11px;color:#667781;margin-top:2px}.av-meta .ok{color:#53bdeb}
 .av-vazio{padding:30px;text-align:center;color:var(--text3);font-size:13px;margin:auto}
 @media(max-width:760px){.av-corpo{grid-template-columns:1fr}.av-conversa{display:none}#modal-avisos.av-aberta .av-lista{display:none}#modal-avisos.av-aberta .av-conversa{display:flex}.av-volta{display:block}}
+
+.av-acoes{float:right;display:inline-flex;gap:6px}.av-acoes button{border:0;border-radius:14px;padding:3px 12px;font:inherit;font-size:12px;background:#25d366;color:#fff;cursor:pointer;font-weight:600}
+.av-comp{display:flex;gap:8px;align-items:flex-end;padding:10px 12px;background:var(--surface);border-top:1px solid var(--border)}
+.av-comp textarea{flex:1;resize:none;border:0;border-radius:20px;background:var(--surface2);color:var(--text);padding:10px 14px;font:inherit;font-size:14px;max-height:120px;outline:none}
+.av-comp button{flex:0 0 40px;height:40px;border:0;border-radius:50%;background:#25d366;color:#fff;font-size:16px;cursor:pointer}
+.av-lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text2)}.av-lbl select{padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}

@@ -1537,14 +1537,14 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 <div class="overlay" id="modal-avisos">
   <div class="modal av-modal">
     <div class="modal-head"><div class="modal-title">Avisos externos</div><button class="modal-close" onclick="closeModal('modal-avisos')">✕</button></div>
-    <div class="av-nota">Toda mensagem enviada por WhatsApp também é enviada por e-mail.</div>
+    <div class="av-nota">Toda mensagem enviada por WhatsApp também é enviada por e-mail.<span class="av-acoes"><button onclick="avTeste()">Enviar teste</button><button onclick="avNova()">Nova mensagem</button></span></div>
     <div class="av-corpo">
       <div class="av-lista">
         <div class="av-busca"><input id="av-q" placeholder="Buscar" oninput="avRender()"></div>
         <div class="av-filtros"><button class="on" data-f="todos" onclick="avFiltro(this)">Todos</button><button data-f="whatsapp" onclick="avFiltro(this)">WhatsApp</button><button data-f="email" onclick="avFiltro(this)">E-mail</button></div>
         <div id="av-contatos"></div>
       </div>
-      <div class="av-conversa" id="av-conversa"><div class="av-vazio">Escolha uma conversa</div></div>
+      <div class="av-conversa" id="av-conversa"><div class="av-vazio">Escolha uma conversa ou crie uma nova mensagem</div></div>
     </div>
   </div>
 </div>
@@ -2729,6 +2729,47 @@ async function loadClients(){
   clients=c||[];products=p||[];populateFilters();
 }
 
+
+// ---- ENVIO IMEDIATO (fura a fila) ----
+async function pdEnviarZap(dest, texto, taskId){
+  // dest: {user_id} | {client_id} | {para}
+  const r = await sdFetch('/pd-zap-agora.php', Object.assign({texto, task_id:taskId||null}, dest));
+  return r;
+}
+async function avTeste(){
+  const {data:eu}=await sb.from('profiles').select('zap').eq('id',profile.id).maybeSingle();
+  if(!eu||!eu.zap){showToast('Salve seu número no Meu Perfil primeiro.','warn');return;}
+  await avEnviar({user_id:profile.id},'🔔 Teste Pontodot: se você recebeu isto, o aviso por WhatsApp está funcionando.');
+}
+async function avEnviar(dest,texto){
+  showToast('Enviando…');
+  try{
+    const r=await pdEnviarZap(dest,texto);
+    if(r&&r.ok){showToast('Enviado agora ✓','success');}
+    else showToast('Não saiu: '+((r&&r.erro)||'erro'),'error');
+  }catch(e){showToast('Não saiu: '+e.message,'error');}
+  await abrirAvisos();
+}
+async function avNova(){
+  const [{data:pp},{data:cc}]=await Promise.all([
+    sb.from('profiles').select('id,name,zap').not('zap','is',null).eq('active',true),
+    sb.from('clients').select('id,name,zap').not('zap','is',null)]);
+  const op=[...(pp||[]).map(x=>`<option value="u:${x.id}">${escSafe(x.name)} (equipe)</option>`),...(cc||[]).map(x=>`<option value="c:${x.id}">${escSafe(x.name)} (cliente)</option>`)].join('');
+  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><b>Nova mensagem</b></div>
+    <div class="av-fio"><label class="av-lbl">Para<select id="av-dest">${op||'<option value="">Ninguém com WhatsApp cadastrado</option>'}</select></label></div>${avCompositor('av-novo-t','avEnviarNovo()')}`;
+  document.getElementById('modal-avisos').classList.add('av-aberta');
+}
+function avCompositor(id,fn){return `<form class="av-comp" onsubmit="event.preventDefault();${fn}"><textarea id="${id}" rows="1" placeholder="Escreva uma mensagem" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea><button type="submit" aria-label="Enviar agora">➤</button></form>`;}
+async function avEnviarNovo(){
+  const v=document.getElementById('av-dest').value, t=document.getElementById('av-novo-t').value.trim(); if(!v||!t)return;
+  const [k,id]=[v.slice(0,1),v.slice(2)]; await avEnviar(k==='u'?{user_id:id}:{client_id:id},t);
+}
+async function avEnviarConversa(){
+  const t=document.getElementById('av-resp-t').value.trim(); if(!t||!AV.sel)return;
+  await avEnviar({para:AV.sel},t);
+  AV.sel=AV.sel;
+}
+
 // ---- AVISOS EXTERNOS: histórico (WhatsApp + e-mail), cara de WhatsApp ----
 let AV={dados:[],filtro:'todos',sel:null};
 async function abrirAvisos(){
@@ -2772,7 +2813,7 @@ function avConversa(rows){
     return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.status==='enviado'?'ok':''}">${tik}</span></div></div>`;
   }).join('');
   const k=AV.sel, tel=rows[0].canal==='whatsapp'?rows[0].para:(rows.find(x=>x.canal==='whatsapp')||{}).para||rows[0].para;
-  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe((/^\+/.test(avNome(k))?'#':avNome(k).split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()))}</div><div><b>${escSafe(avNome(k))}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>`;
+  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe((/^\+/.test(avNome(k))?'#':avNome(k).split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()))}</div><div><b>${escSafe(avNome(k))}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>${/^\d{10,}$/.test(k)?avCompositor('av-resp-t','avEnviarConversa()'):''}`;
   const f=document.querySelector('#av-conversa .av-fio'); if(f)f.scrollTop=f.scrollHeight;
 }
 
