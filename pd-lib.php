@@ -416,6 +416,25 @@ function pdZapEnviarModelo($para, $modelo, $params) {
 // A IA NO WHATSAPP — quem é da equipe (número cadastrado) conversa com a IA da casa pelo número da plataforma.
 // v1: só CONSULTA (tarefas, reuniões, clientes). Mudanças ficam pra plataforma. Desligar: define('SD_IA_ZAP', false);
 // =====================================================================
+// personagens da IA (espelho do sd-ia): id => [nome, sobrenome, título, arquétipo, promessa]
+function pdPersonagens() { return [
+  'nix' => ['Nix','Ena','Caçador de possibilidades','Criador','Ajuda a abrir alternativas e depois escolher uma experiência pequena para testar.'],
+  'kiro' => ['Kiro','Vela','Cartógrafo de ideias','Estrategista','Organiza contexto, dependências e critérios de decisão.'],
+  'brum' => ['Brum','Nara','Construtor de constância','Realizador','Converte intenção em passos claros, responsáveis e prazos realistas.'],
+  'gigi' => ['Gigi','Lila','Anfitriã de encontros','Conector','Ajuda a alinhar expectativas e criar espaço para diferentes participantes.'],
+  'iro' => ['Iro','Yara','Explorador de caminhos','Criador','Propõe experiências pequenas e maneiras alternativas de abordar um problema.'],
+  'sago' => ['Sago','Oto','Leitor de contextos','Estrategista','Relaciona contexto humano, restrições e alternativas de decisão.'],
+  'taro' => ['Taro','Teca','Inventor em movimento','Realizador','Ajuda a definir uma próxima ação verificável e colher retorno rápido.'],
+  'raku' => ['Raku','Sora','Coreógrafa de acordos','Conector','Ajuda a formular convites, feedback e acordos com cuidado e clareza.'],
+  'zumi' => ['Zumi','Zeno','Faísca de ideias','Criador','Gera alternativas em conversa e ajuda a escolher uma direção.'],
+  'oru' => ['Oru','Ora','Curador de perspectivas','Estrategista','Compara perspectivas e sintetiza critérios compartilhados.'],
+  'koda' => ['Koda','Ken','Guardião dos combinados','Realizador','Dá continuidade aos acordos e apresenta riscos sem dramatizar.'],
+  'tumi' => ['Tumi','Tua','Colecionador de conversas','Conector','Facilita trocas práticas e descobre conexões úteis entre pessoas e ideias.'],
+  'nami' => ['Nami','Nera','Tecelã de possibilidades','Criador','Combina perspectivas e explora opções em diálogo.'],
+  'sumi' => ['Sumi','Sulo','Arquiteto de sentidos','Estrategista','Constrói uma visão organizada e a testa em conversa.'],
+  'boku' => ['Boku','Boro','Cuidador de projetos','Realizador','Ajuda a organizar a execução respeitando a capacidade das pessoas.'],
+  'muru' => ['Muru','Mara','Companhia de travessia','Conector','Oferece presença discreta, clareza e espaço para encontrar o próprio ritmo.']
+]; }
 function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     if (defined('SD_IA_ZAP') && SD_IA_ZAP === false) return;
     if (!(defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY)) return;
@@ -453,7 +472,16 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     if (!$msgs || $msgs[count($msgs) - 1]['role'] !== 'user') $msgs[] = ['role' => 'user', 'content' => $texto];
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
                  'reunioes_recentes' => $reun, 'clientes' => $clientes];
-    $sys = 'Você é a IA de trabalho da Pontodot, colega sênior de uma agência de branding do mercado imobiliário, conversando por WHATSAPP com ' . ($p['name'] ?? 'um colega') . ', da equipe. '
+    // o personagem que a pessoa escolheu na plataforma (pd_jeito): é a MESMA IA, agora no WhatsApp
+    $quemSou = 'a IA de trabalho da Pontodot, colega sênior de uma agência de branding do mercado imobiliário';
+    $primeiro = explode(' ', trim((string)($p['name'] ?? 'colega')))[0];
+    try {
+        $pj = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode((string)($p['id'] ?? '')) . '&select=personagem,apelido&limit=1')['body'][0] ?? null;
+        $pc = pdPersonagens()[strtolower(trim((string)($pj['personagem'] ?? '')))] ?? null;
+        if ($pc) { $nm = trim((string)($pj['apelido'] ?? '')) ?: $pc[0];
+            $quemSou = $nm . ' ' . $pc[1] . ', ' . mb_strtolower($pc[2]) . ' (' . $pc[3] . '), a IA de ' . $primeiro . ' na Pontodot. ' . $pc[4] . ' Seu nome nesta conversa é ' . $nm . '. Quando ' . $primeiro . ' chamar ou cumprimentar, responda como ' . $nm . ' em primeira pessoa, reconhecendo quem é (ex.: "Oi, ' . $primeiro . '! É o ' . $nm . ' — manda."), curto e vivo'; }
+    } catch (Throwable $e) {}
+    $sys = 'Você é ' . $quemSou . ', conversando por WHATSAPP com ' . ($p['name'] ?? 'um colega') . ', da equipe. '
         . 'Responda em pt-BR, tom de colega próximo e direto, curto (até ~900 caracteres), sem markdown pesado (pode usar *negrito* do WhatsApp). Cite tarefas pelo ID e nome curto. '
         . 'Use SOMENTE os dados do CONTEXTO abaixo: não invente tarefa, prazo, reunião, cliente nem o que alguém disse; se não souber, diga que não achou. '
         . 'Por aqui você só CONSULTA e orienta: se a pessoa pedir para criar, mudar ou apagar algo, diga que isso ela faz na plataforma (ou com a IA de lá) e ofereça o que dá para fazer agora. '
