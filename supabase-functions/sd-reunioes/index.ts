@@ -156,6 +156,9 @@ Deno.serve(async (req) => {
     const r = await ciclo(opts);
     return new Response(JSON.stringify(r), { headers: { "content-type": "application/json" } });
   }
-  EdgeRuntime.waitUntil(ciclo(opts).then(r => console.log("[sd-reunioes]", JSON.stringify(r))).catch(e => console.error("[sd-reunioes]", e)));
+  const guarda = async (r: unknown) => { try { await db("pd_batimento?on_conflict=chave", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ chave: "sd-reunioes", ultima_em: new Date().toISOString(), detalhe: r }) }); } catch (_) { /* painel opcional */ } };
+  EdgeRuntime.waitUntil(ciclo(opts).then(async r => { console.log("[sd-reunioes]", JSON.stringify(r)); await guarda(r); })
+    .catch(async e => { console.error("[sd-reunioes]", e); await guarda({ ok: false, erro: String(e) }); }));
   return new Response(JSON.stringify({ ok: true, rodando: "em segundo plano" }), { status: 202, headers: { "content-type": "application/json" } });
 });
