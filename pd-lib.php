@@ -621,7 +621,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
             elseif ($mj['escopo'] === 'pessoa') $escId = $p['id'] ?? null;
             if ($okMem) { $gr = sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => $mj['escopo'], 'escopo_id' => $escId, 'assunto' => mb_substr((string)$mj['assunto'], 0, 120),
                 'conteudo' => mb_substr((string)$mj['conteudo'], 0, 2000), 'natureza' => 'orientacao', 'autor_id' => $p['id'] ?? null, 'origem' => 'zap']);
-                if (($gr['code'] ?? 500) < 300) $resp = trim(preg_replace('/[:\s]+$/u', '', $resp)) . "\n\n✅ Guardei na memória da casa: " . mb_substr((string)$mj['assunto'], 0, 80);
+                if (($gr['code'] ?? 500) < 300) $resp = trim(preg_replace('/[:\s]+$/u', '', $resp)) . "\n\n✅ Aprendi!";
                 if (($gr['code'] ?? 500) >= 300) { $falha('memória não gravou: HTTP ' . ($gr['code'] ?? '?') . ' ' . mb_substr(json_encode($gr['body'] ?? ''), 0, 160)); $resp .= "\n\n(Tentei guardar isso, mas não consegui gravar. Avise o Sérgio.)"; } }
             else $resp .= "\n\n(Não achei esse cliente no cadastro para guardar a informação. Me diga o nome como está na plataforma.)";
         }
