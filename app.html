@@ -2739,14 +2739,20 @@ async function abrirAvisos(){
   AV.dados=data||[]; AV.sel=null; avRender();
 }
 function avFiltro(b){AV.filtro=b.dataset.f;document.querySelectorAll('.av-filtros button').forEach(x=>x.classList.toggle('on',x===b));AV.sel=null;avRender();}
-function avChave(r){return (r.quem||r.para||'?')+'';}
+function avDig(x){return String(x||'').replace(/\D/g,'');}
+function avChave(r){
+  if(r.canal==='whatsapp') return avDig(r.para)||String(r.para);
+  const z=r.ref?AV.dados.find(x=>x.ref===r.ref&&x.canal==='whatsapp'):null;
+  return z?(avDig(z.para)||String(z.para)):String(r.para||r.quem||'?');   // e-mail solto agrupa pelo endereço
+}
+function avNome(k){const r=AV.dados.find(x=>avChave(x)===k&&x.quem);return r?r.quem:(/^\d+$/.test(k)?'+'+k:k);}
 function avRender(){
   const q=(document.getElementById('av-q').value||'').toLowerCase();
   const ls=AV.dados.filter(r=>(AV.filtro==='todos'||r.canal===AV.filtro)&&(!q||((r.quem||'')+' '+r.para+' '+(r.corpo||'')).toLowerCase().includes(q)));
   const g={}; ls.forEach(r=>{const k=avChave(r);(g[k]=g[k]||[]).push(r);});
   const chaves=Object.keys(g);
-  document.getElementById('av-contatos').innerHTML=chaves.map(k=>{const u=g[k][0];const ini=k.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
-    return `<div class="av-c ${AV.sel===k?'on':''}" onclick="avAbre(this.dataset.k)" data-k="${escSafe(k)}"><div class="av-av">${escSafe(ini)}</div><div class="av-t"><b>${escSafe(k)}</b><small>${escSafe((u.corpo||'').replace(/\s+/g,' ').slice(0,60))}</small></div><span class="av-h">${escSafe(avHora(u.criado_em))}</span></div>`;}).join('')||'<div class="av-vazio">Nenhum aviso enviado ainda.</div>';
+  document.getElementById('av-contatos').innerHTML=chaves.map(k=>{const u=g[k][0];const nm=avNome(k);const ini=(/^\+/.test(nm)?'#':nm.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
+    return `<div class="av-c ${AV.sel===k?'on':''}" onclick="avAbre(this.dataset.k)" data-k="${escSafe(k)}"><div class="av-av">${escSafe(ini)}</div><div class="av-t"><b>${escSafe(nm)}</b><small>${escSafe((u.corpo||'').replace(/\s+/g,' ').slice(0,60))}</small></div><span class="av-h">${escSafe(avHora(u.criado_em))}</span></div>`;}).join('')||'<div class="av-vazio">Nenhum aviso enviado ainda.</div>';
   if(AV.sel&&g[AV.sel])avConversa(g[AV.sel]);
 }
 function avHora(i){const d=new Date(i),h=new Date();return d.toDateString()===h.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
@@ -2766,7 +2772,7 @@ function avConversa(rows){
     return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.status==='enviado'?'ok':''}">${tik}</span></div></div>`;
   }).join('');
   const k=AV.sel, tel=rows[0].canal==='whatsapp'?rows[0].para:(rows.find(x=>x.canal==='whatsapp')||{}).para||rows[0].para;
-  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe(k.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase())}</div><div><b>${escSafe(k)}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>`;
+  document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe((/^\+/.test(avNome(k))?'#':avNome(k).split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()))}</div><div><b>${escSafe(avNome(k))}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>`;
   const f=document.querySelector('#av-conversa .av-fio'); if(f)f.scrollTop=f.scrollHeight;
 }
 
