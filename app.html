@@ -2807,10 +2807,10 @@ function avConversa(rows){
     const d=new Date(r.criado_em).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
     const sep=d!==dia?`<div class="av-dia"><span>${escSafe(d)}</span></div>`:''; dia=d;
     const em=r.ref?porRef[r.ref]:null, ehZ=r.canal==='whatsapp';
-    const tik=r.status==='enviado'?'✓✓':r.status==='erro'?'⚠':'…';
+    const tik=r.status==='erro'?'⚠':(r.entrega==='read'||r.entrega==='delivered')?'✓✓':'✓';
     const rod=ehZ?`${em?`<div class="av-em">✉ também enviado por e-mail para ${escSafe(em.para)}</div>`:''}`:`<div class="av-em">✉ e-mail para ${escSafe(r.para)}${r.assunto?' · '+escSafe(r.assunto):''}</div>`;
     const st=r.status==='erro'?`<div class="av-err">Não foi entregue: ${escSafe(r.erro||'erro')}</div>`:r.status==='manual'?'<div class="av-err">Sem API ativa: ficou como aviso para envio manual.</div>':'';
-    return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.status==='enviado'?'ok':''}">${tik}</span></div></div>`;
+    return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.entrega==='read'?'ok':''}" title="${escSafe(r.entrega==='read'?'Lida':r.entrega==='delivered'?'Entregue':r.entrega==='failed'?'Falhou':'Enviada ao WhatsApp (aguardando entrega)')}">${tik}</span></div></div>`;
   }).join('');
   const k=AV.sel, tel=rows[0].canal==='whatsapp'?rows[0].para:(rows.find(x=>x.canal==='whatsapp')||{}).para||rows[0].para;
   document.getElementById('av-conversa').innerHTML=`<div class="av-topo"><button class="av-volta" onclick="document.getElementById('modal-avisos').classList.remove('av-aberta')">‹</button><div class="av-av">${escSafe((/^\+/.test(avNome(k))?'#':avNome(k).split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()))}</div><div><b>${escSafe(avNome(k))}</b><small>${escSafe(tel)}</small></div></div><div class="av-fio">${html}</div>${/^\d{10,}$/.test(k)?avCompositor('av-resp-t','avEnviarConversa()'):''}`;

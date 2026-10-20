@@ -241,7 +241,7 @@ function w_zap() {
             if (!empty($z['task_id'])) pdEvento($z['task_id'], 'zap', 'Zap enviado', ($z['quem'] ?: $z['para']) . ': ' . mb_substr($z['corpo'], 0, 120), 'Robô', 'robo');
             $enviados++;
             $dg = preg_replace('/\D/', '', (string)$z['para']);
-            pdAvisoLog('whatsapp', $z['para'], $z['quem'] ?? null, null, $texto, 'enviado', null, empty($z['client_id']) ? 'equipe' : 'cliente', 'z' . $z['id'], $z['client_id'] ?? null);
+            pdAvisoLog('whatsapp', $z['para'], $z['quem'] ?? null, null, $texto, 'enviado', null, empty($z['client_id']) ? 'equipe' : 'cliente', 'z' . $z['id'], $z['client_id'] ?? null, pdWamid($raw));
             if (empty($z['client_id'])) pdEmailEspelho($dg, $texto, 'z' . $z['id']);
         } else {
             $t = (int)($z['tentativas'] ?? 0) + 1;

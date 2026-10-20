@@ -114,8 +114,9 @@ function pdBatata($taskId, $quem) {
         ['batata' => $quem, 'batata_em' => date('c')]);
 }
 // Histórico de avisos externos (WhatsApp + e-mail). Silencioso se o SQL v98b ainda não rodou.
-function pdAvisoLog($canal, $para, $quem, $assunto, $corpo, $status = 'enviado', $erro = null, $origem = 'sistema', $ref = null, $clientId = null) {
-    try { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['ref' => $ref, 'canal' => $canal, 'para' => (string)$para, 'quem' => $quem,
+function pdWamid($raw) { $j = json_decode((string)$raw, true); return is_array($j) ? ($j['messages'][0]['id'] ?? null) : null; }
+function pdAvisoLog($canal, $para, $quem, $assunto, $corpo, $status = 'enviado', $erro = null, $origem = 'sistema', $ref = null, $clientId = null, $wamid = null) {
+    try { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ($wamid ? ['wamid' => $wamid] : []) + ['ref' => $ref, 'canal' => $canal, 'para' => (string)$para, 'quem' => $quem,
         'assunto' => $assunto ? mb_substr((string)$assunto, 0, 200) : null, 'corpo' => mb_substr((string)$corpo, 0, 2000),
         'status' => $status, 'erro' => $erro ? mb_substr((string)$erro, 0, 300) : null, 'origem' => $origem, 'client_id' => $clientId]); } catch (Throwable $e) {}
 }

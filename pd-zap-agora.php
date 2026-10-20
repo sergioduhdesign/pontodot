@@ -44,7 +44,7 @@ $erro = $ok ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200);
 sd_supabase('/rest/v1/pd_zap', 'POST', ['para' => $para, 'quem' => $quem, 'corpo' => $texto, 'client_id' => $clientId,
     'task_id' => !empty($b['task_id']) ? $b['task_id'] : null, 'status' => $ok ? 'enviado' : 'erro',
     'enviado_em' => $ok ? date('c') : null, 'erro' => $erro, 'tentativas' => 1]);
-pdAvisoLog('whatsapp', $para, $quem, null, $texto, $ok ? 'enviado' : 'erro', $erro, 'manual', $ref, $clientId);
+pdAvisoLog('whatsapp', $para, $quem, null, $texto, $ok ? 'enviado' : 'erro', $erro, 'manual', $ref, $clientId, $ok ? pdWamid($raw) : null);
 if (!$clientId) pdEmailEspelho($para, $texto, $ref);   // regra: zap da equipe também vai por e-mail
 if ($ok && !empty($b['task_id'])) pdEvento($b['task_id'], 'zap', 'Zap enviado agora', ($quem ?: $para) . ': ' . mb_substr($texto, 0, 120), $u['name'] ?? 'Equipe', 'pessoa');
 echo json_encode(['ok' => $ok, 'erro' => $erro, 'para' => $para, 'quem' => $quem]);
