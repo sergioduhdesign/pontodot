@@ -390,7 +390,18 @@ function w_rotina_zap() {
         if ($tel === '') continue;
         $jan = sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . $tel . '&criado_em=gte.' . rawurlencode(gmdate('c', time() - 23 * 3600)) . '&select=id&limit=1');
         $livre = !empty($jan['body']);                                                // falou com o número nas últimas 24 h: texto livre
-        [$code, $raw] = pdZapEnviar($tel, $texto, $livre);
+        if (!$livre && defined('SD_ZAP_TEMPLATE_ROTINA') && SD_ZAP_TEMPLATE_ROTINA) {
+            // modelo estruturado: cada seção numa variável (só o formato muda; o e-mail leva o texto completo)
+            $nomeLinha = fn($t) => $t['id'] . ' ' . $t['tarefa'];
+            $atr = array_map($nomeLinha, array_slice(array_values(array_filter($tasks, fn($t) => $t['atrasada'])), 0, 4));
+            $hj = array_map($nomeLinha, array_slice(array_values(array_filter($tasks, fn($t) => $t['vence_hoje'])), 0, 4));
+            $fecha = ['manha' => 'Algo trava? Me responde aqui.', 'tarde' => $reun ? ('Reunião com ' . $reun[0]['cliente'] . ': ' . mb_substr($reun[0]['resumo'], 0, 160)) : 'Sem novidades por enquanto. Algum bloqueio? Me conta.',
+                'fim' => 'Concluiu alguma tarefa? Falta informação ou arquivo para amanhã? Responda aqui.'][$slot];
+            [$code, $raw] = pdZapEnviarModelo($tel, SD_ZAP_TEMPLATE_ROTINA, [$p['name'] ? explode(' ', trim($p['name']))[0] : '', ['manha' => 'da manhã', 'tarde' => 'da tarde', 'fim' => 'do fim do dia'][$slot],
+                $atr ? implode(' · ', $atr) : 'nenhuma', $hj ? implode(' · ', $hj) : 'nenhuma', $fecha]);
+        } else {
+            [$code, $raw] = pdZapEnviar($tel, $texto, $livre);
+        }
         $enviou = $code === 200;
         pdAvisoLog('whatsapp', $tel, $p['name'], null, $texto, $enviou ? 'enviado' : 'erro', $enviou ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200),
             'rotina', $enviou ? $ref : $ref . ':e' . ($erros + 1), null, $enviou ? pdWamid($raw) : null);

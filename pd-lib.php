@@ -397,3 +397,17 @@ function pdZapEnviar($para, $texto, $livre = false) {
     [$code, $raw] = $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'template', 'template' => $tpl]);
     return [$code, $raw];
 }
+
+// Modelo ESTRUTURADO (várias variáveis, cada uma numa seção): a lista chega organizada mesmo fora das 24 h.
+function pdZapEnviarModelo($para, $modelo, $params) {
+    $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
+    $lang = defined('SD_ZAP_TEMPLATE_LANG') && SD_ZAP_TEMPLATE_LANG ? SD_ZAP_TEMPLATE_LANG : 'pt_BR';
+    $ps = array_map(function ($t) { $t = trim(preg_replace('/\s*[\r\n\t]+\s*/u', ' · ', (string)$t)); $t = preg_replace('/ {4,}/', '   ', $t); return ['type' => 'text', 'text' => mb_substr($t !== '' ? $t : '-', 0, 400)]; }, $params);
+    $ch = curl_init($base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN, 'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'template',
+            'template' => ['name' => $modelo, 'language' => ['code' => $lang], 'components' => [['type' => 'body', 'parameters' => $ps]]]], JSON_UNESCAPED_UNICODE)]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    return [$code, $raw];
+}
