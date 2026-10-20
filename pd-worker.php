@@ -281,6 +281,44 @@ function w_zap() {
 }
 
 // =====================================================================
+// 8) FEED DA CASA — uma imagem da pasta dos personagens a cada 2 dias
+// =====================================================================
+function w_feed_casa() {
+    if (!defined('PD_PASTA_PERSONAGENS') || PD_PASTA_PERSONAGENS === '' || !defined('SD_PONTE_URL') || !defined('SD_PONTE_KEY')) return 'sem pasta/ponte';
+    $u = sd_supabase('/rest/v1/posts?body=like.' . rawurlencode('🏠 Da casa%') . '&select=created_at&order=created_at.desc&limit=1');
+    if ($u['code'] >= 300) return 'erro posts';
+    $ult = $u['body'][0]['created_at'] ?? null;
+    if ($ult && (time() - strtotime($ult)) < 2 * 86400 - 600) return 'cedo';
+    if ((int)agoraSP()->format('G') < 9) return 'cedo (antes das 9h)';
+    $ch = curl_init(SD_PONTE_URL);
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode(['acao' => 'listar', 'folderId' => PD_PASTA_PERSONAGENS, 'key' => SD_PONTE_KEY]),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 70]);
+    $j = json_decode((string)curl_exec($ch), true); curl_close($ch);
+    if (!is_array($j) || empty($j['ok'])) return 'ponte fora';
+    $cand = [];
+    foreach ((array)($j['arquivos'] ?? []) as $f) {
+        if (!preg_match('#^image/(jpeg|png|webp)$#', (string)($f['mime'] ?? '')) || (int)($f['size'] ?? 0) > 25000000) continue;
+        $path = (string)($f['path'] ?? ($f['name'] ?? '')); $base = strtolower(basename($path));
+        if (preg_match('/avatar/', $base) || !preg_match('/vida|nascimento|cena|fundo|mobile|desktop/', strtolower($path))) continue;
+        $id = preg_replace('/[^A-Za-z0-9_\-]/', '', (string)($f['id'] ?? '')); if ($id === '') continue;
+        $cand[$id] = $path;
+    }
+    if (!$cand) return 'sem imagens';
+    $ja = sd_supabase('/rest/v1/posts?image_url=like.' . rawurlencode('%arte.php?i=%') . '&select=image_url&limit=500');
+    $usadas = '';
+    foreach ((array)($ja['body'] ?? []) as $p) $usadas .= ' ' . $p['image_url'];
+    $livres = array_filter($cand, fn($p, $id) => strpos($usadas, 'i=' . $id . '&') === false, ARRAY_FILTER_USE_BOTH);
+    if (!$livres) $livres = $cand;   // acabou o estoque: recomeça
+    $ids = array_keys($livres); $id = $ids[array_rand($ids)];
+    $quem = trim(preg_replace('/^\d+[\s_\-]*/', '', explode('/', $livres[$id])[0]));
+    $adm = sd_supabase('/rest/v1/profiles?role=eq.admin&active=eq.true&select=id&order=created_at.asc&limit=1');
+    $uid = $adm['body'][0]['id'] ?? null; if (!$uid) return 'sem admin';
+    $url = '/arte.php?i=' . $id . '&k=' . w_assina($id) . '&w=1200';
+    $r = sd_supabase('/rest/v1/posts', 'POST', ['user_id' => $uid, 'body' => '🏠 Da casa' . ($quem !== '' ? ' · ' . $quem : ''), 'image_url' => $url, 'pinned' => false]);
+    return $r['code'] < 300 ? 'publicado' : 'erro ' . $r['code'];
+}
+
+// =====================================================================
 // 6) RELATÓRIO DIÁRIO DE CAMPANHA
 // =====================================================================
 function w_relatorios() {
@@ -442,4 +480,5 @@ $n4 = w_faxina();                    echo "Faxina do mês: " . ($n4 ? 'alarme cr
 $z  = w_zap();                       echo "Zap: " . ($z['enviados'] ?? 0) . " enviado(s), " . ($z['manuais'] ?? 0) . " manual(is)" . (!empty($z['sem_tabela']) ? ' (rode o SQL da v62)' : '') . "\n";
 $n6 = w_relatorios();                echo "Relatórios de campanha: $n6\n";
 $n7 = w_sites();                     echo "Posts publicados em site de cliente: $n7\n";
+$n8 = w_feed_casa();                 echo "Feed da casa: $n8\n";
 echo "\nConcluido.\n";
