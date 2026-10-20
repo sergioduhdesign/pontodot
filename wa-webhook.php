@@ -43,13 +43,29 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
              : ($t === 'button' ? ($m['button']['text'] ?? '')
              : ($t === 'interactive' ? ($m['interactive']['button_reply']['title'] ?? ($m['interactive']['list_reply']['title'] ?? '')) : ''));
         if ($txt === '') $txt = '[' . ($t === 'image' ? 'imagem' : ($t === 'audio' ? 'áudio' : ($t === 'document' ? 'documento' : ($t === 'video' ? 'vídeo' : $t)))) . ']' . (!empty($m[$t]['caption']) ? ' ' . $m[$t]['caption'] : '');
+        // mídia (imagem, áudio, vídeo, documento, figurinha): baixa da Meta e guarda no Storage
+        $mid = ['path' => null, 'tipo' => null, 'nome' => null];
+        if (in_array($t, ['image', 'audio', 'video', 'document', 'sticker'], true) && !empty($m[$t]['id']) && defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN) {
+            try {
+                $bx = pdMidiaBaixar((string)$m[$t]['id']);
+                if ($bx) {
+                    $mime = $bx[1] ?: (string)($m[$t]['mime_type'] ?? '');
+                    $nome = (string)($m[$t]['filename'] ?? '');
+                    $pth = 'in/' . preg_replace('/\D/', '', $de) . '/' . gmdate('Ymd-His') . '-' . substr(preg_replace('/\W/', '', $id), -8) . '.' . pdExtMime($mime);
+                    if (pdStorageSobe($pth, $bx[0], $mime)) $mid = ['path' => $pth, 'tipo' => $t, 'nome' => $nome ?: null];
+                }
+            } catch (Throwable $e) { error_log('wa-webhook midia: ' . $e->getMessage()); }
+        }
         $para = ctype_digit($de) ? pdZapNormaliza($de) : $de;
         // quem é? (por número: equipe ou cliente)
         $quem = $nomes[$de] ?? null; $cid = null; $membro = null;
         foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) { $quem = $p['name']; $membro = $p; break; }
         if (!$cid) foreach ((array)(sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap')['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; break; }
-        sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $quem, 'corpo' => mb_substr($txt, 0, 2000),
-            'status' => 'recebida', 'origem' => 'entrada', 'direcao' => 'entrada', 'wamid' => $id, 'client_id' => $cid]);
+        $linha = ['canal' => 'whatsapp', 'para' => $para, 'quem' => $quem, 'corpo' => mb_substr($txt, 0, 2000),
+            'status' => 'recebida', 'origem' => 'entrada', 'direcao' => 'entrada', 'wamid' => $id, 'client_id' => $cid,
+            'midia_path' => $mid['path'], 'midia_tipo' => $mid['tipo'], 'midia_nome' => $mid['nome']];
+        $ins = sd_supabase('/rest/v1/pd_avisos_log', 'POST', $linha);
+        if (($ins['code'] ?? 500) >= 300) { unset($linha['midia_path'], $linha['midia_tipo'], $linha['midia_nome']); sd_supabase('/rest/v1/pd_avisos_log', 'POST', $linha); }   // SQL v99 ainda não rodou: guarda o texto mesmo assim
         // alarme só quando NÃO é a equipe falando com a IA (a IA já responde) e só pros admins
         if (!($membro && !$cid && ($membro['role'] ?? '') !== 'client')) { try {
             foreach ((array)(sd_supabase('/rest/v1/profiles?role=eq.admin&active=eq.true&select=id')['body'] ?? []) as $ad)

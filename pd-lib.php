@@ -116,6 +116,60 @@ function pdBatata($taskId, $quem) {
 // Histórico de avisos externos (WhatsApp + e-mail). Silencioso se o SQL v98b ainda não rodou.
 // 5511 6706-7100 e 55 11 96706-7100 são o mesmo número: o WhatsApp às vezes tira o 9. Normaliza pra 13 dígitos.
 function pdZapNormaliza($d) { $d = preg_replace('/\D/', '', (string)$d); if (strlen($d) === 10 || strlen($d) === 11) $d = '55' . $d;   /* número salvo sem o 55 */ if (strlen($d) === 12 && strpos($d, '55') === 0 && in_array($d[4], ['6','7','8','9'], true)) $d = substr($d, 0, 4) . '9' . substr($d, 4); return $d; }
+
+// ---------- MÍDIA DO WHATSAPP (v99) ----------
+function pdExtMime($mime) {
+    $m = strtolower(trim(explode(';', (string)$mime)[0]));
+    $mapa = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif', 'audio/ogg' => 'ogg', 'audio/mpeg' => 'mp3', 'audio/mp4' => 'm4a',
+        'audio/aac' => 'aac', 'audio/amr' => 'amr', 'video/mp4' => 'mp4', 'video/3gpp' => '3gp', 'application/pdf' => 'pdf', 'text/plain' => 'txt',
+        'application/msword' => 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.ms-excel' => 'xls', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+        'application/vnd.ms-powerpoint' => 'ppt', 'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx', 'application/zip' => 'zip'];
+    return $mapa[$m] ?? 'bin';
+}
+// sobe um arquivo pro bucket privado zap-midia (chave do servidor); devolve true/false
+function pdStorageSobe($path, $bytes, $mime) {
+    $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/zap-midia/' . implode('/', array_map('rawurlencode', explode('/', $path))));
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_POSTFIELDS => $bytes,
+        CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Content-Type: ' . ($mime ?: 'application/octet-stream'), 'x-upsert: true']]);
+    $r = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($c >= 300) error_log('zap-midia: upload HTTP ' . $c . ' ' . mb_substr((string)$r, 0, 160));
+    return $c < 300;
+}
+// baixa a mídia que a pessoa mandou (id da Meta) → [bytes, mime] ou null
+function pdMidiaBaixar($mediaId) {
+    $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
+    $ch = curl_init($base . '/' . rawurlencode($mediaId));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN]]);
+    $j = json_decode((string)curl_exec($ch), true); curl_close($ch);
+    if (empty($j['url'])) return null;
+    $ch = curl_init($j['url']);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_FOLLOWLOCATION => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN]]);
+    $bytes = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($c !== 200 || $bytes === false || strlen($bytes) > 16 * 1024 * 1024) return null;
+    return [$bytes, (string)($j['mime_type'] ?? '')];
+}
+
+// manda uma mídia (imagem, áudio, vídeo, documento) por link assinado do Storage. Só vale com a janela de 24 h aberta.
+function pdZapEnviarMidia($para, $path, $tipo, $legenda = '', $nome = '') {
+    $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/sign/zap-midia/' . implode('/', array_map('rawurlencode', explode('/', $path))));
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20,
+        CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['expiresIn' => 900])]);
+    $j = json_decode((string)curl_exec($ch), true); curl_close($ch);
+    if (empty($j['signedURL'])) return [500, 'não consegui assinar o link do arquivo'];
+    $link = SD_SUPABASE_URL . '/storage/v1' . $j['signedURL'];
+    $obj = ['link' => $link];
+    if ($tipo !== 'audio' && $legenda !== '') $obj['caption'] = mb_substr($legenda, 0, 1000);
+    if ($tipo === 'document') $obj['filename'] = $nome !== '' ? mb_substr($nome, 0, 120) : 'arquivo';
+    $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
+    $ch = curl_init($base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN, 'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => $tipo, $tipo => $obj], JSON_UNESCAPED_UNICODE)]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    return [$code, $raw];
+}
 function pdWamid($raw) { $j = json_decode((string)$raw, true); return is_array($j) ? ($j['messages'][0]['id'] ?? null) : null; }
 function pdAvisoLog($canal, $para, $quem, $assunto, $corpo, $status = 'enviado', $erro = null, $origem = 'sistema', $ref = null, $clientId = null, $wamid = null) {
     try { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ($wamid ? ['wamid' => $wamid] : []) + ['ref' => $ref, 'canal' => $canal, 'para' => (string)$para, 'quem' => $quem,

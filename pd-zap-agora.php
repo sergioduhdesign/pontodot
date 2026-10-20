@@ -16,7 +16,8 @@ if (!(defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN && defined('SD_ZAP_PHONE_ID') && S
 
 $b = sd_body();
 $texto = trim((string)($b['texto'] ?? ''));
-if ($texto === '') sd_fail('Escreva a mensagem.');
+$midia = (is_array($b['midia'] ?? null) && preg_match('#^out/[0-9]+/[\w.\-]+$#', (string)($b['midia']['path'] ?? '')) && in_array($b['midia']['tipo'] ?? '', ['image', 'audio', 'video', 'document'], true)) ? $b['midia'] : null;
+if ($texto === '' && !$midia) sd_fail('Escreva a mensagem.');
 $texto = mb_substr($texto, 0, 900);
 
 // limite de segurança: 60 envios manuais por hora no total
@@ -41,14 +42,22 @@ if (!empty($b['user_id'])) {
 $livre = false;
 $in = sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . rawurlencode(pdZapNormaliza($para)) . '&criado_em=gte.' . rawurlencode(gmdate('c', time() - 23 * 3600)) . '&select=id&limit=1');
 if (!empty($in['body'])) $livre = true;
-[$code, $raw] = pdZapEnviar($para, $texto, $livre);
+if ($midia) {
+    if (!$livre) sd_fail('Mídia só dá para mandar depois que a pessoa escreve (janela de 24 h). Mande um texto primeiro ou espere a resposta dela.');
+    [$code, $raw] = pdZapEnviarMidia($para, (string)$midia['path'], (string)$midia['tipo'], $texto, (string)($midia['nome'] ?? ''));
+} else {
+    [$code, $raw] = pdZapEnviar($para, $texto, $livre);
+}
 $ok = $code === 200;
 $ref = 'm' . bin2hex(random_bytes(5));
 $erro = $ok ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200);
 sd_supabase('/rest/v1/pd_zap', 'POST', ['para' => $para, 'quem' => $quem, 'corpo' => $texto, 'client_id' => $clientId,
     'task_id' => !empty($b['task_id']) ? $b['task_id'] : null, 'status' => $ok ? 'enviado' : 'erro',
     'enviado_em' => $ok ? date('c') : null, 'erro' => $erro, 'tentativas' => 1]);
-pdAvisoLog('whatsapp', $para, $quem, null, $texto, $ok ? 'enviado' : 'erro', $erro, 'manual', $ref, $clientId, $ok ? pdWamid($raw) : null);
-if (!$clientId) pdEmailEspelho($para, $texto, $ref);   // regra: zap da equipe também vai por e-mail
+pdAvisoLog('whatsapp', $para, $quem, null, $texto !== '' ? $texto : ($midia ? '[' . $midia['tipo'] . ']' : ''), $ok ? 'enviado' : 'erro', $erro, 'manual', $ref, $clientId, $ok ? pdWamid($raw) : null);
+if ($midia) {   // marca a linha que acabou de entrar com o arquivo (se o SQL v99 não rodou, só o texto fica)
+    sd_supabase('/rest/v1/pd_avisos_log?ref=eq.' . rawurlencode($ref) . '&canal=eq.whatsapp', 'PATCH', ['midia_path' => $midia['path'], 'midia_tipo' => $midia['tipo'], 'midia_nome' => $midia['nome'] ?? null]);
+}
+if (!$clientId && !$midia) pdEmailEspelho($para, $texto, $ref);   // regra: zap da equipe também vai por e-mail
 if ($ok && !empty($b['task_id'])) pdEvento($b['task_id'], 'zap', 'Zap enviado agora', ($quem ?: $para) . ': ' . mb_substr($texto, 0, 120), $u['name'] ?? 'Equipe', 'pessoa');
 echo json_encode(['ok' => $ok, 'erro' => $erro, 'para' => $para, 'quem' => $quem]);
