@@ -27,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $out .= $g('GET', $waba . '?fields=id,name');
         $out .= $g('GET', $waba . '/phone_numbers?fields=display_phone_number,verified_name,id');
         $out .= $g('GET', $waba . '/subscribed_apps');
+        $out .= $g('GET', $waba . '?fields=webhook_configuration');
+        $out .= $g('GET', (defined('SD_ZAP_PHONE_ID') ? SD_ZAP_PHONE_ID : '1345951045275149') . '?fields=webhook_configuration,display_phone_number,status,platform_type');
         if (($_POST['acao'] ?? '') === 'inscrever') $out .= $g('POST', $waba . '/subscribed_apps') . $g('GET', $waba . '/subscribed_apps');
     }
 }
