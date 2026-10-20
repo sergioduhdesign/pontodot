@@ -365,7 +365,7 @@ function pdProduzir($taskId, $prompt, $quemNome = 'Robô') {
 }
 
 // Manda UMA mensagem pela Cloud API do WhatsApp (modelo aprovado se SD_ZAP_TEMPLATE existir).
-function pdZapEnviar($para, $texto) {
+function pdZapEnviar($para, $texto, $livre = false) {
     $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
     $url  = $base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages';
     $post = function ($corpo) use ($url) {
@@ -380,7 +380,7 @@ function pdZapEnviar($para, $texto) {
     // e só recusar depois, por webhook (131047, fora das 24h) — aí ninguém tenta o template. Por isso,
     // com template configurado, ele vai DIRETO; texto livre só quando não há template.
     $usaTemplate = defined('SD_ZAP_TEMPLATE') && SD_ZAP_TEMPLATE;
-    if (!$usaTemplate) {
+    if (!$usaTemplate || $livre) {   // $livre: a pessoa falou com o número nas últimas 24 h — texto livre, com quebras de linha
         return $post(['messaging_product' => 'whatsapp', 'to' => $para, 'type' => 'text',
             'text' => ['preview_url' => true, 'body' => mb_substr($texto, 0, 3900)]]);
     }

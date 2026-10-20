@@ -345,6 +345,108 @@ function w_alunos() {
 }
 
 // =====================================================================
+// 10) ROTINA DA EQUIPE — 3 mensagens por dia (manhã, depois do almoço, fim do dia),
+//     seg–sex, pra cada pessoa com "Receber alertas" ligado. Sem pedir autorização.
+//     Desligar tudo: define('SD_ROTINA_ZAP', false); no sd-config.php.
+// =====================================================================
+function w_rotina_zap() {
+    if (defined('SD_ROTINA_ZAP') && SD_ROTINA_ZAP === false) return 'desligada';
+    if (!(defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN && defined('SD_ZAP_PHONE_ID') && SD_ZAP_PHONE_ID)) return 'sem WhatsApp';
+    $sp = agoraSP(); if ((int)$sp->format('N') >= 6) return 'fim de semana';
+    $min = (int)$sp->format('G') * 60 + (int)$sp->format('i');
+    $slots = ['manha' => 9 * 60, 'tarde' => 14 * 60, 'fim' => 18 * 60];
+    $slot = null; foreach ($slots as $k => $ini) if ($min >= $ini && $min < $ini + 180) $slot = $k;   // janela de 3 h pra recuperar se o relógio falhar
+    if (!$slot) return 'fora de horário';
+    $hoje = $sp->format('Y-m-d');
+    $ps = sd_supabase('/rest/v1/profiles?zap_ativo=eq.true&active=eq.true&zap=not.is.null&select=id,name,team_key,role');
+    if (($ps['code'] ?? 500) >= 300) return 'rode o SQL v97';
+    $feitas = 0; $tenta = 0;
+    foreach ((array)$ps['body'] as $p) {
+        if ($tenta >= 6) break;                                                       // poucas por rodada: o resto sai na próxima
+        $ref = 'rotina:' . $slot . ':' . $hoje . ':' . $p['id'];
+        $ja = sd_supabase('/rest/v1/pd_avisos_log?ref=like.' . rawurlencode($ref . '%') . '&select=ref,status');
+        if (($ja['code'] ?? 500) >= 300) return 'rode o SQL v98b';
+        $erros = 0; $ok = false;
+        foreach ((array)$ja['body'] as $x) { if ($x['ref'] === $ref && $x['status'] !== 'erro') $ok = true; if ($x['status'] === 'erro') $erros++; }
+        if ($ok || $erros >= 3) continue;
+        $key = (string)($p['team_key'] ?? ''); if ($key === '' || $key === 'OUTROS') continue;
+        $tenta++;
+        $tr = sd_supabase('/rest/v1/tasks?resp=eq.' . rawurlencode($key) . '&status=neq.ENTREGUE&select=id,action,status,date_int,date_cli,clients(name)&order=date_int.asc.nullslast&limit=40');
+        $tasks = [];
+        foreach ((array)($tr['body'] ?? []) as $t) {
+            $di = $t['date_int'] ?? null; $atrasada = $di && substr($di, 0, 10) < $hoje && ($t['status'] ?? '') !== 'BRIEFING';
+            $tasks[] = ['id' => $t['id'], 'tarefa' => mb_substr((string)$t['action'], 0, 70), 'cliente' => $t['clients']['name'] ?? '', 'status' => $t['status'],
+                'prazo_interno' => $di ? substr($di, 0, 10) : null, 'prazo_cliente' => !empty($t['date_cli']) ? substr($t['date_cli'], 0, 10) : null,
+                'atrasada' => $atrasada, 'vence_hoje' => $di && substr($di, 0, 10) === $hoje];
+        }
+        $reun = [];
+        if ($slot === 'tarde') {
+            $rr = sd_supabase('/rest/v1/reunioes_controle?reuniao_em=gte.' . rawurlencode(gmdate('c', time() - 30 * 3600)) . '&select=cliente,reuniao_em,resumo&order=reuniao_em.desc&limit=5');
+            foreach ((array)($rr['body'] ?? []) as $r) $reun[] = ['cliente' => $r['cliente'] ?? '', 'quando' => $r['reuniao_em'] ?? '', 'resumo' => mb_substr((string)($r['resumo'] ?? ''), 0, 500)];
+        }
+        $primeiro = explode(' ', trim((string)$p['name']))[0];
+        $texto = w_rotina_texto($slot, $primeiro, $tasks, $reun, $hoje);
+        $tel = pdZapNormaliza((string)(sd_supabase('/rest/v1/profiles?id=eq.' . $p['id'] . '&select=zap')['body'][0]['zap'] ?? ''));
+        if ($tel === '') continue;
+        $jan = sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . $tel . '&criado_em=gte.' . rawurlencode(gmdate('c', time() - 23 * 3600)) . '&select=id&limit=1');
+        $livre = !empty($jan['body']);                                                // falou com o número nas últimas 24 h: texto livre
+        [$code, $raw] = pdZapEnviar($tel, $texto, $livre);
+        $enviou = $code === 200;
+        pdAvisoLog('whatsapp', $tel, $p['name'], null, $texto, $enviou ? 'enviado' : 'erro', $enviou ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200),
+            'rotina', $enviou ? $ref : $ref . ':e' . ($erros + 1), null, $enviou ? pdWamid($raw) : null);
+        if ($enviou) { pdEmailEspelho($tel, $texto, $ref); $feitas++; }
+    }
+    return $slot . ': ' . $feitas . ' enviada(s)';
+}
+function w_rotina_ia($slot, $nome, $tasks, $reun, $hoje) {
+    if (!(defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY)) return null;
+    $foco = [
+        'manha' => 'MANHÃ: liste as tarefas da pessoa com foco no que está apertado de prazo (atrasadas primeiro, depois as que vencem hoje e amanhã). Seja objetiva e priorize; termine perguntando se algo trava.',
+        'tarde' => 'DEPOIS DO ALMOÇO: reforce o que segue apertado e traga qualquer novidade. Se houver reunião recente em "reunioes", diga quem foi e o que importa para esta pessoa (só o relevante, sem despejar a ata). Termine perguntando se há bloqueio.',
+        'fim'   => 'FIM DO DIA: pergunte se alguma tarefa foi concluída (cite as que venciam hoje) e se há informação, arquivo ou aprovação que a pessoa precisa passar ou está faltando para amanhã.',
+    ][$slot];
+    $sys = 'Você é a IA de trabalho da Pontodot, colega de uma agência de branding do mercado imobiliário. Escreva UMA mensagem de WhatsApp em pt-BR para ' . $nome . ', '
+        . 'tom de colega próximo e direto, no máximo 700 caracteres, sem markdown (sem asteriscos nem #), até 2 emojis, quebras de linha simples. Use SOMENTE os dados fornecidos: '
+        . 'não invente tarefa, prazo, reunião nem cliente. Cite tarefas pelo ID e nome curto. Hoje é ' . $hoje . '. ' . $foco;
+    $body = ['model' => defined('SD_ROTINA_MODEL') ? SD_ROTINA_MODEL : 'claude-haiku-4-5', 'max_tokens' => 500, 'system' => $sys,
+        'messages' => [['role' => 'user', 'content' => json_encode(['tarefas_abertas' => array_slice($tasks, 0, 25), 'reunioes' => $reun], JSON_UNESCAPED_UNICODE)]]];
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $ch = curl_init($base . '/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'], CURLOPT_POSTFIELDS => json_encode($body)]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code !== 200) return null;
+    $j = json_decode((string)$raw, true); $t = '';
+    foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $t .= $b['text'];
+    $t = trim($t);
+    return ($t !== '' && mb_strlen($t) <= 900) ? $t : null;
+}
+function w_rotina_texto($slot, $nome, $tasks, $reun, $hoje) {
+    $ia = w_rotina_ia($slot, $nome, $tasks, $reun, $hoje); if ($ia) return $ia;
+    $atras = array_values(array_filter($tasks, fn($t) => $t['atrasada']));
+    $hojeT = array_values(array_filter($tasks, fn($t) => $t['vence_hoje']));
+    $linha = fn($t) => '• ' . $t['id'] . ' ' . $t['tarefa'] . ($t['cliente'] ? ' (' . $t['cliente'] . ')' : '');
+    // texto de reserva (sem IA): sempre sai, mesmo se a IA falhar
+    if ($slot === 'manha') {
+        $r = "Bom dia, $nome! ☀️ Suas tarefas de hoje:\n";
+        if (!$tasks) return $r . "Nenhuma tarefa aberta com você agora. Se tiver algo precisando de ajuda, me avisa.";
+        if ($atras) $r .= "\nAtrasadas:\n" . implode("\n", array_map($linha, array_slice($atras, 0, 5))) . "\n";
+        if ($hojeT) $r .= "\nVencem hoje:\n" . implode("\n", array_map($linha, array_slice($hojeT, 0, 5))) . "\n";
+        $r .= "\nNo total: " . count($tasks) . " abertas. Precisa de algo para destravar?";
+        return $r;
+    }
+    if ($slot === 'tarde') {
+        $r = "Boa tarde, $nome! 👋 Reforçando o dia:\n";
+        if ($atras || $hojeT) $r .= implode("\n", array_map($linha, array_slice(array_merge($atras, $hojeT), 0, 6))) . "\n";
+        foreach ($reun as $m) $r .= "\nReunião com " . $m['cliente'] . ": " . mb_substr($m['resumo'], 0, 160);
+        return $r . "\n\nAlgum bloqueio? Me conta.";
+    }
+    $r = "Oi, $nome! 🌆 Fechando o dia:\n";
+    if ($hojeT) $r .= "Tinham prazo hoje:\n" . implode("\n", array_map($linha, array_slice($hojeT, 0, 5))) . "\n";
+    return $r . "\nConcluiu alguma tarefa? Falta alguma informação ou arquivo para amanhã? É só responder aqui.";
+}
+
+// =====================================================================
 // 6) RELATÓRIO DIÁRIO DE CAMPANHA
 // =====================================================================
 function w_relatorios() {
@@ -508,4 +610,5 @@ $n6 = w_relatorios();                echo "Relatórios de campanha: $n6\n";
 $n7 = w_sites();                     echo "Posts publicados em site de cliente: $n7\n";
 $n8 = w_feed_casa();                 echo "Feed da casa: $n8\n";
 $n9 = w_alunos();                    echo "Alunos reagem: $n9\n";
+$n10 = w_rotina_zap();               echo "Rotina da equipe: $n10\n";
 echo "\nConcluido.\n";
