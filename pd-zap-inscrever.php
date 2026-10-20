@@ -9,7 +9,11 @@ $waba = '2626136097846397';
 $ok = false; $out = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ok = defined('SD_ZAP_VERIFY') && SD_ZAP_VERIFY !== '' && hash_equals(trim(SD_ZAP_VERIFY), trim((string)($_POST['senha'] ?? '')));
-    if (!$ok) { $out = 'Senha não confere.'; }
+    if (!$ok) {
+        $n = defined('SD_ZAP_VERIFY') ? strlen(trim(SD_ZAP_VERIFY)) : 0;
+        $out = 'Senha não confere.' . "\n" . ($n ? "No servidor a SD_ZAP_VERIFY existe e tem $n caracteres." : 'No servidor a SD_ZAP_VERIFY NÃO está definida no sd-config.')
+             . "\nVocê digitou " . strlen(trim((string)($_POST['senha'] ?? ''))) . ' caracteres.';
+    }
     elseif (!defined('SD_ZAP_TOKEN') || !SD_ZAP_TOKEN) { $out = 'SD_ZAP_TOKEN não configurado.'; }
     else {
         $g = function ($metodo, $path) {
