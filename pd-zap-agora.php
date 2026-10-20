@@ -37,7 +37,11 @@ if (!empty($b['user_id'])) {
     if (strlen($para) < 10) sd_fail('Número inválido.');
 }
 
-[$code, $raw] = pdZapEnviar($para, $texto);
+// se a pessoa escreveu nas últimas 23 h, a janela do WhatsApp está aberta: vai texto livre (sem template)
+$livre = false;
+$in = sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . rawurlencode(pdZapNormaliza($para)) . '&criado_em=gte.' . rawurlencode(gmdate('c', time() - 23 * 3600)) . '&select=id&limit=1');
+if (!empty($in['body'])) $livre = true;
+[$code, $raw] = pdZapEnviar($para, $texto, $livre);
 $ok = $code === 200;
 $ref = 'm' . bin2hex(random_bytes(5));
 $erro = $ok ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200);

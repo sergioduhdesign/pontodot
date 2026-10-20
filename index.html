@@ -2310,7 +2310,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v190 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v191 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2820,12 +2820,14 @@ function htmlFrase(usando){
 
 function rotuloConversa(){
   if (atual === 'sd') return (threadTitulo ? threadTitulo : 'conversa com a pontodot') + (window.IA_ON ? ' &nbsp;<span class="ia-chip" style="vertical-align:1px">Claude ligada</span>' : '');
+  if (String(atual).startsWith('zap:')) return 'WhatsApp · ' + esc(((ZAP.av[atual.slice(4)]||{}).nome) || ('+' + atual.slice(4)));
   const c = CONVERSAS.find(c => c.quem === atual);
   return c ? `conversa na tarefa ${c.tarefa} · ${c.tnome}` : 'conversa com ' + String(atual).split(' ')[0];
 }
 const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 function chipQuem(){
   return atual === 'sd' ? 'você está falando com a IA da casa agora'
+    : String(atual).startsWith('zap:') ? 'isto vai para o WhatsApp dela agora — gente de verdade, a IA fica de fora'
     : `você está falando com ${String(atual).split(' ')[0]} agora — gente de verdade, a IA fica de fora`;
 }
 // o rótulo da conversa é clicável: mostra com quem mais dá pra falar (frente E verso)
@@ -2995,6 +2997,7 @@ function avatarZ(quem){
     return avatarIA
       ? `<img class="avatarzinho av-sd" src="${esc(avatarIA)}" alt="pontodot" data-sd="1" style="object-fit:cover;border:none">`
       : '<div class="avatarzinho av-sd" data-sd="1">S</div>';
+  if (String(quem).startsWith('zap:')){ const a = ZAP.av[quem.slice(4)] || {}; return a.img ? `<img class="avatarzinho" src="${esc(a.img)}" style="object-fit:cover;border:none">` : `<div class="avatarzinho">${esc((a.nome||'#').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase())}</div>`; }
   const p = PERFIS.find(x=>x.name===quem) || PERFIS.find(x=>x.name && x.name.split(' ')[0]===quem);
   const c = CONVERSAS.find(x=>x.quem===quem);
   const url = (p && p.avatar_url) || (c && c.av);
@@ -3283,7 +3286,9 @@ function modoChat(liga){
   render();
 }
 function voltarConversas(){
+  const eraZap = String(atual).startsWith('zap:');
   chat = false; atual = 'sd';
+  if (eraZap){ gadsAbertos.zap = true; render(); return; }
   if (ehDesk()) painel = 'conversas'; else gadsAbertos.conversas = true;
   render();
 }
@@ -3332,6 +3337,7 @@ async function carregarDM(quem){
   } catch(e){ return null; }
 }
 async function enviarDM(quem, txt){
+  if (String(quem).startsWith('zap:')) return zapEnviar(quem.slice(4), txt);
   const p = PERFIS.find(x => x.name === quem); if (!p) return 'Não achei essa pessoa no quadro.';
   const { error } = await sbR.from('messages').insert({ sender_id: perfil.id, receiver_id: p.id, body: txt });
   if (error) return 'Não entregou: ' + error.message;
@@ -4135,6 +4141,97 @@ function gadCaixa(titulo, corpo, acao){
 // Cada caixa diz o que há de novo; o que você clica deixa de ser novo.
 // O "visto" fica guardado neste aparelho.
 // =====================================================================
+
+// =====================================================================
+// ZAP — o WhatsApp da plataforma, na frente. Mesma conversa do chat da
+// casa (balões, rodapé, voltar), só que a pessoa do outro lado está no
+// WhatsApp. Só admin. Lê/escreve em pd_avisos_log; envia por pd-zap-agora.
+// =====================================================================
+const ZAP = { rows: [], av: {}, em: 0, ultimo: 0 };
+const zapDig = x => { let d = String(x||'').replace(/\D/g,''); if (d.length===12 && d.startsWith('55') && '6789'.includes(d[4])) d = d.slice(0,4)+'9'+d.slice(4); return d; };
+async function carregarZap(forcar){
+  if (!window.REAL || !sbR || !ehAdmin()) return;
+  if (!forcar && Date.now() - ZAP.em < 6000) return; ZAP.em = Date.now();
+  try {
+    const { data } = await sbR.from('pd_avisos_log').select('id,para,quem,corpo,status,erro,entrega,direcao,origem,criado_em')
+      .eq('canal','whatsapp').order('criado_em',{ascending:false}).limit(800);
+    if (!data) return;
+    const novo = (data[0] && data[0].id) !== (ZAP.rows[0] && ZAP.rows[0].id) || data.length !== ZAP.rows.length
+      || data.slice(0,30).map(r=>r.id+(r.entrega||'')+r.status).join() !== ZAP.rows.slice(0,30).map(r=>r.id+(r.entrega||'')+r.status).join();
+    ZAP.rows = data;
+    if (!Object.keys(ZAP.av).length){
+      try {
+        const [{data:pp},{data:cc}] = await Promise.all([sbR.from('profiles').select('zap,avatar_url,name').not('zap','is',null), sbR.from('clients').select('zap,logo_url,name').not('zap','is',null)]);
+        (pp||[]).forEach(p=>{ const k=zapDig(p.zap); if(k) ZAP.av[k]={img:p.avatar_url,nome:p.name}; });
+        (cc||[]).forEach(c=>{ const k=zapDig(c.zap); if(k) ZAP.av[k]={img:c.logo_url,nome:c.name}; });
+      } catch(e){}
+    }
+    if (novo){
+      pintarBolinhas();
+      if (atual && String(atual).startsWith('zap:')){ zapMontarThread(atual.slice(4)); const ocupado = (THREADS[atual]||[]).some(m=>m.espera); if (!ocupado) render(); }
+      else if (gadsAbertos.zap) renderBoard();
+    }
+  } catch(e){}
+}
+function zapConversas(){
+  const g = {};
+  ZAP.rows.forEach(r => { const k = zapDig(r.para) || String(r.para); (g[k] = g[k] || []).push(r); });
+  return Object.entries(g).map(([k, L]) => {
+    const u = L[0], nome = (ZAP.av[k] && ZAP.av[k].nome) || (L.find(x=>x.quem)||{}).quem || ('+' + k);
+    const nao = L.filter(r => r.direcao === 'entrada' && eNovo('zap', String(r.id))).length;
+    return { k, nome, img: ZAP.av[k] && ZAP.av[k].img, ultima: u.corpo || '', quando: u.criado_em, nao };
+  }).sort((a,b) => String(b.quando).localeCompare(String(a.quando)));
+}
+function zapHora(iso){
+  const d = new Date(iso), hoje = new Date();
+  const hm = `${String(d.getHours()).padStart(2,'0')}h${String(d.getMinutes()).padStart(2,'0')}`;
+  return d.toDateString() === hoje.toDateString() ? hm : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${hm}`;
+}
+function htmlZap(){
+  carregarZap();
+  const L = zapConversas();
+  return `<div class="caixa painel invertida">
+    ${cabPainel('Zap','zap')}
+    <div class="rolo-interno">
+      ${L.map(c => `
+      <button class="hist-item" onclick="abrirZap('${c.k}')">
+        <span class="hq">${c.img ? `<img src="${esc(c.img)}" alt="">` : esc(c.nome.replace(/^\+/,'#').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase())}</span>
+        <span class="ht"><span class="h1">${esc(c.nome)} <span class="h-hora">· ${zapHora(c.quando)}</span></span>
+        <span class="h2">${esc(String(c.ultima).replace(/\s+/g,' ').slice(0,70))}</span></span>
+        ${c.nao ? `<span class="zap-nao">${c.nao}</span>` : ''}
+      </button>`).join('') || '<div class="nota">Nenhuma conversa de WhatsApp ainda.</div>'}
+    </div>
+  </div>`;
+}
+function zapMontarThread(k){
+  const L = ZAP.rows.filter(r => (zapDig(r.para) || String(r.para)) === k).slice().reverse();
+  const nome = (ZAP.av[k] && ZAP.av[k].nome) || (L.find(x=>x.quem)||{}).quem || ('+' + k);
+  THREADS['zap:' + k] = L.map(r => {
+    const ent = r.direcao === 'entrada';
+    const st = ent ? '' : (r.status === 'erro' ? ' · não foi' : r.entrega === 'read' ? ' · lida' : r.entrega === 'delivered' ? ' · entregue' : '');
+    return { eu: ent ? 0 : 1, de: ent ? nome.split(' ')[0] : null, t: esc(r.corpo || '').replace(/\n/g,'<br>'), h: zapHora(r.criado_em) + st };
+  });
+}
+function abrirZap(k){
+  atual = 'zap:' + k; painel = null;
+  if (gadsAbertos.zap){ gadsAbertos.zap = false; renderBoard(); }
+  zapMontarThread(k);
+  ZAP.rows.filter(r => r.direcao === 'entrada' && (zapDig(r.para) || String(r.para)) === k).forEach(r => { (VISTOS.zap = VISTOS.zap || {})[String(r.id)] = Date.now(); });
+  _salvarVistos(); pintarBolinhas();
+  if ($('#mundo').classList.contains('virado')){ $('#vConversa').classList.remove('oculto'); render(); $('#campoVerso')?.focus(); }
+  else { modoChat(true); render(); }
+}
+async function zapEnviar(k, txt){
+  try {
+    const { data:{ session } } = await sbR.auth.getSession();
+    const r = await fetch('/pd-zap-agora.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token },
+      body: JSON.stringify({ texto: txt, para: k }) });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || j.ok === false) return 'Não foi: ' + (j.erro || j.error || ('HTTP ' + r.status));
+    carregarZap(true); return null;
+  } catch(e){ return 'Não foi: ' + (e.message || e); }
+}
+
 let VISTOS = {}; try { VISTOS = JSON.parse(localStorage.getItem('sd_vistos') || '{}') || {}; } catch(e){}
 const _salvarVistos = () => { try { localStorage.setItem('sd_vistos', JSON.stringify(VISTOS)); } catch(e){} };
 const eNovo = (g, k) => !(VISTOS[g] && VISTOS[g][k]);
@@ -4145,6 +4242,8 @@ const NOVIDADES = {
   // post que caiu ou passou da hora sem sair (Social e Publicação)
   social: () => !window.REAL || !PUB.dados ? [] : [...PUB.dados.todos.filter(a=>a.status==='erro'), ...PUB.dados.atrasados].map(a => ({ k: String(a.id) })),
   publicacao: () => !window.REAL || !PUB.dados ? [] : PUB.dados.todos.filter(a=>a.status==='erro').map(a => ({ k: String(a.id) })),
+  // mensagem de WhatsApp que chegou e ninguém abriu
+  zap: () => !window.REAL || !ehAdmin() ? [] : ZAP.rows.filter(r => r.direcao === 'entrada').slice(0, 60).map(r => ({ k: String(r.id) })),
   // lead novo que ninguém atendeu
   anuncios: () => !window.REAL || !ADS.leads ? [] : ADS.leads.filter(l=>l.status==='novo').map(l => ({ k: String(l.id) })),
   // comentários de outras pessoas
@@ -4574,6 +4673,7 @@ async function vincularAds(conta, clientId){
 const GADGETS = {
   tarefas:   { nome:'Tarefas', fixo:true, html:()=>`<div class="caixa cx-tarefas">${htmlTarefas()}</div>` },
   conversas: { nome:'Conversas', oculto:true, html:()=>htmlConversas() },
+  zap:       { nome:'Zap', admin:true, html:()=>htmlZap() },
   minhaia:   { nome:()=>temIA()?'Minha IA':'Sua IA ainda não nasceu', html:()=>htmlMinhaIA() },
   aprovacoes:{ nome:'Aprovações', html:()=>{
     if (window.REAL) return htmlAprovacoes();
@@ -4858,6 +4958,7 @@ function abrirHistSd(i){
 const ICONE_GAD = {
   tarefas:'<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M8.5 12l2.4 2.4 4.6-5"/>',
   rolando:'<circle cx="12" cy="12" r="8.4"/><path d="M12 7.6V12l3 1.8"/>',
+  zap:'<path d="M12 3.6a8.4 8.4 0 0 0-7.2 12.7L3.6 20.4l4.2-1.1A8.4 8.4 0 1 0 12 3.6z"/><path d="M9.3 8.7c.3-.5.7-.4 1-.1l.8 1.2c.2.3.1.6-.1.9l-.5.6c.6 1.2 1.6 2.1 2.8 2.7l.6-.6c.3-.3.6-.3.9-.1l1.2.8c.3.2.4.6.1 1-.5.9-1.5 1.3-2.5 1-2.7-.8-4.8-2.9-5.6-5.6-.2-.7-.1-1.3.1-1.8z"/>',
   conversas:'<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 4z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/>',
   ia:'<rect x="5" y="7" width="14" height="11" rx="2.5"/><path d="M12 4v3M9 12h.01M15 12h.01M9.5 15h5"/>',
   aprovacoes:'<path d="M7 11.5l3.2 3.2L17.5 7"/><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/>',
@@ -5064,7 +5165,7 @@ function novoChat(){
 }
 function novaTarefa(){ novoChat(); }
 // No app (celular) o conjunto é FIXO: não dá para pôr nem tirar. Só o que importa no dia a dia.
-const GADGETS_APP = ['tarefas','aprovacoes','social','publicacao','anuncios','minhaia','cronograma'];
+const GADGETS_APP = ['tarefas','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap'];
 function gadgetsDaTela(){ return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
 
 // setinha à direita: avisa que há mais caixinhas para rolar
@@ -5082,11 +5183,11 @@ function renderBoard(){
     ${cabPainel('Monte sua área de trabalho','')}
     <div class="nota">O que está no verso pode morar aqui. A escolha fica salva neste aparelho.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-      ${Object.entries(GADGETS).filter(([id,g])=>!g.oculto).map(([id,g])=>`<button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px;${meusGadgets.includes(id)?'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700':''}" ${g.fixo?'disabled style="opacity:.55;min-height:38px;padding:7px 13px;font-size:11.5px"':''} onclick="alternarGadget('${id}')">${esc(nomeGad(id))}${meusGadgets.includes(id)?' ✓':''}</button>`).join('')}
+      ${Object.entries(GADGETS).filter(([id,g])=>!g.oculto && (!g.admin || ehAdmin())).map(([id,g])=>`<button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px;${meusGadgets.includes(id)?'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700':''}" ${g.fixo?'disabled style="opacity:.55;min-height:38px;padding:7px 13px;font-size:11.5px"':''} onclick="alternarGadget('${id}')">${esc(nomeGad(id))}${meusGadgets.includes(id)?' ✓':''}</button>`).join('')}
     </div></div></div>`;
   const pk = $('#pickerSlot .fechar-painel'); if (pk) { pk.style.display='block'; pk.onclick = (e)=>{e.stopPropagation();abrirPicker()}; }
   requestAnimationFrame(medirMinis);     // o grid se refez: remede os quadradinhos
-  grid.innerHTML = [...gadgetsDaTela().filter(id=>GADGETS[id] && !GADGETS[id].oculto), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
+  grid.innerHTML = [...gadgetsDaTela().filter(id=>GADGETS[id] && !GADGETS[id].oculto && (!GADGETS[id].admin || ehAdmin())), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
     <div class="gad ${gadsAbertos[id]?'':'fechado'} ${id==='tarefas'&&!gadsAbertos[id]?'mini-largo':''} ${id==='minhaia'&&aindaNao(()=>temIA(),false)?'gad-ia':''} ${id==='minhaia'&&nasceuAgora?'nascendo':''}" data-fk="gad-${id}">
       <button class="gad-ico ${id==='tarefas'?'mini-largo':''}" onpointerdown="abaDown(event,'${id}',false,${id==='tarefas'?'true':'false'})" title="${nomeGad(id)}${id==='tarefas'?' — ver todas':''}">
         ${id==='tarefas' ? TAREFAS.slice(0,5).map(t=>cara(t.cara,28)).join('')
@@ -8955,6 +9056,15 @@ async function abrirArtesReais(taskId){
 
 bootReal();
 setTimeout(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 4000);
+// a caixinha Zap se apresenta uma vez pra admin; as mensagens novas chegam sozinhas (a cada 8 s)
+setTimeout(function(){ try {
+  if (!ehAdmin()) return;
+  const visto = JSON.parse(localStorage.getItem('sd_gadgets_vistos')||'[]');
+  if (!visto.includes('zap')){ visto.push('zap'); localStorage.setItem('sd_gadgets_vistos', JSON.stringify(visto));
+    if (!meusGadgets.includes('zap')){ meusGadgets = [...meusGadgets, 'zap']; salvarGadgets(); renderBoard(); } }
+  carregarZap(true);
+} catch(e){} }, 3500);
+setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZap(); } catch(e){} }, 8000);
 setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 60000);
 </script>
 <script id="lote-161-js">
