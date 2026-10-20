@@ -33,7 +33,9 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
     $nomes = [];
     foreach ((array)($c['value']['contacts'] ?? []) as $ct) $nomes[preg_replace('/\D/', '', (string)($ct['wa_id'] ?? ''))] = $ct['profile']['name'] ?? null;
     foreach ((array)($c['value']['messages'] ?? []) as $m) {
-        $id = (string)($m['id'] ?? ''); $de = preg_replace('/\D/', '', (string)($m['from'] ?? '')); if ($id === '' || $de === '') continue;
+        $id = (string)($m['id'] ?? ''); $de = preg_replace('/\D/', '', (string)($m['from'] ?? ''));
+        if ($de === '' && !empty($m['from_user_id'])) $de = (string)$m['from_user_id'];   // sem telefone (nome de usuário): guarda pelo ID e não responde
+        if ($id === '' || $de === '') continue;
         $ja = sd_supabase('/rest/v1/pd_avisos_log?wamid=eq.' . rawurlencode($id) . '&select=id&limit=1');
         if (!empty($ja['body'])) continue;                                   // a Meta reenvia: não duplica
         $t = $m['type'] ?? 'text';
@@ -41,7 +43,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
              : ($t === 'button' ? ($m['button']['text'] ?? '')
              : ($t === 'interactive' ? ($m['interactive']['button_reply']['title'] ?? ($m['interactive']['list_reply']['title'] ?? '')) : ''));
         if ($txt === '') $txt = '[' . ($t === 'image' ? 'imagem' : ($t === 'audio' ? 'áudio' : ($t === 'document' ? 'documento' : ($t === 'video' ? 'vídeo' : $t)))) . ']' . (!empty($m[$t]['caption']) ? ' ' . $m[$t]['caption'] : '');
-        $para = pdZapNormaliza($de);
+        $para = ctype_digit($de) ? pdZapNormaliza($de) : $de;
         // quem é? (por número: equipe ou cliente)
         $quem = $nomes[$de] ?? null; $cid = null; $membro = null;
         foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) { $quem = $p['name']; $membro = $p; break; }
