@@ -2310,7 +2310,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v180 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v181 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -8789,7 +8789,7 @@ async function responder(txt){
           tarefa_mae:x.tarefa_mae_id||'', obs:String(x.obs||'').slice(0,160)})),
         jeito_de_trabalhar: (typeof jeitoParaIA === 'function' ? jeitoParaIA() : undefined),
         comentarios: (window.comentsReais||[]).slice(0,16),
-        reunioes: window.reunioesReais||[] }) });
+        reunioes: window.reunioesReais||[], whatsapp_recebidos: (window._zapRecebidos||[]) }) });
     const j = await r.json().catch(()=>({}));
     if (r.ok && j.reply){
       const fmt = s => s.trim().replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>').replace(/(<br>\s*)+$/,'');
@@ -8826,6 +8826,12 @@ async function responder(txt){
             return { t: texto + `<div class="mem-card">${lista}</div>`,
               acoes: [[`Guardar ${a.memorias.length>1?'as '+a.memorias.length:'isso'}`,'verde','gravarMemorias(this)'],
                       ['Agora não','','descartarMemorias(this)']] };
+          }
+          // WhatsApp: a IA propõe a mensagem; só sai quando a pessoa clica
+          if (a.tipo === 'zap' && a.para && a.texto){
+            window._zapIA = { para: String(a.para), texto: String(a.texto) };
+            return { t: texto + `<div class="mem-card"><div class="mem-item"><b>WhatsApp para ${esc(a.para)}</b><br>${esc(a.texto).replace(/\n/g,'<br>')}</div></div>`,
+              acoes: [['Enviar agora','verde','enviarZapIA(this)'],['Não enviar','',"this.parentElement.style.display='none'"]] };
           }
           // a batata quente: um clique e o trabalho inteiro vai pra rua
           if (a.tipo === 'maestro' && typeof a.briefing === 'string' && a.briefing.trim()){
@@ -8867,6 +8873,31 @@ async function responder(txt){
   return { t:`Não consegui falar com a IA agora${window.__erroIA ? ' (' + esc(window.__erroIA) + ')' : ''} — tenta de novo em alguns segundos. Enquanto isso: <b>${tasksReais.length} tarefas abertas</b> (${nAt} atrasada${nAt===1?'':'s'}) — me pergunta “o que está atrasado?”, “resumo cliente por cliente”, ou pede “criar tarefa …”.` };
 }
 
+// ---- WhatsApp pela IA: resolve o nome, manda na hora (fura a fila) ----
+async function enviarZapIA(btn){
+  const z = window._zapIA; if (!z) return;
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    const nome = z.para.trim();
+    let dest = null;
+    const { data:pp } = await sbR.from('profiles').select('id,name').ilike('name', nome).limit(1);
+    if (pp && pp[0]) dest = { user_id: pp[0].id };
+    if (!dest){ const { data:cc } = await sbR.from('clients').select('id,name').ilike('name', nome).limit(1); if (cc && cc[0]) dest = { client_id: cc[0].id }; }
+    if (!dest){ btn.textContent = 'Não achei "' + nome + '"'; return; }
+    const { data:{ session } } = await sbR.auth.getSession();
+    const r = await fetch('/pd-zap-agora.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+      body: JSON.stringify(Object.assign({ texto: z.texto }, dest)) });
+    const j = await r.json().catch(()=>({}));
+    btn.textContent = j.ok ? 'Enviado ✓' : ('Não saiu: ' + String(j.erro || j.error || 'erro').slice(0,60));
+  } catch(e){ btn.textContent = 'Não saiu: ' + String(e.message||e).slice(0,50); }
+}
+// o que chegou por WhatsApp (só admin enxerga: RLS) vai de contexto pra IA
+async function carregarZapRecebidos(){
+  try {
+    const { data } = await sbR.from('pd_avisos_log').select('quem,para,corpo,criado_em').eq('direcao','entrada').order('criado_em',{ascending:false}).limit(10);
+    window._zapRecebidos = (data||[]).map(x => ({ de: x.quem || ('+' + x.para), texto: x.corpo, quando: x.criado_em }));
+  } catch(e){ window._zapRecebidos = []; }
+}
 // etapa PUBLICAR: abre o lote já na tela de agendar/acompanhar publicações
 async function publicarTarefa(taskId){
   if (!window.REAL){ toast('Disponível nas tarefas reais.'); return; }
@@ -8906,6 +8937,8 @@ async function abrirArtesReais(taskId){
 }
 
 bootReal();
+setTimeout(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 4000);
+setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 60000);
 </script>
 <script id="lote-161-js">
 /* nome da tela no meio do topo + gestos do celular */

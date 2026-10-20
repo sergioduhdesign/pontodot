@@ -441,6 +441,10 @@ MAESTRO (briefing com VÁRIAS peças, campanha, lançamento, site, algo que prec
 ##ACAO##{"tipo":"maestro","briefing":"<o briefing inteiro, nas palavras da pessoa, sem resumir>"}
 Diga em uma frase, na sua voz, que já vai mostrar o plano. NUNCA cite "maestro" nem sistema. Pedido de uma peça só continua sendo "produzir".
 
+WHATSAPP (a pessoa pede para mandar um aviso ou resposta por WhatsApp a alguém da equipe ou a um cliente, ou há mensagem nova em "whatsapp_recebidos" que merece resposta):
+##ACAO##{"tipo":"zap","para":"<nome exato como aparece em equipe ou clientes>","texto":"<a mensagem pronta, curta, no tom da casa>"}
+Você NUNCA envia sozinha: a ação só mostra um botão, e a mensagem sai quando a pessoa clica. Escreva o texto como será lido por quem recebe (sem "Olá, sou a IA"; sem inventar prazo, preço ou promessa que a pessoa não deu). Um destinatário por ação. Se o nome for ambíguo ou não estiver em equipe/clientes, pergunte em uma linha.
+
 APROVAÇÃO (a pessoa diz que as peças de uma tarefa estão prontas e pede para subir, reenviar ou montar o lote no visualizador):
 ##ACAO##{"tipo":"aprovacao","task_id":"SD-0123","drive_url":"https://drive.google.com/drive/folders/..."}
 "drive_url" só entra se a pessoa colou o link da pasta onde estão as peças finais; sem link, a casa usa a pasta que a tarefa já tem. A casa liga a pasta à tarefa, lê os arquivos, monta o lote (ou atualiza o que já existe) e a pessoa recebe o link. Se a pasta for dela e a casa não alcançar, a própria tela avisa para compartilhar com a conta da ponte. Sem o ID, use a tarefa de que se falava; se houver dúvida, pergunte o ID em uma linha. NUNCA mande a pessoa organizar pasta, escrever TERMINEI nem subir na mão. Se as peças não estão na pasta da tarefa, diga que ela pode anexar os arquivos aqui no chat (📎 ou arrastar) e a casa pergunta onde guardar.`;
@@ -665,7 +669,7 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   const a = lida.acao as Registro;
   if (a.tipo === "status") a.tipo = "tarefas";
   const partes = [lida.nota ? `${lida.texto}\n\n${lida.nota}`.trim() : lida.texto];
-  if (!objeto(a) || !["tarefas", "criar", "produzir", "lembrar", "maestro", "aprovacao"].includes(String(a.tipo))) throw new Error("a ação proposta é de um tipo que eu não executo");
+  if (!objeto(a) || !["tarefas", "criar", "produzir", "lembrar", "maestro", "aprovacao", "zap"].includes(String(a.tipo))) throw new Error("a ação proposta é de um tipo que eu não executo");
   const contagem = new Map<string, number>();
   for (const nome of equipe) {
     const primeiro = semAcento(nome.trim().split(/\s+/)[0]).toLocaleUpperCase("pt-BR");
@@ -675,6 +679,17 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   const respsEmUso = new Set(tarefas.map(t => semAcento(String(t.resp ?? "").trim()).toLocaleUpperCase("pt-BR")).filter(Boolean));
   const clientesLower = new Set(clientes.map(c => semAcento(c.trim()).toLocaleLowerCase("pt-BR")));
 
+  if (a.tipo === "zap") {
+    const para = typeof a.para === "string" ? a.para.trim() : "";
+    const txt = typeof a.texto === "string" ? a.texto.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g, " ").trim() : "";
+    if (!para || para.length > 80) throw new Error('o campo "para" veio vazio ou grande demais');
+    if (!txt) throw new Error('o campo "texto" veio vazio');
+    if (txt.length > 900) throw new Error('a mensagem passou de 900 caracteres');
+    if (Object.keys(a).some(k => !["tipo", "para", "texto"].includes(k))) throw new Error("a proposta trouxe um bloco a mais do que eu sei aplicar");
+    const conhecido = [...equipe, ...clientes].some(n => semAcento(n.trim()).toLocaleLowerCase("pt-BR") === semAcento(para).toLocaleLowerCase("pt-BR"));
+    if (!conhecido) throw new Error("esse destinatário não está entre a equipe nem os clientes que eu conheço");
+    return partes[0].trimEnd() + "\n##ACAO##" + JSON.stringify({ tipo: "zap", para, texto: txt });
+  }
   if (a.tipo === "aprovacao") {
     // reenviar a entrega da tarefa pro visualizador de aprovação (a casa monta o lote a partir da pasta)
     const id = typeof a.task_id === "string" ? a.task_id.trim().toUpperCase() : "";
@@ -1479,6 +1494,7 @@ Deno.serve(async (req: Request) => {
       estrutura_da_casa: estrutura.texto, aviso_estrutura: estrutura.aviso,
       tarefas_recebidas: tarefas,
       como_ler_tarefa_mae: "tarefa_mae no item é o ID da tarefa que vem antes dela. Vazio = solta.", comentarios: b.comentarios ?? [], reunioes: b.reunioes ?? [],
+      whatsapp_recebidos: Array.isArray(b.whatsapp_recebidos) ? b.whatsapp_recebidos.slice(0, 15).map((x: Registro) => ({ de: String(x.de ?? "").slice(0, 80), texto: String(x.texto ?? "").slice(0, 600), quando: String(x.quando ?? "").slice(0, 40) })) : [],
       regua_da_casa: regua,
       ficha_dos_clientes_citados: fichas,
       clientes_com_pasta: clientesRows.filter(c => c.drive_id).map(c => c.name),
