@@ -254,6 +254,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 </style>
 <style id="esc-cidade-css">
 .esc-cidade-foto{display:none}
+  .esc-conhece{display:inline-block;margin-top:6px;padding:5px 11px;border:1px solid var(--text);border-radius:999px;background:none;color:var(--text);font:600 12px system-ui,sans-serif;cursor:pointer;text-align:left}
+  .esc-conhece:hover{background:var(--text);color:var(--bg,#fff)}
 .esc-esp{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:11.5px;font-weight:600;color:var(--text2)}
 @media (max-width:900px){
   .esc-capa{display:block!important;margin:0!important}
@@ -262,7 +264,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   .esc-luz{display:none!important}
   .esc-cidade{display:grid!important;grid-template-columns:92px minmax(0,1fr);column-gap:14px;align-items:center;align-content:center;padding:0 0 14px!important}
   .esc-cidade>*:not(.esc-cidade-foto){grid-column:2}
-  .esc-cidade-foto{grid-column:1!important;grid-row:1 / span 3}
+  .esc-cidade-foto{grid-column:1!important;grid-row:1 / span 4}
   .esc-cidade-foto{display:block;flex:none;width:92px;height:92px;padding:0;border:0;border-radius:22px;overflow:hidden;background:#111;cursor:zoom-in}
   .esc-cidade-foto img{width:100%;height:100%;object-fit:cover;display:block}
   .esc-grade{padding-top:6px!important}
@@ -456,6 +458,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
               <section class="esc-cidade">
                 <button class="esc-cidade-foto" id="esc-cidade-foto" onclick="escAmpliarCapa()" aria-label="Ver a foto de Catum"><img alt=""></button>
                 <div class="esc-cidade-nome">Catum</div>
+                <button type="button" class="esc-conhece" onclick="escMitologia()">Você conhece Catum? <span aria-hidden="true">→</span></button>
                 <div class="esc-clima" id="esc-clima"></div>
                 <button class="esc-luz" id="esc-luz" onclick="escAlternarLuz()" aria-label="Apagar ou acender a luz da escola" title="Apagar / acender">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
@@ -519,7 +522,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
               </aside>
             </div>
             <div class="esc-ficcao">Catum é ficção. As cenas, os parentes e as conversas entre os alunos não existem fora da escola.</div>
-            <div class="esc-ficcao" style="padding-top:8px"><button type="button" onclick="escMitologia()" style="background:none;border:0;color:var(--text);font:600 12px system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer">Entenda toda a mitologia de Catum →</button></div>
           </div>
         </div>
         <div class="app-footer" style="display:block">
@@ -3179,7 +3181,8 @@ async function escApagarCom(id, key){
 }
 // o barrado: a mesma capa em todas as caixinhas, trocando junto com a capa do topo (nunca repete a do topo)
 // a fotinha quadrada é de Catum (cartão-postal do dia), nunca imagem de cabeçalho
-function escPostalDoDia(){ return ESC.postais && ESC.postais.length ? escPick(ESC.postais, escRng('postal'+new Date().toISOString().slice(0,10))) : null; }
+const ESC_SORTEIO = String(Date.now()) + Math.random();   // muda a cada vez que a página abre
+function escPostalDoDia(){ return ESC.postais && ESC.postais.length ? escPick(ESC.postais, escRng('postal'+ESC_SORTEIO)) : null; }
 function escCapasDoDia(){
   const L = ESC.capas.length ? ESC.capas.map(i => i.src) : ['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
   const d = Math.floor(Date.now() / 864e5), n = L.length;
@@ -3455,8 +3458,8 @@ function escMitologia(){
   document.getElementById('esc-mito')?.remove();
   const d = document.createElement('div'); d.id = 'esc-mito';
   d.setAttribute('style','position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px');
-  d.innerHTML = `<div onclick="escFecharMito()" style="position:absolute;inset:0;background:rgba(0,0,0,.6)"></div>
-  <article role="dialog" aria-label="A mitologia de Catum" style="position:relative;max-width:560px;width:100%;max-height:86vh;overflow:auto;background:var(--bg,#fff);color:var(--text,#111);border-radius:14px;padding:26px 24px;font:15px/1.6 system-ui,sans-serif">
+  d.innerHTML = `<div onclick="escFecharMito()" style="position:absolute;inset:0;background:rgba(0,0,0,.7)"></div>
+  <article role="dialog" aria-label="A mitologia de Catum" style="position:relative;max-width:560px;width:100%;max-height:86vh;overflow:auto;background:#000;color:#fff;border-radius:14px;padding:28px 26px;font:15px/1.65 system-ui,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.5)">
     <button onclick="escFecharMito()" aria-label="Fechar" style="position:absolute;top:10px;right:12px;background:none;border:0;color:inherit;font-size:18px;cursor:pointer">✕</button>
     <h2 style="margin:0 0 4px;font:700 20px system-ui,sans-serif">A mitologia de Catum</h2>
     <p style="margin:0 0 16px;opacity:.65;font-size:12px;letter-spacing:.12em;text-transform:uppercase">Universo Monema · ficção</p>
