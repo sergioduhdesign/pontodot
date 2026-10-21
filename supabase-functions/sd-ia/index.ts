@@ -580,6 +580,26 @@ async function conhecimento(auth: string, texto: string, _nomes: string[]): Prom
 
 // ---------- FICHAS COMPLETAS (tabela client_docs): o MD inteiro do cliente, guardado no Supabase ----------
 const PASTA_FICHAS_MD = "1mbR6a5hmhvREjAoUmZusSLoN6ohCfF1P";   // Drive: pasta "clientes" (MDs)
+// Ficha grande demais não vai inteira nem cortada no meio: vão as seções que importam pra esta conversa (ordem original preservada).
+function recorteFicha(texto: string, pergunta: string, max = 24000): string {
+  if (texto.length <= max) return texto;
+  const partes = texto.split(/\n(?=#{1,2}\s)/);           // abre em cada título
+  if (partes.length < 3) return texto.slice(0, max);
+  const q = new Set(chaveNome(pergunta).split(" ").filter(w => w.length >= 4));
+  const pt = partes.map((t, i) => {
+    let p = 0;
+    if (i < 3) p += 100;                                      // identificação, leitura obrigatória, como interpretar
+    if (/instru[cç][aã]o compacta|s[ií]ntese operacional|regras de opera/i.test(t.slice(0, 120))) p += 90;
+    if (/voz|posicionamento|pend[eê]ncias/i.test(t.slice(0, 80))) p += 20;
+    for (const w of chaveNome(t).split(" ")) if (q.has(w)) p += 1;
+    return p;
+  });
+  const ordem = pt.map((p, i) => [p, i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  const fica = new Set<number>(); let tam = 0;
+  for (const [, i] of ordem) { if (tam + partes[i].length > max) continue; fica.add(i); tam += partes[i].length; }
+  const fora = partes.map((t, i) => fica.has(i) ? "" : (t.match(/^#{1,2}\s*(.+)$/m)?.[1] ?? "").trim()).filter(Boolean);
+  return partes.filter((_, i) => fica.has(i)).join("\n") + (fora.length ? `\n\n(Seções desta ficha NÃO incluídas agora, peça se precisar: ${fora.join(" | ").slice(0, 600)})` : "");
+}
 async function fichasCompletas(auth: string, texto: string): Promise<Registro[]> {
   try {
     const r = await buscar(`${SB_URL}/rest/v1/client_docs?select=cliente_nome,apelidos,titulo,texto,atualizado_em&ativo=eq.true&limit=60`,
@@ -596,7 +616,7 @@ async function fichasCompletas(auth: string, texto: string): Promise<Registro[]>
       for (const w of APELIDOS_FICHA[k] ?? []) if (alvo.includes(" " + chaveNome(w) + " ")) pt += 3;
       if (pt > 0) pts.push([d, pt]);
     }
-    return pts.sort((a, b) => b[1] - a[1]).slice(0, 2).map(([d]) => ({ cliente: d.cliente_nome, atualizado_em: d.atualizado_em, texto: String(d.texto ?? "").slice(0, 16000) }));
+    return pts.sort((a, b) => b[1] - a[1]).slice(0, 2).map(([d]) => ({ cliente: d.cliente_nome, atualizado_em: d.atualizado_em, texto: recorteFicha(String(d.texto ?? ""), texto) }));
   } catch { return []; }
 }
 // Rede de segurança: se a tabela client_docs ainda não tem a ficha (SQL/importação por fazer), lê o MD direto da pasta "clientes" do Drive.
@@ -620,7 +640,7 @@ async function fichaDoDriveAoVivo(texto: string): Promise<Registro[]> {
     for (const a of achados.slice(0, 2)) {
       const d = await gas("reuniao_ler", { doc_id: String(a.id), max: 60000 }, 25000);
       const t = String(d?.texto ?? "");
-      if (t.length > 200) lidos.push({ cliente: String(a.caminho ?? a.titulo ?? "").split("/").pop()?.replace(/\.md$/i, ""), origem: "lido agora do Drive", texto: t.slice(0, 16000) });
+      if (t.length > 200) lidos.push({ cliente: String(a.caminho ?? a.titulo ?? "").split("/").pop()?.replace(/\.md$/i, ""), origem: "lido agora do Drive", texto: recorteFicha(t, texto) });
     }
     return lidos;
   } catch { return []; }
