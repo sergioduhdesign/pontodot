@@ -499,6 +499,62 @@ function pdZapDigitando($wamid) {
         CURLOPT_POSTFIELDS => json_encode(['messaging_product' => 'whatsapp', 'status' => 'read', 'message_id' => $wamid, 'typing_indicator' => ['type' => 'text']])]);
     @curl_exec($ch); curl_close($ch);
 }
+// Executa, pelo WhatsApp, o que a plataforma faz com botão: play, pausar, retomar, mensagem pra IA de produção, mudar campos, nota na tarefa.
+// Devolve uma linha de resultado ("✅ ..." ou "⚠️ ...").
+function pdZapAcao($a, $p, $statusValidos) {
+    $tid = strtoupper(trim((string)($a['task_id'] ?? ''))); $tipo = (string)($a['tipo'] ?? ''); $nome = $p['name'] ?? 'alguém da equipe';
+    $t = $tid !== '' ? tarefa($tid) : null;
+    if (!$t) return "⚠️ Não achei a tarefa " . ($tid ?: '(sem ID)') . ". Qual é o ID?";
+    $rot = $tid . ' ' . mb_substr((string)$t['action'], 0, 40);
+    try {
+        if (in_array($tipo, ['play', 'pausar', 'retomar', 'mensagem'], true)) {
+            $td = td_get($tid); if (!$td) return "⚠️ A $tid ainda não tem pasta no Drive, então não tem como chamar a IA de produção. Conecte a pasta na plataforma.";
+        }
+        if ($tipo === 'play') {
+            $rodada = max(1, (int)$td['rodada']);
+            ponte('status', ['controleId' => $td['controle_id'], 'status' => 'PRODUZIR', 'rodada' => $rodada, 'obs' => 'Play dado por ' . $nome . ' (WhatsApp)', 'briefing' => briefing($t, $td)]);
+            sessaoAbrir($tid, $p['id']); td_patch($tid, ['status' => 'produzir', 'rodada' => $rodada, 'marco' => date('c')]);
+            pdEvento($tid, 'chamado_ia', 'Chamado de produção enviado (pelo WhatsApp)', null, 'Pontodot', 'sistema'); pdBatata($tid, 'gpt');
+            avisarIA($tid, 'PRODUZIR', 'Nova tarefa. Leia o 00_BRIEFING_IA.txt, use os arquivos da ENTRADA e das referências e produza a entrega completa.' . (!empty($td['instrucoes_ia']) ? ' Instruções extras: ' . $td['instrucoes_ia'] : ''), ['rodada' => $rodada]);
+            return "✅ Play dado na $rot. A IA de produção já foi chamada.";
+        }
+        if ($tipo === 'pausar') {
+            if (!in_array($td['status'], ['produzir', 'corrigir'], true)) return "⚠️ A IA não está trabalhando na $tid agora.";
+            ponte('status', ['controleId' => $td['controle_id'], 'status' => 'PAUSADO', 'rodada' => $td['rodada'], 'obs' => 'Pausado por ' . $nome . ' (WhatsApp)']);
+            sessaoFechar($tid); td_patch($tid, ['status' => 'pausado', 'status_antes' => $td['status']]); avisarIA($tid, 'PAUSAR', 'PAUSE esta tarefa.');
+            return "✅ Pausei a $rot.";
+        }
+        if ($tipo === 'retomar') {
+            if ($td['status'] !== 'pausado') return "⚠️ A $tid não está pausada.";
+            $volta = in_array($td['status_antes'] ?? '', ['produzir', 'corrigir'], true) ? $td['status_antes'] : 'produzir';
+            ponte('status', ['controleId' => $td['controle_id'], 'status' => strtoupper($volta), 'rodada' => $td['rodada'], 'obs' => 'Retomado por ' . $nome . ' (WhatsApp)']);
+            sessaoAbrir($tid, $p['id']); td_patch($tid, ['status' => $volta]); avisarIA($tid, 'RETOMAR', 'RETOME a tarefa de onde parou. Confira o 00_BRIEFING_IA.txt: ele pode ter mudado.');
+            return "✅ Retomei a $rot.";
+        }
+        if ($tipo === 'mensagem') {
+            $txt = trim((string)($a['texto'] ?? '')); if ($txt === '') return "⚠️ Faltou o que dizer pra IA de produção.";
+            avisarIA($tid, 'MENSAGEM', 'Leia a mensagem do gestor abaixo e aplique no trabalho em andamento.', ['texto' => mb_substr($txt, 0, 6000) . "\n— " . $nome . ' (WhatsApp)']);
+            return "✅ Mandei pra IA de produção da $rot: " . mb_substr($txt, 0, 120);
+        }
+        if ($tipo === 'nota') {
+            $txt = trim((string)($a['texto'] ?? '')); if ($txt === '') return "⚠️ Faltou o texto da nota.";
+            pdEvento($tid, 'nota', 'Nota de ' . $nome . ' (WhatsApp)', $txt, $nome, 'pessoa');
+            return "✅ Anotei na $rot.";
+        }
+        if ($tipo === 'mudar') {
+            $c = (array)($a['campos'] ?? []); $patch = [];
+            foreach (['obs', 'action', 'resp'] as $k) if (isset($c[$k]) && is_string($c[$k])) $patch[$k] = mb_substr($c[$k], 0, $k === 'obs' ? 2000 : 200);
+            foreach (['date_int', 'date_cli'] as $k) if (!empty($c[$k]) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$c[$k])) $patch[$k] = $c[$k];
+            if (!empty($c['status'])) { $st = strtoupper((string)$c['status']); if (in_array($st, $statusValidos, true)) $patch['status'] = $st; else return "⚠️ Status \"$st\" não existe. Os que existem: " . implode(', ', $statusValidos); }
+            if (!$patch) return "⚠️ Não entendi o que mudar na $tid.";
+            $r = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($tid), 'PATCH', $patch);
+            if (($r['code'] ?? 500) >= 300) return "⚠️ O banco recusou a mudança na $tid.";
+            pdEvento($tid, 'edicao', 'Alterado por ' . $nome . ' (WhatsApp)', json_encode($patch, JSON_UNESCAPED_UNICODE), $nome, 'pessoa');
+            return "✅ Mudei na $rot: " . implode(' · ', array_map(fn($k, $v) => "$k=" . mb_substr((string)$v, 0, 60), array_keys($patch), $patch));
+        }
+        return "⚠️ Não sei fazer \"$tipo\" por aqui ainda.";
+    } catch (Throwable $e) { return "⚠️ Não consegui na $tid: " . mb_substr($e->getMessage(), 0, 140); }
+}
 // baixa do bucket privado zap-midia (chave do servidor); devolve os bytes ou null
 function pdStorageBaixa($path) {
     $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/zap-midia/' . implode('/', array_map('rawurlencode', explode('/', $path))));
@@ -618,8 +674,9 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
     $nomeDe = array_flip($clientesIds);
     $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
+    $statusValidos = array_values(array_unique(array_filter(array_map(fn($t) => (string)($t['status'] ?? ''), $todas)))); foreach (['BRIEFING', 'ENTREGUE'] as $sv) if (!in_array($sv, $statusValidos, true)) $statusValidos[] = $sv;
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
-                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas, 'memoria_da_casa_ensinada_pela_equipe' => $memoria, 'arquivos_recebidos_na_ultima_hora' => $arqCtx];
+                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas, 'memoria_da_casa_ensinada_pela_equipe' => $memoria, 'arquivos_recebidos_na_ultima_hora' => $arqCtx, 'status_validos' => $statusValidos];
     // o personagem que a pessoa escolheu na plataforma (pd_jeito): é a MESMA IA, agora no WhatsApp
     $quemSou = 'a IA de trabalho da Pontodot, colega sênior de uma agência de branding do mercado imobiliário';
     $primeiro = explode(' ', trim((string)($p['name'] ?? 'colega')))[0];
@@ -631,6 +688,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     } catch (Throwable $e) {}
     $sys = 'Você é ' . $quemSou . ', conversando por WHATSAPP com ' . ($p['name'] ?? 'um colega') . ', da equipe. '
         . 'Responda em pt-BR, tom de colega próximo e direto, curto (até ~900 caracteres), sem markdown pesado (pode usar *negrito* do WhatsApp). Cite tarefas pelo ID e nome curto. '
+        . 'AÇÕES: o WhatsApp é um canal de trabalho completo; a pessoa manda e você EXECUTA, sem mandá-la para a plataforma. Ordem clara ("faz", "bora", "dá start", "pausa", "muda o prazo") é ordem de agir: não peça autorização que já foi dada. Para executar, escreva no FIM da resposta, uma por linha, linhas ##ACAO## com JSON compacto: {"tipo":"play","task_id":"SD-2355"} (dar start na produção) · {"tipo":"pausar","task_id":"SD-2355"} · {"tipo":"retomar","task_id":"SD-2355"} · {"tipo":"mensagem","task_id":"SD-2355","texto":"detalhe, pedido de amostra ou ajuste para a IA de produção"} · {"tipo":"nota","task_id":"SD-2355","texto":"..."} · {"tipo":"mudar","task_id":"SD-2355","campos":{"status":"...","date_int":"AAAA-MM-DD","date_cli":"AAAA-MM-DD","obs":"...","resp":"..."}}. Ao mudar prazo, ajuste date_int E date_cli juntos, a menos que a pessoa diga qual. status só um dos valores em status_validos. Vale só para tarefas de todas_as_tarefas_abertas (use o ID exato); se o ID for ambíguo, pergunte em uma linha qual. Você NÃO apaga nada. Fale do resultado só depois: o sistema anexa o ✅ ou o ⚠️ de cada ação, então escreva no máximo uma frase antes. Para criar tarefa nova ou plano com várias peças, diga que isso é na plataforma (por enquanto). '
         . 'ARQUIVOS: a pessoa pode mandar imagem, PDF, Word ou texto pelo WhatsApp; você vê o conteúdo e fala dele de forma curta e útil. Se ela pedir para salvar/guardar o arquivo numa tarefa (ex.: "salva esse arquivo pra tarefa SD-2355"), confirme em uma frase e na ÚLTIMA linha escreva sozinha ##SALVAR## com JSON: {"task_id":"SD-2355","arquivos":[1]} (arquivos = os números n de arquivos_recebidos_na_ultima_hora; omita para salvar todos). task_id só de tarefa que existe em todas_as_tarefas_abertas; se o ID não bater ou faltar, pergunte qual. Nunca diga que salvou sem escrever a linha. '
         . 'MEMÓRIA: quando a pessoa te ENSINAR algo duradouro (um fato sobre um cliente, uma regra da casa, uma preferência dela) ou pedir para você guardar/lembrar, responda normal e confirme em uma frase, e na ÚLTIMA linha da resposta, sozinha, escreva ##LEMBRAR## seguido de um JSON compacto: {"escopo":"cliente|agencia|pessoa","alvo":"NOME EXATO DO CLIENTE (só se escopo=cliente)","assunto":"título curto","conteudo":"o fato em 1 ou 2 frases, nas palavras da pessoa"}. Tudo sobre pessoas da equipe e como elas se relacionam (parentesco, casal, quem é quem, papéis, apelidos) é escopo agencia, vale para todos e nos dois sentidos (se o Sérgio diz que a Joy é a esposa dele, para a Joy o Sérgio é o marido); pessoa só para preferência de trabalho da própria pessoa. Raciocine com o que a memória diz: ligue os fatos, não responda só com o que foi literalmente dito. Só quando for aprendizado de verdade, nunca para pergunta, conversa ou prazo de tarefa. Nunca diga que não consegue guardar nem que guarda só nesta conversa: guardar é com você, e a gravação acontece sozinha quando você escreve a linha ##LEMBRAR##. Não escreva "vou registrar" nem explique o JSON, só escreva a linha no final. O que já foi ensinado está em memoria_da_casa_ensinada_pela_equipe. '
         . 'FALE COMO UM COLEGA QUE CONHECE O CLIENTE, não como quem lê uma ficha: o conhecimento do CONTEXTO é seu repertório, nunca um texto para repetir. Nunca despeje a ficha nem liste todos os campos; responda só ao que foi perguntado, com suas palavras, em poucas frases, e acrescente no máximo um detalhe que ajude. Se o pedido for aberto ("fala um pouco da X"), dê o essencial em 3 a 4 linhas e pergunte qual ponto a pessoa quer aprofundar. '
@@ -647,6 +705,11 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     $resp = '';
     if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text']; }
     $resp = trim($resp);
+    if (preg_match_all('/^[ \t]*##ACAO##\s*(\{.*\})\s*$/mu', $resp, $am)) {
+        $resp = trim(preg_replace('/^[ \t]*##ACAO##.*$/mu', '', $resp)); $feitos = [];
+        foreach (array_slice($am[1], 0, 5) as $aj) { $ao = json_decode($aj, true); if (is_array($ao)) $feitos[] = pdZapAcao($ao, $p, $statusValidos); }
+        if ($feitos) $resp = trim($resp) . "\n\n" . implode("\n", $feitos);
+    }
     if (preg_match('/##SALVAR##\s*(\{.*\})\s*$/su', $resp, $sm)) {
         $resp = trim(preg_replace('/##SALVAR##.*$/su', '', $resp)); $sj = json_decode($sm[1], true); $tid = strtoupper(trim((string)($sj['task_id'] ?? '')));
         $existe = $tid !== '' ? (sd_supabase('/rest/v1/tasks?id=eq.' . rawurlencode($tid) . '&select=id&limit=1')['body'][0]['id'] ?? null) : null;
