@@ -805,7 +805,11 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     $resp = '';
     if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text']; }
     $resp = trim($resp);
-    if (preg_match_all('/^[ \t]*##ACAO##\s*(\{.*\})\s*$/mu', $resp, $am)) {
+    // a IA às vezes escreve o JSON da ação sem o ##ACAO## (ou repete): aceita as duas formas, executa uma vez só e nunca mostra o JSON à pessoa
+    $ajs = [];
+    if (preg_match_all('/^[ \t]*(?:##ACAO##\s*)?(\{"tipo".*\})\s*$/mu', $resp, $am0)) { $ajs = array_values(array_unique($am0[1])); $resp = trim(preg_replace('/^[ \t]*(?:##ACAO##\s*)?\{"tipo".*\}\s*$/mu', '', $resp)); }
+    $am = [1 => $ajs];
+    if ($ajs) {
         $resp = trim(preg_replace('/^[ \t]*##ACAO##.*$/mu', '', $resp)); $feitos = [];
         foreach (array_slice($am[1], 0, 5) as $aj) { $ao = json_decode($aj, true); if (is_array($ao)) $feitos[] = pdZapAcao($ao, $p, $statusValidos); }
         if ($feitos) $resp = trim($resp) . "\n\n" . implode("\n", $feitos);
