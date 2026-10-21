@@ -3230,9 +3230,9 @@ function escPosts(){
   ESC_IDS.forEach(id => {
     const c = escChar(id); if (!c) return;
     semanas.forEach(([k, data, idx]) => {
-      const w = (P[id] || {})[k]; if (!w || !(w.post || w.historia)) return;
+      const w = (P[id] || {})[k]; if (!w || !w.post) return;   // post é sempre em 1ª pessoa; a história em 3ª pessoa nunca vira post
       if (!escEhUsuario(id) && !escPrimeiraSemanaDoMes(data)) return;
-      out.push({ id, c, data, idx, titulo:w.titulo||'', texto:w.post||w.historia, historia:w.historia||'' });
+      out.push({ id, c, data, idx, titulo:w.titulo||'', texto:w.post, historia:w.historia||'' });
     });
   });
   if (!out.length) ESC_IDS.filter(escEhUsuario).forEach(id => { const c = escChar(id); if (c) out.push({ id, c, data:'', idx:0, titulo:'', texto:c.initial_life_post?.caption||'', historia:'' }); });

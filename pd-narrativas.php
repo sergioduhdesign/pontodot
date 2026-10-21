@@ -84,16 +84,64 @@ function pdn_blocos($texto, $ids) {
     return $out;
 }
 
+/**
+ * VOZ DE REDE SOCIAL. A história da semana vem em 3ª pessoa, tom de relatório; isso NÃO é post.
+ * Quando o bloco não traz "post:", a IA reescreve a história como o personagem postaria (1ª pessoa,
+ * curto, de gente). Guarda por hash (id+história): não gasta de novo enquanto o texto não mudar.
+ */
+function pdn_voz(array &$blocos, array $personagens) {
+    if (!(defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY)) return;
+    $arq = PDN_CACHE . '/voz.json';
+    $cache = is_file($arq) ? (json_decode((string)file_get_contents($arq), true) ?: []) : [];
+    $falta = [];
+    foreach ($blocos as $id => $b) {
+        if (($b['post'] ?? '') !== '' || ($b['historia'] ?? '') === '') continue;
+        $k = sha1($id . '|' . $b['historia']);
+        if (!empty($cache[$k])) { $blocos[$id]['post'] = $cache[$k]; continue; }
+        $falta[$id] = $k;
+    }
+    if (!$falta) return;
+    $itens = [];
+    foreach ($falta as $id => $k) {
+        $c = $personagens[$id] ?? [];
+        $itens[] = ['id' => $id, 'nome' => $c['name'] ?? $id, 'jeito' => $c['narrative_archetype'] ?? '',
+                    'como_ja_posta' => mb_substr((string)($c['initial_life_post']['caption'] ?? ''), 0, 160), 'o_que_aconteceu' => $blocos[$id]['historia']];
+    }
+    $sys = 'Você escreve posts de rede social (estilo Instagram) para personagens fictícios de Catum. Cada personagem posta sobre a própria semana, SEMPRE em primeira pessoa ("eu"), como uma pessoa de verdade: curto (1 a 3 frases, até 220 caracteres), voz falada, direta, com um detalhe concreto e algum humor ou sentimento. '
+         . 'PROIBIDO: terceira pessoa, tom de relatório ou ata, enumerar o que fez, frases como "ainda escolhe", "resta decidir", "falta escolher", explicar a lógica. Não inicie com o próprio nome. No máximo um emoji, e só se for natural. Não invente fatos além do que aconteceu; pode escolher UM momento e ignorar o resto. '
+         . 'Imite o tom de "como_ja_posta" de cada um. Responda SOMENTE um JSON {"id":"texto do post", ...}, sem comentários.';
+    $corpo = ['model' => defined('SD_NARRATIVAS_MODEL') ? SD_NARRATIVAS_MODEL : 'claude-haiku-4-5', 'max_tokens' => 3000, 'system' => $sys,
+              'messages' => [['role' => 'user', 'content' => json_encode($itens, JSON_UNESCAPED_UNICODE)]]];
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $ch = curl_init($base . '/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($corpo)]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code !== 200) return;
+    $j = json_decode((string)$raw, true); $txt = '';
+    foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $txt .= $x['text'];
+    if (!preg_match('/\{.*\}/su', $txt, $m)) return;
+    $r = json_decode($m[0], true); if (!is_array($r)) return;
+    foreach ($falta as $id => $k) {
+        $t = pdn_limpa($r[$id] ?? '', 280); if ($t === '') continue;
+        $cache[$k] = $t; $blocos[$id]['post'] = $t;
+    }
+    @file_put_contents($arq, json_encode($cache, JSON_UNESCAPED_UNICODE), LOCK_EX);
+}
+
 if (!is_dir(PDN_CACHE)) { @mkdir(PDN_CACHE, 0755, true); @file_put_contents(PDN_CACHE . '/.htaccess', "Deny from all\n"); }
 $arq = PDN_CACHE . '/narrativas.json';
 $velho = is_file($arq) ? json_decode((string)file_get_contents($arq), true) : null;
 $hoje = (new DateTime('now', new DateTimeZone('America/Sao_Paulo')))->format('Y-m-d');
 
 // cache vale 6h — e só se ainda for a mesma semana (virou a segunda, relê)
-if (is_array($velho) && (time() - (int)($velho['em'] ?? 0)) < PDN_VALIDADE && ($velho['hoje'] ?? '') === $hoje) {
+if (is_array($velho) && (time() - (int)($velho['em'] ?? 0)) < PDN_VALIDADE && (int)($velho['v'] ?? 0) === 2 && ($velho['hoje'] ?? '') === $hoje) {
     pdn_sai(['ok' => true, 'fonte' => 'cache'] + $velho['dados']);
 }
 
+$PERS = [];
+try { foreach ((array)(json_decode((string)@file_get_contents(__DIR__ . '/pd/universo.json'), true)['characters'] ?? []) as $c) if (!empty($c['id'])) $PERS[$c['id']] = $c; } catch (Throwable $e) {}
 try {
     $r = pdn_ponte('listar', ['folderId' => $PASTA]);
     $docs = [];
@@ -109,7 +157,9 @@ try {
     $semanas = [];
     foreach ($docs as $d) {
         $l = pdn_ponte('reuniao_ler', ['doc_id' => $d['id']]);
-        $semanas[] = ['data' => $d['data'], 'blocos' => pdn_blocos($l['texto'] ?? '', $IDS)];
+        $bl = pdn_blocos($l['texto'] ?? '', $IDS);
+        pdn_voz($bl, $PERS);
+        $semanas[] = ['data' => $d['data'], 'blocos' => $bl];
     }
     $pers = [];
     foreach ($IDS as $id) {
@@ -117,7 +167,7 @@ try {
         if ($a || $p) $pers[$id] = ['semana' => $a, 'anterior' => $p];
     }
     $dados = ['semana' => $semanas[0]['data'] ?? null, 'anterior' => $semanas[1]['data'] ?? null, 'personagens' => (object)$pers];
-    @file_put_contents($arq, json_encode(['em' => time(), 'hoje' => $hoje, 'dados' => $dados], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    @file_put_contents($arq, json_encode(['v' => 2, 'em' => time(), 'hoje' => $hoje, 'dados' => $dados], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
     pdn_sai(['ok' => true, 'fonte' => 'drive'] + $dados);
 } catch (Exception $e) {
     if (is_array($velho) && !empty($velho['dados'])) pdn_sai(['ok' => true, 'fonte' => 'cache-antigo', 'aviso' => 'Drive fora do ar agora.'] + $velho['dados']);
