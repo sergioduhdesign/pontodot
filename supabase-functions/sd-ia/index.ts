@@ -663,6 +663,11 @@ async function importarFichas(): Promise<string> {
     const pega = (k: string) => (fm.match(new RegExp("^\\s*" + k + "\\s*:\\s*(.+)$", "mi"))?.[1] ?? "").trim().replace(/^["']|["']$/g, "");
     const nome = pega("nome") || nomeArq.replace(/\.md$/i, "").replace(/_/g, " ");
     const apel = pega("apelidos").replace(/^\[|\]$/g, "").split(",").map(x => x.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+    // mesmo arquivo do Drive com nome novo: desativa a linha antiga (não apaga) para não ler duas versões
+    await buscar(`${SB_URL}/rest/v1/client_docs?origem=eq.${encodeURIComponent("drive:" + String(a.id))}&cliente_nome=neq.${encodeURIComponent(nome)}`, {
+      method: "PATCH", headers: { apikey: SB_SERVICO, authorization: `Bearer ${SB_SERVICO}`, "content-type": "application/json", prefer: "return=minimal" },
+      body: JSON.stringify({ ativo: false }),
+    }, 15000).catch(() => null);
     const r = await buscar(`${SB_URL}/rest/v1/client_docs?on_conflict=cliente_nome`, {
       method: "POST",
       headers: { apikey: SB_SERVICO, authorization: `Bearer ${SB_SERVICO}`, "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" },
