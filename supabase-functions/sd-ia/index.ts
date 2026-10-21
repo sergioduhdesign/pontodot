@@ -581,7 +581,7 @@ async function conhecimento(auth: string, texto: string, _nomes: string[]): Prom
 // ---------- FICHAS COMPLETAS (tabela client_docs): o MD inteiro do cliente, guardado no Supabase ----------
 const PASTA_FICHAS_MD = "1mbR6a5hmhvREjAoUmZusSLoN6ohCfF1P";   // Drive: pasta "clientes" (MDs)
 // Ficha grande demais não vai inteira nem cortada no meio: vão as seções que importam pra esta conversa (ordem original preservada).
-function recorteFicha(texto: string, pergunta: string, max = 24000): string {
+function recorteFicha(texto: string, pergunta: string, max = 10000): string {
   if (texto.length <= max) return texto;
   const partes = texto.split(/\n(?=#{1,2}\s)/);           // abre em cada título
   if (partes.length < 3) return texto.slice(0, max);
