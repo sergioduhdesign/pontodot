@@ -610,7 +610,7 @@ IDs só os das tarefas recebidas; inclua só o que muda. Campos: id (obrigatóri
 
 CRIAR tarefa só no quadro (sem IA, sem pasta):
 ##ACAO##{"tipo":"criar","novas":[{"action":"Peça — ação objetiva","cliente":"NOME DO CADASTRO","status":"BRIEFING","obs":"Direção, referências e critério."}]}
-Campos: action (obrigatório), cliente (opcional; nome exato do cadastro), resp, project, status, date_int, date_cli, obs. Responsável: primeiro nome do cadastro em maiúsculas; com homônimos, use o que já aparece nas tarefas, ou pergunte. Não invente IDs. Precisa criar e alterar? Emita o lote prioritário e indique o resto sem dizer que ficou agendado. Tarefa nova que vem antes de uma existente: crie a nova e use tarefa_mae na filha.
+Campos: action (obrigatório), cliente (opcional; nome exato do cadastro), resp, project, status, date_int, date_cli, obs. ENCADEAR (mãe → filha → neta): depois_de = posição (texto, "1","2"…) na MESMA lista novas da tarefa que vem ANTES desta; cada tarefa tem no máximo uma que vem antes e uma que vem depois; tarefa solta não leva depois_de. Ex.: [{"action":"Estratégia"},{"action":"Briefing","depois_de":"1"},{"action":"Roteiro","depois_de":"2"}]. Responsável: primeiro nome do cadastro em maiúsculas; com homônimos, use o que já aparece nas tarefas, ou pergunte. Não invente IDs. Precisa criar e alterar? Emita o lote prioritário e indique o resto sem dizer que ficou agendado. Tarefa nova que vem antes de uma existente: crie a nova e use tarefa_mae na filha.
 
 PRODUZIR (trabalho novo para a IA fazer, ou link de pasta junto com o pedido), um job por linha:
 ##ACAO##{"tipo":"produzir","job":{"action":"Press Terras de Santa Maria — anúncio de jornal","cliente":"NOME EXATO DO CADASTRO","project":"PRESS","resp":"SERGIO","date_int":"2026-10-09","tipo_entrega":"press","drive_url":"<link da pasta, se veio>","obs":"<o pedido, em 1-3 linhas>","prompt":"<O PROMPT COMPLETO PRO GPT>"}}
@@ -916,10 +916,11 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   // também escreve comentário, amarra a tarefa-mãe e aponta a pasta de
   // trabalho, que é o que a casa pede no dia a dia.
   const permitidos = criar
-    ? ["action", "cliente", "resp", "project", "status", "date_int", "date_cli", "obs"]
+    ? ["action", "cliente", "resp", "project", "status", "date_int", "date_cli", "obs", "depois_de"]
     : ["id", "status", "date_int", "date_cli", "resp", "obs", "comentario", "tarefa_mae", "referencia_url"];
   const vistos = new Set<string>();
   const bons: Registro[] = [], fora: string[] = [], empurrados: string[] = [];
+  const posOriginal = new Map<unknown, number>(items.map((it, i) => [it, i + 1] as [unknown, number]));
   for (const item of items) {
    try {
     if (!objeto(item) || Object.keys(item).some(k => !permitidos.includes(k))) throw new Error(`só sei mexer em: ${permitidos.join(", ")}`);
@@ -933,6 +934,11 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
     let atual: Registro | undefined;
     if (criar) {
       if (!item.action) throw new Error("faltou dizer o que é a tarefa nova");
+      if (item.depois_de !== undefined) {
+        const n = Number(String(item.depois_de).trim());
+        if (!/^\d{1,2}$/.test(String(item.depois_de).trim()) || n < 1 || n > items.length || n === posOriginal.get(item))
+          throw new Error(`depois_de tem que ser a posição (1 a ${items.length}) de OUTRA tarefa da mesma lista`);
+      }
       if (item.cliente !== undefined && !clientesLower.has(semAcento(String(item.cliente).trim()).toLocaleLowerCase("pt-BR"))) throw new Error(`o cliente "${String(item.cliente).slice(0,40)}" não está no cadastro`);
     } else {
       const matches = tarefas.filter(t => t.id === item.id);
@@ -1003,6 +1009,21 @@ function validarAcao(reply: string, tarefas: Registro[], clientes: string[], equ
   // Uma tarefa ruim não derruba o lote inteiro: ela sai, as outras seguem,
   // e o texto diz qual ficou de fora e por quê. Lote todo ruim: aí recusa.
   if (!bons.length) throw new Error(fora.length === 1 ? fora[0] : `nenhuma passou: ${fora.slice(0, 3).join("; ")}`);
+  if (criar) {   // cadeia mãe → filha → neta: reposiciona pelo lote que sobrou, uma "mãe" só tem uma filha, sem círculo
+    const soltas: string[] = [], mae = new Map<number, number>(), usadas = new Set<number>();
+    bons.forEach((it, i) => {
+      if (it.depois_de === undefined) return;
+      const alvo = items[Number(it.depois_de) - 1], j = bons.indexOf(alvo as Registro);
+      delete it.depois_de;
+      if (j < 0) { soltas.push(`${String(it.action).slice(0, 30)} (a tarefa que vem antes ficou de fora)`); return; }
+      if (usadas.has(j)) { soltas.push(`${String(it.action).slice(0, 30)} (a de antes já tem outra seguinte: só cabe uma filha por tarefa)`); return; }
+      let sobe: number | undefined = j; const v = new Set<number>(); let ciclo = false;
+      while (sobe !== undefined && !v.has(sobe)) { if (sobe === i) { ciclo = true; break; } v.add(sobe); sobe = mae.get(sobe); }
+      if (ciclo) { soltas.push(`${String(it.action).slice(0, 30)} (formaria um círculo)`); return; }
+      mae.set(i, j); usadas.add(j); it.depois_de = String(j + 1);
+    });
+    if (soltas.length) partes[0] = `${partes[0].trimEnd()}\n\nFicaram soltas, sem ligação: ${soltas.slice(0, 5).join("; ")}.`;
+  }
   a[chave] = bons;
   if (empurrados.length) partes[0] = `${partes[0].trimEnd()}\n\nEmpurrei o outro prazo junto (uma coisa puxa a outra): ${empurrados.slice(0, 8).join("; ")}.`;
   if (fora.length) partes[0] = `${partes[0].trimEnd()}\n\nDeixei de fora (${fora.length}): ${fora.slice(0, 5).join("; ")}.`;
