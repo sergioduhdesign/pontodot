@@ -499,7 +499,21 @@ function pdZapDigitando($wamid) {
         CURLOPT_POSTFIELDS => json_encode(['messaging_product' => 'whatsapp', 'status' => 'read', 'message_id' => $wamid, 'typing_indicator' => ['type' => 'text']])]);
     @curl_exec($ch); curl_close($ch);
 }
-function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
+// baixa do bucket privado zap-midia (chave do servidor); devolve os bytes ou null
+function pdStorageBaixa($path) {
+    $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/zap-midia/' . implode('/', array_map('rawurlencode', explode('/', $path))));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY]]);
+    $r = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    return $c < 300 ? $r : null;
+}
+// texto de um .docx (XML dentro do zip) — sem biblioteca
+function pdDocxTexto($bytes) {
+    $tmp = tempnam(sys_get_temp_dir(), 'dx'); file_put_contents($tmp, $bytes); $z = new ZipArchive();
+    $t = ''; if ($z->open($tmp) === true) { $x = $z->getFromName('word/document.xml'); $z->close();
+        if ($x) $t = html_entity_decode(strip_tags(preg_replace('/<\/w:p>/', "\n", $x)), ENT_QUOTES | ENT_XML1, 'UTF-8'); }
+    @unlink($tmp); return trim($t);
+}
+function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     if (defined('SD_IA_ZAP') && SD_IA_ZAP === false) return;
     $falha = function ($motivo) use ($p, $tel) { error_log('ia-zap: ' . $motivo);
         try { pdAvisoLog('whatsapp', $tel, $p['name'] ?? null, null, '[a IA não respondeu por WhatsApp] ' . $motivo, 'erro', $motivo, 'ia'); } catch (Throwable $e) {} };
@@ -508,7 +522,8 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
         [$code, $raw] = pdZapEnviar($tel, $msg, true);   // a pessoa acabou de falar: janela aberta, texto livre
         pdAvisoLog('whatsapp', $tel, $p['name'] ?? null, null, $msg, $code === 200 ? 'enviado' : 'erro', $code === 200 ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 160), 'ia', null, null, $code === 200 ? pdWamid($raw) : null);
     };
-    if ($tipo !== 'text' || trim($texto) === '' || $texto[0] === '[') { $enviar('Por aqui eu só consigo ler texto por enquanto. Me escreve a pergunta?'); return; }
+    if ($midia && $tipo === 'audio') { $enviar('Recebi seu áudio e guardei, mas ainda não consigo ouvir. Me manda por escrito, por favor?'); return; }
+    if (!$midia && ($tipo !== 'text' || trim($texto) === '' || $texto[0] === '[')) { $enviar('Por aqui eu só consigo ler texto e arquivos. Me escreve a pergunta?'); return; }
     // limite de segurança: 40 respostas da IA por hora por número
     $n = sd_supabase('/rest/v1/pd_avisos_log?origem=eq.ia&para=eq.' . $tel . '&criado_em=gte.' . rawurlencode(gmdate('c', time() - 3600)) . '&select=id');
     if (($n['code'] ?? 500) < 300 && count((array)$n['body']) >= 40) return;
@@ -535,6 +550,24 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     }
     while ($msgs && $msgs[0]['role'] !== 'user') array_shift($msgs);
     if (!$msgs || $msgs[count($msgs) - 1]['role'] !== 'user') $msgs[] = ['role' => 'user', 'content' => $texto];
+    // ARQUIVOS: o que chegou nos últimos 60 min (a IA pode ser mandada salvar numa tarefa) + o conteúdo do que chegou agora
+    $ar = sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . $tel . '&midia_path=not.is.null&criado_em=gte.' . rawurlencode(gmdate('c', time() - 3600)) . '&select=midia_path,midia_tipo,midia_nome,corpo,criado_em&order=criado_em.desc&limit=6');
+    $arquivos = array_values((array)($ar['body'] ?? [])); $arqCtx = [];
+    foreach ($arquivos as $i => $a) $arqCtx[] = ['n' => $i + 1, 'tipo' => $a['midia_tipo'], 'nome' => $a['midia_nome'] ?: basename((string)$a['midia_path']), 'legenda' => $a['corpo']];
+    if ($midia) {
+        $bytes = pdStorageBaixa($midia['path']); $mime = strtolower((string)($midia['mime'] ?? '')); $blocos = [];
+        if ($bytes !== null && strlen($bytes) < 8 * 1024 * 1024) {
+            if (strpos($mime, 'image/') === 0 && in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true))
+                $blocos[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $mime, 'data' => base64_encode($bytes)]];
+            elseif ($mime === 'application/pdf')
+                $blocos[] = ['type' => 'document', 'source' => ['type' => 'base64', 'media_type' => 'application/pdf', 'data' => base64_encode($bytes)]];
+            elseif (strpos($mime, 'wordprocessingml') !== false) { $dt = pdDocxTexto($bytes); if ($dt !== '') $blocos[] = ['type' => 'text', 'text' => "[CONTEÚDO DO ARQUIVO " . ($midia['nome'] ?? '') . "]\n" . mb_substr($dt, 0, 60000)]; }
+            elseif (strpos($mime, 'text/') === 0 || in_array($mime, ['application/json', 'application/csv'], true)) $blocos[] = ['type' => 'text', 'text' => "[CONTEÚDO DO ARQUIVO " . ($midia['nome'] ?? '') . "]\n" . mb_substr((string)$bytes, 0, 60000)];
+        }
+        $leg = trim(preg_replace('/^\[[^\]]*\]\s*/u', '', $texto));
+        $blocos[] = ['type' => 'text', 'text' => ($leg !== '' ? $leg : '(a pessoa mandou só o arquivo, sem texto. Diga em uma frase o que é e pergunte se é para salvar em alguma tarefa.)') . ($blocos && count($blocos) === 1 ? "\n(não consegui ler o conteúdo deste tipo de arquivo, mas ele foi guardado e pode ser salvo na tarefa)" : '')];
+        $msgs[count($msgs) - 1] = ['role' => 'user', 'content' => $blocos];
+    }
     // REUNIÕES: lista das últimas (só título/data/cliente) + TEXTO INTEIRO das 2 mais ligadas ao que a pessoa perguntou
     $norm = function ($t) { $t = mb_strtolower((string)$t); return preg_replace('/[^a-z0-9\/ ]+/', ' ', strtr($t, ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','é'=>'e','ê'=>'e','í'=>'i','ó'=>'o','ô'=>'o','õ'=>'o','ú'=>'u','ç'=>'c'])); };
     $lr = sd_supabase('/rest/v1/reunioes_texto?select=file_id,cliente,titulo,reuniao_em,caracteres&order=reuniao_em.desc&limit=60');
@@ -586,7 +619,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     $nomeDe = array_flip($clientesIds);
     $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
     $contexto = ['hoje' => $hoje, 'pessoa' => ['nome' => $p['name'] ?? '', 'chave' => $key], 'tarefas_da_pessoa' => $minhas, 'todas_as_tarefas_abertas' => array_slice($todas, 0, 80),
-                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas, 'memoria_da_casa_ensinada_pela_equipe' => $memoria];
+                 'reunioes_com_texto_inteiro' => $reun, 'reunioes_disponiveis' => $reunDisp, 'clientes' => $clientes, 'conhecimento_da_casa_e_dos_clientes' => $fichas, 'memoria_da_casa_ensinada_pela_equipe' => $memoria, 'arquivos_recebidos_na_ultima_hora' => $arqCtx];
     // o personagem que a pessoa escolheu na plataforma (pd_jeito): é a MESMA IA, agora no WhatsApp
     $quemSou = 'a IA de trabalho da Pontodot, colega sênior de uma agência de branding do mercado imobiliário';
     $primeiro = explode(' ', trim((string)($p['name'] ?? 'colega')))[0];
@@ -598,6 +631,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     } catch (Throwable $e) {}
     $sys = 'Você é ' . $quemSou . ', conversando por WHATSAPP com ' . ($p['name'] ?? 'um colega') . ', da equipe. '
         . 'Responda em pt-BR, tom de colega próximo e direto, curto (até ~900 caracteres), sem markdown pesado (pode usar *negrito* do WhatsApp). Cite tarefas pelo ID e nome curto. '
+        . 'ARQUIVOS: a pessoa pode mandar imagem, PDF, Word ou texto pelo WhatsApp; você vê o conteúdo e fala dele de forma curta e útil. Se ela pedir para salvar/guardar o arquivo numa tarefa (ex.: "salva esse arquivo pra tarefa SD-2355"), confirme em uma frase e na ÚLTIMA linha escreva sozinha ##SALVAR## com JSON: {"task_id":"SD-2355","arquivos":[1]} (arquivos = os números n de arquivos_recebidos_na_ultima_hora; omita para salvar todos). task_id só de tarefa que existe em todas_as_tarefas_abertas; se o ID não bater ou faltar, pergunte qual. Nunca diga que salvou sem escrever a linha. '
         . 'MEMÓRIA: quando a pessoa te ENSINAR algo duradouro (um fato sobre um cliente, uma regra da casa, uma preferência dela) ou pedir para você guardar/lembrar, responda normal e confirme em uma frase, e na ÚLTIMA linha da resposta, sozinha, escreva ##LEMBRAR## seguido de um JSON compacto: {"escopo":"cliente|agencia|pessoa","alvo":"NOME EXATO DO CLIENTE (só se escopo=cliente)","assunto":"título curto","conteudo":"o fato em 1 ou 2 frases, nas palavras da pessoa"}. Tudo sobre pessoas da equipe e como elas se relacionam (parentesco, casal, quem é quem, papéis, apelidos) é escopo agencia, vale para todos e nos dois sentidos (se o Sérgio diz que a Joy é a esposa dele, para a Joy o Sérgio é o marido); pessoa só para preferência de trabalho da própria pessoa. Raciocine com o que a memória diz: ligue os fatos, não responda só com o que foi literalmente dito. Só quando for aprendizado de verdade, nunca para pergunta, conversa ou prazo de tarefa. Nunca diga que não consegue guardar nem que guarda só nesta conversa: guardar é com você, e a gravação acontece sozinha quando você escreve a linha ##LEMBRAR##. Não escreva "vou registrar" nem explique o JSON, só escreva a linha no final. O que já foi ensinado está em memoria_da_casa_ensinada_pela_equipe. '
         . 'FALE COMO UM COLEGA QUE CONHECE O CLIENTE, não como quem lê uma ficha: o conhecimento do CONTEXTO é seu repertório, nunca um texto para repetir. Nunca despeje a ficha nem liste todos os campos; responda só ao que foi perguntado, com suas palavras, em poucas frases, e acrescente no máximo um detalhe que ajude. Se o pedido for aberto ("fala um pouco da X"), dê o essencial em 3 a 4 linhas e pergunte qual ponto a pessoa quer aprofundar. '
         . 'As reuniões em reunioes_com_texto_inteiro trazem a TRANSCRIÇÃO COMPLETA (não é resumo): leia e responda com base nela, e nunca diga que só tem um resumo. Se a pessoa perguntar de uma reunião que não está carregada, diga qual está disponível em reunioes_disponiveis e peça para citar cliente ou data. '
@@ -613,6 +647,28 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text') {
     $resp = '';
     if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text']; }
     $resp = trim($resp);
+    if (preg_match('/##SALVAR##\s*(\{.*\})\s*$/su', $resp, $sm)) {
+        $resp = trim(preg_replace('/##SALVAR##.*$/su', '', $resp)); $sj = json_decode($sm[1], true); $tid = strtoupper(trim((string)($sj['task_id'] ?? '')));
+        $existe = $tid !== '' ? (sd_supabase('/rest/v1/tasks?id=eq.' . rawurlencode($tid) . '&select=id&limit=1')['body'][0]['id'] ?? null) : null;
+        if (!$existe) $resp .= "\n\n(Não achei essa tarefa. Me diz o ID certo?)";
+        else {
+            $td = td_get($existe);
+            if (!$td) $resp .= "\n\n(A $existe ainda não tem pasta no Drive. Dê o play nela na plataforma e me manda o arquivo de novo.)";
+            else {
+                $sel = (isset($sj['arquivos']) && is_array($sj['arquivos'])) ? array_map('intval', $sj['arquivos']) : array_keys($arquivos);
+                $sel = array_map(fn($x) => isset($sj['arquivos']) ? $x - 1 : $x, $sel); $salvos = []; $errosS = [];
+                foreach ($sel as $ix) { $a = $arquivos[$ix] ?? null; if (!$a) continue;
+                    try { $by = pdStorageBaixa($a['midia_path']); if ($by === null) throw new Exception('não achei o arquivo guardado');
+                        $nm = $a['midia_nome'] ?: ('whatsapp-' . date('Ymd-His', strtotime($a['criado_em'])) . '.' . pathinfo($a['midia_path'], PATHINFO_EXTENSION));
+                        $nm = preg_replace('#[\\\\/:*?"<>|]+#', '-', $nm);
+                        ponte('gravar', ['folderId' => $td['entrada_id'] ?: $td['folder_id'], 'nome' => mb_substr($nm, 0, 120), 'b64' => base64_encode($by), 'mime' => 'application/octet-stream', 'substituir' => false]);
+                        $salvos[] = $nm; } catch (Throwable $e) { $errosS[] = $e->getMessage(); $falha('salvar na tarefa: ' . $e->getMessage()); } }
+                if ($salvos) $resp .= "\n\n✅ Salvei na $existe (pasta ENTRADA): " . implode(', ', $salvos);
+                if ($errosS) $resp .= "\n\n(Não consegui salvar " . count($errosS) . " arquivo(s): " . mb_substr($errosS[0], 0, 120) . ")";
+                if (!$salvos && !$errosS) $resp .= "\n\n(Não tem arquivo recente para salvar. Me manda o arquivo de novo?)";
+            }
+        }
+    }
     if (preg_match('/##LEMBRAR##\s*(\{.*\})\s*$/su', $resp, $mm)) {
         $resp = trim(preg_replace('/##LEMBRAR##.*$/su', '', $resp));
         $mj = json_decode($mm[1], true);

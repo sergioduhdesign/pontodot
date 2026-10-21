@@ -44,7 +44,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
              : ($t === 'interactive' ? ($m['interactive']['button_reply']['title'] ?? ($m['interactive']['list_reply']['title'] ?? '')) : ''));
         if ($txt === '') $txt = '[' . ($t === 'image' ? 'imagem' : ($t === 'audio' ? 'áudio' : ($t === 'document' ? 'documento' : ($t === 'video' ? 'vídeo' : $t)))) . ']' . (!empty($m[$t]['caption']) ? ' ' . $m[$t]['caption'] : '');
         // mídia (imagem, áudio, vídeo, documento, figurinha): baixa da Meta e guarda no Storage
-        $mid = ['path' => null, 'tipo' => null, 'nome' => null];
+        $mid = ['path' => null, 'tipo' => null, 'nome' => null, 'mime' => null];
         if (in_array($t, ['image', 'audio', 'video', 'document', 'sticker'], true) && !empty($m[$t]['id']) && defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN) {
             try {
                 $bx = pdMidiaBaixar((string)$m[$t]['id']);
@@ -52,7 +52,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                     $mime = $bx[1] ?: (string)($m[$t]['mime_type'] ?? '');
                     $nome = (string)($m[$t]['filename'] ?? '');
                     $pth = 'in/' . preg_replace('/\D/', '', $de) . '/' . gmdate('Ymd-His') . '-' . substr(preg_replace('/\W/', '', $id), -8) . '.' . pdExtMime($mime);
-                    if (pdStorageSobe($pth, $bx[0], $mime)) $mid = ['path' => $pth, 'tipo' => $t, 'nome' => $nome ?: null];
+                    if (pdStorageSobe($pth, $bx[0], $mime)) $mid = ['path' => $pth, 'tipo' => $t, 'nome' => $nome ?: null, 'mime' => $mime];
                 }
             } catch (Throwable $e) { error_log('wa-webhook midia: ' . $e->getMessage()); }
         }
@@ -73,7 +73,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
-        if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
+        if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t, $mid['path'] ? $mid : null); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
     }
     foreach ((array)($c['value']['statuses'] ?? []) as $s) {
         $id = (string)($s['id'] ?? ''); $st = (string)($s['status'] ?? ''); if ($id === '' || $st === '') continue;
