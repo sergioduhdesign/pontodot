@@ -599,6 +599,32 @@ async function fichasCompletas(auth: string, texto: string): Promise<Registro[]>
     return pts.sort((a, b) => b[1] - a[1]).slice(0, 2).map(([d]) => ({ cliente: d.cliente_nome, atualizado_em: d.atualizado_em, texto: String(d.texto ?? "").slice(0, 16000) }));
   } catch { return []; }
 }
+// Rede de segurança: se a tabela client_docs ainda não tem a ficha (SQL/importação por fazer), lê o MD direto da pasta "clientes" do Drive.
+let _listaFichasDrive: { em: number; arqs: Registro[] } | null = null;
+async function fichaDoDriveAoVivo(texto: string): Promise<Registro[]> {
+  try {
+    if (!_listaFichasDrive || Date.now() - _listaFichasDrive.em > 600000) {
+      const l = await gas("docs_listar", { pasta_id: PASTA_FICHAS_MD, recursivo: false, limite: 80 }, 20000);
+      _listaFichasDrive = { em: Date.now(), arqs: (Array.isArray(l?.arquivos) ? l!.arquivos as Registro[] : []).filter(a => /\.md$/i.test(String(a.caminho ?? a.titulo ?? ""))) };
+    }
+    const alvo = " " + chaveNome(texto) + " ";
+    const extra: Record<string, string[]> = { mega: ["gaspar"] };
+    const achados: Registro[] = [];
+    for (const a of _listaFichasDrive.arqs) {
+      const nome = String(a.caminho ?? a.titulo ?? "").split("/").pop() ?? "";
+      if (/^0?1?_?PADRAO|^_/i.test(nome)) continue;
+      const ws = chaveNome(nome.replace(/\.md$/i, "").replace(/_/g, " ")).split(" ").filter(w => w.length >= 4 && !["empreendimentos", "contabilidade", "urbanismo", "seguros"].includes(w));
+      if (ws.some(w => alvo.includes(" " + w + " ") || (extra[w] ?? []).some(x => alvo.includes(" " + x + " ")))) achados.push(a);
+    }
+    const lidos: Registro[] = [];
+    for (const a of achados.slice(0, 2)) {
+      const d = await gas("reuniao_ler", { doc_id: String(a.id), max: 60000 }, 25000);
+      const t = String(d?.texto ?? "");
+      if (t.length > 200) lidos.push({ cliente: String(a.caminho ?? a.titulo ?? "").split("/").pop()?.replace(/\.md$/i, ""), origem: "lido agora do Drive", texto: t.slice(0, 16000) });
+    }
+    return lidos;
+  } catch { return []; }
+}
 // Importa os MDs da pasta "clientes" do Drive para client_docs (só admin). Devolve o relato.
 async function importarFichas(): Promise<string> {
   if (!SB_SERVICO) return "Sem a chave de serviço no servidor; não consigo gravar as fichas.";
@@ -1702,7 +1728,8 @@ Deno.serve(async (req: Request) => {
     const ondeProcurar = b.mensagem + " " + hist.map(h => String(h.t ?? "")).join(" ").slice(0, 4000);
     etapa = "régua e fichas";
     const { regua, fichas } = await conhecimento(auth, ondeProcurar, nomesClientes);
-    const fichasInteiras = await fichasCompletas(auth, ondeProcurar);
+    let fichasInteiras = await fichasCompletas(auth, ondeProcurar);
+    if (!fichasInteiras.length) fichasInteiras = await fichaDoDriveAoVivo(ondeProcurar);
 
     // quem é esta pessoa de verdade (o "de" do front não manda em nada)
     etapa = "quem fala";
