@@ -8455,6 +8455,8 @@ async function abrirMemoria(filtro){
       .eq('ativo', true).order('created_at', { ascending:false }).limit(80);
     const { data } = await q; linhas = data || [];
   } catch(e){}
+  let aprendidos = [];
+  try { const { data } = await sbR.from('sd_aprendizado').select('id,titulo,escopo,client_id,tipo,fonte,resumo,created_at').eq('ativo', true).order('created_at', { ascending:false }).limit(60); aprendidos = data || []; } catch(e){}
   const nomeDoAlvo = l => {
     if (l.escopo === 'cliente') return (clientesReais||[]).find(c=>String(c.id)===String(l.escopo_id))?.name || 'cliente';
     if (l.escopo === 'pessoa')  return (PERFIS||[]).find(p=>String(p.id)===String(l.escopo_id))?.name || 'alguém';
@@ -8475,9 +8477,19 @@ async function abrirMemoria(filtro){
           <div class="d" style="font-size:10px;opacity:.5;margin-top:3px">${l.natureza} · ${esc(l.profiles?.name||'')} · ${fmtD(l.created_at)}</div></div>
         <button class="btn" style="min-height:32px;padding:4px 11px;font-size:11px" onclick="esquecer('${l.id}')">esquecer</button>
       </div>`).join('') || '<div class="nota">Ainda não me ensinaram nada. Me conte uma regra de cliente e eu guardo.</div>'}
+      ${aprendidos.length ? `<div class="nota" style="margin:16px 0 4px">Material que a casa estudou · ${aprendidos.length}</div>` + aprendidos.map(x=>`<div class="ia-linha" style="align-items:flex-start">
+        <div class="c"><div class="n">📚 ${esc(x.titulo)} <span style="opacity:.55;font-weight:400;font-size:11px">· ${x.escopo==='cliente' ? esc((clientesReais||[]).find(c=>String(c.id)===String(x.client_id))?.name||'cliente') : 'a casa toda'}</span></div>
+          <div class="d">${esc(String(x.resumo||'').slice(0,260))}${(x.resumo||'').length>260?'…':''}</div>
+          <div class="d" style="font-size:10px;opacity:.5;margin-top:3px">${esc(x.tipo||'')} ${x.fonte?'· '+esc(String(x.fonte).slice(0,60)):''} · ${fmtD(x.created_at)}</div></div>
+        <button class="btn" style="min-height:32px;padding:4px 11px;font-size:11px" onclick="esquecerAprendizado('${x.id}')">esquecer</button>
+      </div>`).join('') : ''}
     </div>
     <button class="mc-esc" onclick="fecharJanela();irAdmin('feed')"><img src="assets/logo-pontodot-escola-white.svg" class="m-escuro" alt="pontodot"><img src="assets/logo-pontodot-escola-preto.svg" class="m-claro" alt="pontodot"><span>Matricule sua IA nas aulas.</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </div>`, true);
+}
+async function esquecerAprendizado(id){
+  try { await sbR.from('sd_aprendizado').update({ ativo:false }).eq('id', id); toast('Esqueci.'); } catch(e){ toast('Não consegui esquecer: ' + e.message); }
+  abrirMemoria();
 }
 async function esquecer(id){
   try { await sbR.from('sd_memoria').update({ ativo:false, revogado_em:new Date().toISOString() }).eq('id', id); }
