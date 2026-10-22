@@ -360,14 +360,18 @@ function w_skills() {
         foreach ((array)($ps['body'] ?? []) as $p) {
             if (!in_array(strtoupper((string)($p['team_key'] ?? '')), $para, true)) continue;
             $ia = pdNomeIA($p['id']) ?: 'Sua IA';
-            $tit = "$ia aprendeu uma skill nova: " . $sk['titulo'];
-            $corpo = $sk['resumo'] . (!empty($sk['exemplo']) ? ' Peça assim: "' . $sk['exemplo'] . '".' : '');
+            $aula = ($sk['tipo'] ?? 'skill') === 'aula';
+            $tit = $aula ? "$ia achou uma aula rápida: " . $sk['titulo'] : "$ia aprendeu uma skill nova: " . $sk['titulo'];
+            $corpo = $aula ? $sk['resumo'] . ($sk['duracao_min'] ? ' (' . (int)$sk['duracao_min'] . ' min)' : '') . ' Quer aprender? Me chama no zap e diz "bora".'
+                : $sk['resumo'] . (!empty($sk['exemplo']) ? ' Peça assim: "' . $sk['exemplo'] . '".' : '');
+            if ($aula) sd_supabase('/rest/v1/pd_skills_avisos?on_conflict=skill_id,user_id', 'POST', ['skill_id' => (int)$sk['id'], 'user_id' => $p['id'], 'estado' => 'oferecida'], ['Prefer: resolution=ignore-duplicates']);
             sd_supabase('/rest/v1/notifications', 'POST', ['user_id' => $p['id'], 'type' => 'skill', 'title' => $tit, 'body' => $corpo, 'link' => 'skills']);
             sd_push_usuario($p['id'], $tit, $corpo, '/app.html', 'sd-skill');
             $tel = preg_replace('/\D/', '', (string)($p['zap'] ?? ''));
             if (!empty($p['zap_ativo']) && $tel !== '')
                 sd_supabase('/rest/v1/pd_zap', 'POST', ['para' => $tel, 'quem' => $p['name'] ?? null,
-                    'corpo' => "✨ *$ia* acabou de aprender uma skill nova!\n\n*" . $sk['titulo'] . "*\n" . $sk['resumo'] . (!empty($sk['exemplo']) ? "\n\nExperimenta: \"" . $sk['exemplo'] . "\"" : '')]);
+                    'corpo' => $aula ? "📚 Apareceu uma aula rápida" . ($sk['segmento'] ? " de *" . $sk['segmento'] . "*" : '') . ": *" . $sk['titulo'] . "*" . ($sk['duracao_min'] ? " (" . (int)$sk['duracao_min'] . " min)" : '') . "\n" . $sk['resumo'] . "\n\nQuero aprender. Bora? Responde \"bora\" que eu te passo."
+                        : "✨ *$ia* acabou de aprender uma skill nova!\n\n*" . $sk['titulo'] . "*\n" . $sk['resumo'] . (!empty($sk['exemplo']) ? "\n\nExperimenta: \"" . $sk['exemplo'] . "\"" : '')]);
         }
         sd_supabase('/rest/v1/pd_skills?id=eq.' . (int)$sk['id'], 'PATCH', ['anunciada_em' => date('c')]);
         $n++;

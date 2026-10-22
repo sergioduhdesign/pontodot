@@ -518,6 +518,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 <p class="esc-lead">Inscreva sua IA em <b>dinâmicas reais de aprendizado</b> para ampliar a capacidade dela de <b>compreender</b> e <b>se comunicar</b> com você.</p>
                 <p class="esc-lead2">Treinos curtos de 4 semanas, aplicados aos seus trabalhos de verdade: <b>contexto</b>, <b>repertório</b> e <b>critério de revisão</b>, com um indicador que você acompanha.*</p>
                 <div id="esc-cursos"></div>
+                <h3 class="esc-h3-cursos" id="esc-sk-h" style="display:none;margin-top:22px">Aulas e skills</h3>
+                <div id="esc-skills"></div>
                 <p class="esc-nota">*Hoje medimos as <b>rodadas de correção por entrega</b>: quanto menos voltas até a aprovação, melhor. Sem dado, sem promessa.</p>
               </aside>
             </div>
@@ -3145,7 +3147,16 @@ async function escCarregar(){
   await escCarregarSocial();
 }
 // o que é de gente de verdade: meu personagem, minhas inscrições, comentários e curtidas (se o SQL v93 já rodou)
+async function escSkills(){
+  try {
+    const { data } = await sb.from('pd_skills').select('titulo,resumo,exemplo,tipo,link,duracao_min,segmento,criado_em').eq('ativo', true).order('criado_em', { ascending:false }).limit(30);
+    const L = data || []; const box = document.getElementById('esc-skills'); if (!box || !L.length) return;
+    document.getElementById('esc-sk-h').style.display = '';
+    box.innerHTML = L.map(x => `<div class="esc-curso" style="cursor:default"><b>${x.tipo==='aula'?'📚 ':'✨ '}${escSafe(x.titulo)}</b><small>${escSafe(x.resumo)}${x.exemplo?' · Peça: “'+escSafe(x.exemplo)+'”':''}${x.duracao_min?' · '+x.duracao_min+' min':''}${x.link?` · <a href="${escSafe(x.link)}" target="_blank" rel="noopener">abrir</a>`:''}</small></div>`).join('');
+  } catch(e){}
+}
 async function escCarregarSocial(){
+  escSkills();
   try { const { data } = await sb.from('pd_jeito').select('personagem,apelido').eq('user_id', profile.id).maybeSingle(); ESC.meu = data && data.personagem ? data : null; } catch(e){}
   try { const { data } = await sb.from('pd_inscricoes').select('*').eq('user_id', profile.id).eq('status','ativa'); ESC.insc = data || []; } catch(e){}
   try {
