@@ -821,6 +821,24 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </div>
         </div>
         <div style="padding:14px;overflow-y:auto;flex:1">
+          <div style="display:flex;gap:2px;margin:6px 0 16px">
+            <button id="admin-tab-ativos" class="nav-tab active" style="font-weight:700" onclick="setAdminTab('ativos',this)">Ativos</button>
+            <button id="admin-tab-enc" class="nav-tab" style="opacity:0.4" onclick="setAdminTab('pausados',this)">Encerrados</button>
+          </div>
+          <div id="admin-ativos">
+            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes</div>
+            <div class="cards-grid" id="admin-clients" style="margin-bottom:22px"></div>
+
+            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Equipe & Usuários</div>
+            <div class="cards-grid" id="admin-users" style="margin-bottom:24px"></div>
+
+          </div>
+          <div id="admin-pausados" style="display:none">
+            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes encerrados</div>
+            <div class="cards-grid" id="admin-clients-paused"></div>
+            <div class="page-subtitle" style="margin:18px 0 10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Usuários inativos</div>
+            <div class="cards-grid" id="admin-users-paused"></div>
+          </div>
           <div id="admin-config">
             <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Configurações</div>
             <div class="cards-grid-4" style="margin-bottom:22px">
@@ -914,17 +932,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             </div>
 
           </div>
-          <div style="display:flex;gap:2px;margin:6px 0 16px">
-            <button id="admin-tab-ativos" class="nav-tab active" style="font-weight:700" onclick="setAdminTab('ativos',this)">Ativos</button>
-            <button id="admin-tab-enc" class="nav-tab" style="opacity:0.4" onclick="setAdminTab('pausados',this)">Encerrados</button>
-          </div>
-          <div id="admin-ativos">
-            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes</div>
-            <div class="cards-grid" id="admin-clients" style="margin-bottom:22px"></div>
-
-            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Equipe & Usuários</div>
-            <div class="cards-grid" id="admin-users" style="margin-bottom:24px"></div>
-
             <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">
               <p style="font-size:10.5px;line-height:1.6;color:var(--text3);max-width:820px">
                 <strong>Privacidade e responsabilidade.</strong> Esta plataforma trata dados pessoais (nome, e-mail,
@@ -937,13 +944,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 contate o administrador da conta.
               </p>
             </div>
-          </div>
-          <div id="admin-pausados" style="display:none">
-            <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes encerrados</div>
-            <div class="cards-grid" id="admin-clients-paused"></div>
-            <div class="page-subtitle" style="margin:18px 0 10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Usuários inativos</div>
-            <div class="cards-grid" id="admin-users-paused"></div>
-          </div>
         </div>
       </div>
 
@@ -5153,6 +5153,7 @@ function closeGanttCellDetail(){
 
 function isLightColorHex(hex){if(!hex||hex.length<7)return false;const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return(r*299+g*587+b*114)/1000>160;}
 
+const ADM_OCULTOS=new Set();   // excluídos agora: somem na hora, sem esperar o banco
 async function renderAdmin(){
   setTimeout(aplicarPermissoesUI, 0);
   // Isolado num try/catch de propósito: se alguma coisa aqui falhar,
@@ -5167,15 +5168,15 @@ async function renderAdmin(){
   const{data:users,error:uerr}=await sb.from('profiles').select('*').order('name');
   if(uerr)console.warn('Profiles RLS error:', uerr.message);
   loadDesignModuleToggle();
-  const activeClients=clients.filter(c=>c.active!==false);const pausedClients=clients.filter(c=>c.active===false);
+  const activeClients=clients.filter(c=>c.active!==false&&!ADM_OCULTOS.has(c.id));const pausedClients=clients.filter(c=>c.active===false&&!ADM_OCULTOS.has(c.id));
   document.getElementById('admin-clients').innerHTML=activeClients.map(c=>{const bg=c.color||'#64748b';const isLight=isLightColorHex(bg);const fg=isLight?'#0a0a0a':'#ffffff';const fgMeta=isLight?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.65)';return`<div class="entity-card client-entity-card" style="background:${bg}" onclick="openClientDetail('${c.id}')"><div style="display:flex;align-items:center;gap:10px"><div class="entity-card-logo" style="background:rgba(255,255,255,0.2)">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:${fg}">${c.name.substring(0,2).toUpperCase()}</span>`}</div><div><div style="font-size:14px;font-weight:700;color:${fg}">${c.name}</div><div style="font-size:12px;color:${fgMeta}">${tasks.filter(t=>t.client_id===c.id).length} tarefas · ${products.filter(p=>p.client_id===c.id).length} produtos</div></div></div></div>`;}).join('');
-  document.getElementById('admin-users').innerHTML=(users||[]).filter(u=>u.active!==false).map(u=>{
+  document.getElementById('admin-users').innerHTML=(users||[]).filter(u=>u.active!==false&&!ADM_OCULTOS.has(u.id)).map(u=>{
     const roleBadge=u.role==='admin'?'#dc2626':u.role==='team'?'#2563eb':'#64748b';
     const roleLabel=u.role==='admin'?'Admin':u.role==='team'?'Equipe':'Cliente';
     return`<div class="entity-card"><div onclick="openUserProfile('${u.id}')" style="display:flex;gap:12px;align-items:flex-start;flex:1;cursor:pointer">${u.avatar_url?`<img src="${u.avatar_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:avatarHTML(u.name,'',44)}<div style="flex:1"><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div><div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${roleBadge}18;color:${roleBadge}">${roleLabel}</span>${u.team_key?`<span style="font-size:11px;color:var(--text3)">${u.team_key}</span>`:''}</div>${u.bio?`<div class="entity-card-meta" style="font-style:italic;margin-top:2px">${u.bio}</div>`:''}</div></div>${profile.role==='admin'?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><select style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer" onchange="changeUserRole('${u.id}',this.value)" onclick="event.stopPropagation()"><option value="team" ${u.role==='team'?'selected':''}>Equipe</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="client" ${u.role==='client'?'selected':''}>Cliente</option></select>${u.id!==profile.id?`<button onclick="event.stopPropagation();openDeleteUserModal('${u.id}','${u.name}','${u.team_key}')" style="font-size:10px;padding:3px 8px;border:1px solid #dc262630;border-radius:5px;background:#dc262608;color:#dc2626;cursor:pointer">Remover</button>`:''}</div>`:''}</div>`;
   }).join('');
   document.getElementById('admin-clients-paused').innerHTML=pausedClients.length?pausedClients.map(c=>`<div class="entity-card" style="opacity:0.65"><div class="entity-card-logo" style="background:${c.color||'#64748b'}">${c.name.substring(0,2).toUpperCase()}</div><div><div class="entity-card-name">${c.name}</div><div class="entity-card-meta">Encerrado</div></div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="reactivateClient('${c.id}')">Reativar</button><button class="btn btn-danger btn-sm" onclick="excluirClienteAbrir('${c.id}')">Excluir</button></div></div>`).join(''):'<div class="empty-state"><div class="empty-state-text">Nenhum encerrado</div></div>';
-  document.getElementById('admin-users-paused').innerHTML=(users||[]).filter(u=>u.active===false).map(u=>`<div class="entity-card" style="opacity:0.65"><div>${avatarHTML(u.name,'',44)}</div><div><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div></div>${profile.role==='admin'&&u.id!==profile.id?`<button class="btn btn-danger btn-sm" onclick="openDeleteUserModal('${u.id}','${String(u.name).replace(/'/g,'')}','${u.team_key}')">Excluir</button>`:''}</div>`).join('')||'<div class="empty-state"><div class="empty-state-text">Nenhum inativo</div></div>';
+  document.getElementById('admin-users-paused').innerHTML=(users||[]).filter(u=>u.active===false&&!ADM_OCULTOS.has(u.id)).map(u=>`<div class="entity-card" style="opacity:0.65"><div>${avatarHTML(u.name,'',44)}</div><div><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div></div>${profile.role==='admin'&&u.id!==profile.id?`<button class="btn btn-danger btn-sm" onclick="openDeleteUserModal('${u.id}','${String(u.name).replace(/'/g,'')}','${u.team_key}')">Excluir</button>`:''}</div>`).join('')||'<div class="empty-state"><div class="empty-state-text">Nenhum inativo</div></div>';
   renderRedesSociais();
 }
 
@@ -6993,17 +6994,16 @@ async function confirmDeleteUser() {
   btn.textContent = 'Removendo...';
   btn.disabled = true;
 
+  const uid = deleteUserId;
   try {
-    await sdFetch('/delete-user.php', { user_id: deleteUserId, transfer_to: transferTo });
+    ADM_OCULTOS.add(uid); closeModal('modal-delete-user'); renderAdmin();      // some na hora
+    await sdFetch('/delete-user.php', { user_id: uid, transfer_to: transferTo });
     showToast('Usuário removido.', 'success');
-    closeModal('modal-delete-user');
     deleteUserId = null;
-    await renderAdmin();
   } catch(err) {
+    ADM_OCULTOS.delete(uid); renderAdmin();                                     // não deu: volta
     showToast('Erro: ' + err.message, 'error');
-    btn.textContent = 'Remover';
-    btn.disabled = false;
-  }
+  } finally { btn.textContent = 'Remover'; btn.disabled = false; }
 }
 
 function setAdminTab(tab,btn){
@@ -7266,6 +7266,7 @@ async function updateClientColor(color){
 }
 function pauseClient(){const c=clients.find(x=>x.id===currentClientId);if(!c)return;document.getElementById('pause-client-name').textContent=c.name;const sel=document.getElementById('pause-move-to');sel.innerHTML='<option value="">Manter no cliente encerrado</option>'+clients.filter(x=>x.id!==currentClientId&&x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');openModal('modal-pause-client');}
 async function confirmPauseClient(){const moveTo=document.getElementById('pause-move-to').value;if(moveTo)await sb.from('tasks').update({client_id:moveTo}).eq('client_id',currentClientId);await sb.from('clients').update({active:false}).eq('id',currentClientId);showToast('Cliente encerrado.','success');closeModal('modal-pause-client');closeModal('modal-client');await loadClients();await loadTasks();}
+setTimeout(()=>{ window._telaLivre=true; },3000);   // a abertura do app não sobrescreve a tela guardada
 let _delClienteId=null;
 function excluirClienteAbrir(id){
   const c=clients.find(x=>x.id===id); if(!c) return; _delClienteId=id;
@@ -7282,13 +7283,15 @@ async function excluirClienteConfirmar(){
   const c=clients.find(x=>x.id===_delClienteId); const dest=document.getElementById('del-client-dest').value||null;
   if(!dest && document.getElementById('del-client-digite').value.trim().toLowerCase()!==String(c?.name||'').trim().toLowerCase()){ showToast('Digite o nome do cliente para confirmar.','warn'); return; }
   const btn=document.getElementById('del-client-btn'); btn.disabled=true; btn.textContent='Excluindo...';
+  const cid=_delClienteId;
   try{
-    const { error } = await sb.rpc('excluir_cliente',{ p_id:_delClienteId, p_destino:dest });
+    ADM_OCULTOS.add(cid); closeModal('modal-delete-client'); renderAdmin();    // some na hora
+    const { error } = await sb.rpc('excluir_cliente',{ p_id:cid, p_destino:dest });
     if(error) throw error;
     showToast(dest?'Cliente excluído; tudo foi movido.':'Cliente excluído.','success');
-    closeModal('modal-delete-client'); _delClienteId=null;
-    await loadClients(); await loadTasks(); renderAdmin();
-  }catch(e){ showToast('Não consegui excluir: '+(e.message||e)+' (rodou o SQL v105?)','error'); }
+    _delClienteId=null;
+    loadClients().then(()=>loadTasks()).then(()=>renderAdmin());              // sincroniza por trás
+  }catch(e){ ADM_OCULTOS.delete(cid); renderAdmin(); showToast('Não consegui excluir: '+(e.message||e)+' (rodou o SQL v105?)','error'); }
   finally{ btn.disabled=false; btn.textContent='Excluir'; }
 }
 async function reactivateClient(id){await sb.from('clients').update({active:true}).eq('id',id);showToast('Reativado!','success');await loadClients();renderAdmin();}
@@ -10321,6 +10324,7 @@ function closeGanttDetail(){
 
 function setView(v){
   currentView=v;
+  try{ if(window._telaLivre) localStorage.setItem('sd_tela_atual', JSON.stringify({ v, t: Date.now() })); }catch(e){}
   try{ gavetaDaView(v); }catch(e){}
   // Abas por id (a ordem mudou na v20 e Admin virou menu com submenus)
   const mapaTab={feed:'tab-feed',kanban:'tab-kanban',lista:'tab-lista',
