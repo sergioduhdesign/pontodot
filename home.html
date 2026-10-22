@@ -94,8 +94,6 @@ html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-
 input,textarea,select{-webkit-user-select:text;user-select:text}
 img,svg{-webkit-user-drag:none;user-drag:none}
 @media print{html,body{display:none!important}}
-.hm-marca{position:fixed;inset:0;z-index:300;pointer-events:none;opacity:.07;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='170'><text x='20' y='95' transform='rotate(-24 130 85)' font-family='Arial' font-size='17' font-weight='700' fill='%23000'>pontodot.ai · escola agêntica</text></svg>");}
 body.hm-oculta #view-feed,body.hm-oculta .hm-fim,body.hm-oculta .hm-top{filter:blur(28px);transition:filter .1s}
 
 .esc-cta,.esc-marca{display:none}.esc-marca .m-claro{display:none}
@@ -1151,7 +1149,6 @@ addEventListener('scroll',()=>document.getElementById('hmFlut').classList.toggle
   // ao perder o foco (ferramentas de captura, troca de janela) o conteúdo fica desfocado
   const esconde=()=>document.body.classList.add('hm-oculta'),mostra=()=>{if(document.hasFocus()&&!document.hidden)document.body.classList.remove('hm-oculta')};
   addEventListener('blur',esconde);addEventListener('focus',mostra);document.addEventListener('visibilitychange',()=>document.hidden?esconde():mostra());
-  const w=document.createElement('div');w.className='hm-marca';w.setAttribute('aria-hidden','true');document.body.appendChild(w);
 })();
 addEventListener('DOMContentLoaded',()=>{iniciarEscola()});
 </script>
