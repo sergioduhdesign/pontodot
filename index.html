@@ -11,7 +11,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="pontodot">
 <link rel="apple-touch-icon" href="/assets/icon-192.png">
-<title>pontodot</title>
+<title>pontodot — a school for AI</title>
+<link rel="canonical" href="https://pontodot.ai/">
+<meta name="description" content="pontodot — a school for AI. A Escola Agêntica: cursos rápidos para a sua IA aprender o seu trabalho.">
+<meta property="og:type" content="website"><meta property="og:site_name" content="pontodot"><meta property="og:locale" content="pt_BR">
+<meta property="og:url" content="https://pontodot.ai/"><meta property="og:title" content="pontodot — a school for AI">
+<meta property="og:description" content="Cursos rápidos de 4 semanas para a sua IA aprender o seu jeito de trabalhar. Entre na lista de espera.">
+<meta property="og:image" content="https://pontodot.ai/pd/escola/capa-1-aula-1800.jpg"><meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon-16.png" type="image/png" sizes="16x16">
+
 <link rel="icon" href="/assets/favicon-32.png" type="image/png">
 <style>
 :root{
@@ -7216,6 +7224,9 @@ const LOGIN_CSS = `
 
 function mostrarLogin(){
   if ($('#loginVeu')) return;
+  // sem sessão: o endereço abre a home pública (o ícone redondo de lá entra na plataforma)
+  try { sessionStorage.setItem('pd_visitante','1'); } catch(e){}
+  if (!/[?&]login=1/.test(location.search)) { location.replace('/home.html'); return; }
   const st = document.createElement('style'); st.textContent = LOGIN_CSS; document.head.appendChild(st);
   const d = document.createElement('div'); d.className = 'login-veu'; d.id = 'loginVeu';
   d.innerHTML = `<form class="login-cx" onsubmit="event.preventDefault();fazerLogin()">

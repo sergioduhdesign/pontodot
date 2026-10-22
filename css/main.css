@@ -1081,7 +1081,7 @@ input[type="date"],input[type="email"],input[type="number"]{
 html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 /* apagar (quase marrom) e acender (o bege da caixa de entrada) */
 #view-feed.esc-apagada,#esc-pop:not(.esc-acesa){--bg:#26292d;--surface:#2d3136;--surface2:#33383d;--border:rgba(235,236,238,.16);--text:#eceef0;--text2:rgba(236,238,240,.76);--text3:rgba(236,238,240,.5);--accent:#eceef0}
-#view-feed.esc-acesa,#esc-pop.esc-acesa{--bg:#E4E3DE;--surface:#ECEBE7;--surface2:#d6d4cd;--border:rgba(29,30,34,.28);--text:#1D1E22;--text2:rgba(29,30,34,.76);--text3:rgba(29,30,34,.55);--accent:#1D1E22}
+#view-feed.esc-acesa,#esc-pop.esc-acesa{--bg:#fff;--surface:#f7f7f6;--surface2:#ededeb;--border:rgba(0,0,0,.1);--text:#4b4b49;--text2:#6a6a67;--text3:#8d8d89;--accent:#2d2d2b}
 #view-feed.esc-apagada,#view-feed.esc-acesa{background:var(--bg)!important;color:var(--text);transition:background .5s,color .5s}
 .esc-wrap{width:100%;max-width:1240px;display:flex;flex-direction:column;gap:18px}
 .esc-capa{position:relative}

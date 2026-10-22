@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /home.html
+Allow: /privacidade.html
+Allow: /termos.html
+Disallow: /app.html
+Disallow: /adm
+Sitemap: https://pontodot.ai/sitemap.xml
