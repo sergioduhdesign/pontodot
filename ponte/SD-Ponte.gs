@@ -334,23 +334,53 @@ function instalar() {
 
 // Lista os docs da pasta do Read.ai (as notas ficam na raiz dela).
 // d.pasta_id = id da pasta; d.desde_iso = só modificados depois disso (opcional).
+// ATALHOS DO DRIVE: um atalho de pasta/arquivo aparece como arquivo de tipo "shortcut" e o DriveApp NÃO entra nele sozinho.
+// Estes ajudantes resolvem o alvo, para a Ponte enxergar o que está "por trás" do atalho.
+var MIME_ATALHO_ = 'application/vnd.google-apps.shortcut';
+function pastaPorId_(id) {
+  try { return DriveApp.getFolderById(id); } catch (e) {}
+  try {                                  // o id pode ser o do próprio atalho
+    var f = DriveApp.getFileById(id);
+    if (f.getMimeType() === MIME_ATALHO_) return DriveApp.getFolderById(f.getTargetId());
+  } catch (e2) {}
+  throw new Error('pasta não encontrada ou sem acesso: ' + id);
+}
+// devolve o arquivo "de verdade" (segue atalho de arquivo); null se o alvo sumiu
+function arquivoReal_(f) {
+  if (f.getMimeType() !== MIME_ATALHO_) return f;
+  try { return DriveApp.getFileById(f.getTargetId()); } catch (e) { return null; }
+}
+// subpastas incluindo as que são atalho para pasta
+function subpastas_(pasta) {
+  var out = [], it = pasta.getFolders();
+  while (it.hasNext()) out.push(it.next());
+  var fs = pasta.getFiles();
+  while (fs.hasNext()) {
+    var f = fs.next();
+    if (f.getMimeType() !== MIME_ATALHO_) continue;
+    try { if (f.getTargetMimeType() === 'application/vnd.google-apps.folder') out.push(DriveApp.getFolderById(f.getTargetId())); } catch (e) {}
+  }
+  return out;
+}
+
 function reunioesListar_(d) {
-  var raiz = DriveApp.getFolderById(d.pasta_id);
+  var raiz = pastaPorId_(d.pasta_id);
   var desde = d.desde_iso ? new Date(d.desde_iso) : null;
-  var out = [], pilha = [raiz], vistos = 0;
-  // a pasta do Read.ai tem subpastas (ex.: "Alinhamento - Cliente - data"): entra em todas
-  while (pilha.length && vistos < 200) {
-    var pasta = pilha.pop(); vistos++;
+  var out = [], pilha = [raiz], vistos = 0, jaIds = {}, jaPasta = {};
+  // a pasta do Read.ai tem subpastas (ex.: "Alinhamento - Cliente - data") e atalhos: entra em todas
+  while (pilha.length && vistos < 300) {
+    var pasta = pilha.pop(); if (jaPasta[pasta.getId()]) continue; jaPasta[pasta.getId()] = 1; vistos++;
     var it = pasta.getFiles();
     while (it.hasNext()) {
-      var f = it.next();
-      if (!legivel_(f.getMimeType())) continue;
+      var f = arquivoReal_(it.next());
+      if (!f || !legivel_(f.getMimeType())) continue;
+      if (jaIds[f.getId()]) continue; jaIds[f.getId()] = 1;
       var mod = f.getLastUpdated();
       if (desde && mod < desde) continue;
       out.push({ id: f.getId(), titulo: f.getName(), modificado: mod.toISOString(), tipo: f.getMimeType(), pasta: pasta.getName() });
     }
-    var sub = pasta.getFolders();
-    while (sub.hasNext()) pilha.push(sub.next());
+    var sub = subpastas_(pasta);
+    for (var i = 0; i < sub.length; i++) pilha.push(sub[i]);
   }
   out.sort(function (a, b) { return a.modificado < b.modificado ? -1 : 1; });
   return { arquivos: out };
@@ -415,7 +445,7 @@ function reuniaoSalvarAta_(d) {
 function reunioesBuscar_(d) {
   var lim = d.limite || 8;
   var termo = String(d.termo || '').replace(/'/g, "\\'");
-  var pasta = DriveApp.getFolderById(d.pasta_id);
+  var pasta = pastaPorId_(d.pasta_id);
   var it = pasta.searchFiles("fullText contains '" + termo + "' or title contains '" + termo + "'");
   var out = [];
   while (it.hasNext() && out.length < lim) {
@@ -434,9 +464,9 @@ function reunioesBuscar_(d) {
 // Subpastas de uma pasta (cada subpasta = um cliente, na pasta mestre).
 // d.pasta_id
 function pastaSubpastas_(d) {
-  var it = DriveApp.getFolderById(d.pasta_id).getFolders(), out = [];
-  while (it.hasNext()) {
-    var p = it.next();
+  var lst = subpastas_(pastaPorId_(d.pasta_id)), out = [];
+  for (var i = 0; i < lst.length; i++) {
+    var p = lst[i];
     out.push({ id: p.getId(), nome: p.getName(), url: p.getUrl(),
                modificado: p.getLastUpdated().toISOString() });
   }
@@ -470,25 +500,23 @@ function docsListar_(d) {
   function pegar(pasta, prefixo) {
     var it = pasta.getFiles();
     while (it.hasNext() && out.length < lim) {
-      var f = it.next();
-      if (!legivel_(f.getMimeType())) continue;
+      var f = arquivoReal_(it.next());
+      if (!f || !legivel_(f.getMimeType())) continue;
       var mod = f.getLastUpdated();
       if (desde && mod < desde) continue;
       out.push({ id: f.getId(), titulo: f.getName(), caminho: prefixo + f.getName(),
                  modificado: mod.toISOString(), tipo: f.getMimeType(), url: f.getUrl() });
     }
   }
-  var raiz = DriveApp.getFolderById(d.pasta_id);
+  var raiz = pastaPorId_(d.pasta_id);
   pegar(raiz, '');
   if (d.recursivo) {
-    var ps = raiz.getFolders();
-    while (ps.hasNext() && out.length < lim) {
-      var p = ps.next();
+    var ps = subpastas_(raiz);
+    for (var a = 0; a < ps.length && out.length < lim; a++) {
+      var p = ps[a];
       pegar(p, p.getName() + '/');
-      var ps2 = p.getFolders();                       // mais um nível, e para
-      while (ps2.hasNext() && out.length < lim) {
-        var p2 = ps2.next(); pegar(p2, p.getName() + '/' + p2.getName() + '/');
-      }
+      var ps2 = subpastas_(p);                        // mais um nível, e para
+      for (var b = 0; b < ps2.length && out.length < lim; b++) { pegar(ps2[b], p.getName() + '/' + ps2[b].getName() + '/'); }
     }
   }
   out.sort(function (a, b) { return a.modificado < b.modificado ? 1 : -1; });
