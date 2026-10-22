@@ -821,11 +821,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </div>
         </div>
         <div style="padding:14px;overflow-y:auto;flex:1">
-          <div style="display:flex;gap:2px;margin-bottom:16px">
-            <button id="admin-tab-ativos" class="nav-tab active" style="font-weight:700" onclick="setAdminTab('ativos',this)">Ativos</button>
-            <button id="admin-tab-enc" class="nav-tab" style="opacity:0.4" onclick="setAdminTab('pausados',this)">Encerrados</button>
-          </div>
-          <div id="admin-ativos">
+          <div id="admin-config">
             <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Configurações</div>
             <div class="cards-grid-4" style="margin-bottom:22px">
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:12px;grid-column:1/-1;padding:18px 20px">
@@ -917,6 +913,12 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
               </div>
             </div>
 
+          </div>
+          <div style="display:flex;gap:2px;margin:6px 0 16px">
+            <button id="admin-tab-ativos" class="nav-tab active" style="font-weight:700" onclick="setAdminTab('ativos',this)">Ativos</button>
+            <button id="admin-tab-enc" class="nav-tab" style="opacity:0.4" onclick="setAdminTab('pausados',this)">Encerrados</button>
+          </div>
+          <div id="admin-ativos">
             <div class="page-subtitle" style="margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700">Clientes</div>
             <div class="cards-grid" id="admin-clients" style="margin-bottom:22px"></div>
 
@@ -1477,6 +1479,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
     <div class="modal-foot" style="justify-content:space-between">
       <div id="mc-admin-actions" style="display:flex;gap:6px">
         <button class="btn btn-danger" onclick="pauseClient()">Encerrar</button>
+        <button class="btn btn-danger" onclick="excluirClienteAbrir(currentClientId)">Excluir cliente</button>
         <button class="btn btn-danger" onclick="openDeleteTasksModal()">🗑 Deletar tarefas</button>
       </div>
       <div style="display:flex;gap:8px">
@@ -1508,6 +1511,21 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <button class="btn btn-secondary" onclick="closeModal('modal-delete-tasks')">Cancelar</button>
       <button class="btn btn-danger" onclick="confirmDeleteTasks()">🗑 Deletar selecionadas</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-delete-client">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head"><div class="modal-title">Excluir cliente</div><button class="modal-close" onclick="closeModal('modal-delete-client')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:12px">Você vai excluir <strong id="del-client-name"></strong>. Isso não tem volta. Diga o que fazer com tudo que é dele: tarefas, produtos, inteligência (aprendizados, fichas) e usuários do cliente.</p>
+      <div class="field"><div class="field-label">Destino de tudo isso</div>
+        <select class="field-select" id="del-client-dest" onchange="excluirClienteDest()"></select>
+      </div>
+      <div id="del-client-alerta" style="display:none;margin-top:10px;font-size:12.5px;color:#dc2626;line-height:1.5">Sem destino, as tarefas e todo o conteúdo do cliente serão <b>apagados</b>. Para confirmar, digite o nome dele:
+        <input class="field-input" id="del-client-digite" style="margin-top:6px" placeholder="Nome do cliente"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-secondary" onclick="closeModal('modal-delete-client')">Cancelar</button><button class="btn btn-danger" id="del-client-btn" onclick="excluirClienteConfirmar()">Excluir</button></div>
   </div>
 </div>
 
@@ -5156,8 +5174,8 @@ async function renderAdmin(){
     const roleLabel=u.role==='admin'?'Admin':u.role==='team'?'Equipe':'Cliente';
     return`<div class="entity-card"><div onclick="openUserProfile('${u.id}')" style="display:flex;gap:12px;align-items:flex-start;flex:1;cursor:pointer">${u.avatar_url?`<img src="${u.avatar_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:avatarHTML(u.name,'',44)}<div style="flex:1"><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div><div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${roleBadge}18;color:${roleBadge}">${roleLabel}</span>${u.team_key?`<span style="font-size:11px;color:var(--text3)">${u.team_key}</span>`:''}</div>${u.bio?`<div class="entity-card-meta" style="font-style:italic;margin-top:2px">${u.bio}</div>`:''}</div></div>${profile.role==='admin'?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><select style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer" onchange="changeUserRole('${u.id}',this.value)" onclick="event.stopPropagation()"><option value="team" ${u.role==='team'?'selected':''}>Equipe</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="client" ${u.role==='client'?'selected':''}>Cliente</option></select>${u.id!==profile.id?`<button onclick="event.stopPropagation();openDeleteUserModal('${u.id}','${u.name}','${u.team_key}')" style="font-size:10px;padding:3px 8px;border:1px solid #dc262630;border-radius:5px;background:#dc262608;color:#dc2626;cursor:pointer">Remover</button>`:''}</div>`:''}</div>`;
   }).join('');
-  document.getElementById('admin-clients-paused').innerHTML=pausedClients.length?pausedClients.map(c=>`<div class="entity-card" style="opacity:0.65"><div class="entity-card-logo" style="background:${c.color||'#64748b'}">${c.name.substring(0,2).toUpperCase()}</div><div><div class="entity-card-name">${c.name}</div><div class="entity-card-meta">Encerrado</div></div><button class="btn btn-secondary btn-sm" onclick="reactivateClient('${c.id}')">Reativar</button></div>`).join(''):'<div class="empty-state"><div class="empty-state-text">Nenhum encerrado</div></div>';
-  document.getElementById('admin-users-paused').innerHTML=(users||[]).filter(u=>u.active===false).map(u=>`<div class="entity-card" style="opacity:0.65"><div>${avatarHTML(u.name,'',44)}</div><div><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div></div></div>`).join('')||'<div class="empty-state"><div class="empty-state-text">Nenhum inativo</div></div>';
+  document.getElementById('admin-clients-paused').innerHTML=pausedClients.length?pausedClients.map(c=>`<div class="entity-card" style="opacity:0.65"><div class="entity-card-logo" style="background:${c.color||'#64748b'}">${c.name.substring(0,2).toUpperCase()}</div><div><div class="entity-card-name">${c.name}</div><div class="entity-card-meta">Encerrado</div></div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="reactivateClient('${c.id}')">Reativar</button><button class="btn btn-danger btn-sm" onclick="excluirClienteAbrir('${c.id}')">Excluir</button></div></div>`).join(''):'<div class="empty-state"><div class="empty-state-text">Nenhum encerrado</div></div>';
+  document.getElementById('admin-users-paused').innerHTML=(users||[]).filter(u=>u.active===false).map(u=>`<div class="entity-card" style="opacity:0.65"><div>${avatarHTML(u.name,'',44)}</div><div><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div></div>${profile.role==='admin'&&u.id!==profile.id?`<button class="btn btn-danger btn-sm" onclick="openDeleteUserModal('${u.id}','${String(u.name).replace(/'/g,'')}','${u.team_key}')">Excluir</button>`:''}</div>`).join('')||'<div class="empty-state"><div class="empty-state-text">Nenhum inativo</div></div>';
   renderRedesSociais();
 }
 
@@ -7248,6 +7266,31 @@ async function updateClientColor(color){
 }
 function pauseClient(){const c=clients.find(x=>x.id===currentClientId);if(!c)return;document.getElementById('pause-client-name').textContent=c.name;const sel=document.getElementById('pause-move-to');sel.innerHTML='<option value="">Manter no cliente encerrado</option>'+clients.filter(x=>x.id!==currentClientId&&x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');openModal('modal-pause-client');}
 async function confirmPauseClient(){const moveTo=document.getElementById('pause-move-to').value;if(moveTo)await sb.from('tasks').update({client_id:moveTo}).eq('client_id',currentClientId);await sb.from('clients').update({active:false}).eq('id',currentClientId);showToast('Cliente encerrado.','success');closeModal('modal-pause-client');closeModal('modal-client');await loadClients();await loadTasks();}
+let _delClienteId=null;
+function excluirClienteAbrir(id){
+  const c=clients.find(x=>x.id===id); if(!c) return; _delClienteId=id;
+  document.getElementById('del-client-name').textContent=c.name;
+  document.getElementById('del-client-dest').innerHTML='<option value="">Apagar tudo junto com o cliente</option>'
+    +clients.filter(x=>x.id!==id&&x.active!==false).map(x=>`<option value="${x.id}">Mover tudo para ${String(x.name).replace(/</g,'&lt;')}</option>`).join('');
+  document.getElementById('del-client-dest').value=clients.some(x=>x.id!==id&&x.active!==false)?clients.find(x=>x.id!==id&&x.active!==false).id:'';
+  document.getElementById('del-client-digite').value='';
+  excluirClienteDest(); closeModal('modal-client'); openModal('modal-delete-client');
+}
+function excluirClienteDest(){ document.getElementById('del-client-alerta').style.display=document.getElementById('del-client-dest').value?'none':'block'; }
+async function excluirClienteConfirmar(){
+  if(!_delClienteId) return;
+  const c=clients.find(x=>x.id===_delClienteId); const dest=document.getElementById('del-client-dest').value||null;
+  if(!dest && document.getElementById('del-client-digite').value.trim().toLowerCase()!==String(c?.name||'').trim().toLowerCase()){ showToast('Digite o nome do cliente para confirmar.','warn'); return; }
+  const btn=document.getElementById('del-client-btn'); btn.disabled=true; btn.textContent='Excluindo...';
+  try{
+    const { error } = await sb.rpc('excluir_cliente',{ p_id:_delClienteId, p_destino:dest });
+    if(error) throw error;
+    showToast(dest?'Cliente excluído; tudo foi movido.':'Cliente excluído.','success');
+    closeModal('modal-delete-client'); _delClienteId=null;
+    await loadClients(); await loadTasks(); renderAdmin();
+  }catch(e){ showToast('Não consegui excluir: '+(e.message||e)+' (rodou o SQL v105?)','error'); }
+  finally{ btn.disabled=false; btn.textContent='Excluir'; }
+}
 async function reactivateClient(id){await sb.from('clients').update({active:true}).eq('id',id);showToast('Reativado!','success');await loadClients();renderAdmin();}
 
 
@@ -9112,7 +9155,9 @@ async function doImport(file){const zone=document.getElementById('imp-zone'),res
 function onClientLogoFile(input){if(!input.files[0])return;openCropModal(input.files[0],true,blob=>{clLogoBlob=blob;const url=URL.createObjectURL(blob);document.getElementById('cl-logo-img').src=url;document.getElementById('cl-logo-img').style.display='block';document.getElementById('cl-logo-ph').style.display='none';});}
 function addClProd(){const input=document.getElementById('cl-prod-input'),name=input.value.trim();if(!name)return;clProds.push(name);input.value='';renderClProds();}
 function renderClProds(){document.getElementById('cl-prods-list').innerHTML=clProds.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:7px"><span style="flex:1;font-size:13px">${p}</span><button class="btn btn-ghost btn-sm btn-icon" onclick="clProds.splice(${i},1);renderClProds()" style="color:#dc2626">✕</button></div>`).join('');}
-async function saveClient(){const name=document.getElementById('cl-name').value.trim();if(!name){showToast('Nome obrigatório.','warn');return;}const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now();let logo_url=null;if(clLogoBlob){const fname=`clients/${slug}.jpg`;const{error:ue}=await sb.storage.from('task-covers').upload(fname,clLogoBlob,{contentType:'image/jpeg'});if(!ue){const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);logo_url=publicUrl;}}const{data:c,error}=await sb.from('clients').insert({name,slug,logo_url,color:document.getElementById('cl-color').value,website:document.getElementById('cl-website').value||null,notes:document.getElementById('cl-notes').value||null}).select().single();if(error){showToast('Erro: '+error.message,'error');return;}if(clProds.length)await sb.from('products').insert(clProds.map(p=>({client_id:c.id,name:p})));showToast('Cliente criado!','success');closeModal('modal-new-client');clProds=[];clLogoBlob=null;document.getElementById('cl-name').value='';document.getElementById('cl-prods-list').innerHTML='';await loadClients();}
+let _salvandoCliente=false;
+async function saveClient(){if(_salvandoCliente)return;const name=document.getElementById('cl-name').value.trim();if(!name){showToast('Nome obrigatório.','warn');return;}if(clients.some(x=>String(x.name||'').trim().toLowerCase()===name.toLowerCase())){showToast('Já existe um cliente com esse nome.','warn');return;}_salvandoCliente=true;try{await saveClientGo(name);}finally{_salvandoCliente=false;}}
+async function saveClientGo(name){const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now();let logo_url=null;if(clLogoBlob){const fname=`clients/${slug}.jpg`;const{error:ue}=await sb.storage.from('task-covers').upload(fname,clLogoBlob,{contentType:'image/jpeg'});if(!ue){const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);logo_url=publicUrl;}}const{data:c,error}=await sb.from('clients').insert({name,slug,logo_url,color:document.getElementById('cl-color').value,website:document.getElementById('cl-website').value||null,notes:document.getElementById('cl-notes').value||null}).select().single();if(error){showToast('Erro: '+error.message,'error');return;}if(clProds.length)await sb.from('products').insert(clProds.map(p=>({client_id:c.id,name:p})));showToast('Cliente criado!','success');closeModal('modal-new-client');clProds=[];clLogoBlob=null;document.getElementById('cl-name').value='';document.getElementById('cl-prods-list').innerHTML='';await loadClients();}
 
 function onUserRole(role){document.getElementById('u-teamkey-wrap').style.display=(role==='team'||role==='admin')?'':'none';document.getElementById('u-client-wrap').style.display=role==='client'?'':'none';if(role==='client')document.getElementById('u-client-sel').innerHTML='<option value="">Selecione...</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');}
 async function saveUser(){
