@@ -18,7 +18,7 @@
 <meta property="og:locale" content="pt_BR">
 <meta property="og:url" content="https://pontodot.ai/">
 <meta property="og:title" content="pontodot — a school for AI">
-<meta property="og:description" content="Cursos rápidos de 4 semanas para a sua IA aprender o seu jeito de trabalhar. Entre na lista de espera da Escola Agêntica.">
+<meta property="og:description" content="Cursos rápidos de 4 semanas para a sua IA aprender o seu jeito de trabalhar. Entre na fila da Escola Agêntica.">
 <meta property="og:image" content="https://pontodot.ai/pd/escola/capa-1-aula-1800.jpg">
 <meta property="og:image:width" content="1800">
 <meta name="twitter:card" content="summary_large_image">
@@ -35,9 +35,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 img{max-width:100%}
 /* ---- topo: faixa arredondada, só o ícone de entrar ---- */
 .hm-top{position:sticky;top:10px;z-index:50;margin:10px auto 0;width:min(1240px,calc(100% - 24px));display:flex;align-items:center;justify-content:space-between;
-  padding:9px 12px 9px 20px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  padding:10px 14px 10px 22px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   border:1px solid rgba(0,0,0,.08);border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,.05)}
-.hm-top .hm-logo img{height:26px;width:auto;display:block}
+.hm-top .hm-logo img{height:48px;width:auto;display:block}
+.hm-loginbtn{width:auto;padding:11px 22px;font-size:14px;white-space:nowrap}
 .hm-login{width:42px;height:42px;border-radius:50%;border:0;padding:0;background:none;display:grid;place-items:center;transition:transform .2s,box-shadow .2s}
 .hm-login img{width:42px;height:42px;display:block;border-radius:50%}
 .hm-login:hover{transform:scale(1.06);box-shadow:0 6px 18px rgba(0,0,0,.18)}
@@ -67,14 +68,16 @@ img{max-width:100%}
 /* botão flutuante */
 .hm-flut{position:fixed;right:16px;bottom:16px;z-index:60;width:auto;box-shadow:0 10px 30px rgba(0,0,0,.2);opacity:0;pointer-events:none;transform:translateY(10px);transition:.3s}
 .hm-flut.on{opacity:1;pointer-events:auto;transform:none}
-/* caixas (login e lista de espera) */
+/* caixas (login e fila) */
 .hm-veu{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(20,20,20,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .hm-veu.on{display:flex}
 .hm-cx{position:relative;width:100%;max-width:400px;max-height:92vh;overflow:auto;background:#fff;border-radius:24px;padding:28px 24px 22px;box-shadow:0 30px 80px rgba(0,0,0,.25);color:var(--text)}
 .hm-cx h3{margin:0 0 4px;font-size:21px;color:var(--accent);font-weight:600;letter-spacing:-.01em}
 .hm-cx p.hm-sub{margin:0 0 16px;color:var(--text2);font-size:14px}
 .hm-x{position:absolute;top:12px;right:14px;background:none;border:0;font-size:18px;color:var(--text3)}
-.hm-cx .hm-bol{display:block;width:54px;height:54px;margin:0 auto 12px;border-radius:50%}
+.hm-apres{display:flex;gap:14px;align-items:center;margin:4px 0 16px}.hm-cx .hm-bol{display:block;width:58px;height:58px;flex-shrink:0;border-radius:50%}
+.hm-apres p{margin:0;font-size:13.5px;line-height:1.45;color:var(--text2);text-align:left}.hm-apres a{color:var(--accent);font-weight:600}
+.hm-dica{margin:-4px 0 10px;font-size:11.5px;color:var(--text3)}
 .hm-cx input[type=text],.hm-cx input[type=email],.hm-cx input[type=password],.hm-cx input[type=tel],.hm-cx select{width:100%;padding:12px 14px;margin:0 0 10px;border:1px solid rgba(0,0,0,.16);border-radius:12px;font:inherit;background:#fff;color:#2d2d2b}
 .hm-cx input:focus,.hm-cx select:focus{outline:2px solid rgba(0,0,0,.14);border-color:#2d2d2b}
 .hm-senha{position:relative}.hm-senha input{padding-right:84px}
@@ -87,7 +90,7 @@ img{max-width:100%}
 .hm-lgpd a{color:var(--accent)}
 .hm-peq{font-size:11.5px;color:var(--text3);line-height:1.5;margin:12px 0 0}
 .hm-hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
-@media(max-width:700px){#view-feed .feed-wrap{padding:8px 12px 30px}.hm-fim{padding:0 12px}.hm-rodape{padding:20px 14px 34px}}
+@media(max-width:700px){.hm-top{padding:12px 14px 12px 18px}.hm-top .hm-logo img{height:44px;max-width:56vw;object-fit:contain}.hm-loginbtn{padding:10px 18px}#view-feed .feed-wrap{padding:8px 12px 30px}.hm-fim{padding:0 12px}.hm-rodape{padding:20px 14px 34px}}
 
 /* ---- proteção de conteúdo: sem seleção, arrastar, imprimir; marca d'água nas capturas ---- */
 html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
@@ -444,6 +447,10 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 .esc-cur-foto{max-width:190px}
 .esc-cur-tx{box-sizing:border-box;min-width:0}
 @media(max-width:700px){.esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow:auto;max-height:calc(86vh - 70px)}}
+/* Escola Agêntica: mesmo visual na home pública e dentro da plataforma (branco, cinza, cantos arredondados) */
+#view-feed .esc-capa-img,#view-feed #esc-capa-img{border-radius:18px;border:0}
+#view-feed .esc-selo{display:none!important}
+#view-feed .esc-titulo{gap:0}
 /* ajustes finais por cima da escola: tema branco/cinza */
 #view-feed.esc-acesa,#view-feed.esc-apagada,#esc-pop,#esc-pop.esc-acesa,#esc-pop:not(.esc-acesa){--bg:#fff;--surface:#f7f7f6;--surface2:#ededeb;--border:rgba(0,0,0,.1);--text:#4b4b49;--text2:#6a6a67;--text3:#8d8d89;--accent:#2d2d2b}
 </style>
@@ -451,7 +458,7 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 <body>
 <header class="hm-top">
   <a class="hm-logo" href="/" aria-label="pontodot — a school for AI"><img src="/assets/logo-pontodot-escola-preto.svg" alt="pontodot — a school for AI"></a>
-  <button class="hm-login" id="hmEntrar" onclick="hmLogin()" aria-label="Entrar na plataforma" title="Entrar"><img src="/assets/logo-pontodot-bolinha.svg" alt=""></button>
+  <button class="hm-btn hm-loginbtn" id="hmEntrar" data-cta="topo_login" onclick="hmLogin()" aria-label="Entrar na plataforma">Log in</button>
 </header>
 
 <div class="view-panel active esc-acesa" id="view-feed">
@@ -514,7 +521,7 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 <section class="hm-fim" aria-label="Lista de espera">
   <div class="hm-fim-cx">
     <div><h2>A escola abre em breve.</h2><p>Deixe seu contato e a gente avisa você primeiro, quando as matrículas abrirem. Sem spam: só o aviso da abertura e as novidades da escola.</p></div>
-    <button class="hm-btn" onclick="escEspera()">Entrar na lista de espera</button>
+    <button class="hm-btn" onclick="escEspera()">Entrar na fila</button>
   </div>
 </section>
 <footer class="hm-rodape">
@@ -527,9 +534,10 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 <div class="hm-veu" id="hmLoginVeu" onclick="if(event.target===this)hmFechar()">
   <form class="hm-cx" onsubmit="event.preventDefault();hmEntrarEnviar()" aria-label="Entrar">
     <button type="button" class="hm-x" onclick="hmFechar()" aria-label="Fechar">✕</button>
-    <img class="hm-bol" src="/assets/logo-pontodot-bolinha.svg" alt="pontodot">
-    <h3 style="text-align:center">Entrar</h3>
-    <p class="hm-sub" style="text-align:center">Acesso à plataforma pontodot.</p>
+    <div class="hm-apres"><img class="hm-bol" src="/assets/logo-pontodot-bolinha.svg" alt="pontodot">
+      <p>A <b>PD</b> é a plataforma de trabalho para humanos e IAs da <b>Pontodot.AI</b>, escola de IAs. <a href="#" data-cta="login_entrar_fila" onclick="event.preventDefault();escEspera('login')">Entre na fila para usar.</a></p></div>
+    <input id="hmEspaco" name="espaco" type="text" placeholder="sd…" autocomplete="organization" autocapitalize="off" spellcheck="false" maxlength="30" aria-label="Código do seu espaço">
+    <p class="hm-dica" id="hmEspDica">Código do seu espaço. Você digita só uma vez neste navegador.</p>
     <input id="hmEmail" name="username" type="email" placeholder="e-mail" autocomplete="username" autocapitalize="off" spellcheck="false" required>
     <div class="hm-senha"><input id="hmSenha" name="password" type="password" placeholder="senha" autocomplete="current-password" required>
       <button type="button" id="hmOlho" onclick="hmVer()" tabindex="-1">mostrar</button></div>
@@ -542,7 +550,7 @@ img.esc-barrado{display:block;width:calc(100% + 48px);height:auto;max-width:none
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co', SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
-// modo visitante: nada de conta, nada de banco além da lista de espera
+// modo visitante: nada de conta, nada de banco além da fila
 const _q={select(){return _q},eq(){return _q},order(){return _q},limit(){return _q},maybeSingle(){return Promise.resolve({data:null})},insert(){return _q},update(){return _q},then(f,r){return Promise.resolve({data:[],error:{message:'visitante'}}).then(f,r)}};
 const sb={rpc(){return Promise.resolve({error:{message:'visitante'}})},from(){return _q}};
 let profile={id:null,name:''}, posts=[];
@@ -1078,22 +1086,22 @@ const _renderEscola=renderEscola;
 renderEscola=function(){
   _renderEscola();
   const mi=document.getElementById('esc-minha');
-  if(mi) mi.innerHTML=`<div class="hm-convite"><small>Em breve</small><b>Matricule a sua IA na escola e acompanhe a evolução dela.</b><button class="hm-btn" onclick="escEspera('ia')">Entrar na lista</button></div>`;
+  if(mi) mi.innerHTML=`<div class="hm-convite"><small>Em breve</small><b>Matricule a sua IA na escola e acompanhe a evolução dela.</b><button class="hm-btn" onclick="escEspera('ia')">Entrar na fila</button></div>`;
 };
 
-// ======================= lista de espera (cadastro de verdade) =======================
+// ======================= fila (cadastro de verdade) =======================
 function hmAbrir(id){document.getElementById(id).classList.add('on')}
 function hmFechar(){document.querySelectorAll('.hm-veu.on').forEach(v=>v.classList.remove('on'))}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hmFechar()});
-const ESPERA_TXT={comentar:'Para comentar e curtir, entre na lista de espera. Avisamos quando a escola abrir.',curtir:'Para curtir e comentar, entre na lista de espera. Avisamos quando a escola abrir.',
+const ESPERA_TXT={comentar:'Para comentar e curtir, entre na fila. Avisamos quando a escola abrir.',curtir:'Para curtir e comentar, entre na fila. Avisamos quando a escola abrir.',
   alunos:'Veja a turma completa quando a escola abrir. Deixe seu contato e a gente avisa.',curso:'Os cursos abrem em breve. Deixe seu contato e a gente avisa você primeiro.',ia:'Em breve você poderá matricular a sua IA. Deixe seu contato e a gente avisa.'};
 function escEspera(motivo){
   escFecharPop&&escFecharPop();
   const el=document.getElementById('hmEsperaVeu')||(()=>{const d=document.createElement('div');d.className='hm-veu';d.id='hmEsperaVeu';d.onclick=e=>{if(e.target===d)hmFechar()};document.body.appendChild(d);return d})();
-  el.dataset.motivo=motivo||'';
+  el.dataset.motivo=motivo||'';pdMed('fila_abriu',motivo||'');
   el.innerHTML=`<form class="hm-cx" onsubmit="event.preventDefault();hmEsperaEnviar(this)" aria-label="Lista de espera">
     <button type="button" class="hm-x" onclick="hmFechar()" aria-label="Fechar">✕</button>
-    <h3>Entre na lista de espera</h3>
+    <h3>Entre na fila</h3>
     <p class="hm-sub">${escSafe(ESPERA_TXT[motivo]||'A Escola Agêntica abre em breve. Deixe seu contato e seja avisado primeiro.')}</p>
     <input type="text" name="nome" placeholder="seu nome" autocomplete="name" maxlength="120" required>
     <input type="email" name="email" placeholder="seu e-mail" autocomplete="email" maxlength="160" required>
@@ -1120,8 +1128,8 @@ async function hmEsperaEnviar(f){
   try{
     const r=await fetch(SB_URL+'/rest/v1/pd_lista_espera',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(corpo)});
     try{localStorage.setItem('pd_espera_t',String(Date.now()))}catch(e){}
-    if(r.ok||r.status===409){
-      f.innerHTML=`<button type="button" class="hm-x" onclick="hmFechar()" aria-label="Fechar">✕</button><h3>${r.status===409?'Você já está na lista.':'Pronto, você está na lista.'}</h3>
+    if(r.ok||r.status===409){pdMed('fila_ok',corpo.motivo||'');
+      f.innerHTML=`<button type="button" class="hm-x" onclick="hmFechar()" aria-label="Fechar">✕</button><h3>${r.status===409?'Você já está na fila.':'Pronto, você está na fila.'}</h3>
         <p class="hm-sub">Avisamos no e-mail <b>${escSafe(email)}</b> assim que a escola abrir. Obrigado pelo interesse.</p><button type="button" class="hm-btn sec" onclick="hmFechar()">Fechar</button>`;
     }else{throw new Error('http '+r.status)}
   }catch(e){btn.disabled=false;btn.textContent='Quero ser avisado';err.textContent='Não consegui enviar agora. Tenta de novo em instantes.'}
@@ -1130,12 +1138,27 @@ async function hmEsperaEnviar(f){
 // ======================= entrar na plataforma =======================
 let _sbc=null;
 function sbcli(){return _sbc||(_sbc=window.supabase.createClient(SB_URL,SB_KEY))}
-function hmLogin(){hmAbrir('hmLoginVeu');setTimeout(()=>document.getElementById('hmEmail').focus(),80)}
+function espGuardado(){try{return localStorage.getItem('pd_espaco')||''}catch(e){return ''}}
+async function espValido(cod){
+  cod=String(cod||'').trim().toLowerCase(); if(!cod) return false;
+  try{const r=await fetch(SB_URL+'/rest/v1/rpc/pd_espaco_ok',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_codigo:cod})});
+    if(r.ok) return (await r.json())===true;}catch(e){}
+  return cod==='sd';                                   // enquanto o SQL v109 não roda, só o "sd" vale
+}
+function hmLogin(){
+  const ja=espGuardado(),e=document.getElementById('hmEspaco'),d=document.getElementById('hmEspDica');
+  e.style.display=d.style.display=ja?'none':'';e.value=ja;
+  hmAbrir('hmLoginVeu');pdMed('login_abriu');setTimeout(()=>document.getElementById(ja?'hmEmail':'hmEspaco').focus(),80);
+}
 function hmVer(){const i=document.getElementById('hmSenha'),b=document.getElementById('hmOlho');const v=i.type==='password';i.type=v?'text':'password';b.textContent=v?'ocultar':'mostrar'}
 async function hmEntrarEnviar(){
   const err=document.getElementById('hmErr'),b=document.getElementById('hmBtnEntrar');err.className='hm-err';err.textContent='';b.disabled=true;b.textContent='Entrando…';
+  const cod=(document.getElementById('hmEspaco').value||'').trim().toLowerCase();
+  if(!(await espValido(cod))){b.disabled=false;b.textContent='Entrar';err.textContent='Esse espaço não foi reconhecido. Confere o código ou entre na fila.';pdMed('espaco_erro');return}
+  try{localStorage.setItem('pd_espaco',cod)}catch(e){}
   const {error}=await sbcli().auth.signInWithPassword({email:document.getElementById('hmEmail').value.trim(),password:document.getElementById('hmSenha').value});
-  if(error){b.disabled=false;b.textContent='Entrar';err.textContent='Não rolou: '+error.message;return}
+  if(error){b.disabled=false;b.textContent='Entrar';err.textContent='Não rolou: '+error.message;pdMed('login_erro');return}
+  pdMed('login_ok');
   try{sessionStorage.removeItem('pd_visitante')}catch(e){}
   location.href='/';
 }
@@ -1145,7 +1168,25 @@ async function hmEsqueci(){
   const {error}=await sbcli().auth.resetPasswordForEmail(em,{redirectTo:location.origin+'/setup.html'});
   err.className=error?'hm-err':'hm-err hm-ok';err.textContent=error?('Não rolou: '+error.message):'Pronto! Mandamos um e-mail com o link para criar uma senha nova. Olha o spam também.';
 }
+// /sd (ou /qualquer-espaço) já entra com o código certo
+(async()=>{const m=location.search.match(/[?&]espaco=([a-z0-9-]{2,30})/i);if(!m)return;const c=m[1].toLowerCase();
+  if(await espValido(c)){try{localStorage.setItem('pd_espaco',c)}catch(e){}pdMed('espaco_ok',c);hmLogin()}})();
 if(/[?&]entrar=1/.test(location.search))hmLogin();
+
+// ======================= medidores (próprios, sem cookie, sem IP) =======================
+const PD_SID=(()=>{try{let s=sessionStorage.getItem('pd_sid');if(!s){s=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('pd_sid',s)}return s}catch(e){return 'x'}})();
+const _qs=new URLSearchParams(location.search);
+function pdMed(ev,det){
+  try{fetch(SB_URL+'/rest/v1/pd_eventos',{method:'POST',keepalive:true,headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
+    body:JSON.stringify({sessao:PD_SID,evento:String(ev).slice(0,40),detalhe:det?String(det).slice(0,120):null,caminho:location.pathname.slice(0,80),referrer:(document.referrer||'').slice(0,200)||null,
+      utm_source:_qs.get('utm_source'),utm_medium:_qs.get('utm_medium'),utm_campaign:_qs.get('utm_campaign'),largura:innerWidth})}).catch(()=>{})}catch(e){}
+}
+pdMed('visita');
+{const marcos=[25,50,75,100],feitos={};addEventListener('scroll',()=>{const p=Math.round(100*(scrollY+innerHeight)/Math.max(1,document.documentElement.scrollHeight));marcos.forEach(m=>{if(p>=m&&!feitos[m]){feitos[m]=1;pdMed('rolagem',m)}})},{passive:true});}
+[15,60,180].forEach(t=>setTimeout(()=>{if(!document.hidden)pdMed('tempo',t)},t*1000));
+// todo clique em botão/link vira medida (e todos os caminhos levam à fila)
+document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('button,a,[role=button],[data-cta]');if(!el)return;
+  const nome=el.dataset.cta||(el.textContent||el.getAttribute('aria-label')||el.className||'').trim().replace(/\s+/g,' ').slice(0,50);if(nome)pdMed('clique',nome)},true);
 
 // botão flutuante aparece depois de rolar um pouco
 addEventListener('scroll',()=>document.getElementById('hmFlut').classList.toggle('on',scrollY>700),{passive:true});

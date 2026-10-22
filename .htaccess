@@ -85,6 +85,15 @@ Options -Indexes
 </IfModule>
 
 
+
+# --- 8-B. Endereço do espaço: pontodot.ai/sd abre a home já com o código do espaço ---
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^([a-z0-9-]{2,30})/?$ /home.html?espaco=$1 [L,QSA]
+</IfModule>
+
 # --- 9. VIRADA pro pontodot.ai (ativar SÓ depois que o novo domínio abrir certinho) ---
 # Tira o comentário das 4 linhas abaixo para o endereço antigo mandar todo mundo pro novo:
 # RewriteEngine On

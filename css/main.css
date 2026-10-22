@@ -1338,3 +1338,8 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 @keyframes pensaPulo{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-4px);opacity:.9}}
 .pensa-nota{font-size:11px;opacity:.6;letter-spacing:0;margin-left:8px;vertical-align:middle}
 @media (prefers-reduced-motion:reduce){.pensa-pontos i{animation:none;opacity:.6}}
+
+/* Escola Agêntica: mesmo visual na home pública e dentro da plataforma (branco, cinza, cantos arredondados) */
+#view-feed .esc-capa-img,#view-feed #esc-capa-img{border-radius:18px;border:0}
+#view-feed .esc-selo{display:none!important}
+#view-feed .esc-titulo{gap:0}
