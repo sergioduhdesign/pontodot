@@ -1,6 +1,29 @@
 -- v105 · Excluir cliente com destino das tarefas e de tudo que é dele (inteligência, produtos, fichas…)
 -- Núcleo sem checagem (só dono do banco); a função pública confere se quem chama é admin.
 
+-- Conserta o gatilho de espelho (v101): escopo_id é texto e o id do cliente é uuid; faltava o cast e o DELETE quebrava.
+create or replace function public.sd_espelho_cliente() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'DELETE' then
+    delete from public.sd_memoria     where escopo = 'cliente' and escopo_id::text = old.id::text;
+    delete from public.sd_aprendizado where client_id = old.id;
+    delete from public.client_knowledge where cliente_nome = old.name;
+    update public.reunioes_texto set cliente = null, client_id = null, como_achou = 'nao_achou' where client_id = old.id;
+    return old;
+  end if;
+  if tg_op = 'UPDATE' and old.active is distinct from new.active then
+    if coalesce(new.active, true) = false then
+      update public.sd_memoria     set ativo = false, suspenso_cliente = true where escopo = 'cliente' and escopo_id::text = new.id::text and ativo;
+      update public.sd_aprendizado set ativo = false, suspenso_cliente = true where client_id = new.id and ativo;
+    else
+      update public.sd_memoria     set ativo = true, suspenso_cliente = false where escopo = 'cliente' and escopo_id::text = new.id::text and suspenso_cliente;
+      update public.sd_aprendizado set ativo = true, suspenso_cliente = false where client_id = new.id and suspenso_cliente;
+    end if;
+  end if;
+  return new;
+end $$;
+
 create or replace function public._excluir_cliente_core(p_id uuid, p_destino uuid default null)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare r record; n int; rel jsonb := '{}'::jsonb; nome text;
@@ -36,6 +59,11 @@ begin
   -- usuários que representavam o cliente (role client)
   if p_destino is not null then update profiles set client_id = p_destino where client_id = p_id;
   else update profiles set active = false where client_id = p_id; end if;
+
+  -- memória da casa ligada ao cliente (escopo_id é texto): vai para o destino, senão o gatilho apaga
+  if p_destino is not null then
+    update sd_memoria set escopo_id = p_destino::text where escopo = 'cliente' and escopo_id::text = p_id::text;
+  end if;
 
   -- ficha completa guardada por nome
   delete from client_docs where lower(cliente_nome) = lower(nome);
