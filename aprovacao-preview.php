@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // SD Workflow — preview do link de aprovação (SEO / WhatsApp / iMessage)
 //
@@ -40,7 +41,7 @@ function h($s) {
 $titulo      = 'Aprovação de material';
 $cliente     = 'Pontodot';
 $descricao   = 'Confira e aprove o material preparado para você.';
-$imagem      = 'https://sd.sergioduh.com/assets/icon-512.png';
+$imagem      = sd_base() . '/assets/icon-512.png';
 $imagemQuad  = true;
 
 if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
@@ -95,7 +96,7 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
     }
 }
 
-$urlCompleta = 'https://sd.sergioduh.com' . $destino;
+$urlCompleta = sd_base() . $destino;
 $tituloCompleto = $titulo . ' — ' . $cliente;
 ?>
 <!DOCTYPE html>

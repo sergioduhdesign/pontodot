@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // Pontodot — SITES DE CLIENTES (o que o painel chama)
 //
@@ -35,7 +36,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && !empty($_GET['feed'])) {
             $media = is_array($x['media'] ?? null) ? $x['media'] : json_decode((string)($x['media'] ?? ''), true);
             $img = null;
             foreach ((array)$media as $m) if (is_array($m) && !empty($m['thumb'] ?? $m['url'])) { $img = $m['thumb'] ?? $m['url']; break; }
-            if ($img && $img[0] === '/') $img = (defined('PD_BASE_URL') ? rtrim(PD_BASE_URL, '/') : 'https://sd.sergioduh.com') . $img;
+            if ($img && $img[0] === '/') $img = sd_base() . $img;
             $itens[] = ['titulo' => $x['title'], 'resumo' => mb_substr(trim((string)($x['caption'] ?? '')), 0, 200),
                 'imagem' => $img, 'url' => $p['url'], 'em' => $p['publicado_em'], 'capa' => ($x['kind'] ?? '') === 'capa_site'];
         }

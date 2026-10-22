@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // SD Workflow — PONTE COM O DRIVE (lado do SD)
 //
@@ -319,7 +320,7 @@ if ($acao === 'robo_fim') {
     } elseif ($tipo === 'lote') {
         if ($direto && $set && !empty($set['share_token'])) {
             $avisouCliente = avisarCliente($set['client_id'], '✓ Material pronto pra aprovação', '"' . $set['title'] . '" está pronto pra sua aprovação.',
-                'https://sd.sergioduh.com/aprovacao-preview.php?t=' . $set['share_token']);
+                sd_base() . '/aprovacao-preview.php?t=' . $set['share_token']);
             avisarGestor($t, '📦 Lote enviado ao cliente — ' . $n . ' peça(s)', $quem . ' — a revisão interna desta tarefa está desligada, então foi direto.', 'drive_entrega');
             pdEvento($tid, 'liberado', 'Lote montado e enviado ao cliente', $n . ' peça(s)', 'Robô', 'robo', ['set_id' => $setId]);
             pdBatata($tid, 'cliente');
@@ -333,7 +334,7 @@ if ($acao === 'robo_fim') {
         if ($direto && $set) {
             sd_supabase('/rest/v1/approval_sets?id=eq.' . urlencode($setId), 'PATCH', ['interno' => false]);
             td_patch($tid, ['status' => 'liberado']);
-            $link = !empty($set['share_token']) ? 'https://sd.sergioduh.com/aprovacao-preview.php?t=' . $set['share_token'] : 'https://sd.sergioduh.com/app.html';
+            $link = !empty($set['share_token']) ? sd_base() . '/aprovacao-preview.php?t=' . $set['share_token'] : sd_base() . '/app.html';
             $avisouCliente = avisarCliente($set['client_id'], '↺ Material corrigido pra aprovação',
                 '"' . $set['title'] . '" foi ajustado conforme o seu pedido e está pronto pra nova aprovação.', $link);
             avisarGestor($t, '↺ Correção aplicada e enviada ao cliente — ' . $n . ' peça(s)', $quem, 'drive_entrega');
@@ -641,7 +642,7 @@ try {
         $set = $r['body'][0] ?? null;
         if (!$set) sd_fail('Lote não encontrado.', 404);
         $link = (string)($d['link'] ?? '');
-        if (!preg_match('~^https://sd\.sergioduh\.com/~', $link)) $link = 'https://sd.sergioduh.com/app.html';
+        if (!preg_match('~^https://(sd\.sergioduh\.com|pontodot\.ai|www\.pontodot\.ai)/~', $link)) $link = sd_base() . '/app.html';
         $corrigido = !empty($d['corrigido']);
         $titulo = $corrigido ? '↺ Material corrigido pra aprovação' : '✓ Material pronto pra aprovação';
         $corpo = '"' . $set['title'] . '" ' . ($corrigido ? 'foi ajustado conforme o seu pedido e está pronto pra nova aprovação.'

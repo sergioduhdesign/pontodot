@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // Pontodot — biblioteca de publicação (Instagram e Facebook)
 //
@@ -29,7 +30,7 @@ const PD_PUB_MAX   = 300 * 1048576;     // 300 MB por arquivo
 const PD_IG_LIMITE = 10;                // peças num carrossel do Instagram
 
 function pd_base_url() {
-    return rtrim(defined('PD_BASE_URL') ? PD_BASE_URL : 'https://sd.sergioduh.com', '/');
+    return sd_base();
 }
 function pd_espera() { return defined('PD_ESPERA_SEG') ? (int)PD_ESPERA_SEG : 5; }
 

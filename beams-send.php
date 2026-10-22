@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // SD Workflow — disparo via Pusher Beams
 // Exige sessão válida. Só equipe/admin dispara para o grupo.
@@ -29,7 +30,7 @@ if ($interest === 'group-sd' && !in_array($me['role'], ['admin','team'], true)) 
 }
 
 // URL de destino só dentro do próprio domínio
-$deepLink = 'https://sd.sergioduh.com' . (str_starts_with($url, '/') ? $url : '/app.html');
+$deepLink = sd_base() . (str_starts_with($url, '/') ? $url : '/app.html');
 
 $payload = json_encode([
     'interests' => [$interest],
@@ -37,7 +38,7 @@ $payload = json_encode([
         'notification' => [
             'title'     => $title,
             'body'      => $message,
-            'icon'      => 'https://sd.sergioduh.com/assets/icon-pwa.svg',
+            'icon'      => sd_base() . '/assets/icon-pwa.svg',
             'deep_link' => $deepLink,
         ],
     ],

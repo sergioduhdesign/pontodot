@@ -3641,7 +3641,7 @@ function resposta(txt){
 
 // ---------- fundo + frases, bem devagar ----------
 // fotos reais, direto da pasta do servidor (30 fotos rotativas)
-const BASE = 'https://sd.sergioduh.com/intros2026/';
+const BASE = location.origin + '/intros2026/';
 // ---------- fundo escolhido (álbum): memória do aparelho, aplicada já na abertura ----------
 let FUNDOS = { albuns:null }, fundoCfg = { album:'', modo:'roda', idx:0 }, fundoAlbIdx = Math.floor(Math.random()*1000), _fundoAtual = '';
 try { fundoCfg = Object.assign(fundoCfg, JSON.parse(localStorage.getItem('sd_fundo')||'{}')); } catch(e){}

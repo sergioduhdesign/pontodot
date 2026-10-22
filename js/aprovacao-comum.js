@@ -762,7 +762,7 @@ AP.gerarPDF = async function(o){
   if (logoSD) { const lh = 14, lw = lh * logoSD.r; pdf.addImage(logoSD.data, 'JPEG', (W - lw)/2, H/2 - 22, lw, lh); }
   else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(20); pdf.text('PONTODOT', W/2, H/2 - 12, { align:'center' }); }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(10); pdf.setTextColor(165,170,180);
-  pdf.text('sd.sergioduh.com', W/2, H/2 + 4, { align:'center' });
+  pdf.text(location.host, W/2, H/2 + 4, { align:'center' });
   pdf.setFontSize(7.5); pdf.setTextColor(110,115,125);
   pdf.text('Pontodot — documento gerado pela plataforma', W/2, H - 12, { align:'center' });
 

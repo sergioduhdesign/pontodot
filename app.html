@@ -1951,7 +1951,7 @@ updateLogoTheme();
 // frase vem de js/quotes.js. A mesma imagem sorteada também vira o fundo
 // da gaveta de Histórico — o "toque" visual da sessão até o próximo refresh.
 // ================================================================
-const SPLASH_IMG_BASE='https://sd.sergioduh.com/intros2026/';
+const SPLASH_IMG_BASE=location.origin+'/intros2026/';
 // Nomeação fixa confirmada: intro-sd-1.jpg até intro-sd-30.jpg. Se subir mais
 // fotos depois (mantendo essa mesma nomeação sequencial), só aumentar este
 // número — não depende de manifest nem de listagem de pasta (mais confiável).
@@ -4818,7 +4818,7 @@ function pdfPaginaFinalSD(pdf, logoInfo){
   }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
   pdf.setTextColor(165, 170, 180);
-  pdf.text('sd.sergioduh.com', W/2, cy + 4, { align: 'center' });
+  pdf.text(location.host, W/2, cy + 4, { align: 'center' });
   pdf.setFontSize(7.5); pdf.setTextColor(110, 115, 125);
   pdf.text('Pontodot — documento gerado pela plataforma', W/2, H - 12, { align: 'center' });
 }
@@ -5101,7 +5101,7 @@ async function exportCronoPDF() {
       pdf.setFontSize(7);
       pdf.setTextColor(150);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('sd.sergioduh.com  |  Gerado em ' + dateLabel, margin, pdfH - 4);
+      pdf.text(location.host + '  |  Gerado em ' + dateLabel, margin, pdfH - 4);
       pdf.text('Pág. ' + i + ' / ' + totalPages, pdfW - margin, pdfH - 4, { align: 'right' });
     }
 

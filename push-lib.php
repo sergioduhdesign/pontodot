@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // SD Workflow — biblioteca de PUSH (servidor)
 //
@@ -123,8 +124,8 @@ function sd_push_usuario($userId, $titulo, $corpo, $url = '/app.html', $tag = 's
             CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . SD_BEAMS_SECRET],
             CURLOPT_POSTFIELDS => json_encode(['interests' => ['user-' . $userId], 'web' => ['notification' => [
-                'title' => $titulo, 'body' => $corpo, 'icon' => 'https://sd.sergioduh.com/assets/icon-192.png',
-                'deep_link' => 'https://sd.sergioduh.com' . $url,
+                'title' => $titulo, 'body' => $corpo, 'icon' => sd_base() . '/assets/icon-192.png',
+                'deep_link' => sd_base() . $url,
             ]]]),
         ]);
         curl_exec($ch); curl_close($ch);

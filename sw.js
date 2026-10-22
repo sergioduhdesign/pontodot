@@ -31,7 +31,7 @@ self.addEventListener('notificationclick', e => {
   const url = e.notification.data?.url || '/app.html';
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(lista => {
     for (const c of lista) {
-      if (c.url.includes('sd.sergioduh.com') && 'focus' in c) { c.navigate && c.navigate(url); return c.focus(); }
+      if (c.url.startsWith(self.location.origin) && 'focus' in c) { c.navigate && c.navigate(url); return c.focus(); }
     }
     if (clients.openWindow) return clients.openWindow(url);
   }));

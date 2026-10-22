@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // SD Workflow — criação de usuário (convite por link mágico)
 //
@@ -35,7 +36,7 @@ $gen = sd_supabase('/auth/v1/admin/generate_link', 'POST', [
     'type'  => 'invite',
     'email' => $email,
     'options' => [
-        'redirectTo' => 'https://sd.sergioduh.com/setup.html',
+        'redirectTo' => sd_base() . '/setup.html',
         'data' => ['name' => $name, 'role' => $role, 'team_key' => $team_key],
     ],
 ]);
@@ -76,7 +77,7 @@ $message = "Ola, $name!\n\n"
          . "Clique no link abaixo para criar sua senha e entrar na plataforma:\n\n"
          . "$link\n\n"
          . "Este link e valido por 24 horas.\n\n"
-         . "Pontodot\nhttps://sd.sergioduh.com";
+         . "Pontodot\n" . sd_base();
 $headers = "From: workflow@sergioduh.com\r\n"
          . "Reply-To: contato@sergioduh.com\r\n"
          . "Content-Type: text/plain; charset=UTF-8";

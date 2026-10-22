@@ -83,3 +83,11 @@ Options -Indexes
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>
+
+
+# --- 9. VIRADA pro pontodot.ai (ativar SÓ depois que o novo domínio abrir certinho) ---
+# Tira o comentário das 4 linhas abaixo para o endereço antigo mandar todo mundo pro novo:
+# RewriteEngine On
+# RewriteCond %{HTTP_HOST} ^(sd\.sergioduh\.com|www\.pontodot\.ai)$ [NC]
+# RewriteCond %{REQUEST_URI} !^/(ponte-drive|wa-webhook|meta-webhook|meta-callback)\.php [NC]
+# RewriteRule ^(.*)$ https://pontodot.ai/$1 [R=301,L]

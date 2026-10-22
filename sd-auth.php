@@ -13,6 +13,9 @@
 // =====================================================================
 
 require_once __DIR__ . '/../sd-private/sd-config.php';
+require_once __DIR__ . '/sd-base.php';
+// as duas casas valem: o domínio antigo e o pontodot.ai
+$SD_ALLOWED_ORIGINS = array_values(array_unique(array_merge((array)($SD_ALLOWED_ORIGINS ?? []), sd_origens())));
 
 // --- CORS restrito ---------------------------------------------------
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';

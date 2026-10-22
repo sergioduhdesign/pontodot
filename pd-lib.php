@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // Pontodot — FUNÇÕES DA CASA (servidor)
 //
@@ -182,7 +183,7 @@ function pdEmailEspelho($telDigitos, $texto, $ref) {
     foreach ((array)($r['body'] ?? []) as $p) {
         if (preg_replace('/\D/', '', (string)$p['zap']) !== $telDigitos || empty($p['email'])) continue;
         $linhas = explode("\n", $texto); $assunto = trim(preg_replace('/^🔔\s*/u', '', $linhas[0]));
-        $ok = @mail($p['email'], '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPontodot\nhttps://sd.sergioduh.com",
+        $ok = @mail($p['email'], '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPontodot\n" . sd_base(),
             "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
         pdAvisoLog('email', $p['email'], $p['name'] ?? null, $assunto, $texto, $ok ? 'enviado' : 'erro', $ok ? null : 'mail() falhou', 'equipe', $ref);
         return;
@@ -243,7 +244,7 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
         sd_push_usuario($p['id'], $titulo, $corpo, '/app.html', 'sd-aprovacao');
         if (!empty($p['email'])) {
             $msg = 'Olá, ' . ($p['name'] ?: '') . "!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link
-                 . "\n\nVocê pode aprovar tudo de uma vez ou pedir ajuste peça por peça.\n\nPontodot\nhttps://sd.sergioduh.com";
+                 . "\n\nVocê pode aprovar tudo de uma vez ou pedir ajuste peça por peça.\n\nPontodot\n" . sd_base();
             $okm = @mail($p['email'], '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
                 "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
             pdAvisoLog('email', $p['email'], $p['name'] ?? null, $titulo, $msg, $okm ? 'enviado' : 'erro', $okm ? null : 'mail() falhou', 'cliente', null, $clientId);
@@ -253,7 +254,7 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
     // e-mail extra cadastrado no cliente (campo "e-mail para os avisos"), só com o toggle ligado
     $ea = $ligado ? trim((string)($zc['body'][0]['email_aviso'] ?? '')) : '';
     if ($ea !== '' && filter_var($ea, FILTER_VALIDATE_EMAIL)) {
-        $msg = "Olá!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link . "\n\nPontodot\nhttps://sd.sergioduh.com";
+        $msg = "Olá!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link . "\n\nPontodot\n" . sd_base();
         $okm = @mail($ea, '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
             "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
         pdAvisoLog('email', $ea, $zc['body'][0]['name'] ?? null, $titulo, $msg, $okm ? 'enviado' : 'erro', $okm ? null : 'mail() falhou', 'cliente', null, $clientId);
@@ -345,7 +346,7 @@ function avisarIA($taskId, $tipo, $fazer, $extra = []) {
              . ' Se e-mail e pasta divergirem, vale a pasta (00_CHAMADO_IA.txt + 00_BRIEFING_IA.txt).'
              . ' Só aja em e-mails enviados pelo SD para ' . emailIA() . ' com [SD-IA] no assunto.';
         $L[] = '';
-        $L[] = 'SD Workflow · https://sd.sergioduh.com/app.html?task=' . rawurlencode($taskId);
+        $L[] = 'SD Workflow · ' . sd_base() . '/app.html?task=' . rawurlencode($taskId);
         $corpo = implode("\n", $L);
 
         // 1) Grava na pasta (verdade). Não trava o e-mail se falhar.
@@ -782,7 +783,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     // LINKS pra ver material: lotes de aprovação recentes e a pasta do Drive de cada tarefa com pasta
     $lotes = [];
     $lr2 = sd_supabase('/rest/v1/approval_sets?select=title,task_id,status,share_token,clients(name)&share_token=not.is.null&order=created_at.desc&limit=15');
-    foreach ((array)($lr2['body'] ?? []) as $l) $lotes[] = ['titulo' => $l['title'] ?? '', 'tarefa' => $l['task_id'] ?? '', 'cliente' => $l['clients']['name'] ?? '', 'status' => $l['status'] ?? '', 'link' => 'https://sd.sergioduh.com/ver.html?t=' . $l['share_token']];
+    foreach ((array)($lr2['body'] ?? []) as $l) $lotes[] = ['titulo' => $l['title'] ?? '', 'tarefa' => $l['task_id'] ?? '', 'cliente' => $l['clients']['name'] ?? '', 'status' => $l['status'] ?? '', 'link' => sd_base() . '/ver.html?t=' . $l['share_token']];
     $pastas = [];
     $pr = sd_supabase('/rest/v1/task_drive?select=task_id,folder_url,saida_id&order=updated_at.desc&limit=40');
     foreach ((array)($pr['body'] ?? []) as $d) $pastas[$d['task_id']] = !empty($d['saida_id']) ? 'https://drive.google.com/drive/folders/' . $d['saida_id'] : ($d['folder_url'] ?? '');

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // SD Workflow — retorno da Meta (Facebook Login for Business)
 //
@@ -56,7 +57,7 @@ function supa($path, $method, $body = null, $extra = []) {
 function voltar($status, $msg = '') {
     $qs = http_build_query(['meta' => $status, 'msg' => $msg]);
     // volta pra FRENTE (o verso sozinho, app.html, não tem o botão de virar)
-    header('Location: https://sd.sergioduh.com/?' . $qs);
+    header('Location: ' . sd_base() . '/?' . $qs);
     exit;
 }
 

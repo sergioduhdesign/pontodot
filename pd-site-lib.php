@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 // Pontodot — CONECTOR DE SITE DO CLIENTE (lado do servidor)
 //
@@ -104,7 +105,7 @@ function pdSlug($t) {
     return trim(mb_substr($t, 0, 60), '-') ?: 'post';
 }
 function pdBaixar($url) {
-    if ($url !== '' && $url[0] === '/') $url = (defined('PD_BASE_URL') ? rtrim(PD_BASE_URL, '/') : 'https://sd.sergioduh.com') . $url;
+    if ($url !== '' && $url[0] === '/') $url = sd_base() . $url;
     $ch = curl_init($url);
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_TIMEOUT => 60, CURLOPT_USERAGENT => 'Pontodot/1.0']);

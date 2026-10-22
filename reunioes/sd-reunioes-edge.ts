@@ -100,7 +100,7 @@ async function push(titulo: string, corpo: string) {
     await fetch(`https://${BEAMS_ID}.pushnotifications.pusher.com/publish_api/v1/instances/${BEAMS_ID}/publishes/interests`, {
       method: "POST",
       headers: { Authorization: `Bearer ${BEAMS_SEC}`, "content-type": "application/json" },
-      body: JSON.stringify({ interests: ["group-sd"], web: { notification: { title: titulo, body: corpo, deep_link: "https://sd.sergioduh.com/app.html" } } }),
+      body: JSON.stringify({ interests: ["group-sd"], web: { notification: { title: titulo, body: corpo, deep_link: (Deno.env.get("SD_BASE_URL") ?? "https://sd.sergioduh.com") + "/app.html" } } }),
     });
   } catch (_) { /* push é bônus, nunca trava o ciclo */ }
 }
