@@ -9065,7 +9065,7 @@ async function responder(txt){
   }
   try {
     const { data:{ session } } = await sbR.auth.getSession();
-    const ctl = new AbortController(); setTimeout(()=>ctl.abort(), 60000);
+    const ctl = new AbortController(); setTimeout(()=>ctl.abort(), 145000);   // pedido grande (estrutura de tarefas, planos) leva mais de 1 min
     const r = await fetch(EDGE_IA, { method:'POST', signal: ctl.signal,
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token, 'apikey': SB_KEY },
       body: JSON.stringify({ mensagem: txt, de: perfil.name || 'alguém da equipe',

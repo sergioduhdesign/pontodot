@@ -1710,6 +1710,7 @@ function blocoAtuacao(a: Atuacao | null, nomePessoa: string, semanas: Semana[] =
 }
 
 Deno.serve(async (req: Request) => {
+  const t0 = Date.now();   // orçamento de tempo: a Edge Function responde em até ~150 s, então a IA recebe o que sobrar
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
   let etapa = "entrada";
@@ -1899,7 +1900,7 @@ Deno.serve(async (req: Request) => {
     const chamarIA = () => buscar("https://api.anthropic.com/v1/messages", {
       method: "POST", headers: { "x-api-key": CHAVE, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: usarBusca ? corpoIA : corpoSemBusca,
-    }, 75000);
+    }, Math.max(30000, Math.min(125000, 140000 - (Date.now() - t0))));
     let usarBusca = querPesquisa;
     // "tente novamente" é trabalho meu, não seu: se o provedor engasgar
     // (429/5xx/timeout), tento mais uma vez antes de devolver erro.
@@ -1909,6 +1910,7 @@ Deno.serve(async (req: Request) => {
       if (r.status === 429 || r.status >= 500) { await new Promise(res => setTimeout(res, 900)); r = await chamarIA(); }
     } catch (e1) {
       if (nomeDoErro(e1) !== "demorou demais") throw e1;
+      if (Date.now() - t0 > 60000) throw e1;     // já gastou tempo demais: outra tentativa estouraria o limite da função
       await new Promise(res => setTimeout(res, 600));
       r = await chamarIA();
     }
