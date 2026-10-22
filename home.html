@@ -690,8 +690,23 @@ function escPosts(){
     });
   });
   if (!out.length) ESC_IDS.filter(escEhUsuario).forEach(id => { const c = escChar(id); if (c) out.push({ id, c, data:'', idx:0, titulo:'', texto:c.initial_life_post?.caption||'', historia:'' }); });
-  out.sort((a,b)=> (b.data||'').localeCompare(a.data||'') || (escEhUsuario(b.id)-escEhUsuario(a.id)) || ESC_IDS.indexOf(a.id)-ESC_IDS.indexOf(b.id));
-  return out;
+  // regra do mural: nada se repete e a ordem é aleatória (muda a cada vez que a página abre)
+  const vistos = new Set(), usadas = new Set();
+  try { const cp = escCapasDoDia(); [cp.capa, cp.barrado, cp.cidade, (escPostalDoDia()||{}).src].forEach(x => x && usadas.add(x)); } catch(e){}
+  const unicos = out.filter(p => {
+    const foto = escFotoPost(p), chave = String(p.texto||'').trim().toLowerCase();
+    if (!chave && !foto) return false;
+    if (usadas.has(foto) || vistos.has('f:'+foto) || vistos.has('t:'+chave)) return false;
+    vistos.add('f:'+foto); vistos.add('t:'+chave); return true;
+  });
+  const r = escRng('mural' + ESC_SORTEIO);
+  for (let i = unicos.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [unicos[i], unicos[j]] = [unicos[j], unicos[i]]; }
+  for (let i = 1; i < unicos.length; i++) {                // o mesmo aluno não aparece duas vezes seguidas
+    if (unicos[i].id !== unicos[i-1].id) continue;
+    const k = unicos.findIndex((q, n) => n > i && q.id !== unicos[i-1].id && (!unicos[i+1] || q.id !== unicos[i+1].id));
+    if (k > 0) [unicos[i], unicos[k]] = [unicos[k], unicos[i]];
+  }
+  return unicos;
 }
 function escFotoPost(p){
   const v = ESC.imgs && ESC.imgs[p.id];
@@ -795,7 +810,7 @@ function renderEscola(){
       + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
   const lista = escPosts().concat((posts||[]).filter(h=>!/^🏠 Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
-  lista.sort((a,b)=> String(b.data||'').localeCompare(String(a.data||'')) || ((b.humano?1:0)-(a.humano?1:0)));
+  lista.sort((a,b)=> (b.humano?1:0)-(a.humano?1:0) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));   // gente da casa primeiro; alunos de Catum em ordem aleatória
   box.innerHTML = lista.map((p, n) => {
     if (p.humano) return escHtmlHumano(p.h, n === lista.length - 1);
     const conv = escConversa(p.c, p.data); const ult = n === lista.length - 1;
