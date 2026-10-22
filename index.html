@@ -949,6 +949,23 @@ html.dia .verso{--vb:#101113;--vcard:#1B1C1F;--vtx:#F2F2EE;--vtx2:rgba(242,242,2
   .hist-handle:hover{padding-right:12px}
   .historico.fixa ~ * .hist-handle{display:none}
   html.dia .frente .hist-handle{text-shadow:0 1px 10px rgba(255,255,255,.7)}
+  /* borda arrastável do painel de conversas (só desktop) */
+  .hist-resize{position:fixed;top:0;bottom:0;left:calc(var(--histW,344px) - 4px);width:9px;z-index:141;cursor:col-resize;
+    display:none;touch-action:none}
+  .hist-resize::after{content:'';position:absolute;top:50%;left:3px;width:3px;height:44px;margin-top:-22px;border-radius:3px;
+    background:var(--linha);opacity:.0;transition:opacity .2s,background .2s}
+  .hist-resize:hover::after,.hist-resize.arr::after{opacity:1;background:rgba(150,150,150,.7)}
+  html.histAb .hist-resize{display:block}
+  .historico.arr{transition:none!important}
+  html.histLarga .historico .hist-item .h1,html.histLarga .historico .hist-item .h2{white-space:normal;overflow:visible;text-overflow:clip}
+  .abas-conv{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 6px 8px;flex:none}
+  .abas-conv::-webkit-scrollbar{display:none}
+  .aba-conv{display:flex;align-items:center;gap:6px;max-width:210px;flex:none;padding:6px 8px 6px 12px;border-radius:999px;
+    font-size:12px;border:.5px solid var(--linha);background:rgba(255,255,255,.06);color:inherit;cursor:pointer;opacity:.7}
+  .aba-conv.on{opacity:1;background:rgba(255,255,255,.16)}
+  .aba-conv b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aba-conv i{font-style:normal;opacity:.55;padding:0 3px}
+  .aba-conv i:hover{opacity:1}
   .hist-veu{position:fixed;inset:0;z-index:139;background:rgba(5,6,5,.35);backdrop-filter:blur(3px)}
   /* no verso o fundo é claro: a aba e o painel se vestem de acordo,
      em vez de carregar o vidro escuro da frente pra cima do branco */
@@ -970,7 +987,7 @@ html.dia .verso{--vb:#101113;--vcard:#1B1C1F;--vtx:#F2F2EE;--vtx2:rgba(242,242,2
   html.dia.noVerso .historico{background:rgba(16,17,19,.96);color:#F2F2EE;border-right-color:rgba(242,242,238,.17)}
   html.dia.noVerso .historico .hist-item{color:#F2F2EE}
   html.dia.noVerso .historico .hist-item:hover{background:rgba(255,255,255,.07)}
-  .historico{position:fixed;left:0;top:0;bottom:0;width:344px;z-index:140;padding:20px 14px;overflow-y:auto;
+  .historico{position:fixed;left:0;top:0;bottom:0;width:var(--histW,344px);z-index:140;padding:20px 14px;overflow-y:auto;
     display:flex;flex-direction:column;gap:4px;background:rgba(10,11,10,.9);
     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-right:.5px solid var(--linha);
     transform:translateX(-102%);transition:transform .5s cubic-bezier(.19,1,.22,1);scrollbar-width:none}
@@ -1100,11 +1117,11 @@ html.dia .verso{--vb:#101113;--vcard:#1B1C1F;--vtx:#F2F2EE;--vtx2:rgba(242,242,2
   .user-top.oculto{display:none}
   /* barra fixada: o mundo desliza e ela se encaixa */
   .board{transition:left .5s cubic-bezier(.19,1,.22,1)}
-  html.histFixa .board{left:368px;right:100px}
-  html.histFixa .verso .v-conversa{left:344px}
+  html.histFixa .board{left:calc(var(--histW,344px) + 24px);right:100px}
+  html.histFixa .verso .v-conversa{left:var(--histW,344px)}
   html.histFixa .hist-handle{display:none}
-  html.histFixa #appFrame{left:344px;width:calc(100% - 344px)}
-  html.histFixa .verso .v-pe{left:calc(50% + 172px)}
+  html.histFixa #appFrame{left:var(--histW,344px);width:calc(100% - var(--histW,344px))}
+  html.histFixa .verso .v-pe{left:calc(50% + var(--histW,344px) / 2)}
   .hist-pin{background:none;border:.5px solid var(--linha);border-radius:10px;color:inherit;font-size:10.5px;letter-spacing:.06em;padding:6px 10px;cursor:pointer;opacity:.8}
   .hist-pin:hover{opacity:1}
   .gad.arrastando{z-index:60}
@@ -2296,6 +2313,7 @@ pdAbertura(false);
 <button class="aba-hist-frente" id="abaHistFrente" onclick="abrirHistoricoDoApp()" title="Histórico de ações da equipe">Histórico</button>
 <button class="hist-handle" id="histHandle" onclick="alternarHist()">Conversas…</button>
 <div class="hist-veu oculto" id="histVeu" onclick="alternarHist()"></div>
+<div class="hist-resize" id="histResize" title="Arraste para alargar"></div>
 <aside class="historico" id="histPainel"></aside>
 <div class="menu-ctx oculto" id="menuCtx"></div>
 <div class="toast" id="toast"></div>
@@ -2469,7 +2487,7 @@ function render(){
       <div class="vc-topo"><button class="ct-rotulo" style="flex:1;text-align:left" onclick="abrirPickerConversas(event)" title="Trocar de conversa">${rotuloConversa()} &nbsp;∨</button>
         <button class="ct-novo" onclick="novoChat();fecharConvVerso();$('#campoVerso').focus()" title="Começar um chat novo"><i>+</i> novo chat</button>
         <button class="x-chat" onclick="fecharConvVerso()" aria-label="Fechar conversa">✕</button></div>
-      <div class="vc-rolo" id="vcRolo"><div class="chip-conv" style="align-self:center;border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.7)">${chipQuem()}</div>${th.map(m => m.eu
+      ${htmlAbasConv()}<div class="vc-rolo" id="vcRolo"><div class="chip-conv" style="align-self:center;border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.7)">${chipQuem()}</div>${th.map(m => m.eu
       ? `<div class="msg eu"><div><div class="quem" style="text-align:right">você · ${m.h}</div><div class="balao">${m.t}</div></div></div>`
       : m.espera ? `<div class="msg"><div class="balao"><span class="pensa-pontos"><i></i><i></i><i></i></span><span id="esperaNota" class="pensa-nota">pensando…</span></div></div>`
       : `<div class="msg"><div><div class="quem">${m.de||nomeDaIA()} · ${m.h}</div><div class="balao">${m.t}${m.acoes?.length?`<div class="acoes">${m.acoes.map(([n,c,fn])=>`<button class="btn ${c?'cheio':''}" style="${c?`background:var(--${c})`:''}" onclick="${fn.replace(/"/g,'&quot;')}">${n}</button>`).join('')}</div>`:''}</div></div></div>`).join('')}</div></div>`;
@@ -2855,26 +2873,96 @@ function irConversa(quem){
 // ---------- conversas salvas: como no Claude — nome automático, renomeável,
 // por usuário, com opção pública/particular (tabela chat_threads) ----------
 let threadId = null, threadTitulo = '', threadsSalvas = [];
-function tituloSugerido(msgs){
-  const m = msgs.find(x => x.eu); if (!m) return 'Conversa com a pontodot';
-  return String(m.t).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,46);
+// várias conversas abertas ao mesmo tempo: cada "slot" guarda o seu próprio array de mensagens,
+// então uma resposta que chega depois cai na conversa certa, mesmo que você já tenha trocado de aba
+let SLOTS = [], slotAtual = null;
+function garantirSlot(){
+  if (!slotAtual){ slotAtual = { th: THREADS.sd || (THREADS.sd = []), id: threadId, tit: threadTitulo }; SLOTS = [slotAtual]; }
+  return slotAtual;
 }
-let _thTimer = null;
-function salvarThreadNuvem(){
-  if (!window.REAL || !perfil || atual !== 'sd') return;
-  clearTimeout(_thTimer);
-  _thTimer = setTimeout(async ()=>{
-    const msgs = (THREADS.sd||[]).filter(m=>!m.espera && m.t).slice(-60).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h }));
+function guardarSlot(){ const s = garantirSlot(); s.th = THREADS.sd; s.id = threadId; s.tit = threadTitulo; return s; }
+function irParaSlot(s){
+  guardarSlot(); slotAtual = s; THREADS.sd = s.th; threadId = s.id; threadTitulo = s.tit;
+  atual = 'sd'; mostrarSug = !s.th.length;
+  mostrarConversaSd();
+}
+function mostrarConversaSd(){
+  if ($('#mundo').classList.contains('virado')){ $('#vConversa').classList.remove('oculto'); render(); }
+  else if (!chat) modoChat(true); else render();
+}
+function novoSlot(){
+  const cur = guardarSlot();
+  if (!cur.th.length){ cur.id = null; cur.tit = ''; threadId = null; threadTitulo = ''; return cur; }
+  const s = { th: [], id: null, tit: '' }; SLOTS.push(s);
+  while (SLOTS.length > 6){
+    const i = SLOTS.findIndex(x => x !== s && x !== cur && !x.th.some(m => m.espera));
+    if (i < 0) break; SLOTS.splice(i, 1);
+  }
+  slotAtual = s; THREADS.sd = s.th; threadId = null; threadTitulo = '';
+  return s;
+}
+function fecharSlot(i){
+  const s = SLOTS[i]; if (!s) return;
+  if (s === slotAtual){
+    if (SLOTS.length < 2){ novoChat(); return; }
+    const vizinho = SLOTS[i + 1] || SLOTS[i - 1]; SLOTS.splice(i, 1); irParaSlot(vizinho); return;
+  }
+  SLOTS.splice(i, 1); render();
+}
+function tituloDoSlot(s){
+  return s.tit || tituloInteligente((s.th || []).map(m => ({ eu: m.eu, t: m.t }))) || 'Nova conversa';
+}
+function htmlAbasConv(){
+  if (SLOTS.length < 2) return '';
+  guardarSlot();
+  return `<div class="abas-conv">${SLOTS.map((s, i) => `<div class="aba-conv ${s === slotAtual ? 'on' : ''}" onclick="event.stopPropagation();irParaSlot(SLOTS[${i}])" title="${esc(tituloDoSlot(s))}">
+    <b>${esc(tituloDoSlot(s))}</b><i onclick="event.stopPropagation();fecharSlot(${i})" title="Fechar esta aba">✕</i></div>`).join('')}</div>`;
+}
+// nome automático no estilo Claude/GPT: cliente + tarefa + começo do texto…
+function tituloInteligente(msgs){
+  const m = msgs.find(x => x.eu); if (!m) return 'Conversa com a pontodot';
+  let txt = String(m.t).replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/https?:\/\/\S+/g,' ').replace(/\s+/g,' ').trim();
+  const baixo = txt.toLowerCase(); let cli = '', tar = null, resto = txt;
+  try {
+    const mId = txt.match(/\bSD[-\s]?(\d{1,5})\b/i);
+    if (mId){ const id = 'SD-' + mId[1].padStart(4,'0'); tar = (tasksReais||[]).find(x => x.id === id) || null; if (tar){ cli = (tar.clients && tar.clients.name) || ''; resto = resto.replace(mId[0],' '); } }
+    if (!cli){
+      const ach = (clientesReais||[]).filter(c => c.name && c.name.length > 2 && baixo.includes(String(c.name).toLowerCase()))
+        .sort((x,y) => y.name.length - x.name.length)[0];
+      if (ach) cli = ach.name;
+    }
+    if (cli){
+      resto = resto.replace(new RegExp(cli.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),' ');
+      if (!tar) tar = (tasksReais||[]).find(x => x.clients && x.clients.name === cli && x.action && x.action.length > 5 && baixo.includes(x.action.toLowerCase().slice(0,18))) || null;
+    }
+  } catch(e){}
+  resto = resto.replace(/\s+/g,' ').replace(/^[\s,.:;\-–—]+/,'').trim();
+  const cab = [cli, tar ? String(tar.action||'').trim().slice(0,32) : ''].filter(Boolean).join(' · ');
+  const n = cab ? 36 : 58;
+  let ini = resto;
+  if (resto.length > n){ ini = resto.slice(0,n); const k = ini.lastIndexOf(' '); if (k > n*0.6) ini = ini.slice(0,k); ini = ini.replace(/[\s,.:;\-–—]+$/,'') + '…'; }
+  let t = cab ? (ini ? cab + ' · ' + ini : cab) : ini;
+  t = t.trim() || 'Conversa com a pontodot';
+  return (t.charAt(0).toUpperCase() + t.slice(1)).slice(0,96);
+}
+function tituloSugerido(msgs){ return tituloInteligente(msgs); }
+function salvarThreadNuvem(sl){
+  if (!window.REAL || !perfil) return;
+  if (!sl){ if (atual !== 'sd') return; sl = guardarSlot(); }
+  clearTimeout(sl._t);
+  sl._t = setTimeout(async ()=>{
+    const msgs = (sl.th||[]).filter(m=>!m.espera && m.t).slice(-60).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h }));
     if (msgs.length < 2) return;
-    const tit = threadTitulo || tituloSugerido(msgs);
+    const tit = sl.tit || tituloInteligente(msgs);
     try {
-      if (threadId){
-        await sbR.from('chat_threads').update({ msgs, titulo: tit, updated_at: new Date().toISOString() }).eq('id', threadId);
+      if (sl.id){
+        await sbR.from('chat_threads').update({ msgs, titulo: tit, updated_at: new Date().toISOString() }).eq('id', sl.id);
       } else {
         const { data } = await sbR.from('chat_threads').insert({ user_id: perfil.id, titulo: tit, msgs }).select('id').single();
-        if (data) threadId = data.id;
+        if (data) sl.id = data.id;
       }
-      threadTitulo = tit;
+      sl.tit = tit;
+      if (sl === slotAtual){ threadId = sl.id; threadTitulo = tit; }
       carregarThreadsSalvas();
     } catch(e){}
   }, 1200);
@@ -2888,15 +2976,24 @@ async function carregarThreadsSalvas(){
     if (histAberto) pintarHist();
   } catch(e){}
 }
-function abrirThreadSalva(id){
+async function abrirThreadSalva(id){
   const th = threadsSalvas.find(x => x.id === id); if (!th) return;
   const minha = th.user_id === perfil?.id;
-  threadId = minha ? th.id : null;                 // pública de outro: lê, mas não sobrescreve
-  threadTitulo = minha ? (th.titulo||'') : '';
-  THREADS.sd = (th.msgs||[]).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h }));
+  // já está aberta numa aba? só volta pra ela
+  const ja = minha ? SLOTS.find(s => s.id === id) : null;
+  if (ja){ irParaSlot(ja); return; }
+  let msgs = th.msgs;
+  if (!msgs){
+    try { const { data, error } = await sbR.from('chat_threads').select('msgs').eq('id', id).single(); if (error) throw error; msgs = (data && data.msgs) || []; }
+    catch(e){ toast('Não consegui abrir essa conversa agora. Tenta de novo.'); return; }
+    th.msgs = msgs;
+  }
+  const lista = (msgs||[]).map(m=>({ eu:m.eu?1:0, t:semGiro(m.t), h:m.h }));
+  const s = novoSlot();                              // aproveita a aba vazia, ou abre uma nova ao lado
+  s.th = lista; s.id = minha ? th.id : null; s.tit = minha ? (th.titulo||'') : '';   // pública de outro: lê, mas não sobrescreve
+  slotAtual = s; THREADS.sd = s.th; threadId = s.id; threadTitulo = s.tit;
   atual = 'sd'; mostrarSug = false; salvarThread();
-  if ($('#mundo').classList.contains('virado')){ $('#vConversa').classList.remove('oculto'); render(); }
-  else if (!chat) modoChat(true); else render();
+  mostrarConversaSd();
 }
 function renomearThread(id){
   const th = threadsSalvas.find(x => x.id === id); if (!th) return;
@@ -2910,6 +3007,7 @@ async function salvarNomeThread(id){
   const v = ($('#thNome')?.value||'').trim(); if (!v) return;
   try { await sbR.from('chat_threads').update({ titulo: v }).eq('id', id); } catch(e){}
   if (threadId === id) threadTitulo = v;
+  SLOTS.forEach(x => { if (x.id === id) x.tit = v; });
   fecharJanela(); await carregarThreadsSalvas(); pintarHist(); render();
   toast('Renomeada.');
 }
@@ -2922,6 +3020,7 @@ async function alternarPublica(id){
 async function apagarThread(id){
   try { await sbR.from('chat_threads').delete().eq('id', id); } catch(e){}
   if (threadId === id){ threadId = null; threadTitulo = ''; }
+  SLOTS.forEach(x => { if (x.id === id){ x.id = null; x.tit = ''; } });
   await carregarThreadsSalvas(); pintarHist();
   toast('Conversa apagada.');
 }
@@ -3023,6 +3122,7 @@ function htmlConversa(){
       ${atual==='sd' && (THREADS.sd||[]).length ? `<button class="ct-novo" onclick="event.stopPropagation();novoChat()" title="Começar um chat novo"><i>+</i> novo chat</button>`:''}
       <button class="x-chat" onclick="event.stopPropagation();modoChat(false)" aria-label="Fechar conversa">✕</button>
     </div>
+    ${ehDesk() ? htmlAbasConv() : ''}
     ${(()=>{ try { return htmlConviteAviso(); } catch(e){ console.warn('[SD] convite:',e); return ''; } })()}
     <div class="chat-palco"><div class="conversa" id="rolo">
     ${(conversa.length || atual!=='sd')?`<div class="chip-conv">${chipQuem()}</div>`:''}
@@ -3262,7 +3362,7 @@ let mostrarSug = false;
 function layoutChatDesk(aberto, semAnim){
   const t = $('#telaHome'); if (!t) return;
   if (!ehDesk()) { t.style.left=''; t.style.width=''; t.style.marginLeft=''; t.style.top=''; return; }
-  const off = document.documentElement.classList.contains('histFixa') ? 352 : 0;
+  const off = document.documentElement.classList.contains('histFixa') ? (HIST_W + 8) : 0;
   const W = innerWidth - off, edge = Math.max(22,(W-1300)/2);
   const alvo = aberto ? {l:off+edge, w:W-2*edge} : {l:off+W/2-235, w:470};
   // foco: tudo fechado + chat em uso → o chat sobe até logo abaixo dos quadradinhos
@@ -3485,6 +3585,7 @@ function enviar(micou, doVerso){
   limparCampo($('#campo'));
   if (!chat && !doVerso) { chat = true; layoutChatDesk(true); }
   const th = THREADS[atual] = THREADS[atual] || [];
+  if (atual === 'sd') guardarSlot();
   if (String(atual).startsWith('zap:')){            // WhatsApp: sai na hora, sem "pensando" nem espera
     th.push({ eu:true, t:esc(txt).replace(/\n/g,'<br>'), h:hAgora() + ' · enviando…' });
     somMandei(); render();
@@ -3514,7 +3615,9 @@ function enviar(micou, doVerso){
     else r = { de:atual, t:'Fechado! Deixei anotado aqui na tarefa.' };
     pararEspera();
     th.pop(); th.push(Object.assign({ h:hAgora() }, r)); somChegou(); render();
-    if (atual === 'sd') salvarThread();
+    const sl = SLOTS.find(x => x.th === th);
+    if (sl && sl === slotAtual && atual === 'sd') salvarThread();
+    else if (sl) salvarThreadNuvem(sl);
   }, 900);
 }
 function resposta(txt){
@@ -4996,6 +5099,36 @@ const HIST_SD = [
 ];
 let histAberto = false;
 let histFixo = false; try { histFixo = localStorage.getItem('sd_hist_fixo') === '1'; } catch(e){}
+// largura do painel de conversas: puxe a borda direita (só no desktop); fica guardada
+let HIST_W = 344; try { const w = parseInt(localStorage.getItem('sd_hist_w')||'0',10); if (w >= 280) HIST_W = w; } catch(e){}
+function histWMax(){ return Math.max(344, Math.min(1000, innerWidth - 320)); }
+function aplicarHistW(){
+  HIST_W = Math.max(280, Math.min(histWMax(), HIST_W));
+  const h = document.documentElement;
+  h.style.setProperty('--histW', HIST_W + 'px');
+  h.classList.toggle('histLarga', HIST_W > 460);
+  if (h.classList.contains('histFixa')) layoutChatDesk(chat, true);
+}
+aplicarHistW();
+window.addEventListener('resize', aplicarHistW);
+(function(){
+  const r = document.getElementById('histResize'); if (!r) return;
+  r.addEventListener('pointerdown', e => {
+    if (!ehDesk()) return;
+    e.preventDefault(); r.setPointerCapture(e.pointerId);
+    const p = document.getElementById('histPainel');
+    r.classList.add('arr'); if (p) p.classList.add('arr');
+    document.body.style.userSelect = 'none';
+    const mexe = ev => { HIST_W = Math.round(ev.clientX); aplicarHistW(); };
+    const solta = () => {
+      r.classList.remove('arr'); if (p) p.classList.remove('arr'); document.body.style.userSelect = '';
+      r.removeEventListener('pointermove', mexe); r.removeEventListener('pointerup', solta); r.removeEventListener('pointercancel', solta);
+      try { localStorage.setItem('sd_hist_w', String(HIST_W)); } catch(e){}
+    };
+    r.addEventListener('pointermove', mexe); r.addEventListener('pointerup', solta); r.addEventListener('pointercancel', solta);
+  });
+  r.addEventListener('dblclick', () => { HIST_W = 344; aplicarHistW(); try { localStorage.setItem('sd_hist_w','344'); } catch(e){} });
+})();
 function alternarHist(){ if (!ehDesk()){ abrirConversasMovel(); return; } histAberto = !histAberto; if (!histAberto && histFixo){ histFixo = false; try{localStorage.setItem('sd_hist_fixo','0');}catch(e){} } pintarHist(); }
 
 // CONVERSAS NO CELULAR: um lugar só, tela cheia, central — pessoas, equipe e IA juntas
@@ -5028,6 +5161,7 @@ function pintarHist(){
   const p = $('#histPainel'), v = $('#histVeu'); if (!p) return;
   v.classList.toggle('oculto', !histAberto || histFixo);
   p.classList.toggle('aberto', histAberto);
+  document.documentElement.classList.toggle('histAb', histAberto && ehDesk());
   // fixada, a barra se encaixa: o resto do mundo desliza pro lado, nada coberto
   document.documentElement.classList.toggle('histFixa', histFixo && histAberto && ehDesk());
   layoutChatDesk(chat);
@@ -5263,8 +5397,8 @@ function alternarAbertura(id){
   }
 }
 function novoChat(){
-  THREADS.sd = []; atual = 'sd'; mostrarSug = true; gerarSugestoes();
-  threadId = null; threadTitulo = '';            // conversa nova = registro novo no banco
+  novoSlot();                                   // a conversa atual fica numa aba; a nova = registro novo no banco
+  atual = 'sd'; mostrarSug = true; gerarSugestoes();
   salvarThread();
   if ($('#mundo').classList.contains('virado')){ render(); setTimeout(()=>$('#campoVerso')?.focus(),60); return; }
   if (!chat) modoChat(true); else render();
@@ -8932,7 +9066,7 @@ async function saudacaoDaSD(){
     }
     const fmt = s => String(s).trim().replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
     // papo frio vira papo novo: a saudação não entra no fim de uma conversa velha
-    if ((THREADS.sd||[]).length){ THREADS.sd = []; threadId = null; threadTitulo = ''; }
+    if ((THREADS.sd||[]).length){ THREADS.sd = []; threadId = null; threadTitulo = ''; SLOTS = []; slotAtual = null; }
     (THREADS.sd = THREADS.sd || []).push({ t: fmt(j.reply), h: hAgora(), saudacao: true });
     guardarSaudacao(j.reply);
     salvarThread();
