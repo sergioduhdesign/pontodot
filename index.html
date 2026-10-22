@@ -5578,7 +5578,6 @@ function abrirAppMovel(view){
       const d = f.contentDocument; if (!d || d.getElementById('mundo')) return;
       d.documentElement.setAttribute('data-theme', (localStorage.getItem('sd_theme')||'') === 'light' ? 'sdnovo-claro' : 'sdnovo');
       d.getElementById('splash-screen')?.remove();
-      if (!d.__sw && window.pdSwipe){ d.__sw = 1; window.pdSwipe(d, () => f.getBoundingClientRect().top); }
     } catch(e){} };
     f.addEventListener('load', () => { vestir(); setTimeout(vestir, 1200); });
     f.src = 'app.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now());
@@ -9252,6 +9251,10 @@ setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch
       if (dy > -80 || Math.abs(dx) > 70 || Math.abs(dy) < Math.abs(dx) * 1.6 || Date.now() - a.tm > 700) return;
       if (!movel()) return;
       if (!aindaNao(() => temIA(), false)) return;      // sem IA (sem caixa de chat) não tem gesto
+      // o gesto é só da HOME: dentro de qualquer tela do app (Pontodot completa, escola, janelas) não existe
+      if (doc !== document) return;
+      if (document.documentElement.classList.contains('app-movel')) return;
+      try { const jj = document.getElementById('janela'); if (jj && !jj.classList.contains('oculto')) return; } catch(e){}
       const R = document.documentElement;
       if (R.classList.contains('app-menu') || R.classList.contains('emChat')) return;
       if (a.alvo && a.alvo.closest && a.alvo.closest('input,textarea,select,[contenteditable],.rodape,.mc-ia')) return;

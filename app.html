@@ -289,6 +289,12 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   .esc-marca{display:none!important}
   .esc-titulo{order:1!important}.esc-cidade{order:2!important}.esc-cta{order:3!important}
   .esc-esq{order:4!important}.esc-meio{order:5!important}.esc-dir{order:6!important}
+  /* mural centrado: nada dentro da coluna pode ser mais largo que ela */
+  .esc-grade>*{min-width:0!important;max-width:100%!important;box-sizing:border-box}
+  .esc-meio{width:100%!important;overflow:hidden}
+  .esc-meio *{max-width:100%;box-sizing:border-box}
+  .esc-meio img,.esc-meio video{height:auto}
+  .esc-meio .feed-compose-top{min-width:0}.esc-meio .feed-compose-input{min-width:0;width:100%}
 }
 </style>
 <style id="simetria-interna">
