@@ -79,7 +79,7 @@ const SB_API = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_SERVI
 const PONTE_URL = Deno.env.get("SD_PONTE_URL") ?? "";
 const PONTE_KEY = Deno.env.get("SD_PONTE_KEY") ?? "";
 const DOC_ESTRUTURA = Deno.env.get("SD_DOC_ESTRUTURA") ?? "";
-const MODEL = Deno.env.get("SD_IA_MODEL") ?? "claude-sonnet-4-5";
+const MODEL = Deno.env.get("SD_IA_MODEL") ?? "claude-sonnet-5-5";
 // a pasta onde o Read.ai deixa as notas das reuniões (a fonte, não o cache)
 const PASTA_READAI = Deno.env.get("SD_PASTA_READAI") ?? "1O0-3aQw5uvRwR2kHpUYpkYQBoGf8t8nv";
 const cors = {
@@ -1709,8 +1709,8 @@ function blocoAtuacao(a: Atuacao | null, nomePessoa: string, semanas: Semana[] =
   return L.join("\n");
 }
 
-Deno.serve(async (req: Request) => {
-  const t0 = Date.now();   // orçamento de tempo: a Edge Function responde em até ~150 s, então a IA recebe o que sobrar
+async function tratar(req: Request): Promise<Response> {
+  const t0 = Date.now();   // orçamento de tempo da função (limite do Supabase Pro: 400 s); a IA recebe o que sobrar
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
   let etapa = "entrada";
@@ -1893,14 +1893,14 @@ Deno.serve(async (req: Request) => {
     const querPesquisa = !ehSaudacao && PEDE_PESQUISA.test(String(b.mensagem ?? ""));
     const agora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "full", timeStyle: "short" }).format(new Date());
     etapa = "a IA pensando";
-    const corpoIA = JSON.stringify({ model: MODEL, max_tokens: ehSaudacao ? 700 : 6000,
+    const corpoIA = JSON.stringify({ model: MODEL, max_tokens: ehSaudacao ? 700 : 16000,
       system: (ehSaudacao ? DIRECAO_SAUDACAO : DIRECAO) + camadaPessoal + `\nAgora: ${agora}. Fuso: America/Sao_Paulo.`,
       messages, ...(querPesquisa ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }] } : {}) });
     const corpoSemBusca = JSON.stringify({ ...JSON.parse(corpoIA), tools: undefined });
     const chamarIA = () => buscar("https://api.anthropic.com/v1/messages", {
       method: "POST", headers: { "x-api-key": CHAVE, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: usarBusca ? corpoIA : corpoSemBusca,
-    }, Math.max(30000, Math.min(125000, 140000 - (Date.now() - t0))));
+    }, Math.max(60000, Math.min(330000, 380000 - (Date.now() - t0))));
     let usarBusca = querPesquisa;
     // "tente novamente" é trabalho meu, não seu: se o provedor engasgar
     // (429/5xx/timeout), tento mais uma vez antes de devolver erro.
@@ -1910,7 +1910,7 @@ Deno.serve(async (req: Request) => {
       if (r.status === 429 || r.status >= 500) { await new Promise(res => setTimeout(res, 900)); r = await chamarIA(); }
     } catch (e1) {
       if (nomeDoErro(e1) !== "demorou demais") throw e1;
-      if (Date.now() - t0 > 60000) throw e1;     // já gastou tempo demais: outra tentativa estouraria o limite da função
+      if (Date.now() - t0 > 120000) throw e1;     // já gastou tempo demais: outra tentativa estouraria o limite da função
       await new Promise(res => setTimeout(res, 600));
       r = await chamarIA();
     }
@@ -1920,6 +1920,13 @@ Deno.serve(async (req: Request) => {
       throw new Falha(r.status === 429 ? 429 : 502, r.status === 429 ? "IA no limite de uso. Tente novamente em instantes." : "A IA não respondeu. Verifique modelo, chave e disponibilidade do provedor.");
     }
     const j = await r.json();
+    try {   // consumo: cada resposta grava seus tokens (painel Admin → Consumo da IA)
+      const u = j.usage ?? {};
+      await buscar(`${SB_URL}/rest/v1/sd_ia_uso`, { method: "POST",
+        headers: { apikey: SB_SERVICO, authorization: `Bearer ${SB_SERVICO}`, "content-type": "application/json", prefer: "return=minimal" },
+        body: JSON.stringify({ user_id: String(user.id), canal: "desk", modelo: MODEL, entrada: u.input_tokens ?? 0, saida: u.output_tokens ?? 0,
+          cache_leitura: u.cache_read_input_tokens ?? 0, cache_escrita: u.cache_creation_input_tokens ?? 0 }) }, 6000);
+    } catch { /* medir nunca derruba a resposta */ }
     if (j.stop_reason !== "end_turn") throw new Falha(502, "A resposta não terminou normalmente. Nenhuma proposta foi liberada; divida o pedido em lotes menores.");
     const reply = (j.content ?? []).filter((c: Registro) => c.type === "text" && typeof c.text === "string").map((c: Registro) => c.text).join("\n").trim();
     if (!reply) throw new Falha(502, "A IA retornou uma resposta vazia.");
@@ -1958,4 +1965,21 @@ Deno.serve(async (req: Request) => {
       ? `A consulta passou do tempo na etapa "${etapa}". Nada foi alterado. Pergunte de novo — ou reduza o período (ex.: "reuniões de hoje").`
       : `Travei na etapa "${etapa}" (${qual}). Nada foi alterado.` }, 503);
   }
+}
+
+// Resposta em fluxo: os cabeçalhos saem na hora e um espaço (JSON válido) a cada 8 s mantém a conexão viva;
+// o JSON real vai no fim. Assim pedido grande (estratégia completa) não esbarra no limite de 150 s sem resposta.
+Deno.serve((req: Request) => {
+  if (req.method === "OPTIONS" || req.method !== "POST") return tratar(req);
+  const enc = new TextEncoder();
+  const corpo = new ReadableStream({
+    async start(ctl) {
+      ctl.enqueue(enc.encode(" "));
+      const ka = setInterval(() => { try { ctl.enqueue(enc.encode(" ")); } catch { /* já fechou */ } }, 8000);
+      try { const r = await tratar(req); ctl.enqueue(enc.encode(await r.text())); }
+      catch { ctl.enqueue(enc.encode(JSON.stringify({ error: "Falha inesperada na IA. Nada foi alterado." }))); }
+      finally { clearInterval(ka); try { ctl.close(); } catch { /* ok */ } }
+    },
+  });
+  return new Response(corpo, { status: 200, headers: { ...cors, "content-type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 });

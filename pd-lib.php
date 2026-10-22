@@ -860,7 +860,9 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     [$code, $raw] = $chamar($body);
     if ($code === 400 && isset($body['tools'])) { unset($body['tools']); [$code, $raw] = $chamar($body); }   // busca na web não habilitada na conta: responde sem ela
     $resp = '';
-    if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text']; }
+    if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text'];
+        try { $u = (array)($j['usage'] ?? []); sd_supabase('/rest/v1/sd_ia_uso', 'POST', ['user_id' => (string)($p['id'] ?? ''), 'canal' => 'zap', 'modelo' => (string)($body['model'] ?? ''),
+            'entrada' => (int)($u['input_tokens'] ?? 0), 'saida' => (int)($u['output_tokens'] ?? 0), 'cache_leitura' => (int)($u['cache_read_input_tokens'] ?? 0), 'cache_escrita' => (int)($u['cache_creation_input_tokens'] ?? 0)]); } catch (Throwable $e) {} }
     $resp = trim($resp);
     // a IA às vezes escreve o JSON da ação sem o ##ACAO## (ou repete): aceita as duas formas, executa uma vez só e nunca mostra o JSON à pessoa
     $ajs = [];
