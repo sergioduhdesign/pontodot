@@ -262,6 +262,9 @@
         <input type="password" id="pw2" placeholder="Repita a senha" autocomplete="new-password"
           onkeydown="if(event.key==='Enter')salvar()">
       </div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:-2px 0 10px;cursor:pointer">
+        <input type="checkbox" onchange="document.getElementById('pw').type=document.getElementById('pw2').type=this.checked?'text':'password'"> mostrar senha
+      </label>
       <div class="error-msg" id="err"></div>
       <button class="btn" id="btn" onclick="salvar()">Criar senha e entrar</button>
     </div>

@@ -7222,14 +7222,31 @@ function mostrarLogin(){
     <img src="/pd/escola/logo-pontodot.svg" alt="pontodot" style="height:30px;width:auto;align-self:center;margin:4px 0 10px"
       onerror="this.outerHTML='<h2 style=&quot;text-align:center&quot;>pontodot</h2>'">
     <p style="text-align:center">Entra com o mesmo acesso de sempre.</p>
-    <input id="lgEmail" type="email" placeholder="e-mail" autocomplete="username">
-    <input id="lgSenha" type="password" placeholder="senha" autocomplete="current-password">
+    <input id="lgEmail" name="username" type="email" placeholder="e-mail" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <div style="position:relative;display:flex">
+      <input id="lgSenha" name="password" type="password" placeholder="senha" autocomplete="current-password" style="flex:1;padding-right:70px">
+      <button type="button" id="lgOlho" onclick="lgVerSenha()" tabindex="-1"
+        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:6px 10px;font-size:12px;opacity:.65;cursor:pointer;background:none;border:0;color:inherit">mostrar</button>
+    </div>
     <div class="login-err" id="lgErr"></div>
     <button class="btn-entrar" type="submit">Entrar</button>
+    <a href="#" onclick="event.preventDefault();lgEsqueci()" style="text-align:center;font-size:12.5px;opacity:.7;text-decoration:underline;margin-top:2px">Esqueci a senha</a>
     <p class="login-legal">NOVA HORDA SERVIÇOS &amp; NEGOCIOS LTDA · CNPJ 43.383.376/0001-35<br>
       <a href="/privacidade.html" target="_blank" rel="noopener">Privacidade</a> · <a href="/termos.html" target="_blank" rel="noopener">Termos</a></p></form>`;
   document.body.appendChild(d);
   setTimeout(()=>$('#lgEmail')?.focus(), 80);
+}
+function lgVerSenha(){
+  const i = $('#lgSenha'), b = $('#lgOlho'); if (!i) return;
+  const ver = i.type === 'password'; i.type = ver ? 'text' : 'password'; if (b) b.textContent = ver ? 'ocultar' : 'mostrar';
+}
+async function lgEsqueci(){
+  const em = ($('#lgEmail').value || '').trim(), err = $('#lgErr');
+  if (!em){ err.textContent = 'Escreve o seu e-mail aí em cima e clica de novo em "Esqueci a senha".'; return; }
+  err.textContent = '';
+  const { error } = await sbR.auth.resetPasswordForEmail(em, { redirectTo: location.origin + '/setup.html' });
+  err.style.color = error ? '' : '#2e7d32';
+  err.textContent = error ? ('Não rolou: ' + error.message) : 'Pronto! Te mandei um e-mail com o link pra criar uma senha nova. Olha também o spam.';
 }
 async function fazerLogin(){
   $('#lgErr').textContent = '';
