@@ -7513,23 +7513,31 @@ function irParaEscola(){
 const _TELA = (function(){ try { const sv = JSON.parse(localStorage.getItem('sd_tela_atual')||'null');
   if (localStorage.getItem('sd_tela_aberta') === '1' && sv && sv.v && Date.now() - sv.t < 12*3600e3) return sv.v; } catch(e){} return null; })();
 (function(){
-  const marca = () => { try { const ab = $('#mundo')?.classList.contains('virado') || document.documentElement.classList.contains('app-movel'); localStorage.setItem('sd_tela_aberta', ab ? '1' : '0'); } catch(e){} };
+  let _restaurando = !!_TELA;   // enquanto restaura, ninguém sobrescreve o "estava no app"
+  const marca = () => { if (_restaurando) return; try { const ab = $('#mundo')?.classList.contains('virado') || document.documentElement.classList.contains('app-movel'); localStorage.setItem('sd_tela_aberta', ab ? '1' : '0'); } catch(e){} };
   const ligar = () => { try { const o = new MutationObserver(marca); const m = $('#mundo'); if (m) o.observe(m, { attributes:true, attributeFilter:['class'] }); o.observe(document.documentElement, { attributes:true, attributeFilter:['class'] }); } catch(e){} };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(ligar, 4000)); else setTimeout(ligar, 4000);   // só depois da restauração
   if (!_TELA) return;
   let n = 0, aberto = false;
   const tenta = () => {
-    if (++n > 80) return;
+    if (++n > 80) { _restaurando = false; return; }
     try {
       if (!perfil) return setTimeout(tenta, 400);
       if (!ehDesk()){
         if (versoMovelLiberado()) abrirAppMovel(_TELA);
+        setTimeout(() => { _restaurando = false; }, 5000);
         return;
       }
       if (!versoLiberado()) return;
       if (!aberto){ aberto = true; if (!$('#mundo').classList.contains('virado')) virarJa(); }
       const w = frameVerso();
-      if (w && typeof w.setView === 'function' && w.eval("!!document.getElementById('app') && document.getElementById('app').style.display !== 'none'")){ w.setView(_TELA); return; }
+      if (w && typeof w.setView === 'function' && w.eval("!!document.getElementById('app') && document.getElementById('app').style.display !== 'none'")){
+        w.setView(_TELA);
+        // o app às vezes termina de carregar dados e se põe na tela inicial por cima: reafirma duas vezes
+        [1500, 3500, 6000].forEach(ms => setTimeout(() => { try { const x = frameVerso(); if (x && x.eval('currentView') !== _TELA) x.setView(_TELA); } catch(e){} }, ms));
+        setTimeout(() => { _restaurando = false; try { localStorage.setItem('sd_tela_aberta', '1'); } catch(e){} }, 7000);
+        return;
+      }
     } catch(e){}
     setTimeout(tenta, 400);
   };

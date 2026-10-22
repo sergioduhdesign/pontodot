@@ -821,13 +821,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </div>
         </div>
         <div style="padding:14px;overflow-y:auto;flex:1">
-          <div id="admin-consumo" data-perm="admin" style="margin:0 0 18px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
-              <div class="page-subtitle" style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700;margin:0">Consumo da IA · tokens</div>
-              <span id="consumo-quando" style="font-size:11px;color:var(--text3)">carregando…</span>
-            </div>
-            <div id="consumo-corpo" style="font-size:13px;color:var(--text2)"></div>
-          </div>
           <div style="display:flex;gap:2px;margin:6px 0 16px">
             <button id="admin-tab-ativos" class="nav-tab active" style="font-weight:700" onclick="setAdminTab('ativos',this)">Ativos</button>
             <button id="admin-tab-enc" class="nav-tab" style="opacity:0.4" onclick="setAdminTab('pausados',this)">Encerrados</button>
@@ -5161,24 +5154,45 @@ function closeGanttCellDetail(){
 function isLightColorHex(hex){if(!hex||hex.length<7)return false;const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return(r*299+g*587+b*114)/1000>160;}
 
 const fmtTok=n=>{n=Number(n||0);return n>=1e6?(n/1e6).toFixed(2).replace('.',',')+' mi':n>=1e3?(n/1e3).toFixed(1).replace('.',',')+' mil':String(n);};
-let _consumoTimer=null;
+let _consumoTimer=null, _consumoAberto=false;
+const usd=n=>'US$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 async function renderConsumoIA(){
-  const corpo=document.getElementById('consumo-corpo'); if(!corpo) return;
+  const box=document.getElementById('ias-consumo'); if(!box) return;
   try{
-    const{data,error}=await sb.rpc('sd_ia_consumo'); if(error) throw error;
-    const bloco=(t,x)=>`<div style="flex:1;min-width:110px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${t}</div><div style="font-size:22px;font-weight:700;color:var(--text)">${fmtTok((x.entrada||0)+(x.saida||0))}</div><div style="font-size:11.5px;color:var(--text3)">${fmtTok(x.entrada)} entrada · ${fmtTok(x.saida)} saída · ${x.chamadas||0} respostas</div></div>`;
-    const dias=data.por_dia||[]; const max=Math.max(1,...dias.map(d=>Number(d.total||0)));
-    corpo.innerHTML=`<div style="display:flex;gap:18px;flex-wrap:wrap">${bloco('Hoje',data.hoje)}${bloco('7 dias',data.semana)}${bloco('Este mês',data.mes)}</div>
-      <div style="display:flex;align-items:flex-end;gap:3px;height:44px;margin:12px 0 4px">${dias.map(d=>`<div title="${d.dia}: ${fmtTok(d.total)}" style="flex:1;background:var(--accent);opacity:.75;border-radius:3px 3px 0 0;height:${Math.max(4,Math.round(Number(d.total||0)/max*44))}px"></div>`).join('')}</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Últimos 14 dias (tokens por dia)</div>
-      <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px">
-        <div><b>Por canal (30 dias)</b><br>${(data.por_canal||[]).map(c=>`${c.canal}: ${fmtTok(Number(c.entrada)+Number(c.saida))}`).join('<br>')||'—'}</div>
-        <div><b>Por pessoa (30 dias)</b><br>${(data.por_pessoa||[]).map(c=>`${String(c.pessoa).replace(/</g,'&lt;')}: ${fmtTok(Number(c.entrada)+Number(c.saida))}`).join('<br>')||'—'}</div>
-        <div><b>Últimas respostas</b><br>${(data.ultimas||[]).map(c=>`${c.quando} · ${c.canal} · ${fmtTok(Number(c.entrada)+Number(c.saida))}`).join('<br>')||'—'}</div>
-      </div>`;
-    document.getElementById('consumo-quando').textContent='atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  }catch(e){ corpo.innerHTML='<span style="color:var(--text3)">Sem dados ainda. Rode o SQL v106 e use a IA uma vez.</span>'; }
-  clearTimeout(_consumoTimer); _consumoTimer=setTimeout(()=>{ if(currentView==='admin') renderConsumoIA(); },20000);   // tempo quase real
+    const [rc,rg]=await Promise.all([sb.rpc('sd_ia_consumo'),sb.rpc('sd_ia_config_ler').then(r=>r,()=>({data:null}))]);
+    if(rc.error) throw rc.error; const d=rc.data, cfg=rg.data||{orcamento_usd:0,preco_in_usd_mi:3,preco_out_usd_mi:15,cambio:5.5};
+    const custo=x=>((Number(x.entrada||0)+Number(x.cache||0)*0.1)*cfg.preco_in_usd_mi+Number(x.saida||0)*cfg.preco_out_usd_mi)/1e6;
+    const mes=custo(d.mes), hoje=custo(d.hoje), orc=Number(cfg.orcamento_usd||0), pct=orc>0?Math.min(100,Math.round(mes/orc*100)):0;
+    const cor=pct>=90?'#dc2626':pct>=70?'#f59e0b':'#16a34a';
+    const dias=d.por_dia||[]; const max=Math.max(1,...dias.map(x=>Number(x.total||0)));
+    box.innerHTML=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="font-size:12px">Consumo da IA · este mês</b><span style="font-size:10.5px;color:var(--text3)">ao vivo</span></div>
+      <div style="font-size:20px;font-weight:700;margin-top:4px">${usd(mes)} <span style="font-size:12px;font-weight:400;color:var(--text3)">≈ R$ ${(mes*cfg.cambio).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span></div>
+      ${orc>0?`<div style="height:7px;background:var(--surface2);border-radius:99px;overflow:hidden;margin:6px 0 3px"><div style="width:${pct}%;height:100%;background:${cor}"></div></div>
+        <div style="font-size:11px;color:var(--text3)">${pct}% do teto de ${usd(orc)} · restam ${usd(Math.max(0,orc-mes))}</div>`
+        :`<div style="font-size:11px;color:var(--text3);margin-top:4px">Sem teto definido. Não há limite de tokens na conta: o teto é o orçamento que <b>você</b> decide. <a href="#" onclick="consumoEditar();return false" style="color:#2563eb">Definir →</a></div>`}
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Hoje: ${fmtTok(Number(d.hoje.entrada)+Number(d.hoje.saida))} tokens (${usd(hoje)}) · mês: ${fmtTok(Number(d.mes.entrada)+Number(d.mes.saida))} tokens · ${d.mes.chamadas} respostas</div>
+      <div style="margin-top:6px;font-size:11px"><a href="#" onclick="_consumoAberto=!_consumoAberto;renderConsumoIA();return false" style="color:#2563eb">${_consumoAberto?'ocultar detalhes':'ver detalhes'}</a> · <a href="#" onclick="consumoEditar();return false" style="color:#2563eb">orçamento e preços</a></div>
+      ${_consumoAberto?`<div style="display:flex;align-items:flex-end;gap:3px;height:40px;margin:10px 0 3px">${dias.map(x=>`<div title="${x.dia}: ${fmtTok(x.total)}" style="flex:1;background:var(--accent);opacity:.75;border-radius:3px 3px 0 0;height:${Math.max(4,Math.round(Number(x.total||0)/max*40))}px"></div>`).join('')}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-bottom:6px">14 dias · tokens por dia</div>
+        <div style="font-size:11px;line-height:1.5"><b>Canal (30 d):</b> ${(d.por_canal||[]).map(c=>`${c.canal} ${fmtTok(Number(c.entrada)+Number(c.saida))}`).join(' · ')||'—'}<br><b>Pessoa (30 d):</b> ${(d.por_pessoa||[]).map(c=>`${String(c.pessoa).replace(/</g,'&lt;')} ${fmtTok(Number(c.entrada)+Number(c.saida))}`).join(' · ')||'—'}</div>`:''}
+      <div id="consumo-edit" style="display:none;margin-top:8px;font-size:11px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <label>Teto mensal (US$)<input class="field-input" id="cf-orc" type="number" min="0" step="1" value="${orc}"></label>
+          <label>Câmbio (R$/US$)<input class="field-input" id="cf-cb" type="number" min="0" step="0.01" value="${cfg.cambio}"></label>
+          <label>Preço entrada (US$/mi)<input class="field-input" id="cf-in" type="number" min="0" step="0.1" value="${cfg.preco_in_usd_mi}"></label>
+          <label>Preço saída (US$/mi)<input class="field-input" id="cf-out" type="number" min="0" step="0.1" value="${cfg.preco_out_usd_mi}"></label>
+        </div><button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="consumoSalvar()">Salvar</button>
+        <div style="color:var(--text3);margin-top:4px">Confira os preços na sua conta da Anthropic; aqui são só para estimar.</div></div></div>`;
+  }catch(e){ box.innerHTML='<div style="margin-top:8px;font-size:11px;color:var(--text3)">Consumo da IA: rode os SQLs v106 e v107 e use a IA uma vez.</div>'; }
+  clearTimeout(_consumoTimer); _consumoTimer=setTimeout(()=>{ if(currentView==='admin' && !document.getElementById('consumo-edit')?.offsetParent) renderConsumoIA(); },20000);
+}
+function consumoEditar(){ const e=document.getElementById('consumo-edit'); if(e) e.style.display=e.style.display==='none'?'block':'none'; }
+async function consumoSalvar(){
+  const v=id=>Number(document.getElementById(id)?.value||0);
+  const{error}=await sb.rpc('sd_ia_config_salvar',{p_orc:v('cf-orc'),p_in:v('cf-in'),p_out:v('cf-out'),p_cambio:v('cf-cb')});
+  if(error){showToast('Não salvou: '+error.message+' (rodou o SQL v107?)','error');return;}
+  showToast('Orçamento salvo.','success'); renderConsumoIA();
 }
 const ADM_OCULTOS=new Set();   // excluídos agora: somem na hora, sem esperar o banco
 async function renderAdmin(){
@@ -5188,7 +5202,6 @@ async function renderAdmin(){
   // isso que aconteceu antes da proteção existir).
   try { preencherHorarioAdmin(); } catch(e) { console.warn('Horário admin:', e.message); }
   try { renderBIResumo(); } catch(e) { console.warn('BI resumo:', e.message); }
-  try { renderConsumoIA(); } catch(e) {}
   try { renderTrackingEquipe(); } catch(e) {}
   try { renderIAsCasa(); } catch(e) {}
   try { renderHabilidades(); } catch(e) {}
@@ -11455,7 +11468,9 @@ async function renderIAsCasa(){
       <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">${nome}</div><div style="font-size:10.5px;color:var(--text3)">${desc}</div></div></div>`;
   const ativas = n.produzir + n.corrigir;
   box.innerHTML = linha('Dot · GPT', ativas ? `${n.produzir} produzindo · ${n.corrigir} corrigindo` : 'nada na mão agora', ativas ? '#2563eb' : '#9ca3af')
-    + linha('Claude · o maestro', n.pausado ? `${n.pausado} pausada${n.pausado>1?'s':''} por você` : 'distribuindo e revisando', '#16a34a');
+    + linha('Claude · o maestro', n.pausado ? `${n.pausado} pausada${n.pausado>1?'s':''} por você` : 'distribuindo e revisando', '#16a34a')
+    + '<div id="ias-consumo"></div>';
+  renderConsumoIA();
 }
 
 async function renderTrackingEquipe(){
