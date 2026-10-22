@@ -1471,7 +1471,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           <div style="font-size:11px;color:var(--text3);margin-top:5px">Desligado, nenhum aviso sai para este cliente, mesmo com o número salvo.</div>
         </div>
       </div>
-      <button class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px" onclick="closeModal('modal-client');openBriefingCenter(currentClientId)">
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px" onclick="openBriefingCenter(currentClientId)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Central de Briefings
       </button>
@@ -7195,26 +7195,39 @@ async function openBriefingCenter(clientId){
   document.getElementById('bf-file').value='';
   document.getElementById('bf-upload-status').textContent='';
   document.getElementById('bf-list').innerHTML='<div style="font-size:13px;color:var(--text3);padding:10px 0">Carregando...</div>';
-  openModal('modal-briefings');
+  closeModal('modal-client'); openModal('modal-briefings');
   await loadBriefingList(clientId);
 }
 async function loadBriefingList(clientId){
-  const{data,error}=await sb.from('client_briefings').select('*,profiles:uploaded_by(name)').eq('client_id',clientId).order('created_at',{ascending:false});
-  const list=document.getElementById('bf-list');
-  if(error){list.innerHTML=`<div style="font-size:13px;color:#dc2626">Erro ao carregar: ${error.message}</div>`;return;}
-  if(!data||!data.length){list.innerHTML='<div style="font-size:13px;color:var(--text3);padding:10px 0">Nenhum briefing enviado ainda.</div>';return;}
-  list.innerHTML=data.map(b=>{
-    const when=new Date(b.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    const who=b.profiles?.name?' · '+b.profiles.name.split(' ')[0]:'';
-    return`<a href="${b.file_url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
-      <span style="font-size:22px;flex-shrink:0">${fileIconFor(b.file_name)}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.file_name}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">${when}${who}</div>
-      </div>
-      <span style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Abrir ↓</span>
-    </a>`;
-  }).join('');
+  const list=document.getElementById('bf-list'); const c=clients.find(x=>x.id===clientId);
+  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const card=(href,ico,tit,sub,acao)=>`<a href="${esc(href)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:inherit"><span style="font-size:22px;flex-shrink:0">${ico}</span><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(tit)}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(sub)}</div></div><span style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">${acao}</span></a>`;
+  const sec=(t,corpo,vazio)=>`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:14px 0 8px">${t}</div>${corpo||`<div style="font-size:13px;color:var(--text3);padding:2px 0 6px">${vazio}</div>`}`;
+  const nomeC=String(c?.name||'').trim().toLowerCase();
+  const [rb,rf,rm]=await Promise.all([
+    sb.from('client_briefings').select('*,profiles:uploaded_by(name)').eq('client_id',clientId).order('created_at',{ascending:false}),
+    sb.from('client_docs').select('cliente_nome,apelidos,titulo,texto,atualizado_em').eq('ativo',true).then(r=>r,()=>({data:[],error:true})),
+    sb.from('reunioes_texto').select('titulo,reuniao_em,url,caracteres').eq('client_id',clientId).order('reuniao_em',{ascending:false}).limit(20).then(r=>r,()=>({data:[],error:true}))
+  ]);
+  // 1) ficha do cliente
+  const fichas=(rf.data||[]).filter(f=>{const n=String(f.cliente_nome||'').trim().toLowerCase();return n===nomeC||(nomeC&&(n.includes(nomeC)||nomeC.includes(n)))||(f.apelidos||[]).some(a=>String(a).trim().toLowerCase()===nomeC);});
+  window._bfFichas=fichas;
+  const hFicha=fichas.map((f,k)=>`<button onclick="verFichaCliente(${k})" style="display:flex;width:100%;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:inherit;text-align:left;cursor:pointer"><span style="font-size:22px">📋</span><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(f.titulo||f.cliente_nome)}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${Math.round(String(f.texto||'').length/1000)} mil caracteres · atualizada ${f.atualizado_em?new Date(f.atualizado_em).toLocaleDateString('pt-BR'):''}</div></div><span style="font-size:11px;color:#2563eb;font-weight:700">Ler</span></button>`).join('');
+  // 2) meets
+  const hMeets=(rm.data||[]).map(m=>card(m.url||'#','🎙️',m.titulo||'Reunião',m.reuniao_em?new Date(m.reuniao_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}):'', 'Abrir ↗')).join('');
+  // 3) briefings específicos
+  let hBrief='';
+  if(rb.error){hBrief=`<div style="font-size:13px;color:#dc2626">Erro ao carregar: ${esc(rb.error.message)}</div>`;}
+  else hBrief=(rb.data||[]).map(b=>{const when=new Date(b.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});const who=b.profiles?.name?' · '+b.profiles.name.split(' ')[0]:'';return card(b.file_url,fileIconFor(b.file_name),b.file_name,when+who,'Abrir ↓');}).join('');
+  list.innerHTML=sec('Ficha do cliente',hFicha,'Ainda não há ficha deste cliente. Suba o .md na pasta de clientes do Drive e peça à IA: “importar fichas”.')
+    +sec('Reuniões (meets)',hMeets,'Nenhuma reunião ligada a este cliente ainda.')
+    +sec('Briefings específicos',hBrief,'Nenhum briefing enviado ainda.');
+}
+function verFichaCliente(k){
+  const f=(window._bfFichas||[])[k]; if(!f)return;
+  const w=window.open('','_blank'); if(!w){showToast('Libere pop-ups para ler a ficha.','warn');return;}
+  const t=String(f.texto||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  w.document.write('<title>'+String(f.titulo||'Ficha').replace(/</g,'')+'</title><pre style="white-space:pre-wrap;font:14px/1.6 system-ui;max-width:760px;margin:24px auto;padding:0 16px">'+t+'</pre>'); w.document.close();
 }
 async function uploadBriefing(input){
   if(!input.files[0]||!currentBriefingClientId)return;

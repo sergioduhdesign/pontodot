@@ -190,10 +190,14 @@ function showToast(msg, type = 'info') {
 // funciona: cada "voltar" fecha um de cada vez.
 // ================================================================
 let modalStack = [];
+let _backPend = 0, _filaAbrir = [], _backTimer = null;   // history.back() programático ainda a caminho
+function _soltarFila(){ _backPend = 0; clearTimeout(_backTimer); const f = _filaAbrir; _filaAbrir = []; f.forEach(id => openModal(id)); }
 
 function openModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  // closeModal('a'); openModal('b') seguidos: o "voltar" do histórico ainda não chegou e fecharia o 'b' na hora.
+  if (_backPend > 0) { if (!_filaAbrir.includes(id)) _filaAbrir.push(id); return; }
   el.classList.add('open');
   document.body.style.overflow = 'hidden';
 
@@ -213,12 +217,14 @@ function closeModal(id) {
   // Fechou pelo X ou clicando fora (não pelo botão voltar): desfaz a
   // entrada que este modal empilhou, para o histórico não crescer à toa.
   if (history.state && history.state.sdModal === id) {
+    _backPend++; clearTimeout(_backTimer); _backTimer = setTimeout(_soltarFila, 500);   // rede de segurança se o popstate não vier
     history.back();
   }
 }
 
 // Botão físico / gesto de voltar do aparelho
 window.addEventListener('popstate', (ev) => {
+  if (_backPend > 0) { _backPend--; if (!_backPend) _soltarFila(); return; }   // foi o nosso próprio voltar: só libera a fila
   if (!modalStack.length) return;   // nada aberto: deixa o navegador agir normal
   const id = modalStack.pop();
   const el = document.getElementById(id);
