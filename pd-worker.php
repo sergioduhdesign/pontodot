@@ -349,6 +349,31 @@ function w_alunos() {
 //     seg–sex, pra cada pessoa com "Receber alertas" ligado. Sem pedir autorização.
 //     Desligar tudo: define('SD_ROTINA_ZAP', false); no sd-config.php.
 // =====================================================================
+// Skills novas das IAs: avisa cada pessoa, pela IA dela, uma única vez (sino + push + zap).
+function w_skills() {
+    $r = sd_supabase('/rest/v1/pd_skills?ativo=eq.true&anunciada_em=is.null&select=*&limit=10');
+    if (($r['code'] ?? 500) >= 300) return 'rode o SQL v103';
+    $n = 0;
+    foreach ((array)($r['body'] ?? []) as $sk) {
+        $para = array_map('strtoupper', (array)($sk['para'] ?? []));
+        $ps = sd_supabase('/rest/v1/profiles?active=eq.true&select=id,name,team_key,zap,zap_ativo');
+        foreach ((array)($ps['body'] ?? []) as $p) {
+            if (!in_array(strtoupper((string)($p['team_key'] ?? '')), $para, true)) continue;
+            $ia = pdNomeIA($p['id']) ?: 'Sua IA';
+            $tit = "$ia aprendeu uma skill nova: " . $sk['titulo'];
+            $corpo = $sk['resumo'] . (!empty($sk['exemplo']) ? ' Peça assim: "' . $sk['exemplo'] . '".' : '');
+            sd_supabase('/rest/v1/notifications', 'POST', ['user_id' => $p['id'], 'type' => 'skill', 'title' => $tit, 'body' => $corpo, 'link' => 'skills']);
+            sd_push_usuario($p['id'], $tit, $corpo, '/app.html', 'sd-skill');
+            $tel = preg_replace('/\D/', '', (string)($p['zap'] ?? ''));
+            if (!empty($p['zap_ativo']) && $tel !== '')
+                sd_supabase('/rest/v1/pd_zap', 'POST', ['para' => $tel, 'quem' => $p['name'] ?? null,
+                    'corpo' => "✨ *$ia* acabou de aprender uma skill nova!\n\n*" . $sk['titulo'] . "*\n" . $sk['resumo'] . (!empty($sk['exemplo']) ? "\n\nExperimenta: \"" . $sk['exemplo'] . "\"" : '')]);
+        }
+        sd_supabase('/rest/v1/pd_skills?id=eq.' . (int)$sk['id'], 'PATCH', ['anunciada_em' => date('c')]);
+        $n++;
+    }
+    return $n;
+}
 function w_rotina_zap() {
     if (defined('SD_ROTINA_ZAP') && SD_ROTINA_ZAP === false) return 'desligada';
     if (!(defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN && defined('SD_ZAP_PHONE_ID') && SD_ZAP_PHONE_ID)) return 'sem WhatsApp';
@@ -623,4 +648,5 @@ $n7 = w_sites();                     echo "Posts publicados em site de cliente: 
 $n8 = w_feed_casa();                 echo "Feed da casa: $n8\n";
 $n9 = w_alunos();                    echo "Alunos reagem: $n9\n";
 $n10 = w_rotina_zap();               echo "Rotina da equipe: $n10\n";
+$n11 = w_skills();                   echo "Skills anunciadas: $n11\n";
 echo "\nConcluido.\n";
