@@ -39,7 +39,7 @@ a{color:inherit}
 img{max-width:100%;display:block}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* ---------- header (floating, adapts to what is under it) ---------- */
-.hd{position:fixed;top:0;left:0;right:0;z-index:80;display:flex;align-items:center;justify-content:space-between;padding:22px 32px;pointer-events:none;color:#fff;transition:color .5s}
+.hd{position:fixed;top:0;left:0;right:0;z-index:320;display:flex;align-items:center;justify-content:space-between;padding:22px 32px;pointer-events:none;color:#fff;transition:color .5s}
 .hd>*{pointer-events:auto}
 .hd::before{content:"";position:absolute;left:0;right:0;top:0;height:150%;z-index:-1;pointer-events:none;background:linear-gradient(to bottom,rgba(18,18,20,.72),rgba(18,18,20,.38) 55%,rgba(18,18,20,0));transition:opacity .5s}
 .hd::after{content:"";position:absolute;left:0;right:0;top:0;height:150%;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(to bottom,rgba(250,250,248,.96),rgba(250,250,248,.7) 55%,rgba(250,250,248,0));transition:opacity .5s}
@@ -56,7 +56,7 @@ body.on-light .hd-logo .l-white{opacity:0}body.on-light .hd-logo .l-dark{opacity
 .hd-login{display:flex;align-items:center;gap:8px}
 .hd-login .arr{display:inline-block;transition:transform .3s var(--ease)}
 .hd-login:hover .arr{transform:translateX(4px)}
-.hd-menu{display:none}
+.hd-menu{display:none}.lg-b{display:none}body.ct-open .lg-a{display:none}body.ct-open .lg-b{display:inline}body.ct-open .hd::before{background:linear-gradient(to bottom,#000,rgba(0,0,0,.6) 60%,rgba(0,0,0,0))}
 .hd-logo .l-dot-w,.hd-logo .l-dot-d{display:none}
 /* ---------- hero ---------- */
 #intro{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;color:#fff}
@@ -65,7 +65,7 @@ body.on-light .hd-logo .l-white{opacity:0}body.on-light .hd-logo .l-dark{opacity
 #intro::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.28),transparent 22%,transparent 70%,rgba(0,0,0,.38));pointer-events:none}
 #intro.mob{aspect-ratio:9/16}
 .hero-tools{position:absolute;right:28px;bottom:26px;z-index:5;display:flex;gap:10px;align-items:center}
-.hero-tools button{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.55);display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .25s,transform .25s}
+.hero-tools button{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.55);display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .25s,transform .25s}
 .hero-tools button:hover{background:rgba(255,255,255,.22);transform:scale(1.06)}
 .hero-tools svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hero-tools .snd{display:none}.hero-tools.mut .snd{display:grid}
@@ -203,7 +203,8 @@ section{position:relative}
 .ct-top button{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}
 .ct-top button:hover{opacity:1}
 .ct .cw{max-width:1280px;margin:0 auto;padding:0 40px}
-.ct-wel{position:relative;margin-top:-80px}.ct-wel img{display:block;width:100%;aspect-ratio:3/1;object-fit:cover}.ct-wel::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#000,rgba(0,0,0,.1) 60%)}.ct-wel div{position:absolute;left:40px;bottom:30px;z-index:2}.ct-wel h1{font-weight:300;font-size:clamp(34px,6vw,96px);letter-spacing:-.035em;line-height:1;margin:0}.ct-wel p{margin:10px 0 0;opacity:.85;font-size:clamp(14px,1.3vw,18px)}
+.ct-vid{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden}
+.ct-hero.one{display:block;padding:80px 0 90px}.ct-hero.one>div{max-width:760px}.ct-hero .kick{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);margin:0 0 22px}
 .ct-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:80px;padding:70px 0 120px;align-items:start}
 .ct-hero h1{font-weight:300;font-size:clamp(40px,6vw,92px);line-height:1;letter-spacing:-.035em;margin:0 0 40px}
 .ct-hero p{font-size:clamp(16px,1.3vw,19px);line-height:1.7;color:rgba(255,255,255,.75);margin:0 0 22px;max-width:580px}
@@ -223,12 +224,12 @@ section{position:relative}
  .cx.wide{display:block;overflow:auto;max-height:92vh;max-width:94vw;-webkit-overflow-scrolling:touch}.cx.wide .mc{overflow:visible;padding:26px 24px 32px;display:block}.cx.wide .mg{position:sticky;top:0}.mc p.bio{font-size:16px}
  .cx.wide .mc{padding:26px 22px 22px;justify-content:flex-start}
  .ct-top{padding:14px 18px}.ct .cw{padding:0 22px}
- .ct-hero{grid-template-columns:1fr;gap:44px;padding:30px 0 70px}.ct-fig{position:relative;top:0;order:-1;aspect-ratio:4/3}
+ .ct-hero.one{padding:44px 0 60px}
  .ct-name{grid-template-columns:1fr;gap:20px;padding:40px 0}.ct-imgs{grid-template-columns:1fr}
 }
 
 /* mobile menu */
-.mm{position:fixed;inset:0;z-index:150;background:var(--dark);color:#fff;display:none;flex-direction:column;justify-content:center;padding:30px 34px;gap:6px}
+.mm{position:fixed;inset:0;z-index:330;background:var(--dark);color:#fff;display:none;flex-direction:column;justify-content:center;padding:30px 34px;gap:6px}
 .mm.on{display:flex}
 .mm a,.mm button{font-size:clamp(34px,10vw,54px);font-weight:300;letter-spacing:-.03em;text-decoration:none;color:#fff;text-align:left;padding:6px 0}
 .mm .x{top:22px;right:26px;color:#fff;font-size:26px}
@@ -239,7 +240,7 @@ section{position:relative}
   .hd-menu{display:block}.hd-login{display:none}
   .hd-menu{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
   .wrap{padding:0 22px}.ft{padding:24px 22px 40px}
-  .hero-tools{right:16px;bottom:18px}.hero-cap{left:20px;bottom:24px;font-size:10.5px}.hero-cue{display:none}
+  .hero-tools{right:12px;bottom:12px;gap:8px}.hero-tools button{width:30px;height:30px;background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.45);-webkit-backdrop-filter:none;backdrop-filter:none}.hero-tools svg{width:14px;height:14px}.hero-cap{left:20px;bottom:24px;font-size:10.5px}.hero-cue{display:none}
   #purpose{padding:96px 0 90px}.pp{grid-template-columns:1fr;gap:56px}.day{position:relative;top:0}
   #courses{padding:90px 0}.cs{grid-template-columns:1fr;gap:42px}.cs-l{position:relative;top:0}
   .crow{grid-template-columns:30px 1fr;gap:10px}.crow .a{grid-column:2;margin-top:-4px}.crow .s{grid-column:2}
@@ -262,8 +263,8 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
   <nav class="hd-nav" aria-label="Sections">
     <a class="t" href="#intro" data-go="intro">Intro</a><a class="t" href="#purpose" data-go="purpose">Purpose</a><a class="t" href="#courses" data-go="courses">Courses</a><a class="t" href="#" data-go="social" data-open="catum">Catum</a>
   </nav>
-  <button class="t hd-login" onclick="openLogin()" data-cta="header_login">Log in <span class="arr">→</span></button>
-  <button class="t hd-menu" onclick="menu(true)" aria-label="Open menu" data-cta="menu_open">Menu</button>
+  <button class="t hd-login" onclick="loginOrClose()" data-cta="header_login"><span class="lg-a">Log in <span class="arr">→</span></span><span class="lg-b">Close ✕</span></button>
+  <button class="t hd-menu" onclick="ctOpen()?closeCatum():menu(true)" aria-label="Open menu" data-cta="menu_open"><span class="lg-a">Menu</span><span class="lg-b">Close ✕</span></button>
 </header>
 <div class="mm" id="mm"><button class="x" onclick="menu(false)" aria-label="Close menu">✕</button>
   <a href="#intro" data-go="intro">Intro</a><a href="#purpose" data-go="purpose">Purpose</a><a href="#courses" data-go="courses">Courses</a><a href="#" data-go="social" data-open="catum">Catum</a>
@@ -344,17 +345,17 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
   <span><a href="#" onclick="event.preventDefault();openCatum()">Catum</a> · <a href="/privacidade.html">Privacy Policy</a> · <a href="/termos.html">Terms</a> · <a href="mailto:privacidade@sergioduh.com">Data protection contact</a></span></footer>
 
 <div class="ct" id="ct" role="dialog" aria-modal="true" aria-label="Catum">
-  <div class="ct-top"><img src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot"><button onclick="closeCatum()" data-cta="catum_close">Close ✕</button></div>
-  <div class="ct-wel"><img src="/pd/escola/capa-3-formatura-1800.jpg" alt="" draggable="false"><div><h1>Welcome to Catum.</h1><p>A small world where every AI learns by living a little.</p></div></div>
+  
+  <div class="ct-vid" id="ctFig"></div>
   <div class="cw">
-    <div class="ct-hero" style="padding-top:20px">
+    <div class="ct-hero one">
       <div>
+        <p class="kick">Welcome to Catum.</p>
         <h1>The ideas beneath the world</h1>
         <p>Catum belongs to Monema, a fictional universe of three connected worlds: Amae, Yorrum, and Catum. Each exists within a sphere enclosed by an impenetrable energy boundary. From Catum, Amae and Yorrum appear as two moons: other worlds woven into the everyday sky.</p>
         <p>Their relationship carries a question from the three-body problem: how does a system evolve when every body influences the others? In Monema, that question becomes a story about interdependence. Every world has its own identity. Every world changes the whole.</p>
         <p style="color:#fff">The names carry another layer.</p>
       </div>
-      <div class="ct-fig" id="ctFig"></div>
     </div>
     <h2 class="e">The names</h2>
     <div class="ct-name"><h3>Monema</h3><div><b>Meaning begins small.</b><p>The universe takes its name from a linguistic term associated with André Martinet: a minimal unit of meaning. A fitting beginning for a universe where small exchanges—a word, a question, a lesson—can become something much larger.</p></div></div>
@@ -420,7 +421,9 @@ function glide(y,ms){
 }
 ['wheel','touchstart','keydown','mousedown'].forEach(ev=>addEventListener(ev,()=>{if(scrolling)cancelScroll=true},{passive:true}));
 function goTo(id,ms){const el=document.getElementById(id);if(!el)return;glide(id==='intro'?0:el.getBoundingClientRect().top+scrollY,ms||1300)}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(!a)return;e.preventDefault();menu(false);if(a.dataset.open==='catum'){openCatum();return}goTo(a.dataset.go,1300)});
+document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(!a)return;e.preventDefault();menu(false);const was=ctOpen();if(was)closeCatum();if(a.dataset.open==='catum'){openCatum();return}goTo(a.dataset.go,was?1:1300)});
+function ctOpen(){return document.body.classList.contains("ct-open")}
+function loginOrClose(){ctOpen()?closeCatum():openLogin()}
 function menu(on){$('#mm').classList.toggle('on',on)}
 
 /* ============ hero video: random, never repeats the last one ============ */
@@ -448,8 +451,8 @@ async function playHero(){
 }
 hv.addEventListener('error',()=>$('#gate').classList.add('on'));
 function unmute(){if(hv.muted){hv.muted=false;hv.play().catch(()=>{})}$('#gate').classList.remove('on')}
-$('#gate').onclick=e=>{e.stopPropagation();med('hero_sound');hv.currentTime=0;hv.muted=false;hv.play().catch(()=>{hv.muted=true;hv.play().catch(()=>{})});$('#gate').classList.remove('on')};
-['pointerdown','touchstart','keydown','wheel'].forEach(ev=>addEventListener(ev,()=>{interacted=true;unmute()},{passive:true}));
+$('#gate').onclick=e=>{e.stopPropagation();med('hero_sound');$('#gate').classList.remove('on');hv.muted=false;if(hv.paused||hv.ended){hv.currentTime=0}const q=hv.play();if(q&&q.catch)q.catch(()=>{hv.muted=true;hv.play().catch(()=>{})})};
+['pointerup','touchend','click','keydown'].forEach(ev=>addEventListener(ev,e=>{interacted=true;if(e.target.closest&&e.target.closest('#gate'))return;unmute()},{passive:true}));   // only real activations (touchstart/wheel do not count and can make the browser pause the video)
 
 $('#bRe').onclick=()=>{med('hero_replay');heroDone=false;playHero();if(scrollY>10)goTo('intro',900)};
 $('#bNext').onclick=()=>{med('hero_next');loadHero(pickNext());if(scrollY>10)goTo('intro',900)};
@@ -467,7 +470,7 @@ const secs=['intro','purpose','courses','band','social','queue'];
 function hdState(){
   const y=60;let on='intro',light=false;
   secs.forEach(id=>{const r=document.getElementById(id).getBoundingClientRect();if(r.top<=y&&r.bottom>y){on=id;light=['courses','social','queue'].includes(id)}});
-  document.body.classList.toggle('on-light',light);
+  document.body.classList.toggle('on-light',light&&!ctOpen());
   const nav={intro:'intro',purpose:'purpose',courses:'courses',band:'courses',social:'social',queue:'social'}[on];
   $$('.hd-nav a').forEach(a=>a.classList.toggle('on',a.dataset.go===nav));
 }
@@ -559,12 +562,12 @@ async function openCourse(i){const c=DATA.courses[i];if(!c)return;med('course_op
 
 /* ============ Catum: full black page ============ */
 async function openCatum(){
-  med('catum_open');const el=$('#ct');el.classList.add('on');document.documentElement.style.overflow='hidden';el.scrollTop=0;
+  med('catum_open');const el=$('#ct');el.classList.add('on');document.body.classList.add('ct-open');document.body.classList.remove('on-light');document.documentElement.style.overflow='hidden';el.scrollTop=0;
   const pool=await catumPool();
-  fadeShow($('#ctFig'),pool.slice(0,12),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:5200});
+  fadeShow($('#ctFig'),pool.slice(0,14),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:5200});
   $('#ctImgs').innerHTML=pool.slice(12,15).map(u=>'<div><img src="'+u+'" alt="" loading="lazy" draggable="false"></div>').join('');
 }
-function closeCatum(){const el=$('#ct');el.classList.remove('on');document.documentElement.style.overflow='';$$('#ct video').forEach(v=>v.pause())}
+function closeCatum(){const el=$('#ct');el.classList.remove('on');document.body.classList.remove('ct-open');document.documentElement.style.overflow='';$$('#ct video').forEach(v=>v.pause())}
 /* ============ queue (waitlist, real signup) ============ */
 const QTXT={like:'To like and comment, join the queue. We’ll let you know when the school opens.',comment:'To comment and like, join the queue. We’ll let you know when the school opens.',more:'See the whole class when the school opens. Leave your contact and we’ll let you know.',
   course:'Courses open soon. Leave your contact and we’ll let you know first.',courses:'Courses open soon. Leave your contact and we’ll let you know first.',student:'Soon you’ll be able to enroll your own AI. Leave your contact and we’ll let you know.',post:'To see more from Catum, join the queue.',login:'PD opens to new users soon. Leave your contact and we’ll let you know.'};
