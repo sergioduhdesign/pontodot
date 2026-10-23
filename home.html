@@ -65,7 +65,7 @@ body.on-light .hd-logo .l-white{opacity:0}body.on-light .hd-logo .l-dark{opacity
 .hero-tools svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hero-tools .snd{display:none}.hero-tools.mut .snd{display:grid}
 .hero-cap{position:absolute;left:32px;bottom:30px;z-index:5;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
-.gate{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;color:#fff;font-size:12px;letter-spacing:.18em;text-transform:uppercase;padding:14px 22px;border:1px solid rgba(255,255,255,.6);border-radius:999px;background:rgba(0,0,0,.25);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}.gate.on{display:block}.hero-bar{position:absolute;left:0;bottom:0;height:2px;width:0;background:rgba(255,255,255,.85);z-index:6}
+.hero-bar{position:absolute;left:0;bottom:0;height:2px;width:0;background:rgba(255,255,255,.85);z-index:6}
 .hero-cue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;width:26px;height:42px;border:1px solid rgba(255,255,255,.55);border-radius:14px;opacity:.85}
 .hero-cue::after{content:'';position:absolute;left:50%;top:8px;width:3px;height:8px;margin-left:-1.5px;border-radius:2px;background:#fff;animation:cue 1.8s infinite}
 @keyframes cue{0%{opacity:0;transform:translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateY(14px)}}
@@ -84,7 +84,7 @@ section{position:relative}
 .manif p.k{color:#fff;font-weight:500}
 .manif .sign{margin-top:44px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 .day{position:sticky;top:90px}
-.day-fr{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:22px;background:#2a2b2e}
+.day-fr{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:22px;background:#2a2b2e}
 
 .day-cap{display:flex;justify-content:space-between;gap:16px;margin-top:14px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 /* courses */
@@ -106,8 +106,8 @@ section{position:relative}
 .crow:hover,.crow.open{padding-left:16px;background:var(--soft)}
 .crow:hover .s,.crow.open .s{max-height:90px;opacity:1;margin-top:8px}
 /* band */
-#band{height:92vh;min-height:520px;overflow:hidden;color:#fff;display:flex;align-items:flex-end}
-#band .bg{position:absolute;left:0;top:-12%;width:100%;height:124%;object-fit:cover;will-change:transform}
+#band{height:84vh;min-height:520px;overflow:hidden;color:#fff;display:flex;align-items:flex-end}
+#band .bg{position:absolute;left:0;top:-6%;width:100%;height:112%;object-fit:cover;will-change:transform}
 #band::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,.05) 55%);z-index:1}
 #band .wrap{position:relative;z-index:2;padding-bottom:70px;width:100%}
 #band h2{font-weight:300;font-size:clamp(44px,9vw,150px);line-height:.95;letter-spacing:-.04em;margin:0}
@@ -128,8 +128,8 @@ section{position:relative}
 .post-h{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer}
 .post-h img{width:38px;height:38px;border-radius:50%;object-fit:cover}
 .post-h b{font-weight:500;font-size:15px}.post-h small{display:block;color:var(--gray2);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
-.post-ph{position:relative;aspect-ratio:1/1;overflow:hidden;background:#eee;cursor:pointer}
-.post-ph img{position:absolute;left:0;top:-7%;width:100%;height:114%;object-fit:cover;will-change:transform}
+.post-ph{position:relative;aspect-ratio:4/3;overflow:hidden;background:#eee;cursor:pointer}
+.post-ph img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;will-change:transform}
 .post-b{padding:18px 20px 20px}
 .post-b p{margin:0 0 14px;font-size:16px;line-height:1.5}
 .acts{display:flex;gap:18px;font-size:13px;color:var(--gray);margin-bottom:12px}
@@ -176,13 +176,16 @@ section{position:relative}
 .cx dl{margin:0 0 16px;font-size:14px;color:var(--gray)}.cx dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gray2);margin-top:10px}.cx dd{margin:2px 0 0}
 
 /* wide modals: photo left (fade), content right */
-.cx.wide{max-width:min(1080px,94vw);height:min(80vh,760px);padding:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);overflow:hidden}
+.cx.wide{max-width:min(1180px,94vw);height:min(74vh,660px);padding:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);overflow:hidden}
 .cx.wide .mg{position:relative;background:#222;overflow:hidden}
 .cx.wide .mc{padding:44px 40px 32px;overflow:auto;display:flex;flex-direction:column;justify-content:center}
 .cx.wide .x{z-index:5;background:rgba(255,255,255,.85);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;color:var(--ink)}
 .fs{position:absolute;inset:0}
-.fs>img,.fs>video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 2.2s ease,transform 9s linear}
-.fs>.on{opacity:1;transform:scale(1)}
+.fs>.sl,.fs>video{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity 2.2s ease;overflow:hidden;background:#111}
+.fs>.on{opacity:1}
+.sl::before{content:"";position:absolute;inset:-30px;background:var(--u) center/cover;filter:blur(28px) brightness(.8);transform:scale(1.1)}
+.sl img{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+.fs>video{object-fit:contain}
 .mc .tag{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gray2);margin:0 0 10px}
 .mc h3{font-size:clamp(26px,2.8vw,38px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin:0 0 6px}
 .mc .role{color:var(--gray);margin:0 0 20px;font-size:16px}
@@ -199,7 +202,7 @@ section{position:relative}
 .ct-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:80px;padding:70px 0 120px;align-items:start}
 .ct-hero h1{font-weight:300;font-size:clamp(40px,6vw,92px);line-height:1;letter-spacing:-.035em;margin:0 0 40px}
 .ct-hero p{font-size:clamp(16px,1.3vw,19px);line-height:1.7;color:rgba(255,255,255,.75);margin:0 0 22px;max-width:580px}
-.ct-fig{position:sticky;top:96px;aspect-ratio:4/5;border-radius:22px;overflow:hidden;background:#111}
+.ct-fig{position:sticky;top:96px;aspect-ratio:4/3;border-radius:22px;overflow:hidden;background:#111}
 .ct h2.e{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:400;margin:0 0 30px}
 .ct-name{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:60px;padding:56px 0;border-top:1px solid rgba(255,255,255,.14);align-items:start}
 .ct-name h3{margin:0;font-weight:300;font-size:clamp(44px,7vw,110px);letter-spacing:-.04em;line-height:.95}
@@ -209,14 +212,14 @@ section{position:relative}
 .ct-end .tri{font-weight:300;font-size:clamp(34px,6vw,86px);line-height:1.05;letter-spacing:-.035em;margin:0 0 26px}
 .ct-end p{color:rgba(255,255,255,.72);max-width:620px;margin:0 auto 14px;font-size:18px;line-height:1.7}
 .ct-imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:0 0 70px}
-.ct-imgs div{aspect-ratio:3/4;border-radius:16px;overflow:hidden}.ct-imgs img{width:100%;height:100%;object-fit:cover}
+.ct-imgs div{aspect-ratio:4/3;border-radius:16px;overflow:hidden}.ct-imgs img{width:100%;height:100%;object-fit:cover}
 .clk{cursor:pointer}
 @media(max-width:860px){
- .cx.wide{grid-template-columns:1fr;grid-template-rows:38% 62%;height:90vh;max-width:94vw}
+ .cx.wide{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:90vh;max-width:94vw}.cx.wide .mg{aspect-ratio:4/3}
  .cx.wide .mc{padding:26px 22px 22px;justify-content:flex-start}
  .ct-top{padding:14px 18px}.ct .cw{padding:0 22px}
- .ct-hero{grid-template-columns:1fr;gap:44px;padding:30px 0 70px}.ct-fig{position:relative;top:0;order:-1;aspect-ratio:4/5}
- .ct-name{grid-template-columns:1fr;gap:20px;padding:40px 0}.ct-imgs{grid-template-columns:1fr 1fr}.ct-imgs div:last-child{display:none}
+ .ct-hero{grid-template-columns:1fr;gap:44px;padding:30px 0 70px}.ct-fig{position:relative;top:0;order:-1;aspect-ratio:4/3}
+ .ct-name{grid-template-columns:1fr;gap:20px;padding:40px 0}.ct-imgs{grid-template-columns:1fr}
 }
 
 /* mobile menu */
@@ -235,7 +238,7 @@ section{position:relative}
   #purpose{padding:96px 0 90px}.pp{grid-template-columns:1fr;gap:56px}.day{position:relative;top:0}
   #courses{padding:90px 0}.cs{grid-template-columns:1fr;gap:42px}.cs-l{position:relative;top:0}
   .crow{grid-template-columns:30px 1fr;gap:10px}.crow .a{grid-column:2;margin-top:-4px}.crow .s{grid-column:2}
-  #band{height:78vh}#band .wrap{padding-bottom:46px}
+  #band{height:auto;aspect-ratio:4/3;min-height:0}#band .wrap{padding-bottom:46px}
   #social{padding:90px 0 80px}.rail{padding:6px 22px 20px;margin:0 -22px 44px}.railw::after{right:-22px;width:70px}.feed{grid-template-columns:1fr;gap:24px}.post:nth-child(even){margin-top:0}
   #queue{padding:100px 0 80px}
 }
@@ -268,7 +271,6 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
   <video id="hv" playsinline preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
   <div class="hero-cap">A school for AI</div>
   <div class="hero-cue" aria-hidden="true"></div>
-  <button class="gate" id="gate" aria-label="Play with sound"><span>▶</span> Tap to begin, with sound</button>
   <div class="hero-tools" id="tools">
     <button id="bRe" aria-label="Replay" title="Replay"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v4.5H8"/></svg></button>
     <button id="bNext" aria-label="Another film" title="Another film"><svg viewBox="0 0 24 24"><path d="M3 7h3.5c3.5 0 4.5 10 8 10H21"/><path d="M3 17h3.5c1.6 0 2.7-1.9 3.6-3.9M13.9 10.9C14.8 8.9 15.9 7 17.5 7H21"/><path d="m18.5 4.5 2.5 2.5-2.5 2.5M18.5 14.5l2.5 2.5-2.5 2.5"/></svg></button>
@@ -308,7 +310,7 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 </section>
 
 <section id="band" class="clk" aria-label="Welcome to Catum" onclick="openCatum()" data-cta="catum_band">
-  <img class="bg" id="bandImg" data-par=".12" alt="" src="/pd/escola/capa-2-jardim-1800.jpg">
+  <img class="bg" id="bandImg" data-par=".12" alt="" src="/pd/personagens/nix/vida.jpg">
   <div class="wrap"><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div>
 </section>
 
@@ -431,13 +433,12 @@ async function loadHero(i,autoplay){
   if(autoplay!==false)await playHero();
 }
 async function playHero(){
-  hv.currentTime=0;hv.muted=false;gate(false);
-  try{await hv.play()}catch(e){gate(true)}     // browser refuses sound without a first touch: wait for it, never play muted
+  hv.currentTime=0;hv.muted=false;
+  try{await hv.play()}                       // with sound whenever the browser allows it
+  catch(e){hv.muted=true;try{await hv.play()}catch(x){}}   // otherwise it still starts by itself, and sound comes on at the first touch
 }
-function gate(on){$('#gate').classList.toggle('on',on)}
-function start(){gate(false);hv.muted=false;hv.play().catch(()=>{})}
-$('#gate').onclick=start;
-['pointerdown','touchstart','keydown'].forEach(ev=>addEventListener(ev,()=>{interacted=true;if($('#gate').classList.contains('on')&&scrollY<innerHeight*.5)start()},{passive:true}));
+function unmute(){if(hv.muted){hv.muted=false;hv.play().catch(()=>{})}}
+['pointerdown','touchstart','keydown','wheel'].forEach(ev=>addEventListener(ev,()=>{interacted=true;unmute()},{passive:true}));
 
 $('#bRe').onclick=()=>{med('hero_replay');heroDone=false;playHero();if(scrollY>10)goTo('intro',900)};
 $('#bNext').onclick=()=>{med('hero_next');loadHero(pickNext());if(scrollY>10)goTo('intro',900)};
@@ -491,7 +492,7 @@ async function boot(){
     const likes=14+Math.floor(r()*60);
     return `<article class="post rv" style="--d:${(i%2)*.1}s">
       <div class="post-h" onclick="openStudent('${s.id}')"><img src="/pd/personagens/${s.id}/avatar.jpg" alt="" loading="lazy"><div><b>${esc(s.name)}</b><small>${esc(s.title)}</small></div></div>
-      <div class="post-ph" onclick="openQueue('post')"><img data-par=".06" src="/pd/personagens/${s.id}/vida.jpg" alt="${esc(s.name)} in Catum" loading="lazy"></div>
+      <div class="post-ph" onclick="openQueue('post')"><img src="/pd/personagens/${s.id}/vida.jpg" alt="${esc(s.name)} in Catum" loading="lazy"></div>
       <div class="post-b"><p>${esc(s.post)}</p>
         <div class="acts"><button onclick="openQueue('like')" data-cta="like">♡ ${likes}</button><button onclick="openQueue('comment')" data-cta="comment">Comment</button></div>
         ${who.map(w=>{const L=DATA.comments[w.arch]||DATA.comments.Creator;return `<p class="cm"><b>${esc(w.name)}</b> ${esc(L[Math.floor(r()*L.length)])}</p>`}).join('')}
@@ -500,10 +501,10 @@ async function boot(){
 }
 /* fade slideshow: optional video first, then images, loops */
 function fadeShow(box,urls,o){o=o||{};box.classList.add('fs');
-  box.innerHTML=(o.video?'<video muted playsinline preload="auto" poster="'+o.poster+'" src="'+o.video+'"></video>':'')+urls.map(u=>'<img alt="" src="'+u+'" loading="lazy" draggable="false">').join('');
-  const it=[...box.children];let n=0,t=null;const vd=o.video?it[0]:null;
+  box.innerHTML=(o.video?'<div class="sl" style="--u:url('+o.poster+')"><video muted playsinline preload="auto" poster="'+o.poster+'" src="'+o.video+'" style="position:relative;width:100%;height:100%;object-fit:contain"></video></div>':'')+urls.map(u=>'<div class="sl" style="--u:url('+u+')"><img alt="" src="'+u+'" loading="lazy" draggable="false"></div>').join('');
+  const it=[...box.children];let n=0,t=null;const vw=o.video?it[0]:null,vd=vw?vw.querySelector('video'):null;
   function show(i){it[n].classList.remove('on');n=i%it.length;it[n].classList.add('on');clearTimeout(t);
-    if(it[n]===vd){vd.currentTime=0;vd.play().catch(()=>{});vd.onended=()=>show(n+1);t=setTimeout(()=>show(n+1),12000)}
+    if(it[n]===vw){vd.currentTime=0;vd.play().catch(()=>{});vd.onended=()=>show(n+1);t=setTimeout(()=>show(n+1),12000)}
     else{t=setTimeout(()=>show(n+1),o.ms||5200)}}
   if(it.length)show(0);return it}
 let CAT=[];
@@ -511,14 +512,14 @@ async function catumPool(){
   if(CAT.length)return CAT;
   const k=Math.floor(Date.now()/864e5);let list=[];
   try{const j=await (await fetch('/pd-imagens.php?pasta=postais')).json();list=(j.imagens||[]).map(x=>x.src).filter(Boolean)}catch(e){}
-  const base=['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
+  const base=[];
   const lives=DATA.students.map(s=>'/pd/personagens/'+s.id+'/vida.jpg');
   CAT=shuffle(base.concat(list,lives),'cat'+k);return CAT}
 async function dayImage(){
   const d=new Date();$('#dayDate').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const pool=await catumPool();
   fadeShow($('#dayFr'),pool.slice(0,14),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:4800});
-  $('#bandImg').src=pool[1]||'/pd/escola/capa-2-jardim-1800.jpg';
+  $('#bandImg').src=pool[1]||'/pd/personagens/nix/vida.jpg';
 }
 boot();observe();onScroll();
 
