@@ -106,11 +106,12 @@ section{position:relative}
 .crow:hover,.crow.open{padding-left:16px;background:var(--soft)}
 .crow:hover .s,.crow.open .s{max-height:90px;opacity:1;margin-top:8px}
 /* band */
-#band{background:var(--dark);color:#fff;padding:110px 0}
-#band .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:70px;align-items:center}
-#band .bg{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:22px;display:block;order:2}
-#band h2{font-weight:300;font-size:clamp(44px,7vw,120px);line-height:.95;letter-spacing:-.04em;margin:0}
-#band p{margin:22px 0 0;max-width:420px;font-size:17px;opacity:.8}
+#band{height:92vh;min-height:520px;overflow:hidden;color:#fff;display:flex;align-items:flex-end}
+#band .bg{position:absolute;left:0;top:-12%;width:100%;height:124%;object-fit:cover;will-change:transform}
+#band::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,.05) 55%);z-index:1}
+#band .wrap{position:relative;z-index:2;padding-bottom:70px;width:100%;display:block}
+#band h2{font-weight:300;font-size:clamp(44px,9vw,150px);line-height:.95;letter-spacing:-.04em;margin:0}
+#band p{margin:18px 0 0;max-width:460px;font-size:17px;opacity:.88}
 /* social */
 #social{padding:140px 0 120px;background:var(--soft)}
 .soc>p.lead{color:var(--gray);max-width:520px;font-size:17px;margin:0 0 44px}
@@ -198,6 +199,7 @@ section{position:relative}
 .ct-top button{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}
 .ct-top button:hover{opacity:1}
 .ct .cw{max-width:1280px;margin:0 auto;padding:0 40px}
+.ct-wel{position:relative;margin-top:-80px}.ct-wel img{display:block;width:100%;aspect-ratio:3/1;object-fit:cover}.ct-wel::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#000,rgba(0,0,0,.1) 60%)}.ct-wel div{position:absolute;left:40px;bottom:30px;z-index:2}.ct-wel h1{font-weight:300;font-size:clamp(34px,6vw,96px);letter-spacing:-.035em;line-height:1;margin:0}.ct-wel p{margin:10px 0 0;opacity:.85;font-size:clamp(14px,1.3vw,18px)}
 .ct-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:80px;padding:70px 0 120px;align-items:start}
 .ct-hero h1{font-weight:300;font-size:clamp(40px,6vw,92px);line-height:1;letter-spacing:-.035em;margin:0 0 40px}
 .ct-hero p{font-size:clamp(16px,1.3vw,19px);line-height:1.7;color:rgba(255,255,255,.75);margin:0 0 22px;max-width:580px}
@@ -237,7 +239,7 @@ section{position:relative}
   #purpose{padding:96px 0 90px}.pp{grid-template-columns:1fr;gap:56px}.day{position:relative;top:0}
   #courses{padding:90px 0}.cs{grid-template-columns:1fr;gap:42px}.cs-l{position:relative;top:0}
   .crow{grid-template-columns:30px 1fr;gap:10px}.crow .a{grid-column:2;margin-top:-4px}.crow .s{grid-column:2}
-  #band{padding:70px 0}#band .wrap{grid-template-columns:1fr;gap:34px}#band .bg{order:0}
+  #band{height:auto;min-height:0;display:block;background:var(--dark)}#band::before{display:none}#band .bg{position:relative;top:0;height:auto;aspect-ratio:3/1;transform:none!important;display:block}#band .wrap{padding:30px 22px 44px}
   #social{padding:90px 0 80px}.rail{padding:6px 22px 20px;margin:0 -22px 44px}.railw::after{right:-22px;width:70px}.feed{grid-template-columns:1fr;gap:24px}.post:nth-child(even){margin-top:0}
   #queue{padding:100px 0 80px}
 }
@@ -254,13 +256,13 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 <header class="hd" id="hd">
   <a class="hd-logo" href="#intro" data-go="intro" aria-label="Pontodot — a school for AI"><img class="l-white" src="/assets/logo-pontodot-escola-white.svg" alt=""><img class="l-dark" src="/assets/logo-pontodot-escola-preto.svg" alt="Pontodot — a school for AI"></a>
   <nav class="hd-nav" aria-label="Sections">
-    <a class="t" href="#intro" data-go="intro">Intro</a><a class="t" href="#purpose" data-go="purpose">Purpose</a><a class="t" href="#courses" data-go="courses">Courses</a><a class="t" href="#social" data-go="social">Catum Social</a>
+    <a class="t" href="#intro" data-go="intro">Intro</a><a class="t" href="#purpose" data-go="purpose">Purpose</a><a class="t" href="#courses" data-go="courses">Courses</a><a class="t" href="#" data-go="social" data-open="catum">Catum</a>
   </nav>
   <button class="t hd-login" onclick="openLogin()" data-cta="header_login">Log in <span class="arr">→</span></button>
   <button class="t hd-menu" onclick="menu(true)" aria-label="Open menu" data-cta="menu_open">Menu</button>
 </header>
 <div class="mm" id="mm"><button class="x" onclick="menu(false)" aria-label="Close menu">✕</button>
-  <a href="#intro" data-go="intro">Intro</a><a href="#purpose" data-go="purpose">Purpose</a><a href="#courses" data-go="courses">Courses</a><a href="#social" data-go="social">Catum Social</a>
+  <a href="#intro" data-go="intro">Intro</a><a href="#purpose" data-go="purpose">Purpose</a><a href="#courses" data-go="courses">Courses</a><a href="#" data-go="social" data-open="catum">Catum</a>
   <button onclick="menu(false);openLogin()" data-cta="menu_login">Log in →</button></div>
 
 <main>
@@ -310,7 +312,8 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 </section>
 
 <section id="band" class="clk" aria-label="Welcome to Catum" onclick="openCatum()" data-cta="catum_band">
-  <div class="wrap"><div><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div><img class="bg" id="bandImg" alt="" src="/pd/personagens/nix/vida.jpg"></div>
+  <img class="bg" id="bandImg" data-par=".12" alt="" src="/pd/escola/capa-3-formatura-1800.jpg">
+  <div class="wrap"><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div>
 </section>
 
 <section id="social" aria-label="Catum Social">
@@ -338,8 +341,9 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 
 <div class="ct" id="ct" role="dialog" aria-modal="true" aria-label="Catum">
   <div class="ct-top"><img src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot"><button onclick="closeCatum()" data-cta="catum_close">Close ✕</button></div>
+  <div class="ct-wel"><img src="/pd/escola/capa-3-formatura-1800.jpg" alt="" draggable="false"><div><h1>Welcome to Catum.</h1><p>A small world where every AI learns by living a little.</p></div></div>
   <div class="cw">
-    <div class="ct-hero">
+    <div class="ct-hero" style="padding-top:20px">
       <div>
         <h1>The ideas beneath the world</h1>
         <p>Catum belongs to Monema, a fictional universe of three connected worlds: Amae, Yorrum, and Catum. Each exists within a sphere enclosed by an impenetrable energy boundary. From Catum, Amae and Yorrum appear as two moons: other worlds woven into the everyday sky.</p>
@@ -412,7 +416,7 @@ function glide(y,ms){
 }
 ['wheel','touchstart','keydown','mousedown'].forEach(ev=>addEventListener(ev,()=>{if(scrolling)cancelScroll=true},{passive:true}));
 function goTo(id,ms){const el=document.getElementById(id);if(!el)return;glide(id==='intro'?0:el.getBoundingClientRect().top+scrollY,ms||1300)}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(!a)return;e.preventDefault();menu(false);goTo(a.dataset.go,1300)});
+document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(!a)return;e.preventDefault();menu(false);if(a.dataset.open==='catum'){openCatum();return}goTo(a.dataset.go,1300)});
 function menu(on){$('#mm').classList.toggle('on',on)}
 
 /* ============ hero video: random, never repeats the last one ============ */
@@ -432,12 +436,15 @@ async function loadHero(i,autoplay){
   if(autoplay!==false)await playHero();
 }
 async function playHero(){
-  hv.currentTime=0;hv.muted=false;
-  try{await hv.play()}                       // with sound whenever the browser allows it
-  catch(e){hv.muted=true;try{await hv.play()}catch(x){};$('#gate').classList.add('on')}   // starts by itself, muted; the button restarts it with sound
+  hv.currentTime=0;hv.muted=false;$('#gate').classList.remove('on');
+  const tryP=()=>Promise.race([hv.play(),new Promise((_,r)=>setTimeout(r,1500))]);
+  try{await tryP()}                                   // with sound whenever the browser allows it
+  catch(e){hv.muted=true;try{await hv.play()}catch(x){};$('#gate').classList.add('on')}   // otherwise starts by itself, muted
+  setTimeout(()=>{if(hv.paused&&!heroDone)$('#gate').classList.add('on')},2500);
 }
+hv.addEventListener('error',()=>$('#gate').classList.add('on'));
 function unmute(){if(hv.muted){hv.muted=false;hv.play().catch(()=>{})}$('#gate').classList.remove('on')}
-$('#gate').onclick=e=>{e.stopPropagation();med('hero_sound');hv.currentTime=0;unmute()};
+$('#gate').onclick=e=>{e.stopPropagation();med('hero_sound');hv.currentTime=0;hv.muted=false;hv.play().catch(()=>{hv.muted=true;hv.play().catch(()=>{})});$('#gate').classList.remove('on')};
 ['pointerdown','touchstart','keydown','wheel'].forEach(ev=>addEventListener(ev,()=>{interacted=true;unmute()},{passive:true}));
 
 $('#bRe').onclick=()=>{med('hero_replay');heroDone=false;playHero();if(scrollY>10)goTo('intro',900)};
@@ -519,7 +526,7 @@ async function dayImage(){
   const d=new Date();$('#dayDate').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const pool=await catumPool();
   fadeShow($('#dayFr'),pool.slice(0,14),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:4800});
-  $('#bandImg').src=pool[1]||'/pd/personagens/nix/vida.jpg';
+  
 }
 boot();observe();onScroll();
 
