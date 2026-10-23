@@ -31,7 +31,12 @@ if ($me['role'] !== 'admin') {
 }
 
 $nonce = bin2hex(random_bytes(12));
+// volta pra MESMA casa de onde a pessoa pediu (pontodot.ai ou sd.sergioduh.com):
+// a sessão do navegador é de cada endereço, voltar pro outro parece "não conectou".
+$orig = $_SERVER['HTTP_ORIGIN'] ?? '';
+$ret  = in_array($orig, sd_origens(), true) ? $orig : '';
 $payload = base64_encode(json_encode([
+    'ret'   => $ret,
     'uid'   => $me['id'],
     'nonce' => $nonce,
     'exp'   => time() + 600,   // 10 minutos pra completar o login na Meta

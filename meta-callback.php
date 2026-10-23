@@ -54,10 +54,12 @@ function supa($path, $method, $body = null, $extra = []) {
 }
 
 // Volta pro app com uma mensagem — sempre pela mesma porta, sucesso ou erro.
+$RET_BASE = '';
 function voltar($status, $msg = '') {
     $qs = http_build_query(['meta' => $status, 'msg' => $msg]);
     // volta pra FRENTE (o verso sozinho, app.html, não tem o botão de virar)
-    header('Location: ' . sd_base() . '/?' . $qs);
+    global $RET_BASE;
+    header('Location: ' . ($RET_BASE ?: sd_base()) . '/?' . $qs);
     exit;
 }
 
@@ -77,6 +79,7 @@ if (!$dados || ($dados['exp'] ?? 0) < time()) {
     voltar('erro', 'O link de conexão expirou — tente conectar de novo.');
 }
 $adminId = $dados['uid'];
+$RET_BASE = (!empty($dados['ret']) && in_array($dados['ret'], sd_origens(), true)) ? $dados['ret'] : '';
 
 // A Meta pode voltar com erro (usuário cancelou, por exemplo)
 if (!empty($_GET['error'])) {
