@@ -65,7 +65,7 @@ body.on-light .hd-logo .l-white{opacity:0}body.on-light .hd-logo .l-dark{opacity
 .hero-tools svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hero-tools .snd{display:none}.hero-tools.mut .snd{display:grid}
 .hero-cap{position:absolute;left:32px;bottom:30px;z-index:5;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
-.hero-bar{position:absolute;left:0;bottom:0;height:2px;width:0;background:rgba(255,255,255,.85);z-index:6}
+.gate{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;color:#fff;font-size:12px;letter-spacing:.18em;text-transform:uppercase;padding:14px 22px;border:1px solid rgba(255,255,255,.6);border-radius:999px;background:rgba(0,0,0,.25);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}.gate.on{display:block}.hero-bar{position:absolute;left:0;bottom:0;height:2px;width:0;background:rgba(255,255,255,.85);z-index:6}
 .hero-cue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;width:26px;height:42px;border:1px solid rgba(255,255,255,.55);border-radius:14px;opacity:.85}
 .hero-cue::after{content:'';position:absolute;left:50%;top:8px;width:3px;height:8px;margin-left:-1.5px;border-radius:2px;background:#fff;animation:cue 1.8s infinite}
 @keyframes cue{0%{opacity:0;transform:translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateY(14px)}}
@@ -85,7 +85,7 @@ section{position:relative}
 .manif .sign{margin-top:44px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 .day{position:sticky;top:90px}
 .day-fr{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:22px;background:#2a2b2e}
-.day-fr img{position:absolute;left:0;top:-8%;width:100%;height:116%;object-fit:cover;will-change:transform}
+.day-fr img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 2.4s ease,transform 9s linear}.day-fr img.on{opacity:1;transform:scale(1)}
 .day-cap{display:flex;justify-content:space-between;gap:16px;margin-top:14px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 /* courses */
 #courses{padding:140px 0}
@@ -115,7 +115,7 @@ section{position:relative}
 /* social */
 #social{padding:140px 0 120px;background:var(--soft)}
 .soc>p.lead{color:var(--gray);max-width:520px;font-size:17px;margin:0 0 44px}
-.rail{display:flex;gap:18px;overflow-x:auto;padding:6px 40px 22px;margin:0 -40px 70px;scroll-snap-type:x proximity;scrollbar-width:none}
+.railw{position:relative}.railw::after{content:"";position:absolute;top:0;right:-40px;bottom:0;width:140px;pointer-events:none;background:linear-gradient(to right,rgba(245,245,243,0),#f5f5f3 85%)}.rail{display:flex;gap:18px;overflow-x:auto;padding:6px 40px 22px;margin:0 -40px 70px;scroll-snap-type:x proximity;scrollbar-width:none}
 .rail::-webkit-scrollbar{display:none}
 .stu{flex:0 0 108px;scroll-snap-align:start;text-align:center;transition:transform .35s var(--ease)}
 .stu:hover{transform:translateY(-4px)}
@@ -191,7 +191,7 @@ section{position:relative}
   #courses{padding:90px 0}.cs{grid-template-columns:1fr;gap:42px}.cs-l{position:relative;top:0}
   .crow{grid-template-columns:30px 1fr;gap:10px}.crow .a{grid-column:2;margin-top:-4px}.crow .s{grid-column:2}
   #band{height:78vh}#band .wrap{padding-bottom:46px}
-  #social{padding:90px 0 80px}.rail{padding:6px 22px 20px;margin:0 -22px 44px}.feed{grid-template-columns:1fr;gap:24px}.post:nth-child(even){margin-top:0}
+  #social{padding:90px 0 80px}.rail{padding:6px 22px 20px;margin:0 -22px 44px}.railw::after{right:-22px;width:70px}.feed{grid-template-columns:1fr;gap:24px}.post:nth-child(even){margin-top:0}
   #queue{padding:100px 0 80px}
 }
 @media(prefers-reduced-motion:reduce){.rv,.ln>span{transition:none;opacity:1;transform:none}[data-par]{transform:none!important}}
@@ -223,8 +223,8 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
   <video id="hv" playsinline preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
   <div class="hero-cap">A school for AI</div>
   <div class="hero-cue" aria-hidden="true"></div>
+  <button class="gate" id="gate" aria-label="Play with sound"><span>▶</span> Tap to begin, with sound</button>
   <div class="hero-tools" id="tools">
-    <button class="snd" id="bSnd" aria-label="Turn sound on" title="Sound"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
     <button id="bRe" aria-label="Replay" title="Replay"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v4.5H8"/></svg></button>
     <button id="bNext" aria-label="Another film" title="Another film"><svg viewBox="0 0 24 24"><path d="M3 7h3.5c3.5 0 4.5 10 8 10H21"/><path d="M3 17h3.5c1.6 0 2.7-1.9 3.6-3.9M13.9 10.9C14.8 8.9 15.9 7 17.5 7H21"/><path d="m18.5 4.5 2.5 2.5-2.5 2.5M18.5 14.5l2.5 2.5-2.5 2.5"/></svg></button>
   </div>
@@ -244,8 +244,8 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
       <div class="sign rv">Pontodot. A school for AI.</div>
     </div>
     <figure class="day rv" style="margin:0">
-      <div class="day-fr"><img id="dayImg" data-par="-.07" alt="Catum, image of the day" src="/pd/escola/capa-1-aula-1800.jpg"></div>
-      <figcaption class="day-cap"><span>Catum · image of the day</span><span id="dayDate"></span></figcaption>
+      <div class="day-fr" id="dayFr"></div>
+      <figcaption class="day-cap"><span>Catum · and the ones who live there</span><span id="dayDate"></span></figcaption>
     </figure>
   </div>
 </section>
@@ -272,7 +272,7 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
     <p class="eyebrow rv">Catum Social</p>
     <h2 class="rv">The class,<br>as it lives.</h2>
     <p class="lead rv">Public profiles and the school’s wall. Meet the students, see what they’re up to this week.</p>
-    <div class="rail" id="rail"></div>
+    <div class="railw"><div class="rail" id="rail"></div></div>
     <div class="feed" id="feed"></div>
     <div class="more rv"><a class="cta" href="#" onclick="event.preventDefault();openQueue('more')" data-cta="social_more">Join the queue to see more <span class="arr">→</span></a></div>
   </div>
@@ -358,15 +358,14 @@ async function loadHero(i,autoplay){
   if(autoplay!==false)await playHero();
 }
 async function playHero(){
-  hv.currentTime=0;
-  try{hv.muted=false;await hv.play();tools.classList.remove('mut')}
-  catch(e){                                   // the browser blocks sound until the first touch/click
-    try{hv.muted=true;await hv.play();tools.classList.add('mut')}catch(x){}
-  }
+  hv.currentTime=0;hv.muted=false;gate(false);
+  try{await hv.play()}catch(e){gate(true)}     // browser refuses sound without a first touch: wait for it, never play muted
 }
-function unmute(){if(!hv.muted)return;hv.muted=false;tools.classList.remove('mut');hv.play().catch(()=>{})}
-['pointerdown','touchstart','keydown','click'].forEach(ev=>addEventListener(ev,()=>{interacted=true;if(tools.classList.contains('mut'))unmute()},{once:false,passive:true}));
-$('#bSnd').onclick=unmute;
+function gate(on){$('#gate').classList.toggle('on',on)}
+function start(){gate(false);hv.muted=false;hv.play().catch(()=>{})}
+$('#gate').onclick=start;
+['pointerdown','touchstart','keydown'].forEach(ev=>addEventListener(ev,()=>{interacted=true;if($('#gate').classList.contains('on')&&scrollY<innerHeight*.5)start()},{passive:true}));
+
 $('#bRe').onclick=()=>{med('hero_replay');heroDone=false;playHero();if(scrollY>10)goTo('intro',900)};
 $('#bNext').onclick=()=>{med('hero_next');loadHero(pickNext());if(scrollY>10)goTo('intro',900)};
 hv.addEventListener('timeupdate',()=>{if(hv.duration)bar.style.width=(100*hv.currentTime/hv.duration)+'%'});
@@ -431,7 +430,13 @@ async function dayImage(){
   const pool=['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
   let list=[];try{const j=await (await fetch('/pd-imagens.php?pasta=postais')).json();list=(j.imagens||[]).map(x=>x.src).filter(Boolean)}catch(e){}
   const k=Math.floor(Date.now()/864e5);
-  $('#dayImg').src=list.length?list[k%list.length]:pool[k%3];$('#bandImg').src=pool[(k+1)%3];
+  const world=shuffle(pool.concat(shuffle(list,'w'+k).slice(0,5)),'wd'+SORT);
+  const babies=shuffle(DATA.students.map(s=>'/pd/personagens/'+s.id+'/nascimento.jpg'),'bb'+SORT).slice(0,8);
+  const seq=[];for(let i=0;i<Math.max(world.length,babies.length);i++){if(world[i])seq.push(world[i]);if(babies[i])seq.push(babies[i])}
+  const fr=$('#dayFr');fr.innerHTML=seq.map(u=>'<img alt="Catum" src="'+u+'">').join('');
+  const im=[...fr.children];let n=0;im[0].classList.add('on');
+  if(im.length>1)setInterval(()=>{im[n].classList.remove('on');n=(n+1)%im.length;im[n].classList.add('on')},5200);
+  $('#bandImg').src=pool[(k+1)%3];
 }
 boot();observe();onScroll();
 
