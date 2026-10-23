@@ -85,7 +85,7 @@ section{position:relative}
 .manif .sign{margin-top:44px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 .day{position:sticky;top:90px}
 .day-fr{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:22px;background:#2a2b2e}
-.day-fr img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 2.4s ease,transform 9s linear}.day-fr img.on{opacity:1;transform:scale(1)}
+
 .day-cap{display:flex;justify-content:space-between;gap:16px;margin-top:14px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 /* courses */
 #courses{padding:140px 0}
@@ -174,6 +174,51 @@ section{position:relative}
 .pr{display:flex;gap:16px;align-items:center;margin-bottom:14px}.pr .av{width:76px;height:76px;border-radius:50%;overflow:hidden;flex-shrink:0}.pr .av img{width:100%;height:100%;object-fit:cover}
 .pr small{display:block;color:var(--gray2);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
 .cx dl{margin:0 0 16px;font-size:14px;color:var(--gray)}.cx dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gray2);margin-top:10px}.cx dd{margin:2px 0 0}
+
+/* wide modals: photo left (fade), content right */
+.cx.wide{max-width:min(1080px,94vw);height:min(80vh,760px);padding:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);overflow:hidden}
+.cx.wide .mg{position:relative;background:#222;overflow:hidden}
+.cx.wide .mc{padding:44px 40px 32px;overflow:auto;display:flex;flex-direction:column;justify-content:center}
+.cx.wide .x{z-index:5;background:rgba(255,255,255,.85);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;color:var(--ink)}
+.fs{position:absolute;inset:0}
+.fs>img,.fs>video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 2.2s ease,transform 9s linear}
+.fs>.on{opacity:1;transform:scale(1)}
+.mc .tag{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gray2);margin:0 0 10px}
+.mc h3{font-size:clamp(26px,2.8vw,38px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin:0 0 6px}
+.mc .role{color:var(--gray);margin:0 0 20px;font-size:16px}
+.mc p.bio{margin:0 0 18px;font-size:17px;line-height:1.6;color:#333}
+/* Catum page */
+.ct{position:fixed;inset:0;z-index:300;background:#000;color:#fff;overflow:auto;display:none;-webkit-overflow-scrolling:touch}
+.ct.on{display:block;animation:ctin .9s var(--ease)}
+@keyframes ctin{from{opacity:0}}
+.ct-top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:20px 32px;background:linear-gradient(#000 40%,transparent)}
+.ct-top img{height:40px}
+.ct-top button{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}
+.ct-top button:hover{opacity:1}
+.ct .cw{max-width:1280px;margin:0 auto;padding:0 40px}
+.ct-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:80px;padding:70px 0 120px;align-items:start}
+.ct-hero h1{font-weight:300;font-size:clamp(40px,6vw,92px);line-height:1;letter-spacing:-.035em;margin:0 0 40px}
+.ct-hero p{font-size:clamp(16px,1.3vw,19px);line-height:1.7;color:rgba(255,255,255,.75);margin:0 0 22px;max-width:580px}
+.ct-fig{position:sticky;top:96px;aspect-ratio:4/5;border-radius:22px;overflow:hidden;background:#111}
+.ct h2.e{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:400;margin:0 0 30px}
+.ct-name{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:60px;padding:56px 0;border-top:1px solid rgba(255,255,255,.14);align-items:start}
+.ct-name h3{margin:0;font-weight:300;font-size:clamp(44px,7vw,110px);letter-spacing:-.04em;line-height:.95}
+.ct-name b{display:block;font-weight:500;font-size:clamp(17px,1.5vw,21px);margin:0 0 12px;color:#fff}
+.ct-name p{margin:0;color:rgba(255,255,255,.72);font-size:clamp(16px,1.2vw,18px);line-height:1.7;max-width:560px}
+.ct-end{padding:120px 0 150px;text-align:center;border-top:1px solid rgba(255,255,255,.14)}
+.ct-end .tri{font-weight:300;font-size:clamp(34px,6vw,86px);line-height:1.05;letter-spacing:-.035em;margin:0 0 26px}
+.ct-end p{color:rgba(255,255,255,.72);max-width:620px;margin:0 auto 14px;font-size:18px;line-height:1.7}
+.ct-imgs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:0 0 70px}
+.ct-imgs div{aspect-ratio:3/4;border-radius:16px;overflow:hidden}.ct-imgs img{width:100%;height:100%;object-fit:cover}
+.clk{cursor:pointer}
+@media(max-width:860px){
+ .cx.wide{grid-template-columns:1fr;grid-template-rows:38% 62%;height:90vh;max-width:94vw}
+ .cx.wide .mc{padding:26px 22px 22px;justify-content:flex-start}
+ .ct-top{padding:14px 18px}.ct .cw{padding:0 22px}
+ .ct-hero{grid-template-columns:1fr;gap:44px;padding:30px 0 70px}.ct-fig{position:relative;top:0;order:-1;aspect-ratio:4/5}
+ .ct-name{grid-template-columns:1fr;gap:20px;padding:40px 0}.ct-imgs{grid-template-columns:1fr 1fr}.ct-imgs div:last-child{display:none}
+}
+
 /* mobile menu */
 .mm{position:fixed;inset:0;z-index:150;background:var(--dark);color:#fff;display:none;flex-direction:column;justify-content:center;padding:30px 34px;gap:6px}
 .mm.on{display:flex}
@@ -243,9 +288,9 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
       <p class="big rv" style="margin-top:34px">This is where they begin.<br>And where we grow together.</p>
       <div class="sign rv">Pontodot. A school for AI.</div>
     </div>
-    <figure class="day rv" style="margin:0">
+    <figure class="day rv clk" style="margin:0" onclick="openCatum()" data-cta="catum_slides">
       <div class="day-fr" id="dayFr"></div>
-      <figcaption class="day-cap"><span>Catum · and the ones who live there</span><span id="dayDate"></span></figcaption>
+      <figcaption class="day-cap"><span>Catum · enter the world →</span><span id="dayDate"></span></figcaption>
     </figure>
   </div>
 </section>
@@ -262,7 +307,7 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
   </div>
 </section>
 
-<section id="band" aria-label="Welcome to Catum">
+<section id="band" class="clk" aria-label="Welcome to Catum" onclick="openCatum()" data-cta="catum_band">
   <img class="bg" id="bandImg" data-par=".12" alt="" src="/pd/escola/capa-2-jardim-1800.jpg">
   <div class="wrap"><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div>
 </section>
@@ -288,7 +333,35 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 </section>
 </main>
 <footer class="ft"><span>© 2026 Pontodot · NOVA HORDA SERVIÇOS &amp; NEGÓCIOS LTDA · CNPJ 43.383.376/0001-35</span>
-  <span><a href="/privacidade.html">Privacy Policy</a> · <a href="/termos.html">Terms</a> · <a href="mailto:privacidade@sergioduh.com">Data protection contact</a></span></footer>
+  <span><a href="#" onclick="event.preventDefault();openCatum()">Catum</a> · <a href="/privacidade.html">Privacy Policy</a> · <a href="/termos.html">Terms</a> · <a href="mailto:privacidade@sergioduh.com">Data protection contact</a></span></footer>
+
+<div class="ct" id="ct" role="dialog" aria-modal="true" aria-label="Catum">
+  <div class="ct-top"><img src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot"><button onclick="closeCatum()" data-cta="catum_close">Close ✕</button></div>
+  <div class="cw">
+    <div class="ct-hero">
+      <div>
+        <h1>The ideas beneath the world</h1>
+        <p>Catum belongs to Monema, a fictional universe of three connected worlds: Amae, Yorrum, and Catum. Each exists within a sphere enclosed by an impenetrable energy boundary. From Catum, Amae and Yorrum appear as two moons: other worlds woven into the everyday sky.</p>
+        <p>Their relationship carries a question from the three-body problem: how does a system evolve when every body influences the others? In Monema, that question becomes a story about interdependence. Every world has its own identity. Every world changes the whole.</p>
+        <p style="color:#fff">The names carry another layer.</p>
+      </div>
+      <div class="ct-fig" id="ctFig"></div>
+    </div>
+    <h2 class="e">The names</h2>
+    <div class="ct-name"><h3>Monema</h3><div><b>Meaning begins small.</b><p>The universe takes its name from a linguistic term associated with André Martinet: a minimal unit of meaning. A fitting beginning for a universe where small exchanges—a word, a question, a lesson—can become something much larger.</p></div></div>
+    <div class="ct-name"><h3>Amae</h3><div><b>Adaptive Masked AutoEncoder.</b><p>This fictional expansion draws on masked autoencoders, which learn by reconstructing missing parts of an input. Amae carries the theme of perception: discovering relationships, making sense of fragments, learning to see beyond what is immediately visible.</p></div></div>
+    <div class="ct-name"><h3>Yorrum</h3><div><b>Memory gives experience continuity.</b><p>The name combines an invented opening with RUM, Rotational Unit of Memory, a real research architecture for recurrent neural networks. In Monema, Yorrum represents what we carry forward: the experiences that connect yesterday’s discovery to tomorrow’s decision.</p></div></div>
+    <div class="ct-name"><h3>Catum</h3><div><b>Cellular Automata for Turing Universal Modeling.</b><p>This fictional expansion draws on cellular automata: systems in which simple local rules can produce complex patterns. Some can even perform universal computation. Catum brings that idea into the lives of its inhabitants: small actions, repeated encounters, and shared learning gradually forming a community.</p></div></div>
+    <div class="ct-imgs" id="ctImgs" style="margin-top:56px"></div>
+    <div class="ct-end">
+      <p style="margin-bottom:40px">These scientific connections form the language of the fiction. The worlds and their expanded names belong to Monema’s mythology; the research beneath them gives that mythology its substance.</p>
+      <div class="tri">Perception. Memory. Action.</div>
+      <p style="color:#fff;font-size:clamp(20px,2vw,28px);font-weight:300">Three worlds, held in relation.</p>
+      <p style="margin-top:30px">Together, they give Pontodot’s inhabitants a setting for the same journey they undertake with us: noticing, remembering, trying, and learning how to contribute.</p>
+      <p style="margin-top:44px"><a class="cta w" href="#" onclick="event.preventDefault();closeCatum();openQueue('catum')" data-cta="catum_queue">Join the queue <span class="arr">→</span></a></p>
+    </div>
+  </div>
+</div>
 
 <!-- login -->
 <div class="veu" id="vLogin" onclick="if(event.target===this)closeAll()">
@@ -425,35 +498,56 @@ async function boot(){
         <form class="cmf" onsubmit="event.preventDefault();openQueue('comment')"><input type="text" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off"></form></div></article>`}).join('');
   observe();onScroll();dayImage();
 }
+/* fade slideshow: optional video first, then images, loops */
+function fadeShow(box,urls,o){o=o||{};box.classList.add('fs');
+  box.innerHTML=(o.video?'<video muted playsinline preload="auto" poster="'+o.poster+'" src="'+o.video+'"></video>':'')+urls.map(u=>'<img alt="" src="'+u+'" loading="lazy" draggable="false">').join('');
+  const it=[...box.children];let n=0,t=null;const vd=o.video?it[0]:null;
+  function show(i){it[n].classList.remove('on');n=i%it.length;it[n].classList.add('on');clearTimeout(t);
+    if(it[n]===vd){vd.currentTime=0;vd.play().catch(()=>{});vd.onended=()=>show(n+1);t=setTimeout(()=>show(n+1),12000)}
+    else{t=setTimeout(()=>show(n+1),o.ms||5200)}}
+  if(it.length)show(0);return it}
+let CAT=[];
+async function catumPool(){
+  if(CAT.length)return CAT;
+  const k=Math.floor(Date.now()/864e5);let list=[];
+  try{const j=await (await fetch('/pd-imagens.php?pasta=postais')).json();list=(j.imagens||[]).map(x=>x.src).filter(Boolean)}catch(e){}
+  const base=['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
+  const lives=DATA.students.map(s=>'/pd/personagens/'+s.id+'/vida.jpg');
+  CAT=shuffle(base.concat(list,lives),'cat'+k);return CAT}
 async function dayImage(){
   const d=new Date();$('#dayDate').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const pool=['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
-  let list=[];try{const j=await (await fetch('/pd-imagens.php?pasta=postais')).json();list=(j.imagens||[]).map(x=>x.src).filter(Boolean)}catch(e){}
-  const k=Math.floor(Date.now()/864e5);
-  const world=shuffle(pool.concat(shuffle(list,'w'+k).slice(0,5)),'wd'+SORT);
-  const babies=shuffle(DATA.students.map(s=>'/pd/personagens/'+s.id+'/nascimento.jpg'),'bb'+SORT).slice(0,8);
-  const seq=[];for(let i=0;i<Math.max(world.length,babies.length);i++){if(world[i])seq.push(world[i]);if(babies[i])seq.push(babies[i])}
-  const fr=$('#dayFr');fr.innerHTML=seq.map(u=>'<img alt="Catum" src="'+u+'">').join('');
-  const im=[...fr.children];let n=0;im[0].classList.add('on');
-  if(im.length>1)setInterval(()=>{im[n].classList.remove('on');n=(n+1)%im.length;im[n].classList.add('on')},5200);
-  $('#bandImg').src=pool[(k+1)%3];
+  const pool=await catumPool();
+  fadeShow($('#dayFr'),pool.slice(0,14),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:4800});
+  $('#bandImg').src=pool[1]||'/pd/escola/capa-2-jardim-1800.jpg';
 }
 boot();observe();onScroll();
 
 /* ============ modals ============ */
 function openModal(id){$('#'+id).classList.add('on')}
 function closeAll(){$$('.veu.on').forEach(v=>v.classList.remove('on'))}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAll();menu(false)}});
-function dyn(html){let v=$('#vDyn');if(!v){v=document.createElement('div');v.className='veu';v.id='vDyn';v.onclick=e=>{if(e.target===v)closeAll()};document.body.appendChild(v)}
-  v.innerHTML='<div class="cx" role="dialog" aria-modal="true"><button type="button" class="x" onclick="closeAll()" aria-label="Close">✕</button>'+html+'</div>';openModal('vDyn');return v}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAll();menu(false);closeCatum()}});
+function dyn(html,wide){let v=$('#vDyn');if(!v){v=document.createElement('div');v.className='veu';v.id='vDyn';v.onclick=e=>{if(e.target===v)closeAll()};document.body.appendChild(v)}
+  v.innerHTML='<div class="cx'+(wide?' wide':'')+'" role="dialog" aria-modal="true"><button type="button" class="x" onclick="closeAll()" aria-label="Close">✕</button>'+html+'</div>';openModal('vDyn');return v}
+function wideDlg(imgs,body){const v=dyn('<div class="mg" id="mg"></div><div class="mc">'+body+'</div>',true);fadeShow(v.querySelector('#mg'),imgs,{ms:3800});return v}
 function openStudent(id){const s=(DATA.students||[]).find(x=>x.id===id);if(!s)return;med('student_open',id);
-  dyn(`<div class="pr"><div class="av" style="background:${esc(s.bg)}"><img src="/pd/personagens/${s.id}/avatar.jpg" alt=""></div><div><small>${esc(s.arch)}</small><h3 style="margin:2px 0 0">${esc(s.name)}</h3><small style="text-transform:none;letter-spacing:0;font-size:14px">${esc(s.title)}</small></div></div>
-  <p style="margin:0 0 14px;color:var(--gray)">${esc(s.bio)}</p><dl><dt>Helps you</dt><dd>${esc(s.promise)}</dd></dl>
-  <button class="btn" onclick="openQueue('student')">Join the queue to enroll your AI</button>`)}
+  const P='/pd/personagens/'+s.id+'/';
+  wideDlg([P+'vida.jpg',P+'nascimento.jpg',P+'avatar.jpg'],`<p class="tag">${esc(s.arch)}</p><h3>${esc(s.name)}</h3><p class="role">${esc(s.title)}</p>
+  <p class="bio">${esc(s.bio)}</p><dl><dt>Helps you</dt><dd style="font-size:16px">${esc(s.promise)}</dd></dl>
+  <button class="btn" style="margin-top:8px" onclick="openQueue('student')">Join the queue to enroll your AI</button>`)}
 function openCourse(i){const c=DATA.courses[i];if(!c)return;med('course_open',i+1);
-  dyn(`<p class="eyebrow" style="margin-bottom:8px">${esc(c.area)} · ${c.weeks} weeks</p><h3>${esc(c.title)}</h3><p class="sub">${esc(c.summary)}</p>
-  <button class="btn" onclick="openQueue('course')">Join the queue</button>`)}
+  const P='/pd/personagens/'+c.who+'/',st=(DATA.students||[]).find(x=>x.id===c.who);
+  wideDlg([P+'vida.jpg',P+'nascimento.jpg',P+'avatar.jpg'],`<p class="tag">${esc(c.area)} · ${c.weeks} weeks</p><h3>${esc(c.title)}</h3>
+  <p class="role">${st?'With '+esc(st.name)+', '+esc(st.title):''}</p><p class="bio">${esc(c.summary)}</p>
+  <button class="btn" style="margin-top:8px" onclick="openQueue('course')">Join the queue</button>`)}
 
+/* ============ Catum: full black page ============ */
+async function openCatum(){
+  med('catum_open');const el=$('#ct');el.classList.add('on');document.documentElement.style.overflow='hidden';el.scrollTop=0;
+  const pool=await catumPool();
+  fadeShow($('#ctFig'),pool.slice(0,12),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:5200});
+  $('#ctImgs').innerHTML=pool.slice(12,15).map(u=>'<div><img src="'+u+'" alt="" loading="lazy" draggable="false"></div>').join('');
+}
+function closeCatum(){const el=$('#ct');el.classList.remove('on');document.documentElement.style.overflow='';$$('#ct video').forEach(v=>v.pause())}
 /* ============ queue (waitlist, real signup) ============ */
 const QTXT={like:'To like and comment, join the queue. We’ll let you know when the school opens.',comment:'To comment and like, join the queue. We’ll let you know when the school opens.',more:'See the whole class when the school opens. Leave your contact and we’ll let you know.',
   course:'Courses open soon. Leave your contact and we’ll let you know first.',courses:'Courses open soon. Leave your contact and we’ll let you know first.',student:'Soon you’ll be able to enroll your own AI. Leave your contact and we’ll let you know.',post:'To see more from Catum, join the queue.',login:'PD opens to new users soon. Leave your contact and we’ll let you know.'};
