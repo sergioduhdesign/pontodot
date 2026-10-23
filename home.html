@@ -106,12 +106,11 @@ section{position:relative}
 .crow:hover,.crow.open{padding-left:16px;background:var(--soft)}
 .crow:hover .s,.crow.open .s{max-height:90px;opacity:1;margin-top:8px}
 /* band */
-#band{height:84vh;min-height:520px;overflow:hidden;color:#fff;display:flex;align-items:flex-end}
-#band .bg{position:absolute;left:0;top:-6%;width:100%;height:112%;object-fit:cover;will-change:transform}
-#band::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,.05) 55%);z-index:1}
-#band .wrap{position:relative;z-index:2;padding-bottom:70px;width:100%}
-#band h2{font-weight:300;font-size:clamp(44px,9vw,150px);line-height:.95;letter-spacing:-.04em;margin:0}
-#band p{margin:18px 0 0;max-width:460px;font-size:17px;opacity:.88}
+#band{background:var(--dark);color:#fff;padding:110px 0}
+#band .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:70px;align-items:center}
+#band .bg{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:22px;display:block;order:2}
+#band h2{font-weight:300;font-size:clamp(44px,7vw,120px);line-height:.95;letter-spacing:-.04em;margin:0}
+#band p{margin:22px 0 0;max-width:420px;font-size:17px;opacity:.8}
 /* social */
 #social{padding:140px 0 120px;background:var(--soft)}
 .soc>p.lead{color:var(--gray);max-width:520px;font-size:17px;margin:0 0 44px}
@@ -176,8 +175,8 @@ section{position:relative}
 .cx dl{margin:0 0 16px;font-size:14px;color:var(--gray)}.cx dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gray2);margin-top:10px}.cx dd{margin:2px 0 0}
 
 /* wide modals: photo left (fade), content right */
-.cx.wide{max-width:min(1180px,94vw);height:min(74vh,660px);padding:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);overflow:hidden}
-.cx.wide .mg{position:relative;background:#222;overflow:hidden}
+.cx.wide{max-width:min(1100px,94vw);height:auto;max-height:90vh;align-items:stretch;padding:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);overflow:hidden}
+.cx.wide .mg{aspect-ratio:4/3;position:relative;background:#222;overflow:hidden}
 .cx.wide .mc{padding:44px 40px 32px;overflow:auto;display:flex;flex-direction:column;justify-content:center}
 .cx.wide .x{z-index:5;background:rgba(255,255,255,.85);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;color:var(--ink)}
 .fs{position:absolute;inset:0}
@@ -215,7 +214,7 @@ section{position:relative}
 .ct-imgs div{aspect-ratio:4/3;border-radius:16px;overflow:hidden}.ct-imgs img{width:100%;height:100%;object-fit:cover}
 .clk{cursor:pointer}
 @media(max-width:860px){
- .cx.wide{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:90vh;max-width:94vw}.cx.wide .mg{aspect-ratio:4/3}
+ .cx.wide{grid-template-columns:1fr;grid-template-rows:auto 1fr;max-height:92vh;max-width:94vw}
  .cx.wide .mc{padding:26px 22px 22px;justify-content:flex-start}
  .ct-top{padding:14px 18px}.ct .cw{padding:0 22px}
  .ct-hero{grid-template-columns:1fr;gap:44px;padding:30px 0 70px}.ct-fig{position:relative;top:0;order:-1;aspect-ratio:4/3}
@@ -238,7 +237,7 @@ section{position:relative}
   #purpose{padding:96px 0 90px}.pp{grid-template-columns:1fr;gap:56px}.day{position:relative;top:0}
   #courses{padding:90px 0}.cs{grid-template-columns:1fr;gap:42px}.cs-l{position:relative;top:0}
   .crow{grid-template-columns:30px 1fr;gap:10px}.crow .a{grid-column:2;margin-top:-4px}.crow .s{grid-column:2}
-  #band{height:auto;aspect-ratio:4/3;min-height:0}#band .wrap{padding-bottom:46px}
+  #band{padding:70px 0}#band .wrap{grid-template-columns:1fr;gap:34px}#band .bg{order:0}
   #social{padding:90px 0 80px}.rail{padding:6px 22px 20px;margin:0 -22px 44px}.railw::after{right:-22px;width:70px}.feed{grid-template-columns:1fr;gap:24px}.post:nth-child(even){margin-top:0}
   #queue{padding:100px 0 80px}
 }
@@ -310,8 +309,7 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 </section>
 
 <section id="band" class="clk" aria-label="Welcome to Catum" onclick="openCatum()" data-cta="catum_band">
-  <img class="bg" id="bandImg" data-par=".12" alt="" src="/pd/personagens/nix/vida.jpg">
-  <div class="wrap"><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div>
+  <div class="wrap"><div><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div><img class="bg" id="bandImg" alt="" src="/pd/personagens/nix/vida.jpg"></div>
 </section>
 
 <section id="social" aria-label="Catum Social">
