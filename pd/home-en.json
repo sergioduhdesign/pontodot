@@ -1,0 +1,368 @@
+{
+ "students": [
+  {
+   "id": "nix",
+   "name": "Nix",
+   "arch": "Creator",
+   "title": "Possibility hunter",
+   "bio": "Photographs reflections and turns ordinary paths into small discoveries. Lives above a gallery in Catum and always bets the next detour will make a good story.",
+   "promise": "Helps open up alternatives, then pick one small experiment to test.",
+   "post": "Went out to buy film. Came back with wet paws and an idea for the exhibition.",
+   "bg": "#EA278F",
+   "friends": [
+    "iro",
+    "zumi"
+   ]
+  },
+  {
+   "id": "kiro",
+   "name": "Kiro",
+   "arch": "Strategist",
+   "title": "Mapmaker of ideas",
+   "bio": "Draws maps of places never visited and grows a forest in the apartment. Likes to understand how the pieces relate before starting.",
+   "promise": "Organizes context, dependencies and decision criteria.",
+   "post": "Stretching, coffee and one more page of the map. The plants approved the schedule.",
+   "bg": "#30248C",
+   "friends": [
+    "sago",
+    "oru"
+   ]
+  },
+  {
+   "id": "brum",
+   "name": "Brum",
+   "arch": "Maker",
+   "title": "Builder of consistency",
+   "bio": "Fixes benches, goes to the neighborhood cinema and bakes bread on days off. Looks like a walking fortress, yet keeps every thank-you note.",
+   "promise": "Turns intention into clear steps, owners and realistic deadlines.",
+   "post": "The movie ended. My back is still in the end credits.",
+   "bg": "#DFA219",
+   "friends": [
+    "boku",
+    "koda"
+   ]
+  },
+  {
+   "id": "gigi",
+   "name": "Gigi",
+   "arch": "Connector",
+   "title": "Host of gatherings",
+   "bio": "Produces cultural meetups and knows the name of whoever looks after each corner. Her long neck helps her see far; her curiosity helps her get close.",
+   "promise": "Helps align expectations and make room for different participants.",
+   "post": "Crossed the city with flowers and a sign. Dinner already has four more guests.",
+   "bg": "#00B5C9",
+   "friends": [
+    "raku",
+    "tumi"
+   ]
+  },
+  {
+   "id": "iro",
+   "name": "Iro",
+   "arch": "Creator",
+   "title": "Path explorer",
+   "bio": "Climbs walls and invents objects that sometimes solve problems nobody had. His studio fits in a backpack and his good humor shows in every attempt.",
+   "promise": "Proposes small experiments and alternative ways to approach a problem.",
+   "post": "The wall had three routes. I decided to try the fourth.",
+   "bg": "#FF6500",
+   "friends": [
+    "nix",
+    "nami"
+   ]
+  },
+  {
+   "id": "sago",
+   "name": "Sago",
+   "arch": "Strategist",
+   "title": "Reader of contexts",
+   "bio": "Watches the rhythms of the city while the laundry spins. Listens to stories until noticing the detail that changes everything.",
+   "promise": "Connects human context, constraints and decision alternatives.",
+   "post": "While the clothes dry, I'm trying to work out why the last connection always leaves two minutes early.",
+   "bg": "#007F91",
+   "friends": [
+    "kiro",
+    "sumi"
+   ]
+  },
+  {
+   "id": "taro",
+   "name": "Taro",
+   "arch": "Maker",
+   "title": "Inventor in motion",
+   "bio": "Assembles boards, adjusts wheels and tests the result at the skatepark. Prefers a working first prototype to an afternoon imagining the perfect one.",
+   "promise": "Helps define a verifiable next action and get fast feedback.",
+   "post": "Six legs and still learning to brake. The new board is promising.",
+   "bg": "#BE3828",
+   "friends": [
+    "zumi",
+    "boku"
+   ]
+  },
+  {
+   "id": "raku",
+   "name": "Raku",
+   "arch": "Connector",
+   "title": "Choreographer of agreements",
+   "bio": "Organizes small rooftop dances and notices when someone has been left out of the circle. Loves dancing, but her best gatherings have pauses too.",
+   "promise": "Helps shape invitations, feedback and agreements with care and clarity.",
+   "post": "The rooftop got too small for so many ways of dancing.",
+   "bg": "#FFFFFF",
+   "friends": [
+    "gigi",
+    "muru"
+   ]
+  },
+  {
+   "id": "zumi",
+   "name": "Zumi",
+   "arch": "Creator",
+   "title": "Spark of ideas",
+   "bio": "Plays basketball, invents cheers and scribbles posters for friends' events. When excited, the ideas arrive before the sentence ends.",
+   "promise": "Generates alternatives in conversation and helps choose a direction.",
+   "post": "Missed the shot, nailed an idea for the poster. I call that a productive morning.",
+   "bg": "#E5EC16",
+   "friends": [
+    "nix",
+    "taro"
+   ]
+  },
+  {
+   "id": "oru",
+   "name": "Oru",
+   "arch": "Strategist",
+   "title": "Curator of perspectives",
+   "bio": "Haunts the submerged library and hosts slow-motion reading circles. Likes to gather different views without rushing a conclusion.",
+   "promise": "Compares perspectives and synthesizes shared criteria.",
+   "post": "Found a story about the street above. I want to hear from those who remember it differently.",
+   "bg": "#5425A6",
+   "friends": [
+    "kiro",
+    "muru"
+   ]
+  },
+  {
+   "id": "koda",
+   "name": "Koda",
+   "arch": "Maker",
+   "title": "Keeper of agreements",
+   "bio": "Restores lamps and meets friends on rooftops after work. Likes keeping their word and warns early when the wind changes.",
+   "promise": "Keeps agreements moving and surfaces risks without drama.",
+   "post": "Arrived before the lights came on. Today the city feels like a dress rehearsal.",
+   "bg": "#E65322",
+   "friends": [
+    "brum",
+    "sumi"
+   ]
+  },
+  {
+   "id": "tumi",
+   "name": "Tumi",
+   "arch": "Connector",
+   "title": "Collector of conversations",
+   "bio": "Walks the markets and interviews the people who cook for others. Curious beak, a body that takes two seats, and a memory for family recipes.",
+   "promise": "Eases practical exchanges and finds useful links between people and ideas.",
+   "post": "Went to try a skewer. Left with a recipe and a three-generation story.",
+   "bg": "#11BA98",
+   "friends": [
+    "gigi",
+    "nami"
+   ]
+  },
+  {
+   "id": "nami",
+   "name": "Nami",
+   "arch": "Creator",
+   "title": "Weaver of possibilities",
+   "bio": "Reads on the subway, makes collages and combines materials that seem incompatible. Has eight arms and is learning that doesn't mean starting eight things.",
+   "promise": "Combines perspectives and explores options in dialogue.",
+   "post": "The subway was packed. Still fit a chapter and the missing idea for the collage.",
+   "bg": "#FF5038",
+   "friends": [
+    "iro",
+    "tumi"
+   ]
+  },
+  {
+   "id": "sumi",
+   "name": "Sumi",
+   "arch": "Strategist",
+   "title": "Architect of meaning",
+   "bio": "Visits museums and draws diagrams to explain what looks confusing. Loves talking about an idea once the right questions are found.",
+   "promise": "Builds an organized view and tests it in conversation.",
+   "post": "The sculpture changed when I looked from below. Maybe the project needs that angle too.",
+   "bg": "#18155F",
+   "friends": [
+    "sago",
+    "koda"
+   ]
+  },
+  {
+   "id": "boku",
+   "name": "Boku",
+   "arch": "Maker",
+   "title": "Caretaker of projects",
+   "bio": "Grows flowers and helps neighbors carry what seems impossible. His huge claws can also pick the most delicate stem in the market.",
+   "promise": "Helps organize execution while respecting people's capacity.",
+   "post": "Today I carried only flowers. Emotional weight: excellent.",
+   "bg": "#000000",
+   "friends": [
+    "brum",
+    "taro"
+   ]
+  },
+  {
+   "id": "muru",
+   "name": "Muru",
+   "arch": "Connector",
+   "title": "Companion for the crossing",
+   "bio": "Swims early and listens to long stories without competing for the center of the conversation. Prefers simple gestures and has a gift for welcoming newcomers.",
+   "promise": "Offers quiet presence, clarity and room to find one's own pace.",
+   "post": "Miri wanted to learn to swim upside down. I needed the practice too.",
+   "bg": "#145DEC",
+   "friends": [
+    "oru",
+    "raku"
+   ]
+  }
+ ],
+ "courses": [
+  {
+   "who": "nix",
+   "title": "Open alternatives, then choose one",
+   "area": "Creative",
+   "summary": "Generate different paths for a brief and settle on one small experiment to test.",
+   "weeks": 4
+  },
+  {
+   "who": "iro",
+   "title": "Small campaign experiments",
+   "area": "Creative",
+   "summary": "Propose cheap, fast tests before spending real budget.",
+   "weeks": 4
+  },
+  {
+   "who": "zumi",
+   "title": "Alternatives, in conversation",
+   "area": "Content",
+   "summary": "Take a client from three ideas to one direction by talking it through, without the endless meeting.",
+   "weeks": 4
+  },
+  {
+   "who": "nami",
+   "title": "Landing page structure",
+   "area": "Pages & Sites",
+   "summary": "Organize the sections of a page, what each one does and where the proof is missing.",
+   "weeks": 4
+  },
+  {
+   "who": "kiro",
+   "title": "Structural review",
+   "area": "Strategy",
+   "summary": "Organize context, dependencies and criteria to review a piece of work without rewriting it.",
+   "weeks": 4
+  },
+  {
+   "who": "sago",
+   "title": "Briefing without gaps",
+   "area": "Client Care",
+   "summary": "Receive a request and immediately return what is missing, instead of finding out mid-project.",
+   "weeks": 4
+  },
+  {
+   "who": "oru",
+   "title": "Compare and synthesize criteria",
+   "area": "Strategy",
+   "summary": "Compare references and opinions and deliver a synthesis that supports the decision.",
+   "weeks": 4
+  },
+  {
+   "who": "sumi",
+   "title": "Reading ad results",
+   "area": "Media",
+   "summary": "Turn the campaign report into a decision: what to keep and what to cut.",
+   "weeks": 4
+  },
+  {
+   "who": "brum",
+   "title": "From request to plan, with deadlines",
+   "area": "Operations",
+   "summary": "Convert an intention into clear steps, owners and realistic deadlines.",
+   "weeks": 4
+  },
+  {
+   "who": "taro",
+   "title": "The next verifiable action",
+   "area": "Operations",
+   "summary": "Define the next step that can be checked, and get feedback quickly.",
+   "weeks": 4
+  },
+  {
+   "who": "koda",
+   "title": "Continuity and risks without drama",
+   "area": "Management",
+   "summary": "Follow up on agreements and flag risks early, without dramatizing.",
+   "weeks": 4
+  },
+  {
+   "who": "boku",
+   "title": "Production budgeting",
+   "area": "Operations",
+   "summary": "Separate human effort, AI time and media spend into an honest estimate.",
+   "weeks": 4
+  },
+  {
+   "who": "gigi",
+   "title": "Aligning expectations",
+   "area": "Client Care",
+   "summary": "Make room for every participant to speak and reach an agreement everyone understands.",
+   "weeks": 4
+  },
+  {
+   "who": "raku",
+   "title": "Feedback and agreements, clearly",
+   "area": "Client Care",
+   "summary": "Ask for and give client feedback with care and without ambiguity.",
+   "weeks": 4
+  },
+  {
+   "who": "tumi",
+   "title": "Useful links between people and ideas",
+   "area": "Network",
+   "summary": "Find who, inside and outside the house, solves each need.",
+   "weeks": 4
+  },
+  {
+   "who": "muru",
+   "title": "Following up at each person's pace",
+   "area": "Follow-through",
+   "summary": "Remind and follow up with a discreet presence, respecting each person's rhythm.",
+   "weeks": 4
+  }
+ ],
+ "comments": {
+  "Creator": [
+   "Love this! I'm already thinking of three ways to continue it.",
+   "Great idea. Can I try a variation?",
+   "This made me want to test something similar.",
+   "I like the small risk. We can start today."
+  ],
+  "Strategist": [
+   "Good call. What's the criterion for the next step?",
+   "Makes sense. What changes if it goes wrong?",
+   "Noted the logic. We can repeat it with another case.",
+   "I like how you separated fact from guess."
+  ],
+  "Maker": [
+   "Noted. When do you close this stage?",
+   "Agreed. I'll take care of the delivery part.",
+   "Good pace. We can book the next step now.",
+   "Done beats perfect. Congrats on letting go."
+  ],
+  "Connector": [
+   "This deserves to be shown to the whole class.",
+   "So good to see this. Who else should know?",
+   "Loved it. Can I introduce you to someone studying the same thing?",
+   "Happy to read this today."
+  ]
+ }
+}
