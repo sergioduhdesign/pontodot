@@ -89,7 +89,7 @@ section{position:relative}
 .manif p.k{color:#fff;font-weight:500}
 .manif .sign{margin-top:44px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 .day{position:sticky;top:90px}
-.day-fr{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:22px;background:#2a2b2e}
+.day-fr{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:22px;background:#2a2b2e}
 
 .day-cap{display:flex;justify-content:space-between;gap:16px;margin-top:14px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55)}
 /* courses */
@@ -188,7 +188,7 @@ section{position:relative}
 .fs>.sl,.fs>video{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity 2.2s ease;overflow:hidden;background:#111}
 .fs>.on{opacity:1}
 .sl::before{content:"";position:absolute;inset:-30px;background:var(--u) center/cover;filter:blur(28px) brightness(.8);transform:scale(1.1)}
-.sl img{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+.sl img{position:relative;width:100%;height:100%;object-fit:cover;display:block}.sl img.fit{object-fit:contain}
 .fs>video{object-fit:contain}
 .mc .tag{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gray2);margin:0 0 10px}
 .mc h3{font-size:clamp(26px,2.8vw,38px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin:0 0 6px}
@@ -513,14 +513,18 @@ async function boot(){
         <form class="cmf" onsubmit="event.preventDefault();openQueue('comment')"><input type="text" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off"></form></div></article>`}).join('');
   observe();onScroll();dayImage();
 }
+function slFit(im){const b=im.closest(".fs");if(!b||!im.naturalWidth)return;const r=im.naturalWidth/im.naturalHeight,f=b.clientWidth/Math.max(1,b.clientHeight);im.classList.toggle("fit",Math.abs(r-f)/f>.4)}   // small crop is fine; never force a vertical image into a horizontal frame (or the reverse)
 /* fade slideshow: optional video first, then images, loops */
 function fadeShow(box,urls,o){o=o||{};box.classList.add('fs');
-  box.innerHTML=(o.video?'<div class="sl" style="--u:url('+o.poster+')"><video muted playsinline preload="auto" poster="'+o.poster+'" src="'+o.video+'" style="position:relative;width:100%;height:100%;object-fit:contain"></video></div>':'')+urls.map(u=>'<div class="sl" style="--u:url('+u+')"><img alt="" src="'+u+'" loading="lazy" draggable="false"></div>').join('');
+  box.innerHTML=(o.video?'<div class="sl" style="--u:url('+o.poster+')"><video muted playsinline preload="auto" poster="'+o.poster+'" src="'+o.video+'" style="position:relative;width:100%;height:100%;object-fit:cover"></video></div>':'')+urls.map(u=>'<div class="sl" style="--u:url('+u+')"><img alt="" src="'+u+'" loading="lazy" draggable="false" onload="slFit(this)"></div>').join('');
   const it=[...box.children];let n=0,t=null;const vw=o.video?it[0]:null,vd=vw?vw.querySelector('video'):null;
   function show(i){it[n].classList.remove('on');n=i%it.length;it[n].classList.add('on');clearTimeout(t);
-    if(it[n]===vw){vd.currentTime=0;vd.play().catch(()=>{});vd.onended=()=>show(n+1);t=setTimeout(()=>show(n+1),12000)}
+    if(it[n]===vw){vd.currentTime=0;vd.onended=()=>show(n+1);vd.onerror=()=>show(n+1);
+      vd.onplaying=()=>{clearTimeout(t);t=setTimeout(()=>show(n+1),(vd.duration||10)*1000+800)};
+      const q=vd.play();if(q&&q.catch)q.catch(()=>{});t=setTimeout(()=>{if(vd.paused)show(n+1)},9000)}
     else{t=setTimeout(()=>show(n+1),o.ms||5200)}}
-  if(it.length)show(0);return it}
+  if(!it.length)return it;
+  if(o.lazy&&'IntersectionObserver' in window){const ob=new IntersectionObserver(es=>{if(es[0].isIntersecting){ob.disconnect();show(0)}},{threshold:.35});ob.observe(box)}else show(0);return it}
 let CAT=[];
 async function catumPool(){
   if(CAT.length)return CAT;
@@ -532,7 +536,7 @@ async function catumPool(){
 async function dayImage(){
   const d=new Date();$('#dayDate').textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const pool=await catumPool();
-  fadeShow($('#dayFr'),pool.slice(0,14),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:4800});
+  fadeShow($('#dayFr'),pool.slice(0,14),{video:'/media/catum/catum.mp4',poster:'/media/catum/catum.jpg',ms:4800,lazy:true});
   
 }
 boot();observe();onScroll();
