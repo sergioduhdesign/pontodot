@@ -220,7 +220,7 @@ section{position:relative}
 .ct-imgs div{aspect-ratio:4/3;border-radius:16px;overflow:hidden}.ct-imgs img{width:100%;height:100%;object-fit:cover}
 .clk{cursor:pointer}
 @media(max-width:860px){
- .cx.wide{grid-template-columns:1fr;grid-template-rows:auto 1fr;max-height:92vh;max-width:94vw}
+ .cx.wide{display:block;overflow:auto;max-height:92vh;max-width:94vw;-webkit-overflow-scrolling:touch}.cx.wide .mc{overflow:visible;padding:26px 24px 32px;display:block}.cx.wide .mg{position:sticky;top:0}.mc p.bio{font-size:16px}
  .cx.wide .mc{padding:26px 22px 22px;justify-content:flex-start}
  .ct-top{padding:14px 18px}.ct .cw{padding:0 22px}
  .ct-hero{grid-template-columns:1fr;gap:44px;padding:30px 0 70px}.ct-fig{position:relative;top:0;order:-1;aspect-ratio:4/3}
@@ -540,15 +540,20 @@ function closeAll(){$$('.veu.on').forEach(v=>v.classList.remove('on'))}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAll();menu(false);closeCatum()}});
 function dyn(html,wide){let v=$('#vDyn');if(!v){v=document.createElement('div');v.className='veu';v.id='vDyn';v.onclick=e=>{if(e.target===v)closeAll()};document.body.appendChild(v)}
   v.innerHTML='<div class="cx'+(wide?' wide':'')+'" role="dialog" aria-modal="true"><button type="button" class="x" onclick="closeAll()" aria-label="Close">✕</button>'+html+'</div>';openModal('vDyn');return v}
+let VIVAS=null;
+async function vivas(){if(VIVAS)return VIVAS;try{const j=await (await fetch('/pd-imagens.php?pasta=personagens')).json();VIVAS=j.personagens||{}}catch(e){VIVAS={}}return VIVAS}
+async function fotosDe(id){   // life album first, then birth; never the avatar; up to 5
+  const V=(await vivas())[id]||{},P='/pd/personagens/'+id+'/';
+  const l=[...(V.album||[]).map(x=>x.src),V.vida&&V.vida.src,V.nascimento&&V.nascimento.src,P+'vida.jpg',P+'nascimento.jpg'].filter(Boolean);
+  return [...new Set(l)].slice(0,5)}
 function wideDlg(imgs,body){const v=dyn('<div class="mg" id="mg"></div><div class="mc">'+body+'</div>',true);fadeShow(v.querySelector('#mg'),imgs,{ms:3800});return v}
-function openStudent(id){const s=(DATA.students||[]).find(x=>x.id===id);if(!s)return;med('student_open',id);
-  const P='/pd/personagens/'+s.id+'/';
-  wideDlg([P+'vida.jpg',P+'nascimento.jpg',P+'avatar.jpg'],`<p class="tag">${esc(s.arch)}</p><h3>${esc(s.name)}</h3><p class="role">${esc(s.title)}</p>
+async function openStudent(id){const s=(DATA.students||[]).find(x=>x.id===id);if(!s)return;med('student_open',id);
+  wideDlg(await fotosDe(id),`<p class="tag">${esc(s.arch)}</p><h3>${esc(s.name)}</h3><p class="role">${esc(s.title)}</p>
   <p class="bio">${esc(s.bio)}</p><dl><dt>Helps you</dt><dd style="font-size:16px">${esc(s.promise)}</dd></dl>
   <button class="btn" style="margin-top:8px" onclick="openQueue('student')">Join the queue to enroll your AI</button>`)}
-function openCourse(i){const c=DATA.courses[i];if(!c)return;med('course_open',i+1);
-  const P='/pd/personagens/'+c.who+'/',st=(DATA.students||[]).find(x=>x.id===c.who);
-  wideDlg([P+'vida.jpg',P+'nascimento.jpg',P+'avatar.jpg'],`<p class="tag">${esc(c.area)} · ${c.weeks} weeks</p><h3>${esc(c.title)}</h3>
+async function openCourse(i){const c=DATA.courses[i];if(!c)return;med('course_open',i+1);
+  const st=(DATA.students||[]).find(x=>x.id===c.who);
+  wideDlg(await fotosDe(c.who),`<p class="tag">${esc(c.area)} · ${c.weeks} weeks</p><h3>${esc(c.title)}</h3>
   <p class="role">${st?'With '+esc(st.name)+', '+esc(st.title):''}</p><p class="bio">${esc(c.summary)}</p>
   <button class="btn" style="margin-top:8px" onclick="openQueue('course')">Join the queue</button>`)}
 
