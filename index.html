@@ -5650,7 +5650,7 @@ function menuCheio(){
   const nBadge = ($('#clBadge')?.classList.contains('on') ? ($('#clBadge').textContent || '') : '');
   const tl = (ico, nome, js) => `<button class="mc-t" onclick="fecharMenuCheio();${js}" aria-label="${nome}" title="${nome}">${sv(ico)}</button>`;
   const avSrc = $('#clAv')?.innerHTML || '';
-  m.innerHTML = `<div class="mc-top"><button class="mc-home" onclick="fecharMenuCheio();if(document.documentElement.classList.contains('app-movel'))fecharAppMovel()" aria-label="Voltar para a home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span>Home</span></button><button class="mc-x" onclick="fecharMenuCheio()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  m.innerHTML = `<div class="mc-top"><button class="mc-home" onclick="fecharMenuCheio();if(document.documentElement.classList.contains('app-movel'))fecharAppMovel()" aria-label="Voltar para o início"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span>Olá, professor</span></button><button class="mc-x" onclick="fecharMenuCheio()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="mc-tiles">
       ${tl('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>','Buscar','clAbrirBusca()')}
       ${liberado ? tl('<path d="M12 5v14M5 12h14"/>','Nova tarefa','menuNovaTarefa()') : ''}
