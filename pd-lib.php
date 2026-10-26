@@ -572,10 +572,13 @@ function pdZapRetro($a) {
     if (!$cfg) { $n = sd_supabase('/rest/v1/pd_retro_config', 'POST', ['client_id' => $c['id']], ['Prefer: return=representation']); $cfg = $n['body'][0] ?? null; }
     if (!$cfg) return '⚠️ A Retrospectiva ainda não está ativa (falta rodar o SQL v110).';
     $sn = sd_supabase('/rest/v1/pd_retro_snaps?client_id=eq.' . urlencode($c['id']) . '&tipo=eq.semanal&order=criado_em.desc&limit=1&select=fim,criado_em,dados')['body'][0] ?? null;
-    if (!$sn || strtotime($sn['criado_em']) < time() - 6 * 3600) { $sn = retro_gerar($c['id'], 'semanal', true) ?: $sn; }
+    $temAds = !empty($sn['dados']['ads']['atual']);
+    if (!$sn || !$temAds || strtotime($sn['criado_em']) < time() - 6 * 3600) { $sn = retro_gerar($c['id'], 'semanal', true) ?: $sn; }
     if (!$sn) return '⚠️ Não consegui gerar a retrospectiva de ' . $c['name'] . ' agora.';
     $l = retro_links($cfg['token'], $sn['fim']);
-    return '✅ Retrospectiva de ' . $c['name'] . " (até " . date('d/m', strtotime($sn['fim'])) . "):\n📈 " . $l['bi'] . "\n📄 " . $l['pdf'];
+    $aviso = '';
+    if (empty($sn['dados']['ads']['atual'])) { $er = (array)($sn['dados']['ads']['erros'] ?? []); $aviso = "\n⚠️ Sem dados de anúncios: " . ($er ? implode(' ', array_slice($er, 0, 2)) : 'nenhuma conta de anúncio da Meta ligada a este cliente (vincule em Redes sociais).'); }
+    return '✅ Retrospectiva de ' . $c['name'] . " (até " . date('d/m', strtotime($sn['fim'])) . "):\n📈 " . $l['bi'] . "\n📄 " . $l['pdf'] . $aviso;
 }
 
 function pdZapAcao($a, $p, $statusValidos) {

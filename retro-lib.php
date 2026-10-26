@@ -256,6 +256,7 @@ function retro_texto_zap($d, $linkBI, $linkPDF) {
     }
     if (!empty($d['organico'])) { $o = $d['organico'];
         $t .= "\n*Instagram orgânico*\n• Alcance " . retro_n($o['alcance']) . ' | Interações ' . retro_n($o['interacoes']) . ' | Seguidores ' . retro_n($o['seguidores']) . (isset($o['posts']) ? ' | ' . $o['posts'] . ' posts' : '') . "\n"; }
+    if (empty($d['ads']['atual'])) { $er = (array)($d['ads']['erros'] ?? []); $t .= "\n⚠️ Sem dados de anúncios nesta semana: " . ($er ? implode(' ', array_slice($er, 0, 2)) : 'nenhuma conta de anúncio da Meta ligada a este cliente.') . "\n"; }
     if (!empty($d['alertas'])) { $t .= "\n*Atenção*\n"; foreach (array_slice($d['alertas'], 0, 4) as $al) $t .= ($al['tipo'] === 'alerta' ? '⚠️ ' : '✅ ') . $al['texto'] . "\n"; }
     if (!empty($d['analise'])) $t .= "\n*Leitura da semana*\n" . trim($d['analise']) . "\n";
     $t .= "\n📈 Veja tudo, com o comparativo de mercado:\n$linkBI\n\n📄 PDF para baixar:\n$linkPDF";
