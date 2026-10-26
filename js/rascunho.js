@@ -141,6 +141,13 @@
   function mockupBlob() {
     return new Promise(res => {
       try {
+        if (S.arteSvg) {
+          const vb = (S.arteSvg.match(/viewBox\s*=\s*"([\d.\s-]+)"/) || [])[1], [, , vw, vh] = (vb || '0 0 1080 1080').split(/\s+/).map(Number);
+          const svgA = S.arteSvg.replace(/<svg\b/i, '<svg width="' + (vw || 1080) + '" height="' + (vh || 1080) + '"'), uA = URL.createObjectURL(new Blob([svgA], { type: 'image/svg+xml;charset=utf-8' })), iA = new Image();
+          iA.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 1080; const x = c.getContext('2d'); x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, 1080, 1080); const k = Math.min(1080 / (vw || 1080), 1080 / (vh || 1080)); const w = (vw || 1080) * k, h = (vh || 1080) * k;
+            x.drawImage(iA, (1080 - w) / 2, (1080 - h) / 2, w, h); URL.revokeObjectURL(uA); c.toBlob(b => res(b), 'image/jpeg', .92); };
+          iA.onerror = () => res(null); iA.src = uA; return;
+        }
         const svg = desenhaSVG().replace('<svg ', '<svg width="1080" height="1080" preserveAspectRatio="xMidYMid slice" ');
         const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })), im = new Image();
         im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 1080; const x = c.getContext('2d'); x.fillStyle = S.inv ? '#f4f4f0' : '#0b0c0b'; x.fillRect(0, 0, 1080, 1080);
@@ -149,7 +156,7 @@
       } catch (e) { res(null); }
     });
   }
-  function desenha() { const p = $('#rscSvg'); if (!p) return; p.innerHTML = desenhaSVG(); const c = $('#rscCap'); if (c) c.textContent = S.tipo ? (S.tipo.nome + (formatoDa(S.tipo) ? ' · ' + formatoDa(S.tipo) : '')) : 'o desenho nasce conforme você responde'; }
+  function desenha() { const p = $('#rscSvg'); if (!p) return; p.innerHTML = S.arteSvg ? '<img alt="Arte" style="display:block;width:100%;max-height:60vh;object-fit:contain;background:#fff" src="data:image/svg+xml;utf8,' + encodeURIComponent(S.arteSvg) + '">' : desenhaSVG(); const c = $('#rscCap'); if (c) c.textContent = S.tipo ? (S.tipo.nome + (formatoDa(S.tipo) ? ' · ' + formatoDa(S.tipo) : '')) : 'o desenho nasce conforme você responde'; }
 
   // ----------------------------------------------------------- passos
   const chip = (txt, on, js, extra) => `<button type="button" class="rsc-c${on ? ' on' : ''}" onclick="${js}">${extra || ''}${esc(txt)}</button>`;
@@ -187,7 +194,7 @@
     { id: 'rev', q: 'Tudo certo?', dica: 'Confira o rascunho e crie.', ok: () => true, render() {
       const l = (a, b) => b ? `<div class="rsc-rv"><span>${a}</span><b>${esc(b)}</b></div>` : '';
       return l('Cliente', S.cli.name) + l('Peça', S.tipo.nome + ' · ' + formatoDa(S.tipo)) + l('Assunto', S.assunto) + l('Composição', (LAYOUTS.find(x => x.id === S.layout) || {}).nome) + l('Cores', [S.bg, S.acc].filter(Boolean).join(' · ')) + l('Fontes', [S.fT, S.fC].filter(Boolean).join(' / ')) +
-        l('Prazo', S.prazo ? iso(diasUteis(S.prazo)).split('-').reverse().join('/') : 'sem data') + l('Responsável', S.resp) + l('Projeto', S.projeto || 'GERAL'); } }
+        `<div class="rsc-sub">Arte pela IA da casa</div><div class="rsc-ch"><button type="button" class="rsc-c" id="rscAb" onclick="PDRsc.arte()">${S.arteSvg ? 'Gerar de novo' : '✦ Gerar a arte com a IA'}</button>${S.arteSvg ? '<button type="button" class="rsc-c" onclick="PDRsc.semArte()">Voltar ao desenho</button>' : ''}</div><div class="rsc-sub" id="rscAm">A IA monta a peça com a marca do cliente e as lições que você já aprovou na Sala de aula.</div>` + l('Prazo', S.prazo ? iso(diasUteis(S.prazo)).split('-').reverse().join('/') : 'sem data') + l('Responsável', S.resp) + l('Projeto', S.projeto || 'GERAL'); } }
   ];
   function lista(arr, q) { const n = norm(q); return arr.filter(c => !n || norm(c.name).includes(n)).slice(0, 14).map(c => chip(c.name, S.cli && S.cli.id === c.id, `PDRsc.cli('${c.id}')`)).join('') || '<span class="rsc-sub">Nenhum cliente com esse nome.</span>'; }
   function sugHtml(arr, local) { return arr.map((s, i) => `<button type="button" class="rsc-c" onclick="PDRsc.sug(${i},${local ? 1 : 0})"><span>${esc(s.assunto)}</span>${s.titulo ? `<small>${esc(s.titulo)}</small>` : ''}</button>`).join('') + (SUGLOADING ? '<span class="rsc-sub">pensando…</span>' : ''); }
@@ -272,7 +279,7 @@
     set('t-resp', S.resp || 'SERGIO');
     const lay = (LAYOUTS.find(x => x.id === S.layout) || {}).nome;
     set('t-obs', ['Peça: ' + S.tipo.nome + (formatoDa(S.tipo) ? ' (' + formatoDa(S.tipo) + ')' : ''), 'Assunto: ' + S.assunto.trim(), S.titulo ? 'Título sugerido: ' + S.titulo : '', lay ? 'Composição: ' + lay : '',
-      (S.bg || S.acc) ? 'Cores: fundo ' + (S.bg || '—') + ' · destaque ' + (S.acc || '—') : '', (S.fT || S.fC) ? 'Fontes: títulos ' + (S.fT || '—') + ' · texto ' + (S.fC || '—') : '', '', S.prompt ? 'Pedido original (texto livre): ' + S.prompt : '', '(montado no Rascunho guiado)'].filter(x => x !== '' || true).join('\n').replace(/\n{3,}/g, '\n\n'));
+      (S.bg || S.acc) ? 'Cores: fundo ' + (S.bg || '—') + ' · destaque ' + (S.acc || '—') : '', (S.fT || S.fC) ? 'Fontes: títulos ' + (S.fT || '—') + ' · texto ' + (S.fC || '—') : '', '', S.prompt ? 'Pedido original (texto livre): ' + S.prompt : '', S.arteSvg ? 'Arte gerada pela IA da casa anexada como capa (SVG).' : '', '(montado no Rascunho guiado)'].filter(x => x !== '' || true).join('\n').replace(/\n{3,}/g, '\n\n'));
     if (S.prazo) { const d = diasUteis(S.prazo), i = diasUteis(Math.max(S.prazo - 1, 0)); set('t-date-cli', iso(d)); set('t-date-int', S.prazo > 1 ? iso(i) : iso(d)); set('t-week', S.prazo <= 5 ? 'ESTA SEMANA' : 'PRÓXIMA SEMANA'); }
     else { set('t-date-cli', ''); set('t-date-int', ''); set('t-week', 'SEM DATA'); }
     set('t-status', 'EM ANDAMENTO');
@@ -332,6 +339,18 @@
       if (nova && typeof openDetail === 'function') { setTimeout(() => { try { openDetail(nova.id); } catch (e) {} }, 250); }
       else if (SOLO) { try { parent.postMessage({ pdRsc: 'criada' }, '*'); } catch (e) {} }
     },
+    async arte() {
+      const b = $('#rscAb'), m = $('#rscAm'); if (b) b.disabled = true; if (m) m.textContent = 'A IA está montando a arte… (até 1 minuto)';
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const r = await fetch('/pd-arte.php', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({
+          client_id: S.cli.id, tipo: S.tipo.id, tipo_nome: S.tipo.nome, assunto: S.assunto, titulo: S.titulo, layout_nome: (LAYOUTS.find(x => x.id === S.layout) || {}).nome || '', bg: S.bg, acc: S.acc, fonte_t: S.fT, fonte_c: S.fC, prompt: S.prompt || '' }) });
+        const j = await r.json(); if (!r.ok) throw new Error(j.error || 'A IA não respondeu');
+        S.arteSvg = j.svg; PASSOS[PASSO].id === 'rev' && ($('#rscR').innerHTML = PASSOS[PASSO].render()); desenha();
+        const m2 = $('#rscAm'); if (m2) m2.textContent = j.licoes_aplicadas ? 'Pronto — aplicou as lições aprovadas. Ela vira a capa da tarefa.' : 'Pronto. Ela vira a capa da tarefa.';
+      } catch (e) { if (m) m.textContent = 'Não consegui agora: ' + e.message; if (b) b.disabled = false; }
+    },
+    semArte() { S.arteSvg = null; $('#rscR').innerHTML = PASSOS[PASSO].render(); desenha(); },
     async entende() {
       const tx = $('#rscTx'), t = tx.value.trim(); if (!t) return; const bt = $('#rscEb'); bt.disabled = true; bt.textContent = 'Lendo…'; $('#rscEco').textContent = '';
       try {

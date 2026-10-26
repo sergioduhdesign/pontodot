@@ -30,6 +30,7 @@ require_once __DIR__ . '/push-lib.php';
 require_once __DIR__ . '/pd-lib.php';
 require_once __DIR__ . '/pd-site-lib.php';
 require_once __DIR__ . '/retro-lib.php';
+require_once __DIR__ . '/pd-aula-lib.php';
 
 if (!defined('SD_CRON_KEY') || SD_CRON_KEY === 'SUA_CRON_KEY_AQUI') { http_response_code(500); die('SD_CRON_KEY nao configurada.'); }
 if (($_GET['key'] ?? '') !== SD_CRON_KEY) { http_response_code(403); die('Chave invalida.'); }
@@ -655,4 +656,5 @@ $n9 = w_alunos();                    echo "Alunos reagem: $n9\n";
 $n10 = w_rotina_zap();               echo "Rotina da equipe: $n10\n";
 $n11 = w_skills();                   echo "Skills anunciadas: $n11\n";
 $n12 = retro_relogio();            echo "Retrospectiva: $n12\n";
+$n13 = pdIncubacaoRelogio();       echo "Sala de aula: $n13\n";
 echo "\nConcluido.\n";

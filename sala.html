@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sala de aula — Pontodot</title><meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--ok:#1f8a55;--mid:#c8941a;--bad:#c63d32;--bg:#fff}
+@media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 14.5px/1.5 "Inter Tight",system-ui,sans-serif}
+.w{max-width:1040px;margin:0 auto;padding:22px 16px 90px}h1{font-size:28px;letter-spacing:-.03em;margin:0 0 2px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin:30px 0 10px}
+.sub{color:var(--gray);font-size:13px}.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--soft)}
+.btn{font:500 13px "Inter Tight";padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn:disabled{opacity:.4}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:center}th:first-child,td:first-child{text-align:left}th{font-weight:500;color:var(--gray);font-size:12px}
+.pl{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;background:var(--gray);cursor:pointer}.pl.pronta{background:var(--ok)}.pl.val{background:var(--mid)}.pl.trein{background:#3b6fd8}.pl.rep{background:var(--bad)}.pl.vazio{background:transparent;color:var(--gray);border:1px dashed var(--line)}
+.aula{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;align-items:center}.aula:hover{opacity:.8}
+.rod{display:grid;grid-template-columns:260px 1fr;gap:14px;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}@media(max-width:700px){.rod{grid-template-columns:1fr}}
+.rod img{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}.nota{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.sw{display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);vertical-align:middle;margin-right:4px}
+.lic{padding:10px 0;border-bottom:1px solid var(--line)}.lic small{color:var(--gray)}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.msg{padding:60px 0;text-align:center;color:var(--gray)}.log{font-size:13px;color:var(--gray);margin-top:8px;min-height:18px;white-space:pre-wrap}
+</style></head><body><div class="w" id="app"><div class="msg">Carregando…</div></div>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let sb,ses,P=null,AULA=null,LOG='';
+const ST={aberta:'Aberta',em_exercicio:'Aluna fazendo',em_correcao:'Professor corrigindo',aprovada_pelo_professor:'Aprovada pelo professor',validacao_humana:'Aguarda você',validada:'Validada',reprovada:'Reprovada',cancelada:'Cancelada'};
+async function api(b){const r=await fetch('/pd-aula.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
+async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
+  if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para ver a sala de aula.</div>';return;}
+  await carrega();}
+async function carrega(){try{P=await api({acao:'painel'});}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+function melhor(ia,sk){const n=P.notas.filter(x=>x.ia_user_id===ia&&x.skill_id===sk);return n.length?Math.max(...n.map(x=>+x.nota)):null;}
+function estado(ia,sk){const mn=+(P.incubacao?.nota_minima||85);const as=P.aulas.filter(a=>a.ia_user_id===ia&&a.skill_id===sk);
+  if(as.some(a=>a.status==='validada'))return['pronta',as.find(a=>a.status==='validada')];
+  const v=as.find(a=>a.status==='validacao_humana');if(v)return['val',v];
+  const t=as.find(a=>['aberta','em_exercicio','em_correcao'].includes(a.status));if(t)return['trein',t];
+  const r=as.find(a=>a.status==='reprovada');if(r)return['rep',r];return['vazio',null];}
+function draw(){const I=P.incubacao||{};
+  let h=`<div class="row" style="justify-content:space-between"><div><h1>Sala de aula</h1><div class="sub">As IAs da casa treinam, o professor corrige, você valida — e o que você aprova vira regra na produção.</div></div></div>
+  <h2>Professor e incubação</h2><div class="card"><div class="row"><span>Professor: <b>${esc(P.professor)}</b></span><span class="sub">${P.imagick?'O professor vê a imagem da arte.':'O servidor não tem Imagick: o professor lê o código SVG, não vê a imagem.'}</span></div>
+  <div class="row" style="margin-top:10px"><label><input type="checkbox" id="iAt" ${I.ativa?'checked':''}> Treino automático ligado</label>
+  <label>Teto/dia (US$) <input id="iTe" type="number" step="1" min="1" style="width:80px" value="${I.teto_gasto_dia??20}"></label>
+  <label>Nota mínima <input id="iNo" type="number" min="50" max="100" style="width:70px" value="${I.nota_minima??85}"></label>
+  <label>Nova aula a cada (h) <input id="iIn" type="number" min="1" style="width:70px" value="${I.intervalo_horas??24}"></label>
+  <button class="btn p" onclick="salvaInc()">Salvar</button><span class="sub">Gasto hoje: US$ ${(+(I.gasto_hoje||0)).toFixed(2)} · tudo em sandbox (nada sai para cliente, Meta, site ou zap)</span></div></div>`;
+  h+=`<h2>Prontidão — quem já pode fazer o quê</h2><div class="card" style="overflow-x:auto"><table><tr><th>IA</th>${P.habilidades.map(s=>`<th title="${esc(s.finalidade)}">${esc(s.nome)}</th>`).join('')}</tr>
+  ${P.ias.map(i=>`<tr><td><b>${esc(i.nome)}</b><div class="sub">${esc(i.dona)}</div></td>${P.habilidades.map(s=>{const[e,a]=estado(i.id,s.skill_id),n=melhor(i.id,s.skill_id);const rot={pronta:'Pronta',val:'Validar',trein:'Treinando',rep:'Reprovada',vazio:'Treinar'}[e];
+    return`<td><span class="pl ${e}" onclick="${a?`abre('${a.id}')`:`treina('${i.id}','${esc(i.personagem)}','${s.skill_id}')`}">${rot}${n!=null?' · '+Math.round(n):''}</span></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="9" class="sub">Nenhuma IA com “Meu jeito” escolhido ainda.</td></tr>'}</table>
+  <div class="sub" style="margin-top:8px">Pronta = aula validada por você com nota ≥ ${I.nota_minima??85}. Clique numa célula para treinar ou abrir a aula.</div></div>`;
+  h+=`<h2>Aulas recentes</h2><div class="card">${P.aulas.map(a=>{const ia=P.ias.find(x=>x.id===a.ia_user_id);return`<div class="aula" onclick="abre('${a.id}')"><span><b>${esc(ia?ia.nome:a.personagem)}</b> · ${esc(P.habilidades.find(s=>s.skill_id===a.skill_id)?.nome||a.skill_id)}<div class="sub">${new Date(a.criada_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${a.modo==='incubacao'?'treino automático':'aula'}</div></span><span><span class="pl ${a.status==='validada'?'pronta':a.status==='validacao_humana'?'val':a.status==='reprovada'?'rep':'trein'}">${ST[a.status]||a.status}</span> ${a.nota_final!=null?`<b> ${Math.round(a.nota_final)}</b>`:''}</span></div>`}).join('')||'<div class="sub">Nenhuma aula ainda. Clique em “Treinar” numa IA acima.</div>'}</div>`;
+  h+=`<h2>Lições</h2><div class="card">${P.licoes.map(l=>`<div class="lic"><b>${esc(l.regra)}</b><div class="sub">${esc(l.personagem||'acervo comum')} · ${esc(l.skill_id)} · <b>${l.status}</b></div>${l.exemplo_bom?`<small>bom: ${esc(l.exemplo_bom)}</small><br>`:''}${l.exemplo_ruim?`<small>evitar: ${esc(l.exemplo_ruim)}</small><br>`:''}
+   <div class="row" style="margin-top:6px">${l.status!=='aprovada'?`<button class="btn" onclick="lic('${l.id}','aprovada')">Aprovar</button>`:`<button class="btn" onclick="lic('${l.id}','aposentada')">Aposentar</button>`}${l.status==='proposta'?`<button class="btn" onclick="lic('${l.id}','recusada')">Recusar</button>`:''}${l.status==='aprovada'?`<button class="btn" onclick="lic('${l.id}','aprovada',true)">Valer para todas as IAs</button>`:''}</div></div>`).join('')||'<div class="sub">As lições aparecem quando o professor aprova uma aula.</div>'}</div>`;
+  h+=`<div id="det"></div>`;$('#app').innerHTML=h;if(AULA)mostra();}
+async function salvaInc(){try{await api({acao:'incubacao',ativa:$('#iAt').checked,teto_gasto_dia:+$('#iTe').value,nota_minima:+$('#iNo').value,intervalo_horas:+$('#iIn').value});await carrega();}catch(e){alert(e.message);}}
+async function lic(id,status,comum){try{await api({acao:'licao',id,status,comum});await carrega();}catch(e){alert(e.message);}}
+async function treina(ia,pers,sk){try{const r=await api({acao:'criar',ia_user_id:ia,personagem:pers,skill_id:sk});await abre(r.id);}catch(e){alert(e.message);}}
+async function abre(id){try{AULA=await api({acao:'ver',aula_id:id});}catch(e){alert(e.message);return;}LOG='';mostra();$('#det').scrollIntoView({behavior:'smooth'});}
+function mostra(){const a=AULA.aula,ex=a.exercicio||{},cf=ex.cliente_ficticio||{},ia=P.ias.find(x=>x.id===a.ia_user_id);
+  const rod=(a.entregas||[]).map(e=>{const c=(a.correcoes||[]).find(x=>x.rodada===e.rodada);return`<div class="rod"><div><img src="data:image/svg+xml;utf8,${encodeURIComponent(e.svg)}"><div class="sub">Rodada ${e.rodada}</div></div><div>${c?`<div class="nota">${Math.round(c.nota)}<span class="sub"> /100 · ${esc(c.professor)}</span></div><div style="white-space:pre-wrap;margin-top:6px">${esc(c.feedback)}</div>${c.fortes?`<div class="sub" style="margin-top:6px">Pontos fortes: ${esc(c.fortes)}</div>`:''}`:'<div class="sub">Aguardando correção do professor…</div>'}</div></div>`}).join('');
+  const fim=['validada','reprovada','cancelada'].includes(a.status);
+  $('#det').innerHTML=`<h2>Aula · ${esc(ia?ia.nome:a.personagem)} · ${esc(a.skill_id)}</h2><div class="card"><div class="row"><span class="pl ${a.status==='validacao_humana'?'val':a.status==='validada'?'pronta':'trein'}">${ST[a.status]||a.status}</span><span class="sub">rodada ${a.rodada}/${a.max_rodadas}</span>
+  ${!fim&&a.status!=='validacao_humana'?`<button class="btn p" id="bPasso" onclick="passo()">Próximo passo</button><button class="btn" id="bTudo" onclick="tudo()">Rodar até terminar</button>`:''}</div><div class="log" id="log">${esc(LOG)}</div>
+  ${ex.brief?`<div style="margin-top:10px"><b>Exercício</b> · ${esc(cf.nome||'')} <span class="sub">${esc(cf.segmento||'')} · ${esc(ex.formato||'')}</span><div style="margin:4px 0">${(cf.paleta||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)}"></span>${esc(c.nome||c.hex)} `).join('')}</div><div>${esc(ex.brief)}</div></div>`:''}
+  ${rod}
+  ${a.status==='validacao_humana'?`<div style="margin-top:10px"><b>Sua validação</b><div class="sub">Aprovando, as lições desta aula viram regra permanente da IA.</div><div class="row" style="margin-top:6px"><input id="pa" placeholder="Parecer (opcional)" style="flex:1;min-width:200px"><button class="btn p" onclick="val(true)">Aprovar e liberar</button><button class="btn" onclick="val(false)">Reprovar</button></div>
+  ${(AULA.licoes||[]).map(l=>`<div class="lic"><b>Lição proposta:</b> ${esc(l.regra)}</div>`).join('')}</div>`:''}</div>`;}
+async function passo(){const b=$('#bPasso');b&&(b.disabled=true);$('#log').textContent='Trabalhando… (pode levar até 1 minuto)';try{const r=await api({acao:'passo',aula_id:AULA.aula.id});LOG=r.msg;await recarregaAula();}catch(e){LOG=e.message;mostra();}}
+async function tudo(){for(let i=0;i<14;i++){$('#log').textContent='Rodando… passo '+(i+1);let r;try{r=await api({acao:'passo',aula_id:AULA.aula.id});}catch(e){LOG=e.message;break;}LOG=r.msg;await recarregaAula(true);if(!r.ok||['validacao_humana','reprovada','validada'].includes(AULA.aula.status))break;}mostra();await carregaSemAula();}
+async function recarregaAula(q){AULA=await api({acao:'ver',aula_id:AULA.aula.id});if(!q){mostra();await carregaSemAula();}else mostra();}
+async function carregaSemAula(){try{P=await api({acao:'painel'});const d=$('#det').innerHTML;draw();}catch(e){}}
+async function val(ok){try{await api({acao:'validar',aula_id:AULA.aula.id,aprovar:ok,parecer:$('#pa').value});AULA=null;await carrega();}catch(e){alert(e.message);}}
+boot();
+</script></body></html>
