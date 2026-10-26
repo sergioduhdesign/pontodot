@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retrospectiva — Pontodot</title><meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--ink:#121212;--gray:#6c6c69;--gray2:#9a9a96;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--ok:#1f8a55;--mid:#c8941a;--bad:#c63d32;--bg:#fff}
+@media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--gray2:#77776f;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 "Inter Tight",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.w{max-width:880px;margin:0 auto;padding:28px 16px 80px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.lg{font-weight:700;letter-spacing:-.02em;font-size:15px;color:var(--gray)}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.1;letter-spacing:-.03em;margin:6px 0 4px;font-weight:600}
+.per{color:var(--gray);font-size:14px}
+.btn,.sw button{font-family:'Inter Tight',system-ui,sans-serif}.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;background:var(--ink);color:var(--bg);font:500 14px "Inter Tight";text-decoration:none;border:0;cursor:pointer}
+.btn.o{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+section{margin-top:34px}h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);font-weight:600;margin:0 0 12px}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:640px){.kp{grid-template-columns:repeat(2,1fr)}}
+.k{border:1px solid var(--line);border-radius:14px;padding:14px 14px 12px;background:var(--soft)}
+.k small{color:var(--gray);font-size:12px;display:block}.k b{font-size:24px;letter-spacing:-.02em;font-weight:600;display:block;margin:2px 0}
+.d{font-size:12px;font-weight:500}.d.u{color:var(--ok)}.d.dn{color:var(--bad)}.d.n{color:var(--gray)}
+.sub{color:var(--gray);font-size:13px;margin-top:10px}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--soft)}
+.bars{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:8px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--gray)}
+.bar i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--ink);min-height:3px}.bar i.z{background:var(--gray2);opacity:.5}
+.bar span{margin-top:6px;text-align:center;line-height:1.25}.bar em{font-style:normal;color:var(--ink);font-weight:500;font-size:11px}
+.mk{margin:0 0 18px}.mk .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px}.mk .t b{font-weight:600}
+.tag{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;color:#fff}.tag.melhor{background:var(--ok)}.tag.na_media{background:var(--mid)}.tag.pior{background:var(--bad)}
+.rg{position:relative;height:10px;border-radius:6px;background:var(--line);margin:12px 0 6px}
+.rg .f{position:absolute;top:0;bottom:0;border-radius:6px;background:rgba(120,120,115,.35)}.rg .p{position:absolute;top:-5px;width:4px;height:20px;border-radius:2px;background:var(--ink);transform:translateX(-2px)}
+.leg{font-size:12px;color:var(--gray)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{font-size:12px;text-align:right;color:var(--gray);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
+td{white-space:nowrap;padding:9px 8px;border-bottom:1px solid var(--line);text-align:right}td:first-child{white-space:normal;min-width:140px}
+.al{display:flex;gap:10px;padding:8px 0;font-size:14px}.al b{flex:none}.al.a b{color:var(--bad)}.al.g b{color:var(--ok)}
+.ia{white-space:pre-wrap;line-height:1.65}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sw{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px}.sw button{border:0;background:transparent;color:var(--gray);padding:7px 16px;border-radius:999px;font:500 13px "Inter Tight";cursor:pointer}.sw button.on{background:var(--ink);color:var(--bg)}
+.adm{border:1px dashed var(--line);border-radius:14px;padding:16px;margin-bottom:26px}.adm label{font-size:12px;color:var(--gray);display:block;margin-bottom:3px}
+.adm select,.adm input{font:400 14px "Inter Tight";padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);max-width:100%}
+.adm .g{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.msg{padding:60px 0;text-align:center;color:var(--gray)}
+.sp{height:140px}
+</style></head><body><div class="w" id="app"><div class="msg">Carregando…</div></div>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+const Q=new URLSearchParams(location.search);const TOKEN=(Q.get('t')||'').replace(/[^a-f0-9]/g,'');
+const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const brl=v=>v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>Number(v||0).toLocaleString('pt-BR');const dm=s=>s.slice(8,10)+'/'+s.slice(5,7);
+let sb=null,session=null,CID=Q.get('c')||'',LISTA=[],D=null;
+async function api(body){
+  const h={'Content-Type':'application/json'};body=Object.assign({},body);
+  if(TOKEN)body.t=TOKEN;else{ if(!session)throw new Error('login');h.Authorization='Bearer '+session.access_token;if(CID)body.client_id=CID;}
+  const r=await fetch('/retro-dados.php',{method:'POST',headers:h,body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;
+}
+async function boot(){
+  if(!TOKEN){
+    try{sb=window.supabase.createClient(SB_URL,SB_KEY);session=(await sb.auth.getSession()).data.session;}catch(e){}
+    if(!session){$('#app').innerHTML='<div class="msg">Para ver sua retrospectiva, <a href="/">entre na plataforma</a> ou use o link que recebeu no WhatsApp.</div>';return;}
+    try{LISTA=(await api({acao:'lista'})).clientes||[];}catch(e){LISTA=[];}
+    if(!CID&&LISTA.length)CID=(LISTA.find(c=>c.config)||LISTA[0]).id;
+  }
+  await carregar();
+}
+async function carregar(){
+  try{D=await api({acao:'ver'});}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
+  desenhar();
+}
+function dl(p,inv){if(p==null)return'<span class="d n">sem base</span>';const bom=inv?p<0:p>0;const c=Math.abs(p)<1?'n':bom?'u':'dn';return`<span class="d ${c}">${p>0?'▲':p<0?'▼':'•'} ${Math.abs(Math.round(p))}% vs. semana anterior</span>`;}
+function desenhar(){
+  const s=D.snap,d=s?.dados;let h='';
+  if(D.pode_equipe)h+=painel();
+  h+=`<div class="top"><div><div class="lg">pontodot · retrospectiva</div><h1>${esc(D.cliente||d?.cliente||'')}</h1><div class="per">${d?`${dm(d.periodo.ini)} a ${dm(d.periodo.fim)}/${d.periodo.fim.slice(0,4)} · atualizado ${new Date(s.criado_em||Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`:''}</div></div>
+  <div class="row">${(d&&TOKEN)||(d&&D.link)?`<a class="btn" href="/retro-pdf.php?t=${TOKEN||D.link.split('/r/')[1]}&fim=${s.fim}">Baixar PDF</a>`:''}</div></div>`;
+  if(!d){h+='<div class="msg">Ainda não há relatório gerado para este cliente.'+(D.pode_equipe?' Use “Gerar agora” acima.':'')+'</div>';$('#app').innerHTML=h;ligar();return;}
+  const a=d.ads?.atual,t=d.ads?.tendencia;
+  if(a){h+=`<section><h2>Investimento e volume · Meta Ads</h2><div class="kp">
+   <div class="k"><small>Investido</small><b>${brl(a.gasto)}</b>${dl(t.gasto,0)}</div>
+   <div class="k"><small>Leads</small><b>${num(a.leads)}</b>${dl(t.leads,0)}</div>
+   <div class="k"><small>Custo por lead</small><b>${brl(a.cpl)}</b>${dl(t.cpl,1)}</div>
+   <div class="k"><small>CTR</small><b>${a.ctr==null?'—':String(a.ctr).replace('.',',')+'%'}</b>${dl(t.ctr,0)}</div></div>
+   <div class="sub">${num(a.cliques)} cliques · ${num(a.impressoes)} impressões · CPM ${brl(a.cpm)} · frequência ${a.freq==null?'—':String(a.freq).replace('.',',')} · alcance ${num(a.alcance)}</div></section>`;
+   const dias=d.ads.por_dia,mx=Math.max(1,...dias.map(x=>x.gasto));
+   h+=`<section><h2>Performance por dia</h2><div class="card"><div class="bars">${dias.map(x=>`<div class="bar"><em>${x.leads}</em><i class="${x.leads?'':'z'}" style="height:${Math.max(3,x.gasto/mx*100)}%"></i><span>${dm(x.d)}<br>${brl(x.gasto).replace('R$ ','')}</span></div>`).join('')}</div><div class="leg" style="margin-top:8px">Altura = investimento do dia · número no topo = leads · barra clara = dia sem lead</div></div></section>`;
+  } else if(d.ads?.erros?.length){h+=`<section><h2>Anúncios</h2><div class="card">${d.ads.erros.map(esc).join('<br>')}</div></section>`;}
+  else h+='<section><h2>Anúncios</h2><div class="card">Nenhuma conta de anúncio ligada a este cliente.</div></section>';
+  const mk=d.mercado?.metricas;
+  if(mk&&Object.keys(mk).length){h+=`<section><h2>Você vs. mercado · ${esc(d.mercado.rotulo_segmento)}</h2><div class="card">`;
+   const nm={melhor:'Melhor que o mercado',na_media:'Na média',pior:'Acima do ideal'};
+   for(const k of ['cpl','cpm','ctr','freq']){const m=mk[k];if(!m)continue;const r=m.plataforma||m.publico;if(!r)continue;
+     const un=m.unidade==='brl'?x=>brl(x):x=>String(Number(x).toFixed(2)).replace('.',',')+(m.unidade==='pct'?'%':'');
+     const lo=Math.min(m.valor,r.p25)*.6,hi=Math.max(m.valor,r.p75)*1.25,pc=x=>((x-lo)/(hi-lo)*100).toFixed(1);
+     h+=`<div class="mk"><div class="t"><span><b>${esc(m.rotulo)}</b> · você ${un(m.valor)}</span><span class="tag ${m.pos}">${nm[m.pos]}</span></div>
+      <div class="rg"><div class="f" style="left:${pc(r.p25)}%;width:${pc(r.p75)-pc(r.p25)}%"></div><div class="p" style="left:${pc(m.valor)}%"></div></div>
+      <div class="leg">Faixa típica ${un(r.p25)} a ${un(r.p75)} · mediana ${un(r.mediana)} · ${m.ref_usada==='plataforma'?`média da carteira Pontodot (${r.n} clientes)`:'referência pública de mercado (estimativa)'}</div></div>`;}
+   h+=`</div></section>`;}
+  if(d.ads?.campanhas?.length)h+=`<section><h2>Campanhas</h2><div class="card" style="overflow-x:auto"><table><tr><th>Campanha</th><th>Investido</th><th>Leads</th><th>CPL</th></tr>${d.ads.campanhas.map(c=>`<tr><td title="${esc(c.nome)}">${esc(c.nome)}</td><td>${brl(c.gasto)}</td><td>${c.leads}</td><td>${brl(c.cpl)}</td></tr>`).join('')}</table></div></section>`;
+  if(d.organico){const o=d.organico;h+=`<section><h2>Instagram orgânico</h2><div class="kp"><div class="k"><small>Alcance</small><b>${num(o.alcance)}</b></div><div class="k"><small>Interações</small><b>${num(o.interacoes)}</b></div><div class="k"><small>Visitas ao perfil</small><b>${num(o.visitas_perfil)}</b></div><div class="k"><small>Seguidores</small><b>${num(o.seguidores)}</b>${o.posts!=null?`<span class="d n">${o.posts} posts na semana</span>`:''}</div></div></section>`;}
+  if(d.funil){const f=d.funil;h+=`<section><h2>Funil comercial</h2><div class="card">${Object.entries(f).map(([k,v])=>`<div class="al"><b>${esc(k.replace(/_/g,' '))}</b><span>${esc(typeof v==='object'?JSON.stringify(v):v)}</span></div>`).join('')}</div></section>`;}
+  if(d.alertas?.length)h+=`<section><h2>Atenção</h2><div class="card">${d.alertas.map(x=>`<div class="al ${x.tipo==='alerta'?'a':'g'}"><b>${x.tipo==='alerta'?'⚠':'✓'}</b><span>${esc(x.texto)}</span></div>`).join('')}</div></section>`;
+  if(d.analise)h+=`<section><h2>Leitura da semana</h2><div class="card ia">${esc(d.analise)}</div></section>`;
+  if(D.historico.length>1){const H=D.historico,mx=Math.max(1,...H.map(x=>x.leads));h+=`<section><h2>Últimas semanas · leads</h2><div class="card"><div class="bars" style="height:110px">${H.map(x=>`<div class="bar"><em>${x.leads}</em><i style="height:${Math.max(3,x.leads/mx*100)}%"></i><span>${dm(x.fim)}<br>${brl(x.cpl).replace('R$ ','')}</span></div>`).join('')}</div><div class="leg" style="margin-top:8px">Embaixo: fim da semana e CPL</div></div></section>`;}
+  h+=`<section><h2>Como você quer acompanhar</h2><div class="row"><div class="sw"><button data-f="semanal" class="${D.bi_freq==='semanal'?'on':''}">Semanal</button><button data-f="diario" class="${D.bi_freq==='diario'?'on':''}">Diário</button></div><span class="leg">O resumo no WhatsApp continua semanal.</span></div></section>`;
+  h+=`<div class="sub" style="margin-top:34px">Referências de mercado são estimativas a partir de benchmarks públicos do setor imobiliário no Brasil e, com 3+ clientes do mesmo segmento, da média da carteira Pontodot. Use como orientação, não como meta.</div>`;
+  $('#app').innerHTML=h;ligar();
+}
+function painel(){
+  const c=D.config||{};const dias=['','Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  return`<div class="adm"><div class="row"><b style="font-size:14px">Equipe</b>
+   <select id="aCli">${LISTA.map(x=>`<option value="${x.id}" ${x.id===CID?'selected':''}>${esc(x.nome)}${x.config?' ✓':''}</option>`).join('')}</select></div>
+   ${D.pode_admin?`<div class="g"><div><label>Segmento (mercado)</label><select id="aSeg">${[['lancamento','Lançamento'],['alto_padrao','Alto padrão'],['medio_padrao','Médio padrão'],['mcmv','MCMV']].map(([v,n])=>`<option value="${v}" ${c.segmento===v?'selected':''}>${n}</option>`).join('')}</select></div>
+   <div><label>Zap semanal · dia</label><select id="aDia">${[1,2,3,4,5,6,7].map(i=>`<option value="${i}" ${c.zap_dia==i?'selected':''}>${dias[i]}</option>`).join('')}</select></div>
+   <div><label>Hora</label><select id="aHora">${[...Array(24).keys()].map(i=>`<option value="${i}" ${c.zap_hora==i?'selected':''}>${i}h</option>`).join('')}</select></div>
+   <div><label>Enviar ao cliente?</label><select id="aEnv"><option value="0" ${!c.enviar_cliente?'selected':''}>Só admin</option><option value="1" ${c.enviar_cliente?'selected':''}>Admin + cliente</option></select></div>
+   <div><label>Telefones do cliente</label><input id="aTel" placeholder="5511999999999, …" value="${esc((c.destinatarios||[]).join(', '))}"></div>
+   <div><label>Relatório</label><select id="aAt"><option value="1" ${c.ativo!==false?'selected':''}>Ativo</option><option value="0" ${c.ativo===false?'selected':''}>Pausado</option></select></div></div>`:''}
+   <div class="row"><button class="btn o" id="aGer">Gerar agora</button>${D.pode_admin?'<button class="btn o" id="aZap">Mandar no meu zap</button><button class="btn o" id="aCopia">Copiar link do cliente</button><button class="btn" id="aSalva">Salvar</button>':''}<span class="leg" id="aMsg"></span></div></div>`;
+}
+function ligar(){
+  document.querySelectorAll('.sw button').forEach(b=>b.onclick=async()=>{try{await api({acao:'freq',bi_freq:b.dataset.f});D.bi_freq=b.dataset.f;document.querySelectorAll('.sw button').forEach(x=>x.classList.toggle('on',x===b));}catch(e){alert(e.message);}});
+  const m=t=>{const e=$('#aMsg');if(e)e.textContent=t;};
+  if($('#aCli'))$('#aCli').onchange=e=>{CID=e.target.value;carregar();};
+  if($('#aGer'))$('#aGer').onclick=async()=>{m('Gerando… (pode levar ~30 s)');try{await api({acao:'gerar'});await carregar();}catch(e){m(e.message);}};
+  if($('#aZap'))$('#aZap').onclick=async()=>{m('Enviando…');try{const r=await api({acao:'zap'});m(r.ok?(r.enviados?'Enviado ao seu zap.':'Gerado, mas sem número de zap no seu perfil.')+(r.falhas?.length?' '+r.falhas.join('; '):''):r.msg);}catch(e){m(e.message);}};
+  if($('#aCopia'))$('#aCopia').onclick=async()=>{try{await navigator.clipboard.writeText(D.link);m('Link copiado.');}catch(e){prompt('Link do cliente:',D.link);}};
+  if($('#aSalva'))$('#aSalva').onclick=async()=>{try{await api({acao:'config',segmento:$('#aSeg').value,zap_dia:+$('#aDia').value,zap_hora:+$('#aHora').value,enviar_cliente:$('#aEnv').value==='1',ativo:$('#aAt').value==='1',destinatarios:$('#aTel').value.split(/[,;\s]+/).filter(Boolean)});m('Salvo.');}catch(e){m(e.message);}};
+}
+boot();
+</script></body></html>
