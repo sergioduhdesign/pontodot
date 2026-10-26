@@ -100,6 +100,15 @@ function retro_coletar($clientId, $periodo) {
     $d = ['cliente' => $nome, 'periodo' => $periodo, 'segmento' => $segmento, 'gerado_em' => gmdate('c'), 'ads' => null, 'organico' => null, 'funil' => null];
 
     $contas = pd_supa('/rest/v1/meta_ad_accounts?client_id=eq.' . urlencode($clientId) . '&select=id,nome,conectada_por');
+    $vinculadaPorNome = false;
+    if (empty($contas['body'])) {   // conta ainda sem vínculo, mas com o nome do cliente (ex.: "CA - GEOVILLE")
+        $n = preg_replace('/[^a-z0-9]/', '', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nome)));
+        if (strlen($n) >= 4) {
+            $todas = pd_supa('/rest/v1/meta_ad_accounts?client_id=is.null&select=id,nome,conectada_por&limit=200');
+            $ach = array_values(array_filter((array)($todas['body'] ?? []), fn($c) => is_array($c) && strpos(preg_replace('/[^a-z0-9]/', '', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', (string)$c['nome']))), $n) !== false));
+            if ($ach) { $contas = ['body' => $ach]; $vinculadaPorNome = true; }
+        }
+    }
     $A = retro_zera(); $P = retro_zera(); $porDia = []; $camps = []; $erros = [];
     foreach ((array)($contas['body'] ?? []) as $c) {
         if (!is_array($c)) continue;
@@ -120,7 +129,7 @@ function retro_coletar($clientId, $periodo) {
             $dias[] = ['d' => $k, 'gasto' => round($v['gasto'], 2), 'leads' => $v['leads'], 'cpl' => $v['leads'] > 0 ? round($v['gasto'] / $v['leads'], 2) : null]; }
         usort($camps, fn($a, $b) => $b['gasto'] <=> $a['gasto']);
         $d['ads'] = ['atual' => $A, 'anterior' => $P, 'tendencia' => ['gasto' => retro_var($A['gasto'], $P['gasto']), 'leads' => retro_var($A['leads'], $P['leads']), 'cpl' => retro_var($A['cpl'], $P['cpl']),
-                      'ctr' => retro_var($A['ctr'], $P['ctr'])], 'por_dia' => $dias, 'campanhas' => array_slice($camps, 0, 12), 'erros' => $erros];
+                      'ctr' => retro_var($A['ctr'], $P['ctr'])], 'por_dia' => $dias, 'campanhas' => array_slice($camps, 0, 12), 'erros' => $erros, 'conta_por_nome' => $vinculadaPorNome];
     } elseif ($erros) $d['ads'] = ['erros' => $erros];
 
     $d['organico'] = retro_organico($clientId, $periodo['ini'], $periodo['fim']);
@@ -253,8 +262,9 @@ function retro_texto_zap($d, $linkBI, $linkPDF) {
     return $t;
 }
 
+function retro_base() { return rtrim(defined('PD_BASE_URL') ? PD_BASE_URL : 'https://pontodot.ai', '/'); }
 function retro_links($token, $fim) {
-    $b = sd_base();
+    $b = retro_base();
     return ['bi' => $b . '/r/' . $token, 'pdf' => $b . '/retro-pdf.php?t=' . $token . '&fim=' . $fim];
 }
 
