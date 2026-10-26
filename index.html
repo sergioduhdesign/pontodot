@@ -1944,8 +1944,8 @@ html.dia #pdSheet .ps-in{border-color:rgba(0,0,0,.2);background:rgba(0,0,0,.05)}
   html.emChat .tela.em-chat .chat-topo .ct-hist{width:44px;height:44px;padding:0!important;justify-content:center;border-radius:14px!important}
   /* menu da engrenagem em tela cheia: lista grande, por assunto, sem caixinhas */
   #menuCheio{position:fixed;left:0;right:0;top:0;bottom:var(--rodape-h,96px);z-index:99800;display:flex;flex-direction:column;background:#0b0c0b;color:#fff;
-    opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .32s ease,transform .32s ease}
-  #menuCheio.on{opacity:1;pointer-events:auto;transform:none}
+    opacity:1;visibility:hidden;pointer-events:none;transform:translateY(-100%);transition:transform .42s cubic-bezier(.2,.9,.2,1),visibility 0s .42s}
+  #menuCheio.on{visibility:visible;pointer-events:auto;transform:none;transition:transform .42s cubic-bezier(.2,.9,.2,1),visibility 0s}
   html.dia #menuCheio{background:#f5f5f2;color:#111}
   html.dia #menuCheio .mc-i{color:#111;border-bottom-color:rgba(0,0,0,.12)}
   html.dia #menuCheio .mc-x{color:#111;border-color:rgba(0,0,0,.2);background:rgba(0,0,0,.05)}
@@ -9484,7 +9484,7 @@ setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch
         const alvoAberto = fechando ? !abre : abre;       // abre = completa o gesto
         m.style.transition = `transform ${dur}ms ${ease}`; m.style.transform = alvoAberto ? 'translateY(0)' : `translateY(${-H()}px)`;
         setTimeout(() => {
-          m.style.transition = m.style.transform = m.style.opacity = m.style.pointerEvents = '';
+          m.style.transition = m.style.transform = m.style.opacity = m.style.pointerEvents = m.style.visibility = '';
           if (alvoAberto){ R.classList.add('app-menu'); m.classList.add('on'); try { navigator.vibrate && navigator.vibrate(8); } catch(e){} }
           else { m.classList.remove('on'); R.classList.remove('app-menu'); }
         }, dur);
@@ -9520,7 +9520,7 @@ setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch
         }
         if (g.mode === 'chat') folha();
         else { try { menuCheio(true); } catch(er){ g = null; return; }
-          const m = document.getElementById('menuCheio'); m.style.transition = 'none'; m.style.opacity = '1'; m.style.pointerEvents = 'none';
+          const m = document.getElementById('menuCheio'); m.style.transition = 'none'; m.style.visibility = 'visible'; m.style.pointerEvents = 'none';
           m.style.transform = g.mode === 'menu' ? `translateY(${-H()}px)` : 'translateY(0)'; }
       }
       e.preventDefault();                                                                // a página não rola enquanto o gesto manda
