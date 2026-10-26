@@ -13,6 +13,7 @@
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const SOLO = /[?&]rascunho=1/.test(location.search);
   const pref = { get() { try { return localStorage.getItem('pd_nova_tarefa') || 'guiado'; } catch (e) { return 'guiado'; } }, set(v) { try { localStorage.setItem('pd_nova_tarefa', v); } catch (e) {} } };
 
   // ----------------------------------------------------------- o que cada peça é
@@ -40,9 +41,10 @@
   const novoEstado = () => ({ cli: null, prod: '', tipo: null, assunto: '', titulo: '', layout: null, bg: null, acc: null, fT: '', fC: '', resp: '', prazo: null, projeto: '', inv: false, grande: false });
 
   // ----------------------------------------------------------- dados da PD
-  const clientes = () => (window.clients || []).filter(c => c.active !== false);
-  const tarefasDe = id => (window.tasks || []).filter(t => t.client_id === id);
-  function prodsDe(id) { return (window.products || []).filter(p => p.client_id === id); }
+  const _cl = () => (typeof clients !== 'undefined' ? clients : []), _ts = () => (typeof tasks !== 'undefined' ? tasks : []), _pr = () => (typeof products !== 'undefined' ? products : []), _pf = () => (typeof profile !== 'undefined' ? profile : null), _cat = () => (typeof CATALOGO_SERVICOS !== 'undefined' && CATALOGO_SERVICOS) || [];
+  const clientes = () => _cl().filter(c => c.active !== false);
+  const tarefasDe = id => _ts().filter(t => t.client_id === id);
+  function prodsDe(id) { return _pr().filter(p => p.client_id === id); }
   async function carregaKit(id) {
     KIT = null; KITFEITO = false;
     try { const { data } = await sb.from('brand_kits').select('colors,fonts,grids,notes').eq('client_id', id).maybeSingle(); KIT = data || null; } catch (e) {}
@@ -238,7 +240,7 @@
     const cf = $('#t-client') && $('#t-client').value; if (cf) { const c = clientes().find(x => x.id === cf); if (c) { S.cli = c; carregaKit(c.id); S.resp = respUsual(c.id); } }
     $('#rsc').classList.add('open'); if (S.cli) PASSO = 1; if (S.cli && PASSOS[1].pula()) PASSO = 2; mostra();
   }
-  function fecha() { const d = $('#rsc'); if (d) d.classList.remove('open'); }
+  function fecha(criada) { const d = $('#rsc'); if (d) d.classList.remove('open'); if (SOLO) { try { parent.postMessage({ pdRsc: criada === true ? 'criada' : 'fechou' }, '*'); } catch (e) {} } }
   function preenche() {
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
     set('t-client', S.cli.id); try { onTaskClientChange(S.cli.id, S.prod || null); } catch (e) {}
@@ -252,7 +254,7 @@
     if (S.prazo) { const d = diasUteis(S.prazo), i = diasUteis(Math.max(S.prazo - 1, 0)); set('t-date-cli', iso(d)); set('t-date-int', S.prazo > 1 ? iso(i) : iso(d)); set('t-week', S.prazo <= 5 ? 'ESTA SEMANA' : 'PRÓXIMA SEMANA'); }
     else { set('t-date-cli', ''); set('t-date-int', ''); set('t-week', 'SEM DATA'); }
     set('t-status', 'EM ANDAMENTO');
-    try { const cat = (window.CATALOGO_SERVICOS || []).find(c => S.tipo.kw.some(k => norm(c.tipo_tarefa).includes(k)) && (!S.cli || true)); if (cat && typeof escolherCatalogo === 'function') escolherCatalogo(cat.task_id); } catch (e) {}
+    try { const cat = _cat().find(c => S.tipo.kw.some(k => norm(c.tipo_tarefa).includes(k)) && (!S.cli || true)); if (cat && typeof escolherCatalogo === 'function') escolherCatalogo(cat.task_id); } catch (e) {}
   }
 
   const API = window.PDRsc = {
@@ -287,9 +289,9 @@
     window.__rscOk = true;
     const om = window.openModal, cm = window.closeModal, nt = window.openNewTaskModal;
     window.openModal = function (id) { if (id === 'modal-task' && window.__rscQuer) { window.__rscQuer = false; return; } return om.apply(this, arguments); };
-    window.closeModal = function (id) { if (id === 'modal-task' && window.__rscCriando) { fecha(); } return cm.apply(this, arguments); };
+    window.closeModal = function (id) { if (id === 'modal-task' && window.__rscCriando) { fecha(true); } return cm.apply(this, arguments); };
     window.openNewTaskModal = function () {
-      const isCliente = window.profile && window.profile.role === 'client';
+      const pf = _pf(); const isCliente = pf && pf.role === 'client';
       const guiado = !window.__rscClassico && !isCliente && pref.get() !== 'form';
       if (guiado) window.__rscQuer = true;
       nt.apply(this, arguments);
@@ -300,6 +302,17 @@
     const cab = document.querySelector('#modal-task .modal-head');
     if (cab && !$('#rscVoltaGuiado')) { const b = document.createElement('button'); b.id = 'rscVoltaGuiado'; b.type = 'button'; b.textContent = '✦ Guiado'; b.className = 'btn btn-secondary btn-sm'; b.style.cssText = 'margin-left:auto;margin-right:8px';
       b.onclick = () => { pref.set('guiado'); closeModal('modal-task'); setTimeout(() => window.openNewTaskModal(), 50); }; cab.insertBefore(b, cab.querySelector('.modal-close')); }
+  }
+
+  // ---- modo "solo": o app roda escondido num quadro por cima da tela atual; só o Rascunho aparece (sem virar nem navegar)
+  if (SOLO) {
+    const st = document.createElement('style');
+    st.textContent = 'html,body{background:transparent!important}body.rsc-solo>*:not(#rsc):not(.overlay):not(script):not(style){visibility:hidden!important}#rsc{background:rgba(0,0,0,.55)}';
+    document.head.appendChild(st); document.documentElement.style.background = 'transparent';
+    const pronto = () => typeof window.openNewTaskModal === 'function' && window.__rscOk && _pf() && _cl().length;
+    const abrirSolo = () => { document.body.classList.add('rsc-solo'); window.__rscClassico = false; if (pref.get() === 'form') pref.set('guiado'); window.openNewTaskModal(); };
+    let tent = 0; const espera = setInterval(() => { if (pronto()) { clearInterval(espera); abrirSolo(); } else if (++tent > 80) { clearInterval(espera); try { parent.postMessage({ pdRsc: 'erro' }, '*'); } catch (e) {} } }, 250);
+    window.addEventListener('message', e => { if (e.data && e.data.pdRsc === 'abrir' && pronto()) abrirSolo(); });
   }
   window.addEventListener('load', () => { instala(); setTimeout(instala, 1500); setTimeout(instala, 4000); });
 })();
