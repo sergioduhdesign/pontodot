@@ -9540,7 +9540,7 @@ setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch
       const m = g.mode, p = g.p || 0, vy = g.vy;
       let abre;
       if (m === 'chat') abre = (p > 0.35 && vy <= 0.5) || vy < -0.5;                  // passou de ~1/3, ou foi um arremesso pra cima
-      else if (m === 'menu') abre = (p > 0.35 && vy >= -0.5) || vy > 0.5;
+      else if (m === 'menu') abre = (p > 0.55 && vy >= -0.3) || (p > 0.25 && vy > 0.9);   // gaveta de cima: só fica aberta se puxou bastante; senão sobe de volta ao soltar
       else abre = (p > 0.28 && vy <= 0.5) || vy < -0.45;                              // fechaMenu: "abre" = completar o fechamento
       if (cancel) abre = false;
       engolir = Date.now(); g.anim = true; const mm = m; g = null;
