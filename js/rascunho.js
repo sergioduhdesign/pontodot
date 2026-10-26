@@ -38,6 +38,11 @@
 
   // ----------------------------------------------------------- estado
   let S, PASSO, KIT = null, KITFEITO = false, SUG = [], SUGLOADING = false, DESENHADO = {};
+  const DK = 'pd_rsc_rascunho';
+  function guarda() { try { if (!S || !S.cli) return; localStorage.setItem(DK, JSON.stringify({ s: Object.assign({}, S, { cli: S.cli.id, tipo: S.tipo && S.tipo.id }), passo: PASSO, t: Date.now() })); } catch (e) {} }
+  function limpaRascunho() { try { localStorage.removeItem(DK); } catch (e) {} }
+  function restaura() { try { const r = JSON.parse(localStorage.getItem(DK) || 'null'); if (!r || Date.now() - r.t > 7 * 864e5) return false; const cli = clientes().find(c => c.id === r.s.cli); if (!cli) return false;
+    S = Object.assign(novoEstado(), r.s, { cli, tipo: TIPOS.find(t => t.id === r.s.tipo) || null }); PASSO = Math.min(r.passo || 0, PASSOS.length - 1); carregaKit(cli.id); return true; } catch (e) { return false; } }
   const novoEstado = () => ({ cli: null, prod: '', tipo: null, assunto: '', titulo: '', layout: null, bg: null, acc: null, fT: '', fC: '', resp: '', prazo: null, projeto: '', inv: false, grande: false });
 
   // ----------------------------------------------------------- dados da PD
@@ -77,8 +82,9 @@
     const uv = (layer, pts, o) => path(layer, pts.map(p => F(p[0], p[1], o && o.dy || 0)), o);
     const accent = S.acc || L;
 
-    // chão: grade em losango
-    for (let i = -3; i <= 3; i++) { path('grid', [P(-1.7, i * .42 + .5, 0), P(1.7, i * .42 + .5, 0)], { c: DIM, w: .7 }); path('grid', [P(i * .5, -.6, 0), P(i * .5, 1.7, 0)], { c: DIM, w: .7 }); }
+    // só os eixos X, Y, Z — bem finos e apagados
+    const EO = P(-1.25, -.35, 0), AX = (to, lab) => { path('grid', [EO, to], { c: DIM, w: .6 }); const tx = to[0] + (lab === 'Z' ? -3 : 4), ty = to[1] + (lab === 'Z' ? -3 : 8); out.push(['grid', `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="7" fill="${L}" opacity=".35" data-l="grid">${lab}</text>`]); };
+    AX(P(1.5, -.35, 0), 'X'); AX(P(-1.25, 1.35, 0), 'Y'); AX(P(-1.25, -.35, 1.35), 'Z');
     if (!t) { return finaliza(sig, out, BG, L); }
 
     // a peça
@@ -196,6 +202,7 @@
   .rsc-c small{display:block;color:var(--text3,#777);font-size:12px}.rsc-c em{font-style:normal;font-size:10.5px;color:var(--text3,#777);margin-right:4px;text-transform:uppercase;letter-spacing:.04em}
   .rsc-c.on{background:var(--accent,#000);color:var(--accent-fg,#fff);border-color:var(--accent,#000)}.rsc-c.on small,.rsc-c.on em{color:inherit;opacity:.7}
   .rsc-sub{font-size:12px;color:var(--text3,#777);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.05em}.rsc-sub:first-child{margin-top:0}
+  .rsc-pr{display:flex;gap:8px;align-items:flex-end;margin-bottom:6px}.rsc-pr textarea{flex:1;font:inherit;font-size:14px;padding:10px 12px;border-radius:12px;border:1px solid var(--border,#ddd);background:var(--bg,#fff);color:inherit;resize:vertical;min-height:46px}.rsc-pr .rsc-b{padding:11px 16px}.rsc-eco{font-size:13px;color:var(--text2,#555);margin:0 0 14px;min-height:0}.rsc-eco:empty{display:none}.rsc-eco b{color:var(--text,#111)}
   .rsc-sw{width:38px;height:38px;border-radius:50%;border:2px solid var(--border,#ccc);cursor:pointer}.rsc-sw.on{outline:3px solid var(--accent,#000);outline-offset:2px}
   .rsc-rv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--border,#eee);font-size:14px}.rsc-rv span{color:var(--text3,#777)}.rsc-rv b{font-weight:500;text-align:right}
   .rsc-nav{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--border,#ddd);align-items:center}.rsc-nav .sp{flex:1}
@@ -212,12 +219,14 @@
     if ($('#rsc')) return;
     const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
     const d = document.createElement('div'); d.id = 'rsc';
-    d.innerHTML = `<div class="rsc-box"><div class="rsc-top"><b>Nova tarefa</b><span class="sp"></span><button onclick="PDRsc.classico()">Formulário</button><button onclick="PDRsc.fecha()" aria-label="Fechar">✕</button></div>
+    d.innerHTML = `<div class="rsc-box"><div class="rsc-top"><b>Nova tarefa</b><span class="sp"></span><button onclick="PDRsc.classico()">Formulário</button><button onclick="PDRsc.limpa()" title="Recomeçar do zero">Limpar</button><button onclick="PDRsc.sai()" aria-label="Guardar e fechar" title="Guarda o rascunho e fecha">✕</button></div>
       <div class="rsc-bar"><i id="rscProg"></i></div>
-      <div class="rsc-corpo"><div class="rsc-q"><h2 id="rscQ"></h2><div class="rsc-dica" id="rscD"></div><div id="rscR"></div></div>
+      <div class="rsc-corpo"><div class="rsc-q"><h2 id="rscQ"></h2><div class="rsc-dica" id="rscD"></div>
+          <div class="rsc-pr"><textarea id="rscTx" rows="2" placeholder="Ou escreva do seu jeito: “post de lançamento da torre, fundo verde, urgência de últimas unidades, para sexta”…" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')PDRsc.entende()"></textarea><button type="button" class="rsc-b p" id="rscEb" onclick="PDRsc.entende()">Entender</button></div><div class="rsc-eco" id="rscEco"></div>
+          <div id="rscR"></div></div>
         <div class="rsc-pad" id="rscPad"><div class="rsc-ph"><span>Rascunho</span><button onclick="PDRsc.inverte()" title="Inverter preto/branco">◐</button><button onclick="PDRsc.grande()" title="Ampliar">⤢</button></div><div id="rscSvg"></div><div id="rscCap"></div></div></div>
-      <div class="rsc-nav"><button class="rsc-b" id="rscV" onclick="PDRsc.volta()">Voltar</button><span class="sp"></span><button class="rsc-b" id="rscP" onclick="PDRsc.pula()">Pular</button><button class="rsc-b p" id="rscN" onclick="PDRsc.prox()">Continuar</button></div></div>`;
-    d.addEventListener('click', e => { if (e.target === d) fecha(); });
+      <div class="rsc-nav"><button class="rsc-b" id="rscV" onclick="PDRsc.volta()">Voltar</button><span class="sp"></span><button class="rsc-b" id="rscP" onclick="PDRsc.pula()">Pular</button><button class="rsc-b" id="rscS" style="display:none" onclick="PDRsc.criar()">Salvar tarefa agora</button><button class="rsc-b p" id="rscN" onclick="PDRsc.prox()">Continuar</button></div></div>`;
+    
     document.body.appendChild(d);
   }
   function mostra() {
@@ -230,17 +239,18 @@
     atualizaBotao(); desenha();
     const i = $('#rscBusca,#rscAss'); if (i && window.innerWidth > 720) i.focus();
   }
-  function atualizaBotao() { const b = $('#rscN'); if (b) b.disabled = !PASSOS[PASSO].ok(); }
+  function atualizaBotao() { const b = $('#rscN'); if (b) b.disabled = !PASSOS[PASSO].ok(); const sv = $('#rscS'); if (sv) sv.style.display = (S.cli && S.tipo && S.assunto.trim() && PASSOS[PASSO].id !== 'rev') ? '' : 'none'; guarda(); }
   function proximoIdx(d) { let i = PASSO + d; while (PASSOS[i] && PASSOS[i].pula && PASSOS[i].pula()) i += d; return i; }
   function refaz() { const p = PASSOS[PASSO]; if (['cores', 'fonte', 'prazo', 'layout', 'tipo', 'prod'].includes(p.id)) $('#rscR').innerHTML = p.render(); atualizaBotao(); desenha(); }
 
   function abre() {
     monta(); S = novoEstado(); PASSO = 0; KIT = null; SUG = []; DESENHADO = {};
+    if (restaura()) { $('#rsc').classList.add('open'); mostra(); return; }
     // se a tela já estava filtrada num cliente, a tarefa nasce com ele
     const cf = $('#t-client') && $('#t-client').value; if (cf) { const c = clientes().find(x => x.id === cf); if (c) { S.cli = c; carregaKit(c.id); S.resp = respUsual(c.id); } }
     $('#rsc').classList.add('open'); if (S.cli) PASSO = 1; if (S.cli && PASSOS[1].pula()) PASSO = 2; mostra();
   }
-  function fecha(criada) { const d = $('#rsc'); if (d) d.classList.remove('open'); if (SOLO) { try { parent.postMessage({ pdRsc: criada === true ? 'criada' : 'fechou' }, '*'); } catch (e) {} } }
+  function fecha(criada, quieto) { const d = $('#rsc'); if (d) d.classList.remove('open'); if (SOLO && !quieto) { try { parent.postMessage({ pdRsc: criada === true ? 'criada' : 'fechou' }, '*'); } catch (e) {} } }
   function preenche() {
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
     set('t-client', S.cli.id); try { onTaskClientChange(S.cli.id, S.prod || null); } catch (e) {}
@@ -250,13 +260,32 @@
     set('t-resp', S.resp || 'SERGIO');
     const lay = (LAYOUTS.find(x => x.id === S.layout) || {}).nome;
     set('t-obs', ['Peça: ' + S.tipo.nome + (formatoDa(S.tipo) ? ' (' + formatoDa(S.tipo) + ')' : ''), 'Assunto: ' + S.assunto.trim(), S.titulo ? 'Título sugerido: ' + S.titulo : '', lay ? 'Composição: ' + lay : '',
-      (S.bg || S.acc) ? 'Cores: fundo ' + (S.bg || '—') + ' · destaque ' + (S.acc || '—') : '', (S.fT || S.fC) ? 'Fontes: títulos ' + (S.fT || '—') + ' · texto ' + (S.fC || '—') : '', '', '(montado no Rascunho guiado)'].filter(x => x !== '' || true).join('\n').replace(/\n{3,}/g, '\n\n'));
+      (S.bg || S.acc) ? 'Cores: fundo ' + (S.bg || '—') + ' · destaque ' + (S.acc || '—') : '', (S.fT || S.fC) ? 'Fontes: títulos ' + (S.fT || '—') + ' · texto ' + (S.fC || '—') : '', '', S.prompt ? 'Pedido original (texto livre): ' + S.prompt : '', '(montado no Rascunho guiado)'].filter(x => x !== '' || true).join('\n').replace(/\n{3,}/g, '\n\n'));
     if (S.prazo) { const d = diasUteis(S.prazo), i = diasUteis(Math.max(S.prazo - 1, 0)); set('t-date-cli', iso(d)); set('t-date-int', S.prazo > 1 ? iso(i) : iso(d)); set('t-week', S.prazo <= 5 ? 'ESTA SEMANA' : 'PRÓXIMA SEMANA'); }
     else { set('t-date-cli', ''); set('t-date-int', ''); set('t-week', 'SEM DATA'); }
     set('t-status', 'EM ANDAMENTO');
     try { const cat = _cat().find(c => S.tipo.kw.some(k => norm(c.tipo_tarefa).includes(k)) && (!S.cli || true)); if (cat && typeof escolherCatalogo === 'function') escolherCatalogo(cat.task_id); } catch (e) {}
   }
 
+  async function aplica(d) {
+    const hex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+    if (d.cliente) { const n = norm(d.cliente), c = clientes().find(x => norm(x.name) === n) || clientes().find(x => norm(x.name).includes(n) || n.includes(norm(x.name)));
+      if (c && (!S.cli || S.cli.id !== c.id)) { S.cli = c; S.prod = ''; SUG = []; S.bg = S.acc = null; S.fT = S.fC = ''; S.resp = respUsual(c.id); S.projeto = projetosDe(c.id)[0] || ''; await carregaKit(c.id); } }
+    if (!S.cli) return;
+    if (d.produto) { const n = norm(d.produto), p = prodsDe(S.cli.id).find(x => norm(x.name).includes(n) || n.includes(norm(x.name))); if (p) S.prod = p.id; }
+    if (d.tipo) { const t = TIPOS.find(x => x.id === d.tipo); if (t) S.tipo = t; }
+    if (d.assunto) S.assunto = String(d.assunto).slice(0, 200); if (d.titulo) S.titulo = String(d.titulo).slice(0, 120);
+    if (d.layout && LAYOUTS.some(l => l.id === d.layout)) S.layout = d.layout;
+    if (hex(d.cor_fundo)) S.bg = hex(d.cor_fundo); if (hex(d.cor_destaque)) S.acc = hex(d.cor_destaque);
+    if (!S.bg) { const c = cores()[0]; if (c) { S.bg = c.hex; S.acc = S.acc || (cores()[1] || c).hex; } }
+    const fs = fontes().map(f => f.name); if (fs.includes(d.fonte_titulo)) S.fT = d.fonte_titulo; if (fs.includes(d.fonte_texto)) S.fC = d.fonte_texto;
+    if ([0, 1, 2, 3, 5].includes(Number(d.prazo_dias)) && d.prazo_dias !== null) S.prazo = Number(d.prazo_dias);
+    if (['SERGIO', 'JOY', 'LUANA', 'JUAN'].includes(d.responsavel)) S.resp = d.responsavel; if (!S.resp) S.resp = respUsual(S.cli.id);
+    if (d.projeto) S.projeto = String(d.projeto).slice(0, 60);
+    let i = 0; while (i < PASSOS.length - 1) { const st = PASSOS[i]; if (st.pula && st.pula()) { i++; continue; } if (!st.ok()) break; i++; }
+    PASSO = i;
+    mostra();
+  }
   const API = window.PDRsc = {
     abrir: abre, fecha,
     filtra(q) { const ordem = clientes().map(c => ({ c, n: tarefasDe(c.id).length })).sort((a, b) => b.n - a.n).map(x => x.c); $('#rscLista').innerHTML = lista(ordem, q); },
@@ -271,16 +300,36 @@
     pula() { API.prox(); },
     async prox() {
       const p = PASSOS[PASSO]; if (!p.ok()) return;
-      if (p.id === 'rev') {
-        preenche(); window.__rscCriando = true; const b = $('#rscN'); b.disabled = true; b.textContent = 'Criando…';
-        try { await saveTask(); } catch (e) { showToast('Não consegui criar: ' + e.message, 'error'); }
-        window.__rscCriando = false; b.disabled = false; b.textContent = 'Criar tarefa'; return;
-      }
+      if (p.id === 'rev') return API.criar();
       const i = proximoIdx(1); PASSO = Math.min(i, PASSOS.length - 1);
       if (p.id === 'cores' && !S.bg) { const c = cores()[0] || NEUTRAS[0]; S.bg = c.hex; }
       mostra();
     },
-    classico() { pref.set('form'); fecha(); window.__rscQuer = false; window.__rscClassico = true; try { openNewTaskModal(); } finally { window.__rscClassico = false; } }
+    async criar() {
+      if (!(S.cli && S.tipo && S.assunto.trim())) return;
+      if (!S.resp) S.resp = respUsual(S.cli.id) || 'SERGIO';
+      preenche(); window.__rscCriando = true; const b = $('#rscN'); b.disabled = true;
+      try { await saveTask(); } catch (e) { showToast('Não consegui criar: ' + e.message, 'error'); }
+      window.__rscCriando = false; b.disabled = false;
+    },
+    async entende() {
+      const tx = $('#rscTx'), t = tx.value.trim(); if (!t) return; const bt = $('#rscEb'); bt.disabled = true; bt.textContent = 'Lendo…'; $('#rscEco').textContent = '';
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const k = cores().length ? cores() : NEUTRAS;
+        const r = await fetch('/pd-rascunho.php', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({
+          modo: 'interpretar', texto: t, client_id: S.cli ? S.cli.id : null, clientes: clientes().map(c => c.name).slice(0, 150), produtos: S.cli ? prodsDe(S.cli.id).map(p => p.name) : [],
+          tipos: TIPOS.map(x => ({ id: x.id, nome: x.nome })), layouts: LAYOUTS, cores: k.map(c => ({ nome: c.name, hex: c.hex })), fontes: fontes().map(f => f.name), projetos: S.cli ? projetosDe(S.cli.id) : [],
+          estado: { tipo: S.tipo && S.tipo.id, assunto: S.assunto, layout: S.layout } }) });
+        const j = await r.json(); if (!r.ok) throw new Error(j.error || 'A IA não respondeu');
+        S.prompt = (S.prompt ? S.prompt + '\n' : '') + t; await aplica(j.dados || {}); tx.value = '';
+        $('#rscEco').innerHTML = j.dados && j.dados.resumo ? '<b>Entendi:</b> ' + esc(j.dados.resumo) : '';
+      } catch (e) { $('#rscEco').textContent = 'Não consegui ler agora (' + e.message + '). Pode seguir pelas perguntas.'; }
+      bt.disabled = false; bt.textContent = 'Entender';
+    },
+    sai() { guarda(); if (S && S.cli) { try { showToast('Rascunho guardado — volta de onde parou.', 'success'); } catch (e) {} } fecha(); },
+    limpa() { limpaRascunho(); const aberto = SOLO; S = novoEstado(); PASSO = 0; KIT = null; SUG = []; DESENHADO = {}; mostra(); },
+    classico() { pref.set('form'); guarda(); fecha(false, true); window.__rscQuer = false; window.__rscClassico = true; try { openNewTaskModal(); } finally { window.__rscClassico = false; } }
   };
 
   // ----------------------------------------------------------- ganchos no app existente
@@ -289,7 +338,7 @@
     window.__rscOk = true;
     const om = window.openModal, cm = window.closeModal, nt = window.openNewTaskModal;
     window.openModal = function (id) { if (id === 'modal-task' && window.__rscQuer) { window.__rscQuer = false; return; } return om.apply(this, arguments); };
-    window.closeModal = function (id) { if (id === 'modal-task' && window.__rscCriando) { fecha(true); } return cm.apply(this, arguments); };
+    window.closeModal = function (id) { if (id === 'modal-task' && window.__rscCriando) { limpaRascunho(); fecha(true); } else if (id === 'modal-task' && SOLO && !window.__rscTrocando) { try { parent.postMessage({ pdRsc: 'fechou' }, '*'); } catch (e) {} } return cm.apply(this, arguments); };
     window.openNewTaskModal = function () {
       const pf = _pf(); const isCliente = pf && pf.role === 'client';
       const guiado = !window.__rscClassico && !isCliente && pref.get() !== 'form';
@@ -301,7 +350,7 @@
     // volta ao guiado: o botão "Guiado" no formulário clássico
     const cab = document.querySelector('#modal-task .modal-head');
     if (cab && !$('#rscVoltaGuiado')) { const b = document.createElement('button'); b.id = 'rscVoltaGuiado'; b.type = 'button'; b.textContent = '✦ Guiado'; b.className = 'btn btn-secondary btn-sm'; b.style.cssText = 'margin-left:auto;margin-right:8px';
-      b.onclick = () => { pref.set('guiado'); closeModal('modal-task'); setTimeout(() => window.openNewTaskModal(), 50); }; cab.insertBefore(b, cab.querySelector('.modal-close')); }
+      b.onclick = () => { pref.set('guiado'); window.__rscTrocando = true; closeModal('modal-task'); window.__rscTrocando = false; setTimeout(() => window.openNewTaskModal(), 50); }; cab.insertBefore(b, cab.querySelector('.modal-close')); }
   }
 
   // ---- modo "solo": o app roda escondido num quadro por cima da tela atual; só o Rascunho aparece (sem virar nem navegar)
