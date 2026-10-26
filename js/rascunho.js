@@ -137,6 +137,18 @@
     Object.keys(sig).forEach(k => DESENHADO[k] = JSON.stringify(sig[k]));
     return `<svg viewBox="0 0 320 260" xmlns="http://www.w3.org/2000/svg" style="background:${BG}">${body}</svg>`;
   }
+  // o mockup vira a capa (1:1) da tarefa, para quem produzir ver o que foi pedido
+  function mockupBlob() {
+    return new Promise(res => {
+      try {
+        const svg = desenhaSVG().replace('<svg ', '<svg width="1080" height="1080" preserveAspectRatio="xMidYMid slice" ');
+        const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })), im = new Image();
+        im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 1080; const x = c.getContext('2d'); x.fillStyle = S.inv ? '#f4f4f0' : '#0b0c0b'; x.fillRect(0, 0, 1080, 1080);
+          const k = 1080 / 320; x.drawImage(im, 0, (1080 - 260 * k) / 2, 1080, 260 * k); URL.revokeObjectURL(url); c.toBlob(b => res(b), 'image/jpeg', .9); };
+        im.onerror = () => res(null); im.src = url;
+      } catch (e) { res(null); }
+    });
+  }
   function desenha() { const p = $('#rscSvg'); if (!p) return; p.innerHTML = desenhaSVG(); const c = $('#rscCap'); if (c) c.textContent = S.tipo ? (S.tipo.nome + (formatoDa(S.tipo) ? ' · ' + formatoDa(S.tipo) : '')) : 'o desenho nasce conforme você responde'; }
 
   // ----------------------------------------------------------- passos
@@ -250,7 +262,7 @@
     const cf = $('#t-client') && $('#t-client').value; if (cf) { const c = clientes().find(x => x.id === cf); if (c) { S.cli = c; carregaKit(c.id); S.resp = respUsual(c.id); } }
     $('#rsc').classList.add('open'); if (S.cli) PASSO = 1; if (S.cli && PASSOS[1].pula()) PASSO = 2; mostra();
   }
-  function fecha(criada, quieto) { const d = $('#rsc'); if (d) d.classList.remove('open'); if (SOLO && !quieto) { try { parent.postMessage({ pdRsc: criada === true ? 'criada' : 'fechou' }, '*'); } catch (e) {} } }
+  function fecha(criada, quieto) { const d = $('#rsc'); if (d) d.classList.remove('open'); if (SOLO && !quieto && criada !== true) { try { parent.postMessage({ pdRsc: criada === true ? 'criada' : 'fechou' }, '*'); } catch (e) {} } }
   function preenche() {
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
     set('t-client', S.cli.id); try { onTaskClientChange(S.cli.id, S.prod || null); } catch (e) {}
@@ -308,9 +320,17 @@
     async criar() {
       if (!(S.cli && S.tipo && S.assunto.trim())) return;
       if (!S.resp) S.resp = respUsual(S.cli.id) || 'SERGIO';
-      preenche(); window.__rscCriando = true; const b = $('#rscN'); b.disabled = true;
-      try { await saveTask(); } catch (e) { showToast('Não consegui criar: ' + e.message, 'error'); }
-      window.__rscCriando = false; b.disabled = false;
+      preenche(); const acao = (document.getElementById('t-action') || {}).value;
+      const b = $('#rscN'), sv = $('#rscS'); b.disabled = true; if (sv) sv.disabled = true; const rot = b.textContent; b.textContent = 'Salvando…';
+      try { const blob = await mockupBlob(); if (blob) { try { coverBlob = blob; } catch (e) {} } } catch (e) {}
+      window.__rscCriando = true; let ok = true;
+      try { await saveTask(); } catch (e) { ok = false; showToast('Não consegui criar: ' + e.message, 'error'); }
+      window.__rscCriando = false; b.disabled = false; if (sv) sv.disabled = false; b.textContent = rot;
+      if (!ok) return;
+      // abre a tarefa recém-criada, com o mockup de capa
+      const nova = (typeof tasks !== 'undefined' ? tasks : []).filter(t => t.client_id === S.cli.id && t.action === acao).sort((x, y) => String(y.id).localeCompare(String(x.id), 'pt', { numeric: true }))[0];
+      if (nova && typeof openDetail === 'function') { setTimeout(() => { try { openDetail(nova.id); } catch (e) {} }, 250); }
+      else if (SOLO) { try { parent.postMessage({ pdRsc: 'criada' }, '*'); } catch (e) {} }
     },
     async entende() {
       const tx = $('#rscTx'), t = tx.value.trim(); if (!t) return; const bt = $('#rscEb'); bt.disabled = true; bt.textContent = 'Lendo…'; $('#rscEco').textContent = '';
@@ -338,7 +358,7 @@
     window.__rscOk = true;
     const om = window.openModal, cm = window.closeModal, nt = window.openNewTaskModal;
     window.openModal = function (id) { if (id === 'modal-task' && window.__rscQuer) { window.__rscQuer = false; return; } return om.apply(this, arguments); };
-    window.closeModal = function (id) { if (id === 'modal-task' && window.__rscCriando) { limpaRascunho(); fecha(true); } else if (id === 'modal-task' && SOLO && !window.__rscTrocando) { try { parent.postMessage({ pdRsc: 'fechou' }, '*'); } catch (e) {} } return cm.apply(this, arguments); };
+    window.closeModal = function (id) { if (SOLO && id === 'modal-detail') { setTimeout(() => { try { parent.postMessage({ pdRsc: 'criada' }, '*'); } catch (e) {} }, 50); } if (id === 'modal-task' && window.__rscCriando) { limpaRascunho(); fecha(true); } else if (id === 'modal-task' && SOLO && !window.__rscTrocando) { try { parent.postMessage({ pdRsc: 'fechou' }, '*'); } catch (e) {} } return cm.apply(this, arguments); };
     window.openNewTaskModal = function () {
       const pf = _pf(); const isCliente = pf && pf.role === 'client';
       const guiado = !window.__rscClassico && !isCliente && pref.get() !== 'form';
