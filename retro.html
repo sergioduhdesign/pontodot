@@ -104,6 +104,7 @@ function desenhar(){
   if(d.analise)h+=`<section><h2>Leitura da semana</h2><div class="card ia">${esc(d.analise)}</div></section>`;
   if(D.historico.length>1){const H=D.historico,mx=Math.max(1,...H.map(x=>x.leads));h+=`<section><h2>Últimas semanas · leads</h2><div class="card"><div class="bars" style="height:110px">${H.map(x=>`<div class="bar"><em>${x.leads}</em><i style="height:${Math.max(3,x.leads/mx*100)}%"></i><span>${dm(x.fim)}<br>${brl(x.cpl).replace('R$ ','')}</span></div>`).join('')}</div><div class="leg" style="margin-top:8px">Embaixo: fim da semana e CPL</div></div></section>`;}
   h+=`<section><h2>Como você quer acompanhar</h2><div class="row"><div class="sw"><button data-f="semanal" class="${D.bi_freq==='semanal'?'on':''}">Semanal</button><button data-f="diario" class="${D.bi_freq==='diario'?'on':''}">Diário</button></div><span class="leg">O resumo no WhatsApp continua semanal.</span></div></section>`;
+  if(D.pode_equipe&&d.diag?.length)h+=`<section><h2>Diagnóstico (só equipe)</h2><div class="card">${d.diag.map(x=>`<div class="al"><b>•</b><span>${esc(x)}</span></div>`).join('')}</div></section>`;
   h+=`<div class="sub" style="margin-top:34px">Referências de mercado são estimativas a partir de benchmarks públicos do setor imobiliário no Brasil e, com 3+ clientes do mesmo segmento, da média da carteira Pontodot. Use como orientação, não como meta.</div>`;
   $('#app').innerHTML=h;ligar();
 }

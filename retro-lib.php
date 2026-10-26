@@ -66,18 +66,19 @@ function retro_ads_conta($contaId, $token, $ini, $fim) {
 }
 
 /** Instagram orgânico (alcance, interações, seguidores) das contas do cliente. null se não der. */
-function retro_organico($clientId, $ini, $fim) {
+function retro_organico($clientId, $ini, $fim, &$diag = []) {
     $contas = pd_supa('/rest/v1/social_accounts?client_id=eq.' . urlencode($clientId) . '&platform=eq.instagram&status=eq.conectada&select=id,account_name,external_account_id');
     $lista = array_values(array_filter((array)($contas['body'] ?? []), 'is_array'));
+    $diag[] = 'Instagram: ' . count($lista) . ' conta(s) conectada(s) vinculada(s) a este cliente';
     if (!$lista) return null;
     $out = ['contas' => [], 'alcance' => 0, 'interacoes' => 0, 'seguidores' => 0, 'visitas_perfil' => 0];
     $ok = false;
     foreach ($lista as $c) {
         $tk = pd_supa('/rest/v1/social_account_tokens?social_account_id=eq.' . urlencode($c['id']) . '&select=access_token');
-        $token = $tk['body'][0]['access_token'] ?? null; if (!$token) continue;
+        $token = $tk['body'][0]['access_token'] ?? null; if (!$token) { $diag[] = 'Instagram ' . $c['account_name'] . ': sem chave de acesso (reconecte a Meta)'; continue; }
         $r = pd_meta('GET', '/' . $c['external_account_id'] . '/insights', ['metric' => 'reach,total_interactions,profile_views', 'period' => 'day', 'metric_type' => 'total_value',
             'since' => strtotime($ini . ' 00:00:00 America/Sao_Paulo'), 'until' => strtotime($fim . ' 23:59:59 America/Sao_Paulo')], $token, 30);
-        if ($r['code'] !== 200) continue;
+        if ($r['code'] !== 200) { $diag[] = 'Instagram ' . $c['account_name'] . ': ' . pd_meta_erro($r); continue; }
         $ok = true; $m = [];
         foreach ((array)($r['body']['data'] ?? []) as $x) $m[$x['name']] = (int)($x['total_value']['value'] ?? 0);
         $f = pd_meta('GET', '/' . $c['external_account_id'], ['fields' => 'followers_count'], $token, 20);
@@ -97,15 +98,18 @@ function retro_coletar($clientId, $periodo) {
     $nome = $cli['body'][0]['name'] ?? 'Cliente';
     $cfg = pd_supa('/rest/v1/pd_retro_config?client_id=eq.' . urlencode($clientId) . '&select=segmento');
     $segmento = $cfg['body'][0]['segmento'] ?? 'lancamento';
+    $diag = ['Cliente: ' . $nome];
     $d = ['cliente' => $nome, 'periodo' => $periodo, 'segmento' => $segmento, 'gerado_em' => gmdate('c'), 'ads' => null, 'organico' => null, 'funil' => null];
 
     $contas = pd_supa('/rest/v1/meta_ad_accounts?client_id=eq.' . urlencode($clientId) . '&select=id,nome,conectada_por');
+    $diag[] = 'Contas de anúncio vinculadas ao cliente: ' . count((array)($contas['body'] ?? []));
     $vinculadaPorNome = false;
     if (empty($contas['body'])) {   // conta ainda sem vínculo, mas com o nome do cliente (ex.: "CA - GEOVILLE")
         $n = preg_replace('/[^a-z0-9]/', '', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nome)));
         if (strlen($n) >= 4) {
             $todas = pd_supa('/rest/v1/meta_ad_accounts?client_id=is.null&select=id,nome,conectada_por&limit=200');
             $ach = array_values(array_filter((array)($todas['body'] ?? []), fn($c) => is_array($c) && strpos(preg_replace('/[^a-z0-9]/', '', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', (string)$c['nome']))), $n) !== false));
+            $diag[] = 'Busca por nome (“' . $nome . '”) em contas sem vínculo: ' . count($ach) . ' achada(s)';
             if ($ach) { $contas = ['body' => $ach]; $vinculadaPorNome = true; }
         }
     }
@@ -113,15 +117,17 @@ function retro_coletar($clientId, $periodo) {
     foreach ((array)($contas['body'] ?? []) as $c) {
         if (!is_array($c)) continue;
         $tok = pd_token_para($c['conectada_por'] ?? null);
-        if (!$tok) { $erros[] = $c['nome'] . ': acesso à Meta vencido (reconecte).'; continue; }
+        if (!$tok) { $erros[] = $c['nome'] . ': acesso à Meta vencido (reconecte).'; $diag[] = $c['nome'] . ': sem chave válida da Meta'; continue; }
         $a = retro_ads_conta($c['id'], $tok, $periodo['ini'], $periodo['fim']);
         $p = retro_ads_conta($c['id'], $tok, $periodo['p_ini'], $periodo['p_fim']);
-        if (isset($a['erro'])) { $erros[] = $c['nome'] . ': ' . $a['erro']; continue; }
+        if (isset($a['erro'])) { $erros[] = $c['nome'] . ': ' . $a['erro']; $diag[] = $c['nome'] . ': ' . $a['erro']; continue; }
+        $diag[] = $c['nome'] . ': ok, investido ' . $a['tot']['gasto'] . ', leads ' . $a['tot']['leads'] . ', ' . count($a['camp']) . ' campanha(s)';
         foreach (['gasto', 'leads', 'cliques', 'impressoes', 'alcance'] as $k) { $A[$k] += $a['tot'][$k]; $P[$k] += $p['tot'][$k] ?? 0; }
         foreach ($a['dias'] as $dt => $v) { $porDia[$dt]['gasto'] = ($porDia[$dt]['gasto'] ?? 0) + $v['gasto']; $porDia[$dt]['leads'] = ($porDia[$dt]['leads'] ?? 0) + $v['leads']; }
         foreach ($a['camp'] as $cc) $camps[] = $cc;
     }
-    if ($contas['body'] ?? null) {
+    $respondeu = count((array)($contas['body'] ?? [])) > count($erros);
+    if (($contas['body'] ?? null) && $respondeu) {
         $A = retro_fecha($A); $P = retro_fecha($P);
         $dias = [];
         $x = new DateTime($periodo['ini']); $f = new DateTime($periodo['fim']);
@@ -132,10 +138,11 @@ function retro_coletar($clientId, $periodo) {
                       'ctr' => retro_var($A['ctr'], $P['ctr'])], 'por_dia' => $dias, 'campanhas' => array_slice($camps, 0, 12), 'erros' => $erros, 'conta_por_nome' => $vinculadaPorNome];
     } elseif ($erros) $d['ads'] = ['erros' => $erros];
 
-    $d['organico'] = retro_organico($clientId, $periodo['ini'], $periodo['fim']);
+    $d['organico'] = retro_organico($clientId, $periodo['ini'], $periodo['fim'], $diag);
     $d['funil'] = retro_funil($clientId);
     if (!empty($d['ads']['atual'])) $d['mercado'] = retro_mercado($segmento, $d['ads']['atual'], $clientId);
     $d['alertas'] = retro_alertas($d);
+    $d['diag'] = $diag;
     return $d;
 }
 
@@ -226,7 +233,7 @@ function retro_gerar($clientId, $tipo = 'semanal', $comIA = true) {
     $r = pd_supa('/rest/v1/pd_retro_snaps?on_conflict=client_id,tipo,fim', 'POST',
         ['client_id' => $clientId, 'tipo' => $tipo, 'ini' => $per['ini'], 'fim' => $per['fim'], 'dados' => $d],
         ['Prefer: resolution=merge-duplicates,return=representation']);
-    if ($r['code'] >= 300) { error_log('retro snap falhou: ' . json_encode($r)); return null; }
+    if ($r['code'] >= 300) { error_log('retro snap falhou: ' . json_encode($r)); $GLOBALS['retro_ultimo_erro'] = 'HTTP ' . $r['code'] . ' ' . mb_substr(json_encode($r['body']), 0, 200); return null; }
     return $r['body'][0] ?? null;
 }
 
@@ -257,6 +264,7 @@ function retro_texto_zap($d, $linkBI, $linkPDF) {
     if (!empty($d['organico'])) { $o = $d['organico'];
         $t .= "\n*Instagram orgânico*\n• Alcance " . retro_n($o['alcance']) . ' | Interações ' . retro_n($o['interacoes']) . ' | Seguidores ' . retro_n($o['seguidores']) . (isset($o['posts']) ? ' | ' . $o['posts'] . ' posts' : '') . "\n"; }
     if (empty($d['ads']['atual'])) { $er = (array)($d['ads']['erros'] ?? []); $t .= "\n⚠️ Sem dados de anúncios nesta semana: " . ($er ? implode(' ', array_slice($er, 0, 2)) : 'nenhuma conta de anúncio da Meta ligada a este cliente.') . "\n"; }
+    if (empty($d['ads']['atual']) && empty($d['organico']) && !empty($d['diag'])) $t .= "\n🔎 Diagnóstico:\n• " . implode("\n• ", array_slice($d['diag'], 0, 6)) . "\n";
     if (!empty($d['alertas'])) { $t .= "\n*Atenção*\n"; foreach (array_slice($d['alertas'], 0, 4) as $al) $t .= ($al['tipo'] === 'alerta' ? '⚠️ ' : '✅ ') . $al['texto'] . "\n"; }
     if (!empty($d['analise'])) $t .= "\n*Leitura da semana*\n" . trim($d['analise']) . "\n";
     $t .= "\n📈 Veja tudo, com o comparativo de mercado:\n$linkBI\n\n📄 PDF para baixar:\n$linkPDF";
