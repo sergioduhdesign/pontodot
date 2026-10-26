@@ -45,7 +45,7 @@ td{white-space:nowrap;padding:9px 8px;border-bottom:1px solid var(--line);text-a
 </style></head><body><div class="w" id="app"><div class="msg">Carregando…</div></div>
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
-const Q=new URLSearchParams(location.search);const TOKEN=(Q.get('t')||'').replace(/[^a-f0-9]/g,'');
+const Q=new URLSearchParams(location.search);const TOKEN=((Q.get('t')||(location.pathname.match(/\/r\/([a-f0-9]{16,64})/)||[])[1]||'')).replace(/[^a-f0-9]/g,'');
 const $=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const brl=v=>v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const num=v=>Number(v||0).toLocaleString('pt-BR');const dm=s=>s.slice(8,10)+'/'+s.slice(5,7);
