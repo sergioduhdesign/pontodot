@@ -1,0 +1,203 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estúdio · Pontodot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Poppins:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Bebas+Neue&family=Oswald:wght@400;700&family=Lora:wght@400;700&family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@400;700&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<style>
+:root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
+@media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212;--pano:#0c0c0d}}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--ink);font:400 13px/1.4 "Inter Tight",system-ui,sans-serif;overflow:hidden}
+#app{display:grid;grid-template-rows:48px 1fr;height:100%}
+.top{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);background:var(--bg)}
+.top .nome{flex:1;min-width:120px}.top .sep{width:1px;height:24px;background:var(--line)}
+.main{display:grid;grid-template-columns:260px 1fr 250px;min-height:0}
+.lado{border-right:1px solid var(--line);overflow:auto;background:var(--soft)}.lado.d{border-right:0;border-left:1px solid var(--line)}
+.pano{background:var(--pano);position:relative;overflow:auto;display:grid;place-items:center}
+.pano .folha{box-shadow:0 10px 40px rgba(0,0,0,.25);background:#fff}
+.abas{display:flex;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--soft);z-index:2}.abas button{flex:1;padding:9px 0;border:0;background:transparent;color:var(--gray);font:600 10px "Inter Tight";letter-spacing:.02em;text-transform:uppercase;cursor:pointer}.abas button.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.sec{padding:12px}.sec h3{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin:0 0 8px}
+.btn{font:500 12.5px "Inter Tight";padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.s{padding:5px 9px;font-size:11.5px}.btn:disabled{opacity:.4}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.col{display:flex;flex-direction:column;gap:6px}
+input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}input[type=color]{padding:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);cursor:pointer}input[type=range]{padding:0}
+.lab{font-size:10.5px;color:var(--gray);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.05em}
+.sw{display:inline-block;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);cursor:pointer;margin:2px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}.grade img,.grade .tp{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--line);background:var(--bg)}
+.cam{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:8px;cursor:pointer;font-size:12px}.cam.on{background:var(--bg);border:1px solid var(--line)}.cam small{color:var(--gray);margin-left:auto}
+.pecas{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}.pecas div{cursor:pointer}.pecas img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}.pecas span{display:block;font-size:11px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:999px;font-size:12.5px;opacity:0;transition:.2s;pointer-events:none;z-index:9}.msg.on{opacity:1}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
+.vazio{color:var(--gray);font-size:12px;padding:6px 0}
+@media(max-width:900px){.main{grid-template-columns:1fr}.lado{display:none}}
+</style></head><body><div id="app">
+<div class="top">
+  <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
+  <select id="fmt" onchange="trocaFormato()" title="Formato"></select>
+  <input class="nome" id="nome" placeholder="Nome da peça" value="Sem nome">
+  <span class="sep"></span>
+  <button class="btn s" onclick="hist(-1)" title="Desfazer (Ctrl+Z)">↶</button><button class="btn s" onclick="hist(1)" title="Refazer (Ctrl+Y)">↷</button>
+  <span class="sep"></span>
+  <button class="btn" onclick="salvar()">Salvar</button>
+  <button class="btn" onclick="exportar('png')">PNG</button><button class="btn" onclick="exportar('jpg')">JPG</button>
+  <button class="btn p" onclick="exportar('png',true)">Guardar no Drive</button>
+</div>
+<div class="main">
+  <div class="lado" id="esq">
+    <div class="abas"><button class="on" onclick="aba('add',this)">Adicionar</button><button onclick="aba('marca',this)">Marca</button><button onclick="aba('midia',this)">Mídia</button><button onclick="aba('pecas',this)">Peças</button></div>
+    <div id="p-add" class="sec">
+      <h3>Texto</h3><div class="row"><button class="btn s" onclick="addTexto('titulo')">Título</button><button class="btn s" onclick="addTexto('sub')">Subtítulo</button><button class="btn s" onclick="addTexto('corpo')">Texto</button></div>
+      <h3 style="margin-top:14px">Formas</h3><div class="row"><button class="btn s" onclick="addForma('rect')">Retângulo</button><button class="btn s" onclick="addForma('circle')">Círculo</button><button class="btn s" onclick="addForma('line')">Linha</button><button class="btn s" onclick="addForma('tri')">Triângulo</button></div>
+      <h3 style="margin-top:14px">Imagem</h3><div class="row"><label class="btn s">Do computador<input type="file" accept="image/*" style="display:none" onchange="addArquivo(this)"></label><button class="btn s" onclick="aba('midia')">Do banco de mídia</button></div>
+      <h3 style="margin-top:14px">Fundo</h3><div class="row"><input type="color" id="fundo" value="#ffffff" oninput="C.setBackgroundColor(this.value,()=>{C.renderAll();marca()})"><span class="vazio">cor do fundo</span></div>
+      <h3 style="margin-top:14px">Camadas</h3><div id="camadas" class="col"></div>
+    </div>
+    <div id="p-marca" class="sec" style="display:none"><div class="vazio">Escolha um cliente para carregar o kit.</div></div>
+    <div id="p-midia" class="sec" style="display:none">
+      <div class="row"><input id="mq" placeholder="Buscar foto (Pexels, Unsplash, Pixabay)" style="flex:1" onkeydown="if(event.key==='Enter')buscaMidia()"><button class="btn s" onclick="buscaMidia()">Buscar</button></div>
+      <div class="lab">Resultados</div><div id="mres" class="grade"></div>
+      <div class="lab">Biblioteca da casa</div><div id="mlib" class="grade"></div>
+    </div>
+    <div id="p-pecas" class="sec" style="display:none">
+      <div class="row" style="margin-bottom:8px"><button class="btn s" onclick="novaPeca()">Nova peça</button><button class="btn s" onclick="listaPecas(true)">Modelos</button><button class="btn s" onclick="listaPecas(false)">Do cliente</button><button class="btn s" onclick="salvar(true)">Salvar como modelo</button></div>
+      <div id="lista" class="pecas"></div>
+    </div>
+  </div>
+  <div class="pano" id="pano"><div class="folha"><canvas id="c"></canvas></div>
+    <div class="zoom"><button class="btn s" onclick="zoom(-.1)">−</button><button class="btn s" id="zl" onclick="zoomAjusta()">100%</button><button class="btn s" onclick="zoom(.1)">+</button></div>
+  </div>
+  <div class="lado d" id="dir"><div class="sec" id="props"><div class="vazio">Selecione algo na peça para editar.</div></div></div>
+</div></div>
+<div class="msg" id="msg"></div>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let sb,ses,C,PECA={id:null,client_id:null,task_id:null},KIT=null,CLIS=[],H=[],HI=-1,Z=1,TRAVA=false;
+const FONTES=['Inter','Inter Tight','Montserrat','Poppins','Playfair Display','Bebas Neue','Oswald','Lora','DM Sans','Space Grotesk','Roboto','Arial','Georgia'];
+const FORMATOS=[{nome:'Post',w:1080,h:1080},{nome:'Post retrato',w:1080,h:1350},{nome:'Story / Reels',w:1080,h:1920},{nome:'Capa / YouTube',w:1920,h:1080},{nome:'LinkedIn',w:1200,h:627},{nome:'A4 retrato (300 dpi)',w:2480,h:3508},{nome:'A4 paisagem (300 dpi)',w:3508,h:2480}];
+function msg(t,ms=2600){const m=$('#msg');m.textContent=t;m.classList.add('on');clearTimeout(m._t);m._t=setTimeout(()=>m.classList.remove('on'),ms);}
+async function api(arq,b){const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
+const q=new URLSearchParams(location.search);
+
+async function boot(){
+  sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoRefreshToken:(()=>{try{return window.self===window.top}catch(e){return false}})()}});
+  ses=(await sb.auth.getSession()).data.session; if(!ses){document.body.innerHTML='<div class="sec">Entre na PD primeiro.</div>';return;}
+  const {data}=await sb.from('clients').select('id,name,active').order('name'); CLIS=(data||[]).filter(c=>c.active!==false);
+  $('#cli').innerHTML='<option value="">Sem cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  montaFormatos();
+  C=new fabric.Canvas('c',{preserveObjectStacking:true,backgroundColor:'#ffffff'});
+  fabric.Object.prototype.set({transparentCorners:false,cornerColor:'#121212',cornerStyle:'circle',cornerSize:9,borderColor:'#121212',padding:2});
+  C.on('selection:created',props);C.on('selection:updated',props);C.on('selection:cleared',props);
+  C.on('object:modified',marca);C.on('object:added',()=>{if(!TRAVA)marca()});C.on('object:removed',()=>{if(!TRAVA)marca()});C.on('text:changed',()=>{clearTimeout(C._tc);C._tc=setTimeout(marca,600)});
+  document.addEventListener('keydown',teclas);
+  if(q.get('cliente')){$('#cli').value=q.get('cliente');} if(q.get('tarefa'))PECA.task_id=q.get('tarefa');
+  if(q.get('peca')) await abrirPeca(q.get('peca')); else { aplicaFormato(FORMATOS[0]); marca(true); }
+  await trocaCliente(); zoomAjusta(); window.addEventListener('resize',zoomAjusta);
+}
+function montaFormatos(){const extra=(KIT&&KIT.grids||[]).filter(g=>g.w&&g.h).map(g=>({nome:g.name||'Kit',w:+g.w,h:+g.h}));const all=[...extra,...FORMATOS];
+  $('#fmt').innerHTML=all.map((f,i)=>`<option value="${i}">${esc(f.nome)} · ${f.w}×${f.h}</option>`).join(''); $('#fmt')._all=all;if(PECA.formato){const i=all.findIndex(x=>x.w===PECA.formato.w&&x.h===PECA.formato.h);if(i>=0)$('#fmt').value=i;}}
+function aplicaFormato(f){PECA.formato={w:f.w,h:f.h,nome:f.nome};const sel=$('#fmt')._all.findIndex(x=>x.w===f.w&&x.h===f.h);if(sel>=0)$('#fmt').value=sel;zoomAjusta();}
+function trocaFormato(){const f=$('#fmt')._all[+$('#fmt').value];aplicaFormato(f);marca();}
+function zoom(d){Z=Math.max(.05,Math.min(4,Z+d));aplicaZoom();}
+function zoomAjusta(){if(!PECA.formato)return;const p=$('#pano');Z=Math.min((p.clientWidth-60)/PECA.formato.w,(p.clientHeight-60)/PECA.formato.h,1);aplicaZoom();}
+function aplicaZoom(){const w=PECA.formato.w,h=PECA.formato.h;C.setDimensions({width:Math.round(w*Z),height:Math.round(h*Z)});C.setZoom(Z);$('#zl').textContent=Math.round(Z*100)+'%';C.renderAll();}
+function emTamanhoReal(fn){const w=PECA.formato.w,h=PECA.formato.h,z=Z;C.setDimensions({width:w,height:h});C.setZoom(1);let r;try{r=fn();}finally{C.setDimensions({width:Math.round(w*z),height:Math.round(h*z)});C.setZoom(z);C.renderAll();}return r;}
+
+// ---------- histórico
+function marca(inicial){if(TRAVA)return;const j=JSON.stringify(docAtual());if(H[HI]===j)return;H=H.slice(0,HI+1);H.push(j);if(H.length>60)H.shift();HI=H.length-1;camadas();if(!inicial)dirty=true;}
+let dirty=false;
+function hist(d){const i=HI+d;if(i<0||i>=H.length)return;HI=i;carregaDoc(JSON.parse(H[i]),false);}
+function docAtual(){return C.toJSON(['name','selectable','lockMovementX','lockMovementY','pdTipo']);}
+function carregaDoc(doc,marcar=true){TRAVA=true;C.loadFromJSON(doc,()=>{TRAVA=false;C.renderAll();camadas();$('#fundo').value=typeof C.backgroundColor==='string'&&C.backgroundColor.startsWith('#')?C.backgroundColor:'#ffffff';if(marcar)marca();});}
+
+// ---------- adicionar
+function centro(o){o.set({left:PECA.formato.w/2,top:PECA.formato.h/2,originX:'center',originY:'center'});C.add(o);C.setActiveObject(o);C.renderAll();}
+function corKit(i,def){return KIT&&KIT.colors&&KIT.colors[i]&&KIT.colors[i].hex||def;}
+function fonteKit(def){return KIT&&KIT.fonts&&KIT.fonts[0]&&KIT.fonts[0].name||def;}
+function addTexto(t){const w=PECA.formato.w;const cfg={titulo:{text:'Título da peça',fontSize:Math.round(w*.09),fontWeight:'900'},sub:{text:'Subtítulo',fontSize:Math.round(w*.045),fontWeight:'700'},corpo:{text:'Escreva o texto aqui.',fontSize:Math.round(w*.03),fontWeight:'400'}}[t];
+  centro(new fabric.Textbox(cfg.text,{width:w*.8,fontFamily:fonteKit('Inter'),fontSize:cfg.fontSize,fontWeight:cfg.fontWeight,fill:corKit(0,'#121212'),textAlign:'left',lineHeight:1.1,pdTipo:'texto'}));}
+function addForma(t){const w=PECA.formato.w,f=corKit(1,corKit(0,'#121212'));let o;
+  if(t==='rect')o=new fabric.Rect({width:w*.4,height:w*.25,fill:f,rx:0,ry:0});else if(t==='circle')o=new fabric.Circle({radius:w*.15,fill:f});
+  else if(t==='line')o=new fabric.Rect({width:w*.5,height:Math.max(4,w*.006),fill:f});else o=new fabric.Triangle({width:w*.3,height:w*.3,fill:f});centro(o);}
+function addArquivo(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>addImagemUrl(e.target.result);r.readAsDataURL(f);inp.value='';}
+function addImagemUrl(url){fabric.Image.fromURL(url,img=>{if(!img||!img.width){msg('Não consegui carregar essa imagem.');return;}const s=Math.min(PECA.formato.w*.8/img.width,PECA.formato.h*.8/img.height,1);img.set({scaleX:s,scaleY:s});centro(img);},{crossOrigin:'anonymous'});}
+
+// ---------- camadas
+function camadas(){const el=$('#camadas');if(!el)return;const a=C.getActiveObject();el.innerHTML=C.getObjects().slice().reverse().map((o,i)=>{const idx=C.getObjects().length-1-i;const n=o.name||(o.type==='textbox'?(o.text||'texto').slice(0,22):o.type==='image'?'imagem':o.type);
+  return `<div class="cam ${a===o?'on':''}" onclick="C.setActiveObject(C.getObjects()[${idx}]);C.renderAll()"><span>${esc(n)}</span><small>${o.visible===false?'oculta':''}</small></div>`;}).join('')||'<div class="vazio">Peça vazia.</div>';}
+
+// ---------- propriedades
+function props(){const o=C.getActiveObject();const el=$('#props');camadas();if(!o){el.innerHTML='<div class="vazio">Selecione algo na peça para editar.</div>';return;}
+  const cor=v=>typeof v==='string'&&v.startsWith('#')?v:'#000000';const eTexto=o.type==='textbox'||o.type==='i-text'||o.type==='text';const eImg=o.type==='image';
+  let h=`<div class="row"><button class="btn s" onclick="dup()">Duplicar</button><button class="btn s" onclick="C.bringForward(C.getActiveObject());marca()">Subir</button><button class="btn s" onclick="C.sendBackwards(C.getActiveObject());marca()">Descer</button><button class="btn s" onclick="apaga()">Remover</button></div>`;
+  if(eTexto){h+=`<div class="lab">Fonte</div><select onchange="setP('fontFamily',this.value)">${[...new Set([...(KIT&&KIT.fonts||[]).map(f=>f.name),...FONTES])].map(f=>`<option ${o.fontFamily===f?'selected':''} style="font-family:'${f}'">${esc(f)}</option>`).join('')}</select>
+    <div class="row" style="margin-top:6px"><input type="number" style="width:70px" value="${Math.round(o.fontSize)}" onchange="setP('fontSize',+this.value)" title="tamanho"><select onchange="setP('fontWeight',this.value)"><option value="400" ${o.fontWeight=='400'||o.fontWeight=='normal'?'selected':''}>Regular</option><option value="700" ${o.fontWeight=='700'||o.fontWeight=='bold'?'selected':''}>Bold</option><option value="900" ${o.fontWeight=='900'?'selected':''}>Black</option></select></div>
+    <div class="row" style="margin-top:6px">${['left','center','right'].map(a=>`<button class="btn s" onclick="setP('textAlign','${a}')">${{left:'⇤',center:'↔',right:'⇥'}[a]}</button>`).join('')}<button class="btn s" onclick="setP('fontStyle',C.getActiveObject().fontStyle==='italic'?'normal':'italic')"><i>I</i></button><button class="btn s" onclick="setP('underline',!C.getActiveObject().underline)"><u>U</u></button><button class="btn s" onclick="setP('text',C.getActiveObject().text.toUpperCase())">AA</button></div>
+    <div class="lab">Entrelinha · espaço</div><div class="row"><input type="number" step=".05" style="width:70px" value="${o.lineHeight||1.16}" onchange="setP('lineHeight',+this.value)"><input type="number" step="10" style="width:70px" value="${o.charSpacing||0}" onchange="setP('charSpacing',+this.value)"></div>`;}
+  if(!eImg){h+=`<div class="lab">Cor</div><div class="row"><input type="color" value="${cor(o.fill)}" oninput="setP('fill',this.value)">${(KIT&&KIT.colors||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)}" title="${esc(c.name||'')}" onclick="setP('fill','${esc(c.hex)}')"></span>`).join('')}</div>`;}
+  h+=`<div class="lab">Contorno</div><div class="row"><input type="color" value="${cor(o.stroke)}" oninput="setP('stroke',this.value)"><input type="number" style="width:60px" value="${o.strokeWidth||0}" onchange="setP('strokeWidth',+this.value)"></div>`;
+  if(o.type==='rect')h+=`<div class="lab">Cantos</div><input type="number" style="width:70px" value="${o.rx||0}" onchange="setP('rx',+this.value);setP('ry',+this.value)">`;
+  h+=`<div class="lab">Opacidade</div><input type="range" min="0" max="1" step=".02" value="${o.opacity??1}" oninput="setP('opacity',+this.value,false)" onchange="marca()" style="width:100%">`;
+  h+=`<div class="lab">Posição e tamanho</div><div class="row"><input type="number" style="width:62px" value="${Math.round(o.left)}" onchange="setP('left',+this.value)" title="x"><input type="number" style="width:62px" value="${Math.round(o.top)}" onchange="setP('top',+this.value)" title="y"><input type="number" style="width:62px" value="${Math.round(o.getScaledWidth())}" onchange="escala(+this.value,null)" title="largura"><input type="number" style="width:62px" value="${Math.round(o.getScaledHeight())}" onchange="escala(null,+this.value)" title="altura"></div>
+    <div class="row" style="margin-top:6px"><input type="number" style="width:62px" value="${Math.round(o.angle||0)}" onchange="setP('angle',+this.value)" title="rotação"><button class="btn s" onclick="setP('flipX',!C.getActiveObject().flipX)">↔ espelhar</button><button class="btn s" onclick="alinha('h')">centro H</button><button class="btn s" onclick="alinha('v')">centro V</button></div>
+    <div class="lab">Nome da camada</div><input value="${esc(o.name||'')}" onchange="setP('name',this.value)" style="width:100%">
+    <div class="row" style="margin-top:8px"><button class="btn s" onclick="setP('selectable',!C.getActiveObject().selectable);C.discardActiveObject();C.renderAll()">${o.selectable===false?'Destravar':'Travar'}</button></div>`;
+  el.innerHTML=h;}
+function setP(k,v,m=true){const o=C.getActiveObject();if(!o)return;if(o.type==='activeSelection'){o.getObjects().forEach(x=>x.set(k,v));}else o.set(k,v);if(k==='text')o.set('text',v);C.renderAll();if(m)marca();if(k!=='opacity')props();}
+function escala(w,h){const o=C.getActiveObject();if(!o)return;if(w)o.scaleToWidth(w);if(h)o.scaleToHeight(h);C.renderAll();marca();props();}
+function alinha(d){const o=C.getActiveObject();if(!o)return;if(d==='h')o.set({left:PECA.formato.w/2,originX:'center'});else o.set({top:PECA.formato.h/2,originY:'center'});o.setCoords();C.renderAll();marca();}
+function dup(){const o=C.getActiveObject();if(!o)return;o.clone(c=>{c.set({left:o.left+30,top:o.top+30});C.add(c);C.setActiveObject(c);C.renderAll();},['name','pdTipo']);}
+function apaga(){const o=C.getActiveObject();if(!o)return;if(o.type==='activeSelection'){o.getObjects().forEach(x=>C.remove(x));C.discardActiveObject();}else C.remove(o);C.renderAll();marca();props();}
+function teclas(e){const t=e.target.tagName;if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT')return;const o=C.getActiveObject();
+  if((e.key==='Delete'||e.key==='Backspace')&&o&&!(o.isEditing)){e.preventDefault();apaga();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();hist(e.shiftKey?1:-1);} if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();hist(1);}
+  if((e.ctrlKey||e.metaKey)&&e.key==='d'){e.preventDefault();dup();} if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();salvar();}
+  if(o&&!o.isEditing&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const d=e.shiftKey?10:1;o.set({left:o.left+(e.key==='ArrowRight'?d:e.key==='ArrowLeft'?-d:0),top:o.top+(e.key==='ArrowDown'?d:e.key==='ArrowUp'?-d:0)});o.setCoords();C.renderAll();clearTimeout(C._tk);C._tk=setTimeout(marca,400);}}
+
+// ---------- abas
+function aba(n,b){document.querySelectorAll('#esq .sec').forEach(s=>s.style.display='none');$('#p-'+n).style.display='';document.querySelectorAll('.abas button').forEach(x=>x.classList.remove('on'));(b||[...document.querySelectorAll('.abas button')][['add','marca','midia','pecas'].indexOf(n)]).classList.add('on');if(n==='pecas')listaPecas(false);if(n==='midia'&&!$('#mlib').innerHTML)biblioteca();}
+
+// ---------- marca
+async function trocaCliente(){PECA.client_id=$('#cli').value||null;KIT=null;const el=$('#p-marca');
+  if(!PECA.client_id){el.innerHTML='<div class="vazio">Escolha um cliente para carregar o kit.</div>';montaFormatos();return;}
+  const {data}=await sb.from('brand_kits').select('*').eq('client_id',PECA.client_id).maybeSingle();KIT=data||{colors:[],fonts:[],logos:{},elements:[]};
+  for(const f of (KIT.fonts||[])){if(!f.file_url||!f.name)continue;try{const ff=new FontFace(f.name,`url(${f.file_url})`);await ff.load();document.fonts.add(ff);}catch(e){}}
+  montaFormatos();
+  const logos=Object.entries(KIT.logos||{}).filter(([k,v])=>v&&v.file_url);
+  el.innerHTML=`<h3>Cores</h3><div class="row">${(KIT.colors||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)};width:34px;height:34px" title="${esc(c.name||'')}" onclick="aplicaCor('${esc(c.hex)}')"></span>`).join('')||'<div class="vazio">Sem cores no kit.</div>'}</div>
+    <h3 style="margin-top:14px">Fontes</h3><div class="col">${(KIT.fonts||[]).map(f=>`<button class="btn s" style="font-family:'${esc(f.name)}';text-align:left" onclick="aplicaFonte('${esc(f.name)}')">${esc(f.name)}</button>`).join('')||'<div class="vazio">Sem fontes no kit.</div>'}</div>
+    <h3 style="margin-top:14px">Logos</h3><div class="grade">${logos.map(([k,v])=>`<img src="${esc(v.file_url)}" title="${esc(k)}" onclick="addImagemUrl('${esc(v.file_url)}')" style="object-fit:contain;padding:6px;background:#fff">`).join('')||'<div class="vazio">Sem logos no kit.</div>'}</div>
+    <h3 style="margin-top:14px">Elementos</h3><div class="grade">${(KIT.elements||[]).filter(e=>e.file_url).map(e=>`<img src="${esc(e.file_url)}" onclick="addImagemUrl('${esc(e.file_url)}')" style="object-fit:contain;padding:4px;background:#fff">`).join('')||'<div class="vazio">Sem elementos no kit.</div>'}</div>
+    <div class="vazio" style="margin-top:10px">O kit se edita em Design › Kit de marca.</div>`;
+  if(KIT.colors&&KIT.colors[0]&&C.getObjects().length===0&&!PECA.id)$('#fundo').value='#ffffff';
+}
+function aplicaCor(hex){const o=C.getActiveObject();if(o){setP('fill',hex);}else{C.setBackgroundColor(hex,()=>{C.renderAll();$('#fundo').value=hex;marca();});}}
+function aplicaFonte(n){const o=C.getActiveObject();if(o&&(o.type==='textbox'))setP('fontFamily',n);else msg('Selecione um texto primeiro.');}
+
+// ---------- mídia
+async function buscaMidia(){const qv=$('#mq').value.trim();if(!qv)return;$('#mres').innerHTML='<div class="vazio">Buscando…</div>';
+  try{const r=await api('pd-banco.php',{acao:'buscar',q:qv,tipo:'foto'});$('#mres').innerHTML=(r.itens||[]).map((it,i)=>`<img src="${esc(it.thumb_url)}" title="${esc(it.fonte)} · ${esc(it.autor)}" onclick="usaMidia(${i})">`).join('')||'<div class="vazio">Nada encontrado.</div>';window._mres=r.itens||[];}
+  catch(e){$('#mres').innerHTML='<div class="vazio">'+esc(e.message)+'</div>';}}
+async function usaMidia(i){const it=window._mres[i];addImagemUrl(it.media_url||it.thumb_url);try{await api('pd-banco.php',{acao:'salvar',item:{...it,cliente:(CLIS.find(c=>c.id===PECA.client_id)||{}).name||''}});}catch(e){}}
+async function biblioteca(){try{const r=await api('pd-banco.php',{acao:'listar',q:''});$('#mlib').innerHTML=(r.itens||[]).filter(x=>x.tipo==='foto').map(x=>`<img src="${esc(x.thumb_url)}" title="${esc(x.titulo||'')} · ${esc(x.licenca||'')}" onclick="addImagemUrl('${esc(x.media_url||x.thumb_url)}')">`).join('')||'<div class="vazio">Biblioteca vazia.</div>';}catch(e){$('#mlib').innerHTML='<div class="vazio">'+esc(e.message)+'</div>';}}
+
+// ---------- peças
+function novaPeca(){if(dirty&&!confirm('Começar uma peça nova? O que não foi salvo se perde.'))return;PECA={id:null,client_id:PECA.client_id,task_id:null,formato:PECA.formato};C.clear();C.setBackgroundColor('#ffffff');$('#nome').value='Sem nome';H=[];HI=-1;marca(true);dirty=false;msg('Peça nova.');}
+async function listaPecas(modelos){const el=$('#lista');el.innerHTML='<div class="vazio">Carregando…</div>';
+  try{const r=await api('pd-estudio.php',{acao:'listar',client_id:modelos?null:PECA.client_id,modelos});el.innerHTML=(r.pecas||[]).map(p=>`<div onclick="abrirPeca('${p.id}')"><img src="${esc(p.thumb_url||'')}" onerror="this.style.opacity=.2"><span>${esc(p.nome)}${p.modelo?' · modelo':''}</span><span style="color:var(--gray)">${esc(p.clients?.name||'')}</span></div>`).join('')||'<div class="vazio">Nada aqui ainda.</div>';}
+  catch(e){el.innerHTML='<div class="vazio">'+esc(e.message)+'</div>';}}
+async function abrirPeca(id){try{const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});
+  const ehModelo=!!p.modelo&&PECA.client_id&&p.client_id!==PECA.client_id;   // modelo de outro cliente vira peça nova deste
+  PECA={id:ehModelo?null:p.id,client_id:ehModelo?PECA.client_id:(p.client_id||null),task_id:p.task_id||null,formato:p.formato};
+  $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
+  C.clear();aplicaFormato(p.formato);H=[];HI=-1;carregaDoc(p.doc,false);setTimeout(()=>{marca(true);dirty=false;},300);msg(ehModelo?'Modelo aberto como peça nova.':'Peça aberta.');}catch(e){msg(e.message);}}
+function thumb(){return emTamanhoReal(()=>{const m=Math.max(PECA.formato.w,PECA.formato.h);return C.toDataURL({format:'jpeg',quality:.7,multiplier:400/m});});}
+async function salvar(modelo){C.discardActiveObject();C.renderAll();
+  try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,task_id:PECA.task_id,nome:$('#nome').value,formato:PECA.formato,doc:docAtual(),thumb:thumb(),...(modelo!==undefined?{modelo}:{})});
+    PECA.id=r.peca.id;dirty=false;msg(modelo?'Salva como modelo.':'Salva.');}catch(e){msg(e.message,5000);}}
+async function exportar(tipo,drive){C.discardActiveObject();C.renderAll();
+  const dados=emTamanhoReal(()=>C.toDataURL({format:tipo==='jpg'?'jpeg':'png',quality:.92,multiplier:1}));
+  if(!drive){const a=document.createElement('a');a.href=dados;a.download=($('#nome').value||'peca')+'.'+tipo;a.click();}
+  try{if(!PECA.id||dirty)await salvar();const r=await api('pd-estudio.php',{acao:'exportar',id:PECA.id,client_id:PECA.client_id,nome:$('#nome').value,tipo,imagem:dados});
+    msg(r.drive_url?'Guardada no Drive (pasta do cliente › ESTÚDIO).':(r.aviso||'Exportada.'),6000);}catch(e){msg(e.message,6000);}}
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+boot();
+</script></body></html>
