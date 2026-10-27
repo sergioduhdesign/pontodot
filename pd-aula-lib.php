@@ -150,7 +150,12 @@ function pdAulaPasso($id) {
 // ---------------------------------------------------------------- professor no PROJETO do ChatGPT (dot = transporte)
 define('PD_CONTRATO_AULA', 'pd-aula/2'); define('PD_CONTRATO_CORRECAO', 'pd-correcao/2');
 function pdPonteOk() { return defined('SD_PONTE_URL') && defined('SD_PONTE_KEY') && SD_PONTE_KEY; }
-function pdProjetoProfessor($cfg) { return trim((string)($cfg['professor_projeto'] ?? '')) ?: 'Aprendendo a fazer arte de post'; }
+function pdProjetoProfessor($cfg) { return trim((string)($cfg['professor_projeto'] ?? '')) ?: 'Aprendendo a fazer arte de post'; }   // só INTERNO (dica opcional); a instrução ao dot é CLIENTE > TIPO > O QUE FAZER
+/** Hierarquia que o dot usa para achar, no GPT do Sérgio, onde esta tarefa se encaixa. */
+function pdHierarquia($a, $sk) {
+    $ex = (array)($a['exercicio'] ?? []); $cf = (array)($ex['cliente_ficticio'] ?? []);
+    return ['cliente' => trim((string)($cf['nome'] ?? '')) ?: 'Escola das IAs (cliente fictício)', 'tipo' => ($sk['nome'] ?? $a['skill_id']), 'o_que_fazer' => 'Avaliar a entrega da aluna ' . ($a['personagem'] ?: 'IA') . ' (rodada ' . $a['rodada'] . ') e devolver o parecer'];
+}
 
 /** Cada passagem é identificada: aula + rodada + chamado. */
 function pdAulaJson($a, $sk, $cfg, $chamado) {
@@ -164,11 +169,11 @@ function pdAulaJson($a, $sk, $cfg, $chamado) {
         'habilidade' => ['skill_id' => $a['skill_id'], 'nome' => $sk['nome'] ?? '', 'versao' => $sk['versao'] ?? 1, 'finalidade' => $sk['finalidade'] ?? '', 'criterios' => $sk['criterios'] ?? []],
         'exercicio' => ['autor' => ($a['exercicio']['autor'] ?? 'PD')] + (array)$a['exercicio'],
         'versao_atual' => ['rodada' => (int)$a['rodada'], 'arquivos' => ['entrega-R' . $a['rodada'] . '.png', 'entrega-R' . $a['rodada'] . '.svg']],
-        'historico' => $hist, 'nota_minima' => (float)($cfg['nota_minima'] ?? 85), 'professor' => ['onde' => 'Projeto do ChatGPT: ' . pdProjetoProfessor($cfg)]];
+        'historico' => $hist, 'nota_minima' => (float)($cfg['nota_minima'] ?? 85), 'professor' => ['onde' => 'GPT do Sérgio (o dot localiza pela hierarquia CLIENTE > TIPO > O QUE FAZER)'], 'hierarquia' => pdHierarquia($a, $sk)];
 }
 function pdModeloCorrecao($a, $chamado, $cfg) {
     return ['contrato' => PD_CONTRATO_CORRECAO, 'aula_id' => $a['id'], 'rodada' => (int)$a['rodada'], 'chamado' => $chamado,
-        'origem' => ['papel' => 'professor', 'fonte' => 'chatgpt_projeto', 'projeto' => pdProjetoProfessor($cfg), 'transportado_por' => 'dot'],
+        'origem' => ['papel' => 'professor', 'fonte' => 'chatgpt_projeto', 'projeto' => '<onde no GPT você encontrou/abriu o professor — opcional>', 'transportado_por' => 'dot'],
         'parecer_do_professor' => [
             'texto_do_professor' => '<o parecer COMO O PROFESSOR ESCREVEU, copiado sem resumir e sem reescrever>',
             'nota' => 0, 'aprovado' => false,
@@ -177,18 +182,22 @@ function pdModeloCorrecao($a, $chamado, $cfg) {
         'licao_sugerida' => ['regra' => '<uma regra geral reutilizável, ou deixe vazio>', 'escopo' => 'habilidade|universal|cliente', 'exemplo_bom' => '', 'exemplo_ruim' => '']];
 }
 function pdProfessorTexto($a, $sk, $cfg, $chamado) {
-    $proj = pdProjetoProfessor($cfg); $L = [];
+    $h = pdHierarquia($a, $sk); $L = [];
     $L[] = 'ISTO NÃO É PRODUÇÃO: é uma AULA da escola de IAs. Ignore os passos 2–4 da planilha (são de produção).';
     $L[] = 'Chamado: ' . $chamado . ' · Aula: ' . $a['id'] . ' · Rodada ' . $a['rodada'] . ' de ' . $a['max_rodadas'] . ($a['modo'] === 'teste' ? ' · RODADA DE TESTE da ponte (sem efeito sobre a formação)' : '');
-    $L[] = 'Aluna: ' . ($a['personagem'] ?: 'IA da casa') . ' · Habilidade: ' . ($sk['nome'] ?? $a['skill_id']);
+    $L[] = 'Aluna: ' . ($a['personagem'] ?: 'IA da casa');
+    $L[] = 'CLIENTE: ' . $h['cliente'];
+    $L[] = 'TIPO DE TRABALHO: ' . $h['tipo'];
+    $L[] = 'O QUE FAZER: ' . $h['o_que_fazer'];
+    $L[] = '(Use essa ordem CLIENTE > TIPO > O QUE FAZER para achar, no ChatGPT do Sérgio, a conversa/projeto onde isso se encaixa melhor. Se houver dúvida entre dois lugares, escolha o do mesmo TIPO de trabalho e diga qual escolheu.)';
     $L[] = '';
     $L[] = 'PAPÉIS — leia com atenção:';
-    $L[] = '• Você (dot) é o TRANSPORTE. Leva esta aula ao Projeto do ChatGPT do Sérgio e traz o parecer de volta. Você NÃO é o professor: não julga a arte, não escreve parecer, não completa nem melhora o parecer dele.';
-    $L[] = '• O PROFESSOR é o GPT dentro do Projeto “' . $proj . '” do ChatGPT do Sérgio. Só o parecer dele vale.';
+    $L[] = '• Você (dot) é o TRANSPORTE. Leva esta aula ao ChatGPT do Sérgio e traz o parecer de volta. Você NÃO é o professor: não julga a arte, não escreve parecer, não completa nem melhora o parecer dele.';
+    $L[] = '• O PROFESSOR é o GPT do Sérgio (o que o conhece). Só o parecer dele vale.';
     $L[] = '• O Sérgio decide por último. Só depois da decisão dele uma lição entra no repertório das agentes.';
     $L[] = '';
     $L[] = 'O QUE FAZER:';
-    $L[] = '1. Abra o Projeto “' . $proj . '”. Entregue a ele, na mesma conversa da aula (se a aula já tem rodadas anteriores, continue a conversa dela): a arte desta rodada (entrega-R' . $a['rodada'] . '.png e .svg na pasta ENTRADA), o aula.json (exercício, critérios, histórico das rodadas anteriores e decisões do Sérgio) e as versões anteriores.';
+    $L[] = '1. Localize o lugar certo no GPT do Sérgio pela hierarquia acima. Entregue a ele, na mesma conversa da aula (se a aula já tem rodadas anteriores, continue a conversa dela): a arte desta rodada (entrega-R' . $a['rodada'] . '.png e .svg na pasta ENTRADA), o aula.json (exercício, critérios, histórico das rodadas anteriores e decisões do Sérgio) e as versões anteriores.';
     $L[] = '2. Peça: problemas ESPECÍFICOS da peça, o motivo de cada um e como corrigir; nota 0–100 (aprovada só com nota ≥ ' . (int)($cfg['nota_minima'] ?? 85) . ' e atendendo todos os critérios); pontos fortes; e, se houver, UMA lição geral reutilizável (diga se é da habilidade, universal ou específica de cliente).';
     $L[] = '3. Copie o parecer DELE, sem resumir nem reescrever, para o campo texto_do_professor do arquivo.';
     $L[] = '4. Grave SAIDA/CORRECAO.json exatamente no formato de 00_FORMATO_CORRECAO.json (inclua aula_id, rodada e chamado EXATOS deste chamado e a origem real). Depois escreva TERMINEI ' . $chamado . ' na célula B2 da planilha SD_CONTROLE.';
@@ -213,8 +222,8 @@ function pdProfessorEnviar($a, $sk, $cfg, $manual = false) {
         else {
             $nome = ($a['modo'] === 'teste' ? 'AULA-TESTE · ' : 'AULA · ') . ($a['personagem'] ?: 'ia') . ' · ' . $a['skill_id'] . ' · ' . substr($a['id'], 0, 8);
             $p = ponte('preparar', ['folderId' => null, 'parentId' => (defined('SD_ESCOLA_DRIVE_ID') && SD_ESCOLA_DRIVE_ID) ? SD_ESCOLA_DRIVE_ID : null, 'nome' => mb_substr($nome, 0, 120),
-                'briefing' => ['tarefa' => 'AULA · ' . $a['skill_id'], 'cliente' => '(fictício)', 'projeto' => ($sk['nome'] ?? $a['skill_id']),
-                               'pedido' => "ISTO É UMA AULA, não produção. Você (dot) é só o TRANSPORTE; o professor é o GPT do Projeto do ChatGPT. Leia o 00_BRIEFING_IA.txt desta pasta. Ignore os passos 2–4 abaixo.", 'referencia' => '']]);
+                'briefing' => ['tarefa' => 'AULA · ' . $a['skill_id'], 'cliente' => pdHierarquia($a, $sk)['cliente'], 'projeto' => ($sk['nome'] ?? $a['skill_id']),
+                               'pedido' => "ISTO É UMA AULA, não produção. Você (dot) é só o TRANSPORTE; o professor é o GPT do Sérgio. Leia o 00_BRIEFING_IA.txt desta pasta. Ignore os passos 2–4 abaixo.", 'referencia' => '']]);
         }
         $chamado = 'AULA-' . substr($a['id'], 0, 8) . '-R' . $a['rodada'] . '-' . date('ymdHis');
         $texto = pdProfessorTexto($a, $sk, $cfg, $chamado);
@@ -248,7 +257,6 @@ function pdCorrecaoValida($j, $a, $ch, $cfg) {
     $o = (array)($j['origem'] ?? []);
     if (($o['papel'] ?? '') !== 'professor') return [false, 'origem.papel precisa ser "professor" (o dot é só o transporte)'];
     if (($o['fonte'] ?? '') !== 'chatgpt_projeto') return [false, 'origem.fonte precisa ser "chatgpt_projeto"'];
-    if (trim((string)($o['projeto'] ?? '')) === '') return [false, 'origem.projeto vazio (qual Projeto do ChatGPT deu o parecer?)'];
     $pp = (array)($j['parecer_do_professor'] ?? []);
     $txt = trim((string)($pp['texto_do_professor'] ?? '')); if (mb_strlen($txt) < 60) return [false, 'texto_do_professor ausente ou curto demais (cole o parecer do professor, sem resumir)'];
     if (!isset($pp['nota']) || !is_numeric($pp['nota']) || $pp['nota'] < 0 || $pp['nota'] > 100) return [false, 'nota ausente ou fora de 0–100'];

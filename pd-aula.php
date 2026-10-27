@@ -22,7 +22,7 @@ if ($acao === 'painel') {
     foreach ($forms as &$f) { $f['sit'] = pdFormacaoSituacao($f['ia_user_id'], $f['skill_id'], $cfg); $f['meta'] = (int)($f['meta_provas'] ?: ($cfg['provas_meta'] ?? 30)); } unset($f);
     $gpt = (defined('SD_OPENAI_KEY') && SD_OPENAI_KEY) ? 'GPT (' . (defined('SD_PROFESSOR_MODEL') ? SD_PROFESSOR_MODEL : 'gpt-4.1') . ')' : null;
     echo json_encode(['formacoes' => $forms, 'externo_ok' => pdPonteOk(), 'ias' => $ias, 'habilidades' => $sk, 'aulas' => $aulas['body'], 'licoes' => $lic, 'notas' => $notas, 'incubacao' => $cfg,
-        'professor' => ($cfg['professor_modo'] ?? 'projeto_gpt') === 'api' ? ($gpt ? 'PILOTO: ' . $gpt . ' por API (GPT cru, sem a bagagem do Sérgio)' : 'API sem chave (SD_OPENAI_KEY)') : 'GPT do Projeto “' . pdProjetoProfessor($cfg) . '” (o dot só transporta)', 'gpt_ligado' => (bool)$gpt, 'imagick' => class_exists('Imagick')], JSON_UNESCAPED_UNICODE); exit;
+        'professor' => ($cfg['professor_modo'] ?? 'projeto_gpt') === 'api' ? ($gpt ? 'PILOTO: ' . $gpt . ' por API (GPT cru, sem a bagagem do Sérgio)' : 'API sem chave (SD_OPENAI_KEY)') : 'Seu GPT (o que conhece você) · o dot só transporta', 'gpt_ligado' => (bool)$gpt, 'imagick' => class_exists('Imagick')], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'criar') {
     $ia = (string)($b['ia_user_id'] ?? ''); $skill = (string)($b['skill_id'] ?? ''); $pers = (string)($b['personagem'] ?? '');
@@ -67,8 +67,7 @@ if ($acao === 'licao') {   // o gestor aprova/recusa/aposenta uma lição avulsa
     pdAulaSup('/rest/v1/pd_licoes?id=eq.' . urlencode((string)($b['id'] ?? '')), 'PATCH', $d); echo json_encode(['ok' => true]); exit;
 }
 if ($acao === 'incubacao') {
-    if (!empty($b['ativa'])) { $c0 = pdIncub(); if (empty($c0['teste_confirmado_em'])) sd_fail('Antes de ligar a rotina: rode e confirme a rodada de teste ponta a ponta (PD → dot → Projeto do ChatGPT → dot → PD).'); }
-    if (isset($b['professor_projeto'])) $d0['professor_projeto'] = mb_substr(trim((string)$b['professor_projeto']), 0, 120);
+    if (!empty($b['ativa'])) { $c0 = pdIncub(); if (empty($c0['teste_confirmado_em'])) sd_fail('Antes de ligar a rotina: rode e confirme a rodada de teste ponta a ponta (PD → dot → seu GPT → dot → PD).'); }
     $d = $d0 ?? []; foreach (['ativa' => 'bool', 'sandbox' => 'bool', 'boas_para_apto' => 'int', 'provas_meta' => 'int', 'chamados_dia' => 'int', 'professor_modo' => 'txt', 'intervalo_horas' => 'int', 'teto_gasto_dia' => 'num', 'nota_minima' => 'num'] as $k => $t) if (isset($b[$k])) $d[$k] = $t === 'txt' ? (in_array($b[$k], ['projeto_gpt', 'api'], true) ? $b[$k] : 'projeto_gpt') : ($t === 'bool' ? (bool)$b[$k] : ($t === 'int' ? max(1, (int)$b[$k]) : (float)$b[$k]));
     if ($d) pdAulaSup('/rest/v1/pd_incubacao?id=eq.1', 'PATCH', $d); echo json_encode(['ok' => true, 'incubacao' => pdIncub()]); exit;
 }

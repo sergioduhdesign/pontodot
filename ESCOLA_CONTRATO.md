@@ -4,15 +4,15 @@
 | Papel | Quem | Faz | Não faz |
 |---|---|---|---|
 | Produção da aula | PD | monta o exercício, a aluna (Claude) entrega, guarda cada versão, reconhece a correção | não corrige |
-| Transporte | dot | recebe `[SD-IA] AULA · CORRIGIR`, leva aula/rodada/arquivos/histórico ao Projeto do ChatGPT, traz o parecer, grava `CORRECAO.json` | não julga, não escreve parecer, não substitui o professor |
-| Professor | GPT dentro do Projeto do ChatGPT (ex.: “Aprendendo a fazer arte de post”) | problemas específicos, motivo, orientação, nota, lição sugerida | — |
+| Transporte | dot | recebe `[SD-IA] AULA · CORRIGIR`, leva aula/rodada/arquivos/histórico ao GPT do Sérgio (acha o lugar por CLIENTE › TIPO DE TRABALHO › O QUE FAZER), traz o parecer, grava `CORRECAO.json` | não julga, não escreve parecer, não substitui o professor |
+| Professor | O GPT do Sérgio (o que o conhece) | problemas específicos, motivo, orientação, nota, lição sugerida | — |
 | Aprovador | Sérgio | decisão final (aprovar / revisar / reprovar); edita a lição | — |
 
 Modo `api` (GPT cru por chave) existe só como PILOTO explícito. Nunca é fallback silencioso.
 
 ## Fluxo
 1. PD: exercício + versão da aluna → pasta no Drive (ENTRADA: `entrega-R<n>.png/.svg`, `aula.json`; raiz: `00_BRIEFING_IA.txt`, `00_FORMATO_CORRECAO.json`) + e-mail `[SD-IA] AULA · CORRIGIR · …`. A aula fica **AGUARDANDO**.
-2. dot leva ao Projeto, recolhe o parecer.
+2. dot leva ao GPT (hierarquia CLIENTE › TIPO › O QUE FAZER vem no e-mail), recolhe o parecer.
 3. Se o professor não respondeu: célula B2 = `AGUARDANDO-PROFESSOR`, **sem** CORRECAO.json. A aula continua aguardando.
 4. Se respondeu: `SAIDA/CORRECAO.json` + B2 = `TERMINEI <chamado>`.
 5. PD valida o contrato. Inválido → rejeita, escreve o motivo em B2, aula continua aguardando. Válido → registra o parecer (idempotente por rodada).
@@ -28,7 +28,7 @@ Cadência: no máximo `chamados_dia` (padrão 5) avisos ao dot por dia; a PD só
   "aula_id": "<uuid da aula, igual ao do aula.json>",
   "rodada": 1,
   "chamado": "<id do último chamado, igual ao do aviso>",
-  "origem": { "papel": "professor", "fonte": "chatgpt_projeto", "projeto": "Aprendendo a fazer arte de post", "transportado_por": "dot" },
+  "origem": { "papel": "professor", "fonte": "chatgpt_projeto", "projeto": "<onde o dot encontrou o professor — opcional>", "transportado_por": "dot" },
   "parecer_do_professor": {
     "texto_do_professor": "<parecer do professor, copiado sem resumir>",
     "nota": 0,
@@ -39,10 +39,17 @@ Cadência: no máximo `chamados_dia` (padrão 5) avisos ao dot por dia; a PD só
   "licao_sugerida": { "regra": "", "escopo": "habilidade|universal|cliente", "exemplo_bom": "", "exemplo_ruim": "" }
 }
 ```
-Rejeitado pela PD: contrato/aula_id/rodada/chamado que não batem; `origem.papel` ≠ `professor`; `origem.fonte` ≠ `chatgpt_projeto`; projeto vazio; `texto_do_professor` com menos de 60 caracteres; nota fora de 0–100; reprovação sem ao menos um problema com `problema` + `motivo`.
+Rejeitado pela PD: contrato/aula_id/rodada/chamado que não batem; `origem.papel` ≠ `professor`; `origem.fonte` ≠ `chatgpt_projeto`; `texto_do_professor` com menos de 60 caracteres; nota fora de 0–100; reprovação sem ao menos um problema com `problema` + `motivo`.
 
 ## Rodada de teste ponta a ponta (trava)
-Aula `modo = teste`: PD entrega → dot leva ao Projeto → GPT analisa → dot devolve → PD reconhece → Sérgio confirma. Não conta para a formação, não cria nota nem lição. Só depois da confirmação (`pd_incubacao.teste_confirmado_em`) o treino automático pode ser ligado (a API recusa antes). Produção normal (`avisarIA`, `[SD-IA] PRODUZIR/CORRIGIR…`) não é tocada.
+Aula `modo = teste`: PD entrega → dot leva ao GPT → GPT analisa → dot devolve → PD reconhece → Sérgio confirma. Não conta para a formação, não cria nota nem lição. Só depois da confirmação (`pd_incubacao.teste_confirmado_em`) o treino automático pode ser ligado (a API recusa antes). Produção normal (`avisarIA`, `[SD-IA] PRODUZIR/CORRIGIR…`) não é tocada.
 
 ## Pilotos futuros (não aprovados)
 O próprio dot como professor, comparando a crítica dele com a do Sérgio, é piloto separado.
+
+
+## O envelope CORRECAO.json
+É o mesmo para qualquer tipo de tarefa e quase não muda (versão `pd-correcao/2`). O que evolui são os critérios de cada curso e as lições aprovadas, não o envelope.
+
+## Permissões (v113)
+Por pessoa, em `pd_escola_perm`: matricular a própria IA · acompanhar (evolução, receita, marcos) · criar cursos. Admin tem tudo. Treino automático e setup só na página do admin.

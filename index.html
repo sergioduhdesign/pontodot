@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v217 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v218 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4943,7 +4943,105 @@ async function escDecide(dec){
   try { await escFala({ acao:'validar', aula_id:ESC.sel, decisao:dec, parecer:c, licao_regra:(($('#escLic') || {}).value || '') }); ESC.msg = dec === 'aprovar' ? 'Entrega aprovada.' : dec === 'revisar' ? 'Voltou para a IA refazer.' : 'Reprovada.'; ESC.sel = null; ESC.det = null; ESC.em = 0; await carregarEscola(true); }
   catch(e){ ESC.msg = e.message; renderBoard(); }
 }
+// ---------------------------------------------------------------------
+// ESCOLA — visão do HUMANO (glass da home): cursos em detalhe, evolução da IA com amostras
+// e link do repositório, receita (o que a IA sabe + instruções da pessoa) e linha do tempo de marcos.
+// O que cada pessoa vê depende das permissões dadas pelo admin (matricular · acompanhar · criar).
+// Treino automático e setup ficam só na página do admin (Gerenciar).
+// ---------------------------------------------------------------------
+let ESH = { d:null, erro:'', carregando:false, em:0, aba:'cursos', aberto:null, msg:'' };
+const ICONE_CURSO = {
+  estrela:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9-4.3-4.1 5.9-.8z"/>',
+  lapis:'<path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/><path d="M14.5 6.5l3 3"/>',
+  bussola:'<circle cx="12" cy="12" r="8.4"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  alvo:'<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1"/>',
+  elos:'<circle cx="8" cy="12" r="4.2"/><circle cx="16" cy="12" r="4.2"/>',
+  pincel:'<path d="M4 20c3 0 5-1.5 5-4l-2-2c-2.5 0-4 2-3 6z"/><path d="M9 14L19 4l1 1-10 10z"/>',
+  livro:'<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/>',
+  megafone:'<path d="M4 10v4h3l8 4V6L7 10z"/><path d="M18 9a4 4 0 0 1 0 6"/>',
+  grafico:'<path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>',
+  camera:'<rect x="3.5" y="7" width="17" height="12" rx="2.5"/><circle cx="12" cy="13" r="3.4"/><path d="M9 7l1.2-2h3.6L15 7"/>',
+  chave:'<circle cx="8" cy="12" r="3.6"/><path d="M11.6 12H20M17 12v3"/>',
+  balao:'<path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>'
+};
+async function eshFala(dados){
+  const { data:{ session } } = await sbR.auth.getSession();
+  const r = await fetch('/pd-escola.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify(dados) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+  return j;
+}
+async function carregarEscolaH(forcar){
+  if (!window.REAL || ESH.carregando) return;
+  if (!forcar && ESH.em && Date.now() - ESH.em < 90e3) return;
+  ESH.carregando = true;
+  try { ESH.d = await eshFala({ acao:'inicio' }); ESH.erro = ''; } catch(e){ ESH.erro = e.message; }
+  ESH.em = Date.now(); ESH.carregando = false;
+  try { renderBoard(); } catch(e){}
+}
+function eshAba(a){ ESH.aba = a; ESH.msg = ''; ESC.sel = null; ESC.det = null; renderBoard(); }
+function eshAbre(slug){ ESH.aberto = ESH.aberto === slug ? null : slug; renderBoard(); }
+async function eshMatricula(skill){
+  ESH.msg = 'Matriculando…'; renderBoard();
+  try { const r = await eshFala({ acao:'matricular', skill_id:skill }); ESH.msg = 'Matriculada. A primeira prova sai na próxima rodada.' + (r.pasta_url ? '' : ''); ESH.aba = 'evolucao'; }
+  catch(e){ ESH.msg = e.message; }
+  await carregarEscolaH(true);
+}
+async function eshSalvaReceita(){
+  const t = ($('#eshExtra') || {}).value || '';
+  ESH.msg = 'Salvando…'; renderBoard();
+  try { await eshFala({ acao:'receita_salvar', texto:t }); ESH.msg = 'Instruções salvas. A sua IA passa a seguir a partir da próxima conversa.'; } catch(e){ ESH.msg = e.message; }
+  await carregarEscolaH(true);
+}
 function htmlEscola(){
+  if (!window.REAL) return gadCaixa('Escola das IAs', `<div class="nota">Entre na sua conta para ver a escola.</div>`);
+  if (!ESH.em && !ESH.carregando) setTimeout(() => carregarEscolaH(), 0);
+  if (ESH.erro && !ESH.d) return gadCaixa('Escola das IAs', `<div class="nota" style="line-height:1.5">${esc(ESH.erro)}</div>`);
+  if (!ESH.d) return gadCaixa('Escola das IAs', `<div class="nota">Carregando…</div>`);
+  const D = ESH.d, P = D.perm || {}, M = D.minha;
+  const abas = [['cursos','Cursos']];
+  if (P.acompanhar) abas.push(['evolucao','Evolução'], ['receita','Receita'], ['marcos','Marcos']);
+  if (P.admin) abas.push(['fila','Decidir']);
+  if (!abas.some(a => a[0] === ESH.aba)) ESH.aba = 'cursos';
+  const bar = `<div class="esc-bt" style="margin:0 0 8px">${abas.map(a => `<button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px;${ESH.aba === a[0] ? 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700' : ''}" onclick="eshAba('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
+  const msg = ESH.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESH.msg)}</div>` : '';
+  const ic = k => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${ICONE_CURSO[k] || ICONE_CURSO.estrela}</svg>`;
+  if (ESH.aba === 'fila' && P.admin) return htmlEscolaAdmin(bar);
+  if (ESH.aba === 'cursos'){
+    const fam = {}; (D.cursos || []).forEach(c => { (fam[c.familia] = fam[c.familia] || []).push(c); });
+    const minhaSk = new Set(((M && M.formacoes) || []).map(f => f.skill_id));
+    const corpo = Object.entries(fam).map(([f, cs]) => `<div class="ads-sec">${esc(f)}</div>` + cs.map(c => {
+      const aberto = ESH.aberto === c.slug, pronto = c.status === 'ativo';
+      const crit = (c.criterios || []).map(x => `${esc(x.criterio)} (${x.peso})`).join(' · ');
+      const sks = (c.skill_ids || []).filter(k => (D.habilidades || []).some(h => h.skill_id === k));
+      return `<div class="esc-it"><button class="esc-fila" style="margin:0;background:none;padding:0;border:0" onclick="eshAbre('${esc(c.slug)}')"><span style="display:flex;gap:10px;align-items:center">${ic(c.icone)}<span><b>${esc(c.titulo || c.nome)}</b><br><small style="opacity:.7">${esc(c.nome)}${c.personagem ? ' · com ' + esc(c.personagem.charAt(0).toUpperCase() + c.personagem.slice(1)) : ''}</small></span></span><span class="esc-apta" style="${pronto ? '' : 'background:rgba(128,128,128,.45)'}">${pronto ? (c.alunos || 0) + ' aluna(s)' : 'em preparação'}</span></button>
+        ${aberto ? `<div class="nota" style="line-height:1.5;margin-top:8px">${c.descricao ? esc(c.descricao) + '<br><br>' : ''}<b>O que a IA treina:</b> ${esc(c.exercicio || '—')}<br><br>${c.evidencia ? '<b>Como se vê que aprendeu:</b> ' + esc(c.evidencia) + '<br><br>' : ''}${c.transferencia ? '<b>Prova de transferência:</b> ' + esc(c.transferencia) + '<br><br>' : ''}${crit ? '<b>Critérios (peso):</b> ' + crit + '<br><br>' : ''}${c.responsavel ? '<b>Responsável:</b> ' + esc(c.responsavel) + (c.vagas ? ' · ' + c.vagas + ' vagas' : '') + '<br><br>' : ''}${pronto && sks.length ? (P.matricular ? sks.map(k => minhaSk.has(k) ? `<small>✓ ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)} — já matriculada</small><br>` : `<button class="btn" style="min-height:34px;padding:6px 12px;font-size:11.5px;margin:2px 4px 2px 0" onclick="eshMatricula('${esc(k)}')">Matricular minha IA · ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)}</button>`).join('') : '<small>Para matricular a sua IA, peça a liberação ao administrador.</small>') : '<small>Este curso ainda está em preparação.</small>'}</div>` : ''}</div>`;
+    }).join('')).join('');
+    return gadCaixa('Escola das IAs', bar + msg + corpo, P.admin ? ['Gerenciar (admin)', 'abrirSala()'] : null);
+  }
+  if (!M) return gadCaixa('Escola das IAs', bar + msg + `<div class="nota" style="line-height:1.5">A sua IA ainda não existe. Faça a matrícula inicial (“Minha IA”) para começar.</div>`);
+  if (ESH.aba === 'evolucao'){
+    const fs = M.formacoes.map(f => { let seg = ''; for (let i = 0; i < f.meta; i++){ const v = f.hist[i]; seg += `<i class="${v === 1 ? 'b' : v === 0 ? 'r' : ''}"></i>`; }
+      return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(M.ia)}</b> <small>· ${esc(f.nome)}</small></span>${f.apta_em ? '<span class="esc-apta">🎓 Apta</span>' : ''}</div><div class="esc-bar" style="grid-template-columns:repeat(${f.meta},1fr)">${seg}</div><div class="esc-nm"><small>${f.feitas} de ${f.meta} provas · ${f.boas} boas</small><small>seguidas ${f.seguidas}/${f.para_apto}</small></div>${f.pasta_url ? `<div style="margin-top:4px"><a href="${esc(f.pasta_url)}" target="_blank" rel="noopener" style="font-size:11.5px">Abrir repositório das entregas ↗</a></div>` : ''}</div>`; }).join('') || `<div class="nota">Nenhuma formação ainda. Matricule em “Cursos”.</div>`;
+    const am = M.amostras.map(a => `<div class="esc-it"><div class="esc-nm"><span><b>${esc(a.curso)}</b></span><small>${a.aprovada ? 'aprovada' : 'em ajuste'} · ${new Date(a.quando).toLocaleDateString('pt-BR')}</small></div>${a.svg ? `<img class="esc-img" src="data:image/svg+xml;utf8,${encodeURIComponent(a.svg)}" alt="">` : ''}${a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener" style="font-size:11.5px">Ver no repositório ↗</a>` : ''}</div>`).join('');
+    return gadCaixa('Evolução de ' + esc(M.ia), bar + msg + fs + (am ? `<div class="ads-sec">Amostras das entregas</div>` + am : ''));
+  }
+  if (ESH.aba === 'receita'){
+    const R = M.receita || {};
+    return gadCaixa('Receita de ' + esc(M.ia), bar + msg + `<div class="nota" style="line-height:1.5">Aqui está o que a sua IA recebe para trabalhar com você — e onde você pode mexer a qualquer momento.</div>
+      <div class="ads-sec">Quem ela é</div><div class="nota">${esc(R.quem_ela_e || M.ia)}</div>
+      <div class="ads-sec">O que ela aprendeu a fazer</div>${(R.habilidades || []).map(h => `<div class="nota" style="margin:4px 0"><b>${esc(h.nome)}</b> — ${esc(h.finalidade || '')}</div>`).join('') || '<div class="nota">Nada ainda.</div>'}
+      <div class="ads-sec">Lições aprovadas por você</div>${(R.licoes || []).map(l => `<div class="nota" style="margin:4px 0">• ${esc(l.regra)}</div>`).join('') || '<div class="nota">As lições aparecem aqui quando você aprova uma entrega.</div>'}
+      <div class="ads-sec">Suas instruções para ela</div><textarea class="esc-ta" id="eshExtra" maxlength="2000" placeholder="Ex.: respostas curtas; sempre me mostre a opção ousada primeiro…">${esc(M.instrucao_extra || '')}</textarea>
+      <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="eshSalvaReceita()">Salvar instruções</button></div>`);
+  }
+  // marcos
+  const mk = (M.marcos || []).map(m => `<div class="esc-it"><div class="esc-nm"><span>${esc(m.texto)}</span><small>${new Date(m.quando).toLocaleDateString('pt-BR')}</small></div></div>`).join('') || `<div class="nota">Os marcos aparecem quando a sua IA atinge um resultado.</div>`;
+  return gadCaixa('Marcos de ' + esc(M.ia), bar + msg + mk);
+}
+
+function htmlEscolaAdmin(abas){
+  abas = abas || '';
   if (!window.REAL) return gadCaixa('Escola das IAs', `<div class="nota">Entre na sua conta para ver a formação das IAs.</div>`);
   if (!ESC.em && !ESC.carregando) setTimeout(() => carregarEscola(), 0);
   if (ESC.erro && !ESC.dados) return gadCaixa('Escola das IAs', `<div class="nota" style="line-height:1.5">${esc(ESC.erro)}</div>`);
@@ -4962,7 +5060,7 @@ function htmlEscola(){
       <div class="nota" style="margin:0 0 4px">${esc((ex.cliente_ficticio || {}).nome || '')} · rodada ${A.rodada}</div>
       ${img}
       ${cor ? `<div style="font-size:12.5px"><b>${esc(cor.professor || 'Professor')}: ${Math.round(cor.nota)}/100</b></div><div class="nota" style="white-space:pre-wrap;margin:4px 0 0">${esc(cor.feedback || '')}</div>${cor.humano ? `<div class="nota" style="margin-top:6px"><b>Seu comentário:</b> ${esc(cor.humano)}</div>` : ''}` : '<div class="nota">Ainda sem correção do professor.</div>'}
-      ${pronta ? (A.modo === 'teste' ? `<div class="nota" style="margin-top:8px">Rodada de teste: a PD reconheceu um parecer válido do professor. Se ele veio mesmo do GPT do Projeto, confirme para liberar a rotina.</div><textarea class="esc-ta" id="escCom" placeholder="Observação (opcional)"></textarea>
+      ${pronta ? (A.modo === 'teste' ? `<div class="nota" style="margin-top:8px">Rodada de teste: a PD reconheceu um parecer válido do professor. Se ele veio mesmo do seu GPT, confirme para liberar a rotina.</div><textarea class="esc-ta" id="escCom" placeholder="Observação (opcional)"></textarea>
         <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('aprovar')">✅ Confirmar a ponte</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('reprovar')">Refazer o teste</button></div>`
         : `<div class="nota" style="margin-top:8px">A decisão é sua. Aprovar = entrega boa e a lição entra no repertório.</div>${(ESC.det.licoes || []).map(l => `<div class="nota" style="margin-top:6px"><b>Lição proposta</b> · escopo ${esc(l.escopo || 'habilidade')}</div><textarea class="esc-ta" id="escLic">${esc(l.regra)}</textarea>`).join('')}<textarea class="esc-ta" id="escCom" placeholder="Comentário ou correção (obrigatório para pedir revisão)"></textarea>
         <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('aprovar')">👍 Entrega boa</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('revisar')">✏️ Pedir revisão</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('reprovar')">👎 Reprovar</button></div>`)
@@ -4985,7 +5083,7 @@ function htmlEscola(){
       <div class="esc-nm"><small>${st.fechadas} de ${m} provas · ${st.boas} boas</small><small>seguidas ${Math.min(st.seguidas, bp)}/${bp}</small></div></div>`;
   }).join('') || `<div class="nota" style="line-height:1.5">Nenhuma IA em formação ainda. Matricule em “Gerenciar”.</div>`;
   const aviso = `<div class="nota" style="margin:8px 0 0;line-height:1.45">${I.teste_confirmado_em ? '' : '🔒 Rotina travada: falta a rodada de teste ponta a ponta (em Gerenciar). '}Professor: ${esc(P.professor)}</div>`;
-  return gadCaixa('Escola das IAs', (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + gptH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
+  return gadCaixa('Escola das IAs', abas + (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + gptH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
 }
 
 const GADGETS = {
@@ -5078,7 +5176,7 @@ const GADGETS = {
       <div class="nota" style="margin:8px 0 0">74% na última semana · melhor mês do ano</div>`,
       ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
-  escola:    { nome:'Escola das IAs', admin:true, html:()=>htmlEscola() },
+  escola:    { nome:'Escola das IAs', html:()=>htmlEscola() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
 };
 // o admin de clientes do SD, na roupa nova
