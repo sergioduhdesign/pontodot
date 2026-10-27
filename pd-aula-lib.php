@@ -102,7 +102,7 @@ function pdAulaCriar($iaUserId, $personagem, $skillId, $modo = 'aula') {
     $r = pdAulaSup('/rest/v1/pd_aulas', 'POST', ['ia_user_id' => $iaUserId, 'personagem' => $personagem ?: 'ia', 'skill_id' => $skillId, 'modo' => $modo, 'dia' => date('Y-m-d', time() - 3 * 3600)], ['Prefer: return=representation']);
     return $r['body'][0] ?? null;
 }
-function pdAulaPasso($id) {
+function pdAulaPasso($id, $forcarInterno = false) {
     $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id) . '&select=*')['body'][0] ?? null; if (!$a) return ['ok' => false, 'msg' => 'aula não encontrada'];
     if (!pdIncubTemTeto()) return ['ok' => false, 'msg' => 'teto de gasto do dia atingido'];
     $cfg = pdIncub() ?: ['nota_minima' => 85];
@@ -126,8 +126,8 @@ function pdAulaPasso($id) {
         $patch(['entregas' => $ent, 'status' => 'em_correcao']); return ['ok' => true, 'msg' => 'Rodada ' . $a['rodada'] . ': a aluna entregou.'];
     }
     if ($a['status'] === 'em_correcao') {
-        // professor EXTERNO: o seu GPT corrige pela API (pd-professor-api.php); aqui só espera
-        if (($cfg['professor_modo'] ?? 'api') === 'externo' && defined('SD_PROFESSOR_TOKEN') && SD_PROFESSOR_TOKEN) return ['ok' => false, 'msg' => 'Aguardando o seu GPT corrigir pela API (professor externo).'];
+        // professor EXTERNO = o seu GPT (o Dot): chamado por e-mail + pasta no Drive, como a produção
+        if (!$forcarInterno && ($cfg['professor_modo'] ?? 'api') === 'externo') return pdProfessorPasso($a, $sk, $cfg);
         $ex = $a['exercicio']; $ent = (array)$a['entregas']; $ult = end($ent);
         [$t, $c, $e, $prof] = pdProfessor('Você é o PROFESSOR. Corrija a arte (SVG) da aluna com rigor, pelos critérios. JSON: {"nota":0-100,"aprovado":true|false,"feedback":"correção objetiva e acionável, em tópicos","pontos_fortes":"","licao":{"regra":"uma regra geral e reutilizável que a aluna deve levar para sempre","exemplo_bom":"","exemplo_ruim":""}}. Nota >= ' . (int)$cfg['nota_minima'] . ' só se atender TODOS os critérios.',
             "EXERCÍCIO:\n" . json_encode($ex, JSON_UNESCAPED_UNICODE) . "\n\nCRITÉRIOS DA HABILIDADE:\n" . json_encode($sk['criterios'], JSON_UNESCAPED_UNICODE) . "\n\nSVG DA ALUNA (rodada " . $a['rodada'] . "):\n" . mb_substr($ult['svg'], 0, 30000), pdSvgPng($ult['svg']));
@@ -137,6 +137,107 @@ function pdAulaPasso($id) {
     return ['ok' => false, 'msg' => 'esta aula está em "' . $a['status'] . '" — nada a fazer agora'];
 }
 
+
+
+// ---------------------------------------------------------------- professor EXTERNO por chamado (o Dot)
+// Mesmo circuito da produção: pasta no Drive (a verdade) + e-mail (a campainha) para a caixa da IA.
+// O GPT lê a pasta, escreve SAIDA/CORRECAO.json e marca TERMINEI na célula B2 da planilha de controle.
+// O Pontodot varre isso a cada rodada do relógio e aplica a correção sozinho.
+function pdPonteOk() { return defined('SD_PONTE_URL') && defined('SD_PONTE_KEY') && SD_PONTE_KEY; }
+function pdProfessorTexto($a, $ex, $sk, $cfg, $chamado) {
+    $cor = (array)$a['correcoes']; $L = [];
+    $L[] = 'ISTO NÃO É PRODUÇÃO: é uma AULA da escola de IAs. Você é o PROFESSOR. Ignore os passos 2–4 da planilha (são de produção).';
+    $L[] = 'Chamado: ' . $chamado;
+    $L[] = 'Aluna: ' . ($a['personagem'] ?: 'IA da casa') . ' · Habilidade: ' . ($sk['nome'] ?? $a['skill_id']) . ' · Rodada ' . $a['rodada'] . ' de ' . $a['max_rodadas'];
+    $L[] = '';
+    $L[] = 'COMO CORRIGIR: use o SEU critério e o que você já sabe do gosto, do nível e dos padrões do Sérgio Duh (branding imobiliário). Corrija com rigor, como ensinaria uma designer sênior. Não elogie por educação: nota alta só se a arte atende TODOS os critérios.';
+    $L[] = '';
+    $L[] = 'EXERCÍCIO (cliente fictício):';
+    $L[] = json_encode($ex, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    $L[] = '';
+    $L[] = 'CRITÉRIOS DA HABILIDADE:';
+    foreach ((array)($sk['criterios'] ?? []) as $c) $L[] = '- ' . $c;
+    $L[] = '';
+    $L[] = 'A ARTE DA ALUNA está na pasta ENTRADA: entrega-R' . $a['rodada'] . '.png (para VER) e entrega-R' . $a['rodada'] . '.svg (o código). exercicio.json tem o mesmo enunciado.';
+    if ($cor) {
+        $L[] = '';
+        $L[] = 'RODADAS ANTERIORES (já corrigidas; confira se a aluna aplicou o que foi pedido):';
+        foreach ($cor as $c) { $L[] = '- Rodada ' . ($c['rodada'] ?? '?') . ' · nota ' . round((float)($c['nota'] ?? 0)) . ': ' . mb_substr((string)($c['feedback'] ?? ''), 0, 600) . (!empty($c['humano']) ? ' | COMENTÁRIO DO SÉRGIO (prioridade máxima): ' . mb_substr((string)$c['humano'], 0, 600) : ''); }
+    }
+    $L[] = '';
+    $L[] = 'ENTREGA DA SUA CORREÇÃO: grave na pasta SAIDA o arquivo CORRECAO.json (só o JSON, nada além) neste formato:';
+    $L[] = '{"nota": 0-100, "aprovado": true|false, "feedback": "correção objetiva e acionável, em tópicos", "pontos_fortes": "o que está bom", "licao": {"regra": "UMA regra geral e reutilizável que a aluna deve levar para sempre", "exemplo_bom": "", "exemplo_ruim": ""}}';
+    $L[] = 'Nota mínima para aprovar: ' . (int)($cfg['nota_minima'] ?? 85) . '. A "licao" é o ensino mais importante: é o que passa a valer para a IA da casa quando o Sérgio aprovar.';
+    $L[] = '';
+    $L[] = 'AO TERMINAR: escreva TERMINEI ' . $chamado . ' na célula B2 da planilha SD_CONTROLE (nesta pasta). O Pontodot lê e aplica sozinho.';
+    $L[] = 'Só corrija: não produza a arte pela aluna, não envie nada a ninguém e não use dados de cliente real.';
+    $L[] = 'Sem acesso à pasta ou à planilha: mande e-mail para sergio.duh.design@gmail.com (SEM o +sdia) com o assunto [SD-IA BLOQUEIO] ' . $chamado . ' e o motivo.';
+    return implode("\n", $L);
+}
+function pdProfessorEnviar($a, $sk, $cfg, $reenvio = false) {
+    if (!pdPonteOk()) return ['ok' => false, 'msg' => 'A ponte do Drive não está configurada (SD_PONTE_URL / SD_PONTE_KEY).'];
+    if (!function_exists('ponte') || !function_exists('emailIA')) require_once __DIR__ . '/pd-lib.php';
+    $ex = $a['exercicio']; $ent = (array)$a['entregas']; $ult = end($ent); $ch0 = (array)($a['chamado'] ?? []);
+    try {
+        if (!empty($ch0['folderId'])) { $p = $ch0; }   // reenvio/nova rodada: mesma pasta
+        else {
+            $nome = 'AULA · ' . ($a['personagem'] ?: 'ia') . ' · ' . $a['skill_id'] . ' · ' . substr($a['id'], 0, 8);
+            $p = ponte('preparar', ['folderId' => null, 'parentId' => (defined('SD_ESCOLA_DRIVE_ID') && SD_ESCOLA_DRIVE_ID) ? SD_ESCOLA_DRIVE_ID : null, 'nome' => mb_substr($nome, 0, 120),
+                'briefing' => ['tarefa' => 'AULA · ' . $a['skill_id'], 'cliente' => '(fictício) ' . (($ex['cliente_ficticio'] ?? [])['nome'] ?? ''), 'projeto' => ($sk['nome'] ?? $a['skill_id']),
+                               'pedido' => "ISTO É UMA AULA, não produção: você é o PROFESSOR. Leia o 00_BRIEFING_IA.txt desta pasta e corrija a arte da aluna. Ignore os passos 2–4 abaixo.", 'referencia' => '']]);
+        }
+        $chamado = 'AULA-' . substr($a['id'], 0, 8) . '-R' . $a['rodada'] . '-' . date('ymdHis');
+        $texto = pdProfessorTexto($a, $ex, $sk, $cfg, $chamado);
+        $g = fn($pasta, $nome, $bytes, $mime) => ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'b64' => base64_encode($bytes), 'mime' => $mime]);
+        $g($p['entradaId'], 'exercicio.json', json_encode($ex, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'text/plain');
+        $g($p['entradaId'], 'entrega-R' . $a['rodada'] . '.svg', (string)($ult['svg'] ?? ''), 'image/svg+xml');
+        $png = pdSvgPng((string)($ult['svg'] ?? '')); if ($png) $g($p['entradaId'], 'entrega-R' . $a['rodada'] . '.png', base64_decode($png), 'image/png');
+        $g($p['folderId'], '00_BRIEFING_IA.txt', "\xEF\xBB\xBF" . $texto, 'text/plain');
+        $g($p['folderId'], '00_CHAMADO_IA.txt', "\xEF\xBB\xBF" . $texto, 'text/plain');
+        ponte('status', ['controleId' => $p['controleId'], 'status' => 'CORRIGIR-AULA', 'rodada' => $a['rodada'], 'obs' => $reenvio ? 'reenvio' : 'chamado enviado']);
+        $assunto = '[SD-IA] AULA · CORRIGIR · ' . ($a['personagem'] ?: 'ia') . ' · ' . $a['skill_id'] . ' · R' . $a['rodada'];
+        $corpo = $texto . "\n\nPasta: " . ($p['folderUrl'] ?? '') . "\nSD Workflow · " . sd_base();
+        $ok = @mail(emailIA(), '=?UTF-8?B?' . base64_encode($assunto) . '?=', $corpo,
+            "From: SD Workflow <workflow@sergioduh.com>\r\nReply-To: workflow@sergioduh.com\r\nX-SD-Chamado: " . $chamado . "\r\nContent-Type: text/plain; charset=UTF-8");
+        $cham = ['chamado' => $chamado, 'folderId' => $p['folderId'], 'folderUrl' => $p['folderUrl'] ?? '', 'entradaId' => $p['entradaId'], 'saidaId' => $p['saidaId'], 'controleId' => $p['controleId'],
+                 'rodada' => (int)$a['rodada'], 'enviado_em' => $ch0 && !empty($ch0['enviado_em']) && (int)($ch0['rodada'] ?? 0) === (int)$a['rodada'] ? $ch0['enviado_em'] : gmdate('c'),
+                 'ultimo_envio' => gmdate('c'), 'envios' => ((int)($ch0['envios'] ?? 0)) + 1, 'email' => (bool)$ok, 'erro' => null];
+        pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($a['id']), 'PATCH', ['chamado' => $cham]);
+        return ['ok' => true, 'msg' => ($reenvio ? 'Chamado reenviado' : 'Chamado enviado') . ' ao seu GPT (e-mail + pasta no Drive). Aguardando a correção.'];
+    } catch (Throwable $e) { error_log('professor chamado: ' . $e->getMessage()); return ['ok' => false, 'msg' => 'Não consegui chamar o seu GPT: ' . $e->getMessage()]; }
+}
+/** Um passo do professor externo: manda o chamado, ou confere se o GPT já respondeu. */
+function pdProfessorPasso($a, $sk, $cfg) {
+    $ch = (array)($a['chamado'] ?? []);
+    if (empty($ch['folderId']) || (int)($ch['rodada'] ?? 0) !== (int)$a['rodada']) return pdProfessorEnviar($a, $sk, $cfg);
+    try {
+        $st = strtoupper(trim((string)(ponte('ler_status', ['controleId' => $ch['controleId']])['status'] ?? '')));
+        if (strpos($st, 'TERMINEI') !== 0) {
+            $h = (time() - strtotime($ch['ultimo_envio'] ?? $ch['enviado_em'] ?? 'now')) / 3600; $reh = (float)($cfg['reenvio_horas'] ?? 4);
+            if ($h >= $reh && (int)($ch['envios'] ?? 1) < 3) return pdProfessorEnviar($a, $sk, $cfg, true);
+            return ['ok' => false, 'msg' => 'Aguardando o seu GPT corrigir (chamado há ' . ($h < 1 ? round($h * 60) . ' min' : round($h, 1) . ' h') . ').'];
+        }
+        $arq = ponte('listar', ['folderId' => $ch['saidaId']])['arquivos'] ?? []; $f = null;
+        foreach ($arq as $x) if (preg_match('/^correc/i', $x['name'])) { if (!$f || $x['modified'] > $f['modified']) $f = $x; }
+        if (!$f) { ponte('status', ['controleId' => $ch['controleId'], 'status' => 'FALTA CORRECAO.json na SAIDA — grave o arquivo e escreva TERMINEI de novo', 'rodada' => $a['rodada']]); return ['ok' => false, 'msg' => 'O GPT marcou TERMINEI, mas não achei CORRECAO.json na SAIDA.']; }
+        $b = ponte('baixar', ['fileId' => $f['id']]); $j = pdJson(base64_decode((string)($b['b64'] ?? '')));
+        if (!$j || !isset($j['nota'])) { ponte('status', ['controleId' => $ch['controleId'], 'status' => 'CORRECAO ILEGIVEL — regrave o JSON no formato pedido e escreva TERMINEI', 'rodada' => $a['rodada']]); return ['ok' => false, 'msg' => 'Não consegui ler a correção do GPT (JSON inválido ou sem "nota"). Pedi para ele regravar.']; }
+        $r = pdAulaAplicarCorrecao($a, $j, 'Seu GPT', $cfg);
+        ponte('status', ['controleId' => $ch['controleId'], 'status' => 'RECEBIDO PELO SD', 'rodada' => $a['rodada'], 'obs' => 'nota ' . round((float)$j['nota'])]);
+        return $r;
+    } catch (Throwable $e) { error_log('professor varrer: ' . $e->getMessage()); return ['ok' => false, 'msg' => 'Falha ao conferir a resposta do GPT: ' . $e->getMessage()]; }
+}
+/** Relógio: confere todas as provas que estão com o seu GPT (roda mesmo com o treino automático desligado). */
+function pdProfessorVarrer() {
+    $cfg = pdIncub() ?: []; if (($cfg['professor_modo'] ?? 'api') !== 'externo' || !pdPonteOk()) return null;
+    $as = pdAulaSup('/rest/v1/pd_aulas?status=eq.em_correcao&select=*&limit=20')['body'] ?? []; $out = [];
+    foreach ((array)$as as $a) {
+        if (empty($a['chamado']['folderId'])) continue;   // ainda não foi chamado: quem manda é o passo normal
+        $sk = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($a['skill_id']) . '&ativa=eq.true&order=versao.desc&limit=1&select=*')['body'][0] ?? [];
+        $r = pdProfessorPasso($a, $sk, $cfg); if (!empty($r['ok'])) $out[] = $r['msg'];
+    }
+    return $out ? implode(' | ', $out) : null;
+}
 
 /** Aplica a correção do professor (interno ou o seu GPT externo): nota, lição, próximo estado. */
 function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
@@ -194,9 +295,10 @@ function pdFormacaoMatricula($iaId, $personagem, $skillId) {
 
 /** Relógio: uma PROVA por dia para cada formação em andamento (em sandbox, com teto de gasto). */
 function pdIncubacaoRelogio() {
-    $c = pdIncub(); if (!$c || empty($c['ativa'])) return 'desligada';
+    $v = pdProfessorVarrer();   // respostas do seu GPT entram mesmo com o treino automático desligado
+    $c = pdIncub(); if (!$c || empty($c['ativa'])) return $v ?: 'desligada';
     if (!pdIncubTemTeto()) return 'teto do dia atingido';
-    $msg = []; $meta = (int)($c['provas_meta'] ?? 30); $hoje = date('Y-m-d', time() - 3 * 3600);
+    $msg = $v ? [$v] : []; $meta = (int)($c['provas_meta'] ?? 30); $hoje = date('Y-m-d', time() - 3 * 3600);
     $abertas = pdAulaSup('/rest/v1/pd_aulas?status=in.(aberta,em_exercicio,em_correcao,validacao_humana)&select=ia_user_id,skill_id,status,id')['body'] ?? [];
     $ocupado = []; foreach ($abertas as $a) $ocupado[$a['ia_user_id'] . '|' . $a['skill_id']] = 1;
     $forms = pdAulaSup('/rest/v1/pd_formacoes?ativa=eq.true&apta_em=is.null&select=*&limit=60')['body'] ?? [];

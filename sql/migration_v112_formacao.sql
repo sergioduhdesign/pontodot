@@ -4,9 +4,11 @@
 -- =====================================================================
 alter table public.pd_incubacao add column if not exists boas_para_apto int  not null default 3;
 alter table public.pd_incubacao add column if not exists provas_meta    int  not null default 30;
-alter table public.pd_incubacao add column if not exists professor_modo text not null default 'api';  -- 'api' (GPT pela chave) | 'externo' (seu GPT corrige pela API)
+alter table public.pd_incubacao add column if not exists professor_modo text not null default 'externo';  -- 'api' (GPT cru pela chave) | 'externo' (o seu GPT, o Dot: e-mail + pasta no Drive)
 
 alter table public.pd_aulas add column if not exists dia date;
+alter table public.pd_aulas add column if not exists chamado jsonb;   -- chamado ao professor externo (pasta do Drive + e-mail)
+alter table public.pd_incubacao add column if not exists reenvio_horas int not null default 4;
 alter table public.pd_aulas drop constraint if exists pd_aulas_modo_check;
 alter table public.pd_aulas add constraint pd_aulas_modo_check check (modo in ('aula','incubacao','prova'));
 
@@ -26,3 +28,6 @@ drop policy if exists pd_form_ler on public.pd_formacoes;
 create policy pd_form_ler on public.pd_formacoes for select to authenticated using (ia_user_id = auth.uid() or pd_eh_admin());
 drop policy if exists pd_form_adm on public.pd_formacoes;
 create policy pd_form_adm on public.pd_formacoes for all to authenticated using (pd_eh_admin()) with check (pd_eh_admin());
+
+-- o professor padrão é o SEU GPT (o Dot), pelo mesmo circuito da produção: e-mail + pasta no Drive
+update public.pd_incubacao set professor_modo = 'externo' where id = 1;

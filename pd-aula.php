@@ -13,7 +13,7 @@ if ($acao === 'painel') {
     $ias = []; foreach ((array)$jeito as $j) { $pc = $cat[strtolower(trim((string)$j['personagem']))] ?? null;
         $ias[] = ['id' => $j['user_id'], 'personagem' => $j['personagem'], 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($pc[0] ?? $j['personagem']), 'dona' => $nomeDe[$j['user_id']] ?? '']; }
     $sk = pdAulaSup('/rest/v1/pd_habilidades?ativa=eq.true&select=skill_id,nome,finalidade,criterios&order=skill_id')['body'] ?? [];
-    $aulas = pdAulaSup('/rest/v1/pd_aulas?select=id,ia_user_id,personagem,skill_id,modo,status,rodada,max_rodadas,nota_final,criada_em&order=criada_em.desc&limit=40');
+    $aulas = pdAulaSup('/rest/v1/pd_aulas?select=id,ia_user_id,personagem,skill_id,modo,status,rodada,max_rodadas,nota_final,criada_em,chamado&order=criada_em.desc&limit=40');
     if (($aulas['code'] ?? 500) >= 300) sd_fail('Rode o SQL v94 (aulas) e o v111 no Supabase.', 500);
     $lic = pdAulaSup('/rest/v1/pd_licoes?select=id,personagem,skill_id,regra,exemplo_bom,exemplo_ruim,status,aula_id,criada_em&order=criada_em.desc&limit=60')['body'] ?? [];
     $notas = pdAulaSup('/rest/v1/pd_notas?select=ia_user_id,skill_id,nota,fonte,criada_em&order=criada_em.desc&limit=400')['body'] ?? [];
@@ -21,7 +21,7 @@ if ($acao === 'painel') {
     $fr = pdAulaSup('/rest/v1/pd_formacoes?select=*&order=criada_em.asc&limit=200'); if (($fr['code'] ?? 500) >= 300) sd_fail('Rode o SQL v112 (formação) no Supabase.', 500); $forms = $fr['body'] ?? [];
     foreach ($forms as &$f) { $f['sit'] = pdFormacaoSituacao($f['ia_user_id'], $f['skill_id'], $cfg); $f['meta'] = (int)($f['meta_provas'] ?: ($cfg['provas_meta'] ?? 30)); } unset($f);
     $gpt = (defined('SD_OPENAI_KEY') && SD_OPENAI_KEY) ? 'GPT (' . (defined('SD_PROFESSOR_MODEL') ? SD_PROFESSOR_MODEL : 'gpt-4.1') . ')' : null;
-    echo json_encode(['formacoes' => $forms, 'externo_ok' => defined('SD_PROFESSOR_TOKEN') && SD_PROFESSOR_TOKEN, 'ias' => $ias, 'habilidades' => $sk, 'aulas' => $aulas['body'], 'licoes' => $lic, 'notas' => $notas, 'incubacao' => $cfg,
+    echo json_encode(['formacoes' => $forms, 'externo_ok' => pdPonteOk(), 'ias' => $ias, 'habilidades' => $sk, 'aulas' => $aulas['body'], 'licoes' => $lic, 'notas' => $notas, 'incubacao' => $cfg,
         'professor' => $gpt ?: 'Claude (falta SD_OPENAI_KEY no sd-config.php para o GPT ser o professor)', 'gpt_ligado' => (bool)$gpt, 'imagick' => class_exists('Imagick')], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'criar') {
@@ -31,7 +31,7 @@ if ($acao === 'criar') {
     $a = pdAulaCriar($ia, $pers, $skill, 'prova'); if (!$a) sd_fail('Não consegui criar a aula (rode o SQL v94).', 500);
     echo json_encode(['ok' => true, 'id' => $a['id']]); exit;
 }
-if ($acao === 'passo') { echo json_encode(pdAulaPasso((string)($b['aula_id'] ?? '')), JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'passo') { echo json_encode(pdAulaPasso((string)($b['aula_id'] ?? ''), !empty($b['interno'])), JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'ver') {
     $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode((string)($b['aula_id'] ?? '')) . '&select=*')['body'][0] ?? null; if (!$a) sd_fail('Aula não encontrada.', 404);
     $l = pdAulaSup('/rest/v1/pd_licoes?aula_id=eq.' . urlencode($a['id']) . '&select=id,regra,exemplo_bom,exemplo_ruim,status')['body'] ?? [];
