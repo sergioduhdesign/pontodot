@@ -33,7 +33,7 @@ create table if not exists public.pd_trabalhos (
   erro        text,
   tentativas  int  not null default 0,
   client_id   uuid references public.clients(id) on delete set null,
-  task_id     uuid references public.tasks(id) on delete set null,
+  task_id     text references public.tasks(id) on delete set null,
   pedido_por  uuid references public.profiles(id) on delete set null,
   pedido_via  text not null default 'painel',         -- painel | ia | cron
   worker      text,                                   -- quem pegou (ex.: gha-123)
