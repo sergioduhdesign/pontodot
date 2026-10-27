@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v223 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v224 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5444,7 +5444,7 @@ try { const g = JSON.parse(localStorage.getItem('sd_gadgets')||'null'); if (Arra
 // antes de ela existir (quem tirou de propósito não ganha de volta).
 try {
   const visto = JSON.parse(localStorage.getItem('sd_gadgets_vistos')||'[]');
-  for (const nova of ['minhaia','anuncios','publicacao']) {
+  for (const nova of ['minhaia','anuncios','publicacao','banco','oficina','estudio']) {
     if (!visto.includes(nova)) {
       if (!meusGadgets.includes(nova)) meusGadgets = [...meusGadgets, nova];
       visto.push(nova);
