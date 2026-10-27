@@ -751,7 +751,7 @@ A resposta termina com UMA linha ##ACAO## e UM JSON compacto e válido, sem cerc
 
 MUDAR tarefas existentes:
 ##ACAO##{"tipo":"tarefas","mudar":[{"id":"ID_EXISTENTE","status":"ALTERAÇÃO"}]}
-IDs só os das tarefas recebidas; inclua só o que muda. Campos: id (obrigatório); status (BRIEFING, EM ANDAMENTO, ATENÇÃO, ALTERAÇÃO, BUCHA, DELEGADA, ENTREGUE); date_int e date_cli (AAAA-MM-DD); resp (primeiro nome da equipe); obs (SUBSTITUI a observação); comentario (ACRESCENTA comentário assinado por quem pediu; use em "anota aí", "deixa registrado"); tarefa_mae (ID da que vem ANTES; "conecta", "depende de"; desamarrar: "nenhuma"); referencia_url (link da pasta de trabalho). Nada de null.
+IDs só os das tarefas recebidas; inclua só o que muda. Campos: id (obrigatório); status — use o CÓDIGO, cujo significado no funil é: BRIEFING=briefing · EM ANDAMENTO=produzindo · DELEGADA=com o cliente (esperando aprovação) · ATENÇÃO=aprovado pelo cliente, falta finalizar · ALTERAÇÃO=cliente pediu alteração · BUCHA=travou/problema · ENTREGUE=entregue; date_int e date_cli (AAAA-MM-DD); resp (primeiro nome da equipe); obs (SUBSTITUI a observação); comentario (ACRESCENTA comentário assinado por quem pediu; use em "anota aí", "deixa registrado"); tarefa_mae (ID da que vem ANTES; "conecta", "depende de"; desamarrar: "nenhuma"); referencia_url (link da pasta de trabalho). Nada de null.
 
 CRIAR tarefa só no quadro (sem IA, sem pasta):
 ##ACAO##{"tipo":"criar","novas":[{"action":"Peça — ação objetiva","cliente":"NOME DO CADASTRO","status":"BRIEFING","obs":"Direção, referências e critério."}]}
@@ -818,7 +818,10 @@ const APELIDO_STATUS: Record<string, string> = {
   FINALIZANDO: "EM ANDAMENTO", TERMINANDO: "EM ANDAMENTO", FECHANDO: "EM ANDAMENTO", AJUSTANDO: "EM ANDAMENTO",
   "EM PRODUCAO": "EM ANDAMENTO", RODANDO: "EM ANDAMENTO", INICIADA: "EM ANDAMENTO", INICIADO: "EM ANDAMENTO",
   AJUSTE: "ALTERAÇÃO", AJUSTES: "ALTERAÇÃO", CORRECAO: "ALTERAÇÃO", CORRECOES: "ALTERAÇÃO", REVISAO: "ALTERAÇÃO",
-  URGENTE: "ATENÇÃO", ATENCAO: "ATENÇÃO", PARADO: "ATENÇÃO", TRAVADO: "ATENÇÃO",
+  // ATENÇÃO no funil significa APROVADO pelo cliente (falta finalizar). Travou/problema é BUCHA.
+  APROVADO: "ATENÇÃO", APROVADA: "ATENÇÃO", APROVOU: "ATENÇÃO", ATENCAO: "ATENÇÃO",
+  URGENTE: "BUCHA", PARADO: "BUCHA", PARADA: "BUCHA", TRAVADO: "BUCHA", TRAVADA: "BUCHA", PROBLEMA: "BUCHA",
+  "COM O CLIENTE": "DELEGADA", "COM CLIENTE": "DELEGADA", ENVIADA: "DELEGADA", ENVIADO: "DELEGADA", "EM APROVACAO": "DELEGADA", "PARA APROVACAO": "DELEGADA", "AGUARDANDO CLIENTE": "DELEGADA",
   BRIEF: "BRIEFING", NOVA: "BRIEFING", NOVO: "BRIEFING",
   DELEGADO: "DELEGADA", REPASSADA: "DELEGADA", REPASSADO: "DELEGADA",
 };

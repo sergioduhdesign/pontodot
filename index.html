@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v220 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v221 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5306,7 +5306,7 @@ const GADGETS = {
           const k = cfg==='cliente' ? (t.clients?.name||'SD')
             : cfg==='resp' ? (t.resp||'—')
             : cfg==='semana' ? (t.week||'SEM DATA')
-            : (t.status||'—');
+            : (t.status ? rotStatus(t.status) : '—');
           por[k]=(por[k]||0)+1;
         });
         const rows = Object.entries(por).sort((a,b)=>b[1]-a[1]).slice(0,7);
@@ -6162,7 +6162,7 @@ function clBuscar(q){
   _clSel = _clAch.length ? 0 : -1;
   box.innerHTML = _clAch.length
     ? _clAch.map((t,k) => `<button class="cl-it${k===0?' sel':''}" onclick="clAbrirTarefa(${k})"><b>${esc(t.action || t.project || t.id)}</b>
-        <span>${esc(t.id)} · ${esc((t.clients&&t.clients.name)||'sem cliente')} · ${esc(t.resp||'sem responsável')} · ${esc(String(t.status||'').toLowerCase())}</span></button>`).join('')
+        <span>${esc(t.id)} · ${esc((t.clients&&t.clients.name)||'sem cliente')} · ${esc(t.resp||'sem responsável')} · ${esc(rotStatus(t.status))}</span></button>`).join('')
     : `<div class="cl-vazio">Nada encontrado pra "${esc(q)}".</div>`;
   box.classList.add('on');
 }
@@ -7864,7 +7864,7 @@ function caraDe(t){
 function miniTexto(t){
   const d = driveMap[t.id];
   if (d && (d.status==='produzir'||d.status==='corrigir')) return `com a IA — ${d.status} r${d.rodada||1}`;
-  return (t.status||'').toLowerCase();
+  return rotStatus(t.status);
 }
 
 const CAMPOS_V46 = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,tarefa_mae_id,prompt_ia,prompt_ia_em,clients(name),products(name)';
@@ -8089,6 +8089,10 @@ function abrirNoVerso(view){
 }
 // ações reais sobre a tarefa (status, responsável) — grava no banco
 const STATUS_SD = ['BRIEFING','EM ANDAMENTO','ATENÇÃO','ALTERAÇÃO','BUCHA','DELEGADA','ENTREGUE'];
+// Os códigos acima são internos. Para gente, vale o nome do FUNIL (igual ao app):
+const ROT_STATUS = { 'BRIEFING':'Briefing', 'EM ANDAMENTO':'Em andamento', 'DELEGADA':'Com o cliente', 'ATENÇÃO':'Aprovado', 'ALTERAÇÃO':'Alteração', 'BUCHA':'Bucha', 'ENTREGUE':'Entregue' };
+const rotStatus = s => ROT_STATUS[s] || String(s || '').toLowerCase();
+window.rotStatus = rotStatus;
 let EQUIPE = ['SERGIO','JOY','LUANA','JUAN'];
 function miniEscolha(titulo, botoes){
   abrirJanela(`<div class="caixa invertida" style="padding:22px 20px">
@@ -8113,7 +8117,7 @@ function abrirMenuSel(ev, itensHtml){
 function escolherStatus(ev, id){
   if (typeof ev === 'string'){ id = ev; ev = null; }
   abrirMenuSel(ev, `<div class="mini">STATUS DE ${id}</div>` + STATUS_SD.map(s =>
-    `<button onclick="fecharMenuCtx();aplicarCampo('${id}','status','${s}')">${s}</button>`).join(''));
+    `<button onclick="fecharMenuCtx();aplicarCampo('${id}','status','${s}')">${rotStatus(s)}</button>`).join(''));
 }
 function escolherResp(ev, id){
   if (typeof ev === 'string'){ id = ev; ev = null; }
@@ -8236,7 +8240,7 @@ async function abrirTarefaReal(id){
       ${campo9('Produto', t.products?.name)}
       ${campo9('Projeto', t.project||'GERAL', `editarInline(event,'${t.id}','project','texto')`)}
       ${campo9('Responsável', t.resp, `escolherResp(event,'${t.id}')`, 'Passar pra outra pessoa')}
-      ${campo9('Status', (t.status||'').toLowerCase(), `escolherStatus(event,'${t.id}')`, 'Mudar o status')}
+      ${campo9('Status', rotStatus(t.status), `escolherStatus(event,'${t.id}')`, 'Mudar o status')}
       ${campo9('Semana', (t.week||'').toLowerCase(), `escolherSemana(event,'${t.id}')`, 'Mudar a semana')}
       ${campo9('Data interna', fmtD(t.date_int), `editarInline(event,'${t.id}','date_int','data')`)}
       ${campo9('Data cliente', fmtD(t.date_cli), `editarInline(event,'${t.id}','date_cli','data')`)}
@@ -8256,7 +8260,7 @@ async function abrirTarefaReal(id){
     <div id="tcApr"></div>
     <div class="tc-rolo" id="tcEventos"><div class="nota">puxando a conversa…</div></div>
     <div class="tc-acoes">
-      <button class="btn" onclick="event.stopPropagation();escolherStatus(event,'${t.id}')">${(t.status||'STATUS').toLowerCase()} ∨</button>
+      <button class="btn" onclick="event.stopPropagation();escolherStatus(event,'${t.id}')">${t.status ? rotStatus(t.status) : 'status'} ∨</button>
       <button class="btn" onclick="event.stopPropagation();escolherResp(event,'${t.id}')">passar pra… ∨</button>
       <button class="btn" style="${rodando?'color:var(--verde);border-color:var(--verde);background:rgba(22,163,74,.1)':''}" onclick="playTarefa('${t.id}')">${icoPlay(rodando,15)} ${rodando?'pausar':'play'}</button>
       <button class="btn" onclick="abrirArtesReais('${t.id}')">${icoMini('olho')} ver as peças</button>
@@ -8330,7 +8334,7 @@ async function desenharOrelhasNovo(id){
   const lado = (rot, tk, qd) => tk
     ? `<div class="tc-orelha" role="button" title="Abrir ${tk.id}" onclick="abrirTarefaReal('${tk.id}')">
         <span class="ol">${rot}<button title="Desvincular" onclick="event.stopPropagation();desvincularNovo(event,'${qd==='mae'?id:tk.id}','${id}')">✕</button></span>
-        <span class="ot">${esc(tk.action)}</span><span class="os">${(tk.status||'').toLowerCase()}</span></div>`
+        <span class="ot">${esc(tk.action)}</span><span class="os">${rotStatus(tk.status)}</span></div>`
     : `<div class="tc-orelha vazia" role="button" style="opacity:.6" onclick="pickerOrelha('${qd}','${id}')">
         <span class="ol">${rot}</span><span class="ot">+ ligar uma tarefa</span>
         <span class="os">${qd === 'mae' ? 'o que veio antes' : 'o que vem depois'}</span></div>`;
