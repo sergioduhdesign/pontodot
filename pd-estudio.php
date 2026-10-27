@@ -39,7 +39,7 @@ if (!empty($_GET['img'])) {
                     if ($mime === 'image/png') imagepng($n, $red, 6); else imagejpeg($n, $red, 86); imagedestroy($n); } else { copy($orig, $red); } imagedestroy($im); } }
         if (is_file($red)) $arq = $red;
     }
-    header('Content-Type: ' . $mime); header('Content-Length: ' . filesize($arq)); header('Cache-Control: private, max-age=604800'); readfile($arq); exit;
+    header('Content-Type: ' . $mime); header('Content-Length: ' . filesize($arq)); header('Cache-Control: private, max-age=604800'); header('Access-Control-Allow-Origin: *'); readfile($arq); exit;
 }
 
 // ---------------------------------------------------------------- POST: equipe
@@ -85,7 +85,7 @@ if ($acao === 'abrir') {
 if ($acao === 'salvar') {
     $id = (string)($b['id'] ?? ''); $doc = is_array($b['doc'] ?? null) ? $b['doc'] : null; if (!$doc) sd_fail('Documento vazio.');
     if (empty($b['client_id']) && empty($b['modelo'])) sd_fail('Toda peça é de um cliente: escolha o cliente no topo (só modelos podem ficar sem).');
-    $fmt = is_array($b['formato'] ?? null) ? ['w' => max(64, (int)$b['formato']['w']), 'h' => max(64, (int)$b['formato']['h']), 'nome' => mb_substr((string)($b['formato']['nome'] ?? ''), 0, 40), 'tipo' => mb_substr((string)($b['formato']['tipo'] ?? ''), 0, 30)] : null;
+    $fmt = is_array($b['formato'] ?? null) ? ['w' => max(64, (int)$b['formato']['w']), 'h' => max(64, (int)$b['formato']['h']), 'nome' => mb_substr((string)($b['formato']['nome'] ?? ''), 0, 40), 'tipo' => mb_substr((string)($b['formato']['tipo'] ?? ''), 0, 30), 'impresso' => !empty($b['formato']['impresso']), 'mm' => is_array($b['formato']['mm'] ?? null) ? [(float)$b['formato']['mm'][0], (float)$b['formato']['mm'][1]] : null, 'sangria' => (float)($b['formato']['sangria'] ?? 0), 'dpi' => (int)($b['formato']['dpi'] ?? 72)] : null;
     $d = ['nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 120) ?: 'Sem nome', 'doc' => $doc, 'mudado_em' => gmdate('c'), 'client_id' => ($b['client_id'] ?? null) ?: null, 'task_id' => ($b['task_id'] ?? null) ?: null];
     if ($fmt) $d['formato'] = $fmt; if (isset($b['modelo'])) $d['modelo'] = (bool)$b['modelo'];
     foreach (['pauta_id' => 'id', 'papel' => 'txt', 'derivada_tipo' => 'txt', 'spec' => 'json', 'roteiro' => 'json', 'ordem' => 'int'] as $k => $t) if (array_key_exists($k, $b)) $d[$k] = $t === 'json' ? (is_array($b[$k]) ? $b[$k] : null) : ($t === 'int' ? (int)$b[$k] : (($b[$k] ?? null) ?: null));
@@ -141,6 +141,45 @@ if ($acao === 'subir') {   // upload em lote para cliente › MÍDIA (› subpas
     catch (Exception $e) { sd_fail($e->getMessage(), 500); }
     pdAcervo('upload', 'estudio', ['categoria' => stripos((string)($a['mime'] ?? ''), 'video/') === 0 ? 'videos' : 'banco_fotos', 'client_id' => $c['id'], 'nome' => esNomeSeguro($a['nome']), 'url' => (string)($g['url'] ?? ''), 'mime' => (string)($a['mime'] ?? ''), 'bytes' => strlen($bytes), 'por' => $u['id']]);
     echo json_encode(['ok' => true, 'id' => $g['id'] ?? null, 'url' => $g['url'] ?? null]); exit;
+}
+if ($acao === 'fontes_casa') {   // as fontes da casa moram numa pasta do Drive (SD_DRIVE_FONTES); servidas pelo proxy assinado
+    $pasta = defined('SD_DRIVE_FONTES') && SD_DRIVE_FONTES ? SD_DRIVE_FONTES : '186AScxaZHJqIdAuOQLjH7hVeusoC5kBB';
+    if (!esPonteOk()) echo json_encode(['fontes' => [], 'aviso' => 'Ponte do Drive não configurada.']); else {
+        try { $l = ponte('listar', ['folderId' => $pasta]); } catch (Exception $e) { echo json_encode(['fontes' => [], 'aviso' => $e->getMessage()]); exit; }
+        $out = [];
+        foreach ((array)($l['arquivos'] ?? []) as $f) { if (!preg_match('/\.(ttf|otf|woff2?)$/i', (string)$f['name'])) continue;
+            $nome = preg_replace('/\.(ttf|otf|woff2?)$/i', '', (string)$f['name']); $fam = trim(preg_replace('/[-_ ]?(regular|bold|black|light|medium|semibold|extrabold|italic|thin|heavy|book)+$/i', '', str_replace(['_', '-'], ' ', $nome))) ?: $nome;
+            $peso = preg_match('/black|heavy|extrabold/i', $nome) ? '900' : (preg_match('/bold|semibold/i', $nome) ? '700' : (preg_match('/light|thin/i', $nome) ? '300' : '400')); $ital = (bool)preg_match('/italic/i', $nome);
+            $out[] = ['id' => $f['id'], 'arquivo' => $f['name'], 'familia' => $fam, 'peso' => $peso, 'italico' => $ital, 'url' => '/pd-estudio.php?img=' . rawurlencode($f['id']) . '&k=' . esAssina($f['id'])]; }
+        usort($out, fn($a, $b2) => strcasecmp($a['familia'] . $a['peso'], $b2['familia'] . $b2['peso']));
+        echo json_encode(['fontes' => $out, 'pasta_url' => 'https://drive.google.com/drive/folders/' . $pasta], JSON_UNESCAPED_UNICODE); }
+    exit;
+}
+if ($acao === 'fonte_subir') {   // sobe uma fonte: para a casa (Drive) ou para o kit do cliente (bucket brand-assets + brand_kits.fonts)
+    $a = (array)($b['arquivo'] ?? []); if (empty($a['b64']) || empty($a['nome']) || !preg_match('/\.(ttf|otf|woff2?)$/i', (string)$a['nome'])) sd_fail('Mande um arquivo .ttf, .otf ou .woff.');
+    $bytes = esB64($a['b64']); $nome = esNomeSeguro($a['nome']); $fam = mb_substr(trim((string)($b['familia'] ?? '')), 0, 60) ?: preg_replace('/\.(ttf|otf|woff2?)$/i', '', $nome);
+    if (($b['destino'] ?? 'casa') === 'cliente') {
+        $c = esCliente((string)($b['client_id'] ?? '')); $path = 'fonts/' . $c['id'] . '/' . time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $nome);
+        $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/brand-assets/' . $path); curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_POSTFIELDS => $bytes, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Content-Type: font/' . strtolower(pathinfo($nome, PATHINFO_EXTENSION)), 'x-upsert: true']]);
+        curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); if ($code >= 300) sd_fail('Não consegui guardar a fonte (HTTP ' . $code . ').', 500);
+        $url = SD_SUPABASE_URL . '/storage/v1/object/public/brand-assets/' . $path;
+        $k = sd_supabase('/rest/v1/brand_kits?client_id=eq.' . urlencode($c['id']) . '&select=id,fonts')['body'][0] ?? null; $fonts = is_array($k['fonts'] ?? null) ? $k['fonts'] : []; $fonts[] = ['name' => $fam, 'file_url' => $url, 'file_name' => $nome];
+        if ($k) sd_supabase('/rest/v1/brand_kits?id=eq.' . urlencode($k['id']), 'PATCH', ['fonts' => $fonts, 'updated_at' => gmdate('c'), 'updated_by' => $u['id']]); else sd_supabase('/rest/v1/brand_kits', 'POST', ['client_id' => $c['id'], 'fonts' => $fonts, 'updated_by' => $u['id']]);
+        pdAcervo('upload', 'estudio', ['categoria' => 'marca', 'client_id' => $c['id'], 'nome' => $nome, 'url' => $url, 'mime' => 'font', 'bytes' => strlen($bytes), 'por' => $u['id']]);
+        echo json_encode(['ok' => true, 'url' => $url, 'familia' => $fam]); exit;
+    }
+    $pasta = defined('SD_DRIVE_FONTES') && SD_DRIVE_FONTES ? SD_DRIVE_FONTES : '186AScxaZHJqIdAuOQLjH7hVeusoC5kBB';
+    try { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => 'font/' . strtolower(pathinfo($nome, PATHINFO_EXTENSION)), 'b64' => base64_encode($bytes), 'substituir' => false]); } catch (Exception $e) { sd_fail($e->getMessage(), 500); }
+    pdAcervo('upload', 'estudio', ['categoria' => 'marca', 'nome' => $nome, 'url' => (string)($g['url'] ?? ''), 'mime' => 'font', 'bytes' => strlen($bytes), 'nota' => 'fonte da casa', 'por' => $u['id']]);
+    echo json_encode(['ok' => true, 'id' => $g['id'] ?? null]); exit;
+}
+if ($acao === 'kit_cor_salvar') {   // cor nova na paleta do cliente
+    $c = esCliente((string)($b['client_id'] ?? '')); $hex = strtolower(trim((string)($b['hex'] ?? ''))); if (!preg_match('/^#[0-9a-f]{6}$/', $hex)) sd_fail('Cor inválida.');
+    $nome = mb_substr(trim((string)($b['nome'] ?? '')), 0, 40) ?: $hex;
+    $k = sd_supabase('/rest/v1/brand_kits?client_id=eq.' . urlencode($c['id']) . '&select=id,colors')['body'][0] ?? null; $cores = is_array($k['colors'] ?? null) ? $k['colors'] : [];
+    if (!empty($b['remover'])) $cores = array_values(array_filter($cores, fn($x) => strtolower((string)($x['hex'] ?? '')) !== $hex)); elseif (!array_filter($cores, fn($x) => strtolower((string)($x['hex'] ?? '')) === $hex)) $cores[] = ['name' => $nome, 'hex' => $hex];
+    if ($k) sd_supabase('/rest/v1/brand_kits?id=eq.' . urlencode($k['id']), 'PATCH', ['colors' => $cores, 'updated_at' => gmdate('c'), 'updated_by' => $u['id']]); else sd_supabase('/rest/v1/brand_kits', 'POST', ['client_id' => $c['id'], 'colors' => $cores, 'updated_by' => $u['id']]);
+    echo json_encode(['ok' => true, 'colors' => $cores], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'fontes') {   // status dos conectores de mídia (para o Estúdio avisar e para o admin ver)
     $f = ['pexels' => defined('SD_PEXELS_KEY') && SD_PEXELS_KEY, 'unsplash' => defined('SD_UNSPLASH_KEY') && SD_UNSPLASH_KEY, 'pixabay' => defined('SD_PIXABAY_KEY') && SD_PIXABAY_KEY, 'drive' => esPonteOk()];

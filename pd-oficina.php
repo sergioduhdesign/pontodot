@@ -51,7 +51,8 @@ function ofDrive($trab, $arq) {
         $c = ofSup('/rest/v1/clients?id=eq.' . urlencode($trab['client_id']) . '&select=name,drive_id')['body'][0] ?? null;
         $id = $c['drive_id'] ?? null;
         if (!$id && $c && defined('SD_DRIVE_CLIENTES') && SD_DRIVE_CLIENTES) { $p = ponte('pasta_garantir', ['pai_id' => SD_DRIVE_CLIENTES, 'nome' => $c['name'], 'criar' => true]); $id = $p['id'] ?? null; }
-        if ($id) { $p = ponte('pasta_garantir', ['pai_id' => $id, 'nome' => 'OFICINA', 'criar' => true]); $pasta = $p['id'] ?? null; }
+        if ($id) { $sub = trim((string)(($trab['entrada']['drive_subpasta'] ?? '')), '/'); $pasta = $id;
+            foreach ($sub ? explode('/', $sub) : ['OFICINA'] as $n) { $p = ponte('pasta_garantir', ['pai_id' => $pasta, 'nome' => mb_substr($n, 0, 90), 'criar' => true]); $pasta = $p['id'] ?? null; if (!$pasta) break; } }
     }
     if (!$pasta && defined('SD_DRIVE_OFICINA') && SD_DRIVE_OFICINA) $pasta = SD_DRIVE_OFICINA;
     if (!$pasta) return null;

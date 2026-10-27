@@ -22,6 +22,7 @@
 .btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.col{display:flex;flex-direction:column;gap:6px}
 input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);min-width:0}input[type=color]{padding:0;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);cursor:pointer}input[type=range]{padding:0;width:100%}
+.pos label{display:flex;flex-wrap:nowrap}.pos input{width:100%;min-width:0}
 .lab{font-size:10.5px;color:var(--gray);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.05em}
 .sw{display:inline-block;width:26px;height:26px;border-radius:7px;border:1px solid var(--line);cursor:pointer;margin:2px}
 .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px}.grade img,.grade .tp{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:var(--bg);display:block}.grade .vid{display:grid;place-items:center;color:var(--gray);font-size:10px;text-align:center;padding:4px}
@@ -103,19 +104,24 @@ const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>(
 let sb,ses,C,PECA={id:null,client_id:null,task_id:null,formato:null,paginas:[],pag:0},KIT=null,CLIS=[],H=[],HI=-1,Z=1,TRAVA=false,dirty=false,CLIP=null,SEG={feed:false,stories:false,reels:false,wide:false};
 const FONTES=['Inter','Inter Tight','Montserrat','Poppins','Playfair Display','Bebas Neue','Oswald','Lora','DM Sans','Space Grotesk','Roboto','Helvetica Neue','Arial','Georgia'];
 // Os tipos da casa. Social são só 3. O resto é impresso/apresentação, com setup de fábrica.
+const DPI=300,SANGRIA=5,MM=DPI/25.4;   // impresso: 300 dpi, sangria de 5 mm por lado; medidas em mm, tipografia em pt
+const mm2px=mm=>Math.round(mm*MM),px2mm=px=>px/MM,pt2px=pt=>pt*DPI/72,px2pt=px=>px*72/DPI;
+const IMP=(g,tipo,nome,wmm,hmm,seed,extra={})=>Object.assign({g,tipo,nome:nome+' · '+wmm+'×'+hmm+' mm',mm:[wmm,hmm],w:mm2px(wmm+2*SANGRIA),h:mm2px(hmm+2*SANGRIA),impresso:true,seed},extra);
 const FORMATOS=[
  {g:'Social',tipo:'feed',nome:'Feed',w:1080,h:1350,cortes:['feed','quadrado','stories','wide']},
  {g:'Social',tipo:'carrossel',nome:'Carrossel',w:1080,h:1350,paginas:true,cortes:['feed','quadrado']},
  {g:'Social',tipo:'stories',nome:'Stories / Reels',w:1080,h:1920,cortes:['stories','feed','quadrado','wide']},
- {g:'Papelaria',tipo:'cartao',nome:'Cartão de visita 90×50',w:1063,h:591,seed:'cartao'},
- {g:'Papelaria',tipo:'timbrado',nome:'Papel timbrado A4',w:2480,h:3508,seed:'timbrado'},
- {g:'Papelaria',tipo:'envelope',nome:'Envelope DL 220×110',w:2598,h:1299,seed:'cartao'},
- {g:'Papelaria',tipo:'assinatura',nome:'Assinatura de e-mail',w:600,h:200,seed:'assinatura'},
- {g:'Folders',tipo:'folder-a4',nome:'Folder A4 simples',w:2480,h:3508,seed:'folder'},
- {g:'Folders',tipo:'folder-a5',nome:'Flyer A5',w:1748,h:2480,seed:'folder'},
- {g:'Folders',tipo:'folder-3',nome:'Folder tríptico (A4 aberto)',w:3508,h:2480,seed:'triptico'},
- {g:'Folders',tipo:'folder-q',nome:'Folder quadrado 21×21',w:2480,h:2480,seed:'folder'},
- {g:'Apresentação',tipo:'slide',nome:'Apresentação 16:9',w:1920,h:1080,paginas:true,seed:'slide'}];
+ IMP('Papelaria','cartao','Cartão de visita',90,50,'cartao'),
+ IMP('Papelaria','timbrado','Papel timbrado A4',210,297,'timbrado'),
+ IMP('Papelaria','envelope','Envelope DL',220,110,'cartao'),
+ {g:'Papelaria',tipo:'assinatura',nome:'Assinatura de e-mail · 600×200 px',w:600,h:200,seed:'assinatura'},
+ IMP('Folders','folder-a4','Folder A4 simples',210,297,'folder'),
+ IMP('Folders','folder-a5','Flyer A5',148,210,'folder'),
+ IMP('Folders','folder-3','Folder tríptico (A4 aberto)',297,210,'triptico'),
+ IMP('Folders','folder-q','Folder quadrado',210,210,'folder'),
+ {g:'Impresso','tipo':'impresso-livre',nome:'Medida livre (mm)…',w:mm2px(100+10),h:mm2px(100+10),mm:[100,100],impresso:true,livre:true},
+ {g:'Apresentação',tipo:'slide',nome:'Apresentação 16:9 · 1920×1080 px',w:1920,h:1080,paginas:true,seed:'slide'}];
+const ehImp=()=>!!(F()&&F().impresso);
 const CORTES={feed:{nome:'Feed 4:5',w:1080,h:1350},quadrado:{nome:'Quadrado 1:1',w:1080,h:1080},stories:{nome:'Stories 9:16',w:1080,h:1920},wide:{nome:'Wide 16:9',w:1920,h:1080}};
 function msg(t,ms=2800){const m=$('#msg');m.textContent=t;m.classList.add('on');clearTimeout(m._t);m._t=setTimeout(()=>m.classList.remove('on'),ms);}
 async function api(arq,b){const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
@@ -127,7 +133,7 @@ async function boot(){
   ses=(await sb.auth.getSession()).data.session; if(!ses){document.body.innerHTML='<div class="sec">Entre na PD primeiro.</div>';return;}
   const {data}=await sb.from('clients').select('id,name,active').order('name'); CLIS=(data||[]).filter(c=>c.active!==false);
   $('#cli').innerHTML='<option value="">Escolha o cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  montaFormatos();
+  montaFormatos();fontesCasa();
   C=new fabric.Canvas('c',{preserveObjectStacking:true,backgroundColor:'#ffffff'});
   fabric.Object.prototype.set({transparentCorners:false,cornerColor:'#121212',cornerStyle:'rect',cornerSize:8,borderColor:'#121212',padding:2});
   C.on('selection:created',props);C.on('selection:updated',props);C.on('selection:cleared',props);
@@ -139,12 +145,13 @@ async function boot(){
   if(q.get('peca')) await abrirPeca(q.get('peca')); else { aplicaFormato(FORMATOS[0]); PECA.paginas=[null]; marca(true); }
   zoomAjusta(); window.addEventListener('resize',()=>{zoomAjusta()});
 }
-function montaFormatos(){const gs={};FORMATOS.forEach((f,i)=>{(gs[f.g]=gs[f.g]||[]).push(`<option value="${i}">${esc(f.nome)} · ${f.w}×${f.h}</option>`)});
+function montaFormatos(){const gs={};FORMATOS.forEach((f,i)=>{(gs[f.g]=gs[f.g]||[]).push(`<option value="${i}">${esc(f.nome)}${f.impresso||f.livre?'':' · '+f.w+'×'+f.h+' px'}</option>`)});
   const kit=(KIT&&KIT.grids||[]).filter(g=>g.w&&g.h);if(kit.length)gs['Kit do cliente']=kit.map((g,i)=>`<option value="k${i}">${esc(g.name||'Formato')} · ${g.w}×${g.h}</option>`);
   $('#fmt').innerHTML=Object.entries(gs).map(([g,o])=>`<optgroup label="${esc(g)}">${o.join('')}</optgroup>`).join('');
   if(F()){const i=FORMATOS.findIndex(x=>x.tipo===F().tipo);if(i>=0)$('#fmt').value=i;}}
-function formatoSel(){const v=$('#fmt').value;if(v.startsWith('k')){const g=(KIT.grids||[]).filter(x=>x.w&&x.h)[+v.slice(1)];return{tipo:'kit',nome:g.name||'Formato',w:+g.w,h:+g.h,cortes:[]};}return FORMATOS[+v];}
-function aplicaFormato(f){PECA.formato={tipo:f.tipo,nome:f.nome,w:f.w,h:f.h};zoomAjusta();pags();segsUI();desenhaSeg();}
+function formatoSel(){const v=$('#fmt').value;if(v.startsWith('k')){const g=(KIT.grids||[]).filter(x=>x.w&&x.h)[+v.slice(1)];return{tipo:'kit',nome:g.name||'Formato',w:+g.w,h:+g.h,cortes:[]};}const f=FORMATOS[+v];
+  if(f.livre){const wm=+prompt('Largura final em mm (sem sangria)',F()&&F().mm?F().mm[0]:100)||100,hm=+prompt('Altura final em mm',F()&&F().mm?F().mm[1]:100)||100;return{g:'Impresso',tipo:'impresso-livre',nome:wm+'×'+hm+' mm',mm:[wm,hm],w:mm2px(wm+2*SANGRIA),h:mm2px(hm+2*SANGRIA),impresso:true};}return f;}
+function aplicaFormato(f){PECA.formato={tipo:f.tipo,nome:f.nome,w:f.w,h:f.h,impresso:!!f.impresso,mm:f.mm||null,sangria:f.impresso?SANGRIA:0,dpi:f.impresso?DPI:72};zoomAjusta();pags();segsUI();desenhaSeg();}
 function trocaFormato(){const f=formatoSel();const vazio=C.getObjects().length===0;aplicaFormato(f);if(vazio&&f.seed)semente(f.seed);marca();}
 function zoom(d){Z=Math.max(.05,Math.min(4,Z+d));aplicaZoom();}
 function zoomAjusta(){if(!F())return;const p=$('#pano');Z=Math.min((p.clientWidth-80)/F().w,(p.clientHeight-80)/F().h,1);aplicaZoom();}
@@ -156,7 +163,9 @@ const SEGS=[['feed','Feed · recorte 1:1 da grade'],['stories','Stories · inter
 function segsUI(){const social=['feed','carrossel','stories'].includes(F().tipo);$('#segs').style.display=social?'flex':'none';$('#segs').innerHTML=SEGS.map(([k,t])=>`<button class="btn i ${SEG[k]?'on':''}" title="${t}" onclick="segToggle('${k}')">${ICO[k]}</button>`).join('');}
 const ICO={feed:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg>',stories:'<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M9 6h6"/><circle cx="12" cy="18" r=".8"/></svg>',reels:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16M9 4l3 5M14 4l3 5"/><path d="m11 12.5 4 2.5-4 2.5z"/></svg>',wide:'<svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="11" rx="2"/></svg>'};
 function segToggle(k){SEG[k]=!SEG[k];try{localStorage.setItem('pd_est_seg',JSON.stringify(SEG));}catch(e){}segsUI();desenhaSeg();}
-function desenhaSeg(){const s=$('#seg');if(!s||!F())return;const x=s.getContext('2d');x.clearRect(0,0,s.width,s.height);if(!['feed','carrossel','stories'].includes(F().tipo))return;const W=F().w,H=F().h;const k=Z;
+function desenhaSeg(){const s=$('#seg');if(!s||!F())return;const x=s.getContext('2d');x.clearRect(0,0,s.width,s.height);const W=F().w,H=F().h;const k=Z;
+  if(ehImp()){const b=mm2px(F().sangria||SANGRIA),m=mm2px(SANGRIA);x.save();x.scale(k,k);x.lineWidth=1/k;x.strokeStyle='rgba(200,40,40,.8)';x.strokeRect(b,b,W-2*b,H-2*b);x.setLineDash([4/k,4/k]);x.strokeStyle='rgba(0,0,0,.4)';x.strokeRect(b+m,b+m,W-2*b-2*m,H-2*b-2*m);x.fillStyle='rgba(200,40,40,.8)';x.font=(11/k)+'px Helvetica Neue, sans-serif';x.fillText('corte · sangria '+(F().sangria||SANGRIA)+' mm',b+4/k,b-4/k);x.fillStyle='rgba(0,0,0,.45)';x.fillText('margem segura',b+m+4/k,b+m+13/k);x.restore();return;}
+  if(!['feed','carrossel','stories'].includes(F().tipo))return;
   x.save();x.scale(k,k);x.lineWidth=1/k;x.setLineDash([3/k,3/k]);x.strokeStyle='rgba(0,0,0,.55)';x.fillStyle='rgba(0,0,0,.55)';x.font=(11/k)+'px Helvetica Neue, sans-serif';
   const borda=(bx,by,bw,bh,rot)=>{x.strokeRect(bx,by,bw,bh);x.fillText(rot,bx+6/k,by+14/k);};
   const cobre=(tw,th)=>{const r=Math.min(W/tw,H/th);const cw=tw*r,ch=th*r;return[(W-cw)/2,(H-ch)/2,cw,ch];};
@@ -179,13 +188,13 @@ function tiraPag(){if(PECA.paginas.length<2)return;if(!confirm('Remover esta pá
 function marca(inicial){if(TRAVA)return;const j=JSON.stringify(docAtual());if(H[HI]===j)return;H=H.slice(0,HI+1);H.push(j);if(H.length>80)H.shift();HI=H.length-1;camadas();if(!inicial)dirty=true;}
 function hist(d){const i=HI+d;if(i<0||i>=H.length)return;HI=i;carregaDoc(JSON.parse(H[i]),false);}
 function docAtual(){return C.toJSON(['name','selectable','lockMovementX','lockMovementY','pdTipo','pdFonte']);}
-function carregaDoc(doc,marcar=true){TRAVA=true;C.loadFromJSON(doc,()=>{TRAVA=false;C.renderAll();camadas();$('#fundo').value=typeof C.backgroundColor==='string'&&C.backgroundColor.startsWith('#')?C.backgroundColor:'#ffffff';if(marcar)marca();});}
+function carregaDoc(doc,marcar=true){const fams=[...new Set(((doc&&doc.objects)||[]).filter(o=>o.type==='textbox').map(o=>o.fontFamily))];Promise.all(fams.map(garanteFonte)).then(()=>{C.getObjects().forEach(x=>{if(x.type==='textbox')x.initDimensions();});C.renderAll();});TRAVA=true;C.loadFromJSON(doc,()=>{TRAVA=false;C.renderAll();camadas();$('#fundo').value=typeof C.backgroundColor==='string'&&C.backgroundColor.startsWith('#')?C.backgroundColor:'#ffffff';if(marcar)marca();});}
 
 // ---------- adicionar
 function centro(o){o.set({left:F().w/2,top:F().h/2,originX:'center',originY:'center'});C.add(o);C.setActiveObject(o);C.renderAll();}
 function corKit(i,def){return KIT&&KIT.colors&&KIT.colors[i]&&KIT.colors[i].hex||def;}
 function fonteKit(def){return KIT&&KIT.fonts&&KIT.fonts[0]&&KIT.fonts[0].name||def;}
-function addTexto(t){const w=F().w;const cfg={titulo:{text:'Título da peça',fontSize:Math.round(w*.09),fontWeight:'900'},sub:{text:'Subtítulo',fontSize:Math.round(w*.045),fontWeight:'700'},corpo:{text:'Escreva o texto aqui.',fontSize:Math.round(w*.03),fontWeight:'400'}}[t];
+function addTexto(t){const w=F().w;const imp=ehImp();const cfg=imp?{titulo:{text:'Título da peça',fontSize:pt2px(28),fontWeight:'900'},sub:{text:'Subtítulo',fontSize:pt2px(14),fontWeight:'700'},corpo:{text:'Escreva o texto aqui.',fontSize:pt2px(9),fontWeight:'400'}}[t]:{titulo:{text:'Título da peça',fontSize:Math.round(w*.09),fontWeight:'900'},sub:{text:'Subtítulo',fontSize:Math.round(w*.045),fontWeight:'700'},corpo:{text:'Escreva o texto aqui.',fontSize:Math.round(w*.03),fontWeight:'400'}}[t];
   centro(new fabric.Textbox(cfg.text,{width:w*.8,fontFamily:fonteKit('Inter'),fontSize:cfg.fontSize,fontWeight:cfg.fontWeight,fill:corKit(0,'#121212'),textAlign:'left',lineHeight:1.1,pdTipo:'texto'}));}
 function addForma(t){const w=F().w,f=corKit(1,corKit(0,'#121212'));let o;
   if(t==='rect')o=new fabric.Rect({width:w*.4,height:w*.25,fill:f});else if(t==='circle')o=new fabric.Circle({radius:w*.15,fill:f});
@@ -199,15 +208,15 @@ function overlay(t){const w=F().w,h=F().h,cor=corKit(0,'#000000');let o;
   else {o=new fabric.Rect({width:w*.86,height:h*.16,fill:cor,opacity:.92,name:'faixa',rx:0,ry:0});}
   o.set({left:w/2,top:t==='faixa'?h*.72:h/2,originX:'center',originY:'center',selectable:true});C.add(o);C.setActiveObject(o);C.renderAll();}
 // setups de fábrica (papelaria, folders, apresentação): placeholders com a marca do cliente
-function semente(t){const w=F().w,h=F().h,c0=corKit(0,'#121212'),c1=corKit(1,'#c8a45a'),fn=fonteKit('Inter');const logo=Object.values(KIT&&KIT.logos||{}).find(l=>l&&l.file_url);
+function semente(t){const w=F().w,h=F().h,c0=corKit(0,'#121212'),c1=corKit(1,'#c8a45a'),fn=fonteKit('Inter');const P=pt=>pt2px(pt);const logo=Object.values(KIT&&KIT.logos||{}).find(l=>l&&l.file_url);
   const T=(txt,x,y,sz,opt={})=>C.add(new fabric.Textbox(txt,Object.assign({left:x,top:y,width:w*.5,fontFamily:fn,fontSize:sz,fill:c0},opt)));
   const R=(x,y,ww,hh,f,opt={})=>C.add(new fabric.Rect(Object.assign({left:x,top:y,width:ww,height:hh,fill:f},opt)));
   const L=(x,y,ww)=>{if(logo)fabric.Image.fromURL(logo.file_url,img=>{img.scaleToWidth(ww);img.set({left:x,top:y,name:'logo'});C.add(img);C.renderAll();marca();},{crossOrigin:'anonymous'});else R(x,y,ww,ww*.4,'rgba(128,128,128,.2)',{name:'lugar do logo'});};
-  if(t==='cartao'){R(0,0,w*.08,h,c1,{name:'filete'});L(w*.14,h*.18,w*.3);T('Nome Sobrenome',w*.14,h*.58,h*.11,{fontWeight:'700'});T('cargo · (19) 99999-9999 · email@cliente.com',w*.14,h*.74,h*.06,{width:w*.8,fill:'#6c6c69'});}
-  else if(t==='timbrado'){L(w*.08,h*.04,w*.22);R(0,h*.965,w,h*.035,c1,{name:'rodapé'});T('Endereço · telefone · site',w*.08,h*.93,h*.011,{width:w*.84,fill:'#6c6c69'});}
+  if(t==='cartao'){R(0,0,w*.08,h,c1,{name:'filete'});L(w*.14,h*.18,w*.3);T('Nome Sobrenome',w*.14,h*.58,P(11),{fontWeight:'700'});T('cargo · (19) 99999-9999 · email@cliente.com',w*.14,h*.74,P(7),{width:w*.8,fill:'#6c6c69'});}
+  else if(t==='timbrado'){L(w*.08,h*.04,w*.22);R(0,h*.965,w,h*.035,c1,{name:'rodapé'});T('Endereço · telefone · site',w*.08,h*.93,P(8),{width:w*.84,fill:'#6c6c69'});}
   else if(t==='assinatura'){L(10,20,150);T('Nome Sobrenome',180,40,26,{fontWeight:'700',width:400});T('cargo · (19) 99999-9999 · site',180,80,16,{width:400,fill:'#6c6c69'});R(170,30,2,120,c1);}
-  else if(t==='folder'){R(0,0,w,h*.55,'rgba(128,128,128,.18)',{name:'foto de capa'});R(0,h*.55,w,h*.45,c0,{name:'base'});T('Título do folder',w*.08,h*.6,w*.075,{fill:'#fff',fontWeight:'900',width:w*.84});T('Um parágrafo curto sobre o empreendimento ou a oferta.',w*.08,h*.76,w*.028,{fill:'#fff',width:w*.84});L(w*.08,h*.9,w*.18);}
-  else if(t==='triptico'){for(let i=1;i<3;i++)R(w*i/3-1,0,2,h,'rgba(0,0,0,.08)',{name:'dobra '+i,selectable:false});R(w*2/3,0,w/3,h,c0,{name:'capa'});T('Capa',w*2/3+w*.03,h*.4,w*.03,{fill:'#fff',fontWeight:'900',width:w*.27});L(w*2/3+w*.03,h*.85,w*.12);T('Miolo 1',w*.03,h*.08,w*.02,{fontWeight:'700',width:w*.27});T('Miolo 2',w/3+w*.03,h*.08,w*.02,{fontWeight:'700',width:w*.27});}
+  else if(t==='folder'){R(0,0,w,h*.55,'rgba(128,128,128,.18)',{name:'foto de capa'});R(0,h*.55,w,h*.45,c0,{name:'base'});T('Título do folder',w*.08,h*.6,P(36),{fill:'#fff',fontWeight:'900',width:w*.84});T('Um parágrafo curto sobre o empreendimento ou a oferta.',w*.08,h*.76,P(11),{fill:'#fff',width:w*.84});L(w*.08,h*.9,w*.18);}
+  else if(t==='triptico'){for(let i=1;i<3;i++)R(w*i/3-1,0,2,h,'rgba(0,0,0,.08)',{name:'dobra '+i,selectable:false});R(w*2/3,0,w/3,h,c0,{name:'capa'});T('Capa',w*2/3+w*.03,h*.4,P(30),{fill:'#fff',fontWeight:'900',width:w*.27});L(w*2/3+w*.03,h*.85,w*.12);T('Miolo 1',w*.03,h*.08,P(14),{fontWeight:'700',width:w*.27});T('Miolo 2',w/3+w*.03,h*.08,P(14),{fontWeight:'700',width:w*.27});}
   else if(t==='slide'){R(0,0,w*.42,h,c0,{name:'lateral'});T('Título do slide',w*.05,h*.3,w*.045,{fill:'#fff',fontWeight:'900',width:w*.32});T('Texto de apoio do slide. Troque pelos pontos da apresentação.',w*.47,h*.3,w*.02,{width:w*.46});L(w*.05,h*.82,w*.12);}
   C.renderAll();}
 
@@ -219,20 +228,27 @@ function camadas(){const el=$('#camadas');if(!el)return;const a=C.getActiveObjec
 function props(){const o=C.getActiveObject();const el=$('#props');camadas();filtrosUI();if(!o){el.innerHTML='<div class="vazio">Selecione algo na peça para editar.</div>';return;}
   const cor=v=>typeof v==='string'&&v.startsWith('#')?v:'#000000';const eTexto=o.type==='textbox';const eImg=o.type==='image';
   let h=`<div class="row"><button class="btn i" onclick="copiar();colar()" title="Duplicar (⌘D)"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button><button class="btn i" onclick="C.bringForward(C.getActiveObject());marca()" title="Subir camada"><svg viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg></button><button class="btn i" onclick="C.sendBackwards(C.getActiveObject());marca()" title="Descer camada"><svg viewBox="0 0 24 24"><path d="m6 10 6 6 6-6"/></svg></button><button class="btn i" onclick="setP('selectable',!C.getActiveObject().selectable);C.discardActiveObject();C.renderAll()" title="${o.selectable===false?'Destravar':'Travar'}"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button><button class="btn i" onclick="apaga()" title="Remover"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`;
-  if(eTexto){h+=`<div class="lab">Fonte</div><select onchange="setP('fontFamily',this.value)" style="width:100%">${[...new Set([...(KIT&&KIT.fonts||[]).map(f=>f.name),...FONTES])].map(f=>`<option ${o.fontFamily===f?'selected':''} style="font-family:'${f}'">${esc(f)}</option>`).join('')}</select>
-    <div class="row" style="margin-top:6px"><input type="number" style="width:70px" value="${Math.round(o.fontSize)}" onchange="setP('fontSize',+this.value)" title="tamanho"><select onchange="setP('fontWeight',this.value)"><option value="400" ${o.fontWeight=='400'||o.fontWeight=='normal'?'selected':''}>Regular</option><option value="700" ${o.fontWeight=='700'||o.fontWeight=='bold'?'selected':''}>Bold</option><option value="900" ${o.fontWeight=='900'?'selected':''}>Black</option></select></div>
-    <div class="row" style="margin-top:6px">${['left','center','right'].map(a=>`<button class="btn s" onclick="setP('textAlign','${a}')">${{left:'⇤',center:'↔',right:'⇥'}[a]}</button>`).join('')}<button class="btn s" onclick="setP('fontStyle',C.getActiveObject().fontStyle==='italic'?'normal':'italic')"><i>I</i></button><button class="btn s" onclick="setP('underline',!C.getActiveObject().underline)"><u>U</u></button><button class="btn s" onclick="setP('text',C.getActiveObject().text.toUpperCase())">AA</button></div>
-    <div class="lab">Entrelinha · espaço</div><div class="row"><input type="number" step=".05" style="width:70px" value="${o.lineHeight||1.16}" onchange="setP('lineHeight',+this.value)"><input type="number" step="10" style="width:70px" value="${o.charSpacing||0}" onchange="setP('charSpacing',+this.value)"></div>`;}
-  if(!eImg){h+=`<div class="lab">Cor</div><div class="row"><input type="color" value="${cor(o.fill)}" oninput="setP('fill',this.value)">${(KIT&&KIT.colors||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)}" title="${esc(c.name||'')}" onclick="setP('fill','${esc(c.hex)}')"></span>`).join('')}</div>`;}
+  const I=d=>`<svg viewBox="0 0 24 24">${d}</svg>`;const ib=(t,fn,d,on)=>`<button class="btn i ${on?'on':''}" title="${t}" onclick="${fn}">${I(d)}</button>`;
+  if(eTexto){const imp=ehImp();const tam=imp?Math.round(px2pt(o.fontSize)*10)/10:Math.round(o.fontSize);
+    h+=`<div class="lab">Fonte</div><select onchange="aplicaFonte(this.value)" style="width:100%">${fontesSelect(o.fontFamily)}</select>
+    <div class="row" style="margin-top:6px"><input type="number" style="width:76px" value="${tam}" step="${imp?'.5':'1'}" onchange="setP('fontSize',${imp?'pt2px(+this.value)':'+this.value'})" title="tamanho em ${imp?'pt':'px'}"><small class="vazio">${imp?'pt':'px'}</small><select onchange="setP('fontWeight',this.value)" style="flex:1"><option value="300" ${o.fontWeight=='300'?'selected':''}>Light</option><option value="400" ${o.fontWeight=='400'||o.fontWeight=='normal'?'selected':''}>Regular</option><option value="700" ${o.fontWeight=='700'||o.fontWeight=='bold'?'selected':''}>Bold</option><option value="900" ${o.fontWeight=='900'?'selected':''}>Black</option></select></div>
+    <div class="row" style="margin-top:6px">${ib('Alinhar à esquerda',"setP('textAlign','left')",'<path d="M4 6h16M4 12h10M4 18h14"/>',o.textAlign==='left')}${ib('Centralizar',"setP('textAlign','center')",'<path d="M4 6h16M7 12h10M5 18h14"/>',o.textAlign==='center')}${ib('Alinhar à direita',"setP('textAlign','right')",'<path d="M4 6h16M10 12h10M6 18h14"/>',o.textAlign==='right')}${ib('Justificar',"setP('textAlign','justify')",'<path d="M4 6h16M4 12h16M4 18h16"/>',o.textAlign==='justify')}${ib('Itálico',"setP('fontStyle',C.getActiveObject().fontStyle==='italic'?'normal':'italic')",'<path d="M14 4h5M5 20h5M15 4 9 20"/>',o.fontStyle==='italic')}${ib('Sublinhado',"setP('underline',!C.getActiveObject().underline)",'<path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16"/>',!!o.underline)}${ib('MAIÚSCULAS',"setP('text',C.getActiveObject().text.toUpperCase())",'<path d="M3 17 7.5 6l4.5 11M4.6 13.5h5.8M13 17V6h3.5a2.75 2.75 0 0 1 0 5.5H13h4a2.75 2.75 0 0 1 0 5.5z"/>')}</div>
+    <div class="lab">Entrelinha · espaçamento</div><div class="row"><input type="number" step=".05" style="width:70px" value="${o.lineHeight||1.16}" onchange="setP('lineHeight',+this.value)" title="entrelinha"><input type="number" step="10" style="width:70px" value="${o.charSpacing||0}" onchange="setP('charSpacing',+this.value)" title="espaçamento entre letras"></div>`;}
+  if(!eImg){h+=`<div class="lab">Cor</div><div class="row"><input type="color" value="${cor(o.fill)}" oninput="setP('fill',this.value)">${(KIT&&KIT.colors||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)}" title="${esc(c.name||'')}" onclick="setP('fill','${esc(c.hex)}')"></span>`).join('')}${PECA.client_id?`<button class="btn i" title="Salvar esta cor no kit do cliente" onclick="const o=C.getActiveObject();if(o&&typeof o.fill==='string'){$('#cnHex')&&($('#cnHex').value=o.fill);api('pd-estudio.php',{acao:'kit_cor_salvar',client_id:PECA.client_id,hex:o.fill,nome:prompt('Nome da cor',o.fill)||o.fill}).then(()=>{msg('Cor salva no kit.');trocaCliente().then(props);}).catch(e=>msg(e.message));}"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>`:''}</div>`;}
   h+=`<div class="lab">Contorno</div><div class="row"><input type="color" value="${cor(o.stroke)}" oninput="setP('stroke',this.value)"><input type="number" style="width:60px" value="${o.strokeWidth||0}" onchange="setP('strokeWidth',+this.value)"></div>`;
   if(o.type==='rect')h+=`<div class="lab">Cantos</div><input type="number" style="width:70px" value="${o.rx||0}" onchange="setP('rx',+this.value);setP('ry',+this.value)">`;
   h+=`<div class="lab">Opacidade</div><input type="range" min="0" max="1" step=".02" value="${o.opacity??1}" oninput="setP('opacity',+this.value,false)" onchange="marca()">`;
-  h+=`<div class="lab">Posição e tamanho</div><div class="row"><input type="number" style="width:60px" value="${Math.round(o.left)}" onchange="setP('left',+this.value)" title="x"><input type="number" style="width:60px" value="${Math.round(o.top)}" onchange="setP('top',+this.value)" title="y"><input type="number" style="width:60px" value="${Math.round(o.getScaledWidth())}" onchange="escala(+this.value,null)" title="largura"><input type="number" style="width:60px" value="${Math.round(o.getScaledHeight())}" onchange="escala(null,+this.value)" title="altura"></div>
-    <div class="row" style="margin-top:6px"><input type="number" style="width:60px" value="${Math.round(o.angle||0)}" onchange="setP('angle',+this.value)" title="rotação"><button class="btn s" onclick="setP('flipX',!C.getActiveObject().flipX)">↔</button><button class="btn s" onclick="alinha('h')">centro H</button><button class="btn s" onclick="alinha('v')">centro V</button><button class="btn s" onclick="cobrir()">cobrir tudo</button></div>
-    <div class="lab">Nome da camada</div><input value="${esc(o.name||'')}" onchange="setP('name',this.value)" style="width:100%">`;
+  {const imp=ehImp();const u=imp?'mm':'px';const v=px=>imp?Math.round(px2mm(px)*10)/10:Math.round(px);const back=imp?'mm2px(+this.value)':'+this.value';
+    h+=`<div class="lab">Posição e tamanho <small>(${u})</small></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" class="pos">
+      <label class="row" style="gap:4px"><small class="vazio" style="width:14px">X</small><input type="number" step="${imp?'.5':'1'}" style="flex:1" value="${v(o.left)}" onchange="setP('left',${back})"></label>
+      <label class="row" style="gap:4px"><small class="vazio" style="width:14px">Y</small><input type="number" step="${imp?'.5':'1'}" style="flex:1" value="${v(o.top)}" onchange="setP('top',${back})"></label>
+      <label class="row" style="gap:4px"><small class="vazio" style="width:14px">L</small><input type="number" step="${imp?'.5':'1'}" style="flex:1" value="${v(o.getScaledWidth())}" onchange="escala(${back},null)"></label>
+      <label class="row" style="gap:4px"><small class="vazio" style="width:14px">A</small><input type="number" step="${imp?'.5':'1'}" style="flex:1" value="${v(o.getScaledHeight())}" onchange="escala(null,${back})"></label></div>
+    <div class="row" style="margin-top:6px">${ib('Centrar na horizontal',"alinha('h')",'<path d="M12 3v18"/><rect x="5" y="8" width="14" height="8" rx="1.5"/>')}${ib('Centrar na vertical',"alinha('v')",'<path d="M3 12h18"/><rect x="8" y="5" width="8" height="14" rx="1.5"/>')}${ib('Cobrir a peça inteira',"cobrir()",'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 3v18M16 3v18M3 8h18M3 16h18"/>')}${ib('Espelhar',"setP('flipX',!C.getActiveObject().flipX)",'<path d="M12 3v18M9 7 4 12l5 5M15 7l5 5-5 5"/>')}<label class="row" style="gap:4px;margin-left:auto"><input type="number" style="width:58px" value="${Math.round(o.angle||0)}" onchange="setP('angle',+this.value)" title="rotação em graus"><small class="vazio">°</small></label></div>
+    <div class="lab">Nome da camada</div><input value="${esc(o.name||'')}" onchange="setP('name',this.value)" style="width:100%">`;}
   el.innerHTML=h;}
 function setP(k,v,m=true){const o=C.getActiveObject();if(!o)return;if(o.type==='activeSelection'){o.getObjects().forEach(x=>x.set(k,v));}else o.set(k,v);C.renderAll();if(m)marca();if(k!=='opacity')props();}
-function escala(w,h){const o=C.getActiveObject();if(!o)return;if(w)o.scaleToWidth(w);if(h)o.scaleToHeight(h);C.renderAll();marca();props();}
+function escala(w,h){const o=C.getActiveObject();if(!o)return;if(w)o.scaleToWidth(w);if(h)o.scaleToHeight(h);o.setCoords();C.renderAll();marca();props();}
 function alinha(d){const o=C.getActiveObject();if(!o)return;if(d==='h')o.set({left:F().w/2,originX:'center'});else o.set({top:F().h/2,originY:'center'});o.setCoords();C.renderAll();marca();}
 function cobrir(){const o=C.getActiveObject();if(!o)return;const s=Math.max(F().w/o.width,F().h/o.height);o.set({scaleX:s,scaleY:s,left:F().w/2,top:F().h/2,originX:'center',originY:'center',angle:0});o.setCoords();C.renderAll();marca();props();}
 function copiar(){const o=C.getActiveObject();if(!o)return;o.clone(c=>{CLIP=c;},['name','pdTipo','pdFonte']);}
@@ -268,13 +284,33 @@ async function trocaCliente(){PECA.client_id=$('#cli').value||null;KIT=null;cons
   for(const f of (KIT.fonts||[])){if(!f.file_url||!f.name)continue;try{const ff=new FontFace(f.name,`url(${f.file_url})`);await ff.load();document.fonts.add(ff);}catch(e){}}
   montaFormatos();
   const logos=Object.entries(KIT.logos||{}).filter(([k,v])=>v&&v.file_url);
-  el.innerHTML=`<h3>Cores</h3><div class="row">${(KIT.colors||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)};width:34px;height:34px" title="${esc(c.name||'')}" onclick="aplicaCor('${esc(c.hex)}')"></span>`).join('')||'<div class="vazio">Sem cores no kit.</div>'}</div>
+  el.innerHTML=`<h3>Cores</h3><div class="row">${(KIT.colors||[]).map(c=>`<span class="sw" style="background:${esc(c.hex)};width:34px;height:34px" title="${esc(c.name||'')} · clique aplica · botão direito remove" onclick="aplicaCor('${esc(c.hex)}')" oncontextmenu="event.preventDefault();corKitRemove('${esc(c.hex)}','${esc(c.name||'')}')"></span>`).join('')}<button class="btn i" title="Cor nova (salva no cliente)" onclick="corKitNova()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    <div id="corNova" class="row" style="display:none;margin-top:6px"><input type="color" id="cnHex" value="${esc(corKit(0,'#121212'))}"><input id="cnNome" placeholder="nome da cor" style="flex:1"><button class="btn i" title="Salvar" onclick="corKitSalva()"><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg></button></div>
     <h3>Fontes</h3><div class="col">${(KIT.fonts||[]).map(f=>`<button class="btn s" style="font-family:'${esc(f.name)}';justify-content:flex-start" onclick="aplicaFonte('${esc(f.name)}')">${esc(f.name)}</button>`).join('')||'<div class="vazio">Sem fontes no kit.</div>'}</div>
+    <div class="row" style="margin-top:6px"><label class="btn s">Subir fonte do cliente<input type="file" accept=".ttf,.otf,.woff,.woff2" multiple style="display:none" onchange="fonteSubir(this,'cliente')"></label><label class="btn s">Subir fonte da casa<input type="file" accept=".ttf,.otf,.woff,.woff2" multiple style="display:none" onchange="fonteSubir(this,'casa')"></label></div>
+    <div class="vazio">As fontes da casa moram no Drive e aparecem na gaveta de fontes abaixo das do cliente.</div>
     <h3>Logos</h3><div class="grade">${logos.map(([k,v])=>`<img src="${esc(v.file_url)}" title="${esc(k)}" onclick="addImagemUrl('${esc(v.file_url)}','logo')" style="object-fit:contain;padding:6px;background:#fff">`).join('')||'<div class="vazio">Sem logos no kit.</div>'}</div>
     <h3>Elementos</h3><div class="grade">${(KIT.elements||[]).filter(e=>e.file_url).map(e=>`<img src="${esc(e.file_url)}" onclick="addImagemUrl('${esc(e.file_url)}','elemento')" style="object-fit:contain;padding:4px;background:#fff">`).join('')||'<div class="vazio">Sem elementos no kit.</div>'}</div>
     <div class="vazio" style="margin-top:10px">O kit se edita em Design › Kit de marca.</div>`;}
+function corKitNova(){const d=$('#corNova');d.style.display=d.style.display==='none'?'flex':'none';}
+async function corKitSalva(){try{await api('pd-estudio.php',{acao:'kit_cor_salvar',client_id:PECA.client_id,hex:$('#cnHex').value,nome:$('#cnNome').value});msg('Cor salva no kit do cliente.');await trocaCliente();props();}catch(e){msg(e.message);}}
+async function corKitRemove(hex,nome){if(!confirm('Tirar a cor '+(nome||hex)+' do kit do cliente?'))return;try{await api('pd-estudio.php',{acao:'kit_cor_salvar',client_id:PECA.client_id,hex,remover:true});await trocaCliente();props();}catch(e){msg(e.message);}}
 function aplicaCor(hex){const o=C.getActiveObject();if(o){setP('fill',hex);}else{C.setBackgroundColor(hex,()=>{C.renderAll();$('#fundo').value=hex;marca();});}}
-function aplicaFonte(n){const o=C.getActiveObject();if(o&&o.type==='textbox')setP('fontFamily',n);else msg('Selecione um texto primeiro.');}
+let FCASA=[],FCARR=new Set();
+async function fontesCasa(){if(FCASA.length)return FCASA;try{const r=await api('pd-estudio.php',{acao:'fontes_casa'});FCASA=r.fontes||[];}catch(e){FCASA=[];}return FCASA;}
+async function garanteFonte(nome){if(!nome||FCARR.has(nome)||document.fonts.check(`12px "${nome}"`)&&!FCASA.some(f=>f.familia===nome))return;
+  const kf=(KIT&&KIT.fonts||[]).filter(f=>f.name===nome&&f.file_url);const cf=FCASA.filter(f=>f.familia===nome);
+  for(const f of kf){try{const ff=new FontFace(nome,`url(${f.file_url})`);await ff.load();document.fonts.add(ff);}catch(e){}}
+  for(const f of cf){try{const ff=new FontFace(nome,`url(${location.origin+f.url})`,{weight:f.peso,style:f.italico?'italic':'normal'});await ff.load();document.fonts.add(ff);}catch(e){}}
+  FCARR.add(nome);}
+function fontesSelect(atual){const kit=[...new Set((KIT&&KIT.fonts||[]).map(f=>f.name))];const casa=[...new Set(FCASA.map(f=>f.familia))].filter(n=>!kit.includes(n));const web=FONTES.filter(n=>!kit.includes(n)&&!casa.includes(n));
+  const op=n=>`<option value="${esc(n)}" ${atual===n?'selected':''} style="font-family:'${esc(n)}'">${esc(n)}</option>`;
+  return (kit.length?`<optgroup label="Fontes do cliente">${kit.map(op).join('')}</optgroup>`:'')+(casa.length?`<optgroup label="Fontes da casa">${casa.map(op).join('')}</optgroup>`:'')+`<optgroup label="Web">${web.map(op).join('')}</optgroup>`;}
+async function aplicaFonte(n){const o=C.getActiveObject();if(!(o&&o.type==='textbox')){msg('Selecione um texto primeiro.');return;}await garanteFonte(n);setP('fontFamily',n);C.getObjects().forEach(x=>{if(x.type==='textbox')x.initDimensions();});C.renderAll();}
+async function fonteSubir(inp,destino){const fs=[...inp.files];inp.value='';for(const f of fs){try{const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});
+    const fam=prompt('Nome da família para "'+f.name+'"',f.name.replace(/\.(ttf|otf|woff2?)$/i,'').replace(/[-_](regular|bold|black|light|italic)/ig,''))||'';if(!fam)continue;
+    await api('pd-estudio.php',{acao:'fonte_subir',destino,client_id:PECA.client_id,familia:fam,arquivo:{nome:f.name,b64}});msg(f.name+' subiu ('+(destino==='cliente'?'kit do cliente':'fontes da casa')+').');}catch(e){msg(f.name+': '+e.message,5000);}}
+  FCASA=[];FCARR.clear();await fontesCasa();await trocaCliente();}
 
 // ---------- galeria do cliente (Drive)
 async function galeria(){if(!PECA.client_id){$('#galMsg').textContent='Escolha o cliente.';return;}$('#galMsg').textContent='Lendo a pasta MÍDIA no Drive…';
@@ -383,7 +419,7 @@ async function abrirPeca(id){try{const {peca:p}=await api('pd-estudio.php',{acao
   const pgs=p.doc&&p.doc.paginas?p.doc.paginas:[p.doc];
   PECA={id:ehModelo?null:p.id,client_id:ehModelo?PECA.client_id:(p.client_id||null),task_id:p.task_id||null,formato:p.formato,paginas:pgs,pag:0};
   $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
-  const f=FORMATOS.find(x=>x.tipo===p.formato.tipo)||{tipo:p.formato.tipo||'kit',nome:p.formato.nome,w:p.formato.w,h:p.formato.h};aplicaFormato(f);
+  const f=p.formato.impresso?Object.assign({},p.formato):(FORMATOS.find(x=>x.tipo===p.formato.tipo)||{tipo:p.formato.tipo||'kit',nome:p.formato.nome,w:p.formato.w,h:p.formato.h});aplicaFormato(f);
   H=[];HI=-1;carregaDoc(pgs[0],false);setTimeout(()=>{marca(true);dirty=false;pags();},300);msg(ehModelo?'Modelo aberto como peça nova.':'Peça aberta.');}catch(e){msg(e.message);}}
 function thumb(){return emTamanhoReal(()=>{const m=Math.max(F().w,F().h);return C.toDataURL({format:'jpeg',quality:.7,multiplier:400/m});});}
 async function salvar(modelo){C.discardActiveObject();C.renderAll();if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);return;}
@@ -394,21 +430,43 @@ async function salvar(modelo){C.discardActiveObject();C.renderAll();if(!PECA.cli
 // ---------- exportar e recortes
 function fechaMenu(){const m=document.querySelector('.menu');if(m)m.remove();}
 function menuExport(){fechaMenu();const f=FORMATOS.find(x=>x.tipo===F().tipo)||{};const cortes=f.cortes||[];
-  const m=document.createElement('div');m.className='menu';m.innerHTML=`<div class="lab" style="margin-top:0">Baixar agora</div><div class="row"><button class="btn s" onclick="baixar('png')">PNG</button><button class="btn s" onclick="baixar('jpg')">JPG</button></div>
-    ${cortes.length?`<div class="lab">Recortes que vão para o Drive</div>${cortes.map(k=>`<label style="display:block;font-size:12px;margin:3px 0"><input type="checkbox" data-corte="${k}" ${k!=='wide'?'checked':''}> ${CORTES[k].nome} · ${CORTES[k].w}×${CORTES[k].h}</label>`).join('')}`:'<div class="vazio">Este tipo exporta no tamanho original.</div>'}
-    <div class="row" style="margin-top:8px"><button class="btn p" onclick="exportarTudo()">Gerar e guardar no Drive</button></div>`;$('#app').appendChild(m);}
-function baixar(tipo){const d=emTamanhoReal(()=>C.toDataURL({format:tipo==='jpg'?'jpeg':'png',quality:.92,multiplier:1}));const a=document.createElement('a');a.href=d;a.download=($('#nome').value||'peca')+'.'+tipo;a.click();fechaMenu();}
-function recorta(dataUrl,tw,th){return new Promise(res=>{const im=new Image();im.onload=()=>{const r=Math.max(tw/im.width,th/im.height);const sw=tw/r,sh=th/r,sx=(im.width-sw)/2,sy=(im.height-sh)/2;const cv=document.createElement('canvas');cv.width=tw;cv.height=th;cv.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,tw,th);res(cv.toDataURL('image/png'));};im.src=dataUrl;});}
+  const m=document.createElement('div');m.className='menu';
+  if(ehImp()){m.innerHTML=`<div class="lab" style="margin-top:0">Impresso · ${esc(F().mm?F().mm[0]+'×'+F().mm[1]+' mm':'')} + sangria ${F().sangria||SANGRIA} mm · 300 dpi</div>
+      <div class="row"><button class="btn p" onclick="exportarImpresso()">PDF para gráfica</button><button class="btn s" onclick="baixar('png')">PNG de prova</button></div>
+      <div class="vazio" style="margin-top:6px;line-height:1.4">PDF em CMYK, texto convertido em curvas, imagens sem reamostragem. Sai pela oficina e cai em cliente › ESTÚDIO › peça (1 a 3 min).</div>`;}
+  else{m.innerHTML=`<div class="lab" style="margin-top:0">Digital · RGB · px</div><div class="row"><select id="exTipo"><option value="png">PNG</option><option value="jpg">JPG</option></select><label class="row" style="gap:4px"><small class="vazio">qualidade</small><input type="range" id="exQ" min=".5" max="1" step=".05" value=".92" style="width:90px"></label><button class="btn s" onclick="baixar($('#exTipo').value,+$('#exQ').value)">Baixar</button></div>
+    ${cortes.length?`<div class="lab">Recortes que vão para o Drive</div>${cortes.map(k=>`<label style="display:block;font-size:12px;margin:3px 0"><input type="checkbox" data-corte="${k}" ${k!=='wide'?'checked':''}> ${CORTES[k].nome} · ${CORTES[k].w}×${CORTES[k].h}</label>`).join('')}<div class="row" style="margin-top:4px"><small class="vazio">formato no Drive</small><select id="exTipoDrive"><option value="png">PNG</option><option value="jpg">JPG</option></select></div>`:'<div class="vazio">Este tipo exporta no tamanho original.</div>'}
+    <div class="row" style="margin-top:8px"><button class="btn p" onclick="exportarTudo()">Gerar e guardar no Drive</button></div>`;}
+  $('#app').appendChild(m);}
+function baixar(tipo,q){const d=emTamanhoReal(()=>C.toDataURL({format:tipo==='jpg'?'jpeg':'png',quality:q||.92,multiplier:1}));const a=document.createElement('a');a.href=d;a.download=($('#nome').value||'peca')+'.'+tipo;a.click();fechaMenu();}
+// PDF para gráfica: SVG vetorial da peça (texto como texto + fontes embutidas) → oficina (Chromium → Ghostscript: CMYK, curvas, 300 dpi)
+async function svgImpresso(){await Promise.all([...new Set(C.getObjects().filter(o=>o.type==='textbox').map(o=>o.fontFamily))].map(garanteFonte));
+  const W=F().w,H=F().h,wmm=px2mm(W),hmm=px2mm(H);
+  let svg=emTamanhoReal(()=>C.toSVG({viewBox:{x:0,y:0,width:W,height:H},width:W,height:H}));
+  svg=svg.replace(/<svg([^>]*)width="[^"]*"([^>]*)height="[^"]*"/,`<svg$1width="${wmm}mm"$2height="${hmm}mm"`);
+  const fams=[...new Set(C.getObjects().filter(o=>o.type==='textbox').map(o=>o.fontFamily))];let css='';const links=[];
+  for(const n of fams){const kf=(KIT&&KIT.fonts||[]).filter(f=>f.name===n&&f.file_url);const cf=FCASA.filter(f=>f.familia===n);
+    for(const f of kf)css+=`@font-face{font-family:"${n}";src:url("${f.file_url}");}`;
+    for(const f of cf)css+=`@font-face{font-family:"${n}";font-weight:${f.peso};font-style:${f.italico?'italic':'normal'};src:url("${location.origin+f.url}");}`;
+    if(!kf.length&&!cf.length&&FONTES.includes(n))links.push(`<link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(n).replace(/%20/g,'+')}:ital,wght@0,300;0,400;0,700;0,900;1,400;1,700&display=block" rel="stylesheet">`);}
+  svg=svg.replace(/href="\/pd-estudio\.php/g,`href="${location.origin}/pd-estudio.php`);
+  return `<!doctype html><html><head><meta charset="utf-8">${links.join('')}<style>${css}@page{size:${wmm}mm ${hmm}mm;margin:0}html,body{margin:0;padding:0}svg{display:block}</style></head><body>${svg}</body></html>`;}
+async function exportarImpresso(){fechaMenu();if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);return;}if(!PECA.id||dirty){if(!await salvar())return;}
+  msg('Montando o PDF vetorial…',6000);try{const html=await svgImpresso();const nome=($('#nome').value||'peca').replace(/[\/\\:*?"<>|]+/g,'-');
+    const r=await api('pd-oficina.php',{acao:'pedir',modulo:'pdf',titulo:'PDF gráfica · '+nome,client_id:PECA.client_id,ok_agora:true,entrada:{nome,html,largura_mm:px2mm(F().w),altura_mm:px2mm(F().h),sangria_mm:F().sangria||SANGRIA,impresso:true,drive_subpasta:'ESTÚDIO/'+nome,pedido:'PDF para gráfica: CMYK, curvas, 300 dpi, sangria '+(F().sangria||SANGRIA)+' mm'}});
+    msg(r.trabalho&&r.trabalho.status==='fila'?'Na oficina. O PDF cai em cliente › ESTÚDIO › '+nome+' em 1 a 3 min (acompanhe em Produção, na home).':'Pedido registrado: '+(r.trabalho&&r.trabalho.status),9000);}
+  catch(e){msg(e.message,8000);}}
+function recorta(dataUrl,tw,th,tipo){return new Promise(res=>{const im=new Image();im.onload=()=>{const r=Math.max(tw/im.width,th/im.height);const sw=tw/r,sh=th/r,sx=(im.width-sw)/2,sy=(im.height-sh)/2;const cv=document.createElement('canvas');cv.width=tw;cv.height=th;cv.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,tw,th);res(cv.toDataURL(tipo==='jpg'?'image/jpeg':'image/png',.92));};im.src=dataUrl;});}
 async function exportarTudo(){C.discardActiveObject();C.renderAll();if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);return;}
-  const marcados=[...document.querySelectorAll('.menu [data-corte]')].filter(c=>c.checked).map(c=>c.dataset.corte);fechaMenu();
+  const marcados=[...document.querySelectorAll('.menu [data-corte]')].filter(c=>c.checked).map(c=>c.dataset.corte);const tipoDrive=($('#exTipoDrive')||{}).value||'png';fechaMenu();
   const f=FORMATOS.find(x=>x.tipo===F().tipo)||{};const cortes=marcados.length?marcados:(f.cortes||[]).filter(k=>k!=='wide');
   if(!PECA.id||dirty){if(!await salvar())return;}
   msg('Gerando recortes…',8000);const arquivos=[];guardaPag();
   const paginas=temPags()?PECA.paginas:[null];const pagAtual=PECA.pag;
   for(let p=0;p<paginas.length;p++){if(temPags()&&p!==PECA.pag){await new Promise(r=>{TRAVA=true;C.loadFromJSON(paginas[p],()=>{TRAVA=false;C.renderAll();r();});});}
-    const base=emTamanhoReal(()=>C.toDataURL({format:'png',multiplier:1}));const pfx=paginas.length>1?('p'+(p+1)+'-'):'';
-    if(!cortes.length)arquivos.push({sufixo:pfx+'original',imagem:base});
-    for(const k of cortes){const c=CORTES[k];arquivos.push({sufixo:pfx+k,imagem:(c.w===F().w&&c.h===F().h)?base:await recorta(base,c.w,c.h)});}}
+    const base=emTamanhoReal(()=>C.toDataURL({format:tipoDrive==='jpg'?'jpeg':'png',quality:.92,multiplier:1}));const pfx=paginas.length>1?('p'+(p+1)+'-'):'';
+    if(!cortes.length)arquivos.push({sufixo:pfx+'original',imagem:base,tipo:tipoDrive});
+    for(const k of cortes){const c=CORTES[k];arquivos.push({sufixo:pfx+k,imagem:(c.w===F().w&&c.h===F().h)?base:await recorta(base,c.w,c.h,tipoDrive),tipo:tipoDrive});}}
   if(temPags()&&pagAtual!==paginas.length-1){await new Promise(r=>{TRAVA=true;C.loadFromJSON(paginas[pagAtual],()=>{TRAVA=false;C.renderAll();r();});});}
   try{const r=await api('pd-estudio.php',{acao:'exportar',id:PECA.id,client_id:PECA.client_id,nome:$('#nome').value,arquivos});
     const ok=r.arquivos.filter(a=>!a.erro).length;msg(r.pasta_url?`${ok} arquivo(s) no Drive: cliente › ESTÚDIO › ${$('#nome').value}.`:(r.aviso||`${ok} arquivo(s) exportados.`),7000);}

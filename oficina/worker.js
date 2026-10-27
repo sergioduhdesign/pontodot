@@ -77,17 +77,26 @@ const EXEC = {
     const nome = nomeLimpo((e.titulo || 'apresentacao') + '.pptx'); const f = path.join(dir, nome); await p.writeFile({ fileName: f });
     return { arquivos: [await subir(t, f, nome, 'application/vnd.openxmlformats-officedocument.presentationml.presentation')] };
   },
-  // entrada: { nome, html | html_url, formato:'A4'|'A5'|'Letter', largura_mm, altura_mm, margem_mm, paisagem }
+  // entrada: { nome, html | html_url, formato:'A4'|'A5'|'Letter', largura_mm, altura_mm, margem_mm, paisagem,
+  //            impresso:true → PDF para gráfica: CMYK (Ghostscript), texto em curvas, imagens sem reamostragem (300 dpi), sangria já incluída na medida }
   async pdf(t, dir) {
     const { chromium } = require('playwright'); const e = t.entrada || {};
     let html = e.html || ''; if (!html && e.html_url) html = fs.readFileSync(await baixar(e.html_url, path.join(dir, 'in.html')), 'utf8');
     if (!html) throw new Error('Sem HTML para virar PDF.');
-    const nome = nomeLimpo((e.nome || 'documento') + '.pdf'); const f = path.join(dir, nome);
-    const br = await chromium.launch(); const pg = await br.newPage(); await pg.setContent(html, { waitUntil: 'networkidle' });
-    const opt = { path: f, printBackground: true, preferCSSPageSize: true, margin: { top: (e.margem_mm ?? 0) + 'mm', right: (e.margem_mm ?? 0) + 'mm', bottom: (e.margem_mm ?? 0) + 'mm', left: (e.margem_mm ?? 0) + 'mm' } };
+    const nome = nomeLimpo((e.nome || 'documento') + '.pdf'); const f = path.join(dir, nome); const bruto = path.join(dir, 'rgb-' + nome);
+    const br = await chromium.launch(); const pg = await br.newPage(); await pg.setContent(html, { waitUntil: 'networkidle' }); await pg.evaluate(() => document.fonts.ready); await pg.waitForTimeout(400);
+    const opt = { path: e.impresso ? bruto : f, printBackground: true, preferCSSPageSize: true, margin: { top: (e.margem_mm ?? 0) + 'mm', right: (e.margem_mm ?? 0) + 'mm', bottom: (e.margem_mm ?? 0) + 'mm', left: (e.margem_mm ?? 0) + 'mm' } };
     if (e.largura_mm && e.altura_mm) { opt.width = e.largura_mm + 'mm'; opt.height = e.altura_mm + 'mm'; } else { opt.format = e.formato || 'A4'; opt.landscape = !!e.paisagem; }
     await pg.pdf(opt); await br.close();
-    return { arquivos: [await subir(t, f, nome, 'application/pdf')] };
+    if (e.impresso) {
+      await log(t, 'Convertendo para CMYK e curvas (Ghostscript)…');
+      const icc = fs.existsSync(path.join(__dirname, 'icc', 'saida.icc')) ? path.join(__dirname, 'icc', 'saida.icc') : null;   // opcional: FOGRA39 / ISO Coated v2 colocado em oficina/icc/saida.icc
+      const args = ['-q', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.6', '-dNoOutputFonts', '-sColorConversionStrategy=CMYK', '-dProcessColorModel=/DeviceCMYK', '-dOverrideICC=true',
+        '-dDownsampleColorImages=false', '-dDownsampleGrayImages=false', '-dDownsampleMonoImages=false', '-dAutoFilterColorImages=false', '-dColorImageFilter=/FlateEncode', '-dEncodeColorImages=true', ...(icc ? ['-sOutputICCProfile=' + icc] : []), '-o', f, bruto];
+      await run('gs', args, { maxBuffer: 50e6, timeout: 10 * 60e3 });
+      const sang = Number(e.sangria_mm || 0); if (sang && e.largura_mm && e.altura_mm) await log(t, `Sangria de ${sang} mm incluída na página (${e.largura_mm}×${e.altura_mm} mm); corte final ${e.largura_mm - 2 * sang}×${e.altura_mm - 2 * sang} mm.`);
+    }
+    return { arquivos: [await subir(t, f, nome, 'application/pdf')], resultado: { impresso: !!e.impresso, cmyk: !!e.impresso, curvas: !!e.impresso } };
   }
 };
 
