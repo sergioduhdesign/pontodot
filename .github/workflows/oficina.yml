@@ -1,0 +1,42 @@
+# OFICINA — executa a fila de trabalhos da PD (vídeo, PPTX, PDF…).
+# Acorda quando a PD chama (repository_dispatch, precisa de SD_GITHUB_TOKEN no servidor),
+# na mão (aba Actions) ou pelo relógio, a cada 30 min, se tiver algo na fila.
+# Precisa de 2 segredos no GitHub (você cria; eu nunca vejo):
+#   PD_URL          — https://pd.sergioduh.com (sem barra no fim)
+#   SD_OFICINA_KEY  — a mesma chave do sd-config.php
+name: Oficina
+on:
+  repository_dispatch:
+    types: [oficina]
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+concurrency:
+  group: oficina
+  cancel-in-progress: false
+jobs:
+  oficina:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PD_URL: ${{ secrets.PD_URL }}
+      SD_OFICINA_KEY: ${{ secrets.SD_OFICINA_KEY }}
+      OFICINA_MINUTOS: 25
+    steps:
+      - uses: actions/checkout@v6
+      - name: Conferir os segredos
+        run: |
+          if [ -z "$PD_URL" ] || [ -z "$SD_OFICINA_KEY" ]; then echo "Faltam os segredos PD_URL e SD_OFICINA_KEY no GitHub."; exit 1; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Ferramentas (pptx + chromium para PDF; ffmpeg já vem no runner)
+        working-directory: oficina
+        run: |
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund pptxgenjs@4.0.1 playwright@1.63.0
+          npx playwright install --with-deps chromium
+          ffmpeg -version | head -1
+      - name: Rodar a fila
+        working-directory: oficina
+        run: node worker.js

@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v219 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v220 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5100,6 +5100,99 @@ function htmlBanco(){
     `<div class="nota" style="margin-top:8px;line-height:1.4">Fontes: Pexels, Unsplash e Pixabay (licença de uso comercial). Itens do Envato entram pela Biblioteca, com o registro da licença.</div>`);
 }
 
+// ---------------------------------------------------------------------
+// OFICINA — fila de trabalhos (vídeo, PPTX, PDF…) executada fora do servidor, com cópia no Drive.
+// MÓDULOS — as capacidades da casa: quem vê, com que poder, ligado/desligado (admin). Servidor: pd-oficina.php.
+// ---------------------------------------------------------------------
+let OFI = { aba:'fila', d:null, msg:'', mod:'eco', ver:null, edit:null, busy:false };
+const OFI_EXEMPLO = {
+  eco: '{}',
+  ffmpeg: '{\n  "arquivos": [{"nome":"base.mp4","url":"https://…"}, {"nome":"trilha.mp3","url":"https://…"}],\n  "receita": ["-i","{in:base.mp4}","-i","{in:trilha.mp3}","-map","0:v","-map","1:a","-shortest","{out:final.mp4}"]\n}',
+  pptx: '{\n  "titulo": "Apresentacao",\n  "tema": {"fundo":"FFFFFF","cor":"1A1A1A","fonte":"Calibri"},\n  "slides": [{"titulo":"Capa","texto":"Subtítulo"}, {"titulo":"Pontos","bullets":["um","dois"],"imagem":"https://…"}]\n}',
+  pdf: '{\n  "nome": "folder",\n  "formato": "A4",\n  "html": "<h1 style=\\"font-family:sans-serif\\">Olá</h1>"\n}'
+};
+const OFI_ST = { fila:'na fila', rodando:'rodando', pronto:'pronto', erro:'erro', cancelado:'cancelado', aguardando_ok:'aguardando OK' };
+const OFI_PODER = { ler:'só consulta', propor:'propõe e espera gente', executar_ok:'executa depois de um OK', executar:'executa sozinho' };
+async function ofiFala(dados){
+  const { data:{ session } } = await sbR.auth.getSession();
+  const r = await fetch('/pd-oficina.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify(dados) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+  return j;
+}
+async function ofiCarrega(){ OFI.busy = true; renderBoard(); try { OFI.d = await ofiFala({ acao:'inicio' }); OFI.msg = ''; } catch(e){ OFI.msg = e.message; } OFI.busy = false; renderBoard(); }
+function ofiAba(a){ OFI.aba = a; OFI.msg = ''; OFI.ver = null; OFI.edit = null; renderBoard(); }
+async function ofiPedir(){
+  let entrada = {}; const raw = (($('#ofiEnt') || {}).value || '').trim();
+  if (raw){ try { entrada = JSON.parse(raw); } catch(e){ OFI.msg = 'A entrada precisa ser JSON válido.'; renderBoard(); return; } }
+  const d = { acao:'pedir', modulo:OFI.mod, titulo:(($('#ofiTit') || {}).value || '').trim(), entrada, client_id:(($('#ofiCli') || {}).value || '') || null, ok_agora: !!($('#ofiOk') || {}).checked };
+  try { const r = await ofiFala(d); OFI.msg = r.trabalho.status === 'aguardando_ok' ? 'Pedido feito. Está aguardando OK na fila.' : ('Na fila. Oficina ' + (r.acordou === 'agora' ? 'acordada agora.' : (r.acordou === 'relogio' ? 'roda no relógio (até 30 min).' : 'não acordou: ' + r.acordou))); OFI.aba = 'fila'; await ofiCarrega(); }
+  catch(e){ OFI.msg = e.message; renderBoard(); }
+}
+async function ofiAcao(acao, id){ try { await ofiFala({ acao, id }); await ofiCarrega(); } catch(e){ OFI.msg = e.message; renderBoard(); } }
+async function ofiVer(id){ try { OFI.ver = await ofiFala({ acao:'ver', id }); } catch(e){ OFI.msg = e.message; } renderBoard(); }
+async function ofiLigar(slug, campo, valor){ try { await ofiFala({ acao:'modulo_ligar', slug, [campo]:valor }); await ofiCarrega(); } catch(e){ OFI.msg = e.message; renderBoard(); } }
+function ofiEditar(slug){ OFI.edit = slug ? (OFI.d.modulos.find(m => m.slug === slug) || null) : { slug:'', nome:'', tipo:'pipeline', onde:'oficina', descricao:'', ficha:'', config:{} }; renderBoard(); }
+async function ofiSalvaModulo(){
+  const g = id => (($('#' + id) || {}).value || '').trim(); let config = {};
+  try { config = JSON.parse(g('omCfg') || '{}'); } catch(e){ OFI.msg = 'A config precisa ser JSON válido.'; renderBoard(); return; }
+  try { const r = await ofiFala({ acao:'modulo_salvar', slug:g('omSlug'), nome:g('omNome'), tipo:g('omTipo'), onde:g('omOnde'), descricao:g('omDesc'), ficha:g('omFicha'), config });
+    OFI.msg = r.novo ? 'Módulo criado: nasce desligado e em quarentena (só você vê até liberar).' : 'Módulo salvo.'; OFI.edit = null; await ofiCarrega(); }
+  catch(e){ OFI.msg = e.message; renderBoard(); }
+}
+function htmlOficina(){
+  if (!window.REAL) return gadCaixa('Oficina', `<div class="nota">Entre na sua conta.</div>`);
+  if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Oficina', `<div class="nota">Disponível para a equipe.</div>`);
+  if (!OFI.d && !OFI.busy && !OFI.msg) { ofiCarrega(); return gadCaixa('Oficina', `<div class="nota">Carregando…</div>`); }
+  if (!OFI.d) return gadCaixa('Oficina', `<div class="nota">${esc(OFI.msg || 'Carregando…')}</div>`, ['Tentar de novo', 'ofiCarrega()']);
+  const D = OFI.d; const bt = 'class="btn" style="min-height:32px;padding:5px 11px;font-size:11px"'; const on = 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700';
+  const abas = [['fila', 'Fila'], ['pedir', 'Pedir trabalho']]; if (D.admin) abas.push(['modulos', 'Módulos']);
+  const bar = `<div class="esc-bt" style="margin:0 0 8px">${abas.map(a => `<button ${bt.replace('font-size:11px', 'font-size:11px;' + (OFI.aba === a[0] ? on : ''))} onclick="ofiAba('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
+  const msg = OFI.msg ? `<div class="nota" style="margin:0 0 6px">${esc(OFI.msg)}</div>` : '';
+  const saude = !D.cfg.worker_chave ? 'Oficina sem chave no servidor (SD_OFICINA_KEY).' : (D.pulso ? 'Último sinal da oficina: ' + new Date(D.pulso.ultima_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'A oficina ainda não deu sinal de vida.') + (D.cfg.acorda_github ? '' : ' · Sem SD_GITHUB_TOKEN: ela roda só no relógio (30 min).') + (D.cfg.drive ? '' : ' · Sem pasta do Drive configurada: arquivos ficam só no Storage.');
+  if (OFI.aba === 'fila'){
+    if (OFI.ver){ const t = OFI.ver.trabalho; const arqs = (t.saida && t.saida.arquivos) || [];
+      return gadCaixa('Oficina · ' + esc(t.titulo || t.modulo), `<div class="nota">${esc(OFI_ST[t.status] || t.status)}${t.erro ? ' · ' + esc(t.erro) : ''}</div>
+        ${arqs.length ? `<div class="esc-it">${arqs.map(a => `<div><a href="${esc(a.drive_url || a.url || '#')}" target="_blank" rel="noopener">${esc(a.nome)}</a> <small class="nota">${a.drive_url ? 'no Drive' : 'no Storage (7 dias)'} · ${Math.round((a.bytes || 0) / 1024)} KB</small></div>`).join('')}</div>` : ''}
+        <div class="esc-it"><div class="nota" style="margin-bottom:4px">Entrada</div><pre class="esc-ta" style="white-space:pre-wrap;font-size:10.5px;max-height:160px;overflow:auto">${esc(JSON.stringify(t.entrada, null, 1))}</pre></div>
+        <div class="esc-it">${OFI.ver.log.map(l => `<div class="nota" style="line-height:1.4"><b>${esc(l.evento)}</b> ${esc(l.detalhe)} <small>· ${new Date(l.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</small></div>`).join('') || '<div class="nota">Sem registros.</div>'}</div>`, ['Voltar', 'OFI.ver=null;renderBoard()']);
+    }
+    const lista = D.trabalhos.map(t => { const arqs = (t.saida && t.saida.arquivos) || []; const link = arqs[0] && (arqs[0].drive_url || arqs[0].url);
+      return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(t.titulo || t.modulo)}</b> <small>· ${esc(t.modulo)}${t.clients ? ' · ' + esc(t.clients.name) : ''}</small></span><small>${esc(OFI_ST[t.status] || t.status)}</small></div>
+        <div class="nota" style="line-height:1.4">${esc(t.profiles?.name || '')}${t.pedido_via === 'ia' ? ' (pela IA)' : ''} · ${new Date(t.criado_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}${t.erro ? ' · ' + esc(t.erro).slice(0, 120) : ''}</div>
+        <div class="esc-bt"><button ${bt} onclick="ofiVer('${t.id}')">Detalhe</button>${link ? `<a ${bt} href="${esc(link)}" target="_blank" rel="noopener">Abrir${arqs.length > 1 ? ' (' + arqs.length + ')' : ''} ↗</a>` : ''}${t.status === 'aguardando_ok' ? `<button ${bt} onclick="ofiAcao('ok','${t.id}')">Dar OK</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${bt} onclick="ofiAcao('cancelar','${t.id}')">Cancelar</button>` : ''}</div></div>`; }).join('');
+    return gadCaixa('Oficina', bar + msg + `<div class="nota" style="margin:0 0 6px">${esc(saude)}</div>` + (lista || '<div class="nota">Fila vazia.</div>'), ['Atualizar', 'ofiCarrega()']);
+  }
+  if (OFI.aba === 'pedir'){
+    const mods = D.modulos.filter(m => m.ativo && m.poder !== 'ler' && m.onde === 'oficina'); if (!mods.find(m => m.slug === OFI.mod)) OFI.mod = (mods[0] || {}).slug || '';
+    const m = mods.find(x => x.slug === OFI.mod) || {}; const cls = {}; tasksReais.forEach(t => { if (t.client_id && t.clients?.name) cls[t.client_id] = t.clients.name; });
+    return gadCaixa('Pedir trabalho à oficina', bar + msg + `<div class="esc-bt" style="margin:0 0 6px"><select id="ofiMod" class="esc-ta" style="min-height:0;height:36px;flex:1" onchange="OFI.mod=this.value;renderBoard()">${mods.map(x => `<option value="${x.slug}" ${x.slug === OFI.mod ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select><select id="ofiCli" class="esc-ta" style="min-height:0;height:36px;flex:1"><option value="">sem cliente (pasta da oficina)</option>${Object.entries(cls).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}">${esc(n)}</option>`).join('')}</select></div>
+      <div class="nota" style="margin:0 0 6px;line-height:1.4">${esc(m.descricao || '')} · <i>${esc(OFI_PODER[m.poder] || '')}</i></div>
+      <input id="ofiTit" class="esc-ta" style="min-height:0;height:36px;margin-bottom:6px" placeholder="Título do trabalho">
+      <textarea id="ofiEnt" class="esc-ta" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px" placeholder="Entrada (JSON)">${esc(OFI_EXEMPLO[OFI.mod] || '{}')}</textarea>
+      ${m.poder === 'executar_ok' ? `<label class="nota" style="display:block;margin-top:6px"><input type="checkbox" id="ofiOk"> Já dou o OK agora</label>` : ''}
+      <div class="nota" style="margin-top:6px;line-height:1.4">Em breve a IA da casa monta essa entrada por você a partir da tarefa. Por ora, cole o JSON conforme o exemplo.</div>`, ['Mandar para a oficina', 'ofiPedir()']);
+  }
+  if (OFI.aba === 'modulos' && D.admin){
+    if (OFI.edit){ const e = OFI.edit; const sel = (id, ops, v) => `<select id="${id}" class="esc-ta" style="min-height:0;height:36px;flex:1">${ops.map(o => `<option value="${o[0]}" ${o[0] === v ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
+      return gadCaixa(e.criado_em ? 'Editar módulo' : 'Novo módulo', msg + `<div class="esc-bt" style="margin:0 0 6px"><input id="omSlug" class="esc-ta" style="min-height:0;height:36px;flex:1" placeholder="identificador (ex.: editor_post)" value="${esc(e.slug)}" ${e.criado_em ? 'readonly' : ''}><input id="omNome" class="esc-ta" style="min-height:0;height:36px;flex:2" placeholder="Nome" value="${esc(e.nome)}"></div>
+        <div class="esc-bt" style="margin:0 0 6px">${sel('omTipo', [['editor', 'editor'], ['pipeline', 'pipeline (gera arquivo)'], ['integracao', 'integração'], ['conhecimento', 'conhecimento'], ['agente', 'agente']], e.tipo)}${sel('omOnde', [['oficina', 'roda na oficina'], ['servidor', 'roda no servidor'], ['navegador', 'roda no navegador'], ['externo', 'serviço externo']], e.onde)}</div>
+        <textarea id="omDesc" class="esc-ta" style="min-height:54px;margin-bottom:6px" placeholder="O que faz (uma ou duas linhas)">${esc(e.descricao)}</textarea>
+        <textarea id="omFicha" class="esc-ta" style="min-height:120px;margin-bottom:6px" placeholder="Ficha: como usar, regras, o que precisa de entrada, o que devolve. A IA da casa lê isto.">${esc(e.ficha)}</textarea>
+        <textarea id="omCfg" class="esc-ta" style="min-height:54px;font-family:ui-monospace,monospace;font-size:11px" placeholder='Config (JSON, sem chaves/senhas)'>${esc(JSON.stringify(e.config || {}, null, 1))}</textarea>
+        <div class="esc-bt"><button ${bt} onclick="ofiSalvaModulo()">Salvar</button><button ${bt} onclick="OFI.edit=null;renderBoard()">Cancelar</button></div>`);
+    }
+    const lista = D.modulos.map(m => `<div class="esc-it"><div class="esc-nm"><span><b>${esc(m.nome)}</b> <small>· ${esc(m.tipo)} · ${esc(m.onde)}</small></span><small>${m.ativo ? 'ligado' : 'desligado'}${m.quarentena ? ' · quarentena' : ''}</small></div>
+      <div class="nota" style="line-height:1.4">${esc(m.descricao)}</div>
+      <div class="esc-bt"><button ${bt} onclick="ofiLigar('${m.slug}','ativo',${!m.ativo})">${m.ativo ? 'Desligar' : 'Ligar'}</button><button ${bt} onclick="ofiLigar('${m.slug}','quarentena',${!m.quarentena})">${m.quarentena ? 'Liberar da quarentena' : 'Pôr em quarentena'}</button>
+        <select class="esc-ta" style="min-height:0;height:32px;width:auto;font-size:11px" onchange="ofiLigar('${m.slug}','poder',this.value)">${Object.entries(OFI_PODER).map(([k, v]) => `<option value="${k}" ${k === m.poder ? 'selected' : ''}>${v}</option>`).join('')}</select>
+        <input class="esc-ta" style="min-height:0;height:32px;width:150px;font-size:11px" value="${esc((m.visivel || []).join(', '))}" title="quem vê: admin, team, client ou id de pessoa" onchange="ofiLigar('${m.slug}','visivel',this.value.split(','))">
+        <button ${bt} onclick="ofiEditar('${m.slug}')">Editar</button></div></div>`).join('');
+    return gadCaixa('Módulos da casa', bar + msg + `<div class="nota" style="margin:0 0 6px;line-height:1.4">Cada capacidade da PD é um módulo: ligado ou não, com um poder (${Object.values(OFI_PODER).join(' · ')}) e quem pode ver. Módulo novo nasce desligado e em quarentena.</div>` + lista, ['Novo módulo', 'ofiEditar(null)']);
+  }
+  return gadCaixa('Oficina', bar + msg);
+}
+
 function htmlEscolaAdmin(abas){
   abas = abas || '';
   if (!window.REAL) return gadCaixa('Escola das IAs', `<div class="nota">Entre na sua conta para ver a formação das IAs.</div>`);
@@ -5238,6 +5331,7 @@ const GADGETS = {
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
   escola:    { nome:'Escola das IAs', html:()=>htmlEscola() },
   banco:     { nome:'Banco de mídia', html:()=>htmlBanco() },
+  oficina:   { nome:'Oficina e módulos', html:()=>htmlOficina() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
 };
 // o admin de clientes do SD, na roupa nova
@@ -5478,6 +5572,7 @@ const ICONE_GAD = {
   relatorios:'<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>',
   escola:'<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',
   banco:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/>',
+  oficina:'<path d="M14.5 4.5a4 4 0 0 0-5 5L4 15v5h5l5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-3-3z"/>',
   anuncios:'<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 7a7 7 0 0 1 0 10"/>',
   publicacao:'<path d="M12 19V5M5 12l7-7 7 7"/><path d="M5 21h14"/>',
   financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
