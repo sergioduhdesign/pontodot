@@ -137,10 +137,11 @@ if ($acao === 'pedir') {
     if (!$m || !ofPodeVer($m, $u)) sd_fail('Módulo não disponível para você.', 403);
     if (!$m['ativo']) sd_fail('Este módulo está desligado.');
     if ($m['poder'] === 'ler') sd_fail('Este módulo só consulta; não gera trabalho.');
+    if (empty($b['client_id'])) sd_fail('Todo trabalho é de um cliente: escolha o cliente.');
     $entrada = is_array($b['entrada'] ?? null) ? $b['entrada'] : []; $tit = mb_substr(trim((string)($b['titulo'] ?? '')), 0, 140) ?: $m['nome'];
     $precisaOk = $m['poder'] === 'propor' || ($m['poder'] === 'executar_ok' && empty($b['ok_agora']));
     $d = ['modulo' => $slug, 'titulo' => $tit, 'entrada' => $entrada, 'status' => $precisaOk ? 'aguardando_ok' : 'fila', 'prioridade' => max(1, min(9, (int)($b['prioridade'] ?? 5))),
-        'client_id' => ($b['client_id'] ?? null) ?: null, 'task_id' => ($b['task_id'] ?? null) ?: null, 'pedido_por' => $u['id'], 'pedido_via' => in_array($b['via'] ?? '', ['ia', 'cron'], true) ? $b['via'] : 'painel'];
+        'client_id' => (string)$b['client_id'], 'task_id' => ($b['task_id'] ?? null) ?: null, 'pedido_por' => $u['id'], 'pedido_via' => in_array($b['via'] ?? '', ['ia', 'cron'], true) ? $b['via'] : 'painel'];
     if (!$precisaOk && $m['poder'] === 'executar_ok') { $d['ok_por'] = $u['id']; $d['ok_em'] = gmdate('c'); }
     $r = ofSup('/rest/v1/pd_trabalhos', 'POST', $d, ['Prefer: return=representation']); $t = $r['body'][0] ?? null; if (!$t) sd_fail('Não consegui criar o trabalho: ' . ($r['raw'] ?? ''), 500);
     ofLog($t['id'], $slug, 'pediu', $u['name'] . ' pediu' . ($precisaOk ? ' (aguardando OK)' : '') . '.');

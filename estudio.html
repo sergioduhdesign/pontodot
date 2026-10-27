@@ -81,7 +81,7 @@ async function boot(){
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoRefreshToken:(()=>{try{return window.self===window.top}catch(e){return false}})()}});
   ses=(await sb.auth.getSession()).data.session; if(!ses){document.body.innerHTML='<div class="sec">Entre na PD primeiro.</div>';return;}
   const {data}=await sb.from('clients').select('id,name,active').order('name'); CLIS=(data||[]).filter(c=>c.active!==false);
-  $('#cli').innerHTML='<option value="">Sem cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('#cli').innerHTML='<option value="">Escolha o cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   montaFormatos();
   C=new fabric.Canvas('c',{preserveObjectStacking:true,backgroundColor:'#ffffff'});
   fabric.Object.prototype.set({transparentCorners:false,cornerColor:'#121212',cornerStyle:'circle',cornerSize:9,borderColor:'#121212',padding:2});
@@ -190,7 +190,7 @@ async function abrirPeca(id){try{const {peca:p}=await api('pd-estudio.php',{acao
   $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
   C.clear();aplicaFormato(p.formato);H=[];HI=-1;carregaDoc(p.doc,false);setTimeout(()=>{marca(true);dirty=false;},300);msg(ehModelo?'Modelo aberto como peça nova.':'Peça aberta.');}catch(e){msg(e.message);}}
 function thumb(){return emTamanhoReal(()=>{const m=Math.max(PECA.formato.w,PECA.formato.h);return C.toDataURL({format:'jpeg',quality:.7,multiplier:400/m});});}
-async function salvar(modelo){C.discardActiveObject();C.renderAll();
+async function salvar(modelo){C.discardActiveObject();C.renderAll();if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);return;}
   try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,task_id:PECA.task_id,nome:$('#nome').value,formato:PECA.formato,doc:docAtual(),thumb:thumb(),...(modelo!==undefined?{modelo}:{})});
     PECA.id=r.peca.id;dirty=false;msg(modelo?'Salva como modelo.':'Salva.');}catch(e){msg(e.message,5000);}}
 async function exportar(tipo,drive){C.discardActiveObject();C.renderAll();
