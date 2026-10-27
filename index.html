@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v218 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v219 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5040,6 +5040,66 @@ function htmlEscola(){
   return gadCaixa('Marcos de ' + esc(M.ia), bar + msg + mk);
 }
 
+// ---------------------------------------------------------------------
+// BANCO DE MÍDIA — busca em Pexels / Unsplash / Pixabay (APIs oficiais) e Biblioteca da casa
+// com licença e registro de uso (cliente · projeto · peça). Só equipe. Servidor: pd-banco.php.
+// ---------------------------------------------------------------------
+let BAN = { aba:'buscar', q:'', tipo:'foto', res:[], erros:[], fontes:null, lib:[], libQ:'', msg:'', busy:false };
+async function banFala(dados){
+  const { data:{ session } } = await sbR.auth.getSession();
+  const r = await fetch('/pd-banco.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify(dados) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+  return j;
+}
+function banAba(a){ BAN.aba = a; BAN.msg = ''; if (a === 'biblioteca') banLista(); else renderBoard(); }
+function banTipo(t){ BAN.tipo = t; renderBoard(); }
+async function banBusca(){
+  BAN.q = (($('#banQ') || {}).value || '').trim(); if (!BAN.q){ BAN.msg = 'Escreva o que procurar.'; renderBoard(); return; }
+  BAN.busy = true; BAN.msg = 'Buscando…'; renderBoard();
+  try { const r = await banFala({ acao:'buscar', q:BAN.q, tipo:BAN.tipo }); BAN.res = r.itens || []; BAN.erros = r.erros || []; BAN.fontes = r.fontes;
+    BAN.msg = BAN.res.length ? '' : (Object.values(r.fontes || {}).some(Boolean) ? 'Nada encontrado.' : 'Nenhuma fonte ligada: falta cadastrar as chaves no servidor.'); }
+  catch(e){ BAN.msg = e.message; }
+  BAN.busy = false; renderBoard();
+}
+async function banSalva(i){
+  const it = BAN.res[i]; if (!it) return; const cli = (($('#banCli') || {}).value || '').trim();
+  try { await banFala({ acao:'salvar', item:{ ...it, cliente:cli } }); BAN.msg = 'Guardado na biblioteca com a licença registrada.'; } catch(e){ BAN.msg = e.message; }
+  renderBoard();
+}
+async function banLista(){
+  BAN.libQ = (($('#banLQ') || {}).value ?? BAN.libQ); BAN.msg = 'Carregando…'; renderBoard();
+  try { const r = await banFala({ acao:'listar', q:BAN.libQ }); BAN.lib = r.itens || []; BAN.msg = BAN.lib.length ? '' : 'Biblioteca vazia.'; } catch(e){ BAN.msg = e.message; }
+  renderBoard();
+}
+async function banUso(id){
+  const cli = (prompt && window.prompt ? window.prompt('Para qual cliente? (registro de uso da licença)') : '') || ''; if (!cli.trim()) return;
+  const proj = window.prompt('Projeto / peça (opcional)') || '';
+  try { await banFala({ acao:'uso', item_id:id, cliente:cli, projeto:proj }); BAN.msg = 'Uso registrado.'; await banLista(); } catch(e){ BAN.msg = e.message; renderBoard(); }
+}
+function htmlBanco(){
+  if (!window.REAL) return gadCaixa('Banco de mídia', `<div class="nota">Entre na sua conta.</div>`);
+  if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Banco de mídia', `<div class="nota">Disponível para a equipe.</div>`);
+  const abas = [['buscar', 'Buscar'], ['biblioteca', 'Biblioteca']];
+  const bar = `<div class="esc-bt" style="margin:0 0 8px">${abas.map(a => `<button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px;${BAN.aba === a[0] ? 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700' : ''}" onclick="banAba('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
+  const msg = BAN.msg ? `<div class="nota" style="margin:0 0 6px">${esc(BAN.msg)}</div>` : '';
+  if (BAN.aba === 'biblioteca'){
+    const lista = BAN.lib.map(x => { const usos = x.pd_biblioteca_usos || [];
+      return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(x.titulo || x.ext_id)}</b> <small>· ${esc(x.fonte)} · ${esc(x.tipo)}</small></span><small>${esc(x.autor)}</small></div>
+        ${x.thumb_url ? `<img class="esc-img" src="${esc(x.thumb_url)}" alt="" loading="lazy">` : ''}
+        <div class="nota" style="line-height:1.4">${esc(x.licenca)}${x.atribuicao ? ' · creditar: ' + esc(x.atribuicao) : ''}</div>
+        <div class="nota" style="line-height:1.4">${usos.length ? 'Usado em: ' + usos.map(u => esc(u.cliente) + (u.projeto ? ' / ' + esc(u.projeto) : '')).join(' · ') : 'Ainda sem uso registrado.'}</div>
+        <div class="esc-bt"><button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px" onclick="banUso('${x.id}')">Registrar uso</button>${x.pagina_url ? `<a class="btn" style="min-height:32px;padding:5px 11px;font-size:11px" href="${esc(x.pagina_url)}" target="_blank" rel="noopener">Página de origem ↗</a>` : ''}</div></div>`; }).join('');
+    return gadCaixa('Biblioteca da casa', bar + `<div class="esc-bt" style="margin:0 0 8px"><input id="banLQ" class="esc-ta" style="min-height:0;height:36px" placeholder="Buscar na biblioteca (título, autor, cliente)" value="${esc(BAN.libQ)}" onkeydown="if(event.key==='Enter')banLista()"></div>` + msg + lista);
+  }
+  const grade = BAN.res.map((x, i) => `<div style="position:relative">${x.thumb_url ? `<img src="${esc(x.thumb_url)}" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block">` : ''}<div class="nota" style="font-size:10.5px;margin:3px 0">${esc(x.fonte)}${x.tipo === 'video' ? ' · vídeo' : ''} · ${esc(x.autor)}</div><button class="btn" style="min-height:30px;padding:4px 10px;font-size:10.5px" onclick="banSalva(${i})">Guardar</button></div>`).join('');
+  return gadCaixa('Banco de mídia', bar + `<div class="esc-bt" style="margin:0 0 6px"><input id="banQ" class="esc-ta" style="min-height:0;height:36px;flex:1" placeholder="O que você procura? (ex.: família na sala de estar)" value="${esc(BAN.q)}" onkeydown="if(event.key==='Enter')banBusca()"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="banBusca()">Buscar</button></div>
+    <div class="esc-bt" style="margin:0 0 6px"><button class="btn" style="min-height:30px;padding:4px 10px;font-size:11px;${BAN.tipo === 'foto' ? 'font-weight:700;background:rgba(255,255,255,.92);color:#0B0C0B' : ''}" onclick="banTipo('foto')">Fotos</button><button class="btn" style="min-height:30px;padding:4px 10px;font-size:11px;${BAN.tipo === 'video' ? 'font-weight:700;background:rgba(255,255,255,.92);color:#0B0C0B' : ''}" onclick="banTipo('video')">Vídeos</button><input id="banCli" class="esc-ta" style="min-height:0;height:30px;flex:1;font-size:11px" placeholder="Cliente (opcional, ao guardar)"></div>` + msg +
+    (BAN.erros.length ? `<div class="nota" style="margin:0 0 6px">${BAN.erros.map(esc).join(' · ')}</div>` : '') +
+    `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">${grade}</div>` +
+    `<div class="nota" style="margin-top:8px;line-height:1.4">Fontes: Pexels, Unsplash e Pixabay (licença de uso comercial). Itens do Envato entram pela Biblioteca, com o registro da licença.</div>`);
+}
+
 function htmlEscolaAdmin(abas){
   abas = abas || '';
   if (!window.REAL) return gadCaixa('Escola das IAs', `<div class="nota">Entre na sua conta para ver a formação das IAs.</div>`);
@@ -5177,6 +5237,7 @@ const GADGETS = {
       ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
   escola:    { nome:'Escola das IAs', html:()=>htmlEscola() },
+  banco:     { nome:'Banco de mídia', html:()=>htmlBanco() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
 };
 // o admin de clientes do SD, na roupa nova
@@ -5416,6 +5477,7 @@ const ICONE_GAD = {
   equipe:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c.6-4 3.4-6.2 7-6.2s6.4 2.2 7 6.2"/>',
   relatorios:'<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>',
   escola:'<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',
+  banco:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/>',
   anuncios:'<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 7a7 7 0 0 1 0 10"/>',
   publicacao:'<path d="M12 19V5M5 12l7-7 7 7"/><path d="M5 21h14"/>',
   financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
