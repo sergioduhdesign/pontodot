@@ -1,12 +1,48 @@
 <?php
 // =====================================================================
 // Pontodot — ESTÚDIO (lado do servidor). Equipe/admin.
-// Ações: listar · abrir · salvar · arquivar · exportar (PNG/JPG → bucket "pecas" + cópia no Drive: pasta do cliente › ESTÚDIO)
-// Nada se apaga: peça some da lista quando arquivada.
+// POST (sessão): listar · abrir · salvar · arquivar · exportar · galeria · subir · fontes
+// GET  (assinado): ?img=<id do Drive>&k=<assinatura>&w=<largura>  → imagem da galeria do cliente (cópia local em cache)
+//
+// Regras da casa: toda peça é de um cliente (só modelo pode ficar sem). O acervo é o Drive:
+//   cliente › MÍDIA     — galeria do cliente (fotos, vídeos, marcas; upload em lote cai aqui)
+//   cliente › ESTÚDIO › <peça>  — exportações (todos os recortes)
+// Exportações também ficam no bucket público "pecas" (miniaturas e cópia rápida).
 // =====================================================================
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-lib.php';
-@set_time_limit(120); @ini_set('memory_limit', '512M');
+@set_time_limit(170); @ini_set('memory_limit', '768M');
+
+const ES_CACHE = __DIR__ . '/.cache-midia';
+function esAssina($id) { return substr(hash_hmac('sha256', 'midia:' . $id, SD_SECRET_KEY), 0, 24); }
+function esPonteOk() { return function_exists('ponte') && defined('SD_PONTE_URL') && defined('SD_PONTE_KEY') && SD_PONTE_KEY; }
+
+// ---------------------------------------------------------------- GET: imagem da galeria (sem sessão; assinatura HMAC)
+if (!empty($_GET['img'])) {
+    $id = preg_replace('/[^\w\-]/', '', (string)$_GET['img']); $k = preg_replace('/[^a-f0-9]/', '', (string)($_GET['k'] ?? ''));
+    $w = (int)($_GET['w'] ?? 0); $w = $w > 0 ? min(4000, max(100, $w)) : 0;
+    if (!$id || !hash_equals(esAssina($id), $k)) { http_response_code(403); exit('endereço inválido'); }
+    if (!is_dir(ES_CACHE)) { @mkdir(ES_CACHE, 0755, true); @file_put_contents(ES_CACHE . '/.htaccess', "Deny from all\n"); }
+    $orig = ES_CACHE . '/' . $id; $tipo = $orig . '.tipo';
+    if (!is_file($orig) || filesize($orig) === 0) {
+        if (!esPonteOk()) { http_response_code(500); exit('ponte do Drive não configurada'); }
+        try { $r = ponte('baixar', ['fileId' => $id]); } catch (Exception $e) { http_response_code(502); exit('não consegui buscar no Drive: ' . $e->getMessage()); }
+        $bytes = base64_decode((string)($r['b64'] ?? ''), true); if (!$bytes) { http_response_code(502); exit('arquivo vazio'); }
+        @file_put_contents($orig, $bytes); @file_put_contents($tipo, (string)($r['mime'] ?? 'image/jpeg'));
+    }
+    $mime = is_file($tipo) ? trim((string)file_get_contents($tipo)) : 'image/jpeg';
+    $arq = $orig;
+    if ($w && stripos($mime, 'image/') === 0 && stripos($mime, 'svg') === false && function_exists('imagecreatefromstring')) {
+        $red = $orig . '-' . $w;
+        if (!is_file($red)) { $im = @imagecreatefromstring((string)file_get_contents($orig));
+            if ($im) { $ow = imagesx($im); $oh = imagesy($im); if ($ow > $w) { $nh = (int)round($oh * $w / $ow); $n = imagecreatetruecolor($w, $nh); imagealphablending($n, false); imagesavealpha($n, true); imagecopyresampled($n, $im, 0, 0, 0, 0, $w, $nh, $ow, $oh);
+                    if ($mime === 'image/png') imagepng($n, $red, 6); else imagejpeg($n, $red, 86); imagedestroy($n); } else { copy($orig, $red); } imagedestroy($im); } }
+        if (is_file($red)) $arq = $red;
+    }
+    header('Content-Type: ' . $mime); header('Content-Length: ' . filesize($arq)); header('Cache-Control: private, max-age=604800'); readfile($arq); exit;
+}
+
+// ---------------------------------------------------------------- POST: equipe
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'listar');
 
@@ -18,16 +54,18 @@ function esSobe($path, $bytes, $mime) {   // bucket público "pecas"
     if ($code >= 300) throw new Exception('Não consegui guardar o arquivo (bucket "pecas" existe? rode o SQL v116). HTTP ' . $code);
     return SD_SUPABASE_URL . '/storage/v1/object/public/pecas/' . implode('/', array_map('rawurlencode', explode('/', $path)));
 }
-function esB64($s) { $s = (string)$s; if (strpos($s, ',') !== false) $s = substr($s, strpos($s, ',') + 1); $r = base64_decode($s, true); if ($r === false || $r === '') throw new Exception('Imagem inválida.'); return $r; }
-function esPastaDrive($clientId) {   // pasta do cliente › ESTÚDIO (ou SD_DRIVE_OFICINA)
-    if (!function_exists('ponte') || !defined('SD_PONTE_URL') || !defined('SD_PONTE_KEY') || !SD_PONTE_KEY) return null;
-    $pai = null;
-    if ($clientId) { $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($clientId) . '&select=name,drive_id')['body'][0] ?? null; $pai = $c['drive_id'] ?? null;
-        if (!$pai && $c && defined('SD_DRIVE_CLIENTES') && SD_DRIVE_CLIENTES) { $p = ponte('pasta_garantir', ['pai_id' => SD_DRIVE_CLIENTES, 'nome' => $c['name'], 'criar' => true]); $pai = $p['id'] ?? null; } }
-    if (!$pai && defined('SD_DRIVE_OFICINA') && SD_DRIVE_OFICINA) $pai = SD_DRIVE_OFICINA;
-    if (!$pai) return null;
-    $p = ponte('pasta_garantir', ['pai_id' => $pai, 'nome' => 'ESTÚDIO', 'criar' => true]); return $p['id'] ?? null;
+function esB64($s) { $s = (string)$s; if (strpos($s, ',') !== false) $s = substr($s, strpos($s, ',') + 1); $r = base64_decode($s, true); if ($r === false || $r === '') throw new Exception('Arquivo inválido.'); return $r; }
+function esCliente($clientId) { if (!$clientId) sd_fail('Escolha o cliente.'); $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($clientId) . '&select=id,name,drive_id,drive_url')['body'][0] ?? null; if (!$c) sd_fail('Cliente não encontrado.', 404); return $c; }
+function esPastaCliente($c) {   // pasta-raiz do cliente no Drive (cria dentro da pasta mestre, se precisar)
+    if (!esPonteOk()) throw new Exception('Ponte do Drive não configurada.');
+    $id = $c['drive_id'] ?? null;
+    if (!$id) { if (!defined('SD_DRIVE_CLIENTES') || !SD_DRIVE_CLIENTES) throw new Exception('Cliente sem pasta no Drive e sem pasta mestre (SD_DRIVE_CLIENTES). Conecte a pasta do cliente em Clientes.');
+        $p = ponte('pasta_garantir', ['pai_id' => SD_DRIVE_CLIENTES, 'nome' => $c['name'], 'criar' => true]); $id = $p['id'] ?? null; if (!$id) throw new Exception('Não consegui criar a pasta do cliente.');
+        sd_supabase('/rest/v1/clients?id=eq.' . urlencode($c['id']), 'PATCH', ['drive_id' => $id, 'drive_url' => 'https://drive.google.com/drive/folders/' . $id]); }
+    return $id;
 }
+function esSub($paiId, $nome) { $p = ponte('pasta_garantir', ['pai_id' => $paiId, 'nome' => $nome, 'criar' => true]); if (empty($p['id'])) throw new Exception('Não consegui abrir a pasta ' . $nome . ' no Drive.'); return $p['id']; }
+function esNomeSeguro($s) { $s = preg_replace('/[\/\\\\:*?"<>|]+/u', '-', trim((string)$s)); return mb_substr($s, 0, 90) ?: 'peca'; }
 $SEL = 'id,client_id,task_id,nome,formato,thumb_url,modelo,arquivada,criado_por,criado_em,mudado_em,exportada,clients(name)';
 
 if ($acao === 'listar') {
@@ -44,30 +82,62 @@ if ($acao === 'abrir') {
 if ($acao === 'salvar') {
     $id = (string)($b['id'] ?? ''); $doc = is_array($b['doc'] ?? null) ? $b['doc'] : null; if (!$doc) sd_fail('Documento vazio.');
     if (empty($b['client_id']) && empty($b['modelo'])) sd_fail('Toda peça é de um cliente: escolha o cliente no topo (só modelos podem ficar sem).');
-    $fmt = is_array($b['formato'] ?? null) ? ['w' => max(64, (int)$b['formato']['w']), 'h' => max(64, (int)$b['formato']['h']), 'nome' => mb_substr((string)($b['formato']['nome'] ?? ''), 0, 40)] : null;
+    $fmt = is_array($b['formato'] ?? null) ? ['w' => max(64, (int)$b['formato']['w']), 'h' => max(64, (int)$b['formato']['h']), 'nome' => mb_substr((string)($b['formato']['nome'] ?? ''), 0, 40), 'tipo' => mb_substr((string)($b['formato']['tipo'] ?? ''), 0, 30)] : null;
     $d = ['nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 120) ?: 'Sem nome', 'doc' => $doc, 'mudado_em' => gmdate('c'), 'client_id' => ($b['client_id'] ?? null) ?: null, 'task_id' => ($b['task_id'] ?? null) ?: null];
     if ($fmt) $d['formato'] = $fmt; if (isset($b['modelo'])) $d['modelo'] = (bool)$b['modelo'];
     if (!$id) { $d['criado_por'] = $u['id']; $r = sd_supabase('/rest/v1/pd_pecas', 'POST', $d, ['Prefer: return=representation']); $p = $r['body'][0] ?? null; if (!$p) sd_fail('Não consegui criar a peça: ' . ($r['raw'] ?? ''), 500); $id = $p['id']; }
-    if (!empty($b['thumb'])) { try { $d2 = ['thumb_url' => esSobe('thumb/' . $id . '.jpg', esB64($b['thumb']), 'image/jpeg') . '?v=' . time()]; $d = array_merge($d, $d2); } catch (Exception $e) { /* miniatura é melhor esforço */ } }
+    if (!empty($b['thumb'])) { try { $d['thumb_url'] = esSobe('thumb/' . $id . '.jpg', esB64($b['thumb']), 'image/jpeg') . '?v=' . time(); } catch (Exception $e) { /* miniatura é melhor esforço */ } }
     $r = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id), 'PATCH', $d, ['Prefer: return=representation']); if (empty($r['body'][0])) sd_fail('Não consegui salvar: ' . ($r['raw'] ?? ''), 500);
     $p = $r['body'][0]; unset($p['doc']); echo json_encode(['ok' => true, 'peca' => $p], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'arquivar') {
     sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)($b['id'] ?? '')), 'PATCH', ['arquivada' => !isset($b['arquivada']) || (bool)$b['arquivada'], 'mudado_em' => gmdate('c')]); echo json_encode(['ok' => true]); exit;
 }
-if ($acao === 'exportar') {   // imagem final → bucket "pecas" + cópia no Drive
+if ($acao === 'exportar') {   // várias imagens (os recortes) → bucket "pecas" + Drive: cliente › ESTÚDIO › <peça>
     $id = (string)($b['id'] ?? ''); $p = $id ? (sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id) . '&select=id,nome,client_id,exportada')['body'][0] ?? null) : null;
-    $bytes = esB64($b['imagem'] ?? ''); if (strlen($bytes) > 25 * 1024 * 1024) sd_fail('Imagem grande demais (25 MB).');
-    $ext = ($b['tipo'] ?? 'png') === 'jpg' ? 'jpg' : 'png'; $mime = $ext === 'jpg' ? 'image/jpeg' : 'image/png';
-    $nome = preg_replace('/[^\w.\-]+/u', '_', mb_substr(trim((string)($b['nome'] ?? ($p['nome'] ?? 'peca'))), 0, 80)) . '-' . date('Ymd-Hi') . '.' . $ext;
-    $url = esSobe('export/' . ($id ?: 'avulso') . '/' . $nome, $bytes, $mime);
-    $drive = null; $aviso = null;
-    try { $pasta = esPastaDrive($p['client_id'] ?? ($b['client_id'] ?? null));
-        if ($pasta) { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => $mime, 'b64' => base64_encode($bytes), 'substituir' => false]); $drive = $g['url'] ?? null; }
-        else $aviso = 'Sem pasta do Drive para este cliente (conecte a pasta do cliente ou defina SD_DRIVE_OFICINA).';
-    } catch (Exception $e) { $aviso = 'Cópia pro Drive falhou: ' . $e->getMessage(); }
-    if ($p) { $ex = is_array($p['exportada']) ? $p['exportada'] : []; array_unshift($ex, ['nome' => $nome, 'url' => $url, 'drive_url' => $drive, 'em' => gmdate('c')]);
-        sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id), 'PATCH', ['exportada' => array_slice($ex, 0, 20)]); }
-    echo json_encode(['ok' => true, 'nome' => $nome, 'url' => $url, 'drive_url' => $drive, 'aviso' => $aviso], JSON_UNESCAPED_UNICODE); exit;
+    $clientId = $p['client_id'] ?? ($b['client_id'] ?? null); if (!$clientId) sd_fail('Toda peça é de um cliente.');
+    $base = esNomeSeguro($b['nome'] ?? ($p['nome'] ?? 'peca')); $lista = is_array($b['arquivos'] ?? null) ? $b['arquivos'] : [];
+    if (!$lista && !empty($b['imagem'])) $lista = [['sufixo' => '', 'imagem' => $b['imagem'], 'tipo' => $b['tipo'] ?? 'png']];
+    if (!$lista) sd_fail('Nada para exportar.');
+    $pasta = null; $aviso = null;
+    try { $c = esCliente($clientId); $pasta = esSub(esSub(esPastaCliente($c), 'ESTÚDIO'), $base); } catch (Exception $e) { $aviso = 'Sem Drive: ' . $e->getMessage(); }
+    $saida = []; $carimbo = date('Ymd-Hi');
+    foreach (array_slice($lista, 0, 12) as $a) {
+        try { $bytes = esB64($a['imagem'] ?? ''); if (strlen($bytes) > 30 * 1024 * 1024) throw new Exception('imagem grande demais');
+            $ext = ($a['tipo'] ?? 'png') === 'jpg' ? 'jpg' : 'png'; $mime = $ext === 'jpg' ? 'image/jpeg' : 'image/png';
+            $suf = preg_replace('/[^\w\-]+/u', '', (string)($a['sufixo'] ?? '')); $nome = $base . ($suf ? '-' . $suf : '') . '-' . $carimbo . '.' . $ext;
+            $url = esSobe('export/' . ($id ?: 'avulso') . '/' . $nome, $bytes, $mime); $drive = null;
+            if ($pasta) { try { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => $mime, 'b64' => base64_encode($bytes), 'substituir' => false]); $drive = $g['url'] ?? null; } catch (Exception $e) { $aviso = 'Cópia pro Drive falhou: ' . $e->getMessage(); } }
+            $saida[] = ['nome' => $nome, 'sufixo' => $suf, 'url' => $url, 'drive_url' => $drive, 'em' => gmdate('c')];
+        } catch (Exception $e) { $saida[] = ['sufixo' => (string)($a['sufixo'] ?? ''), 'erro' => $e->getMessage()]; }
+    }
+    if ($p) { $ex = is_array($p['exportada']) ? $p['exportada'] : []; $ex = array_merge(array_values(array_filter($saida, fn($x) => empty($x['erro']))), $ex); sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id), 'PATCH', ['exportada' => array_slice($ex, 0, 40)]); }
+    echo json_encode(['ok' => true, 'arquivos' => $saida, 'pasta_url' => $pasta ? 'https://drive.google.com/drive/folders/' . $pasta : null, 'aviso' => $aviso], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'galeria') {   // tudo que está em cliente › MÍDIA (e subpastas): imagens, vídeos, marcas
+    $c = esCliente((string)($b['client_id'] ?? ''));
+    try { $pasta = esSub(esPastaCliente($c), 'MÍDIA'); $l = ponte('listar', ['folderId' => $pasta]); } catch (Exception $e) { sd_fail($e->getMessage(), 500); }
+    $itens = [];
+    foreach ((array)($l['arquivos'] ?? []) as $f) {
+        $m = (string)($f['mime'] ?? ''); $ehImg = stripos($m, 'image/') === 0 && stripos($m, 'svg') === false; $ehVid = stripos($m, 'video/') === 0; $ehSvg = stripos($m, 'svg') !== false;
+        if (!$ehImg && !$ehVid && !$ehSvg) continue;
+        $k = esAssina($f['id']); $base = '/pd-estudio.php?img=' . rawurlencode($f['id']) . '&k=' . $k;
+        $itens[] = ['id' => $f['id'], 'nome' => $f['name'], 'path' => $f['path'], 'tipo' => $ehVid ? 'video' : ($ehSvg ? 'vetor' : 'foto'), 'bytes' => (int)($f['size'] ?? 0), 'url' => $f['url'],
+            'thumb' => ($ehImg || $ehSvg) ? $base . '&w=400' : null, 'cheia' => ($ehImg || $ehSvg) ? $base . '&w=2400' : null, 'modificado' => $f['modified'] ?? null];
+    }
+    usort($itens, fn($a, $b2) => strcmp((string)$b2['modificado'], (string)$a['modificado']));
+    echo json_encode(['pasta_url' => 'https://drive.google.com/drive/folders/' . $pasta, 'itens' => $itens], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'subir') {   // upload em lote para cliente › MÍDIA (› subpasta opcional). Cada arquivo numa chamada; o navegador manda um por vez.
+    $c = esCliente((string)($b['client_id'] ?? '')); $a = (array)($b['arquivo'] ?? []); if (empty($a['b64']) || empty($a['nome'])) sd_fail('Arquivo vazio.');
+    $bytes = esB64($a['b64']); if (strlen($bytes) > 45 * 1024 * 1024) sd_fail('Por enquanto a ponte do Drive aceita até 45 MB por arquivo. Para maiores, suba direto na pasta MÍDIA do cliente no Drive.');
+    try { $pasta = esSub(esPastaCliente($c), 'MÍDIA'); if (!empty($b['subpasta'])) $pasta = esSub($pasta, esNomeSeguro($b['subpasta']));
+        $g = ponte('gravar', ['folderId' => $pasta, 'nome' => esNomeSeguro($a['nome']), 'mime' => (string)($a['mime'] ?? 'application/octet-stream'), 'b64' => base64_encode($bytes), 'substituir' => false]); }
+    catch (Exception $e) { sd_fail($e->getMessage(), 500); }
+    echo json_encode(['ok' => true, 'id' => $g['id'] ?? null, 'url' => $g['url'] ?? null]); exit;
+}
+if ($acao === 'fontes') {   // status dos conectores de mídia (para o Estúdio avisar e para o admin ver)
+    $f = ['pexels' => defined('SD_PEXELS_KEY') && SD_PEXELS_KEY, 'unsplash' => defined('SD_UNSPLASH_KEY') && SD_UNSPLASH_KEY, 'pixabay' => defined('SD_PIXABAY_KEY') && SD_PIXABAY_KEY, 'drive' => esPonteOk()];
+    echo json_encode(['fontes' => $f]); exit;
 }
 sd_fail('Ação desconhecida.');

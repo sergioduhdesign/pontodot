@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v224 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v225 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5104,7 +5104,7 @@ function htmlBanco(){
 // OFICINA — fila de trabalhos (vídeo, PPTX, PDF…) executada fora do servidor, com cópia no Drive.
 // MÓDULOS — as capacidades da casa: quem vê, com que poder, ligado/desligado (admin). Servidor: pd-oficina.php.
 // ---------------------------------------------------------------------
-let OFI = { aba:'fila', d:null, msg:'', mod:'eco', ver:null, edit:null, busy:false };
+let OFI = { aba:'pedir', d:null, msg:'', mod:'ffmpeg', ver:null, edit:null, busy:false, avancado:false, admin:false, fontes:null };
 const OFI_EXEMPLO = {
   eco: '{}',
   ffmpeg: '{\n  "arquivos": [{"nome":"base.mp4","url":"https://…"}, {"nome":"trilha.mp3","url":"https://…"}],\n  "receita": ["-i","{in:base.mp4}","-i","{in:trilha.mp3}","-map","0:v","-map","1:a","-shortest","{out:final.mp4}"]\n}',
@@ -5121,12 +5121,14 @@ async function ofiFala(dados){
   return j;
 }
 async function ofiCarrega(){ OFI.busy = true; renderBoard(); try { OFI.d = await ofiFala({ acao:'inicio' }); OFI.msg = ''; } catch(e){ OFI.msg = e.message; } OFI.busy = false; renderBoard(); }
-function ofiAba(a){ OFI.aba = a; OFI.msg = ''; OFI.ver = null; OFI.edit = null; renderBoard(); }
+function ofiAba(a){ OFI.aba = a; OFI.msg = ''; OFI.ver = null; renderBoard(); }
 async function ofiPedir(){
-  let entrada = {}; const raw = (($('#ofiEnt') || {}).value || '').trim();
-  if (raw){ try { entrada = JSON.parse(raw); } catch(e){ OFI.msg = 'A entrada precisa ser JSON válido.'; renderBoard(); return; } }
-  const d = { acao:'pedir', modulo:OFI.mod, titulo:(($('#ofiTit') || {}).value || '').trim(), entrada, client_id:(($('#ofiCli') || {}).value || '') || null, ok_agora: !!($('#ofiOk') || {}).checked };
-  try { const r = await ofiFala(d); OFI.msg = r.trabalho.status === 'aguardando_ok' ? 'Pedido feito. Está aguardando OK na fila.' : ('Na fila. Oficina ' + (r.acordou === 'agora' ? 'acordada agora.' : (r.acordou === 'relogio' ? 'roda no relógio (até 30 min).' : 'não acordou: ' + r.acordou))); OFI.aba = 'fila'; await ofiCarrega(); }
+  const cli = (($('#ofiCli') || {}).value || ''); const pedido = (($('#ofiPed') || {}).value || '').trim();
+  if (!cli){ OFI.msg = 'Escolha o cliente.'; renderBoard(); return; } if (!pedido && !OFI.avancado){ OFI.msg = 'Escreva o que fazer.'; renderBoard(); return; }
+  let entrada = { pedido }; const raw = (($('#ofiEnt') || {}).value || '').trim();
+  if (OFI.avancado && raw){ try { entrada = Object.assign(JSON.parse(raw), { pedido }); } catch(e){ OFI.msg = 'A entrada avançada precisa ser JSON válido.'; renderBoard(); return; } }
+  const d = { acao:'pedir', modulo:OFI.mod, titulo: pedido.slice(0, 80) || OFI.mod, entrada, client_id:cli, ok_agora: OFI.avancado };
+  try { const r = await ofiFala(d); OFI.msg = r.trabalho.status === 'aguardando_ok' ? 'Pedido registrado. A IA monta a receita e você dá o OK na fila.' : ('Na fila. Oficina ' + (r.acordou === 'agora' ? 'acordada agora.' : (r.acordou === 'relogio' ? 'roda no relógio (até 30 min).' : 'não acordou: ' + r.acordou))); OFI.aba = 'fila'; await ofiCarrega(); }
   catch(e){ OFI.msg = e.message; renderBoard(); }
 }
 async function ofiAcao(acao, id){ try { await ofiFala({ acao, id }); await ofiCarrega(); } catch(e){ OFI.msg = e.message; renderBoard(); } }
@@ -5140,57 +5142,61 @@ async function ofiSalvaModulo(){
     OFI.msg = r.novo ? 'Módulo criado: nasce desligado e em quarentena (só você vê até liberar).' : 'Módulo salvo.'; OFI.edit = null; await ofiCarrega(); }
   catch(e){ OFI.msg = e.message; renderBoard(); }
 }
+const OFI_ENTREGA = [['ffmpeg','Vídeo','<path d="M4 6.5h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z"/><path d="m17 10 5-2.5v9L17 14"/>'],['pptx','Apresentação','<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/>'],['pdf','Impresso (PDF)','<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>']];
+function ofiIco(d, s=16){ return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`; }
+async function ofiFontes(){ try { const { data:{ session } } = await sbR.auth.getSession(); const r = await fetch('/pd-estudio.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'fontes' }) }); OFI.fontes = (await r.json()).fontes || {}; } catch(e){ OFI.fontes = {}; } renderBoard(); }
 function htmlOficina(){
-  if (!window.REAL) return gadCaixa('Oficina', `<div class="nota">Entre na sua conta.</div>`);
-  if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Oficina', `<div class="nota">Disponível para a equipe.</div>`);
-  if (!OFI.d && !OFI.busy && !OFI.msg) { ofiCarrega(); return gadCaixa('Oficina', `<div class="nota">Carregando…</div>`); }
-  if (!OFI.d) return gadCaixa('Oficina', `<div class="nota">${esc(OFI.msg || 'Carregando…')}</div>`, ['Tentar de novo', 'ofiCarrega()']);
-  const D = OFI.d; const bt = 'class="btn" style="min-height:32px;padding:5px 11px;font-size:11px"'; const on = 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700';
-  const abas = [['fila', 'Fila'], ['pedir', 'Pedir trabalho']]; if (D.admin) abas.push(['modulos', 'Módulos']);
-  const bar = `<div class="esc-bt" style="margin:0 0 8px">${abas.map(a => `<button ${bt.replace('font-size:11px', 'font-size:11px;' + (OFI.aba === a[0] ? on : ''))} onclick="ofiAba('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
+  if (!window.REAL) return gadCaixa('Produção', `<div class="nota">Entre na sua conta.</div>`);
+  if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Produção', `<div class="nota">Disponível para a equipe.</div>`);
+  if (!OFI.d && !OFI.busy && !OFI.msg) { ofiCarrega(); return gadCaixa('Produção', `<div class="nota">Carregando…</div>`); }
+  if (!OFI.d) return gadCaixa('Produção', `<div class="nota">${esc(OFI.msg || 'Carregando…')}</div>`, ['Tentar de novo', 'ofiCarrega()']);
+  const D = OFI.d; const ib = 'class="btn" style="min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center"'; const bt = 'class="btn" style="min-height:32px;padding:5px 11px;font-size:11px"';
+  const on = 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent';
   const msg = OFI.msg ? `<div class="nota" style="margin:0 0 6px">${esc(OFI.msg)}</div>` : '';
-  const saude = !D.cfg.worker_chave ? 'Oficina sem chave no servidor (SD_OFICINA_KEY).' : (D.pulso ? 'Último sinal da oficina: ' + new Date(D.pulso.ultima_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'A oficina ainda não deu sinal de vida.') + (D.cfg.acorda_github ? '' : ' · Sem SD_GITHUB_TOKEN: ela roda só no relógio (30 min).') + (D.cfg.drive ? '' : ' · Sem pasta do Drive configurada: arquivos ficam só no Storage.');
-  if (OFI.aba === 'fila'){
-    if (OFI.ver){ const t = OFI.ver.trabalho; const arqs = (t.saida && t.saida.arquivos) || [];
-      return gadCaixa('Oficina · ' + esc(t.titulo || t.modulo), `<div class="nota">${esc(OFI_ST[t.status] || t.status)}${t.erro ? ' · ' + esc(t.erro) : ''}</div>
-        ${arqs.length ? `<div class="esc-it">${arqs.map(a => `<div><a href="${esc(a.drive_url || a.url || '#')}" target="_blank" rel="noopener">${esc(a.nome)}</a> <small class="nota">${a.drive_url ? 'no Drive' : 'no Storage (7 dias)'} · ${Math.round((a.bytes || 0) / 1024)} KB</small></div>`).join('')}</div>` : ''}
-        <div class="esc-it"><div class="nota" style="margin-bottom:4px">Entrada</div><pre class="esc-ta" style="white-space:pre-wrap;font-size:10.5px;max-height:160px;overflow:auto">${esc(JSON.stringify(t.entrada, null, 1))}</pre></div>
-        <div class="esc-it">${OFI.ver.log.map(l => `<div class="nota" style="line-height:1.4"><b>${esc(l.evento)}</b> ${esc(l.detalhe)} <small>· ${new Date(l.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</small></div>`).join('') || '<div class="nota">Sem registros.</div>'}</div>`, ['Voltar', 'OFI.ver=null;renderBoard()']);
-    }
-    const lista = D.trabalhos.map(t => { const arqs = (t.saida && t.saida.arquivos) || []; const link = arqs[0] && (arqs[0].drive_url || arqs[0].url);
-      return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(t.titulo || t.modulo)}</b> <small>· ${esc(t.modulo)}${t.clients ? ' · ' + esc(t.clients.name) : ''}</small></span><small>${esc(OFI_ST[t.status] || t.status)}</small></div>
-        <div class="nota" style="line-height:1.4">${esc(t.profiles?.name || '')}${t.pedido_via === 'ia' ? ' (pela IA)' : ''} · ${new Date(t.criado_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}${t.erro ? ' · ' + esc(t.erro).slice(0, 120) : ''}</div>
-        <div class="esc-bt"><button ${bt} onclick="ofiVer('${t.id}')">Detalhe</button>${link ? `<a ${bt} href="${esc(link)}" target="_blank" rel="noopener">Abrir${arqs.length > 1 ? ' (' + arqs.length + ')' : ''} ↗</a>` : ''}${t.status === 'aguardando_ok' ? `<button ${bt} onclick="ofiAcao('ok','${t.id}')">Dar OK</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${bt} onclick="ofiAcao('cancelar','${t.id}')">Cancelar</button>` : ''}</div></div>`; }).join('');
-    return gadCaixa('Oficina', bar + msg + `<div class="nota" style="margin:0 0 6px">${esc(saude)}</div>` + (lista || '<div class="nota">Fila vazia.</div>'), ['Atualizar', 'ofiCarrega()']);
+  const cls = {}; tasksReais.forEach(t => { if (t.client_id && t.clients?.name) cls[t.client_id] = t.clients.name; });
+  // VISOR: o que a oficina entregou por último (e o que está rodando)
+  const vivos = D.trabalhos.filter(t => t.status !== 'cancelado').slice(0, 6);
+  const visor = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:0 0 10px;min-height:72px">${vivos.map(t => { const arqs = (t.saida && t.saida.arquivos) || []; const link = arqs[0] && (arqs[0].drive_url || arqs[0].url); const ent = OFI_ENTREGA.find(e => e[0] === t.modulo);
+      const cor = t.status === 'pronto' ? 'var(--verde,#1f8a55)' : t.status === 'erro' ? 'var(--rosa,#c63d32)' : 'inherit';
+      return `<div onclick="${link ? `window.open('${esc(link)}','_blank')` : `ofiVer('${t.id}')`}" style="cursor:pointer;border:.5px solid var(--sep);border-radius:10px;padding:8px;min-height:72px;display:flex;flex-direction:column;gap:4px;justify-content:space-between"><div style="display:flex;justify-content:space-between;align-items:center;color:${cor}">${ofiIco(ent ? ent[2] : '<circle cx="12" cy="12" r="8"/>', 16)}<small style="font-size:10px">${esc(OFI_ST[t.status] || t.status)}</small></div><div style="font-size:11px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(t.titulo || t.modulo)}</div><small class="nota" style="font-size:10px">${esc(t.clients?.name || '')}</small></div>`; }).join('') || `<div class="nota" style="grid-column:1/-1;display:grid;place-items:center;border:.5px dashed var(--sep);border-radius:10px;min-height:72px">O que a oficina entregar aparece aqui.</div>`}</div>`;
+  const saude = !D.cfg.worker_chave ? 'Oficina sem chave no servidor (SD_OFICINA_KEY).' : (D.pulso ? 'Oficina viva · último sinal ' + new Date(D.pulso.ultima_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'A oficina ainda não deu sinal de vida.') + (D.cfg.acorda_github ? '' : ' · Sem SD_GITHUB_TOKEN: roda só no relógio (30 min).');
+  if (OFI.ver){ const t = OFI.ver.trabalho; const arqs = (t.saida && t.saida.arquivos) || [];
+    return gadCaixa('Produção · ' + esc(t.titulo || t.modulo), `<div class="nota">${esc(OFI_ST[t.status] || t.status)}${t.erro ? ' · ' + esc(t.erro) : ''}</div>
+      ${arqs.length ? `<div class="esc-it">${arqs.map(a => `<div><a href="${esc(a.drive_url || a.url || '#')}" target="_blank" rel="noopener">${esc(a.nome)}</a> <small class="nota">${a.drive_url ? 'no Drive' : 'no Storage (7 dias)'} · ${Math.round((a.bytes || 0) / 1024)} KB</small></div>`).join('')}</div>` : ''}
+      ${t.entrada && t.entrada.pedido ? `<div class="esc-it"><div class="nota" style="margin-bottom:4px">Pedido</div><div style="font-size:12px;white-space:pre-wrap">${esc(t.entrada.pedido)}</div></div>` : ''}
+      <div class="esc-it">${OFI.ver.log.map(l => `<div class="nota" style="line-height:1.4"><b>${esc(l.evento)}</b> ${esc(l.detalhe)} <small>· ${new Date(l.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</small></div>`).join('') || '<div class="nota">Sem registros.</div>'}</div>
+      <div class="esc-bt">${t.status === 'aguardando_ok' ? `<button ${bt} onclick="ofiAcao('ok','${t.id}')">Dar OK</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${bt} onclick="ofiAcao('cancelar','${t.id}')">Cancelar</button>` : ''}</div>`, ['Voltar', 'OFI.ver=null;renderBoard()']);
   }
-  if (OFI.aba === 'pedir'){
-    const mods = D.modulos.filter(m => m.ativo && m.poder !== 'ler' && m.onde === 'oficina'); if (!mods.find(m => m.slug === OFI.mod)) OFI.mod = (mods[0] || {}).slug || '';
-    const m = mods.find(x => x.slug === OFI.mod) || {}; const cls = {}; tasksReais.forEach(t => { if (t.client_id && t.clients?.name) cls[t.client_id] = t.clients.name; });
-    return gadCaixa('Pedir trabalho à oficina', bar + msg + `<div class="esc-bt" style="margin:0 0 6px"><select id="ofiMod" class="esc-ta" style="min-height:0;height:36px;flex:1" onchange="OFI.mod=this.value;renderBoard()">${mods.map(x => `<option value="${x.slug}" ${x.slug === OFI.mod ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select><select id="ofiCli" class="esc-ta" style="min-height:0;height:36px;flex:1"><option value="">Cliente (obrigatório)</option>${Object.entries(cls).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}">${esc(n)}</option>`).join('')}</select></div>
-      <div class="nota" style="margin:0 0 6px;line-height:1.4">${esc(m.descricao || '')} · <i>${esc(OFI_PODER[m.poder] || '')}</i></div>
-      <input id="ofiTit" class="esc-ta" style="min-height:0;height:36px;margin-bottom:6px" placeholder="Título do trabalho">
-      <textarea id="ofiEnt" class="esc-ta" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px" placeholder="Entrada (JSON)">${esc(OFI_EXEMPLO[OFI.mod] || '{}')}</textarea>
-      ${m.poder === 'executar_ok' ? `<label class="nota" style="display:block;margin-top:6px"><input type="checkbox" id="ofiOk"> Já dou o OK agora</label>` : ''}
-      <div class="nota" style="margin-top:6px;line-height:1.4">Em breve a IA da casa monta essa entrada por você a partir da tarefa. Por ora, cole o JSON conforme o exemplo.</div>`, ['Mandar para a oficina', 'ofiPedir()']);
-  }
-  if (OFI.aba === 'modulos' && D.admin){
+  // ETAPAS: 1 cliente · 2 o que fazer (texto livre) · 3 entrega · enviar
+  const pedir = `<div class="esc-bt" style="margin:0 0 8px;align-items:center"><span class="nota" style="width:16px">1</span><select id="ofiCli" class="esc-ta" style="min-height:0;height:36px;flex:1"><option value="">Cliente</option>${Object.entries(cls).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}">${esc(n)}</option>`).join('')}</select></div>
+    <div class="esc-bt" style="margin:0 0 8px;align-items:flex-start"><span class="nota" style="width:16px;padding-top:8px">2</span><textarea id="ofiPed" class="esc-ta" style="min-height:96px;flex:1" placeholder="O que fazer? Escreva como você falaria: '30 variações do vídeo da campanha X trocando a trilha e a locução', 'apresentação de 8 slides com o book do produto'…"></textarea></div>
+    <div class="esc-bt" style="margin:0 0 8px;align-items:center"><span class="nota" style="width:16px">3</span>${OFI_ENTREGA.map(e => `<button ${ib.replace('"', `title="${e[1]}" "`)} style="${OFI.mod === e[0] ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="OFI.mod='${e[0]}';renderBoard()">${ofiIco(e[2], 17)}</button>`).join('')}<span class="nota" style="margin-left:4px">${esc((OFI_ENTREGA.find(e => e[0] === OFI.mod) || [])[1] || '')}</span>
+      <span style="flex:1"></span><button ${ib} title="Pedir" onclick="ofiPedir()">${ofiIco('<path d="M5 12h14M13 6l6 6-6 6"/>', 17)}</button></div>
+    ${OFI.admin ? `<details ${OFI.avancado ? 'open' : ''} ontoggle="OFI.avancado=this.open"><summary class="nota" style="cursor:pointer">Entrada avançada (JSON da receita, para a IA e para o admin)</summary><textarea id="ofiEnt" class="esc-ta" style="min-height:90px;font-family:ui-monospace,monospace;font-size:11px;margin-top:6px">${esc(OFI_EXEMPLO[OFI.mod] || '{}')}</textarea></details>` : ''}
+    <div class="nota" style="margin-top:6px;line-height:1.4">A IA da casa lê o pedido e monta a receita; o trabalho entra na fila aguardando seu OK. (Em construção: por ora a receita vem pela entrada avançada.)</div>`;
+  const fila = D.trabalhos.slice(0, 12).map(t => `<div class="esc-it"><div class="esc-nm"><span><b>${esc(t.titulo || t.modulo)}</b> <small>· ${esc(t.clients?.name || '')}</small></span><small>${esc(OFI_ST[t.status] || t.status)}</small></div>
+      <div class="esc-bt"><button ${ib} title="Detalhe" onclick="ofiVer('${t.id}')">${ofiIco('<circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/>', 15)}</button>${t.status === 'aguardando_ok' ? `<button ${ib} title="Dar OK" onclick="ofiAcao('ok','${t.id}')">${ofiIco('<path d="m5 13 4 4L19 7"/>', 15)}</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${ib} title="Cancelar" onclick="ofiAcao('cancelar','${t.id}')">${ofiIco('<path d="M6 6l12 12M18 6 6 18"/>', 15)}</button>` : ''}</div></div>`).join('') || '<div class="nota">Fila vazia.</div>';
+  let admin = '';
+  if (D.admin && OFI.admin){
+    if (!OFI.fontes) ofiFontes();
+    const F = OFI.fontes || {}; const conect = [['drive', 'Google Drive (ponte)'], ['pexels', 'Pexels'], ['unsplash', 'Unsplash'], ['pixabay', 'Pixabay'], ['github', 'GitHub (oficina)']];
+    const estado = k => k === 'github' ? D.cfg.acorda_github : F[k];
+    admin = `<div class="esc-it"><div class="nota" style="margin-bottom:6px"><b>Conectores de mídia e serviços</b></div>${conect.map(([k, n]) => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>${n}</span><span style="color:${estado(k) ? 'var(--verde,#1f8a55)' : 'var(--rosa,#c63d32)'}">${OFI.fontes || k === 'github' ? (estado(k) ? 'ligado' : 'sem chave') : '…'}</span></div>`).join('')}<div class="nota" style="margin-top:4px">Chaves ficam no sd-config.php do servidor: SD_PEXELS_KEY · SD_UNSPLASH_KEY · SD_PIXABAY_KEY · SD_GITHUB_TOKEN.</div></div>
+      <div class="esc-it"><div class="nota" style="margin-bottom:6px"><b>Módulos da casa</b> · ligado/desligado, poder e quem vê</div>${D.modulos.map(m => `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:5px 0;border-top:.5px solid var(--sep)"><button ${ib} title="${m.ativo ? 'Desligar' : 'Ligar'}" style="${m.ativo ? on : ''};min-height:30px;width:30px;padding:0;display:inline-grid;place-items:center" onclick="ofiLigar('${m.slug}','ativo',${!m.ativo})">${ofiIco('<path d="M12 3v9"/><path d="M6.5 7a7.5 7.5 0 1 0 11 0"/>', 14)}</button><span style="font-size:12px;flex:1;min-width:120px">${esc(m.nome)}${m.quarentena ? ' <small class="nota">· quarentena</small>' : ''}</span>
+        <select class="esc-ta" style="min-height:0;height:30px;width:auto;font-size:11px" onchange="ofiLigar('${m.slug}','poder',this.value)">${Object.entries(OFI_PODER).map(([k, v]) => `<option value="${k}" ${k === m.poder ? 'selected' : ''}>${v}</option>`).join('')}</select>
+        <input class="esc-ta" style="min-height:0;height:30px;width:110px;font-size:11px" value="${esc((m.visivel || []).join(', '))}" title="quem vê: admin, team, client" onchange="ofiLigar('${m.slug}','visivel',this.value.split(','))">
+        <button ${ib} title="Quarentena" style="min-height:30px;width:30px;padding:0;display:inline-grid;place-items:center" onclick="ofiLigar('${m.slug}','quarentena',${!m.quarentena})">${ofiIco('<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>', 14)}</button><button ${ib} title="Editar ficha" style="min-height:30px;width:30px;padding:0;display:inline-grid;place-items:center" onclick="ofiEditar('${m.slug}')">${ofiIco('<path d="M4 20h4l10-10-4-4L4 16z"/><path d="m12.5 7.5 4 4"/>', 14)}</button></div>`).join('')}
+      <div class="esc-bt"><button ${bt} onclick="ofiEditar(null)">Novo módulo</button></div></div>`;
     if (OFI.edit){ const e = OFI.edit; const sel = (id, ops, v) => `<select id="${id}" class="esc-ta" style="min-height:0;height:36px;flex:1">${ops.map(o => `<option value="${o[0]}" ${o[0] === v ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
-      return gadCaixa(e.criado_em ? 'Editar módulo' : 'Novo módulo', msg + `<div class="esc-bt" style="margin:0 0 6px"><input id="omSlug" class="esc-ta" style="min-height:0;height:36px;flex:1" placeholder="identificador (ex.: editor_post)" value="${esc(e.slug)}" ${e.criado_em ? 'readonly' : ''}><input id="omNome" class="esc-ta" style="min-height:0;height:36px;flex:2" placeholder="Nome" value="${esc(e.nome)}"></div>
+      admin = `<div class="esc-it"><div class="nota" style="margin-bottom:6px"><b>${e.criado_em ? 'Editar módulo' : 'Novo módulo'}</b></div><div class="esc-bt" style="margin:0 0 6px"><input id="omSlug" class="esc-ta" style="min-height:0;height:36px;flex:1" placeholder="identificador (ex.: editor_post)" value="${esc(e.slug)}" ${e.criado_em ? 'readonly' : ''}><input id="omNome" class="esc-ta" style="min-height:0;height:36px;flex:2" placeholder="Nome" value="${esc(e.nome)}"></div>
         <div class="esc-bt" style="margin:0 0 6px">${sel('omTipo', [['editor', 'editor'], ['pipeline', 'pipeline (gera arquivo)'], ['integracao', 'integração'], ['conhecimento', 'conhecimento'], ['agente', 'agente']], e.tipo)}${sel('omOnde', [['oficina', 'roda na oficina'], ['servidor', 'roda no servidor'], ['navegador', 'roda no navegador'], ['externo', 'serviço externo']], e.onde)}</div>
         <textarea id="omDesc" class="esc-ta" style="min-height:54px;margin-bottom:6px" placeholder="O que faz (uma ou duas linhas)">${esc(e.descricao)}</textarea>
         <textarea id="omFicha" class="esc-ta" style="min-height:120px;margin-bottom:6px" placeholder="Ficha: como usar, regras, o que precisa de entrada, o que devolve. A IA da casa lê isto.">${esc(e.ficha)}</textarea>
         <textarea id="omCfg" class="esc-ta" style="min-height:54px;font-family:ui-monospace,monospace;font-size:11px" placeholder='Config (JSON, sem chaves/senhas)'>${esc(JSON.stringify(e.config || {}, null, 1))}</textarea>
-        <div class="esc-bt"><button ${bt} onclick="ofiSalvaModulo()">Salvar</button><button ${bt} onclick="OFI.edit=null;renderBoard()">Cancelar</button></div>`);
-    }
-    const lista = D.modulos.map(m => `<div class="esc-it"><div class="esc-nm"><span><b>${esc(m.nome)}</b> <small>· ${esc(m.tipo)} · ${esc(m.onde)}</small></span><small>${m.ativo ? 'ligado' : 'desligado'}${m.quarentena ? ' · quarentena' : ''}</small></div>
-      <div class="nota" style="line-height:1.4">${esc(m.descricao)}</div>
-      <div class="esc-bt"><button ${bt} onclick="ofiLigar('${m.slug}','ativo',${!m.ativo})">${m.ativo ? 'Desligar' : 'Ligar'}</button><button ${bt} onclick="ofiLigar('${m.slug}','quarentena',${!m.quarentena})">${m.quarentena ? 'Liberar da quarentena' : 'Pôr em quarentena'}</button>
-        <select class="esc-ta" style="min-height:0;height:32px;width:auto;font-size:11px" onchange="ofiLigar('${m.slug}','poder',this.value)">${Object.entries(OFI_PODER).map(([k, v]) => `<option value="${k}" ${k === m.poder ? 'selected' : ''}>${v}</option>`).join('')}</select>
-        <input class="esc-ta" style="min-height:0;height:32px;width:150px;font-size:11px" value="${esc((m.visivel || []).join(', '))}" title="quem vê: admin, team, client ou id de pessoa" onchange="ofiLigar('${m.slug}','visivel',this.value.split(','))">
-        <button ${bt} onclick="ofiEditar('${m.slug}')">Editar</button></div></div>`).join('');
-    return gadCaixa('Módulos da casa', bar + msg + `<div class="nota" style="margin:0 0 6px;line-height:1.4">Cada capacidade da PD é um módulo: ligado ou não, com um poder (${Object.values(OFI_PODER).join(' · ')}) e quem pode ver. Módulo novo nasce desligado e em quarentena.</div>` + lista, ['Novo módulo', 'ofiEditar(null)']);
+        <div class="esc-bt"><button ${bt} onclick="ofiSalvaModulo()">Salvar</button><button ${bt} onclick="OFI.edit=null;renderBoard()">Cancelar</button></div></div>`; }
   }
-  return gadCaixa('Oficina', bar + msg);
+  const abas = `<div class="esc-bt" style="margin:0 0 8px;align-items:center"><button ${ib} title="Pedir" style="${OFI.aba === 'pedir' ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="ofiAba('pedir')">${ofiIco('<path d="M12 5v14M5 12h14"/>', 16)}</button><button ${ib} title="Fila" style="${OFI.aba === 'fila' ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="ofiAba('fila')">${ofiIco('<path d="M4 6h16M4 12h16M4 18h10"/>', 16)}</button><button ${ib} title="Atualizar" onclick="ofiCarrega()">${ofiIco('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>', 16)}</button><span style="flex:1"></span>${D.admin ? `<button ${ib} title="Módulos e conectores (admin)" style="${OFI.admin ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="OFI.admin=!OFI.admin;OFI.edit=null;renderBoard()">${ofiIco('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 16)}</button>` : ''}</div>`;
+  return gadCaixa('Produção', visor + abas + msg + (OFI.aba === 'pedir' ? pedir : fila) + admin + `<div class="nota" style="margin-top:8px">${esc(saude)}</div>`);
 }
 
 // ---------------------------------------------------------------------
@@ -5362,8 +5368,7 @@ const GADGETS = {
       ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
   escola:    { nome:'Escola das IAs', html:()=>htmlEscola() },
-  banco:     { nome:'Banco de mídia', html:()=>htmlBanco() },
-  oficina:   { nome:'Oficina e módulos', html:()=>htmlOficina() },
+  oficina:   { nome:'Produção', html:()=>htmlOficina() },
   estudio:   { nome:'Estúdio', html:()=>htmlEstudio() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
 };
@@ -5440,11 +5445,12 @@ function abrirTodasResp(r){ fT.resp = r; guardarFiltro(); abrirTarefasTodas(); }
 function abrirTodasCliente(c){ fT.cli = c; guardarFiltro(); abrirTarefasTodas(); }
 let meusGadgets = ['tarefas','minhaia','aprovacoes','cronograma'];
 try { const g = JSON.parse(localStorage.getItem('sd_gadgets')||'null'); if (Array.isArray(g) && g.length) meusGadgets = g; } catch(e){}
+meusGadgets = meusGadgets.filter(id => id !== 'banco');   // o banco de mídia mora dentro do Estúdio, não na home
 // Caixinha NOVA se apresenta sozinha, uma vez, pra quem guardou a área
 // antes de ela existir (quem tirou de propósito não ganha de volta).
 try {
   const visto = JSON.parse(localStorage.getItem('sd_gadgets_vistos')||'[]');
-  for (const nova of ['minhaia','anuncios','publicacao','banco','oficina','estudio']) {
+  for (const nova of ['minhaia','anuncios','publicacao','oficina','estudio']) {
     if (!visto.includes(nova)) {
       if (!meusGadgets.includes(nova)) meusGadgets = [...meusGadgets, nova];
       visto.push(nova);
