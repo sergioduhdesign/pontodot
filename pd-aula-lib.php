@@ -230,7 +230,7 @@ function pdProfessorEnviar($a, $sk, $cfg, $manual = false) {
         $g($p['folderId'], '00_CHAMADO_IA.txt', "\xEF\xBB\xBF" . $texto, 'text/plain');
         ponte('status', ['controleId' => $p['controleId'], 'status' => 'CORRIGIR-AULA', 'rodada' => $a['rodada'], 'obs' => $manual ? 'reenvio manual' : 'chamado enviado']);
         $assunto = '[SD-IA] AULA · CORRIGIR · ' . ($a['modo'] === 'teste' ? 'TESTE · ' : '') . ($a['personagem'] ?: 'ia') . ' · ' . $a['skill_id'] . ' · R' . $a['rodada'];
-        $ok = @mail(emailIA(), '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPasta: " . ($p['folderUrl'] ?? '') . "\nSD Workflow · " . sd_base(),
+        $ok = @mail(emailIA(), '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPasta: " . ($p['folderUrl'] ?? '') . "\nPontodot · " . sd_base(),
             "From: SD Workflow <workflow@sergioduh.com>\r\nReply-To: workflow@sergioduh.com\r\nX-SD-Chamado: " . $chamado . "\r\nContent-Type: text/plain; charset=UTF-8");
         $mesma = !empty($ch0['enviado_em']) && (int)($ch0['rodada'] ?? 0) === (int)$a['rodada'];
         pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($a['id']), 'PATCH', ['chamado' => ['chamado' => $chamado, 'folderId' => $p['folderId'], 'folderUrl' => $p['folderUrl'] ?? '', 'entradaId' => $p['entradaId'], 'saidaId' => $p['saidaId'], 'controleId' => $p['controleId'],
