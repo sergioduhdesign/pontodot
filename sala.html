@@ -30,7 +30,7 @@ const ST={aberta:'Aberta',em_exercicio:'Aluna fazendo',em_correcao:'Com o profes
 async function api(b){const r=await fetch('/pd-aula.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para ver a sala de aula.</div>';return;}
-  await carrega();}
+  await carrega();const qa=new URLSearchParams(location.search).get('aula');if(qa)abre(qa);}
 async function carrega(){try{P=await api({acao:'painel'});}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 function melhor(ia,sk){const n=P.notas.filter(x=>x.ia_user_id===ia&&x.skill_id===sk);return n.length?Math.max(...n.map(x=>+x.nota)):null;}
 function estado(ia,sk){const mn=+(P.incubacao?.nota_minima||85);const as=P.aulas.filter(a=>a.ia_user_id===ia&&a.skill_id===sk);

@@ -13,6 +13,12 @@ require_once __DIR__ . '/sd-base.php';
 // Requer sd-auth.php (sd_supabase) e push-lib.php incluídos antes.
 // =====================================================================
 
+if (!function_exists('pdAcervo')) {
+/** Registra no acervo tudo que entra/sai da casa (melhor esforço; nunca derruba a ação). */
+function pdAcervo($tipo, $origem, $dados) {
+    try { sd_supabase('/rest/v1/pd_acervo', 'POST', array_merge(['tipo' => $tipo, 'origem' => $origem, 'categoria' => '', 'nome' => '', 'url' => '', 'mime' => '', 'bytes' => 0, 'nota' => ''], $dados)); } catch (Throwable $e) {}
+}
+}
 if (!function_exists('ponte')) {
 
 function ponte($acao, $dados = []) {

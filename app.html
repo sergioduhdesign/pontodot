@@ -418,7 +418,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           <div class="adm-mi" onclick="closeAdminMenu();setView('admin')">Painel</div>
           <div class="adm-mi" onclick="closeAdminMenu();setView('clientes')">Clientes</div>
           <div class="adm-mi" id="adm-mi-saude" style="display:none" onclick="closeAdminMenu();setView('saude')">Saúde da plataforma</div>
-          <div class="adm-mi" id="adm-mi-intensivo" style="display:none" onclick="closeAdminMenu();setView('intensivo')">Intensivo PD</div>
         </div>
       </div>
     </div>
@@ -917,11 +916,14 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
-                  <div class="entity-card-name">Importar tarefas</div>
-                  <div class="entity-card-meta">Cria/atualiza em lote, via Excel</div>
+                  <div class="entity-card-name">Importar e acervo</div>
+                  <div class="entity-card-meta">Tarefas por Excel; links de conteúdo por cliente (bancos de fotos, elementos, vídeos, marca); histórico de tudo que entrou na casa.</div>
                 </div>
-                <button class="btn btn-secondary btn-sm" onclick="openImport()">⬆ Importar Excel</button>
-                <button class="btn btn-secondary btn-sm" onclick="abrirLixeiraLotes()">🗑 Lixeira de aprovações</button>
+                <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="openImport()">⬆ Importar Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="acervoLinkForm()">🔗 Habilitar link de conteúdo</button>
+                <button class="btn btn-secondary btn-sm" onclick="abrirLixeiraLotes()">🗑 Lixeira de aprovações</button></div>
+                <div id="acervo-form" style="display:none"></div>
+                <div id="acervo-body" style="max-height:280px;overflow-y:auto;font-size:11.5px"></div>
               </div>
 
               <div class="entity-card" data-perm="social.conectar" style="flex-direction:column;align-items:stretch;gap:9px">
@@ -5223,7 +5225,7 @@ async function renderAdmin(){
   try { preencherHorarioAdmin(); } catch(e) { console.warn('Horário admin:', e.message); }
   try { renderBIResumo(); } catch(e) { console.warn('BI resumo:', e.message); }
   try { renderTrackingEquipe(); } catch(e) {}
-  try { renderIAsCasa(); } catch(e) {}
+  try { renderIAsCasa();renderAcervo(); } catch(e) {}
   try { renderHabilidades(); } catch(e) {}
   // Admin vê todos os profiles — RLS permite se role=admin
   const{data:users,error:uerr}=await sb.from('profiles').select('*').order('name');
@@ -10586,7 +10588,6 @@ function abrirMaisMobile(){
     { id:'tab-mural',    view:'mural',    label:'Mural',          icone:'<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7h1a2 2 0 1 0 0-4H8a2 2 0 1 0 0 4h1z"/>' },
     { id:'tab-clientes', view:'clientes', label:'Clientes',       icone:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
     { id:'adm-mi-saude',     view:'saude',     label:'Saúde da plataforma', icone:'<path d="M3 12h4l3-8 4 16 3-8h4"/>' },
-    { id:'adm-mi-intensivo', view:'intensivo', label:'Intensivo PD',        icone:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>' },
     { id:'tab-admin',    view:'admin',    label:'Admin',          icone:'<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>' },
   ].filter(it => {
     const el = document.getElementById(it.id);
@@ -11210,6 +11211,7 @@ function _trackerBtnHTML_antigo(taskId, size = 'sm'){
 // ---- Habilidades e habilitações (admin) ----
 const HAB_COR = { aprovada:'#16a34a', em_teste:'#d97706', nao_testada:'#6b7280', reprovada:'#dc2626' };
 const HAB_ROT = { aprovada:'aprovada', em_teste:'em teste', nao_testada:'não testada', reprovada:'reprovada' };
+let HAB_ABERTA = null, HAB_PAINEL = null;
 async function renderHabilidades(){
   const box = document.getElementById('habilidades-body'); if (!box) return;
   if (profile.role !== 'admin'){ box.innerHTML = ''; return; }
@@ -11217,25 +11219,33 @@ async function renderHabilidades(){
     const [h, e] = await Promise.all([ sb.from('pd_habilidades').select('skill_id,versao,nome,finalidade,ativa').order('skill_id'),
                                        sb.from('pd_habilitacoes').select('id,personagem,skill_id,versao,avaliacao,ferramentas_ok,avaliada_em') ]);
     if (h.error) throw h.error; if (e.error) throw e.error;
+    if (!HAB_PAINEL) { try { HAB_PAINEL = await sdFetch('/pd-aula.php', { acao:'painel' }); } catch(err){ HAB_PAINEL = { formacoes:[], aulas:[] }; } }
     const hab = h.data || [], habil = e.data || [];
+    const forma = (pers, skill) => (HAB_PAINEL.formacoes||[]).find(f => String(f.personagem||'').toLowerCase() === String(pers).toLowerCase() && f.skill_id === skill);
+    const aulasDe = (pers, skill) => (HAB_PAINEL.aulas||[]).filter(a => String(a.personagem||'').toLowerCase() === String(pers).toLowerCase() && a.skill_id === skill && a.modo !== 'teste').slice(0, 8);
+    const ST = { aberta:'aberta', em_exercicio:'fazendo', em_correcao:'com o professor', validacao_humana:'aguarda você', validada:'validada', reprovada:'reprovada', cancelada:'cancelada' };
     box.innerHTML = hab.map(s => {
       const lista = habil.filter(x => x.skill_id === s.skill_id && x.versao === s.versao);
       return `<div style="padding:8px 10px;background:var(--surface2);border-radius:8px">
         <div style="font-size:12.5px;font-weight:700">${saudeEsc(s.nome)} <span style="font-weight:400;color:var(--text3)">· ${saudeEsc(s.skill_id)} v${s.versao}</span></div>
         <div style="font-size:11px;color:var(--text3);margin:2px 0 6px">${saudeEsc(s.finalidade)}</div>
-        ${lista.map(x => `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px">
-          <span style="width:7px;height:7px;border-radius:50%;background:${HAB_COR[x.avaliacao]||'#6b7280'}"></span>
-          <b style="text-transform:capitalize">${saudeEsc(x.personagem)}</b>
-          <span style="color:var(--text3)">${HAB_ROT[x.avaliacao]||x.avaliacao}${x.ferramentas_ok?'':' · falta ferramenta'}</span>
-          <span style="margin-left:auto;display:flex;gap:4px">
-            ${['em_teste','aprovada','reprovada'].filter(k => k !== x.avaliacao).map(k => `<button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:10.5px" onclick="avaliarHabilitacao('${x.id}','${k}')">${k==='aprovada'?'Aprovar':k==='em_teste'?'Em teste':'Reprovar'}</button>`).join('')}
-          </span></div>`).join('') || '<div style="font-size:11px;color:var(--text3)">Ninguém habilitado ainda.</div>'}
+        ${lista.map(x => { const f = forma(x.personagem, s.skill_id); const sit = f && f.sit; const meta = (f && f.meta) || 30; const aberta = HAB_ABERTA === x.id;
+          const barra = sit ? `<div style="display:flex;gap:2px;margin:6px 0 2px">${(sit.hist||[]).map(v => `<i style="flex:1;height:8px;border-radius:2px;background:${v ? '#16a34a' : '#dc2626'}"></i>`).join('')}${Array.from({length:Math.max(0, meta - (sit.hist||[]).length)}).map(() => '<i style="flex:1;height:8px;border-radius:2px;background:var(--border)"></i>').join('')}</div>
+            <div style="font-size:10.5px;color:var(--text3)">${sit.boas} boas de ${sit.fechadas} provas · ${sit.seguidas} seguidas (precisa ${sit.boas_para_apto}) · meta ${meta}${sit.apta ? ' · <b style="color:#16a34a">apta</b>' : ''}</div>` : '<div style="font-size:10.5px;color:var(--text3);margin-top:4px">Sem formação matriculada nesta habilidade.</div>';
+          const provas = aberta ? `<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">${aulasDe(x.personagem, s.skill_id).map(a => `<div style="display:flex;gap:8px;align-items:center;font-size:11px;padding:3px 0"><span style="width:7px;height:7px;border-radius:50%;background:${a.status==='validada'?'#16a34a':a.status==='reprovada'?'#dc2626':'#d97706'}"></span><span style="flex:1">${ST[a.status]||a.status} · ${a.modo}${a.nota_final!=null?' · nota '+a.nota_final:''}</span><span style="color:var(--text3)">${new Date(a.criada_em).toLocaleDateString('pt-BR')}</span><button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:10.5px" onclick="event.stopPropagation();abrirSalaAula('${a.id}')">ver</button></div>`).join('') || '<div style="font-size:11px;color:var(--text3)">Nenhuma prova ainda. O teste de verdade acontece na Escola das IAs.</div>'}
+            ${f && f.pasta_url ? `<a href="${saudeEsc(f.pasta_url)}" target="_blank" rel="noopener" style="font-size:11px">Pasta das amostras no Drive ↗</a>` : ''}
+            <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">${['em_teste','aprovada','reprovada'].filter(k => k !== x.avaliacao).map(k => `<button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:10.5px" onclick="event.stopPropagation();avaliarHabilitacao('${x.id}','${k}')">${k==='aprovada'?'Aprovar habilitação':k==='reprovada'?'Reprovar':'Pôr em teste'}</button>`).join('')}</div></div>` : '';
+          return `<div style="padding:6px 8px;border-radius:7px;cursor:pointer;background:${aberta?'var(--surface)':'transparent'}" onclick="HAB_ABERTA = HAB_ABERTA==='${x.id}' ? null : '${x.id}'; renderHabilidades()">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><img src="/icone-ia.php?p=${encodeURIComponent(String(x.personagem).toLowerCase())}&s=64" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover">
+              <b style="text-transform:capitalize">${saudeEsc(x.personagem)}</b><span style="color:var(--text3)">${HAB_ROT[x.avaliacao]||x.avaliacao}${x.ferramentas_ok?'':' · falta ferramenta'}</span><span style="margin-left:auto;color:var(--text3);font-size:10.5px">${aberta?'fechar':'abrir'}</span></div>
+            ${barra}${provas}</div>`; }).join('') || '<div style="font-size:11px;color:var(--text3)">Ninguém habilitado ainda.</div>'}
       </div>`;
     }).join('') || '<div style="font-size:11px;color:var(--text3)">Nenhuma habilidade cadastrada. Falta rodar o SQL v85.</div>';
   } catch(err){
     box.innerHTML = `<div style="font-size:11.5px;color:#b45309">Não consegui ler: ${saudeEsc(err.message||err)}${/does not exist|relation/.test(String(err.message))?' — falta rodar o SQL v85.':''}</div>`;
   }
 }
+function abrirSalaAula(id){ window.open('sala.html?aula=' + encodeURIComponent(id), '_blank'); }
 async function avaliarHabilitacao(id, estado){
   if (estado === 'aprovada' && !confirm('Aprovar? Depois disso este habitante passa a receber esse tipo de trabalho. Faça isso só depois de testar com um caso real.')) return;
   const { error } = await sb.from('pd_habilitacoes').update({ avaliacao: estado, avaliada_por: profile.id, avaliada_em: new Date().toISOString() }).eq('id', id);
@@ -11479,17 +11489,45 @@ async function ipExcluir(){
   IP = ipNovo(); showToast('Excluído.'); renderIntensivo();
 }
 
+// ---- Acervo: links habilitados + histórico de uploads/exportações (quem, para quem, quando, link)
+const ACERVO_CAT = { banco_fotos:'banco de fotos', elementos:'elementos de design', videos:'vídeos', marca:'marca', documento:'documento', outro:'outro' };
+async function renderAcervo(){
+  const box = document.getElementById('acervo-body'); if (!box) return;
+  try { const r = await sdFetch('/pd-acervo.php', { acao:'listar', limite:80 });
+    box.innerHTML = (r.itens||[]).map(i => `<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--border)">
+        <span style="font-size:10px;color:var(--text3);text-transform:uppercase;width:66px">${saudeEsc(i.tipo==='link'?'link':i.tipo==='upload'?'upload':i.tipo==='exportacao'?'export.':'banco')}</span>
+        <div style="min-width:0"><a href="${saudeEsc(i.url)}" target="_blank" rel="noopener" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${saudeEsc(i.nome||i.url)}</a>
+          <div style="font-size:10.5px;color:var(--text3)">${saudeEsc(i.clients?.name||'sem cliente')} · ${saudeEsc(ACERVO_CAT[i.categoria]||i.categoria||'')} · por ${saudeEsc(i.profiles?.name||'?')} · ${saudeEsc(i.origem)}${i.bytes?' · '+Math.round(i.bytes/1024)+' KB':''}</div></div>
+        <div style="text-align:right;font-size:10.5px;color:var(--text3)">${new Date(i.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${i.tipo==='link'&&profile.role==='admin'?`<br><button class="btn btn-secondary btn-sm" style="padding:1px 6px;font-size:10px" onclick="acervoApagar(${i.id})">tirar</button>`:''}</div></div>`).join('')
+      || '<div style="color:var(--text3);padding:6px 0">Nada registrado ainda.</div>'; }
+  catch(e){ box.innerHTML = `<div style="color:#b45309">${saudeEsc(e.message||e)}</div>`; }
+}
+function acervoLinkForm(){
+  const f = document.getElementById('acervo-form'); if (!f) return; if (f.style.display !== 'none'){ f.style.display = 'none'; return; }
+  f.style.display = ''; f.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--surface2);border-radius:7px">
+    <select id="acv-cli" class="form-input" style="font-size:12px"><option value="">Para qual cliente?</option>${(clients||[]).filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${saudeEsc(c.name)}</option>`).join('')}</select>
+    <select id="acv-cat" class="form-input" style="font-size:12px">${Object.entries(ACERVO_CAT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
+    <input id="acv-url" class="form-input" style="font-size:12px" placeholder="Link (pasta do Drive, banco de fotos, álbum…)">
+    <input id="acv-nome" class="form-input" style="font-size:12px" placeholder="Nome (opcional)">
+    <div style="display:flex;gap:6px"><button class="btn btn-primary btn-sm" onclick="acervoLinkSalvar()">Habilitar</button><button class="btn btn-secondary btn-sm" onclick="document.getElementById('acervo-form').style.display='none'">Cancelar</button></div>
+    <div style="font-size:10.5px;color:var(--text3)">Habilita o link para o cliente. Não sobe imagem nem vídeo: o conteúdo continua onde está.</div></div>`;
+}
+async function acervoLinkSalvar(){
+  const g = id => (document.getElementById(id)||{}).value || '';
+  try { await sdFetch('/pd-acervo.php', { acao:'link_salvar', client_id:g('acv-cli'), categoria:g('acv-cat'), url:g('acv-url'), nome:g('acv-nome') }); showToast('Link habilitado.'); document.getElementById('acervo-form').style.display='none'; renderAcervo(); }
+  catch(e){ showToast(e.message||'Não consegui.','error'); }
+}
+async function acervoApagar(id){ if (!confirm('Tirar este link do acervo? (o conteúdo continua onde está)')) return; try { await sdFetch('/pd-acervo.php', { acao:'apagar', id }); renderAcervo(); } catch(e){ showToast(e.message,'error'); } }
 async function renderIAsCasa(){
   const box = document.getElementById('ias-casa-body'); if (!box) return;
-  let n = { produzir:0, corrigir:0, pausado:0 };
-  try { const { data } = await sb.from('task_drive').select('status'); (data||[]).forEach(r => { if (r.status in n) n[r.status]++; }); } catch(e){}
-  const linha = (nome, desc, cor) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:7px">
-      <span style="width:7px;height:7px;border-radius:50%;background:${cor}"></span>
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">${nome}</div><div style="font-size:10.5px;color:var(--text3)">${desc}</div></div></div>`;
-  const ativas = n.produzir + n.corrigir;
-  box.innerHTML = linha('Dot · GPT', ativas ? `${n.produzir} produzindo · ${n.corrigir} corrigindo` : 'nada na mão agora', ativas ? '#2563eb' : '#9ca3af')
-    + linha('Claude · o maestro', n.pausado ? `${n.pausado} pausada${n.pausado>1?'s':''} por você` : 'distribuindo e revisando', '#16a34a')
-    + '<div id="ias-consumo"></div>';
+  let r = null; try { r = await sdFetch('/pd-escola.php', { acao:'ias_casa' }); } catch(e){ box.innerHTML = `<div style="font-size:11px;color:#b45309">${saudeEsc(e.message||e)}</div>`; return; }
+  const linha = (ia, motor) => `<div style="display:flex;align-items:center;gap:9px;padding:6px 8px;background:var(--surface2);border-radius:7px">
+      <img src="/icone-ia.php?p=${encodeURIComponent(ia.personagem)}&s=64" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0">
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">${saudeEsc(ia.nome)} <span style="font-weight:400;color:var(--text3)">· ${saudeEsc(ia.titulo||'')}${ia.dona?' · de '+saudeEsc(ia.dona):''}</span></div>
+        <div style="font-size:10.5px;color:var(--text3)">${saudeEsc((ia.aptas||[]).join(' · '))}${ia.formando&&ia.formando.length?` <span style="opacity:.7">· formando em ${saudeEsc(ia.formando.join(', '))}</span>`:''}</div></div>
+      ${motor ? `<span style="font-size:9.5px;color:var(--text3);border:1px solid var(--border);border-radius:5px;padding:1px 5px" title="só o admin vê o motor">${saudeEsc(motor)}</span>` : ''}</div>`;
+  const m = r.motores || {};
+  box.innerHTML = (r.fixas||[]).map(f => linha(f, m[f.id])).join('') + ((r.ias||[]).map(ia => linha(ia, m.personagens)).join('') || '<div style="font-size:11px;color:var(--text3);padding:4px 8px">Nenhuma IA agêntica habilitada ainda. Elas entram aqui quando ficam aptas na Escola.</div>') + '<div id="ias-consumo"></div>';
   renderConsumoIA();
 }
 
@@ -11506,38 +11544,24 @@ async function renderTrackingEquipe(){
     box.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px">Ninguém trabalhando agora — nem gente, nem IA.</div>';
     return;
   }
+  const T = id => (typeof tasks!=='undefined' ? tasks : []).find(x => x.id === id);
+  const etapa = t => t ? ((STATUS_CFG[t.status]||{}).label || t.status) : '';
+  const av = (url, nome, cor) => url ? `<img src="${url}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+    : `<span style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:${cor||'#444'};color:#fff;flex-shrink:0">${saudeEsc((nome||'?').slice(0,1).toUpperCase())}</span>`;
+  const linha = (i, t, quem, extra) => `<div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 8px;font-size:11.5px;border-left:2px solid ${(t&&t.clients&&t.clients.color)||i.client_color||'#999'};margin-bottom:4px;background:var(--surface2);border-radius:0 7px 7px 0">
+      ${quem}
+      <div style="min-width:0"><div style="display:flex;gap:6px;align-items:baseline"><span style="color:var(--text3);font-size:10px">${saudeEsc(i.task_id)}</span><b style="font-size:11.5px">${saudeEsc((t&&t.clients&&t.clients.name)||'')}</b></div>
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${saudeEsc(t ? t.action : (i.task_action||''))}</div></div>
+      <div style="text-align:right"><div style="font-weight:600;color:var(--text2)">${saudeEsc(etapa(t)||'')}</div><div style="font-size:10px;color:var(--text3)">${extra}</div></div></div>`;
   const porUser = {};
   data.forEach(r => { (porUser[r.user_id] ||= { nome:r.user_name, avatar:r.avatar_url, itens:[] }).itens.push(r); });
-  const gente = Object.values(porUser).map(u => `
-    <div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <span style="width:7px;height:7px;border-radius:50%;background:#16a34a"></span>
-        <span style="font-size:12.5px;font-weight:700">${u.nome}</span>
-        <span style="margin-left:auto;font-size:10px;color:var(--text3)">${u.itens.length} tarefa${u.itens.length>1?'s':''}</span>
-      </div>
-      ${u.itens.map(i => `
-        <div style="display:flex;align-items:center;gap:7px;padding:5px 8px;font-size:11px;
-                    border-left:2px solid ${i.client_color||'#999'};margin-bottom:3px">
-          <span style="color:var(--text3);font-size:10px">${i.task_id}</span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${i.task_action}</span>
-          <span style="font-variant-numeric:tabular-nums;color:var(--text2);font-weight:600">${
-            fmtDur((i.seconds_total_before||0) + (i.seconds_running||0))}</span>
-        </div>`).join('')}
-    </div>`).join('');
-  const iaHtml = ias.length ? `
-    <div style="padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <span style="width:7px;height:7px;border-radius:50%;background:#2563eb"></span>
-        <span style="font-size:12.5px;font-weight:700">Dot · IA</span>
-        <span style="margin-left:auto;font-size:10px;color:var(--text3)">${ias.length} tarefa${ias.length>1?'s':''}</span>
-      </div>
-      ${ias.map(i => { const t = (typeof tasks!=='undefined' ? tasks : []).find(x => x.id === i.task_id);
-        return `<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;font-size:11px;border-left:2px solid ${(t&&t.clients&&t.clients.color)||'#2563eb'};margin-bottom:3px">
-          <span style="color:var(--text3);font-size:10px">${i.task_id}</span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${t?t.action:''}</span>
-          <span style="color:var(--text2);font-weight:600">${i.status==='corrigir'?'corrigindo':'produzindo'}${i.rodada?' · r'+i.rodada:''}</span></div>`; }).join('')}
-    </div>` : '';
-  box.innerHTML = gente + iaHtml;
+  const gente = Object.values(porUser).map(u => u.itens.map(i => linha(i, T(i.task_id),
+      `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:52px">${av(u.avatar, u.nome)}<span style="font-size:9.5px;color:var(--text3);max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${saudeEsc(u.nome)}</span></div>`,
+      'há ' + fmtDur((i.seconds_total_before||0) + (i.seconds_running||0)))).join('')).join('');
+  const iaHtml = ias.map(i => { const t = T(i.task_id);
+      return linha(i, t, `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:52px">${av('/icone-ia.php?p=dot&s=64', 'dot', '#2563eb')}<span style="font-size:9.5px;color:var(--text3)">dot · IA</span></div>`,
+        (i.status==='corrigir' ? 'corrigindo' : 'produzindo') + (i.rodada ? ' · ' + i.rodada + 'ª rodada' : '')); }).join('');
+  box.innerHTML = gente + iaHtml + '<div style="font-size:10px;color:var(--text3);padding:4px 8px">Rodada = ida e volta com a IA externa (dot). Etapa = onde a tarefa está no funil.</div>';
 }
 
 // --- Atraso: BRIEFING nunca atrasa ---
@@ -13115,7 +13139,6 @@ window.abrirSobreApp = abrirSobreApp;
     if (vis('tab-admin-wrap')){
       const ad = [it('Painel admin','admin',ir('admin'))];
       if (vis('adm-mi-saude')) ad.push(it('Saúde','saude',ir('saude')));
-      if (vis('adm-mi-intensivo')) ad.push(it('Intensivo PD','intensivo',ir('intensivo')));
       g.push(`<div class="mf-g">Administração</div><div class="mf-grade">${ad.join('')}</div>`);
     }
     const eu = [it('Nova tarefa','tarefa',"fecharMenuCheio();openNewTaskModal()"), it('Chat da equipe','chat',"fecharMenuCheio();toggleChat()"),

@@ -49,6 +49,7 @@ if ($acao === 'salvar') {
     if ($d['ext_id'] === '') sd_fail('Item sem identificador.');
     $r = sd_supabase('/rest/v1/pd_biblioteca?on_conflict=fonte,ext_id', 'POST', $d, ['Prefer: resolution=merge-duplicates,return=representation']);
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v114 no Supabase.', 500);
+    require_once __DIR__ . '/pd-lib.php'; pdAcervo('midia_banco', 'banco', ['categoria' => 'banco_fotos', 'nome' => (string)($d['titulo'] ?: $d['ext_id']), 'url' => (string)($d['pagina_url'] ?? ''), 'nota' => 'fonte ' . $d['fonte'] . ($d['cliente'] ? ' · cliente ' . $d['cliente'] : ''), 'por' => $u['id']]);
     echo json_encode(['ok' => true, 'id' => $r['body'][0]['id'] ?? null]); exit;
 }
 if ($acao === 'listar') {

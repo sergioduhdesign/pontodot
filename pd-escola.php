@@ -117,6 +117,21 @@ if ($acao === 'perm_salvar') {
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v113 no Supabase.', 500);
     echo json_encode(['ok' => true]); exit;
 }
+if ($acao === 'ias_casa') {   // as IAs agênticas já habilitadas (formação apta), com suas qualidades — para todo mundo; o modelo por trás só para admin
+    $forms = pdAulaSup('/rest/v1/pd_formacoes?ativa=eq.true&select=ia_user_id,personagem,skill_id,apta_em&limit=500')['body'] ?? [];
+    $jeito = pdAulaSup('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=200')['body'] ?? []; $jm = []; foreach ($jeito as $j) $jm[$j['user_id']] = $j;
+    $sk = pdAulaSup('/rest/v1/pd_habilidades?ativa=eq.true&select=skill_id,nome')['body'] ?? []; $sn = []; foreach ($sk as $x) $sn[$x['skill_id']] = $x['nome'];
+    $pf = pdAulaSup('/rest/v1/profiles?select=id,name&limit=300')['body'] ?? []; $nm = []; foreach ($pf as $p) $nm[$p['id']] = $p['name'];
+    $cat = pdPersonagens(); $ias = [];
+    foreach ($forms as $f) { $k = $f['ia_user_id']; $j = $jm[$k] ?? []; $pers = strtolower(trim((string)($j['personagem'] ?? $f['personagem'])));
+        $ias[$k] = $ias[$k] ?? ['id' => $k, 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'titulo' => $cat[$pers][2] ?? '', 'dona' => $nm[$k] ?? '', 'aptas' => [], 'formando' => []];
+        if (!empty($f['apta_em'])) $ias[$k]['aptas'][] = $sn[$f['skill_id']] ?? $f['skill_id']; else $ias[$k]['formando'][] = $sn[$f['skill_id']] ?? $f['skill_id']; }
+    $lista = array_values(array_filter($ias, fn($i) => $i['aptas']));   // só as habilitadas entram na casa
+    usort($lista, fn($a, $b2) => count($b2['aptas']) <=> count($a['aptas']));
+    $fixas = [['id' => 'dot', 'personagem' => 'dot', 'nome' => 'dot', 'titulo' => 'consultor externo', 'dona' => '', 'aptas' => ['transporte e produção externa'], 'fixa' => true], ['id' => 'maestro', 'personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'distribui, cobra e revisa', 'dona' => '', 'aptas' => ['orquestração'], 'fixa' => true]];
+    $out = ['ias' => $lista, 'fixas' => $fixas]; if ($ehAdmin) $out['motores'] = ['dot' => 'GPT (projeto do Sérgio)', 'maestro' => 'Claude', 'personagens' => 'Claude (' . (defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5') . ')'];
+    echo json_encode($out, JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'resumo_admin') {   // histórico de todas as IAs + média de aproveitamento por curso
     $forms = pdAulaSup('/rest/v1/pd_formacoes?select=ia_user_id,personagem,skill_id,ativa,apta_em,criada_em&limit=500')['body'] ?? [];
     $aulas = pdAulaSup('/rest/v1/pd_aulas?modo=neq.teste&status=in.(validada,reprovada)&select=ia_user_id,skill_id,status&limit=3000')['body'] ?? [];

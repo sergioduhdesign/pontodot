@@ -113,6 +113,7 @@ if ($acao === 'exportar') {   // várias imagens (os recortes) → bucket "pecas
             $url = esSobe('export/' . ($id ?: 'avulso') . '/' . $nome, $bytes, $mime); $drive = null;
             if ($pasta) { try { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => $mime, 'b64' => base64_encode($bytes), 'substituir' => false]); $drive = $g['url'] ?? null; } catch (Exception $e) { $aviso = 'Cópia pro Drive falhou: ' . $e->getMessage(); } }
             $saida[] = ['nome' => $nome, 'sufixo' => $suf, 'url' => $url, 'drive_url' => $drive, 'em' => gmdate('c')];
+            pdAcervo('exportacao', 'estudio', ['categoria' => 'banco_fotos', 'client_id' => $clientId, 'nome' => $nome, 'url' => $drive ?: $url, 'mime' => $mime, 'bytes' => strlen($bytes), 'por' => $u['id']]);
         } catch (Exception $e) { $saida[] = ['sufixo' => (string)($a['sufixo'] ?? ''), 'erro' => $e->getMessage()]; }
     }
     if ($p) { $ex = is_array($p['exportada']) ? $p['exportada'] : []; $ex = array_merge(array_values(array_filter($saida, fn($x) => empty($x['erro']))), $ex); sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id), 'PATCH', ['exportada' => array_slice($ex, 0, 40)]); }
@@ -138,6 +139,7 @@ if ($acao === 'subir') {   // upload em lote para cliente › MÍDIA (› subpas
     try { $pasta = esSub(esPastaCliente($c), 'MÍDIA'); if (!empty($b['subpasta'])) $pasta = esSub($pasta, esNomeSeguro($b['subpasta']));
         $g = ponte('gravar', ['folderId' => $pasta, 'nome' => esNomeSeguro($a['nome']), 'mime' => (string)($a['mime'] ?? 'application/octet-stream'), 'b64' => base64_encode($bytes), 'substituir' => false]); }
     catch (Exception $e) { sd_fail($e->getMessage(), 500); }
+    pdAcervo('upload', 'estudio', ['categoria' => stripos((string)($a['mime'] ?? ''), 'video/') === 0 ? 'videos' : 'banco_fotos', 'client_id' => $c['id'], 'nome' => esNomeSeguro($a['nome']), 'url' => (string)($g['url'] ?? ''), 'mime' => (string)($a['mime'] ?? ''), 'bytes' => strlen($bytes), 'por' => $u['id']]);
     echo json_encode(['ok' => true, 'id' => $g['id'] ?? null, 'url' => $g['url'] ?? null]); exit;
 }
 if ($acao === 'fontes') {   // status dos conectores de mídia (para o Estúdio avisar e para o admin ver)
