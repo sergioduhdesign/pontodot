@@ -41,9 +41,10 @@ function pdProfessor($system, $user, $pngB64 = null) {
         if ($code === 200) { $j = json_decode((string)$raw, true); $u = $j['usage'] ?? [];
             return [trim((string)($j['choices'][0]['message']['content'] ?? '')), (($u['prompt_tokens'] ?? 0) * 2 + ($u['completion_tokens'] ?? 0) * 8) / 1e6, null, 'GPT']; }
         error_log('professor GPT HTTP ' . $code);   // cai para o Claude
+        $GLOBALS['pd_gpt_erro'] = 'GPT recusou (HTTP ' . $code . ($code === 401 ? ': chave inválida' : ($code === 429 ? ': sem saldo/limite' : ($code === 404 ? ': modelo inexistente' : ''))) . ')';
     }
     [$t, $c, $e] = pdClaude($system . ' Responda SOMENTE com JSON válido.', $user, 2500);
-    return [$t, $c, $e, 'Claude (sem chave OpenAI)'];
+    return [$t, $c, $e, 'Claude (' . ($GLOBALS['pd_gpt_erro'] ?? 'sem chave OpenAI') . ')'];
 }
 function pdJson($t) { if (preg_match('/\{.*\}/s', (string)$t, $m)) $t = $m[0]; $j = json_decode((string)$t, true); return is_array($j) ? $j : null; }
 
@@ -98,7 +99,7 @@ function pdArteProduzir($iaUserId, $personagem, $skillId, $marca, $pedido, $ante
 
 // ---------------------------------------------------------------- a aula, passo a passo
 function pdAulaCriar($iaUserId, $personagem, $skillId, $modo = 'aula') {
-    $r = pdAulaSup('/rest/v1/pd_aulas', 'POST', ['ia_user_id' => $iaUserId, 'personagem' => $personagem ?: 'ia', 'skill_id' => $skillId, 'modo' => $modo], ['Prefer: return=representation']);
+    $r = pdAulaSup('/rest/v1/pd_aulas', 'POST', ['ia_user_id' => $iaUserId, 'personagem' => $personagem ?: 'ia', 'skill_id' => $skillId, 'modo' => $modo, 'dia' => date('Y-m-d', time() - 3 * 3600)], ['Prefer: return=representation']);
     return $r['body'][0] ?? null;
 }
 function pdAulaPasso($id) {
@@ -118,54 +119,96 @@ function pdAulaPasso($id) {
     }
     if ($a['status'] === 'em_exercicio') {
         $ex = $a['exercicio']; $ent = (array)$a['entregas']; $cor = (array)$a['correcoes'];
-        $ant = $ent ? end($ent)['svg'] ?? null : null; $fb = $cor ? end($cor)['feedback'] ?? null : null;
+        $ant = $ent ? end($ent)['svg'] ?? null : null; $fb = null; if ($cor) { $uc = end($cor); $fb = ($uc['feedback'] ?? '') . (!empty($uc['humano']) ? "\n\nCOMENTÁRIO DO GESTOR (prioridade máxima, aplique antes de tudo):\n" . $uc['humano'] : ''); }
         [$svg, $err] = pdArteProduzir($a['ia_user_id'], $a['personagem'], $a['skill_id'], $ex['cliente_ficticio'] ?? [], ['formato' => $ex['formato'] ?? '1080x1080', 'brief' => $ex['brief'] ?? '', 'criterios' => $ex['criterios'] ?? []], $ant, $fb);
         if (!$svg) return ['ok' => false, 'msg' => 'a aluna não entregou um SVG válido' . ($err ? ': ' . $err : '')];
         $ent[] = ['rodada' => (int)$a['rodada'], 'svg' => $svg, 'em' => gmdate('c')];
         $patch(['entregas' => $ent, 'status' => 'em_correcao']); return ['ok' => true, 'msg' => 'Rodada ' . $a['rodada'] . ': a aluna entregou.'];
     }
     if ($a['status'] === 'em_correcao') {
-        $ex = $a['exercicio']; $ent = (array)$a['entregas']; $cor = (array)$a['correcoes']; $ult = end($ent);
+        // professor EXTERNO: o seu GPT corrige pela API (pd-professor-api.php); aqui só espera
+        if (($cfg['professor_modo'] ?? 'api') === 'externo' && defined('SD_PROFESSOR_TOKEN') && SD_PROFESSOR_TOKEN) return ['ok' => false, 'msg' => 'Aguardando o seu GPT corrigir pela API (professor externo).'];
+        $ex = $a['exercicio']; $ent = (array)$a['entregas']; $ult = end($ent);
         [$t, $c, $e, $prof] = pdProfessor('Você é o PROFESSOR. Corrija a arte (SVG) da aluna com rigor, pelos critérios. JSON: {"nota":0-100,"aprovado":true|false,"feedback":"correção objetiva e acionável, em tópicos","pontos_fortes":"","licao":{"regra":"uma regra geral e reutilizável que a aluna deve levar para sempre","exemplo_bom":"","exemplo_ruim":""}}. Nota >= ' . (int)$cfg['nota_minima'] . ' só se atender TODOS os critérios.',
             "EXERCÍCIO:\n" . json_encode($ex, JSON_UNESCAPED_UNICODE) . "\n\nCRITÉRIOS DA HABILIDADE:\n" . json_encode($sk['criterios'], JSON_UNESCAPED_UNICODE) . "\n\nSVG DA ALUNA (rodada " . $a['rodada'] . "):\n" . mb_substr($ult['svg'], 0, 30000), pdSvgPng($ult['svg']));
         pdIncubSoma($c); $j = pdJson($t); if (!$j) return ['ok' => false, 'msg' => 'professor não devolveu a correção' . ($e ? ': ' . $e : '')];
-        $nota = max(0, min(100, (float)($j['nota'] ?? 0))); $cor[] = ['rodada' => (int)$a['rodada'], 'nota' => $nota, 'feedback' => (string)($j['feedback'] ?? ''), 'fortes' => (string)($j['pontos_fortes'] ?? ''), 'professor' => $prof, 'em' => gmdate('c')];
-        pdAulaSup('/rest/v1/pd_notas', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'fonte' => 'professor', 'nota' => $nota, 'aula_id' => $id]);
-        if ($nota >= (float)$cfg['nota_minima']) {
-            $l = $j['licao'] ?? null;
-            if (is_array($l) && !empty($l['regra'])) pdAulaSup('/rest/v1/pd_licoes', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'regra' => mb_substr($l['regra'], 0, 600), 'exemplo_bom' => mb_substr((string)($l['exemplo_bom'] ?? ''), 0, 400), 'exemplo_ruim' => mb_substr((string)($l['exemplo_ruim'] ?? ''), 0, 400), 'aula_id' => $id]);
-            $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — aprovada pelo professor; aguarda a sua validação.'];
-        }
-        if ((int)$a['rodada'] >= (int)$a['max_rodadas']) { $patch(['correcoes' => $cor, 'status' => 'reprovada', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; reprovada.']; }
-        // a correção vira lição proposta mesmo na rodada intermediária? só ao aprovar. Próxima rodada:
-        $patch(['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — voltou para a aluna refazer (rodada ' . ((int)$a['rodada'] + 1) . ').'];
+        return pdAulaAplicarCorrecao($a, $j, $prof, $cfg);
     }
     return ['ok' => false, 'msg' => 'esta aula está em "' . $a['status'] . '" — nada a fazer agora'];
 }
 
-/** Gestor valida: aprova (lições viram regra permanente) ou reprova. */
-function pdAulaValidar($id, $aprovar, $parecer, $porId) {
-    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id) . '&select=ia_user_id,personagem,skill_id,nota_final,status')['body'][0] ?? null; if (!$a) return false;
+
+/** Aplica a correção do professor (interno ou o seu GPT externo): nota, lição, próximo estado. */
+function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
+    $id = $a['id']; $cfg = $cfg ?: (pdIncub() ?: ['nota_minima' => 85]); $cor = (array)$a['correcoes'];
+    $patch = fn($d) => pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', $d);
+    $nota = max(0, min(100, (float)($j['nota'] ?? 0)));
+    $cor[] = ['rodada' => (int)$a['rodada'], 'nota' => $nota, 'feedback' => (string)($j['feedback'] ?? ''), 'fortes' => (string)($j['pontos_fortes'] ?? ''), 'professor' => $prof, 'em' => gmdate('c')];
+    pdAulaSup('/rest/v1/pd_notas', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'fonte' => 'professor', 'nota' => $nota, 'aula_id' => $id]);
+    if ($nota >= (float)$cfg['nota_minima']) {
+        $l = $j['licao'] ?? null;
+        pdAulaSup('/rest/v1/pd_licoes?aula_id=eq.' . urlencode($id) . '&status=eq.proposta', 'DELETE');
+        if (is_array($l) && !empty($l['regra'])) pdAulaSup('/rest/v1/pd_licoes', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'regra' => mb_substr($l['regra'], 0, 600), 'exemplo_bom' => mb_substr((string)($l['exemplo_bom'] ?? ''), 0, 400), 'exemplo_ruim' => mb_substr((string)($l['exemplo_ruim'] ?? ''), 0, 400), 'aula_id' => $id]);
+        $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' (' . $prof . ') — aprovada pelo professor; aguarda a sua validação.'];
+    }
+    if ((int)$a['rodada'] >= (int)$a['max_rodadas']) { $patch(['correcoes' => $cor, 'status' => 'reprovada', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; reprovada.']; }
+    $patch(['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' (' . $prof . ') — voltou para a aluna refazer (rodada ' . ((int)$a['rodada'] + 1) . ').'];
+}
+
+/** Gestor decide: 'aprovar' (entrega boa) · 'revisar' (comentário e a aluna refaz) · 'reprovar'. */
+function pdAulaValidar($id, $decisao, $parecer, $porId) {
+    if ($decisao === true) $decisao = 'aprovar'; if ($decisao === false) $decisao = 'reprovar';
+    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id) . '&select=*')['body'][0] ?? null; if (!$a) return false;
+    if ($decisao === 'revisar') {
+        $cor = (array)$a['correcoes']; if ($cor) { $k = count($cor) - 1; $cor[$k]['humano'] = mb_substr((string)$parecer, 0, 800); }
+        pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', ['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1, 'max_rodadas' => max((int)$a['max_rodadas'], (int)$a['rodada'] + 1), 'nota_final' => null]);
+        return true;
+    }
+    $aprovar = $decisao === 'aprovar';
     pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', ['status' => $aprovar ? 'validada' : 'reprovada', 'parecer_humano' => mb_substr((string)$parecer, 0, 800), 'validada_por' => $porId, 'validada_em' => gmdate('c')]);
     pdAulaSup('/rest/v1/pd_licoes?aula_id=eq.' . urlencode($id) . '&status=eq.proposta', 'PATCH', $aprovar ? ['status' => 'aprovada', 'aprovada_por' => $porId, 'aprovada_em' => gmdate('c')] : ['status' => 'recusada', 'motivo' => mb_substr((string)$parecer, 0, 300)]);
     if ($aprovar && $a['nota_final'] !== null) pdAulaSup('/rest/v1/pd_notas', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'fonte' => 'humano', 'nota' => $a['nota_final'], 'aula_id' => $id]);
+    pdFormacaoAtualiza($a['ia_user_id'], $a['skill_id']);
     return true;
 }
 
-/** Relógio: com a incubação ligada, a IA treina sozinha (em sandbox, com teto de gasto). */
+// ---------------------------------------------------------------- formação: barra de evolução
+/** Provas fechadas (validada = entrega boa; reprovada = ruim), em ordem. */
+function pdFormacaoSituacao($iaId, $skillId, $cfg = null) {
+    $cfg = $cfg ?: (pdIncub() ?: []); $boasPara = (int)($cfg['boas_para_apto'] ?? 3);
+    $r = pdAulaSup('/rest/v1/pd_aulas?ia_user_id=eq.' . urlencode($iaId) . '&skill_id=eq.' . urlencode($skillId) . '&status=in.(validada,reprovada)&order=criada_em.asc&select=status&limit=400')['body'] ?? [];
+    $fechadas = count($r); $boas = 0; foreach ($r as $x) $boas += $x['status'] === 'validada' ? 1 : 0;
+    $seq = 0; foreach (array_reverse($r) as $x) { if ($x['status'] === 'validada') $seq++; else break; }
+    return ['hist' => array_map(fn($x) => $x['status'] === 'validada' ? 1 : 0, $r), 'fechadas' => $fechadas, 'boas' => $boas, 'seguidas' => $seq, 'boas_para_apto' => $boasPara, 'apta' => $seq >= $boasPara];
+}
+/** Depois de cada decisão do gestor: marca a IA como apta (ou tira, se voltou a errar). */
+function pdFormacaoAtualiza($iaId, $skillId) {
+    $f = pdAulaSup('/rest/v1/pd_formacoes?ia_user_id=eq.' . urlencode($iaId) . '&skill_id=eq.' . urlencode($skillId) . '&select=id,apta_em')['body'][0] ?? null; if (!$f) return;
+    $sit = pdFormacaoSituacao($iaId, $skillId);
+    pdAulaSup('/rest/v1/pd_formacoes?id=eq.' . urlencode($f['id']), 'PATCH', ['apta_em' => $sit['apta'] ? ($f['apta_em'] ?: gmdate('c')) : null]);
+}
+function pdFormacaoMatricula($iaId, $personagem, $skillId) {
+    $r = pdAulaSup('/rest/v1/pd_formacoes?on_conflict=ia_user_id,skill_id', 'POST', ['ia_user_id' => $iaId, 'personagem' => $personagem ?: 'ia', 'skill_id' => $skillId, 'ativa' => true], ['Prefer: resolution=merge-duplicates,return=representation']);
+    return $r['body'][0] ?? null;
+}
+
+/** Relógio: uma PROVA por dia para cada formação em andamento (em sandbox, com teto de gasto). */
 function pdIncubacaoRelogio() {
     $c = pdIncub(); if (!$c || empty($c['ativa'])) return 'desligada';
     if (!pdIncubTemTeto()) return 'teto do dia atingido';
-    $passos = 0; $msg = [];
-    // 1) uma aula em andamento avança
-    $ab = pdAulaSup('/rest/v1/pd_aulas?status=in.(aberta,em_exercicio,em_correcao)&order=criada_em.asc&limit=1&select=id')['body'][0] ?? null;
-    if (!$ab && !empty($c['proxima_checagem']) && strtotime($c['proxima_checagem']) > time()) return 'aguardando a próxima aula';
-    if (!$ab) {   // 2) abre uma nova: IA x habilidade sem nota validada acima do mínimo
-        $ias = pdAulaSup('/rest/v1/pd_jeito?select=user_id,personagem&limit=60')['body'] ?? []; $sks = pdAulaSup('/rest/v1/pd_habilidades?ativa=eq.true&skill_id=like.ARTE*&select=skill_id')['body'] ?? [];
-        $feitas = pdAulaSup('/rest/v1/pd_aulas?status=in.(validada,validacao_humana)&select=ia_user_id,skill_id')['body'] ?? []; $ja = []; foreach ($feitas as $f) $ja[$f['ia_user_id'] . '|' . $f['skill_id']] = 1;
-        foreach ((array)$ias as $i) foreach ((array)$sks as $s) { if (isset($ja[$i['user_id'] . '|' . $s['skill_id']])) continue; $n = pdAulaCriar($i['user_id'], $i['personagem'], $s['skill_id'], 'incubacao'); if ($n) { $ab = ['id' => $n['id']]; pdAulaSup('/rest/v1/pd_incubacao?id=eq.1', 'PATCH', ['proxima_checagem' => gmdate('c', time() + (int)$c['intervalo_horas'] * 3600)]); break 2; } }
+    $msg = []; $meta = (int)($c['provas_meta'] ?? 30); $hoje = date('Y-m-d', time() - 3 * 3600);
+    $abertas = pdAulaSup('/rest/v1/pd_aulas?status=in.(aberta,em_exercicio,em_correcao,validacao_humana)&select=ia_user_id,skill_id,status,id')['body'] ?? [];
+    $ocupado = []; foreach ($abertas as $a) $ocupado[$a['ia_user_id'] . '|' . $a['skill_id']] = 1;
+    $forms = pdAulaSup('/rest/v1/pd_formacoes?ativa=eq.true&apta_em=is.null&select=*&limit=60')['body'] ?? [];
+    foreach ($forms as $f) {
+        $k = $f['ia_user_id'] . '|' . $f['skill_id']; if (isset($ocupado[$k])) continue;
+        $sit = pdFormacaoSituacao($f['ia_user_id'], $f['skill_id'], $c); if ($sit['fechadas'] >= (int)($f['meta_provas'] ?: $meta)) continue;
+        $ja = pdAulaSup('/rest/v1/pd_aulas?ia_user_id=eq.' . urlencode($f['ia_user_id']) . '&skill_id=eq.' . urlencode($f['skill_id']) . '&dia=eq.' . $hoje . '&select=id&limit=1')['body'] ?? [];
+        if ($ja) continue;
+        $n = pdAulaCriar($f['ia_user_id'], $f['personagem'], $f['skill_id'], 'prova'); if ($n) { $msg[] = 'prova do dia aberta (' . $f['skill_id'] . ')'; $abertas[] = ['id' => $n['id'], 'status' => 'aberta', 'ia_user_id' => $f['ia_user_id'], 'skill_id' => $f['skill_id']]; }
+        if (count($msg) >= 3) break;   // no máximo 3 provas novas por rodada do relógio
     }
-    if ($ab) for ($k = 0; $k < 2; $k++) { $r = pdAulaPasso($ab['id']); $msg[] = $r['msg']; $passos++; if (!$r['ok']) break; }
-    if ($ab && !isset($jaAbria)) { /* aula em andamento continua no próximo tick */ }
-    return $passos ? implode(' | ', $msg) : 'nada a treinar';
+    // as provas em andamento avançam (a de “aguarda você” espera o gestor)
+    $n = 0; foreach ($abertas as $a) { if ($a['status'] === 'validacao_humana') continue; for ($i = 0; $i < 3; $i++) { $r = pdAulaPasso($a['id']); $msg[] = $r['msg']; if (!$r['ok']) break; } if (++$n >= 3) break; }
+    return $msg ? implode(' | ', $msg) : 'nada a treinar';
 }

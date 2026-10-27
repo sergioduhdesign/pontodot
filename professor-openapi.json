@@ -1,0 +1,31 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Pontodot — Professor", "version": "1.0.0", "description": "Provas simuladas das IAs da casa. Busque as provas pendentes, avalie com rigor e devolva nota e feedback." },
+  "servers": [{ "url": "https://pontodot.ai" }],
+  "paths": {
+    "/pd-professor-api.php": {
+      "post": {
+        "operationId": "professor",
+        "summary": "Ações do professor: pendentes, corrigir, ensinar",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["acao"],
+          "properties": {
+            "acao": { "type": "string", "enum": ["pendentes", "corrigir", "ensinar"], "description": "pendentes = lista provas aguardando correção; corrigir = envia a avaliação; ensinar = registra uma lição avulsa" },
+            "aula_id": { "type": "string", "description": "id da prova (de 'pendentes'), em 'corrigir'" },
+            "nota": { "type": "number", "description": "0 a 100. Só dê a nota mínima ou mais se TODOS os critérios forem atendidos" },
+            "feedback": { "type": "string", "description": "correção objetiva e acionável, em tópicos" },
+            "pontos_fortes": { "type": "string" },
+            "licao": { "type": "object", "description": "regra geral reutilizável que a aluna leva para sempre (em 'corrigir')",
+              "properties": { "regra": { "type": "string" }, "exemplo_bom": { "type": "string" }, "exemplo_ruim": { "type": "string" } } },
+            "personagem": { "type": "string", "description": "nome da IA aluna, em 'ensinar'" },
+            "skill_id": { "type": "string", "description": "ex.: ARTE_POST, em 'ensinar'" },
+            "regra": { "type": "string", "description": "em 'ensinar'" },
+            "exemplo_bom": { "type": "string" }, "exemplo_ruim": { "type": "string" }
+          } } } } },
+        "responses": { "200": { "description": "ok" } },
+        "security": [{ "bearer": [] }]
+      }
+    }
+  },
+  "components": { "securitySchemes": { "bearer": { "type": "http", "scheme": "bearer" } } }
+}
