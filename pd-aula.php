@@ -22,16 +22,17 @@ if ($acao === 'painel') {
     foreach ($forms as &$f) { $f['sit'] = pdFormacaoSituacao($f['ia_user_id'], $f['skill_id'], $cfg); $f['meta'] = (int)($f['meta_provas'] ?: ($cfg['provas_meta'] ?? 30)); } unset($f);
     $gpt = (defined('SD_OPENAI_KEY') && SD_OPENAI_KEY) ? 'GPT (' . (defined('SD_PROFESSOR_MODEL') ? SD_PROFESSOR_MODEL : 'gpt-4.1') . ')' : null;
     echo json_encode(['formacoes' => $forms, 'externo_ok' => pdPonteOk(), 'ias' => $ias, 'habilidades' => $sk, 'aulas' => $aulas['body'], 'licoes' => $lic, 'notas' => $notas, 'incubacao' => $cfg,
-        'professor' => $gpt ?: 'Claude (falta SD_OPENAI_KEY no sd-config.php para o GPT ser o professor)', 'gpt_ligado' => (bool)$gpt, 'imagick' => class_exists('Imagick')], JSON_UNESCAPED_UNICODE); exit;
+        'professor' => ($cfg['professor_modo'] ?? 'projeto_gpt') === 'api' ? ($gpt ? 'PILOTO: ' . $gpt . ' por API (GPT cru, sem a bagagem do Sérgio)' : 'API sem chave (SD_OPENAI_KEY)') : 'GPT do Projeto “' . pdProjetoProfessor($cfg) . '” (o dot só transporta)', 'gpt_ligado' => (bool)$gpt, 'imagick' => class_exists('Imagick')], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'criar') {
     $ia = (string)($b['ia_user_id'] ?? ''); $skill = (string)($b['skill_id'] ?? ''); $pers = (string)($b['personagem'] ?? '');
     if (!$ia || !$skill) sd_fail('Escolha a IA e a habilidade.');
-    pdFormacaoMatricula($ia, $pers, $skill);
-    $a = pdAulaCriar($ia, $pers, $skill, 'prova'); if (!$a) sd_fail('Não consegui criar a aula (rode o SQL v94).', 500);
+    $teste = !empty($b['teste']);
+    if (!$teste) pdFormacaoMatricula($ia, $pers, $skill);
+    $a = pdAulaCriar($ia, $pers, $skill, $teste ? 'teste' : 'prova'); if (!$a) sd_fail('Não consegui criar a aula (rode o SQL v94).', 500);
     echo json_encode(['ok' => true, 'id' => $a['id']]); exit;
 }
-if ($acao === 'passo') { echo json_encode(pdAulaPasso((string)($b['aula_id'] ?? ''), !empty($b['interno'])), JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'passo') { echo json_encode(pdAulaPasso((string)($b['aula_id'] ?? '')), JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'ver') {
     $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode((string)($b['aula_id'] ?? '')) . '&select=*')['body'][0] ?? null; if (!$a) sd_fail('Aula não encontrada.', 404);
     $l = pdAulaSup('/rest/v1/pd_licoes?aula_id=eq.' . urlencode($a['id']) . '&select=id,regra,exemplo_bom,exemplo_ruim,status')['body'] ?? [];
@@ -40,7 +41,11 @@ if ($acao === 'ver') {
 if ($acao === 'validar') {
     $dec = (string)($b['decisao'] ?? (!empty($b['aprovar']) ? 'aprovar' : 'reprovar')); if (!in_array($dec, ['aprovar', 'revisar', 'reprovar'], true)) sd_fail('Decisão inválida.');
     if ($dec === 'revisar' && trim((string)($b['parecer'] ?? '')) === '') sd_fail('Escreva o comentário para a revisão.');
-    pdAulaValidar((string)($b['aula_id'] ?? ''), $dec, (string)($b['parecer'] ?? ''), $u['id']); echo json_encode(['ok' => true]); exit; }
+    pdAulaValidar((string)($b['aula_id'] ?? ''), $dec, (string)($b['parecer'] ?? ''), $u['id'], (string)($b['licao_regra'] ?? '')); echo json_encode(['ok' => true]); exit; }
+if ($acao === 'reenviar') {   // reenvio MANUAL do aviso ao dot (nada é reenviado sozinho)
+    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode((string)($b['aula_id'] ?? '')) . '&select=*')['body'][0] ?? null; if (!$a || $a['status'] !== 'em_correcao') sd_fail('Só dá para reenviar uma aula que está com o professor.');
+    $sk = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($a['skill_id']) . '&ativa=eq.true&order=versao.desc&limit=1&select=*')['body'][0] ?? [];
+    echo json_encode(pdProfessorEnviar($a, $sk, pdIncub() ?: [], true), JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'matricular') {   // liga/desliga a formação de uma IA numa habilidade
     $ia = (string)($b['ia_user_id'] ?? ''); $sk = (string)($b['skill_id'] ?? ''); if (!$ia || !$sk) sd_fail('Escolha a IA e a habilidade.');
     if (isset($b['ativa']) && !$b['ativa']) { pdAulaSup('/rest/v1/pd_formacoes?ia_user_id=eq.' . urlencode($ia) . '&skill_id=eq.' . urlencode($sk), 'PATCH', ['ativa' => false]); }
@@ -57,11 +62,14 @@ if ($acao === 'testar_gpt') {   // o GPT está mesmo ligado? responde com o moti
 if ($acao === 'licao') {   // o gestor aprova/recusa/aposenta uma lição avulsa
     $st = (string)($b['status'] ?? ''); if (!in_array($st, ['aprovada', 'recusada', 'aposentada'], true)) sd_fail('Status inválido.');
     $d = ['status' => $st]; if ($st === 'aprovada') { $d['aprovada_por'] = $u['id']; $d['aprovada_em'] = gmdate('c'); }
-    if (isset($b['comum'])) $d['comum'] = (bool)$b['comum'];
+    if (isset($b['comum'])) { $d['comum'] = (bool)$b['comum'];
+        if ($d['comum']) { $l0 = pdAulaSup('/rest/v1/pd_licoes?id=eq.' . urlencode((string)($b['id'] ?? '')) . '&select=escopo')['body'][0] ?? []; if (($l0['escopo'] ?? '') === 'cliente') sd_fail('Lição específica de cliente não pode virar regra geral.'); } }
     pdAulaSup('/rest/v1/pd_licoes?id=eq.' . urlencode((string)($b['id'] ?? '')), 'PATCH', $d); echo json_encode(['ok' => true]); exit;
 }
 if ($acao === 'incubacao') {
-    $d = []; foreach (['ativa' => 'bool', 'sandbox' => 'bool', 'boas_para_apto' => 'int', 'provas_meta' => 'int', 'professor_modo' => 'txt', 'intervalo_horas' => 'int', 'teto_gasto_dia' => 'num', 'nota_minima' => 'num'] as $k => $t) if (isset($b[$k])) $d[$k] = $t === 'txt' ? (in_array($b[$k], ['api', 'externo'], true) ? $b[$k] : 'api') : ($t === 'bool' ? (bool)$b[$k] : ($t === 'int' ? max(1, (int)$b[$k]) : (float)$b[$k]));
+    if (!empty($b['ativa'])) { $c0 = pdIncub(); if (empty($c0['teste_confirmado_em'])) sd_fail('Antes de ligar a rotina: rode e confirme a rodada de teste ponta a ponta (PD → dot → Projeto do ChatGPT → dot → PD).'); }
+    if (isset($b['professor_projeto'])) $d0['professor_projeto'] = mb_substr(trim((string)$b['professor_projeto']), 0, 120);
+    $d = $d0 ?? []; foreach (['ativa' => 'bool', 'sandbox' => 'bool', 'boas_para_apto' => 'int', 'provas_meta' => 'int', 'chamados_dia' => 'int', 'professor_modo' => 'txt', 'intervalo_horas' => 'int', 'teto_gasto_dia' => 'num', 'nota_minima' => 'num'] as $k => $t) if (isset($b[$k])) $d[$k] = $t === 'txt' ? (in_array($b[$k], ['projeto_gpt', 'api'], true) ? $b[$k] : 'projeto_gpt') : ($t === 'bool' ? (bool)$b[$k] : ($t === 'int' ? max(1, (int)$b[$k]) : (float)$b[$k]));
     if ($d) pdAulaSup('/rest/v1/pd_incubacao?id=eq.1', 'PATCH', $d); echo json_encode(['ok' => true, 'incubacao' => pdIncub()]); exit;
 }
 sd_fail('Ação desconhecida.');

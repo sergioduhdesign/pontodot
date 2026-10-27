@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v216 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v217 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4933,13 +4933,14 @@ function abrirEscolaGad(){
   gadsAbertos.escola = true; carregarEscola(true); renderBoard();
 }
 async function escAbre(id){ ESC.sel = id; ESC.det = null; ESC.msg = ''; renderBoard(); try { ESC.det = await escFala({ acao:'ver', aula_id:id }); } catch(e){ ESC.msg = e.message; } renderBoard(); }
-async function escPasso(id, interno){ ESC.msg = interno ? 'Corrigindo com o professor interno…' : 'Conferindo a resposta do seu GPT…'; renderBoard(); try { const r = await escFala({ acao:'passo', aula_id:id, interno }); ESC.msg = r.msg || ''; } catch(e){ ESC.msg = e.message; } ESC.em = 0; await carregarEscola(true); }
+async function escPasso(id){ ESC.msg = 'Conferindo se o professor respondeu…'; renderBoard(); try { const r = await escFala({ acao:'passo', aula_id:id }); ESC.msg = r.msg || ''; } catch(e){ ESC.msg = e.message; } ESC.em = 0; await carregarEscola(true); }
+async function escReenvia(id){ ESC.msg = 'Reenviando o aviso ao dot…'; renderBoard(); try { const r = await escFala({ acao:'reenviar', aula_id:id }); ESC.msg = r.msg || ''; } catch(e){ ESC.msg = e.message; } ESC.em = 0; await carregarEscola(true); }
 function escVolta(){ ESC.sel = null; ESC.det = null; ESC.msg = ''; renderBoard(); }
 async function escDecide(dec){
   const c = ($('#escCom') || {}).value || '';
   if (dec === 'revisar' && !c.trim()){ ESC.msg = 'Escreva o comentário para pedir a revisão.'; renderBoard(); return; }
   ESC.msg = 'Enviando…'; renderBoard();
-  try { await escFala({ acao:'validar', aula_id:ESC.sel, decisao:dec, parecer:c }); ESC.msg = dec === 'aprovar' ? 'Entrega aprovada.' : dec === 'revisar' ? 'Voltou para a IA refazer.' : 'Reprovada.'; ESC.sel = null; ESC.det = null; ESC.em = 0; await carregarEscola(true); }
+  try { await escFala({ acao:'validar', aula_id:ESC.sel, decisao:dec, parecer:c, licao_regra:(($('#escLic') || {}).value || '') }); ESC.msg = dec === 'aprovar' ? 'Entrega aprovada.' : dec === 'revisar' ? 'Voltou para a IA refazer.' : 'Reprovada.'; ESC.sel = null; ESC.det = null; ESC.em = 0; await carregarEscola(true); }
   catch(e){ ESC.msg = e.message; renderBoard(); }
 }
 function htmlEscola(){
@@ -4961,19 +4962,21 @@ function htmlEscola(){
       <div class="nota" style="margin:0 0 4px">${esc((ex.cliente_ficticio || {}).nome || '')} · rodada ${A.rodada}</div>
       ${img}
       ${cor ? `<div style="font-size:12.5px"><b>${esc(cor.professor || 'Professor')}: ${Math.round(cor.nota)}/100</b></div><div class="nota" style="white-space:pre-wrap;margin:4px 0 0">${esc(cor.feedback || '')}</div>${cor.humano ? `<div class="nota" style="margin-top:6px"><b>Seu comentário:</b> ${esc(cor.humano)}</div>` : ''}` : '<div class="nota">Ainda sem correção do professor.</div>'}
-      ${pronta ? `<textarea class="esc-ta" id="escCom" placeholder="Comentário ou correção (obrigatório para pedir revisão)"></textarea>
-        <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('aprovar')">👍 Entrega boa</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('revisar')">✏️ Pedir revisão</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('reprovar')">👎 Reprovar</button></div>`
+      ${pronta ? (A.modo === 'teste' ? `<div class="nota" style="margin-top:8px">Rodada de teste: a PD reconheceu um parecer válido do professor. Se ele veio mesmo do GPT do Projeto, confirme para liberar a rotina.</div><textarea class="esc-ta" id="escCom" placeholder="Observação (opcional)"></textarea>
+        <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('aprovar')">✅ Confirmar a ponte</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('reprovar')">Refazer o teste</button></div>`
+        : `<div class="nota" style="margin-top:8px">A decisão é sua. Aprovar = entrega boa e a lição entra no repertório.</div>${(ESC.det.licoes || []).map(l => `<div class="nota" style="margin-top:6px"><b>Lição proposta</b> · escopo ${esc(l.escopo || 'habilidade')}</div><textarea class="esc-ta" id="escLic">${esc(l.regra)}</textarea>`).join('')}<textarea class="esc-ta" id="escCom" placeholder="Comentário ou correção (obrigatório para pedir revisão)"></textarea>
+        <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('aprovar')">👍 Entrega boa</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('revisar')">✏️ Pedir revisão</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('reprovar')">👎 Reprovar</button></div>`)
         : `<div class="nota" style="margin-top:8px">Status: ${esc(A.status.replace(/_/g, ' '))}</div>`}
       ${msg}`, ['‹ Voltar', 'escVolta()']);
   }
   // ---- visão geral
   const fila = (P.aulas || []).filter(a => a.status === 'validacao_humana');
   const forms = (P.formacoes || []).filter(f => f.ativa || f.sit.fechadas);
-  const filaH = fila.length ? `<div class="ads-sec" style="margin-top:0">Aguardam você (${fila.length})</div>` + fila.map(a => `<button class="esc-fila" onclick="escAbre('${a.id}')"><span><b>${esc(nomeIA(a.ia_user_id))}</b> · ${esc(nomeSk(a.skill_id))}<br><small style="opacity:.7">professor deu ${Math.round(a.nota_final || 0)} · decidir</small></span><span>›</span></button>`).join('') : '';
+  const filaH = fila.length ? `<div class="ads-sec" style="margin-top:0">Aguardam você (${fila.length})</div>` + fila.map(a => `<button class="esc-fila" onclick="escAbre('${a.id}')"><span><b>${esc(nomeIA(a.ia_user_id))}</b> · ${esc(nomeSk(a.skill_id))}<br><small style="opacity:.7">${a.modo === 'teste' ? 'TESTE da ponte · ' : ''}professor deu ${Math.round(a.nota_final || 0)} · decidir</small></span><span>›</span></button>`).join('') : '';
   const comGpt = (P.aulas || []).filter(a => a.status === 'em_correcao');
-  const gptH = comGpt.length ? `<div class="ads-sec" style="margin-top:${fila.length?10:0}px">Com o seu GPT (${comGpt.length})</div>` + comGpt.map(a => { const h = a.chamado && a.chamado.enviado_em ? Math.max(0, Math.round((Date.now() - new Date(a.chamado.enviado_em)) / 60000)) : null;
-    return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(nomeIA(a.ia_user_id))}</b> <small>· ${esc(nomeSk(a.skill_id))}</small></span><small>${a.chamado ? (h < 60 ? 'chamado há ' + h + ' min' : 'chamado há ' + Math.round(h / 60) + ' h') : 'vai ser chamado'}</small></div>
-      <div class="esc-bt" style="margin-top:4px"><button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px" onclick="escPasso('${a.id}',false)">Conferir resposta</button><button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px" onclick="escPasso('${a.id}',true)">Corrigir com o interno</button></div></div>`; }).join('') : '';
+  const gptH = comGpt.length ? `<div class="ads-sec" style="margin-top:${fila.length?10:0}px">Aguardando o professor (${comGpt.length})</div>` + comGpt.map(a => { const h = a.chamado && a.chamado.enviado_em ? Math.max(0, Math.round((Date.now() - new Date(a.chamado.enviado_em)) / 60000)) : null;
+    return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(nomeIA(a.ia_user_id))}</b> <small>· ${esc(nomeSk(a.skill_id))}</small></span><small>${a.modo === 'teste' ? 'TESTE · ' : ''}${a.chamado ? (h < 60 ? 'aviso ao dot há ' + h + ' min' : 'aviso ao dot há ' + Math.round(h / 60) + ' h') : 'ainda não avisado'}</small></div>
+      <div class="esc-bt" style="margin-top:4px"><button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px" onclick="escPasso('${a.id}')">Conferir resposta</button><button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px" onclick="escReenvia('${a.id}')">Reenviar aviso ao dot</button></div></div>`; }).join('') : '';
   const evo = forms.map(f => {
     const st = f.sit, m = f.meta || meta0, aberta = (P.aulas || []).find(a => a.ia_user_id === f.ia_user_id && a.skill_id === f.skill_id && ['aberta','em_exercicio','em_correcao'].includes(a.status));
     let seg = ''; for (let i = 0; i < m; i++){ const v = st.hist[i]; seg += `<i class="${v === 1 ? 'b' : v === 0 ? 'r' : (i === st.hist.length && aberta ? 'a' : '')}"></i>`; }
@@ -4981,7 +4984,7 @@ function htmlEscola(){
       <div class="esc-bar" style="grid-template-columns:repeat(${m},1fr)">${seg}</div>
       <div class="esc-nm"><small>${st.fechadas} de ${m} provas · ${st.boas} boas</small><small>seguidas ${Math.min(st.seguidas, bp)}/${bp}</small></div></div>`;
   }).join('') || `<div class="nota" style="line-height:1.5">Nenhuma IA em formação ainda. Matricule em “Gerenciar”.</div>`;
-  const aviso = I.professor_modo === 'externo' ? `<div class="nota" style="margin:8px 0 0">Professor: o seu GPT (Dot), por e-mail e Drive.</div>` : !P.gpt_ligado ? `<div class="nota" style="margin:8px 0 0;line-height:1.45">⚠️ Professor hoje: Claude. Escolha “Meu GPT” em Gerenciar.</div>` : `<div class="nota" style="margin:8px 0 0">Professor: ${esc(P.professor)} (sem memória de você)</div>`;
+  const aviso = `<div class="nota" style="margin:8px 0 0;line-height:1.45">${I.teste_confirmado_em ? '' : '🔒 Rotina travada: falta a rodada de teste ponta a ponta (em Gerenciar). '}Professor: ${esc(P.professor)}</div>`;
   return gadCaixa('Escola das IAs', (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + gptH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
 }
 
