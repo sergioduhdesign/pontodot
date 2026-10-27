@@ -751,6 +751,13 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .ads-tot div{border:.5px solid var(--linha);border-radius:12px;padding:9px 10px}
 .ads-tot small{display:block;font-size:11px;opacity:.7}
 .ads-tot b{display:block;font-size:17px;font-weight:500;margin-top:2px;white-space:nowrap}
+.esc-bar{display:grid;gap:2px;margin:7px 0 5px}.esc-bar i{height:9px;border-radius:2px;background:rgba(128,128,128,.28)}.esc-bar i.b{background:#3fbf7f}.esc-bar i.r{background:#e0564a}.esc-bar i.a{background:#5b8def;animation:escp 1.2s infinite}@keyframes escp{50%{opacity:.35}}
+.esc-it{padding:10px 0;border-top:.5px solid var(--sep)}.esc-it:first-of-type{border-top:0}.esc-nm{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}.esc-nm small{opacity:.65}
+.esc-apta{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:#3fbf7f;color:#fff;white-space:nowrap}
+.esc-fila{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;margin-top:6px;border-radius:12px;border:.5px solid var(--linha);background:rgba(224,160,40,.14);color:inherit;font:inherit;font-size:12px;text-align:left;cursor:pointer}
+.esc-img{width:100%;border-radius:10px;background:#fff;border:.5px solid var(--linha);margin:8px 0 6px}
+.esc-ta{width:100%;min-height:54px;font:inherit;font-size:12px;padding:8px;border-radius:10px;border:.5px solid var(--linha);background:rgba(128,128,128,.12);color:inherit;resize:vertical}
+.esc-bt{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .ads-linha{display:flex;align-items:center;gap:10px;width:100%;padding:10px 2px;border:0;border-top:.5px solid var(--sep);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .ads-linha .c{flex:1;min-width:0}
 .ads-linha .n{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2318,7 +2325,6 @@ pdAbertura(false);
   <button class="cl-b cl-mob" id="clConv" onclick="alternarHist()" title="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg></button>
   <button class="cl-b cl-mob" id="clHist" onclick="abrirHistoricoDoApp()" title="Histórico de ações" aria-label="Histórico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></button>
   <button class="cl-b" id="clTema" onclick="alternarTema()" title="Dia / noite" aria-label="Inverter dia e noite"></button>
-  <button class="cl-b" id="clEscola" onclick="abrirSala()" title="Escola das IAs" aria-label="Escola das IAs" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></button>
   <button class="cl-b" id="clAdmin" onclick="clAdmin(event)" title="Administração" aria-label="Administração" style="display:none">
     <svg class="cl-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><svg class="cl-ham" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
   <button class="cl-b cl-av" id="clAv" onclick="abrirPerfil()" title="Sua conta" aria-label="Sua conta">··</button>
@@ -2347,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v214 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v215 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4475,6 +4481,8 @@ const NOVIDADES = {
   zap: () => !window.REAL || !ehAdmin() ? [] : ZAP.rows.filter(r => r.direcao === 'entrada' && !(ZAP.conv[zapDig(r.para)] || {}).arquivada).slice(0, 60).map(r => ({ k: String(r.id) })),
   // lead novo que ninguém atendeu
   anuncios: () => !window.REAL || !ADS.leads ? [] : ADS.leads.filter(l=>l.status==='novo').map(l => ({ k: String(l.id) })),
+  // prova que já passou pelo professor e espera a sua decisão
+  escola: () => !window.REAL || !ehAdmin() || !ESC.dados ? [] : (ESC.dados.aulas || []).filter(a => a.status === 'validacao_humana').map(a => ({ k: String(a.id) })),
   // comentários de outras pessoas
   tarefas: () => !window.REAL ? [] : comentsReais.filter(c => c.quem !== perfil.name).slice(0, 12).map(c => ({ k: c.tarefa + ':' + c.quando })),
 };
@@ -4899,6 +4907,79 @@ async function vincularAds(conta, clientId){
   catch(e){ toast('Não salvou: ' + e.message); }
 }
 
+
+// =====================================================================
+// ESCOLA DAS IAs — a caixa da área de trabalho: evolução, fila de provas e decisão,
+// tudo aqui dentro (nada abre outra tela). Dados: pd-aula.php (só admin).
+// =====================================================================
+let ESC = { dados:null, erro:'', carregando:false, em:0, sel:null, det:null, msg:'' };
+async function escFala(dados){
+  const { data:{ session } } = await sbR.auth.getSession();
+  const r = await fetch('/pd-aula.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify(dados) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+  return j;
+}
+async function carregarEscola(forcar){
+  if (!window.REAL || ESC.carregando) return;
+  if (!forcar && ESC.em && Date.now() - ESC.em < 90e3) return;
+  ESC.carregando = true;
+  try { ESC.dados = await escFala({ acao:'painel' }); ESC.erro = ''; } catch(e){ ESC.erro = e.message; }
+  ESC.em = Date.now(); ESC.carregando = false;
+  try { renderBoard(); } catch(e){}
+}
+function abrirEscolaGad(){
+  if (!meusGadgets.includes('escola')){ meusGadgets = [...meusGadgets, 'escola']; salvarGadgets(); }
+  gadsAbertos.escola = true; carregarEscola(true); renderBoard();
+}
+async function escAbre(id){ ESC.sel = id; ESC.det = null; ESC.msg = ''; renderBoard(); try { ESC.det = await escFala({ acao:'ver', aula_id:id }); } catch(e){ ESC.msg = e.message; } renderBoard(); }
+function escVolta(){ ESC.sel = null; ESC.det = null; ESC.msg = ''; renderBoard(); }
+async function escDecide(dec){
+  const c = ($('#escCom') || {}).value || '';
+  if (dec === 'revisar' && !c.trim()){ ESC.msg = 'Escreva o comentário para pedir a revisão.'; renderBoard(); return; }
+  ESC.msg = 'Enviando…'; renderBoard();
+  try { await escFala({ acao:'validar', aula_id:ESC.sel, decisao:dec, parecer:c }); ESC.msg = dec === 'aprovar' ? 'Entrega aprovada.' : dec === 'revisar' ? 'Voltou para a IA refazer.' : 'Reprovada.'; ESC.sel = null; ESC.det = null; ESC.em = 0; await carregarEscola(true); }
+  catch(e){ ESC.msg = e.message; renderBoard(); }
+}
+function htmlEscola(){
+  if (!window.REAL) return gadCaixa('Escola das IAs', `<div class="nota">Entre na sua conta para ver a formação das IAs.</div>`);
+  if (!ESC.em && !ESC.carregando) setTimeout(() => carregarEscola(), 0);
+  if (ESC.erro && !ESC.dados) return gadCaixa('Escola das IAs', `<div class="nota" style="line-height:1.5">${esc(ESC.erro)}</div>`);
+  if (!ESC.dados) return gadCaixa('Escola das IAs', `<div class="nota">Carregando…</div>`);
+  const P = ESC.dados, I = P.incubacao || {}, bp = +(I.boas_para_apto || 3), meta0 = +(I.provas_meta || 30);
+  const nomeIA = id => (P.ias.find(x => x.id === id) || {}).nome || 'IA';
+  const nomeSk = id => (P.habilidades.find(x => x.skill_id === id) || {}).nome || id;
+  // ---- detalhe de uma prova (decisão dentro da caixa)
+  if (ESC.sel){
+    const A = ESC.det && ESC.det.aula, msg = ESC.msg ? `<div class="nota" style="margin:6px 0">${esc(ESC.msg)}</div>` : '';
+    if (!A) return gadCaixa('Prova', msg || `<div class="nota">Abrindo…</div>`, ['‹ Voltar', 'escVolta()']);
+    const ent = (A.entregas || []).slice(-1)[0], cor = (A.correcoes || []).slice(-1)[0], ex = A.exercicio || {};
+    const img = ent ? `<img class="esc-img" src="data:image/svg+xml;utf8,${encodeURIComponent(ent.svg)}" alt="">` : '';
+    const pronta = A.status === 'validacao_humana';
+    return gadCaixa(esc(nomeIA(A.ia_user_id)) + ' · ' + esc(nomeSk(A.skill_id)), `
+      <div class="nota" style="margin:0 0 4px">${esc((ex.cliente_ficticio || {}).nome || '')} · rodada ${A.rodada}</div>
+      ${img}
+      ${cor ? `<div style="font-size:12.5px"><b>${esc(cor.professor || 'Professor')}: ${Math.round(cor.nota)}/100</b></div><div class="nota" style="white-space:pre-wrap;margin:4px 0 0">${esc(cor.feedback || '')}</div>${cor.humano ? `<div class="nota" style="margin-top:6px"><b>Seu comentário:</b> ${esc(cor.humano)}</div>` : ''}` : '<div class="nota">Ainda sem correção do professor.</div>'}
+      ${pronta ? `<textarea class="esc-ta" id="escCom" placeholder="Comentário ou correção (obrigatório para pedir revisão)"></textarea>
+        <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('aprovar')">👍 Entrega boa</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('revisar')">✏️ Pedir revisão</button><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="escDecide('reprovar')">👎 Reprovar</button></div>`
+        : `<div class="nota" style="margin-top:8px">Status: ${esc(A.status.replace(/_/g, ' '))}</div>`}
+      ${msg}`, ['‹ Voltar', 'escVolta()']);
+  }
+  // ---- visão geral
+  const fila = (P.aulas || []).filter(a => a.status === 'validacao_humana');
+  const forms = (P.formacoes || []).filter(f => f.ativa || f.sit.fechadas);
+  const filaH = fila.length ? `<div class="ads-sec" style="margin-top:0">Aguardam você (${fila.length})</div>` + fila.map(a => `<button class="esc-fila" onclick="escAbre('${a.id}')"><span><b>${esc(nomeIA(a.ia_user_id))}</b> · ${esc(nomeSk(a.skill_id))}<br><small style="opacity:.7">professor deu ${Math.round(a.nota_final || 0)} · decidir</small></span><span>›</span></button>`).join('') : '';
+  const evo = forms.map(f => {
+    const st = f.sit, m = f.meta || meta0, aberta = (P.aulas || []).find(a => a.ia_user_id === f.ia_user_id && a.skill_id === f.skill_id && ['aberta','em_exercicio','em_correcao'].includes(a.status));
+    let seg = ''; for (let i = 0; i < m; i++){ const v = st.hist[i]; seg += `<i class="${v === 1 ? 'b' : v === 0 ? 'r' : (i === st.hist.length && aberta ? 'a' : '')}"></i>`; }
+    return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(nomeIA(f.ia_user_id))}</b> <small>· ${esc(nomeSk(f.skill_id))}</small></span>${f.apta_em ? '<span class="esc-apta">🎓 Apta</span>' : ''}</div>
+      <div class="esc-bar" style="grid-template-columns:repeat(${m},1fr)">${seg}</div>
+      <div class="esc-nm"><small>${st.fechadas} de ${m} provas · ${st.boas} boas</small><small>seguidas ${Math.min(st.seguidas, bp)}/${bp}</small></div></div>`;
+  }).join('') || `<div class="nota" style="line-height:1.5">Nenhuma IA em formação ainda. Matricule em “Gerenciar”.</div>`;
+  const aviso = !P.gpt_ligado ? `<div class="nota" style="margin:8px 0 0;line-height:1.45">⚠️ Professor hoje: Claude. O GPT ainda não está ligado.</div>` : `<div class="nota" style="margin:8px 0 0">Professor: ${esc(P.professor)}</div>`;
+  return gadCaixa('Escola das IAs', (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
+}
+
 const GADGETS = {
   tarefas:   { nome:'Tarefas', fixo:true, html:()=>`<div class="caixa cx-tarefas">${htmlTarefas()}</div>` },
   conversas: { nome:'Conversas', oculto:true, html:()=>htmlConversas() },
@@ -4989,6 +5070,7 @@ const GADGETS = {
       <div class="nota" style="margin:8px 0 0">74% na última semana · melhor mês do ano</div>`,
       ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
+  escola:    { nome:'Escola das IAs', admin:true, html:()=>htmlEscola() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
 };
 // o admin de clientes do SD, na roupa nova
@@ -5227,6 +5309,7 @@ const ICONE_GAD = {
   clientes:'<path d="M4 20.5V5.5A1.5 1.5 0 0 1 5.5 4h7A1.5 1.5 0 0 1 14 5.5v15M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5M4 20.5h16"/><path d="M7 8h2M7 11.5h2M7 15h2M16.5 13h1M16.5 16h1"/>',
   equipe:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c.6-4 3.4-6.2 7-6.2s6.4 2.2 7 6.2"/>',
   relatorios:'<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>',
+  escola:'<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',
   anuncios:'<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 7a7 7 0 0 1 0 10"/>',
   publicacao:'<path d="M12 19V5M5 12l7-7 7 7"/><path d="M5 21h14"/>',
   financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
@@ -5425,7 +5508,7 @@ function novoChat(){
 }
 function novaTarefa(){ novoChat(); }
 // No app (celular) o conjunto é FIXO: não dá para pôr nem tirar. Só o que importa no dia a dia.
-const GADGETS_APP = ['tarefas','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap'];
+const GADGETS_APP = ['tarefas','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','escola'];
 function gadgetsDaTela(){ return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
 
 // setinha à direita: avisa que há mais caixinhas para rolar
@@ -5680,7 +5763,7 @@ function menuCheio(prep){
     <div class="mc-tiles">
       ${tl('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>','Buscar','clAbrirBusca()')}
       ${liberado ? tl('<path d="M12 5v14M5 12h14"/>','Nova tarefa','menuNovaTarefa()') : ''}
-      ${ehAdmin() ? tl('<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>','Escola das IAs','abrirSala()') : ''}
+      ${ehAdmin() ? tl('<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>','Escola das IAs','abrirEscolaGad()') : ''}
       ${tl('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>','Claro / escuro','alternarTema()')}
       <button class="mc-t mc-t-av" onclick="fecharMenuCheio();abrirPerfil()" aria-label="Sua conta">${avSrc}</button>
     </div>
@@ -5690,7 +5773,7 @@ function menuCheio(prep){
     ` : ''}
     <div class="mc-g">Conversas</div>
     ${acao('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>','Conversas','alternarHist()', nBadge ? `<em class="mc-n">${nBadge}</em>` : '')}
-    ${ehAdmin() ? `<div class="mc-g">Administração</div>${ITENS_ADMIN.filter(x=>x[0]!=='intensivo').map(nav).join('')}${acao('<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>','Escola das IAs','abrirSala()')}` : ''}
+    ${ehAdmin() ? `<div class="mc-g">Administração</div>${ITENS_ADMIN.filter(x=>x[0]!=='intensivo').map(nav).join('')}${acao('<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>','Escola das IAs','abrirEscolaGad()')}` : ''}
     ${liberado ? `<div class="mc-esc-sec"><div class="mc-g">Pontodot</div><button class="mc-esc" onclick="fecharMenuCheio();irAdmin('feed')"><img src="assets/logo-pontodot-escola-white.svg" class="m-escuro" alt="pontodot"><img src="assets/logo-pontodot-escola-preto.svg" class="m-claro" alt="pontodot"><span>Aprenda com as IAs que trabalham aqui.</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>${ehAdmin() ? `<button class="mc-esc mc-int" onclick="fecharMenuCheio();irAdmin('intensivo')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>Intensivo PD</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>` : ''}</div>` : ''}
     </div>`;
   try{
@@ -5730,7 +5813,7 @@ function clAdmin(ev){
   if (m.classList.contains('on')){ m.classList.remove('on'); return; }
   $('#clRes').classList.remove('on');
   const btn = ([v,n]) => `<button class="cl-it" onclick="irAdmin('${v}')"><b>${n}</b></button>`;
-  const adm = ehAdmin() ? ITENS_ADMIN.map(btn).join('') + `<button class="cl-it" onclick="$('#clMenu')?.classList.remove('on');abrirSala()"><b>Escola das IAs</b></button>` : '';
+  const adm = ehAdmin() ? ITENS_ADMIN.map(btn).join('') + `<button class="cl-it" onclick="$('#clMenu')?.classList.remove('on');abrirEscolaGad()"><b>Escola das IAs</b></button>` : '';
   m.innerHTML = ehDesk() ? adm
     : `<div class="cl-sec">Pontodot completa</div>${ITENS_TOPO.map(btn).join('')}${adm ? `<div class="cl-sec">Admin</div>${adm}` : ''}`;
   m.classList.add('on');
@@ -7385,7 +7468,6 @@ async function entrarReal(session){
   window.REAL = true;
   $('#cluster')?.classList.add('on');
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }
-  { const es = $('#clEscola'); if (es && (perfil.role === 'admin' || perfil.is_admin)) es.style.display = ''; }
   sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile') : r)
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id') : r)
@@ -7412,6 +7494,8 @@ async function entrarReal(session){
   await lendoIA;                 // a saudação já sai com a IA certa
   carregarThreadsSalvas();
   saudacaoDaSD();
+  // a Escola das IAs entra na área de trabalho do admin (uma vez; depois é escolha dele)
+  try { if (ehAdmin() && !localStorage.getItem('sd_escola_add')){ localStorage.setItem('sd_escola_add','1'); if (!meusGadgets.includes('escola')){ meusGadgets = [...meusGadgets, 'escola']; salvarGadgets(); renderBoard(); } } } catch(e){}
   // voltou da Meta: abre os Anúncios já atualizados
   if (window._retornoMeta && window._retornoMeta.m === 'ok'){
     if (!meusGadgets.includes('anuncios')){ meusGadgets = [...meusGadgets, 'anuncios']; salvarGadgets(); }
