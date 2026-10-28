@@ -110,7 +110,7 @@ if ($acao === 'exportar') {   // várias imagens (os recortes) → bucket "pecas
     if (!$lista && !empty($b['imagem'])) $lista = [['sufixo' => '', 'imagem' => $b['imagem'], 'tipo' => $b['tipo'] ?? 'png']];
     if (!$lista) sd_fail('Nada para exportar.');
     $pasta = null; $aviso = null;
-    try { $c = esCliente($clientId); $pasta = esSub(esSub(esPastaCliente($c), 'ESTÚDIO'), $base); } catch (Exception $e) { $aviso = 'Sem Drive: ' . $e->getMessage(); }
+    try { $c = esCliente($clientId); $pasta = esSub(esSub(esPastaCliente($c), 'ESTÚDIO'), !empty($b['pasta']) ? esNomeSeguro($b['pasta']) : $base); } catch (Exception $e) { $aviso = 'Sem Drive: ' . $e->getMessage(); }
     $saida = []; $carimbo = date('Ymd-Hi');
     foreach (array_slice($lista, 0, 12) as $a) {
         try { $bytes = esB64($a['imagem'] ?? ''); if (strlen($bytes) > 30 * 1024 * 1024) throw new Exception('imagem grande demais');

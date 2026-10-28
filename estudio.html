@@ -132,7 +132,7 @@ const FORMATOS=[
  {g:'Papelaria',tipo:'assinatura',nome:'Assinatura de e-mail · 600×200 px',w:600,h:200,seed:'assinatura'},
  IMP('Folders','folder-a4','Folder A4 simples',210,297,'folder'),
  IMP('Folders','folder-a5','Flyer A5',148,210,'folder'),
- IMP('Folders','folder-3','Folder tríptico (A4 aberto)',297,210,'triptico'),
+ IMP('Folders','folder-3','Folder tríptico (A4 aberto)',297,210,'triptico',{vincos:[99,198]}),
  IMP('Folders','folder-q','Folder quadrado',210,210,'folder'),
  {g:'Impresso',tipo:'impresso-livre',nome:'Medida livre (mm)…',w:mm2px(110),h:mm2px(110),mm:[100,100],impresso:true,livre:true},
  {g:'Apresentação',tipo:'slide',nome:'Apresentação 16:9 · 1920×1080 px',w:1920,h:1080,paginas:true,seed:'slide'},
@@ -738,17 +738,17 @@ function specParaDoc(pg,Wd,Hd,galeria,principais,fmtPrincipal){return new Promis
   else depois();});}
 async function aprovar(){if(!PA.atual)return;if(!confirm('Fechar o lote e mandar tudo pra Saída de materiais?'))return;PA.busy=true;PA.msg='Mandando pra Saída de materiais…';pautaUI();
   cronoPauta();try{await ia({acao:'aprovar',id:PA.atual.id});
-    const deriv=PA.pecas.filter(x=>x.papel==='derivada');let n=0,pdfs=0;const avisos=[];
+    const deriv=PA.pecas.filter(x=>x.papel==='derivada');let n=0,pdfs=0;const avisos=[];const loteSeg=(PA.atual.nome||'lote').replace(/[\/\\:*?"<>|]+/g,'-');
     for(const d of deriv){const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id:d.id});const pgs=p.doc.paginas||[p.doc];const arquivos=[];
       const nomeSeg=(p.nome||'peca').replace(/[\/\\:*?"<>|]+/g,'-');
       if(p.formato.impresso){   // impresso: PDF de gráfica (CMYK, curvas, sangria) pela oficina — um pedido por página
-        for(let i=0;i<pgs.length;i++){const html=await svgImpresso(pgs[i],p.formato.w,p.formato.h);const nm=nomeSeg+(pgs.length>1?' p'+(i+1):'');
-          const r=await api('pd-oficina.php',{acao:'pedir',modulo:'pdf',titulo:'PDF gráfica · '+nm,client_id:p.client_id,ok_agora:true,entrada:{nome:nm,html,largura_mm:px2mm(p.formato.w),altura_mm:px2mm(p.formato.h),sangria_mm:p.formato.sangria||SANGRIA,impresso:true,drive_subpasta:'ESTÚDIO/'+nomeSeg,pedido:'PDF para gráfica: CMYK, curvas, 300 dpi, sangria '+(p.formato.sangria||SANGRIA)+' mm'}});
+        for(let i=0;i<pgs.length;i++){const f0=FORMATOS.find(x=>x.tipo===p.formato.tipo)||{};const html=await svgImpresso(pgs[i],p.formato.w,p.formato.h,{nome:p.nome,sangria:p.formato.sangria||SANGRIA,vincos:f0.vincos||[]});const nm=nomeSeg+(pgs.length>1?' p'+(i+1):'');
+          const r=await api('pd-oficina.php',{acao:'pedir',modulo:'pdf',titulo:'PDF gráfica · '+nm,client_id:p.client_id,ok_agora:true,entrada:{nome:nm,html,largura_mm:px2mm(p.formato.w)+20,altura_mm:px2mm(p.formato.h)+20,sangria_mm:p.formato.sangria||SANGRIA,marcas:true,impresso:true,drive_subpasta:'ESTÚDIO/'+loteSeg,lote:{id:PA.atual.id,nome:PA.atual.nome},pedido:'PDF para gráfica: CMYK, curvas, 300 dpi, sangria '+(p.formato.sangria||SANGRIA)+' mm, marcas de corte e registro'}});
           if(r.trabalho)acompanhaOficina(r.trabalho.id,'o PDF de gráfica de '+nm);pdfs++;}
         continue;}
       for(let i=0;i<pgs.length;i++){const png=await new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:p.formato.w,height:p.formato.h});sc.loadFromJSON(pgs[i],()=>{sc.renderAll();res(sc.toDataURL({format:'png'}));});});
         const pfx=pgs.length>1?('p'+(i+1)+'-'):'';if(p.formato.tipo==='carrossel'){arquivos.push({sufixo:pfx+'feed',imagem:png});arquivos.push({sufixo:pfx+'quadrado',imagem:await recorta(png,1080,1080)});}else if(p.formato.tipo==='stories')arquivos.push({sufixo:pfx+'stories',imagem:png});else arquivos.push({sufixo:pfx+'final',imagem:png});}
-      for(let i=0;i<arquivos.length;i+=6){const r=await api('pd-estudio.php',{acao:'exportar',id:p.id,client_id:p.client_id,nome:p.nome,arquivos:arquivos.slice(i,i+6)});if(r.aviso)avisos.push(p.nome+': '+r.aviso);(r.arquivos||[]).forEach(a=>{if(a.erro)avisos.push(p.nome+': '+a.erro);});}n+=arquivos.length;}
+      for(let i=0;i<arquivos.length;i+=6){const r=await api('pd-estudio.php',{acao:'exportar',id:p.id,client_id:p.client_id,nome:p.nome,pasta:loteSeg,arquivos:arquivos.slice(i,i+6)});if(r.aviso)avisos.push(p.nome+': '+r.aviso);(r.arquivos||[]).forEach(a=>{if(a.erro)avisos.push(p.nome+': '+a.erro);});}n+=arquivos.length;}
     await ia({acao:'produzida',id:PA.atual.id});PA.msg=avisos.length?('Atenção: '+avisos.join(' · ')):'';await pautaAbrir(PA.atual.id);if(avisos.length)PA.msg='Atenção: '+avisos.join(' · ');
     msg('Lote fechado. '+(pdfs?pdfs+' PDF de gráfica em produção':'')+(n?(pdfs?' e ':'')+n+' arquivos digitais já no Drive':'')+'. Acompanhe em Saída de materiais, na home; eu aviso quando cada arquivo chegar.',9000);}
   catch(e){PA.msg=e.message;}
@@ -834,7 +834,7 @@ function menuExport(){fechaMenu();const f=FORMATOS.find(x=>x.tipo===F().tipo)||{
   $('#app').appendChild(m);}
 async function baixar(tipo,q){const d=await renderPagina(PECA.pag,{format:tipo==='jpg'?'jpeg':'png',quality:q||.92});const a=document.createElement('a');a.href=d;a.download=($('#nome').value||'peca')+(PECA.nPag>1?'-p'+(PECA.pag+1):'')+'.'+tipo;a.click();fechaMenu();}
 // PDF para gráfica: SVG vetorial da prancheta (texto como texto + fontes embutidas) → oficina (Chromium → Ghostscript: CMYK, curvas, 300 dpi)
-async function svgImpresso(dPag,Wq,Hq){const d=dPag||docPagina(PECA.pag);const Wp=Wq||W(),Hp=Hq||Hh(),wmm=px2mm(Wp),hmm=px2mm(Hp);
+async function svgImpresso(dPag,Wq,Hq,opt){opt=opt||{};const d=dPag||docPagina(PECA.pag);const Wp=Wq||W(),Hp=Hq||Hh(),wmm=px2mm(Wp),hmm=px2mm(Hp);
   const fams=[...new Set((dPag?(d.objects||[]).filter(o=>o.type==='textbox').map(o=>o.fontFamily):objetos().filter(o=>o.type==='textbox').map(o=>o.fontFamily)))];await Promise.all(fams.map(garanteFonte));
   let svg=await new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:Wp,height:Hp});sc.loadFromJSON(d,()=>{res(sc.toSVG({viewBox:{x:0,y:0,width:Wp,height:Hp},width:Wp,height:Hp}));});});
   svg=svg.replace(/<svg([^>]*)width="[^"]*"([^>]*)height="[^"]*"/,`<svg$1width="${wmm}mm"$2height="${hmm}mm"`);
@@ -844,10 +844,21 @@ async function svgImpresso(dPag,Wq,Hq){const d=dPag||docPagina(PECA.pag);const W
     for(const f of cf)css+=`@font-face{font-family:"${n}";font-weight:${f.peso};font-style:${f.italico?'italic':'normal'};src:url("${location.origin+f.url}");}`;
     if(!kf.length&&!cf.length&&FONTES.includes(n))links.push(`<link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(n).replace(/%20/g,'+')}:ital,wght@0,300;0,400;0,700;0,900;1,400;1,700&display=block" rel="stylesheet">`);}
   svg=svg.replace(/href="\/pd-estudio\.php/g,`href="${location.origin}/pd-estudio.php`);
-  return `<!doctype html><html><head><meta charset="utf-8">${links.join('')}<style>${css}@page{size:${wmm}mm ${hmm}mm;margin:0}html,body{margin:0;padding:0}svg{display:block}</style></head><body>${svg}</body></html>`;}
+  if(opt.marcas===false)return `<!doctype html><html><head><meta charset="utf-8">${links.join('')}<style>${css}@page{size:${wmm}mm ${hmm}mm;margin:0}html,body{margin:0;padding:0}svg{display:block}</style></head><body>${svg}</body></html>`;
+  // ferramental de saída: margem de 10 mm em volta com marcas de corte, registro, barra de cores, vincos e legenda
+  const S=opt.sangria??(F().sangria||SANGRIA),M=10,tw=Math.round((wmm-2*S)*10)/10,th=Math.round((hmm-2*S)*10)/10,PW=wmm+2*M,PH=hmm+2*M;const L=M+S,T=M+S,R=L+tw,B=T+th;const st='stroke:#000;stroke-width:.2;fill:none';
+  const corte=[[L,T,-1,-1],[R,T,1,-1],[L,B,-1,1],[R,B,1,1]].map(([x,y,dx,dy])=>`<path d="M${x+dx*(S+1)} ${y}h${dx*5}M${x} ${y+dy*(S+1)}v${dy*5}" style="${st}"/>`).join('');
+  const reg=(x,y)=>`<g style="${st}"><circle cx="${x}" cy="${y}" r="1.6"/><path d="M${x-2.6} ${y}h5.2M${x} ${y-2.6}v5.2"/></g>`;
+  const registro=reg(PW/2,M/2+1)+reg(PW/2,PH-M/2-1)+reg(M/2+1,PH/2)+reg(PW-M/2-1,PH/2);
+  const cores=['#00AEEF','#EC008C','#FFF100','#000000','#2E3192','#ED1C24','#00A651','#808080','#bfbfbf','#e6e6e6'];const bw=5;const bx0=L;const barra=cores.map((c,i)=>`<rect x="${bx0+i*bw}" y="${M/2-2.2}" width="${bw}" height="4" fill="${c}" stroke="none"/>`).join('');
+  const vincos=(opt.vincos||F().vincos||[]).map(v=>`<path d="M${L+v} ${M*.3}v${M*.6-1}M${L+v} ${PH-M*.3}v-${M*.6-1}" style="stroke:#000;stroke-width:.2;fill:none;stroke-dasharray:1 .6"/><text x="${L+v+.8}" y="${PH-M*.3-1.5}" font-size="2" font-family="Helvetica,Arial,sans-serif">vinco</text>`).join('');
+  const leg=esc((opt.nome||$('#nome').value||'peça')+' · '+(opt.cliente||(CLIS.find(c=>c.id===PECA.client_id)||{}).name||'')+' · corte '+tw+'×'+th+' mm · sangria '+S+' mm · CMYK · 300 dpi · '+new Date().toLocaleDateString('pt-BR')+' · Pontodot');
+  const legenda=`<text x="${L}" y="${PH-M/2+2.4}" font-size="2.2" font-family="Helvetica,Arial,sans-serif" fill="#000">${leg}</text>`;
+  const folha=`<svg xmlns="http://www.w3.org/2000/svg" width="${PW}mm" height="${PH}mm" viewBox="0 0 ${PW} ${PH}" style="display:block"><rect x="0" y="0" width="${PW}" height="${PH}" fill="#fff"/>${corte}${registro}${barra}${vincos}${legenda}</svg>`;
+  return `<!doctype html><html><head><meta charset="utf-8">${links.join('')}<style>${css}@page{size:${PW}mm ${PH}mm;margin:0}html,body{margin:0;padding:0;width:${PW}mm;height:${PH}mm}.folha{position:relative;width:${PW}mm;height:${PH}mm}.folha>svg{position:absolute;left:0;top:0}.arte{position:absolute;left:${M}mm;top:${M}mm;width:${wmm}mm;height:${hmm}mm}.arte svg{display:block}</style></head><body><div class="folha">${folha}<div class="arte">${svg}</div></div></body></html>`;}
 async function exportarImpresso(){fechaMenu();if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);falta('#cli');return;}if(!PECA.id||dirty){if(!await salvar())return;}
   msg('Montando o PDF vetorial…',6000);try{const html=await svgImpresso();const nome=($('#nome').value||'peca').replace(/[\/\\:*?"<>|]+/g,'-');
-    const r=await api('pd-oficina.php',{acao:'pedir',modulo:'pdf',titulo:'PDF gráfica · '+nome,client_id:PECA.client_id,ok_agora:true,entrada:{nome,html,largura_mm:px2mm(W()),altura_mm:px2mm(Hh()),sangria_mm:F().sangria||SANGRIA,impresso:true,drive_subpasta:'ESTÚDIO/'+nome,pedido:'PDF para gráfica: CMYK, curvas, 300 dpi, sangria '+(F().sangria||SANGRIA)+' mm'}});
+    const r=await api('pd-oficina.php',{acao:'pedir',modulo:'pdf',titulo:'PDF gráfica · '+nome,client_id:PECA.client_id,ok_agora:true,entrada:{nome,html,largura_mm:px2mm(W())+20,altura_mm:px2mm(Hh())+20,sangria_mm:F().sangria||SANGRIA,marcas:true,impresso:true,drive_subpasta:'ESTÚDIO/'+nome,pedido:'PDF para gráfica: CMYK, curvas, 300 dpi, sangria '+(F().sangria||SANGRIA)+' mm, marcas de corte e registro'}});
     if(r.trabalho)acompanhaOficina(r.trabalho.id,'o PDF de gráfica de '+nome);msg(r.trabalho&&r.trabalho.status==='fila'?'Na oficina. O PDF cai em cliente › ESTÚDIO › '+nome+' em 1 a 3 min (acompanhe em Saída de materiais).':'Pedido registrado: '+(r.trabalho&&r.trabalho.status),9000);}
   catch(e){msg(e.message,8000);}}
 function recorta(dataUrl,tw,th,tipo){return new Promise(res=>{const im=new Image();im.onload=()=>{const r=Math.max(tw/im.width,th/im.height);const sw=tw/r,sh=th/r,sx=(im.width-sw)/2,sy=(im.height-sh)/2;const cv=document.createElement('canvas');cv.width=tw;cv.height=th;cv.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,tw,th);res(cv.toDataURL(tipo==='jpg'?'image/jpeg':'image/png',.92));};im.src=dataUrl;});}
