@@ -25,6 +25,7 @@
 .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.col{display:flex;flex-direction:column;gap:6px}
 input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);min-width:0}input[type=color]{padding:0;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);cursor:pointer}input[type=range]{padding:0;width:100%}
 .pos label{display:flex;flex-wrap:nowrap}.pos input{width:100%;min-width:0}
+.ocupado{position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:50;display:none;align-items:center;gap:8px;background:var(--ink);color:var(--bg);border-radius:7px;padding:7px 12px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}.ocupado.on{display:flex}.ocupado i{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:gira .8s linear infinite}
 .pensando{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.35;margin:8px 0}.pensando i{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:gira .8s linear infinite;flex-shrink:0}@keyframes gira{to{transform:rotate(360deg)}}
 .pisca{animation:pisca 1s infinite}@keyframes pisca{50%{box-shadow:0 0 0 3px #c63d32;background:rgba(198,61,50,.12)}}
 .lab{font-size:10.5px;color:var(--gray);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.05em}
@@ -98,7 +99,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
     <div id="p-camadas" class="sec" style="display:none"><h3>Prancheta</h3><div class="row"><input type="color" id="fundo" value="#ffffff" oninput="fundoSet(this.value)"><span class="vazio">cor do fundo</span></div><h3>Camadas</h3><div id="camadas" class="col"></div></div>
   </div>
 </div></div>
-<div class="msg" id="msg"></div>
+<div class="msg" id="msg"></div><div class="ocupado" id="ocupado"><i></i><span id="ocupadoTxt">Pensando…</span></div>
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -135,7 +136,11 @@ const CORTES={feed:{nome:'Feed 4:5',w:1080,h:1350},quadrado:{nome:'Quadrado 1:1'
 const F=()=>PECA.formato,ehImp=()=>!!(F()&&F().impresso),W=()=>F().w,Hh=()=>F().h,GAP=()=>Math.round(Math.max(W()*.12,100)),pageX=i=>i*(W()+GAP()),Z=()=>C.getZoom();
 function falta(sel){const el=typeof sel==='string'?$(sel):sel;if(!el)return;el.classList.add('pisca');setTimeout(()=>el.classList.remove('pisca'),6000);}
 function msg(t,ms=2800){const m=$('#msg');m.textContent=t;m.classList.add('on');clearTimeout(m._t);m._t=setTimeout(()=>m.classList.remove('on'),ms);}
-async function api(arq,b){const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
+// "Pensando…" em cima de tudo que demora: cada chamada ao servidor acende o giro; some quando a última termina.
+let OCUP=0,OCUP_T=null;const OCUP_TXT={'buscar':'Buscando no banco de mídia…','salvar':'Salvando…','exportar':'Gerando arquivos e guardando no Drive…','galeria':'Lendo a pasta MÍDIA no Drive…','subir':'Subindo para o Drive…','derivar':'A IA está pensando…','aprovar':'Aprovando…','abrir':'Abrindo a peça…','listar':'Carregando…','fontes_casa':'Lendo as fontes da casa…','pedir':'Mandando para a oficina…','fonte_subir':'Subindo a fonte…','pauta_abrir':'Abrindo o lote…','pauta_salvar':'Salvando…','kit_cor_salvar':'Salvando a cor…'};
+function ocupa(txt){OCUP++;const e=$('#ocupado');if(!e)return;$('#ocupadoTxt').textContent=txt||'Pensando…';e.classList.add('on');}
+function desocupa(){OCUP=Math.max(0,OCUP-1);if(!OCUP){const e=$('#ocupado');if(e)e.classList.remove('on');}}
+async function api(arq,b){ocupa(OCUP_TXT[b&&b.acao]||'Pensando…');try{const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}finally{desocupa();}}
 const q=new URLSearchParams(location.search);
 
 // ---------- boot
@@ -460,7 +465,7 @@ function aba(n){if(ABA===n){gavetaFecha();return;}ABA=n;$('#main').classList.add
   if(n==='pauta')pautaUI();if(n==='formas')formasUI();if(n==='pecas')listaPecas(false);if(n==='efeitos')filtrosUI();}
 
 // ---------- render de página (exportação, miniatura, IA) — independente do zoom
-function renderPagina(i,opt={}){return new Promise(res=>{const d=docPagina(i);const sc=new fabric.StaticCanvas(null,{width:W(),height:Hh()});sc.loadFromJSON(d,()=>{sc.renderAll();res(sc.toDataURL(Object.assign({format:'png',multiplier:1},opt)));});});}
+function renderPagina(i,opt={}){ocupa('Renderizando…');return new Promise(res=>{const d=docPagina(i);const sc=new fabric.StaticCanvas(null,{width:W(),height:Hh()});sc.loadFromJSON(d,()=>{sc.renderAll();const u=sc.toDataURL(Object.assign({format:'png',multiplier:1},opt));desocupa();res(u);});});}
 function thumb(){return renderPagina(0,{format:'jpeg',quality:.7,multiplier:400/Math.max(W(),Hh())});}
 
 // ---------- marca
@@ -484,7 +489,8 @@ async function corKitRemove(hex,nome){if(!confirm('Tirar a cor '+(nome||hex)+' d
 function aplicaCor(hex){const o=C.getActiveObject();if(o){if(['group','path','polygon'].includes(o.type)&&!o.pdMask)corVetorSet(hex);else setP('fill',hex);}else{$('#fundo').value=hex;fundoSet(hex);}}
 let FCASA=[],FCARR=new Set();
 async function fontesCasa(){if(FCASA.length)return FCASA;try{const r=await api('pd-estudio.php',{acao:'fontes_casa'});FCASA=r.fontes||[];}catch(e){FCASA=[];}return FCASA;}
-async function garanteFonte(nome){if(!nome||FCARR.has(nome)||document.fonts.check(`12px "${nome}"`)&&!FCASA.some(f=>f.familia===nome))return;
+async function garanteFonte(nome){if(!nome||FCARR.has(nome)||!(KIT&&KIT.fonts||[]).some(f=>f.name===nome)&&!FCASA.some(f=>f.familia===nome))return;ocupa('Carregando a fonte '+nome+'…');try{await garanteFonte2(nome);}finally{desocupa();}}
+async function garanteFonte2(nome){if(!nome||FCARR.has(nome)||document.fonts.check(`12px "${nome}"`)&&!FCASA.some(f=>f.familia===nome))return;
   const kf=(KIT&&KIT.fonts||[]).filter(f=>f.name===nome&&f.file_url);const cf=FCASA.filter(f=>f.familia===nome);
   for(const f of kf){try{const ff=new FontFace(nome,`url(${f.file_url})`);await ff.load();document.fonts.add(ff);}catch(e){}}
   for(const f of cf){try{const ff=new FontFace(nome,`url(${location.origin+f.url})`,{weight:f.peso,style:f.italico?'italic':'normal'});await ff.load();document.fonts.add(ff);}catch(e){}}
@@ -588,7 +594,7 @@ let PA_T0=0,PA_TM=null;function cronoPauta(){clearInterval(PA_TM);PA_T0=Date.now
 async function derivar(feedback){if(!PA.atual||PA.busy)return;if(!PA.atual.principal_id){msg('Falta a peça-modelo: faça, salve e clique em "Usar a peça aberta".',6000);falta('#paSemPrincipal');return;}if(dirty){if(!await salvar())return;}
   PA.busy=true;PA.msg='A IA está olhando os modelos, o kit, o texto e as imagens…';cronoPauta();pautaUI();
   try{const {p:pr,pgs,pngs}=await pngsDaPeca(PA.atual.principal_id);const r=await ia({acao:'derivar',id:PA.atual.id,feedback,principal_pngs:pngs});
-    PA.msg='Plano recebido. Montando as peças…';pautaUI();
+    PA.msg='Plano recebido. Montando as peças…';pautaUI();ocupa('Montando as derivações…');
     const papeis=(pr.doc&&pr.doc.papeis)||[];const principais={};pgs.forEach((pg,i)=>{principais['p'+(i+1)]=pg;const pp=String(papeis[i]||'').toLowerCase().trim();if(pp)principais[pp]=pg;if(i===0&&!principais.principal)principais.principal=pg;});
     const fam=r.familia||'social';let ordem=0;
     for(const d of (r.plano.derivacoes||[])){ordem++;let fmt,tipo=d.tipo,pags=d.paginas||[],roteiro=null;
@@ -599,8 +605,8 @@ async function derivar(feedback){if(!PA.atual||PA.busy)return;if(!PA.atual.princ
       const docs=[];let th=null;for(const pg of pags){const o=await specParaDoc(pg,fmt.w,fmt.h,r.galeria,principais,pr.formato);docs.push(o.doc);if(!th)th=o.thumb;}
       if(!docs.length)continue;
       await api('pd-estudio.php',{acao:'salvar',client_id:PA.atual.client_id,nome:d.titulo||(fmt.nome+' '+ordem),formato:fmt,doc:{paginas:docs,tipo:fmt.tipo},thumb:th,pauta_id:PA.atual.id,papel:'derivada',derivada_tipo:tipo,spec:d,roteiro,ordem});}
-    PA.msg='';await pautaAbrir(PA.atual.id);msg('Derivações prontas, aqui ao lado e em Peças. Clique para editar, escreva o que achou e mande de volta, ou dê OK para produzir no Drive.',7000);}
-  catch(e){PA.msg='Erro: '+e.message;}
+    desocupa();PA.msg='';await pautaAbrir(PA.atual.id);msg('Derivações prontas, aqui ao lado e em Peças. Clique para editar, escreva o que achou e mande de volta, ou dê OK para produzir no Drive.',7000);}
+  catch(e){PA.msg='Erro: '+e.message;OCUP=0;desocupa();}
   PA.busy=false;pautaUI();}
 // spec (percentual) → documento Fabric. Com "herda", parte das camadas da página-modelo (escaladas pro destino) e troca só o que foi pedido.
 function specParaDoc(pg,Wd,Hd,galeria,principais,fmtPrincipal){return new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:Wd,height:Hd});
