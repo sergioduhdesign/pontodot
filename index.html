@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v261 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v262 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5255,7 +5255,7 @@ function abrirEstudio(params){
   let ov = document.getElementById('estOv');
   if (!ov){
     ov = document.createElement('div'); ov.id = 'estOv'; ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg,#fff);display:none;flex-direction:column';
-    ov.innerHTML = '<div id="estAbas" style="display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid rgba(128,128,128,.25);background:inherit;overflow-x:auto"></div><div id="estCorpo" style="flex:1;position:relative"></div>';
+    ov.innerHTML = '<div id="estAbas" style="display:flex;align-items:center;gap:3px;padding:8px 10px 0;border-bottom:1px solid rgba(128,128,128,.4);background:rgba(128,128,128,.06);overflow-x:auto;align-items:flex-end"></div><div id="estCorpo" style="flex:1;position:relative"></div>';
     document.body.appendChild(ov);
     window.addEventListener('message', e => { const d = e.data || {}; if (d.tipo === 'est-nome'){ const ab = EST_ABAS.find(x => x.iframe.contentWindow === e.source); if (ab){ ab.nome = d.nome; ab.dirty = !!d.dirty; estAbasRender(); } } else if (d.tipo === 'est-aviso'){ balaoIA(d); } });
   }
@@ -5267,8 +5267,7 @@ function abrirEstudio(params){
 function estAbaVai(id){ EST_ABAS.forEach(a => a.iframe.style.display = a.id === id ? 'block' : 'none'); EST_ATUAL = id; estAbasRender(); }
 let EST_ATUAL = null;
 function estAbasRender(){ const el = document.getElementById('estAbas'); if (!el) return;
-  el.innerHTML = `<button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="estVoltar()">← Home</button>` + EST_ABAS.map(a => `<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 8px 5px 12px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;${a.id === EST_ATUAL ? 'background:rgba(128,128,128,.18);font-weight:700' : 'opacity:.75'}" onclick="estAbaVai('${a.id}')">${esc(a.nome)}${a.dirty ? ' <small style="opacity:.6">•</small>' : ''}<button title="Fechar" style="border:0;background:transparent;color:inherit;cursor:pointer;font-size:13px;padding:0 2px" onclick="event.stopPropagation();estAbaFecha('${a.id}')">×</button></span>`).join('') + `<button class="btn" style="min-height:30px;width:30px;padding:0;font-size:14px" title="Abrir outra peça (as rodadas continuam rodando em cada aba)" onclick="abrirEstudio('')">+</button><span class="nota" style="margin-left:auto">cada aba trabalha sozinha · salva sozinho</span>`; }
-async function estAbaFecha(id){ const a = EST_ABAS.find(x => x.id === id); if (!a) return; try { const w = a.iframe.contentWindow; if (w && w.antesDeSair){ const ok = await w.antesDeSair(); if (!ok) return; } } catch(e){}
+  el.innerHTML = `<button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px;margin-right:6px" onclick="estVoltar()">← Home</button>` + EST_ABAS.map(a => { const on = a.id === EST_ATUAL; return `<span onclick="estAbaVai('${a.id}')" title="${esc(a.nome)}" style="display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 14px;border-radius:9px 9px 0 0;font-size:12.5px;cursor:pointer;white-space:nowrap;max-width:260px;margin-bottom:-7px;border:1px solid ${on ? 'rgba(128,128,128,.4)' : 'rgba(128,128,128,.22)'};border-bottom-color:${on ? 'transparent' : 'rgba(128,128,128,.22)'};background:${on ? 'var(--bg,#fff)' : 'rgba(128,128,128,.08)'};color:inherit;opacity:${on ? 1 : .62};font-weight:${on ? 700 : 400};position:relative;top:${on ? '1px' : '3px'}"><span style="overflow:hidden;text-overflow:ellipsis">${esc(a.nome)}</span>${a.dirty ? '<small style="opacity:.6">•</small>' : ''}<button title="Fechar" style="border:0;background:transparent;color:inherit;cursor:pointer;font-size:13px;padding:0 2px;opacity:.7" onclick="event.stopPropagation();estAbaFecha('${a.id}')">×</button></span>`; }).join('') + `<button class="btn" style="min-height:30px;width:30px;padding:0;font-size:14px;margin-left:6px" title="Abrir outra peça (cada aba trabalha sozinha)" onclick="abrirEstudio('')">+</button>`; }async function estAbaFecha(id){ const a = EST_ABAS.find(x => x.id === id); if (!a) return; try { const w = a.iframe.contentWindow; if (w && w.antesDeSair){ const ok = await w.antesDeSair(); if (!ok) return; } } catch(e){}
   a.iframe.remove(); EST_ABAS = EST_ABAS.filter(x => x.id !== id); if (!EST_ABAS.length){ document.getElementById('estOv').style.display = 'none'; EST.d = null; renderBoard(); return; } if (EST_ATUAL === id) estAbaVai(EST_ABAS[EST_ABAS.length - 1].id); else estAbasRender(); }
 // balão da IA: carinha + "terminei xyz!" no canto, some sozinho
 function balaoIA(d){ const q = d.quem || {}; let box = document.getElementById('balaoIA'); if (!box){ box = document.createElement('div'); box.id = 'balaoIA'; box.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9600;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none'; document.body.appendChild(box); }
