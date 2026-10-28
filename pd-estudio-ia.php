@@ -47,11 +47,11 @@ function paCamadas($doc, $w, $h, $pagina = 0, $prefixo = 'principal') {
         $t = $o['type'] ?? ''; $sx = (float)($o['scaleX'] ?? 1); $sy = (float)($o['scaleY'] ?? 1);
         $ww = round(((float)($o['width'] ?? 0)) * $sx / $w * 100); $hh = round(((float)($o['height'] ?? 0)) * $sy / $h * 100);
         $x = round(((float)($o['left'] ?? 0)) / $w * 100); $y = round(((float)($o['top'] ?? 0)) / $h * 100);
-        $fill = is_string($o['fill'] ?? null) ? $o['fill'] : 'gradiente';
-        if ($t === 'textbox') $out[] = sprintf('texto "%s" · %s %s · %dpx · cor %s · x%d y%d w%d · alinhado %s', mb_substr((string)($o['text'] ?? ''), 0, 80), $o['fontFamily'] ?? '', $o['fontWeight'] ?? '', (int)($o['fontSize'] ?? 0), $fill, $x, $y, $ww, $o['textAlign'] ?? 'left');
-        elseif ($t === 'image') { $n = (string)($o['name'] ?? ('imagem ' . ($i + 1))); $ref = $prefixo . ':p' . ($pagina + 1) . ':' . $i; $imgs[] = ['ref' => $ref, 'nome' => $n, 'src' => (string)($o['pdFonte'] ?: ($o['src'] ?? ''))]; $out[] = sprintf('imagem "%s" (ref %s) · x%d y%d w%d h%d', $n, $ref, $x, $y, $ww, $hh); }
+        $fill = is_string($o['fill'] ?? null) ? $o['fill'] : 'gradiente'; $uso = trim((string)($o['pdTag'] ?? '')); $usoTxt = $uso ? ' · USO: ' . $uso : '';
+        if ($t === 'textbox') $out[] = sprintf('texto "%s" · %s %s · %dpx · cor %s · x%d y%d w%d · alinhado %s%s', mb_substr((string)($o['text'] ?? ''), 0, 80), $o['fontFamily'] ?? '', $o['fontWeight'] ?? '', (int)($o['fontSize'] ?? 0), $fill, $x, $y, $ww, $o['textAlign'] ?? 'left', $usoTxt);
+        elseif ($t === 'image') { $n = (string)($o['name'] ?? ('imagem ' . ($i + 1))); $ref = $prefixo . ':p' . ($pagina + 1) . ':' . $i; $imgs[] = ['ref' => $ref, 'nome' => $n, 'src' => (string)($o['pdFonte'] ?: ($o['src'] ?? ''))]; $out[] = sprintf('imagem "%s" (ref %s) · x%d y%d w%d h%d%s', $n, $ref, $x, $y, $ww, $hh, $usoTxt); }
         else { $n = trim((string)($o['name'] ?? '')) ?: ('elemento ' . ($i + 1)); $ref = $prefixo . ':p' . ($pagina + 1) . ':' . $i; $grad = !is_string($o['fill'] ?? null) && !empty($o['fill']); $vet = in_array($t, ['path', 'group', 'polygon', 'polyline', 'ellipse', 'triangle', 'line'], true) || $grad || !empty($o['pdPontos']);
-            $out[] = sprintf('%s "%s" (ref %s%s) · cor %s · x%d y%d w%d h%d · opacidade %s%s', $vet ? 'ELEMENTO GRÁFICO VETORIAL' : $t, $n, $ref, $vet ? ' · reutilize com tipo elemento' : '', $grad ? 'degradê' : $fill, $x, $y, $ww, $hh, (string)($o['opacity'] ?? 1), !empty($o['angle']) ? ' · giro ' . round((float)$o['angle']) . '°' : ''); }
+            $out[] = sprintf('%s "%s" (ref %s%s) · cor %s · x%d y%d w%d h%d · opacidade %s%s', $vet ? 'ELEMENTO GRÁFICO VETORIAL' : $t, $n, $ref, $vet ? ' · reutilize com tipo elemento' : '', $grad ? 'degradê' : $fill, $x, $y, $ww, $hh, (string)($o['opacity'] ?? 1), (!empty($o['angle']) ? ' · giro ' . round((float)$o['angle']) . '°' : '') . ($usoTxt ?: ($vet ? ' · USO: grafismo' : ''))); }
     }
     return [$out, $imgs, is_string($pg['background'] ?? null) ? $pg['background'] : '#ffffff'];
 }
@@ -161,6 +161,8 @@ if ($acao === 'pauta_salvar') {
     if (array_key_exists('pasta_drive', $b)) { $p = (string)$b['pasta_drive']; if (preg_match('~folders/([\w\-]+)~', $p, $m)) $p = $m[1]; $d['pasta_drive'] = $p ?: null; }
     if (array_key_exists('refs', $b)) { $lst = is_array($b['refs']) ? $b['refs'] : preg_split('/[\s,]+/', (string)$b['refs']); $d['refs'] = array_values(array_filter(array_map(fn($x) => mb_substr(trim((string)$x), 0, 600), $lst), fn($x) => preg_match('~^https?://~i', $x))); $d['refs'] = array_slice($d['refs'], 0, 12); }
     if (array_key_exists('texto_link', $b)) { $t = trim((string)$b['texto_link']); $d['texto_link'] = $t ? mb_substr($t, 0, 500) : null; }
+    if (array_key_exists('site_link', $b)) { $t = trim((string)$b['site_link']); $d['site_link'] = $t ? mb_substr($t, 0, 500) : null; }
+    if (array_key_exists('design_system', $b)) $d['design_system'] = $b['design_system'] === null || $b['design_system'] === '' ? null : (bool)$b['design_system'];
     if (array_key_exists('principal_id', $b)) $d['principal_id'] = $b['principal_id'] ?: null;
     if (!empty($b['familia']) && in_array($b['familia'], ['social', 'papelaria', 'apresentacao', 'book'], true)) $d['familia'] = $b['familia'];
     if (isset($b['qtd'])) $d['qtd'] = max(0, min(200, (int)$b['qtd']));
@@ -180,10 +182,10 @@ if ($acao === 'pauta_salvar') {
     $r['body'][0] = $pa; if ($aviso) $r['body'][0]['_aviso'] = $aviso;
     if (!empty($b['principal_id'])) sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)$b['principal_id']), 'PATCH', ['pauta_id' => $r['body'][0]['id'], 'papel' => 'principal']);
     // toda referência usada fica guardada no acervo (categoria 'referencia'), pra reaproveitar em qualquer trabalho
-    $links = array_merge((array)($d['refs'] ?? []), !empty($d['texto_link']) ? [$d['texto_link']] : [], !empty($d['pasta_drive']) ? [$d['pasta_drive']] : []);
+    $links = array_merge((array)($d['refs'] ?? []), !empty($d['texto_link']) ? [$d['texto_link']] : [], !empty($d['site_link']) ? [$d['site_link']] : [], !empty($d['pasta_drive']) ? [$d['pasta_drive']] : []);
     foreach (array_slice(array_unique(array_filter($links)), 0, 20) as $lk) { if (!preg_match('~^https?://~i', $lk)) continue;
         $ja = sd_supabase('/rest/v1/pd_acervo?categoria=eq.referencia&url=eq.' . urlencode($lk) . '&select=id&limit=1')['body'][0] ?? null; if ($ja) continue;
-        $host = preg_replace('~^www\.~', '', (string)parse_url($lk, PHP_URL_HOST)); $cat = $lk === ($d['texto_link'] ?? '') ? 'texto' : ($lk === ($d['pasta_drive'] ?? '') ? 'imagens' : 'visual');
+        $host = preg_replace('~^www\.~', '', (string)parse_url($lk, PHP_URL_HOST)); $cat = $lk === ($d['texto_link'] ?? '') ? 'texto' : ($lk === ($d['site_link'] ?? '') ? 'site do cliente' : ($lk === ($d['pasta_drive'] ?? '') ? 'imagens' : 'visual'));
         pdAcervo('link', 'estudio', ['categoria' => 'referencia', 'client_id' => $r['body'][0]['client_id'], 'nome' => $host, 'url' => $lk, 'nota' => $cat . ' · ' . ($r['body'][0]['nome'] ?? '') . ' · ' . ($r['body'][0]['familia'] ?? ''), 'por' => $u['id']]); }
     echo json_encode(['ok' => true, 'pauta' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
 }
@@ -239,7 +241,8 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
         try { $r0 = ponte('reuniao_ler', ['doc_id' => $lid]); $tl = trim((string)($r0['texto'] ?? '')); if ($tl === '') { $r1 = ponte('baixar', ['fileId' => $lid]); $tl = trim((string)base64_decode((string)($r1['b64'] ?? ''), true)); } if ($tl !== '') $textoPauta = mb_substr($tl, 0, 60000); }
         catch (Exception $e) { sd_fail('Não consegui ler o texto no link do Drive: ' . $e->getMessage()); } }
     [$kit, $kitSt] = paKit($p['client_id']);
-    [$refTxt, $refImgs] = !empty($p['refs']) ? paReferencias((array)$p['refs']) : [[], []];
+    $refsTodas = array_values(array_unique(array_merge(!empty($p['site_link']) ? [$p['site_link']] : [], (array)($p['refs'] ?? []))));
+    [$refTxt, $refImgs] = $refsTodas ? paReferencias($refsTodas) : [[], []];
     $rodada = (int)$p['rodada'] + 1; $hist = is_array($p['historico']) ? $p['historico'] : [];
     if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'derivando', 'rodada' => $rodada, 'historico' => $hist, 'kit_status' => $kitSt, 'erro' => null, 'mudado_em' => gmdate('c')]);
@@ -275,6 +278,7 @@ CAMADA = {"tipo":"texto","texto":"...","fonte":"nome","peso":"400|700|900","tama
        | {"tipo":"logo","x":6,"y":90,"w":16,"opacidade":1,"desfoque":0,"cor":"#hex opcional (pinta o logo quando ele é vetor)"}
        | {"tipo":"elemento","de":"ref principal:pN:i de um ELEMENTO GRÁFICO VETORIAL","x":-10,"y":40,"w":120,"giro":0,"espelhar":false,"opacidade":1} — a PD copia o elemento real (caminho, degradê, grafismo) da principal, inteiro, escalado pela largura; pode sair da página (x negativo, w>100), girar e espelhar.
 Imagem e logo aceitam "opacidade" (0–1) e "desfoque" (0–1): um logo grande, cinza/claro, com desfoque e opacidade baixa, serve de fundo (marca d'água). Formas finas (w ou h de 0.3–1%) servem de filetes de acabamento.
+USO DAS CAMADAS (etiqueta que o humano deu a cada camada da principal; ela diz para que serve e o que fazer com ela em TODAS as peças): fundo = cor/forma de fundo, mantenha a lógica; grafismo = elemento visual do sistema, reutilize com tipo elemento em toda peça (fundos, cantos, sangrando pela borda); logotipo = tipo logo; titulo/texto = hierarquia a repetir com o texto da pauta; contato = dados de contato (nome, cargo, telefone, site, e-mail) a repetir onde couber, nunca inventar; foto = moldura de foto a trocar pela galeria; destaque = tarja/caixa de destaque; filete = linha fina de acabamento. Camada sem etiqueta: deduza pelo nome e pelo tipo.
 REGRAS DA CASA (inegociáveis): os ELEMENTOS GRÁFICOS VETORIAIS da principal (grafismos, caminhos, formas com degradê) são o sistema visual: NUNCA os redesenhe nem os substitua por círculos/retângulos genéricos — reutilize-os com {"tipo":"elemento"} em todas as peças (escala, giro, espelho e recorte pela borda variam de peça para peça; a forma, as cores e o degradê não). Formas novas (rect/circle) só como fundo, tarja ou filete. Para colocar o logotipo use SEMPRE a camada {"tipo":"logo"} (a PD coloca o arquivo real do logo, inteiro); nunca desenhe o logo com texto ou formas, nunca o refaça. O logotipo nunca é esticado, girado, cortado, recolorido fora do kit nem reduzido abaixo de 8% da largura; ele vai inteiro, com área de respiro; quando herdar de um modelo, a camada do logo fica como está. Nunca mude a proporção de nenhuma imagem (só cobrir/cortar pela moldura). Use SÓ as fontes e cores do kit ou da principal; nunca deixe uma palavra sozinha na última linha de um título; margens x≥6 e w≤88 salvo imagens e formas de fundo; use só o texto da pauta e da principal (distribua, hierarquize, corte; não invente). Quando o kit estiver incompleto, siga a principal e diga no raciocinio o que ficou provisório.
 TXT;
     if ($famId === 'social') $system = "Você é a diretora de arte da Pontodot. Recebe UM post de feed feito por um humano e deriva o resto do conteúdo social no mesmo sistema visual.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"carrossel\",\"titulo\":\"...\",\"paginas\":[PAGINA x4-7]},{\"tipo\":\"stories\",\"titulo\":\"...\",\"paginas\":[PAGINA]} x3,{\"tipo\":\"video\",\"titulo\":\"...\",\"roteiro\":{\"estilo\":\"frase\",\"legenda_posicao\":\"baixo-centro|centro|cima\",\"capa\":PAGINA,\"boards\":[{\"pagina\":PAGINA,\"fala\":\"locução/legenda\",\"duracao_s\":4} x4],\"encerramento\":PAGINA}}]}\nCarrossel 1080×1350 (capa forte, uma ideia por página, última com chamada); stories 1080×1920 (nada nos 13% de cima e 18% de baixo); vídeo 1080×1920. Tamanhos de texto em % da largura: título 7–10, subtítulo 4–5, corpo 2.6–3.4.";
@@ -291,6 +295,7 @@ TXT;
         ($resumoAtuais ? "\n\nDERIVAÇÕES ATUAIS (o humano pode ter mexido; o que ele mudou é lei):\n- " . implode("\n- ", $resumoAtuais) : '') .
         ($avals ? "\n\nAVALIAÇÃO PEÇA A PEÇA DA RODADA ANTERIOR (👍 = manter como está, só refinar; 👎 = refazer do zero com outra solução):\n- " . implode("\n- ", array_map(fn($a) => ($a['avaliacao'] === 'gostei' ? '👍 ' : '👎 ') . ($a['derivada_tipo'] ?: '') . ' "' . $a['nome'] . '"', $avals)) : '') .
         ($feedback ? "\n\nFEEDBACK DO HUMANO NESTA RODADA (manda em tudo):\n$feedback" : '') .
+        ($p['design_system'] === true ? "\n\nDESIGN SYSTEM: o cliente TEM design system (o kit): siga cores, fontes e logo à risca, sem variações." : ($p['design_system'] === false ? "\n\nDESIGN SYSTEM: o cliente NÃO tem design system. Extraia o sistema da peça principal (cores, fontes, grafismos, respiro) e do site/rede social nas referências, e seja rigorosamente consistente entre as peças — você está definindo o sistema agora." : '')) .
         ($refTxt ? "\n\nREFERÊNCIAS QUE O HUMANO MANDOU (para olhar e se inspirar: ritmo, hierarquia, acabamento — nunca copiar texto, logo ou identidade de outra marca):\n- " . implode("\n- ", $refTxt) : '') .
         "\n\nAs imagens a seguir são as páginas da principal, na ordem (PÁGINA 1, 2…). Depois delas, miniaturas da galeria, cada uma precedida do seu ID.";
     $content = [['type' => 'text', 'text' => $txt]];
