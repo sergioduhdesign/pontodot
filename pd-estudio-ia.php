@@ -54,6 +54,40 @@ function paCamadas($doc, $w, $h, $pagina = 0, $prefixo = 'principal') {
     }
     return [$out, $imgs, is_string($pg['background'] ?? null) ? $pg['background'] : '#ffffff'];
 }
+// --------------------------------------------------------------- referências por link: o que dá para "ver" de cada URL
+function paRedimensiona($bytes, $w = 480) {
+    if (!function_exists('imagecreatefromstring')) return null; $im = @imagecreatefromstring($bytes); if (!$im) return null;
+    $ow = imagesx($im); $oh = imagesy($im); if ($ow < 120 || $oh < 120) { imagedestroy($im); return null; }   // ícones e espaçadores fora
+    $nw = min($w, $ow); $nh = (int)round($oh * $nw / $ow); $n = imagecreatetruecolor($nw, $nh); imagecopyresampled($n, $im, 0, 0, 0, 0, $nw, $nh, $ow, $oh);
+    ob_start(); imagejpeg($n, null, 78); $out = ob_get_clean(); imagedestroy($n); imagedestroy($im); return ['b64' => base64_encode($out), 'mime' => 'image/jpeg'];
+}
+function paBaixaUrl($url, $max = 6000000) {
+    $ch = curl_init($url); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 20, CURLOPT_CONNECTTIMEOUT => 8,
+        CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 Pontodot/1.0', CURLOPT_HTTPHEADER => ['Accept: text/html,image/*,*/*;q=0.8', 'Accept-Language: pt-BR,pt;q=0.9,en;q=0.7']]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $mime = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE); $fim = (string)curl_getinfo($ch, CURLINFO_EFFECTIVE_URL); curl_close($ch);
+    if ($code >= 400 || $raw === false || strlen($raw) > $max) return [null, $mime, $code, $fim]; return [$raw, $mime, $code, $fim];
+}
+function paAbs($base, $src) { $src = html_entity_decode(trim($src)); if (preg_match('~^https?://~i', $src)) return $src; if (strpos($src, '//') === 0) return 'https:' . $src; $u = parse_url($base); $raiz = ($u['scheme'] ?? 'https') . '://' . ($u['host'] ?? ''); if (strpos($src, '/') === 0) return $raiz . $src; $dir = preg_replace('~/[^/]*$~', '/', $u['path'] ?? '/'); return $raiz . $dir . $src; }
+/** Para cada link: pasta do Drive → imagens; arquivo do Drive → imagem; site → og:image + imagens grandes da página. Devolve [texto, [imagens]]. */
+function paReferencias($links, $maxImgs = 10) {
+    $txt = []; $imgs = [];
+    foreach ((array)$links as $n => $url) { if (count($imgs) >= $maxImgs) break; $rot = 'REF ' . ($n + 1);
+        if (preg_match('~drive\.google\.com/drive/(?:u/\d+/)?folders/([\w\-]+)~', $url, $m)) {
+            try { $l = ponte('listar', ['folderId' => $m[1]]); $k = 0; foreach ((array)($l['arquivos'] ?? []) as $f) { if (count($imgs) >= $maxImgs || $k >= 6) break; if (stripos((string)$f['mime'], 'image/') !== 0) continue; $t = paThumbB64($f['id'], 480); if ($t) { $imgs[] = ['rot' => $rot . ' · pasta do Drive · ' . $f['name'], 'b64' => $t['b64'], 'mime' => $t['mime']]; $k++; } } $txt[] = "$rot: pasta do Drive com " . count((array)($l['arquivos'] ?? [])) . ' arquivo(s): ' . $url; } catch (Exception $e) { $txt[] = "$rot: pasta do Drive que não consegui ler ($url)"; }
+            continue; }
+        if (preg_match('~drive\.google\.com/file/d/([\w\-]+)~', $url, $m)) { $t = paThumbB64($m[1], 480); if ($t) $imgs[] = ['rot' => $rot . ' · arquivo do Drive', 'b64' => $t['b64'], 'mime' => $t['mime']]; $txt[] = "$rot: arquivo do Drive $url"; continue; }
+        [$raw, $mime, $code, $fim] = paBaixaUrl($url);
+        if ($raw === null) { $txt[] = "$rot: $url (o site não deixou ler: HTTP $code)"; continue; }
+        if (stripos($mime, 'image/') === 0) { $r = paRedimensiona($raw); if ($r) $imgs[] = ['rot' => $rot . ' · imagem', 'b64' => $r['b64'], 'mime' => 'image/jpeg']; $txt[] = "$rot: imagem $url"; continue; }
+        $html = $raw; $titulo = preg_match('~<title[^>]*>(.*?)</title>~si', $html, $m) ? trim(html_entity_decode(strip_tags($m[1]))) : ''; $desc = preg_match('~<meta[^>]+(?:name|property)=["\'](?:description|og:description)["\'][^>]+content=["\']([^"\']*)~si', $html, $m) ? trim(html_entity_decode($m[1])) : '';
+        $cands = []; if (preg_match_all('~<meta[^>]+property=["\']og:image(?::secure_url)?["\'][^>]+content=["\']([^"\']+)~si', $html, $mm)) foreach ($mm[1] as $c) $cands[] = paAbs($fim ?: $url, $c);
+        if (preg_match_all('~<img[^>]+(?:src|data-src)=["\']([^"\']+)~si', $html, $mm)) foreach ($mm[1] as $c) { if (preg_match('~\.svg|data:|sprite|icon|logo|avatar|pixel|1x1~i', $c)) continue; $cands[] = paAbs($fim ?: $url, $c); }
+        $cands = array_values(array_unique($cands)); $k = 0;
+        foreach ($cands as $c) { if (count($imgs) >= $maxImgs || $k >= 5) break; [$ib, $im] = paBaixaUrl($c, 4000000); if ($ib === null || stripos((string)$im, 'image/') !== 0) continue; $r = paRedimensiona($ib); if (!$r) continue; $imgs[] = ['rot' => $rot . ' · ' . ($titulo ?: parse_url($url, PHP_URL_HOST)), 'b64' => $r['b64'], 'mime' => 'image/jpeg']; $k++; }
+        $txt[] = "$rot: " . ($titulo ?: $url) . ($desc ? ' — ' . mb_substr($desc, 0, 300) : '') . " ($url)" . ($k ? " · $k imagem(ns) anexada(s)" : ' · sem imagem legível (site fechado ou carregado por script)');
+    }
+    return [$txt, $imgs];
+}
 function paClaude($system, $content, $max = 16000) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) throw new Exception('Sem SD_ANTHROPIC_KEY no servidor: a IA do Estúdio não tem chave.');
     $model = defined('SD_ESTUDIO_MODEL') ? SD_ESTUDIO_MODEL : 'claude-sonnet-5-5';
@@ -80,6 +114,7 @@ if ($acao === 'pauta_salvar') {
     $id = (string)($b['id'] ?? ''); if (empty($b['client_id']) && !$id) sd_fail('Toda pauta é de um cliente.');
     $d = ['mudado_em' => gmdate('c')]; foreach (['nome' => 120, 'texto' => 20000, 'briefing' => 6000] as $k => $n) if (isset($b[$k])) $d[$k] = mb_substr((string)$b[$k], 0, $n);
     if (array_key_exists('pasta_drive', $b)) { $p = (string)$b['pasta_drive']; if (preg_match('~folders/([\w\-]+)~', $p, $m)) $p = $m[1]; $d['pasta_drive'] = $p ?: null; }
+    if (array_key_exists('refs', $b)) { $lst = is_array($b['refs']) ? $b['refs'] : preg_split('/[\s,]+/', (string)$b['refs']); $d['refs'] = array_values(array_filter(array_map(fn($x) => mb_substr(trim((string)$x), 0, 600), $lst), fn($x) => preg_match('~^https?://~i', $x))); $d['refs'] = array_slice($d['refs'], 0, 12); }
     if (array_key_exists('texto_link', $b)) { $t = trim((string)$b['texto_link']); $d['texto_link'] = $t ? mb_substr($t, 0, 500) : null; }
     if (array_key_exists('principal_id', $b)) $d['principal_id'] = $b['principal_id'] ?: null;
     if (!empty($b['familia']) && in_array($b['familia'], ['social', 'papelaria', 'apresentacao', 'book'], true)) $d['familia'] = $b['familia'];
@@ -133,6 +168,7 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
         try { $r0 = ponte('reuniao_ler', ['doc_id' => $lid]); $tl = trim((string)($r0['texto'] ?? '')); if ($tl === '') { $r1 = ponte('baixar', ['fileId' => $lid]); $tl = trim((string)base64_decode((string)($r1['b64'] ?? ''), true)); } if ($tl !== '') $textoPauta = mb_substr($tl, 0, 60000); }
         catch (Exception $e) { sd_fail('Não consegui ler o texto no link do Drive: ' . $e->getMessage()); } }
     [$kit, $kitSt] = paKit($p['client_id']);
+    [$refTxt, $refImgs] = !empty($p['refs']) ? paReferencias((array)$p['refs']) : [[], []];
     $rodada = (int)$p['rodada'] + 1; $hist = is_array($p['historico']) ? $p['historico'] : [];
     if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'derivando', 'rodada' => $rodada, 'historico' => $hist, 'kit_status' => $kitSt, 'erro' => null, 'mudado_em' => gmdate('c')]);
@@ -180,10 +216,12 @@ TXT;
         ($ex ? "\n\nEXEMPLO APROVADO NA PAUTA ANTERIOR DESTA FAMÍLIA (repita a lógica):\n" . mb_substr(json_encode($ex, JSON_UNESCAPED_UNICODE), 0, 6000) : '') .
         ($resumoAtuais ? "\n\nDERIVAÇÕES ATUAIS (o humano pode ter mexido; o que ele mudou é lei):\n- " . implode("\n- ", $resumoAtuais) : '') .
         ($feedback ? "\n\nFEEDBACK DO HUMANO NESTA RODADA (manda em tudo):\n$feedback" : '') .
+        ($refTxt ? "\n\nREFERÊNCIAS QUE O HUMANO MANDOU (para olhar e se inspirar: ritmo, hierarquia, acabamento — nunca copiar texto, logo ou identidade de outra marca):\n- " . implode("\n- ", $refTxt) : '') .
         "\n\nAs imagens a seguir são as páginas da principal, na ordem (PÁGINA 1, 2…). Depois delas, miniaturas da galeria, cada uma precedida do seu ID.";
     $content = [['type' => 'text', 'text' => $txt]];
     foreach ($pngs as $i => $png) { $content[] = ['type' => 'text', 'text' => 'PÁGINA ' . ($i + 1) . ' · papel: ' . (trim((string)($papeis[$i] ?? '')) ?: 'principal')]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => 'image/png', 'data' => $png]]; }
     foreach ($thumbs as $t) { $content[] = ['type' => 'text', 'text' => 'ID ' . $t['id'] . ' · ' . $t['nome']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
+    foreach ($refImgs as $t) { $content[] = ['type' => 'text', 'text' => 'REFERÊNCIA (só inspiração): ' . $t['rot']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
     try { [$resp, $custo] = paClaude($system, $content, $qtd > 12 ? 32000 : 16000); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON. Início da resposta: ' . mb_substr($resp, 0, 200)); }
     catch (Exception $e) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => $e->getMessage(), 'mudado_em' => gmdate('c')]); sd_fail($e->getMessage(), 500); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'revisao', 'plano' => $plano, 'custo_usd' => (float)$p['custo_usd'] + $custo, 'mudado_em' => gmdate('c')]);
