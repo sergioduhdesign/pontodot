@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v239 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v240 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5207,12 +5207,13 @@ function abrirEstudio(params){
   let ov = document.getElementById('estOv');
   if (!ov){
     ov = document.createElement('div'); ov.id = 'estOv'; ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg,#fff);display:none;flex-direction:column';
-    ov.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(128,128,128,.25);background:inherit"><button class="btn" style="min-height:32px;padding:5px 12px;font-size:11.5px" onclick="document.getElementById(\'estOv\').style.display=\'none\';EST.d=null;renderBoard()">← Voltar à home</button><b style="font-size:13px">Estúdio</b><span class="nota">Salve antes de voltar.</span></div><iframe style="flex:1;border:0;width:100%" allow="clipboard-write"></iframe>';
+    ov.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(128,128,128,.25);background:inherit"><button class="btn" style="min-height:32px;padding:5px 12px;font-size:11.5px" onclick="estVoltar()">← Voltar à home</button><b style="font-size:13px">Estúdio</b><span class="nota">Salva sozinho a cada mudança.</span></div><iframe style="flex:1;border:0;width:100%" allow="clipboard-write"></iframe>';
     document.body.appendChild(ov);
   }
   ov.querySelector('iframe').src = 'estudio.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()) + (params ? '&' + params : '');
   ov.style.display = 'flex';
 }
+async function estVoltar(){const ov=document.getElementById('estOv');const w=ov&&ov.querySelector('iframe')&&ov.querySelector('iframe').contentWindow;try{if(w&&w.antesDeSair){const ok=await w.antesDeSair();if(!ok)return;}}catch(e){}ov.style.display='none';EST.d=null;renderBoard();}
 async function estCarrega(){
   try { const { data:{ session } } = await sbR.auth.getSession();
     const r = await fetch('/pd-estudio.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'listar' }) });

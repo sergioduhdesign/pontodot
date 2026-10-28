@@ -44,7 +44,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
 <div class="top">
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
   <select id="fmt" onchange="trocaFormato()" title="Tipo da peça"></select>
-  <input class="nome" id="nome" placeholder="Nome da peça" value="Sem nome">
+  <input class="nome" id="nome" placeholder="Nome da peça" value="Sem nome" onchange="dirty=true;autoSalvar()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small>
   <span class="sep"></span>
   <button class="btn i" onclick="hist(-1)" title="Desfazer (⌘Z)"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
   <button class="btn i" onclick="hist(1)" title="Refazer (⇧⌘Z)"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -275,7 +275,8 @@ function controleGiro(){const mtr=fabric.Object.prototype.controls.mtr;mtr.offse
   const up=mtr.mouseUpHandler;mtr.mouseUpHandler=function(ev,t){if(t&&!t.actionPerformed){const o=t.target;o.rotate(((o.angle||0)+90)%360);o.setCoords();C.requestRenderAll();marca();props();return true;}return up?up.apply(this,arguments):false;};}
 
 // ---------- histórico
-function marca(inicial){if(TRAVA)return;const j=JSON.stringify(C.toJSON(PROPS));if(H[HI]===j)return;H=H.slice(0,HI+1);H.push(j);if(H.length>80)H.shift();HI=H.length-1;camadas();if(!inicial)dirty=true;}
+let AUTO_T=null;function autoSalvar(){clearTimeout(AUTO_T);if(!PECA.id||!dirty||CROP.on||MASK.on||PENEDIT.on||FERR==='caneta')return;AUTO_T=setTimeout(async()=>{if(PECA.id&&dirty&&!CROP.on&&!MASK.on&&!PENEDIT.on&&FERR!=='caneta'){const a=C.getActiveObject();if(a&&a.isEditing)return;await salvar(undefined,true);}},4000);}
+function marca(inicial){if(TRAVA)return;const j=JSON.stringify(C.toJSON(PROPS));if(H[HI]===j)return;H=H.slice(0,HI+1);H.push(j);if(H.length>80)H.shift();HI=H.length-1;camadas();if(!inicial){dirty=true;autoSalvar();}}
 function hist(d){const i=HI+d;if(i<0||i>=H.length)return;HI=i;TRAVA=true;C.loadFromJSON(JSON.parse(H[i]),()=>{TRAVA=false;const rects=C.getObjects().filter(o=>o.pdPage!==undefined);PECA.nPag=Math.max(1,rects.length);PECA.fundos=rects.map(r=>r.fill);C.renderAll();camadas();pags();});}
 
 // ---------- adicionar
@@ -646,20 +647,20 @@ async function aprovar(){if(!PA.atual)return;if(!confirm('Aprovar e produzir tod
   PA.busy=false;pautaUI();}
 
 // ---------- peças
-function novaPeca(){if(dirty&&!confirm('Começar uma peça nova? O que não foi salvo se perde.'))return;if(CROP.on)cropSai();if(MASK.on)maskSai();PECA={id:null,client_id:PECA.client_id,task_id:null,formato:PECA.formato,pag:0,nPag:1,fundos:['#ffffff'],papeis:[]};F().guias=[];F().margem=0;$('#nome').value='Sem nome';H=[];HI=-1;montaPaginas([null],()=>{marca(true);dirty=false;});msg('Peça nova.');}
+async function novaPeca(){if(!await antesDeSair())return;if(CROP.on)cropSai();if(MASK.on)maskSai();PECA={id:null,client_id:PECA.client_id,task_id:null,formato:PECA.formato,pag:0,nPag:1,fundos:['#ffffff'],papeis:[]};F().guias=[];F().margem=0;$('#nome').value='Sem nome';H=[];HI=-1;montaPaginas([null],()=>{marca(true);dirty=false;});msg('Peça nova.');}
 async function listaPecas(modelos){const el=$('#lista');el.innerHTML='<div class="vazio">Carregando…</div>';
   try{const r=await api('pd-estudio.php',{acao:'listar',client_id:modelos?null:PECA.client_id,modelos});el.innerHTML=(r.pecas||[]).map(p=>`<div onclick="abrirPeca('${p.id}')"><img src="${esc(p.thumb_url||'')}" onerror="this.style.opacity=.2"><span>${esc(p.nome)}${p.modelo?' · modelo':''}</span><span style="color:var(--gray)">${esc(p.clients?.name||'')} · ${esc((p.formato||{}).nome||'')}</span></div>`).join('')||'<div class="vazio">Nada aqui ainda.</div>';}
   catch(e){el.innerHTML='<div class="vazio">'+esc(e.message)+'</div>';}}
-async function abrirPeca(id){try{if(CROP.on)cropSai();if(MASK.on)maskSai();const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});
+async function abrirPeca(id){if(!await antesDeSair())return;try{if(CROP.on)cropSai();if(MASK.on)maskSai();const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});
   const ehModelo=!!p.modelo&&PECA.client_id&&p.client_id!==PECA.client_id;
   const pgs=p.doc&&p.doc.paginas?p.doc.paginas:[p.doc];
   PECA={id:ehModelo?null:p.id,client_id:ehModelo?PECA.client_id:(p.client_id||null),task_id:p.task_id||null,formato:null,pag:0,nPag:pgs.length,fundos:[],papeis:(p.doc&&p.doc.papeis)||[]};
   $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
   const f=p.formato.impresso?Object.assign({},p.formato):(FORMATOS.find(x=>x.tipo===p.formato.tipo)||{tipo:p.formato.tipo||'kit',nome:p.formato.nome,w:p.formato.w,h:p.formato.h});aplicaFormato(f);F().guias=(p.doc&&p.doc.guias)||[];F().margem=(p.doc&&p.doc.margem)||0;
   H=[];HI=-1;montaPaginas(pgs,()=>{marca(true);dirty=false;});msg(ehModelo?'Modelo aberto como peça nova.':'Peça aberta.');}catch(e){msg(e.message);}}
-async function salvar(modelo){if(CROP.on)cropSai();if(MASK.on)maskSai();C.discardActiveObject();C.renderAll();if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);falta('#cli');return;}
+async function salvar(modelo,silencio){if(CROP.on)cropSai();if(MASK.on)maskSai();const ativo=C.getActiveObject();if(!silencio){C.discardActiveObject();C.renderAll();}if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);falta('#cli');return;}
   try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,task_id:PECA.task_id,nome:$('#nome').value,formato:PECA.formato,doc:{paginas:todasPaginas(),tipo:PECA.formato.tipo,guias:F().guias||[],margem:F().margem||0,papeis:PECA.papeis||[]},thumb:await thumb(),...(modelo!==undefined?{modelo}:{})});
-    PECA.id=r.peca.id;dirty=false;msg(modelo?'Salva como modelo.':'Salva.');if(PA.atual&&PA.pecas.some(x=>x.id===PECA.id))pautaAbrir(PA.atual.id);return true;}catch(e){msg(e.message,5000);return false;}}
+    PECA.id=r.peca.id;dirty=false;if(!silencio)msg(modelo?'Salva como modelo.':'Salva.');else{const e=$('#salvoEm');if(e)e.textContent='salvo '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}if(PA.atual&&PA.pecas.some(x=>x.id===PECA.id))pautaAbrir(PA.atual.id);return true;}catch(e){msg(e.message,5000);return false;}}
 
 // ---------- exportar e recortes
 function fechaMenu(){const m=document.querySelector('.menu');if(m)m.remove();}
@@ -702,6 +703,8 @@ async function exportarTudo(){if(CROP.on)cropSai();if(MASK.on)maskSai();C.discar
   try{let ok=0,pasta=null,aviso=null;for(let i=0;i<arquivos.length;i+=6){const r=await api('pd-estudio.php',{acao:'exportar',id:PECA.id,client_id:PECA.client_id,nome:$('#nome').value,arquivos:arquivos.slice(i,i+6)});ok+=r.arquivos.filter(a=>!a.erro).length;pasta=pasta||r.pasta_url;aviso=aviso||r.aviso;}
     msg(pasta?`${ok} arquivo(s) no Drive: cliente › ESTÚDIO › ${$('#nome').value}.`:(aviso||`${ok} arquivo(s) exportados.`),7000);if(!pasta&&aviso)falta('[data-aba="imagens"]');}
   catch(e){msg(e.message,7000);}}
-window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+async function antesDeSair(){if(!dirty)return true;if(PECA.id){return await salvar(undefined,true);}const r=confirm('Esta peça ainda não foi salva. Salvar antes de sair?\n\nOK = salvar · Cancelar = sair sem salvar');if(!r){dirty=false;return true;}return await salvar();}
+window.antesDeSair=antesDeSair;
+window.addEventListener('beforeunload',e=>{if(dirty&&!PECA.id){e.preventDefault();e.returnValue='';}});
 boot();
 </script></body></html>
