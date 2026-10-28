@@ -678,12 +678,19 @@ function specParaDoc(pg,Wd,Hd,galeria,principais,fmtPrincipal){return new Promis
   else depois();});}
 async function aprovar(){if(!PA.atual)return;if(!confirm('Aprovar e produzir todas as derivações (arquivos no Drive)?'))return;PA.busy=true;PA.msg='Aprovando e produzindo…';pautaUI();
   cronoPauta();try{await ia({acao:'aprovar',id:PA.atual.id});
-    const deriv=PA.pecas.filter(x=>x.papel==='derivada');let n=0;
+    const deriv=PA.pecas.filter(x=>x.papel==='derivada');let n=0,pdfs=0;const avisos=[];
     for(const d of deriv){const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id:d.id});const pgs=p.doc.paginas||[p.doc];const arquivos=[];
+      const nomeSeg=(p.nome||'peca').replace(/[\/\\:*?"<>|]+/g,'-');
+      if(p.formato.impresso){   // impresso: PDF de gráfica (CMYK, curvas, sangria) pela oficina — um pedido por página
+        for(let i=0;i<pgs.length;i++){const html=await svgImpresso(pgs[i],p.formato.w,p.formato.h);const nm=nomeSeg+(pgs.length>1?' p'+(i+1):'');
+          const r=await api('pd-oficina.php',{acao:'pedir',modulo:'pdf',titulo:'PDF gráfica · '+nm,client_id:p.client_id,ok_agora:true,entrada:{nome:nm,html,largura_mm:px2mm(p.formato.w),altura_mm:px2mm(p.formato.h),sangria_mm:p.formato.sangria||SANGRIA,impresso:true,drive_subpasta:'ESTÚDIO/'+nomeSeg,pedido:'PDF para gráfica: CMYK, curvas, 300 dpi, sangria '+(p.formato.sangria||SANGRIA)+' mm'}});
+          if(r.trabalho)acompanhaOficina(r.trabalho.id,'o PDF de gráfica de '+nm);pdfs++;}
+        continue;}
       for(let i=0;i<pgs.length;i++){const png=await new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:p.formato.w,height:p.formato.h});sc.loadFromJSON(pgs[i],()=>{sc.renderAll();res(sc.toDataURL({format:'png'}));});});
-        const pfx=pgs.length>1?('p'+(i+1)+'-'):'';if(p.formato.tipo==='carrossel'){arquivos.push({sufixo:pfx+'feed',imagem:png});arquivos.push({sufixo:pfx+'quadrado',imagem:await recorta(png,1080,1080)});}else if(p.formato.tipo==='stories')arquivos.push({sufixo:pfx+'stories',imagem:png});else arquivos.push({sufixo:pfx+(p.formato.impresso?'prova':'final'),imagem:png});}
-      for(let i=0;i<arquivos.length;i+=6)await api('pd-estudio.php',{acao:'exportar',id:p.id,client_id:p.client_id,nome:p.nome,arquivos:arquivos.slice(i,i+6)});n+=arquivos.length;}
-    await ia({acao:'produzida',id:PA.atual.id});PA.msg='';await pautaAbrir(PA.atual.id);msg(n+' arquivos no Drive (cliente › ESTÚDIO). Peças impressas: abra cada uma e gere o PDF para gráfica. A lógica aprovada vira exemplo da próxima pauta.',9000);}
+        const pfx=pgs.length>1?('p'+(i+1)+'-'):'';if(p.formato.tipo==='carrossel'){arquivos.push({sufixo:pfx+'feed',imagem:png});arquivos.push({sufixo:pfx+'quadrado',imagem:await recorta(png,1080,1080)});}else if(p.formato.tipo==='stories')arquivos.push({sufixo:pfx+'stories',imagem:png});else arquivos.push({sufixo:pfx+'final',imagem:png});}
+      for(let i=0;i<arquivos.length;i+=6){const r=await api('pd-estudio.php',{acao:'exportar',id:p.id,client_id:p.client_id,nome:p.nome,arquivos:arquivos.slice(i,i+6)});if(r.aviso)avisos.push(p.nome+': '+r.aviso);(r.arquivos||[]).forEach(a=>{if(a.erro)avisos.push(p.nome+': '+a.erro);});}n+=arquivos.length;}
+    await ia({acao:'produzida',id:PA.atual.id});PA.msg=avisos.length?('Atenção: '+avisos.join(' · ')):'';await pautaAbrir(PA.atual.id);if(avisos.length)PA.msg='Atenção: '+avisos.join(' · ');
+    msg((n?n+' arquivos digitais no Drive (cliente › ESTÚDIO). ':'')+(pdfs?pdfs+' PDF de gráfica na oficina: caem em cliente › ESTÚDIO › <peça> em alguns minutos (acompanhe em Saída de materiais). ':'')+'A lógica aprovada vira exemplo da próxima pauta.',12000);}
   catch(e){PA.msg=e.message;}
   PA.busy=false;pautaUI();}
 
@@ -767,8 +774,8 @@ function menuExport(){fechaMenu();const f=FORMATOS.find(x=>x.tipo===F().tipo)||{
   $('#app').appendChild(m);}
 async function baixar(tipo,q){const d=await renderPagina(PECA.pag,{format:tipo==='jpg'?'jpeg':'png',quality:q||.92});const a=document.createElement('a');a.href=d;a.download=($('#nome').value||'peca')+(PECA.nPag>1?'-p'+(PECA.pag+1):'')+'.'+tipo;a.click();fechaMenu();}
 // PDF para gráfica: SVG vetorial da prancheta (texto como texto + fontes embutidas) → oficina (Chromium → Ghostscript: CMYK, curvas, 300 dpi)
-async function svgImpresso(){const fams=[...new Set(objetos().filter(o=>o.type==='textbox').map(o=>o.fontFamily))];await Promise.all(fams.map(garanteFonte));
-  const Wp=W(),Hp=Hh(),wmm=px2mm(Wp),hmm=px2mm(Hp);const d=docPagina(PECA.pag);
+async function svgImpresso(dPag,Wq,Hq){const d=dPag||docPagina(PECA.pag);const Wp=Wq||W(),Hp=Hq||Hh(),wmm=px2mm(Wp),hmm=px2mm(Hp);
+  const fams=[...new Set((dPag?(d.objects||[]).filter(o=>o.type==='textbox').map(o=>o.fontFamily):objetos().filter(o=>o.type==='textbox').map(o=>o.fontFamily)))];await Promise.all(fams.map(garanteFonte));
   let svg=await new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:Wp,height:Hp});sc.loadFromJSON(d,()=>{res(sc.toSVG({viewBox:{x:0,y:0,width:Wp,height:Hp},width:Wp,height:Hp}));});});
   svg=svg.replace(/<svg([^>]*)width="[^"]*"([^>]*)height="[^"]*"/,`<svg$1width="${wmm}mm"$2height="${hmm}mm"`);
   let css='';const links=[];

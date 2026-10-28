@@ -117,7 +117,7 @@ if ($acao === 'exportar') {   // várias imagens (os recortes) → bucket "pecas
             $ext = ($a['tipo'] ?? 'png') === 'jpg' ? 'jpg' : 'png'; $mime = $ext === 'jpg' ? 'image/jpeg' : 'image/png';
             $suf = preg_replace('/[^\w\-]+/u', '', (string)($a['sufixo'] ?? '')); $nome = $base . ($suf ? '-' . $suf : '') . '-' . $carimbo . '.' . $ext;
             $url = esSobe('export/' . ($id ?: 'avulso') . '/' . $nome, $bytes, $mime); $drive = null;
-            if ($pasta) { try { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => $mime, 'b64' => base64_encode($bytes), 'substituir' => false]); $drive = $g['url'] ?? null; } catch (Exception $e) { $aviso = 'Cópia pro Drive falhou: ' . $e->getMessage(); } }
+            if ($pasta) { $b64 = base64_encode($bytes); for ($tent = 1; $tent <= 2 && !$drive; $tent++) { try { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => $mime, 'b64' => $b64, 'substituir' => false]); $drive = $g['url'] ?? null; } catch (Exception $e) { $aviso = 'Cópia pro Drive falhou (' . round(strlen($bytes) / 1048576, 1) . ' MB): ' . $e->getMessage(); if ($tent === 1) usleep(1500000); } } unset($b64); }
             $saida[] = ['nome' => $nome, 'sufixo' => $suf, 'url' => $url, 'drive_url' => $drive, 'em' => gmdate('c')];
             pdAcervo('exportacao', 'estudio', ['categoria' => 'banco_fotos', 'client_id' => $clientId, 'nome' => $nome, 'url' => $drive ?: $url, 'mime' => $mime, 'bytes' => strlen($bytes), 'por' => $u['id']]);
         } catch (Exception $e) { $saida[] = ['sufixo' => (string)($a['sufixo'] ?? ''), 'erro' => $e->getMessage()]; }
