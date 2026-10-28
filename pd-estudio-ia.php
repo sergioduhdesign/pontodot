@@ -80,12 +80,24 @@ if ($acao === 'pauta_salvar') {
     $id = (string)($b['id'] ?? ''); if (empty($b['client_id']) && !$id) sd_fail('Toda pauta é de um cliente.');
     $d = ['mudado_em' => gmdate('c')]; foreach (['nome' => 120, 'texto' => 20000, 'briefing' => 6000] as $k => $n) if (isset($b[$k])) $d[$k] = mb_substr((string)$b[$k], 0, $n);
     if (array_key_exists('pasta_drive', $b)) { $p = (string)$b['pasta_drive']; if (preg_match('~folders/([\w\-]+)~', $p, $m)) $p = $m[1]; $d['pasta_drive'] = $p ?: null; }
+    if (array_key_exists('texto_link', $b)) { $t = trim((string)$b['texto_link']); $d['texto_link'] = $t ? mb_substr($t, 0, 500) : null; }
     if (array_key_exists('principal_id', $b)) $d['principal_id'] = $b['principal_id'] ?: null;
     if (!empty($b['familia']) && in_array($b['familia'], ['social', 'papelaria', 'apresentacao', 'book'], true)) $d['familia'] = $b['familia'];
     if (isset($b['qtd'])) $d['qtd'] = max(0, min(200, (int)$b['qtd']));
     if (!$id) { $d['client_id'] = (string)$b['client_id']; $d['criado_por'] = $u['id']; $d['nome'] = $d['nome'] ?? 'Pauta'; $r = sd_supabase('/rest/v1/pd_pautas', 'POST', $d, ['Prefer: return=representation']); }
     else $r = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', $d, ['Prefer: return=representation']);
     if (empty($r['body'][0])) sd_fail('Não consegui salvar a pauta: ' . ($r['raw'] ?? ''), 500);
+    // texto longo (mais de 4000 caracteres) vira documento no Drive: cliente › ESTÚDIO › TEXTOS
+    $pa = $r['body'][0]; $aviso = null;
+    if (!empty($d['texto']) && mb_strlen($d['texto']) > 4000 && empty($pa['texto_link']) && paPonteOk()) {
+        try { $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($pa['client_id']) . '&select=id,name,drive_id')['body'][0] ?? null; $raiz = $c['drive_id'] ?? null;
+            if (!$raiz && $c && pdDriveClientes()) { $g0 = ponte('pasta_garantir', ['pai_id' => pdDriveClientes(), 'nome' => $c['name'], 'criar' => true]); $raiz = $g0['id'] ?? null; }
+            if ($raiz) { $e = ponte('pasta_garantir', ['pai_id' => $raiz, 'nome' => 'ESTÚDIO', 'criar' => true]); $tx = ponte('pasta_garantir', ['pai_id' => $e['id'], 'nome' => 'TEXTOS', 'criar' => true]);
+                $g = ponte('gravar', ['folderId' => $tx['id'], 'nome' => preg_replace('/[\/\\:*?"<>|]+/u', '-', $pa['nome']) . '.md', 'mime' => 'text/markdown', 'b64' => base64_encode($d['texto']), 'substituir' => true]);
+                if (!empty($g['url'])) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($pa['id']), 'PATCH', ['texto_link' => $g['url']]); $pa['texto_link'] = $g['url']; $aviso = 'Texto longo virou documento no Drive (ESTÚDIO › TEXTOS).'; } }
+        } catch (Exception $e) { $aviso = 'Não consegui guardar o texto no Drive: ' . $e->getMessage(); }
+    }
+    $r['body'][0] = $pa; if ($aviso) $r['body'][0]['_aviso'] = $aviso;
     if (!empty($b['principal_id'])) sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)$b['principal_id']), 'PATCH', ['pauta_id' => $r['body'][0]['id'], 'papel' => 'principal']);
     echo json_encode(['ok' => true, 'pauta' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
 }
@@ -116,6 +128,10 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     $pngs = array_values(array_filter(array_map(fn($x) => strpos((string)$x, ',') !== false ? substr($x, strpos($x, ',') + 1) : (string)$x, (array)($b['principal_pngs'] ?? ($b['principal_png'] ? [$b['principal_png']] : [])))));
     if (!$pngs) sd_fail('Mande as imagens das páginas da principal (o Estúdio faz isso sozinho).');
     $feedback = mb_substr(trim((string)($b['feedback'] ?? '')), 0, 4000);
+    $textoPauta = (string)($p['texto'] ?? '');
+    if (!empty($p['texto_link']) && paPonteOk()) { $lid = preg_match('~/d/([\w\-]+)|id=([\w\-]+)~', $p['texto_link'], $m) ? ($m[1] ?: $m[2]) : trim($p['texto_link']);
+        try { $r0 = ponte('reuniao_ler', ['doc_id' => $lid]); $tl = trim((string)($r0['texto'] ?? '')); if ($tl === '') { $r1 = ponte('baixar', ['fileId' => $lid]); $tl = trim((string)base64_decode((string)($r1['b64'] ?? ''), true)); } if ($tl !== '') $textoPauta = mb_substr($tl, 0, 60000); }
+        catch (Exception $e) { sd_fail('Não consegui ler o texto no link do Drive: ' . $e->getMessage()); } }
     [$kit, $kitSt] = paKit($p['client_id']);
     $rodada = (int)$p['rodada'] + 1; $hist = is_array($p['historico']) ? $p['historico'] : [];
     if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]); }
@@ -155,7 +171,7 @@ TXT;
     elseif ($famId === 'papelaria') $system = "Você é a diretora de arte da Pontodot. Recebe UM cartão de visita feito por um humano e deriva a papelaria inteira com a mesma lógica (filetes, proporções, hierarquia, cores, fontes, posição do logo).\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"papelaria\",\"item\":\"timbrado\",\"titulo\":\"Papel timbrado A4\",\"formato\":{\"mm\":[210,297]},\"paginas\":[PAGINA]}, ...]}\nEntregue, nesta ordem, um item por derivação: timbrado (mm 210×297), envelope (mm 220×110), assinatura de e-mail (px 600×200: formato {\"px\":[600,200]}), pasta (mm 220×310, só a frente), cracha (mm 54×86), adesivo (mm 50×50), bloco (mm 148×210), capa de proposta (mm 210×297). Em impresso, lembre: texto de corpo entre 7 e 10 pt ≈ tamanho 3–4.5 em % da largura de um A4; o papel tem 5 mm de sangria por lado já incluídos na página (deixe 10% de respiro além do corte para o que não sangra).";
     elseif ($famId === 'apresentacao') $system = "Você é a diretora de arte da Pontodot. Recebe as páginas-modelo de uma apresentação feitas por um humano (capa, segunda capa, tela clara, tela escura) e monta o deck inteiro com $qtd telas, usando HERDA em todas as telas (cada tela herda de um modelo e troca só textos e imagens). Distribua o TEXTO DA PAUTA pelas telas: uma ideia por tela, títulos curtos, corpo enxuto; alterne clara/escura com ritmo; abra seções com uma tela que herda da segunda capa; feche com uma tela que herda da capa.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"apresentacao\",\"titulo\":\"nome do deck\",\"paginas\":[PAGINA x $qtd]}]}";
     else $system = "Você é a diretora de arte da Pontodot. Recebe as páginas-modelo de um book/livro feitas por um humano (capa, página 1, entrada de capítulo, texto A, texto B, final) e diagrama o book inteiro com $qtd páginas, usando HERDA em todas (cada página herda de um modelo e troca só textos e imagens). Distribua o TEXTO DA PAUTA em capítulos: cada capítulo abre com uma entrada de capítulo e segue alternando texto A e texto B; comece pela capa e página 1 e termine na final. Respeite o texto: não corte frases no meio; se o texto for longo demais para a quantidade de páginas, diga no raciocinio quantas páginas faltariam.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"book\",\"titulo\":\"nome do book\",\"paginas\":[PAGINA x $qtd]}]}";
-    $txt = "CLIENTE: {$p['clients']['name']}\nPAUTA: {$p['nome']} · família: {$fam['nome']}\nRODADA: $rodada\n\nBRIEFING (o que o humano pediu):\n" . ($p['briefing'] ?: '(sem briefing)') . "\n\nTEXTO DA PAUTA (só este texto pode aparecer nas peças):\n" . ($p['texto'] ?: '(sem texto além do que está na principal)') .
+    $txt = "CLIENTE: {$p['clients']['name']}\nPAUTA: {$p['nome']} · família: {$fam['nome']}\nRODADA: $rodada\n\nBRIEFING (o que o humano pediu):\n" . ($p['briefing'] ?: '(sem briefing)') . "\n\nTEXTO DA PAUTA (só este texto pode aparecer nas peças):\n" . ($textoPauta ?: '(sem texto além do que está na principal)') .
         "\n\nKIT DE MARCA: cores: " . ($cores ?: 'nenhuma') . " · fontes: " . ($fontes ?: 'nenhuma') . " · logos: " . (implode(', ', $logos) ?: 'nenhum') . ($kitSt['completo'] ? '' : ' · KIT INCOMPLETO (faltam: ' . implode(', ', $kitSt['faltam']) . ')') .
         "\n\nPEÇA PRINCIPAL \"{$pr['nome']}\" ({$W0}×{$H0}" . (!empty($pr['formato']['mm']) ? ', ' . $pr['formato']['mm'][0] . '×' . $pr['formato']['mm'][1] . ' mm + sangria' : '') . "), " . count($pags) . " página(s):\n" . $resumoPrincipal .
         "\n\nIMAGENS DISPONÍVEIS NA GALERIA (use pelo ID):\n" . ($imgs ? implode("\n", array_map(fn($i) => $i['id'] . ' · ' . $i['nome'], array_slice($imgs, 0, 60))) : '(pasta vazia: use as imagens da principal)') .
