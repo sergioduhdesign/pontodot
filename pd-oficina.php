@@ -169,6 +169,10 @@ if ($acao === 'cancelar') {
     $tid = (string)($b['id'] ?? ''); $r = ofSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($tid) . '&status=in.(fila,aguardando_ok)', 'PATCH', ['status' => 'cancelado', 'fim_em' => gmdate('c')], ['Prefer: return=representation']);
     if (empty($r['body'][0])) sd_fail('Só dá para cancelar o que ainda não começou.'); ofLog($tid, $r['body'][0]['modulo'], 'cancelou', $u['name'] . ' cancelou.'); echo json_encode(['ok' => true]); exit;
 }
+if ($acao === 'apagar') {   // tira da lista um trabalho terminado (erro, cancelado, pronto); os arquivos no Drive ficam
+    $tid = (string)($b['id'] ?? ''); $r = ofSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($tid) . '&status=in.(erro,cancelado,pronto)', 'DELETE', null, ['Prefer: return=representation']);
+    if (empty($r['body'][0])) sd_fail('Só dá para apagar o que já terminou.'); echo json_encode(['ok' => true]); exit;
+}
 if ($acao === 'ver') {
     $tid = (string)($b['id'] ?? ''); $t = ofSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($tid) . '&select=*')['body'][0] ?? null; if (!$t) sd_fail('Trabalho não encontrado.', 404);
     $log = ofSup('/rest/v1/pd_oficina_log?trabalho_id=eq.' . urlencode($tid) . '&select=evento,detalhe,dados,em&order=em.asc&limit=200')['body'] ?? [];
