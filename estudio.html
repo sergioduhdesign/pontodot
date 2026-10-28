@@ -748,7 +748,7 @@ function specParaDoc(pg,Wd,Hd,galeria,principais,fmtPrincipal){return new Promis
   else depois();});}
 async function aprovar(semPerguntar){if(!PA.atual)return;if(!semPerguntar&&!confirm('Fechar o lote e mandar tudo pra Saída de materiais?'))return;PA.busy=true;PA.msg='Mandando pra Saída de materiais…';pautaUI();
   cronoPauta();try{await ia({acao:'aprovar',id:PA.atual.id});
-    const deriv=PA.pecas.filter(x=>x.papel==='derivada');let n=0,pdfs=0;const avisos=[];const loteSeg=(PA.atual.nome||'lote').replace(/[\/\\:*?"<>|]+/g,'-');
+    const principal=PA.pecas.find(x=>x.papel==='principal');if(principal&&PECA.id===principal.id&&dirty)await salvar(false,true);const deriv=[...(principal?[principal]:[]),...PA.pecas.filter(x=>x.papel==='derivada')];let n=0,pdfs=0;const avisos=[];const loteSeg=(PA.atual.nome||'lote').replace(/[\/\\:*?"<>|]+/g,'-');
     for(const d of deriv){const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id:d.id});const pgs=p.doc.paginas||[p.doc];const arquivos=[];
       const nomeSeg=(p.nome||'peca').replace(/[\/\\:*?"<>|]+/g,'-');
       if(p.formato.impresso){   // impresso: PDF de gráfica (CMYK, curvas, sangria) pela oficina — um pedido por página
@@ -873,7 +873,7 @@ async function htmlImpressoTodas(pgs,Wq,Hq,opt){const htmls=[];for(let i=0;i<pgs
 async function verDerivacoes(){if(ABA!=='pauta')aba('pauta');PA.fixa=true;if(!PA.atual){try{await desdobrarPrepara();}catch(e){}}}
 async function gerarSaida(){if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);falta('#cli');return;}
   const deriv=PA.atual&&PA.atual.client_id===PECA.client_id?PA.pecas.filter(x=>x.papel==='derivada'):[];
-  if(deriv.length){const todas=confirm('Este lote tem '+deriv.length+' derivações.\n\nOK = gerar a saída de TODAS as peças (vai pra Saída de materiais, pasta do lote)\nCancelar = só este documento');if(todas){await aprovar(true);return;}}
+  if(deriv.length){const todas=confirm('Este lote tem '+deriv.length+' derivações.\n\nOK = gerar a saída de TODAS as peças, esta incluída (vai pra Saída de materiais, pasta do lote)\nCancelar = só este documento');if(todas){await aprovar(true);return;}}
   if(ehImp())await exportarImpresso();else await exportarTudo();}
 function mapaCmyk(){const m={};(KIT&&KIT.colors||[]).forEach(c=>{if(!c||!c.hex||!c.cmyk)return;const v=String(c.cmyk).split(/[\s,;\/]+/).map(Number).filter(n=>!isNaN(n));if(v.length===4)m[c.hex.toLowerCase()]=v.map(n=>n>1?n/100:n);});return m;}
 async function exportarImpresso(){fechaMenu();if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);falta('#cli');return;}if(!PECA.id||dirty){if(!await salvar())return;}
