@@ -25,6 +25,7 @@
 .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.col{display:flex;flex-direction:column;gap:6px}
 input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);min-width:0}input[type=color]{padding:0;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);cursor:pointer}input[type=range]{padding:0;width:100%}
 .pos label{display:flex;flex-wrap:nowrap}.pos input{width:100%;min-width:0}
+.pensando{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:7px;padding:10px 12px;font-size:12px;line-height:1.35;margin:8px 0}.pensando i{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:gira .8s linear infinite;flex-shrink:0}@keyframes gira{to{transform:rotate(360deg)}}
 .pisca{animation:pisca 1s infinite}@keyframes pisca{50%{box-shadow:0 0 0 3px #c63d32;background:rgba(198,61,50,.12)}}
 .lab{font-size:10.5px;color:var(--gray);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.05em}
 .sw{display:inline-block;width:26px;height:26px;border-radius:7px;border:1px solid var(--line);cursor:pointer;margin:2px}
@@ -539,7 +540,7 @@ function papelDaPag(i){return (PECA.papeis||[])[i]||'';}
 function papelSet(i){const fam=FAM_DO_TIPO(F().tipo);const ops=FAM_PAPEIS[fam]||[];if(ops.length<2){msg('Esta família tem uma peça-modelo só: a própria.');return;}
   const atual=papelDaPag(i);const esc3=prompt('Papel desta prancheta na família '+FAM_NOME[fam]+':\n'+ops.map((o,k)=>(k+1)+' · '+o).join('\n')+'\n(0 = sem papel)',atual?String(ops.indexOf(atual)+1):'');if(esc3===null)return;const n=parseInt(esc3,10);PECA.papeis=PECA.papeis||[];PECA.papeis[i]=n>0&&ops[n-1]?ops[n-1]:'';dirty=true;pags();if($('#p-pauta').style.display!=='none')pautaUI();}
 async function pautaUI(){const el=$('#p-pauta');if(!PECA.client_id){el.innerHTML='<div class="vazio">Escolha o cliente no topo.</div>';falta('#cli');return;}
-  const fam=FAM_DO_TIPO(F().tipo);
+  const fam=FAM_DO_TIPO(F().tipo)||(PA.atual&&PA.atual.client_id===PECA.client_id?(PA.atual.familia||'social'):null);
   if(!fam){el.innerHTML='<h3>Derivações</h3><div class="vazio" style="line-height:1.45">Derivações é o ping-pongue com a IA: você faz as peças-modelo, ela deriva o resto, você ajusta e aprova.<br><br>Famílias prontas: <b>social</b> (post de feed → carrossel, stories, vídeo), <b>papelaria</b> (cartão → tudo), <b>apresentação</b> (capa, segunda capa, tela clara, tela escura → o deck) e <b>book</b> (capa, página 1, entrada de capítulo, texto A/B, final → o livro).<br><br>Esta peça é <b>'+esc(F().nome)+'</b> e ainda não tem família: edite e exporte pelo botão preto.</div>';return;}
   if(!PA.kit||PA.kitCli!==PECA.client_id){try{PA.kit=await ia({acao:'kit_status',client_id:PECA.client_id});PA.kitCli=PECA.client_id;}catch(e){PA.kit={completo:true,faltam:[]};}}
   if(!PA.atual||PA.atual.client_id!==PECA.client_id){PA.atual=null;try{PA.lista=(await ia({acao:'pauta_listar',client_id:PECA.client_id})).pautas||[];}catch(e){el.innerHTML='<div class="vazio">'+esc(e.message)+'</div>';return;}}
@@ -559,7 +560,7 @@ async function pautaUI(){const el=$('#p-pauta');if(!PECA.client_id){el.innerHTML
     ${temPapeis?`<div class="vazio" style="margin-top:4px">Papéis: ${papeis.map(r=>`<span style="padding:1px 6px;border-radius:5px;border:1px solid var(--line);margin:2px 2px 0 0;display:inline-block;${marcados.includes(r)?'':'opacity:.45'}">${esc(r)}${marcados.includes(r)?' ✓':''}</span>`).join('')}${faltam.length&&aberta?`<br><span style="color:#c63d32">Faltam: ${esc(faltam.join(', '))} (obrigatórios: ${esc((fam==='apresentacao'?['capa','tela clara']:['capa','texto a']).join(', '))})</span>`:''}</div>`:''}
     <div class="row" style="margin-top:6px"><button class="btn s" ${aberta?'':'disabled'} onclick="pautaPrincipal()" title="Usa a peça aberta no editor como modelo">Usar a peça aberta</button></div>
     <div class="row" style="margin-top:12px"><button class="btn p" ${principal&&!PA.busy?'':'disabled'} onclick="derivar('')" title="A IA olha os modelos e deriva o resto"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> ${P.rodada?'Nova rodada':'Play'}</button>${PA.kit&&PA.kit.completo&&P.kit_status&&P.kit_status.completo===false&&deriv.length?`<button class="btn s" onclick="derivar('O kit de marca agora está completo: aplique as cores, fontes e logo do kit em tudo, mantendo a estrutura aprovada.')">Atualizar com o kit</button>`:''}</div>
-    <div class="vazio" id="paMsg">${esc(PA.msg||'')}</div>
+    ${PA.busy?`<div class="pensando"><i></i><div>${esc(PA.msg||'A IA está trabalhando…')}<br><small style="opacity:.75">leva de 1 a 3 min · <span id="paCrono">0s</span></small></div></div>`:(PA.msg?`<div class="vazio" id="paMsg" style="color:#c63d32">${esc(PA.msg)}</div>`:'')}
     ${deriv.length?`<h3>Derivações · clique para editar</h3><div class="pecas">${deriv.map(d=>`<div onclick="abrirPeca('${d.id}')"><img src="${esc(d.thumb_url||'')}" onerror="this.style.opacity=.2"><span>${esc(d.nome)}</span><span style="color:var(--gray)">${esc(d.derivada_tipo||'')}${d.roteiro?' · roteiro':''}</span></div>`).join('')}</div>
       ${deriv.filter(d=>d.roteiro).map(d=>`<div class="lab">Roteiro · ${esc(d.nome)}</div><div style="font-size:12px;line-height:1.4">${esc(d.roteiro.estilo||'')} · legenda ${esc(d.roteiro.legenda_posicao||'')}<br>${(d.roteiro.boards||[]).map((bd,i)=>`<b>Board ${i+1}</b> (${bd.duracao_s||4}s): ${esc(bd.fala||'')}`).join('<br>')}</div>`).join('')}
       <div class="vazio" style="line-height:1.45">As derivações são peças do cliente (aba Peças). Ao dar OK, os arquivos caem em cliente › ESTÚDIO › nome de cada peça, no Drive.</div><div class="lab">O que você achou? (vira lição do cliente)</div><textarea id="paFeed" style="width:100%;min-height:70px" placeholder="Ex.: não corte texto deixando só uma palavra na última linha; intercale cores e fotos…"></textarea>
@@ -583,8 +584,9 @@ async function pautaPrincipal(){if(!(await salvar()))return;try{await ia({acao:'
 async function pngsDaPeca(id){const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});const pgs=p.doc&&p.doc.paginas?p.doc.paginas:[p.doc];const out=[];
   for(const pg of pgs){out.push(await new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:p.formato.w,height:p.formato.h});sc.loadFromJSON(pg,()=>{sc.renderAll();res(sc.toDataURL({format:'png',multiplier:Math.min(1,1000/Math.max(p.formato.w,p.formato.h))}));});}));}
   return {p,pgs,pngs:out};}
+let PA_T0=0,PA_TM=null;function cronoPauta(){clearInterval(PA_TM);PA_T0=Date.now();PA_TM=setInterval(()=>{const e=$('#paCrono');if(e)e.textContent=Math.round((Date.now()-PA_T0)/1000)+'s';if(!PA.busy)clearInterval(PA_TM);},1000);}
 async function derivar(feedback){if(!PA.atual||PA.busy)return;if(!PA.atual.principal_id){msg('Falta a peça-modelo: faça, salve e clique em "Usar a peça aberta".',6000);falta('#paSemPrincipal');return;}if(dirty){if(!await salvar())return;}
-  PA.busy=true;PA.msg='A IA está olhando os modelos, o kit, o texto e as imagens… (até 3 min)';pautaUI();
+  PA.busy=true;PA.msg='A IA está olhando os modelos, o kit, o texto e as imagens…';cronoPauta();pautaUI();
   try{const {p:pr,pgs,pngs}=await pngsDaPeca(PA.atual.principal_id);const r=await ia({acao:'derivar',id:PA.atual.id,feedback,principal_pngs:pngs});
     PA.msg='Plano recebido. Montando as peças…';pautaUI();
     const papeis=(pr.doc&&pr.doc.papeis)||[];const principais={};pgs.forEach((pg,i)=>{principais['p'+(i+1)]=pg;const pp=String(papeis[i]||'').toLowerCase().trim();if(pp)principais[pp]=pg;if(i===0&&!principais.principal)principais.principal=pg;});
@@ -598,7 +600,7 @@ async function derivar(feedback){if(!PA.atual||PA.busy)return;if(!PA.atual.princ
       if(!docs.length)continue;
       await api('pd-estudio.php',{acao:'salvar',client_id:PA.atual.client_id,nome:d.titulo||(fmt.nome+' '+ordem),formato:fmt,doc:{paginas:docs,tipo:fmt.tipo},thumb:th,pauta_id:PA.atual.id,papel:'derivada',derivada_tipo:tipo,spec:d,roteiro,ordem});}
     PA.msg='';await pautaAbrir(PA.atual.id);msg('Derivações prontas, aqui ao lado e em Peças. Clique para editar, escreva o que achou e mande de volta, ou dê OK para produzir no Drive.',7000);}
-  catch(e){PA.msg=e.message;}
+  catch(e){PA.msg='Erro: '+e.message;}
   PA.busy=false;pautaUI();}
 // spec (percentual) → documento Fabric. Com "herda", parte das camadas da página-modelo (escaladas pro destino) e troca só o que foi pedido.
 function specParaDoc(pg,Wd,Hd,galeria,principais,fmtPrincipal){return new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:Wd,height:Hd});
@@ -625,7 +627,7 @@ function specParaDoc(pg,Wd,Hd,galeria,principais,fmtPrincipal){return new Promis
       depois();});}
   else depois();});}
 async function aprovar(){if(!PA.atual)return;if(!confirm('Aprovar e produzir todas as derivações (arquivos no Drive)?'))return;PA.busy=true;PA.msg='Aprovando e produzindo…';pautaUI();
-  try{await ia({acao:'aprovar',id:PA.atual.id});
+  cronoPauta();try{await ia({acao:'aprovar',id:PA.atual.id});
     const deriv=PA.pecas.filter(x=>x.papel==='derivada');let n=0;
     for(const d of deriv){const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id:d.id});const pgs=p.doc.paginas||[p.doc];const arquivos=[];
       for(let i=0;i<pgs.length;i++){const png=await new Promise(res=>{const sc=new fabric.StaticCanvas(null,{width:p.formato.w,height:p.formato.h});sc.loadFromJSON(pgs[i],()=>{sc.renderAll();res(sc.toDataURL({format:'png'}));});});
