@@ -59,8 +59,8 @@ function esCliente($clientId) { if (!$clientId) sd_fail('Escolha o cliente.'); $
 function esPastaCliente($c) {   // pasta-raiz do cliente no Drive (cria dentro da pasta mestre, se precisar)
     if (!esPonteOk()) throw new Exception('Ponte do Drive não configurada.');
     $id = $c['drive_id'] ?? null;
-    if (!$id) { if (!defined('SD_DRIVE_CLIENTES') || !SD_DRIVE_CLIENTES) throw new Exception('Cliente sem pasta no Drive e sem pasta mestre (SD_DRIVE_CLIENTES). Conecte a pasta do cliente em Clientes.');
-        $p = ponte('pasta_garantir', ['pai_id' => SD_DRIVE_CLIENTES, 'nome' => $c['name'], 'criar' => true]); $id = $p['id'] ?? null; if (!$id) throw new Exception('Não consegui criar a pasta do cliente.');
+    if (!$id) { $raiz = pdDriveClientes(); if (!$raiz) throw new Exception('Este cliente ainda não tem pasta no Drive. Ligue a pasta do cliente (perfil do cliente › Drive) ou defina a pasta mestre dos clientes no painel do admin.');
+        $p = ponte('pasta_garantir', ['pai_id' => $raiz, 'nome' => $c['name'], 'criar' => true]); $id = $p['id'] ?? null; if (!$id) throw new Exception('Não consegui criar a pasta do cliente.');
         sd_supabase('/rest/v1/clients?id=eq.' . urlencode($c['id']), 'PATCH', ['drive_id' => $id, 'drive_url' => 'https://drive.google.com/drive/folders/' . $id]); }
     return $id;
 }
@@ -143,7 +143,7 @@ if ($acao === 'subir') {   // upload em lote para cliente › MÍDIA (› subpas
     echo json_encode(['ok' => true, 'id' => $g['id'] ?? null, 'url' => $g['url'] ?? null]); exit;
 }
 if ($acao === 'fontes_casa') {   // as fontes da casa moram numa pasta do Drive (SD_DRIVE_FONTES); servidas pelo proxy assinado
-    $pasta = defined('SD_DRIVE_FONTES') && SD_DRIVE_FONTES ? SD_DRIVE_FONTES : '186AScxaZHJqIdAuOQLjH7hVeusoC5kBB';
+    $pasta = pdDriveFontes();
     if (!esPonteOk()) echo json_encode(['fontes' => [], 'aviso' => 'Ponte do Drive não configurada.']); else {
         try { $l = ponte('listar', ['folderId' => $pasta]); } catch (Exception $e) { echo json_encode(['fontes' => [], 'aviso' => $e->getMessage()]); exit; }
         $out = [];
@@ -168,7 +168,7 @@ if ($acao === 'fonte_subir') {   // sobe uma fonte: para a casa (Drive) ou para 
         pdAcervo('upload', 'estudio', ['categoria' => 'marca', 'client_id' => $c['id'], 'nome' => $nome, 'url' => $url, 'mime' => 'font', 'bytes' => strlen($bytes), 'por' => $u['id']]);
         echo json_encode(['ok' => true, 'url' => $url, 'familia' => $fam]); exit;
     }
-    $pasta = defined('SD_DRIVE_FONTES') && SD_DRIVE_FONTES ? SD_DRIVE_FONTES : '186AScxaZHJqIdAuOQLjH7hVeusoC5kBB';
+    $pasta = pdDriveFontes();
     try { $g = ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'mime' => 'font/' . strtolower(pathinfo($nome, PATHINFO_EXTENSION)), 'b64' => base64_encode($bytes), 'substituir' => false]); } catch (Exception $e) { sd_fail($e->getMessage(), 500); }
     pdAcervo('upload', 'estudio', ['categoria' => 'marca', 'nome' => $nome, 'url' => (string)($g['url'] ?? ''), 'mime' => 'font', 'bytes' => strlen($bytes), 'nota' => 'fonte da casa', 'por' => $u['id']]);
     echo json_encode(['ok' => true, 'id' => $g['id'] ?? null]); exit;

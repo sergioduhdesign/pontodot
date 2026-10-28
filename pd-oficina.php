@@ -50,7 +50,7 @@ function ofDrive($trab, $arq) {
     if (!empty($trab['client_id'])) {
         $c = ofSup('/rest/v1/clients?id=eq.' . urlencode($trab['client_id']) . '&select=name,drive_id')['body'][0] ?? null;
         $id = $c['drive_id'] ?? null;
-        if (!$id && $c && defined('SD_DRIVE_CLIENTES') && SD_DRIVE_CLIENTES) { $p = ponte('pasta_garantir', ['pai_id' => SD_DRIVE_CLIENTES, 'nome' => $c['name'], 'criar' => true]); $id = $p['id'] ?? null; }
+        if (!$id && $c && pdDriveClientes()) { $p = ponte('pasta_garantir', ['pai_id' => pdDriveClientes(), 'nome' => $c['name'], 'criar' => true]); $id = $p['id'] ?? null; }
         if ($id) { $sub = trim((string)(($trab['entrada']['drive_subpasta'] ?? '')), '/'); $pasta = $id;
             foreach ($sub ? explode('/', $sub) : ['OFICINA'] as $n) { $p = ponte('pasta_garantir', ['pai_id' => $pasta, 'nome' => mb_substr($n, 0, 90), 'criar' => true]); $pasta = $p['id'] ?? null; if (!$pasta) break; } }
     }
@@ -129,7 +129,7 @@ $admin = $u['role'] === 'admin';
 if ($acao === 'inicio') {
     $mods = array_values(array_filter(ofModulos(), fn($m) => ofPodeVer($m, $u)));
     $tr = ofSup('/rest/v1/pd_trabalhos?select=id,modulo,titulo,status,prioridade,erro,saida,client_id,task_id,pedido_por,pedido_via,criado_em,inicio_em,fim_em,clients(name),profiles!pd_trabalhos_pedido_por_fkey(name)&order=criado_em.desc&limit=60')['body'] ?? [];
-    $cfg = ['worker_chave' => defined('SD_OFICINA_KEY') && SD_OFICINA_KEY, 'acorda_github' => defined('SD_GITHUB_TOKEN') && SD_GITHUB_TOKEN, 'drive' => (defined('SD_DRIVE_OFICINA') && SD_DRIVE_OFICINA) || (defined('SD_DRIVE_CLIENTES') && SD_DRIVE_CLIENTES)];
+    $cfg = ['worker_chave' => defined('SD_OFICINA_KEY') && SD_OFICINA_KEY, 'acorda_github' => defined('SD_GITHUB_TOKEN') && SD_GITHUB_TOKEN, 'drive' => (bool)pdDriveClientes()];
     $pulso = ofSup('/rest/v1/pd_batimento?chave=eq.oficina&select=ultima_em,detalhe')['body'][0] ?? null;
     echo json_encode(['admin' => $admin, 'modulos' => $mods, 'trabalhos' => $tr, 'cfg' => $cfg, 'pulso' => $pulso], JSON_UNESCAPED_UNICODE); exit;
 }

@@ -35,6 +35,10 @@
   .mobile-only { display: none !important; }
   #mobile-icon { display: none !important; }
 }
+
+.mc-abas{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto}.mc-abas button{background:transparent;border:0;padding:8px 12px;font:600 11.5px/1 inherit;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);cursor:pointer;border-radius:0;white-space:nowrap}.mc-abas button.on{color:var(--text);box-shadow:inset 0 -2px 0 var(--text)}
+.mc-kit h4{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:14px 0 6px}.mc-kit h4:first-child{margin-top:0}.mc-kit .sw{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);display:inline-grid;place-items:center;cursor:pointer;position:relative}.mc-kit .sw i{position:absolute;right:-5px;top:-5px;width:14px;height:14px;border-radius:50%;background:#dc2626;color:#fff;font-size:9px;font-style:normal;display:none;place-items:center}.mc-kit .sw:hover i{display:grid}
+.mc-kit .logo{width:88px;height:64px;border:1px dashed var(--border);border-radius:7px;display:grid;place-items:center;font-size:10.5px;color:var(--text3);cursor:pointer;background:#fff;overflow:hidden;position:relative}.mc-kit .logo img{max-width:92%;max-height:80%;object-fit:contain}
 </style>
 <link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -926,6 +930,14 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 <div id="acervo-body" style="max-height:280px;overflow-y:auto;font-size:11.5px"></div>
               </div>
 
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
+                <div>
+                  <div class="entity-card-name">Drive da casa</div>
+                  <div class="entity-card-meta">A pasta mestre onde moram as pastas dos clientes (a PD cria "Nome do cliente › MÍDIA / ESTÚDIO / OFICINA" sozinha) e a pasta das fontes da casa.</div>
+                </div>
+                <div id="drive-casa-body" style="display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
+              </div>
+
               <div class="entity-card" data-perm="social.conectar" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div class="entity-card-name">Redes sociais</div>
                 <div id="admin-social-resumo" style="display:flex;flex-direction:column;gap:6px"></div>
@@ -1424,14 +1436,25 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <button class="modal-close" onclick="closeModal('modal-client')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="mc-abas" id="mc-abas">
+        <button class="on" data-aba="perfil" onclick="mcAba('perfil')">Perfil</button><button data-aba="marca" onclick="mcAba('marca')">Marca</button><button data-aba="drive" onclick="mcAba('drive')">Drive</button><button data-aba="canais" class="mc-equipe" onclick="mcAba('canais')">Canais</button><button data-aba="esteira" class="mc-equipe" onclick="mcAba('esteira')">Esteira</button>
+      </div>
+      <div class="mc-aba" data-aba="perfil">
       <div class="detail-grid">
         <div class="dg-item"><div class="dg-label">Website</div><div class="dg-val" id="mc-website"></div></div>
         <div class="dg-item"><div class="dg-label">Tarefas ativas</div><div class="dg-val" id="mc-tasks"></div></div>
       </div>
       <div id="mc-notes-wrap" style="display:none"><div class="field-label" style="margin-bottom:5px">Observações</div><div id="mc-notes" style="font-size:13px;color:var(--text2);line-height:1.5;background:var(--surface2);padding:11px;border-radius:var(--radius)"></div></div>
       <div><div class="field-label" style="margin-bottom:8px">Produtos</div><div id="mc-products" style="display:flex;flex-wrap:wrap;gap:7px"></div></div>
-      <!-- v62: o painel do cliente — redes, anúncios, site e esteira num lugar só -->
-      <div id="mc-pd" style="display:none;flex-direction:column;gap:14px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px" onclick="openBriefingCenter(currentClientId)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Central de Briefings
+      </button>
+      </div>
+      <div class="mc-aba" data-aba="marca" style="display:none"><div id="mc-kit"><div style="font-size:12px;color:var(--text3)">Carregando o design system…</div></div></div>
+      <div class="mc-aba" data-aba="drive" style="display:none"><div id="mc-drive"></div></div>
+      <div id="mc-pd" style="display:none;flex-direction:column;gap:14px">
+        <div class="mc-aba" data-aba="canais" style="display:none;flex-direction:column;gap:14px">
         <div>
           <div class="field-label" style="margin-bottom:8px">Redes e anúncios</div>
           <div id="mc-redes" style="display:flex;flex-direction:column;gap:5px;font-size:12.5px"></div>
@@ -1457,10 +1480,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Peça kind <b>blog</b> aprovada em lote liberado = post no ar no site do cliente, sozinho. A senha de aplicativo fica no cofre: só o servidor lê.</div>
         </div>
         <div>
-          <div class="field-label" style="margin-bottom:8px">Esteira semanal <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="pdEsteiraNova()">+ nova</button></div>
-          <div id="mc-esteiras" style="display:flex;flex-direction:column;gap:6px;font-size:12.5px"></div>
-        </div>
-        <div>
           <div class="field-label" style="margin-bottom:8px">Zap do cliente</div>
           <div style="display:flex;gap:8px">
             <input id="mc-zap" placeholder="+55 19 99999-0000" style="flex:1;height:34px">
@@ -1472,13 +1491,16 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="mc-zap-ativo"> <b>Avisar este cliente</b> <span style="color:var(--text3);font-weight:400">(WhatsApp e e-mail, nos lotes de aprovação)</span></label>
           <div style="font-size:11px;color:var(--text3);margin-top:5px">Desligado, nenhum aviso sai para este cliente, mesmo com o número salvo.</div>
         </div>
+        </div>
+        <div class="mc-aba" data-aba="esteira" style="display:none">
+        <div>
+          <div class="field-label" style="margin-bottom:8px">Esteira semanal <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="pdEsteiraNova()">+ nova</button></div>
+          <div id="mc-esteiras" style="display:flex;flex-direction:column;gap:6px;font-size:12.5px"></div>
+        </div>
+        </div>
       </div>
-      <button class="btn btn-secondary" style="width:100%;justify-content:center;gap:8px" onclick="openBriefingCenter(currentClientId)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Central de Briefings
-      </button>
     </div>
-    <div class="modal-foot" style="justify-content:space-between">
+<div class="modal-foot" style="justify-content:space-between">
       <div id="mc-admin-actions" style="display:flex;gap:6px">
         <button class="btn btn-danger" onclick="pauseClient()">Encerrar</button>
         <button class="btn btn-danger" onclick="excluirClienteAbrir(currentClientId)">Excluir cliente</button>
@@ -5225,7 +5247,7 @@ async function renderAdmin(){
   try { preencherHorarioAdmin(); } catch(e) { console.warn('Horário admin:', e.message); }
   try { renderBIResumo(); } catch(e) { console.warn('BI resumo:', e.message); }
   try { renderTrackingEquipe(); } catch(e) {}
-  try { renderIAsCasa();renderAcervo(); } catch(e) {}
+  try { renderIAsCasa();renderAcervo();renderDriveCasa(); } catch(e) {}
   try { renderHabilidades(); } catch(e) {}
   // Admin vê todos os profiles — RLS permite se role=admin
   const{data:users,error:uerr}=await sb.from('profiles').select('*').order('name');
@@ -7108,6 +7130,7 @@ function openClientDetail(id){
   document.getElementById('mc-logo').style.cursor='pointer';
   document.getElementById('mc-logo').onclick=()=>document.getElementById('mc-logo-file').click();
   document.getElementById('mc-pd').style.display = isClient ? 'none' : 'flex';
+  document.querySelectorAll('#mc-abas .mc-equipe').forEach(b=>b.style.display=isClient?'none':'');mcAba('perfil');
   if (!isClient) pdPainelCliente(id);
   openModal('modal-client');
 }
@@ -7310,6 +7333,40 @@ async function uploadBriefing(input){
   await loadBriefingList(currentBriefingClientId);
 }
 
+function mcAba(n){document.querySelectorAll('#mc-abas button').forEach(b=>b.classList.toggle('on',b.dataset.aba===n));document.querySelectorAll('.mc-aba').forEach(d=>{d.style.display=d.dataset.aba===n?(d.dataset.aba==='canais'?'flex':'block'):'none';});if(n==='marca')mcKitRender();if(n==='drive')mcDriveRender();}
+// ---- MARCA: o design system do cliente, dentro do perfil (brand_kits: colors, fonts, logos, elements, grids)
+let MCK=null;
+async function mcKitRender(){const box=document.getElementById('mc-kit');if(!box||!currentClientId)return;
+  const {data}=await sb.from('brand_kits').select('*').eq('client_id',currentClientId).maybeSingle();MCK=data||{client_id:currentClientId,colors:[],fonts:[],logos:{},elements:[],grids:[],notes:''};MCK.logos=MCK.logos||{};MCK.elements=MCK.elements||[];MCK.grids=MCK.grids||[];
+  const ok=(MCK.colors||[]).filter(c=>c&&c.hex).length>=2&&(MCK.fonts||[]).filter(f=>f&&f.name).length>=1&&Object.values(MCK.logos).some(l=>l&&l.file_url);
+  const LOGOS=[['principal','Principal'],['horizontal','Horizontal'],['simbolo','Símbolo'],['negativo','Negativo']];
+  box.className='mc-kit';box.innerHTML=`${ok?'':'<div style="background:#c63d32;color:#fff;border-radius:7px;padding:8px 10px;font-size:12px;line-height:1.4;margin-bottom:10px"><b>Design system incompleto.</b> O Estúdio e a IA precisam de pelo menos 2 cores, 1 fonte e 1 logo. Sem isso, a entrega fica comprometida.</div>'}
+    <h4>Cores</h4><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${(MCK.colors||[]).map((c,i)=>`<span class="sw" style="background:${saudeEsc(c.hex)}" title="${saudeEsc(c.name||c.hex)}"><i onclick="MCK.colors.splice(${i},1);mcKitSave()">×</i></span>`).join('')}<input type="color" id="mck-hex" value="#121212" style="width:30px;height:30px;padding:0;border:1px solid var(--border);border-radius:7px"><input id="mck-nome" placeholder="nome" style="width:110px;height:30px"><button class="btn btn-secondary btn-sm" onclick="MCK.colors.push({name:document.getElementById('mck-nome').value||document.getElementById('mck-hex').value,hex:document.getElementById('mck-hex').value});mcKitSave()">+ cor</button></div>
+    <h4>Fontes</h4><div style="display:flex;flex-direction:column;gap:4px">${(MCK.fonts||[]).map((f,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:12.5px"><span style="flex:1">${saudeEsc(f.name)} <span style="color:var(--text3)">${saudeEsc(f.file_name||'')}</span></span><button class="btn btn-secondary btn-sm" onclick="MCK.fonts.splice(${i},1);mcKitSave()">×</button></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">Nenhuma fonte.</div>'}</div>
+    <div style="margin-top:6px"><label class="btn btn-secondary btn-sm">Subir fonte (.ttf, .otf, .woff)<input type="file" accept=".ttf,.otf,.woff,.woff2" multiple style="display:none" onchange="mcFonteSubir(this)"></label></div>
+    <h4>Logos</h4><div style="display:flex;gap:8px;flex-wrap:wrap">${LOGOS.map(([k,n])=>{const l=MCK.logos[k];return `<label class="logo" title="${n}">${l&&l.file_url?`<img src="${saudeEsc(l.file_url)}" alt="">`:n}<input type="file" accept="image/*,.svg" style="display:none" onchange="mcLogoSubir(this,'${k}')"></label>`;}).join('')}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">Prefira SVG: no Estúdio ele entra como vetor, com cor editável. Clique num logo para trocar.</div>
+    <h4>Elementos de design</h4><div style="display:flex;gap:6px;flex-wrap:wrap">${MCK.elements.map((e,i)=>`<span class="sw" style="width:56px;height:56px;background:#fff"><img src="${saudeEsc(e.file_url)}" style="max-width:90%;max-height:90%;object-fit:contain"><i onclick="MCK.elements.splice(${i},1);mcKitSave()">×</i></span>`).join('')}<label class="btn btn-secondary btn-sm">+ elementos<input type="file" accept="image/*,.svg" multiple style="display:none" onchange="mcElementosSubir(this)"></label></div>
+    <h4>Formatos próprios (px)</h4><div style="display:flex;flex-direction:column;gap:4px">${MCK.grids.map((g,i)=>`<div style="display:flex;gap:8px;font-size:12.5px;align-items:center"><span style="flex:1">${saudeEsc(g.name||'')} · ${g.w}×${g.h}</span><button class="btn btn-secondary btn-sm" onclick="MCK.grids.splice(${i},1);mcKitSave()">×</button></div>`).join('')}<div style="display:flex;gap:6px"><input id="mck-gn" placeholder="nome" style="flex:1;height:30px"><input id="mck-gw" type="number" placeholder="L" style="width:70px;height:30px"><input id="mck-gh" type="number" placeholder="A" style="width:70px;height:30px"><button class="btn btn-secondary btn-sm" onclick="const n=document.getElementById('mck-gn').value,w=+document.getElementById('mck-gw').value,h=+document.getElementById('mck-gh').value;if(n&&w&&h){MCK.grids.push({name:n,w,h});mcKitSave();}">+</button></div></div>
+    <h4>Notas de marca</h4><textarea id="mck-notes" style="width:100%;min-height:70px;font-size:12.5px" placeholder="tom, usos proibidos, regras de aplicação…" onchange="MCK.notes=this.value;mcKitSave()">${saudeEsc(MCK.notes||'')}</textarea>`;}
+async function mcKitSave(){if(!MCK)return;const payload={client_id:currentClientId,colors:MCK.colors||[],fonts:MCK.fonts||[],logos:MCK.logos||{},elements:MCK.elements||[],grids:MCK.grids||[],notes:MCK.notes||'',updated_at:new Date().toISOString(),updated_by:profile.id};
+  const {error}=await sb.from('brand_kits').upsert(payload,{onConflict:'client_id'});if(error){showToast('Não consegui salvar o kit: '+error.message,'error');return;}mcKitRender();}
+async function mcArquivoSobe(file,pasta){const fname=`${pasta}/${currentClientId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;const {error}=await sb.storage.from('brand-assets').upload(fname,file,{contentType:file.type||undefined});if(error)throw error;return sb.storage.from('brand-assets').getPublicUrl(fname).data.publicUrl;}
+async function mcLogoSubir(inp,slot){const f=inp.files[0];inp.value='';if(!f)return;try{const url=await mcArquivoSobe(f,'logos');MCK.logos[slot]={file_url:url,file_name:f.name};await mcKitSave();}catch(e){showToast(e.message,'error');}}
+async function mcElementosSubir(inp){const fs=[...inp.files];inp.value='';for(const f of fs){try{const url=await mcArquivoSobe(f,'elements');MCK.elements.push({file_url:url,file_name:f.name});}catch(e){showToast(e.message,'error');}}await mcKitSave();}
+async function mcFonteSubir(inp){const fs=[...inp.files];inp.value='';for(const f of fs){try{const url=await mcArquivoSobe(f,'fonts');const fam=prompt('Nome da família para "'+f.name+'"',f.name.replace(/\.(ttf|otf|woff2?)$/i,'').replace(/[-_ ](regular|bold|black|light|italic|medium)/ig,''));if(!fam)continue;MCK.fonts.push({name:fam,file_url:url,file_name:f.name});}catch(e){showToast(e.message,'error');}}await mcKitSave();}
+// ---- DRIVE: a pasta do cliente (MÍDIA, ESTÚDIO, OFICINA nascem dentro dela) + links habilitados
+async function mcDriveRender(){const box=document.getElementById('mc-drive');if(!box||!currentClientId)return;const c=clients.find(x=>x.id===currentClientId)||{};
+  let mestre=null;try{const {data}=await sb.from('app_settings').select('drive_clientes_id').eq('id',1).maybeSingle();mestre=data&&data.drive_clientes_id;}catch(e){}
+  let links=[];try{links=(await sdFetch('/pd-acervo.php',{acao:'listar',client_id:currentClientId,tipo:'link',limite:40})).itens||[];}catch(e){}
+  box.innerHTML=`<div style="font-size:12.5px;line-height:1.5"><b>Pasta do cliente no Drive</b><br>${c.drive_url?`<a href="${saudeEsc(c.drive_url)}" target="_blank" rel="noopener">${saudeEsc(c.drive_url)}</a>`:'<span style="color:#dc2626">ainda não ligada</span>'}</div>
+    <div style="font-size:11px;color:var(--text3);margin:4px 0 10px">Dentro dela a PD cria sozinha: <b>MÍDIA</b> (galeria do cliente, uploads em lote), <b>ESTÚDIO</b> (peças e recortes), <b>OFICINA</b> (vídeos, PDFs, apresentações), ENTRADA e SAÍDA das tarefas.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input id="mc-drive-url" placeholder="cole o link de uma pasta do Drive para ligar" style="flex:1;min-width:220px;height:34px"><button class="btn btn-secondary btn-sm" onclick="mcDriveLigar(true)">Ligar esta pasta</button>${mestre?`<button class="btn btn-primary btn-sm" onclick="mcDriveLigar(false)">Criar na pasta mestre</button>`:''}</div>
+    ${mestre?'':'<div style="font-size:11.5px;color:#b45309;margin-top:6px">Sem pasta mestre dos clientes: o admin define em Painel › Drive da casa. Até lá, cole o link da pasta deste cliente acima.</div>'}
+    <h4 style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:16px 0 6px">Links de conteúdo habilitados</h4>
+    ${links.map(l=>`<div style="font-size:12.5px;display:flex;gap:8px;align-items:center;padding:3px 0"><a href="${saudeEsc(l.url)}" target="_blank" rel="noopener" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${saudeEsc(l.nome||l.url)}</a><span style="color:var(--text3);font-size:11px">${saudeEsc(ACERVO_CAT[l.categoria]||l.categoria||'')}</span></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">Nenhum. Habilite em Painel › Importar e acervo (bancos de fotos, elementos, vídeos…).</div>'}`;}
+async function mcDriveLigar(comLink){const url=(document.getElementById('mc-drive-url')||{}).value||'';if(comLink&&!/drive\.google\.com/.test(url)){showToast('Cole um link de pasta do Drive.','warn');return;}
+  const r=await driveChamar('cliente_pasta',{client_id:currentClientId,drive_url:comLink?url:''},'Pasta ligada.');if(r&&r.pasta){const c=clients.find(x=>x.id===currentClientId);if(c){c.drive_id=r.pasta.id;c.drive_url=r.pasta.url;}mcDriveRender();}}
 async function onClientDetailLogo(input){if(!input.files[0]||!currentClientId)return;openCropModal(input.files[0],true,async blob=>{const fname=`clients/${currentClientId}-${Date.now()}.jpg`;const{error}=await sb.storage.from('task-covers').upload(fname,blob,{contentType:'image/jpeg'});if(error){showToast('Erro.','error');return;}const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);await sb.from('clients').update({logo_url:publicUrl}).eq('id',currentClientId);showToast('Logo atualizado!','success');await loadClients();openClientDetail(currentClientId);});}
 // Salva nome + cor do cliente e propaga em memória + re-renderiza tudo
 async function saveClientDetail(){
@@ -11491,6 +11548,14 @@ async function ipExcluir(){
 
 // ---- Acervo: links habilitados + histórico de uploads/exportações (quem, para quem, quando, link)
 const ACERVO_CAT = { banco_fotos:'banco de fotos', elementos:'elementos de design', videos:'vídeos', marca:'marca', documento:'documento', outro:'outro' };
+async function renderDriveCasa(){const box=document.getElementById('drive-casa-body');if(!box)return;
+  let st={};try{const {data}=await sb.from('app_settings').select('drive_clientes_id,drive_fontes_id').eq('id',1).maybeSingle();st=data||{};}catch(e){}
+  const link=id=>id?`<a href="https://drive.google.com/drive/folders/${saudeEsc(id)}" target="_blank" rel="noopener">abrir ↗</a>`:'<span style="color:#dc2626">não definida</span>';
+  box.innerHTML=`<div><b>Pasta mestre dos clientes</b> · ${link(st.drive_clientes_id)}</div><div style="display:flex;gap:6px"><input id="dc-clientes" placeholder="cole o link da pasta mestre" style="flex:1;height:32px" value="${st.drive_clientes_id?'https://drive.google.com/drive/folders/'+saudeEsc(st.drive_clientes_id):''}"><button class="btn btn-secondary btn-sm" onclick="driveCasaSalvar('drive_clientes_id','dc-clientes')">Salvar</button></div>
+    <div style="margin-top:6px"><b>Fontes da casa</b> · ${link(st.drive_fontes_id||'186AScxaZHJqIdAuOQLjH7hVeusoC5kBB')}</div><div style="display:flex;gap:6px"><input id="dc-fontes" placeholder="link da pasta de fontes" style="flex:1;height:32px" value="${st.drive_fontes_id?'https://drive.google.com/drive/folders/'+saudeEsc(st.drive_fontes_id):''}"><button class="btn btn-secondary btn-sm" onclick="driveCasaSalvar('drive_fontes_id','dc-fontes')">Salvar</button></div>
+    <div style="font-size:10.5px;color:var(--text3)">A conta do Drive que a PD usa (a ponte) precisa ter acesso a essas pastas.</div>`;}
+async function driveCasaSalvar(campo,inputId){const v=(document.getElementById(inputId)||{}).value||'';const m=v.match(/folders\/([\w-]+)/);const id=m?m[1]:v.trim();
+  const {error}=await sb.from('app_settings').update({[campo]:id||null}).eq('id',1);if(error){showToast('Não consegui salvar: '+error.message+(/column/.test(error.message)?' — rode o SQL v119.':''),'error');return;}showToast('Salvo.');renderDriveCasa();}
 async function renderAcervo(){
   const box = document.getElementById('acervo-body'); if (!box) return;
   try { const r = await sdFetch('/pd-acervo.php', { acao:'listar', limite:80 });

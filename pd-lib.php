@@ -13,6 +13,19 @@ require_once __DIR__ . '/sd-base.php';
 // Requer sd-auth.php (sd_supabase) e push-lib.php incluídos antes.
 // =====================================================================
 
+if (!function_exists('pdDriveClientes')) {
+/** Pasta mestre dos clientes no Drive: o que está no painel (app_settings) ou, na falta, SD_DRIVE_CLIENTES do sd-config.php. */
+function pdDriveClientes() {
+    static $v = false; if ($v !== false) return $v;
+    $r = sd_supabase('/rest/v1/app_settings?id=eq.1&select=drive_clientes_id'); $v = trim((string)($r['body'][0]['drive_clientes_id'] ?? ''));
+    if (!$v && defined('SD_DRIVE_CLIENTES')) $v = (string)SD_DRIVE_CLIENTES;
+    return $v;
+}
+function pdDriveFontes() {
+    $r = sd_supabase('/rest/v1/app_settings?id=eq.1&select=drive_fontes_id'); $v = trim((string)($r['body'][0]['drive_fontes_id'] ?? ''));
+    return $v ?: ((defined('SD_DRIVE_FONTES') && SD_DRIVE_FONTES) ? SD_DRIVE_FONTES : '186AScxaZHJqIdAuOQLjH7hVeusoC5kBB');
+}
+}
 if (!function_exists('pdAcervo')) {
 /** Registra no acervo tudo que entra/sai da casa (melhor esforço; nunca derruba a ação). */
 function pdAcervo($tipo, $origem, $dados) {

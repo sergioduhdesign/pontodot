@@ -190,8 +190,8 @@ if (in_array($acao, ['cliente_pasta', 'cliente_subir', 'cliente_instrucoes'], tr
         $id = $cli['drive_id'] ?? null;
         if (!empty($d['drive_url'])) { $novo = idDaPasta($d['drive_url']); if ($novo) $id = $novo; }
         if (!$id) {
-            $raiz = defined('SD_DRIVE_CLIENTES') ? SD_DRIVE_CLIENTES : '';
-            if (!$raiz) throw new Exception('Sem a pasta mestre dos clientes: defina SD_DRIVE_CLIENTES no sd-config.php ou cole o link da pasta deste cliente.');
+            $raiz = pdDriveClientes();
+            if (!$raiz) throw new Exception('Sem a pasta mestre dos clientes: defina no painel do admin (Drive da casa) ou cole o link da pasta deste cliente.');
             $p = ponte('pasta_garantir', ['pai_id' => $raiz, 'nome' => $cli['name'], 'criar' => true]);
             $id = $p['id'] ?? null;
             if (!$id) throw new Exception('Não consegui criar a pasta do cliente.');
