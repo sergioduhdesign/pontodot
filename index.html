@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v242 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v243 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5104,7 +5104,7 @@ function htmlBanco(){
 // OFICINA — fila de trabalhos (vídeo, PPTX, PDF…) executada fora do servidor, com cópia no Drive.
 // MÓDULOS — as capacidades da casa: quem vê, com que poder, ligado/desligado (admin). Servidor: pd-oficina.php.
 // ---------------------------------------------------------------------
-let OFI = { aba:'pedir', d:null, msg:'', mod:'ffmpeg', ver:null, edit:null, busy:false, avancado:false, admin:false, fontes:null };
+let OFI = { aba:'fila', d:null, msg:'', mod:'ffmpeg', ver:null, edit:null, busy:false, avancado:false, admin:false, fontes:null };
 const OFI_EXEMPLO = {
   eco: '{}',
   ffmpeg: '{\n  "arquivos": [{"nome":"base.mp4","url":"https://…"}, {"nome":"trilha.mp3","url":"https://…"}],\n  "receita": ["-i","{in:base.mp4}","-i","{in:trilha.mp3}","-map","0:v","-map","1:a","-shortest","{out:final.mp4}"]\n}',
@@ -5146,10 +5146,10 @@ const OFI_ENTREGA = [['ffmpeg','Vídeo','<path d="M4 6.5h11a2 2 0 0 1 2 2v7a2 2 
 function ofiIco(d, s=16){ return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`; }
 async function ofiFontes(){ try { const { data:{ session } } = await sbR.auth.getSession(); const r = await fetch('/pd-estudio.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'fontes' }) }); OFI.fontes = (await r.json()).fontes || {}; } catch(e){ OFI.fontes = {}; } renderBoard(); }
 function htmlOficina(){
-  if (!window.REAL) return gadCaixa('Produção', `<div class="nota">Entre na sua conta.</div>`);
-  if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Produção', `<div class="nota">Disponível para a equipe.</div>`);
-  if (!OFI.d && !OFI.busy && !OFI.msg) { ofiCarrega(); return gadCaixa('Produção', `<div class="nota">Carregando…</div>`); }
-  if (!OFI.d) return gadCaixa('Produção', `<div class="nota">${esc(OFI.msg || 'Carregando…')}</div>`, ['Tentar de novo', 'ofiCarrega()']);
+  if (!window.REAL) return gadCaixa('Saída de materiais', `<div class="nota">Entre na sua conta.</div>`);
+  if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Saída de materiais', `<div class="nota">Disponível para a equipe.</div>`);
+  if (!OFI.d && !OFI.busy && !OFI.msg) { ofiCarrega(); return gadCaixa('Saída de materiais', `<div class="nota">Carregando…</div>`); }
+  if (!OFI.d) return gadCaixa('Saída de materiais', `<div class="nota">${esc(OFI.msg || 'Carregando…')}</div>`, ['Tentar de novo', 'ofiCarrega()']);
   const D = OFI.d; const ib = 'class="btn" style="min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center"'; const bt = 'class="btn" style="min-height:32px;padding:5px 11px;font-size:11px"';
   const on = 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent';
   const msg = OFI.msg ? `<div class="nota" style="margin:0 0 6px">${esc(OFI.msg)}</div>` : '';
@@ -5161,19 +5161,13 @@ function htmlOficina(){
       return `<div onclick="${link ? `window.open('${esc(link)}','_blank')` : `ofiVer('${t.id}')`}" style="cursor:pointer;border:.5px solid var(--sep);border-radius:10px;padding:8px;min-height:72px;display:flex;flex-direction:column;gap:4px;justify-content:space-between"><div style="display:flex;justify-content:space-between;align-items:center;color:${cor}">${ofiIco(ent ? ent[2] : '<circle cx="12" cy="12" r="8"/>', 16)}<small style="font-size:10px">${esc(OFI_ST[t.status] || t.status)}</small></div><div style="font-size:11px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(t.titulo || t.modulo)}</div><small class="nota" style="font-size:10px">${esc(t.clients?.name || '')}</small></div>`; }).join('') || `<div class="nota" style="grid-column:1/-1;display:grid;place-items:center;border:.5px dashed var(--sep);border-radius:10px;min-height:72px">O que a oficina entregar aparece aqui.</div>`}</div>`;
   const saude = !D.cfg.worker_chave ? 'Oficina sem chave no servidor (SD_OFICINA_KEY).' : (D.pulso ? 'Oficina viva · último sinal ' + new Date(D.pulso.ultima_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'A oficina ainda não deu sinal de vida.') + (D.cfg.acorda_github ? '' : ' · Sem SD_GITHUB_TOKEN: roda só no relógio (30 min).');
   if (OFI.ver){ const t = OFI.ver.trabalho; const arqs = (t.saida && t.saida.arquivos) || [];
-    return gadCaixa('Produção · ' + esc(t.titulo || t.modulo), `<div class="nota">${esc(OFI_ST[t.status] || t.status)}${t.erro ? ' · ' + esc(t.erro) : ''}</div>
+    return gadCaixa('Saída de materiais · ' + esc(t.titulo || t.modulo), `<div class="nota">${esc(OFI_ST[t.status] || t.status)}${t.erro ? ' · ' + esc(t.erro) : ''}</div>
       ${arqs.length ? `<div class="esc-it">${arqs.map(a => `<div><a href="${esc(a.drive_url || a.url || '#')}" target="_blank" rel="noopener">${esc(a.nome)}</a> <small class="nota">${a.drive_url ? 'no Drive' : 'no Storage (7 dias)'} · ${Math.round((a.bytes || 0) / 1024)} KB</small></div>`).join('')}</div>` : ''}
       ${t.entrada && t.entrada.pedido ? `<div class="esc-it"><div class="nota" style="margin-bottom:4px">Pedido</div><div style="font-size:12px;white-space:pre-wrap">${esc(t.entrada.pedido)}</div></div>` : ''}
       <div class="esc-it">${OFI.ver.log.map(l => `<div class="nota" style="line-height:1.4"><b>${esc(l.evento)}</b> ${esc(l.detalhe)} <small>· ${new Date(l.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</small></div>`).join('') || '<div class="nota">Sem registros.</div>'}</div>
       <div class="esc-bt">${t.status === 'aguardando_ok' ? `<button ${bt} onclick="ofiAcao('ok','${t.id}')">Dar OK</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${bt} onclick="ofiAcao('cancelar','${t.id}')">Cancelar</button>` : ''}</div>`, ['Voltar', 'OFI.ver=null;renderBoard()']);
   }
-  // ETAPAS: 1 cliente · 2 o que fazer (texto livre) · 3 entrega · enviar
-  const pedir = `<div class="esc-bt" style="margin:0 0 8px;align-items:center"><span class="nota" style="width:16px">1</span><select id="ofiCli" class="esc-ta" style="min-height:0;height:36px;flex:1"><option value="">Cliente</option>${Object.entries(cls).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}">${esc(n)}</option>`).join('')}</select></div>
-    <div class="esc-bt" style="margin:0 0 8px;align-items:flex-start"><span class="nota" style="width:16px;padding-top:8px">2</span><textarea id="ofiPed" class="esc-ta" style="min-height:96px;flex:1" placeholder="O que fazer? Escreva como você falaria: '30 variações do vídeo da campanha X trocando a trilha e a locução', 'apresentação de 8 slides com o book do produto'…"></textarea></div>
-    <div class="esc-bt" style="margin:0 0 8px;align-items:center"><span class="nota" style="width:16px">3</span>${OFI_ENTREGA.map(e => `<button ${ib.replace('"', `title="${e[1]}" "`)} style="${OFI.mod === e[0] ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="OFI.mod='${e[0]}';renderBoard()">${ofiIco(e[2], 17)}</button>`).join('')}<span class="nota" style="margin-left:4px">${esc((OFI_ENTREGA.find(e => e[0] === OFI.mod) || [])[1] || '')}</span>
-      <span style="flex:1"></span><button ${ib} title="Pedir" onclick="ofiPedir()">${ofiIco('<path d="M5 12h14M13 6l6 6-6 6"/>', 17)}</button></div>
-    ${OFI.admin ? `<details ${OFI.avancado ? 'open' : ''} ontoggle="OFI.avancado=this.open"><summary class="nota" style="cursor:pointer">Entrada avançada (JSON da receita, para a IA e para o admin)</summary><textarea id="ofiEnt" class="esc-ta" style="min-height:90px;font-family:ui-monospace,monospace;font-size:11px;margin-top:6px">${esc(OFI_EXEMPLO[OFI.mod] || '{}')}</textarea></details>` : ''}
-    <div class="nota" style="margin-top:6px;line-height:1.4">A IA da casa lê o pedido e monta a receita; o trabalho entra na fila aguardando seu OK. (Em construção: por ora a receita vem pela entrada avançada.)</div>`;
+  const pedir = `<div class="nota" style="line-height:1.45;margin:0 0 8px">Aqui aparece o que sai da oficina: PDF para gráfica, vídeos, apresentações, books. O pedido nasce no Estúdio (botão preto) e cai nesta fila.</div>`;
   const fila = D.trabalhos.slice(0, 12).map(t => `<div class="esc-it"><div class="esc-nm"><span><b>${esc(t.titulo || t.modulo)}</b> <small>· ${esc(t.clients?.name || '')}</small></span><small>${esc(OFI_ST[t.status] || t.status)}</small></div>
       <div class="esc-bt"><button ${ib} title="Detalhe" onclick="ofiVer('${t.id}')">${ofiIco('<circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/>', 15)}</button>${t.status === 'aguardando_ok' ? `<button ${ib} title="Dar OK" onclick="ofiAcao('ok','${t.id}')">${ofiIco('<path d="m5 13 4 4L19 7"/>', 15)}</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${ib} title="Cancelar" onclick="ofiAcao('cancelar','${t.id}')">${ofiIco('<path d="M6 6l12 12M18 6 6 18"/>', 15)}</button>` : ''}</div></div>`).join('') || '<div class="nota">Fila vazia.</div>';
   let admin = '';
@@ -5195,8 +5189,8 @@ function htmlOficina(){
         <textarea id="omCfg" class="esc-ta" style="min-height:54px;font-family:ui-monospace,monospace;font-size:11px" placeholder='Config (JSON, sem chaves/senhas)'>${esc(JSON.stringify(e.config || {}, null, 1))}</textarea>
         <div class="esc-bt"><button ${bt} onclick="ofiSalvaModulo()">Salvar</button><button ${bt} onclick="OFI.edit=null;renderBoard()">Cancelar</button></div></div>`; }
   }
-  const abas = `<div class="esc-bt" style="margin:0 0 8px;align-items:center"><button ${ib} title="Pedir" style="${OFI.aba === 'pedir' ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="ofiAba('pedir')">${ofiIco('<path d="M12 5v14M5 12h14"/>', 16)}</button><button ${ib} title="Fila" style="${OFI.aba === 'fila' ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="ofiAba('fila')">${ofiIco('<path d="M4 6h16M4 12h16M4 18h10"/>', 16)}</button><button ${ib} title="Atualizar" onclick="ofiCarrega()">${ofiIco('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>', 16)}</button><span style="flex:1"></span>${D.admin ? `<button ${ib} title="Módulos e conectores (admin)" style="${OFI.admin ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="OFI.admin=!OFI.admin;OFI.edit=null;renderBoard()">${ofiIco('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 16)}</button>` : ''}</div>`;
-  return gadCaixa('Produção', visor + abas + msg + (OFI.aba === 'pedir' ? pedir : fila) + admin + `<div class="nota" style="margin-top:8px">${esc(saude)}</div>`);
+  const abas = `<div class="esc-bt" style="margin:0 0 8px;align-items:center"><button ${ib} title="Atualizar" onclick="ofiCarrega()">${ofiIco('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>', 16)}</button><span style="flex:1"></span>${D.admin ? `<button ${ib} title="Módulos e conectores (admin)" style="${OFI.admin ? on : ''};min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" onclick="OFI.admin=!OFI.admin;OFI.edit=null;renderBoard()">${ofiIco('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 16)}</button>` : ''}</div>`;
+  return gadCaixa('Saída de materiais', visor + abas + msg + pedir + fila + admin + `<div class="nota" style="margin-top:8px">${esc(saude)}</div>`);
 }
 
 // ---------------------------------------------------------------------
@@ -5384,7 +5378,7 @@ const GADGETS = {
       ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
   escola:    { nome:'Escola das IAs', html:()=>htmlEscola() },
-  oficina:   { nome:'Produção', html:()=>htmlOficina() },
+  oficina:   { nome:'Saída de materiais', html:()=>htmlOficina() },
   estudio:   { nome:'Estúdio', html:()=>htmlEstudio() },
   ias:       { nome:'Inteligências da casa', html:()=>htmlIAs() },
   publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
