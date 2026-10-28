@@ -7,13 +7,14 @@
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
 @media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212;--pano:#0c0c0d}}
 *{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--ink);font:400 13px/1.4 "Helvetica Neue","Inter Tight",system-ui,sans-serif;overflow:hidden}
-#app{display:grid;grid-template-rows:48px 1fr;height:100%}
+#app{display:grid;grid-template-rows:48px 40px 1fr;height:100%}
 .top{display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--bg)}
 .top .nome{flex:1;min-width:100px}.sep{width:1px;height:22px;background:var(--line);margin:0 2px}
-.main{display:grid;grid-template-columns:52px 250px 1fr 240px;min-height:0}
-.trilho{border-right:1px solid var(--line);background:var(--soft);display:flex;flex-direction:column;align-items:center;padding-top:6px;gap:2px}
-.trilho button{width:40px;height:40px;border:0;background:transparent;border-radius:7px;color:var(--gray);cursor:pointer;display:grid;place-items:center}.trilho button.on{background:var(--bg);color:var(--ink);box-shadow:0 0 0 1px var(--line)}.trilho button:hover{color:var(--ink)}
-.lado{border-right:1px solid var(--line);overflow:auto;background:var(--soft)}.lado.d{border-right:0;border-left:1px solid var(--line)}
+.main{display:grid;grid-template-columns:1fr 0;min-height:0;transition:grid-template-columns .15s}.main.aberta{grid-template-columns:1fr 300px}
+.gaveta{border-left:1px solid var(--line);overflow:auto;background:var(--soft);min-width:0}.gaveta .sec{padding:12px 14px}
+.barra2{display:flex;align-items:center;gap:2px;padding:0 8px;border-bottom:1px solid var(--line);background:var(--soft);overflow-x:auto}.barra2 button{background:transparent;border:0;padding:0 10px;height:40px;font:600 11px "Helvetica Neue","Inter Tight";letter-spacing:.05em;text-transform:uppercase;color:var(--gray);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}.barra2 button.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}.barra2 button svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.barra2 .ferr{width:40px;padding:0;justify-content:center;border-radius:7px;height:32px}.barra2 .ferr.on{background:var(--bg);box-shadow:0 0 0 1px var(--line)}
+.ico{width:38px;height:38px;padding:0;display:inline-grid;place-items:center;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}.ico svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}.ico.f svg{fill:currentColor;stroke:none}.ico:hover{background:var(--soft)}
+.sl{margin:6px 0}.sl-h{display:flex;align-items:center;font-size:10.5px;color:var(--gray);text-transform:uppercase;letter-spacing:.05em}.sl-h b{flex:1;text-align:center;color:var(--ink);font-weight:600;letter-spacing:0;text-transform:none;font-size:11.5px}.sl-h button{border:0;background:transparent;color:var(--gray);cursor:pointer;padding:0 2px;font-size:13px;line-height:1}.sl-h button:hover{color:var(--ink)}.sl input[type=range]{width:100%;margin:2px 0 0;accent-color:var(--ink)}
 .pano{background:var(--pano);position:relative;overflow:hidden}
 .pano .canvas-container{position:absolute!important;left:0;top:0}
 #seg{position:absolute;left:0;top:0;pointer-events:none;z-index:5}
@@ -51,34 +52,36 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   <button class="btn i" onclick="mudaMedida()" title="Mudar a medida da peça"><svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg></button>
   <button class="btn p" id="btnPrincipal" onclick="ehImp()?exportarImpresso():exportarTudo()" title="Gera e guarda no Drive"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg> <span id="btnPrincipalTxt">Recortes → Drive</span></button>
 </div>
-<div class="main">
-  <div class="trilho">
-    <button data-ferr="sel" class="on" onclick="ferramenta('sel')" title="Seleção (V)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-6 1.5L10 20z"/></svg></button>
-    <button data-ferr="caneta" onclick="ferramenta('caneta')" title="Caneta · pontos com alças (P) · Enter termina · clique no 1º ponto fecha"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.6 7.6"/><circle cx="11" cy="11" r="2"/></svg></button>
-    <span style="height:1px;width:28px;background:var(--line);margin:4px 0"></span>
-    <button data-aba="pauta" onclick="aba('pauta',this)" title="Pauta (ping-pongue com a IA)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><path d="m16 15 2.5 2.5L23 13"/></svg></button>
-    <button data-aba="add" class="on" onclick="aba('add',this)" title="Adicionar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
-    <button data-aba="formas" onclick="aba('formas',this)" title="Formas vetoriais"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.3 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></button>
-    <button data-aba="marca" onclick="aba('marca',this)" title="Marca do cliente"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="9" cy="10" r="1.2"/><circle cx="14.5" cy="9" r="1.2"/><circle cx="15" cy="14" r="1.2"/><path d="M12 20a2 2 0 0 0 0-4h-1a1.5 1.5 0 0 1 0-3"/></svg></button>
-    <button data-aba="galeria" onclick="aba('galeria',this)" title="Galeria do cliente (Drive)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg></button>
-    <button data-aba="banco" onclick="aba('banco',this)" title="Banco de mídia"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.5-4.5"/></svg></button>
-    <button data-aba="efeitos" onclick="aba('efeitos',this)" title="Efeitos e sobreposições"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2.2.6-2.2.6L19 20l-.8-1.8L16 17.6l2.2-.6z"/></svg></button>
-    <button data-aba="pecas" onclick="aba('pecas',this)" title="Peças e modelos"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></button>
+<div class="barra2" id="barra2">
+  <button class="ferr on" data-ferr="sel" onclick="ferramenta('sel')" title="Seleção (V)"><svg viewBox="0 0 24 24"><path d="M5 3l14 9-6 1.5L10 20z"/></svg></button>
+  <button class="ferr" data-ferr="caneta" onclick="ferramenta('caneta')" title="Caneta (P) · clique marca ponto, arrastar puxa alças · Enter termina · clique no 1º ponto fecha"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.6 7.6"/><circle cx="11" cy="11" r="2"/></svg></button>
+  <span class="sep"></span>
+  <button data-aba="pauta" onclick="aba('pauta')">Pauta</button><button data-aba="add" onclick="aba('add')">Adicionar</button><button data-aba="formas" onclick="aba('formas')">Formas</button><button data-aba="marca" onclick="aba('marca')">Marca</button><button data-aba="galeria" onclick="aba('galeria')">Galeria</button><button data-aba="banco" onclick="aba('banco')">Banco</button><button data-aba="efeitos" onclick="aba('efeitos')">Efeitos</button><button data-aba="pecas" onclick="aba('pecas')">Peças</button><button data-aba="camadas" onclick="aba('camadas')">Camadas</button>
+  <span style="flex:1"></span>
+  <button data-aba="objeto" onclick="aba('objeto')">Objeto</button>
+  <button class="ferr" onclick="gavetaFecha()" title="Fechar a gaveta (mais área de trabalho)"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+</div>
+<div class="main" id="main">
+  <div class="pano" id="pano">
+    <canvas id="c"></canvas><canvas id="seg"></canvas>
+    <div class="pags" id="pags" style="display:none"></div>
+    <div class="segs" id="segs"></div>
+    <div class="zoom"><button class="btn s" onclick="zoom(-1)" title="⌘−">−</button><button class="btn s" id="zl" onclick="zoomCem()" title="100% (⌘1) · ⌘0 vê tudo · ⌘+roda dá zoom · ⌘+espaço+clique aproxima (⌥ afasta; arrastar = zoom na área) · espaço arrasta">100%</button><button class="btn s" onclick="zoom(1)" title="⌘+">+</button></div>
   </div>
-  <div class="lado" id="esq">
+  <div class="gaveta" id="gaveta">
     <div id="p-pauta" class="sec" style="display:none"><div class="vazio">Carregando…</div></div>
-    <div id="p-add" class="sec">
-      <h3>Texto</h3><div class="row"><button class="btn s" onclick="addTexto('titulo')">Título</button><button class="btn s" onclick="addTexto('sub')">Subtítulo</button><button class="btn s" onclick="addTexto('corpo')">Texto</button></div>
-      <h3>Formas</h3><div class="row"><button class="btn s" onclick="addForma('rect')">Retângulo</button><button class="btn s" onclick="addForma('circle')">Círculo</button><button class="btn s" onclick="addForma('linha')">Linha</button><button class="btn s" onclick="aba('formas')">Mais formas…</button><button class="btn s" onclick="ferramenta('caneta')">Caneta</button></div>
-      <h3>Imagem</h3><div class="row"><label class="btn s">Do computador<input type="file" accept="image/*" multiple style="display:none" onchange="addArquivos(this)"></label><button class="btn s" onclick="aba('galeria')">Da galeria do cliente</button><button class="btn s" onclick="aba('banco')">Do banco</button></div>
-      <h3>Fundo</h3><div class="row"><input type="color" id="fundo" value="#ffffff" oninput="fundoSet(this.value)"><span class="vazio">cor do fundo da prancheta</span></div>
-      <h3>Camadas</h3><div id="camadas" class="col"></div>
+    <div id="p-add" class="sec" style="display:none">
+      <h3>Texto</h3><div class="row"><button class="ico" title="Título" onclick="addTexto('titulo')"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13M9 19h6"/></svg></button><button class="ico" title="Subtítulo" onclick="addTexto('sub')"><svg viewBox="0 0 24 24"><path d="M4 8h9M8.5 8v10M6 18h5"/><path d="M15 12h5M17.5 12v6"/></svg></button><button class="ico" title="Parágrafo" onclick="addTexto('corpo')"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h12M4 18h8"/></svg></button></div>
+      <h3>Formas</h3><div class="row"><button class="ico" title="Retângulo" onclick="addForma('rect')"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button><button class="ico" title="Círculo" onclick="addForma('circle')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg></button><button class="ico" title="Linha" onclick="addForma('linha')"><svg viewBox="0 0 24 24"><path d="M4 18 20 6"/></svg></button><button class="ico" title="Mais formas" onclick="aba('formas')"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.3 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></button><button class="ico" title="Caneta (P)" onclick="ferramenta('caneta')"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.6 7.6"/></svg></button></div>
+      <h3>Imagem</h3><div class="row"><label class="ico" title="Do computador"><input type="file" accept="image/*,.svg" multiple style="display:none" onchange="addArquivos(this)"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></svg></label><button class="ico" title="Galeria do cliente (Drive)" onclick="aba('galeria')"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/></svg></button><button class="ico" title="Banco de mídia" onclick="aba('banco')"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.5-4.5"/></svg></button></div>
+      <h3>Sobreposições</h3><div class="row"><button class="ico" title="Escurecer embaixo" onclick="overlay('escuro-baixo')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 14h16M4 17h16"/></svg></button><button class="ico" title="Escurecer em cima" onclick="overlay('escuro-cima')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 7h16M4 10h16"/></svg></button><button class="ico" title="Cor da marca por cima" onclick="overlay('cor')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 4l16 16"/></svg></button><button class="ico" title="Vinheta" onclick="overlay('vinheta')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="5"/></svg></button><button class="ico" title="Faixa de texto" onclick="overlay('faixa')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="6" y="13" width="12" height="4"/></svg></button></div>
+      <h3>Fundo da prancheta</h3><div class="row"><input type="color" id="fundo" value="#ffffff" oninput="fundoSet(this.value)"></div>
     </div>
     <div id="p-formas" class="sec" style="display:none"><h3>Formas vetoriais</h3><div id="formas" class="row"></div><div class="vazio" style="margin-top:8px;line-height:1.4">Todas são vetores: cor editável, servem de máscara e viram curvas no PDF. Para desenhar à mão, use a caneta (P): clique marca ponto, arrastar puxa as alças; clique no primeiro ponto fecha; Enter termina aberto; duplo clique na forma pronta edita os pontos.</div></div>
     <div id="p-marca" class="sec" style="display:none"><div class="vazio">Escolha um cliente para carregar o kit.</div></div>
     <div id="p-galeria" class="sec" style="display:none">
       <h3>Galeria do cliente <small id="galPasta"></small></h3>
-      <div class="row"><label class="btn s">Subir em lote<input type="file" multiple style="display:none" onchange="subirLote(this)"></label><input id="galSub" placeholder="subpasta (opcional)" style="width:120px"><button class="btn i" onclick="galeria()" title="Atualizar"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button></div>
+      <div class="row"><label class="ico" title="Subir em lote para a pasta MÍDIA do cliente"><input type="file" multiple style="display:none" onchange="subirLote(this)"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></svg></label><input id="galSub" placeholder="subpasta (opcional)" style="flex:1;min-width:90px"><button class="btn i" onclick="galeria()" title="Atualizar"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button></div>
       <div class="prog" id="galProg" style="display:none"><i></i></div><div class="vazio" id="galMsg"></div>
       <div id="gal" class="grade"></div>
     </div>
@@ -87,23 +90,14 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
       <div class="vazio" id="mmsg"></div><div id="mres" class="grade"></div>
       <h3>Biblioteca da casa</h3><div id="mlib" class="grade"></div>
     </div>
-    <div id="p-efeitos" class="sec" style="display:none">
-      <h3>Filtros (na imagem selecionada)</h3><div id="filtros"><div class="vazio">Selecione uma imagem.</div></div>
-      <h3>Sobreposições</h3><div class="row"><button class="btn s" onclick="overlay('escuro-baixo')">Escurecer embaixo</button><button class="btn s" onclick="overlay('escuro-cima')">Escurecer em cima</button><button class="btn s" onclick="overlay('cor')">Cor da marca</button><button class="btn s" onclick="overlay('vinheta')">Vinheta</button><button class="btn s" onclick="overlay('faixa')">Faixa de texto</button></div>
-      <div class="vazio">As sobreposições são camadas normais: ajuste cor e opacidade no painel da direita.</div>
-    </div>
+    <div id="p-efeitos" class="sec" style="display:none"><h3>Ajustes da imagem selecionada</h3><div id="filtros"><div class="vazio">Selecione uma imagem.</div></div></div>
     <div id="p-pecas" class="sec" style="display:none">
-      <div class="row" style="margin-bottom:8px"><button class="btn s" onclick="novaPeca()">Nova peça</button><button class="btn s" onclick="listaPecas(false)">Do cliente</button><button class="btn s" onclick="listaPecas(true)">Modelos</button><button class="btn s" onclick="salvar(true)">Salvar como modelo</button></div>
+      <div class="row" style="margin-bottom:8px"><button class="ico" title="Nova peça" onclick="novaPeca()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><button class="ico" title="Peças deste cliente" onclick="listaPecas(false)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></button><button class="ico" title="Modelos (de todos os clientes)" onclick="listaPecas(true)"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><button class="ico" title="Salvar esta peça como modelo" onclick="salvar(true)"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.3 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></button></div>
       <div id="lista" class="pecas"></div>
     </div>
+    <div id="p-objeto" class="sec" style="display:none"><div id="props"><div class="vazio">Selecione algo na peça para editar.</div></div></div>
+    <div id="p-camadas" class="sec" style="display:none"><h3>Camadas da prancheta</h3><div id="camadas" class="col"></div></div>
   </div>
-  <div class="pano" id="pano">
-    <canvas id="c"></canvas><canvas id="seg"></canvas>
-    <div class="pags" id="pags" style="display:none"></div>
-    <div class="segs" id="segs"></div>
-    <div class="zoom"><button class="btn s" onclick="zoom(-1)" title="⌘−">−</button><button class="btn s" id="zl" onclick="zoomCem()" title="100% (⌘1) · ⌘0 vê tudo · ⌘+roda dá zoom · ⌘+espaço+clique aproxima (⌥ afasta; arrastar = zoom na área) · espaço arrasta">100%</button><button class="btn s" onclick="zoom(1)" title="⌘+">+</button></div>
-  </div>
-  <div class="lado d" id="dir"><div class="sec" id="props"><div class="vazio">Selecione algo na peça para editar.</div></div></div>
 </div></div>
 <div class="msg" id="msg"></div>
 <script>
@@ -152,7 +146,7 @@ async function boot(){
   C=new fabric.Canvas('c',{preserveObjectStacking:true,backgroundColor:'transparent',selectionColor:'rgba(30,120,200,.12)',selectionBorderColor:'#1e78c8',fireRightClick:true,stopContextMenu:false,fireMiddleClick:true});
   fabric.Object.prototype.set({transparentCorners:false,cornerColor:'#121212',cornerStyle:'rect',cornerSize:8,borderColor:'#121212',padding:2,snapAngle:15,snapThreshold:4,strokeUniform:true});
   controleGiro();
-  C.on('selection:created',props);C.on('selection:updated',props);C.on('selection:cleared',props);
+  C.on('selection:created',()=>{if(ABA!=='objeto')aba('objeto');else props();});C.on('selection:updated',props);C.on('selection:cleared',props);
   C.on('object:moving',ima);C.on('object:modified',e=>{marca();if(e.target&&e.target.pdPage===undefined)PECA.pag=pagDe(e.target);});
   C.on('object:added',e=>{if(TRAVA)return;if(MASK.on&&e.target&&e.target.pdPage===undefined&&e.target!==MASK.shape&&!MASK.members.includes(e.target))MASK.members.push(e.target);marca();});
   C.on('object:removed',()=>{if(!TRAVA)marca()});C.on('text:changed',()=>{clearTimeout(C._tc);C._tc=setTimeout(marca,600)});
@@ -290,7 +284,7 @@ const FORMAS={rect:['Retângulo',(s)=>new fabric.Rect({width:s,height:s*.62})],r
   coracao:['Coração',(s)=>new fabric.Path('M50 88 L12 48 A20 20 0 0 1 50 22 A20 20 0 0 1 88 48 Z',{scaleX:s/100,scaleY:s/100})],balao:['Balão de fala',(s)=>new fabric.Path('M10 10 H90 V60 H45 L25 80 V60 H10 Z',{scaleX:s/100,scaleY:s/100})],meia:['Meia-lua',(s)=>new fabric.Path('M0 50 A50 50 0 0 1 100 50 Z',{scaleX:s/100,scaleY:s/100})]};
 function poli(n,R,r){const pts=[];for(let i=0;i<(r?n*2:n);i++){const a=-Math.PI/2+i*Math.PI/(r?n:n/2);const rr=r?(i%2?r:R):R;pts.push({x:R+rr*Math.cos(a),y:R+rr*Math.sin(a)});}return new fabric.Polygon(pts);}
 function addForma(t){const s=W()*.4;const mk=(FORMAS[t]||FORMAS.rect)[1];const o=mk(s);o.set({fill:corKit(1,corKit(0,'#121212')),name:(FORMAS[t]||FORMAS.rect)[0],pdTipo:'vetor'});centro(o);}
-function formasUI(){$('#formas').innerHTML=Object.entries(FORMAS).map(([k,[n]])=>`<button class="btn s" onclick="addForma('${k}')">${esc(n)}</button>`).join('');}
+function formasUI(){$('#formas').innerHTML=Object.entries(FORMAS).map(([k,[n,mk]])=>{const o=mk(100);o.set({left:0,top:0,originX:'left',originY:'top',fill:'currentColor',stroke:null});const w=o.getScaledWidth(),h=o.getScaledHeight();return `<button class="ico f" title="${esc(n)}" onclick="addForma('${k}')"><svg viewBox="-4 -4 ${w+8} ${h+8}">${o.toSVG()}</svg></button>`;}).join('');}
 function addArquivos(inp){[...inp.files].forEach(f=>{const r=new FileReader();r.onload=e=>addImagemUrl(e.target.result,f.name);r.readAsDataURL(f);});inp.value='';}
 function ehSvg(url,nome){return /\.svg(\?|$)/i.test(url)||/\.svg$/i.test(nome||'')||/^data:image\/svg/i.test(url);}
 function addVetor(url,nome){fabric.loadSVGFromURL(url,(objs,opts)=>{if(!objs||!objs.length){msg('Não consegui ler esse SVG.');return;}const g=fabric.util.groupSVGElements(objs,opts);const s=Math.min(W()*.5/g.width,Hh()*.5/g.height,1);g.set({scaleX:s,scaleY:s,name:nome||'vetor',pdFonte:url,pdTipo:'vetor'});centro(g);});}
@@ -335,7 +329,7 @@ function props(){const o=C.getActiveObject();const el=$('#props');camadas();filt
   if(!eSel)h+=`<div class="lab">Contorno</div><div class="row"><input type="color" value="${cor(o.stroke)}" oninput="setP('stroke',this.value)"><input type="number" style="width:60px" value="${o.strokeWidth||0}" onchange="setP('strokeWidth',+this.value)"><button class="btn i" title="Sem contorno" onclick="setP('stroke',null);setP('strokeWidth',0)">${I('<path d="m6 6 12 12M6 18 18 6"/>')}</button></div>`;
   if(o.type==='rect')h+=`<div class="lab">Cantos</div><input type="number" style="width:70px" value="${o.rx||0}" onchange="setP('rx',+this.value);setP('ry',+this.value)">`;
   if(eImg)h+=`<div class="lab">Moldura</div><div class="row">${ib('Ajustar a imagem dentro da moldura (duplo clique)',"cropEntra(C.getActiveObject())",'<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>')}${o.clipPath?ib('Tirar a moldura',"const o=C.getActiveObject();o.clipPath=null;C.renderAll();marca();props()",'<path d="m6 6 12 12M6 18 18 6"/>'):''}</div>`;
-  h+=`<div class="lab">Opacidade</div><input type="range" min="0" max="1" step=".02" value="${o.opacity??1}" oninput="setP('opacity',+this.value,false)" onchange="marca()">`;
+  h+=slider('Opacidade',0,1,.02,o.opacity??1,1,"setP('opacity',+this.value,false)",'marca()');
   {const imp=ehImp();const u=imp?'mm':'px';const ox=pageX(eSel?PECA.pag:pagDe(o));const v=px=>imp?Math.round(px2mm(px)*10)/10:Math.round(px);const back=imp?'mm2px(+this.value)':'+this.value';
     h+=`<div class="lab">Posição e tamanho <small>(${u})</small></div><div class="pos">
       <label><small class="vazio" style="width:14px">X</small><input type="number" step="${imp?'.5':'1'}" value="${v(o.left-ox)}" onchange="setP('left',${back}+${ox})"></label>
@@ -448,15 +442,18 @@ function penEditSai(){if(!PENEDIT.on)return;const path=PENEDIT.path;penEditAplic
 
 // ---------- filtros (imagem)
 const FILTROS=[['Brightness','brightness',-1,1,0],['Contrast','contrast',-1,1,0],['Saturation','saturation',-1,1,0],['Blur','blur',0,1,0]];
+function slider(label,min,max,step,val,def,oninput,onchange){const id='sl'+Math.random().toString(36).slice(2,7);return `<div class="sl"><div class="sl-h"><span>${label}</span><b id="${id}v">${Math.round(val*100)/100}</b><button title="Voltar ao original" onclick="const r=document.getElementById('${id}');r.value=${def};r.dispatchEvent(new Event('input'));r.dispatchEvent(new Event('change'))">↺</button></div><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}" oninput="document.getElementById('${id}v').textContent=Math.round(this.value*100)/100;${oninput}" onchange="${onchange}"></div>`;}
 function filtrosUI(){const el=$('#filtros');if(!el)return;const o=C.getActiveObject();if(!o||o.type!=='image'){el.innerHTML='<div class="vazio">Selecione uma imagem.</div>';return;}
   const val=(n,k)=>{const f=(o.filters||[]).find(x=>x.type===n);return f?f[k]:0;};
-  el.innerHTML=FILTROS.map(([n,k,a,b,d])=>`<div class="lab">${n==='Brightness'?'Brilho':n==='Contrast'?'Contraste':n==='Saturation'?'Saturação':'Desfoque'}</div><input type="range" min="${a}" max="${b}" step=".02" value="${val(n,k)||d}" oninput="filtro('${n}','${k}',+this.value)" onchange="marca()">`).join('')+
-  `<div class="row" style="margin-top:8px"><button class="btn s" onclick="filtroFixo('Grayscale')">P&B</button><button class="btn s" onclick="filtroFixo('Sepia')">Sépia</button><button class="btn s" onclick="filtroFixo('Invert')">Inverter</button><button class="btn s" onclick="const o=C.getActiveObject();o.filters=[];o.applyFilters();C.renderAll();marca();filtrosUI()">Limpar</button></div>`;}
+  el.innerHTML=FILTROS.map(([n,k,a,b,d])=>slider(n==='Brightness'?'Brilho':n==='Contrast'?'Contraste':n==='Saturation'?'Saturação':'Desfoque',a,b,.02,val(n,k)||d,d,`filtro('${n}','${k}',+this.value)`,'marca()')).join('')+
+  `<div class="row" style="margin-top:8px"><button class="ico" title="Preto e branco" onclick="filtroFixo('Grayscale')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button><button class="ico" title="Sépia" onclick="filtroFixo('Sepia')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/></svg></button><button class="ico" title="Inverter cores" onclick="filtroFixo('Invert')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16"/><path d="M12 8a4 4 0 0 1 0 8z" fill="currentColor"/></svg></button><button class="ico" title="Limpar ajustes" onclick="const o=C.getActiveObject();o.filters=[];o.applyFilters();C.renderAll();marca();filtrosUI()"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`;}
 function filtro(n,k,v){const o=C.getActiveObject();if(!o||o.type!=='image')return;o.filters=o.filters||[];let f=o.filters.find(x=>x.type===n);if(!f){f=new fabric.Image.filters[n]({[k]:v});o.filters.push(f);}else f[k]=v;o.applyFilters();C.renderAll();}
 function filtroFixo(n){const o=C.getActiveObject();if(!o||o.type!=='image')return;o.filters=o.filters||[];const i=o.filters.findIndex(x=>x.type===n);if(i>=0)o.filters.splice(i,1);else o.filters.push(new fabric.Image.filters[n]());o.applyFilters();C.renderAll();marca();}
 
 // ---------- abas
-function aba(n,b){document.querySelectorAll('#esq .sec').forEach(s=>s.style.display='none');$('#p-'+n).style.display='';document.querySelectorAll('.trilho button[data-aba]').forEach(x=>x.classList.toggle('on',x.dataset.aba===n));
+let ABA=null;
+function gavetaFecha(){$('#main').classList.remove('aberta');ABA=null;document.querySelectorAll('#barra2 button[data-aba]').forEach(x=>x.classList.remove('on'));setTimeout(()=>{ajustaViewport();C.requestRenderAll();},180);}
+function aba(n){if(ABA===n){gavetaFecha();return;}ABA=n;$('#main').classList.add('aberta');document.querySelectorAll('#gaveta .sec').forEach(s=>s.style.display='none');$('#p-'+n).style.display='';document.querySelectorAll('#barra2 button[data-aba]').forEach(x=>x.classList.toggle('on',x.dataset.aba===n));setTimeout(()=>{ajustaViewport();C.requestRenderAll();},180);if(n==='camadas')camadas();if(n==='objeto')props();
   if(n==='pauta')pautaUI();if(n==='formas')formasUI();if(n==='pecas')listaPecas(false);if(n==='galeria'&&!$('#gal').innerHTML)galeria();if(n==='banco'&&!$('#mlib').innerHTML){fontes();biblioteca();}if(n==='efeitos')filtrosUI();}
 
 // ---------- render de página (exportação, miniatura, IA) — independente do zoom
