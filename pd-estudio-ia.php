@@ -106,10 +106,31 @@ function paClaude($system, $content, $max = 16000) {
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch);
     if ($code !== 200) throw new Exception('A IA respondeu HTTP ' . $code . ($err ? ' · ' . $err : '') . ' · ' . mb_substr((string)$raw, 0, 300));
     $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $t .= $x['text'];
-    $us = $j['usage'] ?? []; $custo = (($us['input_tokens'] ?? 0) * 3 + ($us['output_tokens'] ?? 0) * 15) / 1e6;
+    $us = $j['usage'] ?? []; $custo = (($us['input_tokens'] ?? 0) * 3 + ($us['output_tokens'] ?? 0) * 15) / 1e6; $us['stop_reason'] = $j['stop_reason'] ?? '';
     return [trim($t), $custo, $us];
 }
-function paJson($t) { $t = trim($t); if (preg_match('/```(?:json)?\s*(.*?)```/s', $t, $m)) $t = $m[1]; $a = strpos($t, '{'); $z = strrpos($t, '}'); if ($a === false || $z === false) return null; return json_decode(substr($t, $a, $z - $a + 1), true); }
+function paJson($t) { $t = trim($t); if (preg_match('/```(?:json)?\s*(.*?)```/s', $t, $m)) $t = $m[1]; $a = strpos($t, '{'); if ($a === false) return null; $t = substr($t, $a);
+    $z = strrpos($t, '}'); $j = $z !== false ? json_decode(substr($t, 0, $z + 1), true) : null; if (is_array($j)) return $j;
+    // limpeza leve: aspas tipográficas, vírgulas sobrando, caracteres de controle
+    $c = str_replace(['“', '”', '„'], '"', $t); $c = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', ' ', $c); $c = preg_replace('/,\s*([}\]])/', '$1', $c);
+    $z = strrpos($c, '}'); $j = $z !== false ? json_decode(substr($c, 0, $z + 1), true) : null; if (is_array($j)) return $j;
+    // resposta cortada no meio: fecha no último item completo da lista de derivações e fecha o JSON
+    return paJsonConserta($c);
+}
+function paJsonConserta($t) {
+    $n = strlen($t); $str = false; $esc = false; $pilha = []; $ultimoFechaItem = -1;   // posição depois de um '}' que fecha um item de nível 2 (dentro de "derivacoes")
+    for ($i = 0; $i < $n; $i++) { $ch = $t[$i];
+        if ($str) { if ($esc) $esc = false; elseif ($ch === '\\') $esc = true; elseif ($ch === '"') $str = false; continue; }
+        if ($ch === '"') { $str = true; continue; }
+        if ($ch === '{' || $ch === '[') $pilha[] = $ch;
+        elseif ($ch === '}' || $ch === ']') { array_pop($pilha); if (count($pilha) === 2 && $ch === '}') $ultimoFechaItem = $i; }
+    }
+    if ($ultimoFechaItem < 0) return null;
+    $corte = substr($t, 0, $ultimoFechaItem + 1) . ']}';
+    $j = json_decode($corte, true); if (!is_array($j)) return null;
+    $j['raciocinio'] = ($j['raciocinio'] ?? '') . ' [resposta cortada pelo limite: vieram ' . count($j['derivacoes'] ?? []) . ' derivações completas; peça "continuar" para as que faltam]';
+    return $j;
+}
 
 // =============================================================== ações
 if ($acao === 'kit_status') { [, $st] = paKit((string)($b['client_id'] ?? '')); echo json_encode($st, JSON_UNESCAPED_UNICODE); exit; }
@@ -200,7 +221,7 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     $logos = array_keys(array_filter((array)($kit['logos'] ?? []), fn($l) => !empty($l['file_url'])));
     $qtd = (int)($p['qtd'] ?: ($famId === 'apresentacao' ? 40 : ($famId === 'book' ? 24 : 0)));
     $gram = <<<TXT
-Você responde SÓ com JSON válido, sem comentários. Medidas em PORCENTAGEM da largura (x, w, tamanho) e da altura (y, h) da peça de destino.
+Você responde SÓ com JSON válido, compacto (sem espaços e quebras de linha desnecessários), sem comentários; dentro das strings nunca use aspas duplas (use aspas simples) nem quebras de linha cruas (use \\n). Medidas em PORCENTAGEM da largura (x, w, tamanho) e da altura (y, h) da peça de destino.
 PAGINA = {"fundo":"#hex","camadas":[CAMADA,...]} — camadas de baixo para cima.
    ou, quando existe uma página-modelo da principal para seguir: {"herda":"<papel da página-modelo>","fundo":"#hex opcional","substituir":[{"nome":"<nome exato da camada no modelo>","texto":"novo texto"} | {"nome":"<nome>","imagem":"ID da galeria OU ref da principal"}],"camadas":[CAMADA extra,...]} — herdar copia TODAS as camadas do modelo e troca só o que estiver em substituir; use isso sempre que puder: é o que mantém o sistema.
 CAMADA = {"tipo":"texto","texto":"...","fonte":"nome","peso":"400|700|900","tamanho":7,"cor":"#hex","x":6,"y":12,"w":88,"alinhar":"left|center|right","entrelinha":1.1}
@@ -230,7 +251,7 @@ TXT;
     foreach ($pngs as $i => $png) { $content[] = ['type' => 'text', 'text' => 'PÁGINA ' . ($i + 1) . ' · papel: ' . (trim((string)($papeis[$i] ?? '')) ?: 'principal')]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => 'image/png', 'data' => $png]]; }
     foreach ($thumbs as $t) { $content[] = ['type' => 'text', 'text' => 'ID ' . $t['id'] . ' · ' . $t['nome']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
     foreach ($refImgs as $t) { $content[] = ['type' => 'text', 'text' => 'REFERÊNCIA (só inspiração): ' . $t['rot']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
-    try { [$resp, $custo] = paClaude($system, $content, $qtd > 12 ? 32000 : 16000); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON. Início da resposta: ' . mb_substr($resp, 0, 200)); }
+    try { [$resp, $custo, $us] = paClaude($system, $content, 32000); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON' . (($us['stop_reason'] ?? '') === 'max_tokens' ? ' (resposta cortada pelo limite de tamanho)' : '') . '. Início da resposta: ' . mb_substr($resp, 0, 200)); }
     catch (Exception $e) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => $e->getMessage(), 'mudado_em' => gmdate('c')]); sd_fail($e->getMessage(), 500); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'revisao', 'plano' => $plano, 'custo_usd' => (float)$p['custo_usd'] + $custo, 'mudado_em' => gmdate('c')]);
     sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada', 'PATCH', ['arquivada' => true]);
