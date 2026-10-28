@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v249 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v250 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5120,7 +5120,13 @@ async function ofiFala(dados){
   if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
   return j;
 }
-async function ofiCarrega(){ OFI.busy = true; renderBoard(); try { OFI.d = await ofiFala({ acao:'inicio' }); OFI.msg = ''; } catch(e){ OFI.msg = e.message; } OFI.busy = false; renderBoard(); }
+async function ofiCarrega(){ OFI.busy = true; renderBoard(); try { OFI.d = await ofiFala({ acao:'inicio' }); OFI.msg = ''; } catch(e){ OFI.msg = e.message; } OFI.busy = false; renderBoard(); ofiPautas(); }
+// Derivações (lotes do Estúdio): também são saída de material — aparecem aqui, por cliente, e abrem no Estúdio
+const PA_ST = { nova:'preparada', derivando:'a IA está gerando', revisao:'pronta para revisar', erro:'deu erro', aprovada:'aprovada', produzida:'produzida' };
+async function ofiPautas(){ try { const { data:{ session } } = await sbR.auth.getSession(); const r = await fetch('/pd-estudio-ia.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'pauta_listar' }) }); const j = await r.json().catch(() => ({})); OFI.pautas = r.ok ? (j.pautas || j.itens || []) : []; } catch(e){ OFI.pautas = []; } renderBoard(); }
+function htmlPautas(){ const ps = OFI.pautas; if (!ps) return '<div class="nota">Carregando derivações…</div>'; if (!ps.length) return '';
+  const fam = { social:'social', papelaria:'papelaria', apresentacao:'apresentação', book:'book' };
+  return `<div class="esc-it"><div class="nota" style="margin-bottom:4px"><b>Derivações</b> · lotes gerados no Estúdio</div>` + ps.slice(0, 10).map(p => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:.5px solid var(--sep);font-size:12px"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(p.nome || 'Lote')}</b> <small class="nota">· ${esc(p.clients?.name || '')} · ${esc(fam[p.familia] || p.familia || '')}${p.rodada ? ' · rodada ' + p.rodada : ''}</small></span><small class="nota" style="white-space:nowrap">${esc(PA_ST[p.status] || p.status || '')}</small><button class="btn" style="min-height:30px;width:30px;padding:0;display:inline-grid;place-items:center" title="Abrir no Estúdio" onclick="abrirEstudio('peca=${p.principal_id}&pauta=${p.id}')">${ofiIco('<path d="M5 12h14M13 6l6 6-6 6"/>', 14)}</button></div>`).join('') + `</div>`; }
 function ofiAba(a){ OFI.aba = a; OFI.msg = ''; OFI.ver = null; renderBoard(); }
 async function ofiPedir(){
   const cli = (($('#ofiCli') || {}).value || ''); const pedido = (($('#ofiPed') || {}).value || '').trim();
@@ -5167,7 +5173,7 @@ function htmlOficina(){
       <div class="esc-it">${OFI.ver.log.map(l => `<div class="nota" style="line-height:1.4"><b>${esc(l.evento)}</b> ${esc(l.detalhe)} <small>· ${new Date(l.em).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</small></div>`).join('') || '<div class="nota">Sem registros.</div>'}</div>
       <div class="esc-bt">${t.status === 'aguardando_ok' ? `<button ${bt} onclick="ofiAcao('ok','${t.id}')">Dar OK</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${bt} onclick="ofiAcao('cancelar','${t.id}')">Cancelar</button>` : ''}</div>`, ['Voltar', 'OFI.ver=null;renderBoard()']);
   }
-  const pedir = `<div class="nota" style="line-height:1.45;margin:0 0 8px">Aqui aparece o que sai da oficina: PDF para gráfica, vídeos, apresentações, books. O pedido nasce no Estúdio (botão preto) e cai nesta fila.</div>`;
+  const pedir = `<div class="nota" style="line-height:1.45;margin:0 0 8px">Aqui aparece o que sai da oficina (PDF para gráfica, vídeos, apresentações, books) e os lotes de derivações do Estúdio.</div>` + htmlPautas();
   const fila = D.trabalhos.slice(0, 12).map(t => `<div class="esc-it"><div class="esc-nm"><span><b>${esc(t.titulo || t.modulo)}</b> <small>· ${esc(t.clients?.name || '')}</small></span><small>${esc(OFI_ST[t.status] || t.status)}</small></div>
       <div class="esc-bt"><button ${ib} title="Detalhe" onclick="ofiVer('${t.id}')">${ofiIco('<circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/>', 15)}</button>${t.status === 'aguardando_ok' ? `<button ${ib} title="Dar OK" onclick="ofiAcao('ok','${t.id}')">${ofiIco('<path d="m5 13 4 4L19 7"/>', 15)}</button>` : ''}${['fila', 'aguardando_ok'].includes(t.status) ? `<button ${ib} title="Cancelar" onclick="ofiAcao('cancelar','${t.id}')">${ofiIco('<path d="M6 6l12 12M18 6 6 18"/>', 15)}</button>` : ''}</div></div>`).join('') || '<div class="nota">Fila vazia.</div>';
   let admin = '';

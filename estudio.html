@@ -173,6 +173,7 @@ async function boot(){
   await trocaCliente();
   ajustaViewport();window.addEventListener('resize',()=>{ajustaViewport();zoomAjusta();});
   if(q.get('peca')) await abrirPeca(q.get('peca')); else { aplicaFormato(FORMATOS[0]); montaPaginas([null]); marca(true); }
+  if(q.get('pauta')){try{await pautaAbrir(q.get('pauta'));aba('pauta');}catch(e){msg(e.message);}}
 }
 function ajustaViewport(){const p=$('#pano');C.setDimensions({width:p.clientWidth,height:p.clientHeight});const s=$('#seg');s.width=p.clientWidth;s.height=p.clientHeight;}
 
