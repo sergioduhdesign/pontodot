@@ -41,15 +41,15 @@ function paThumbB64($id, $w = 480) {
     return ['b64' => base64_encode((string)file_get_contents($red)), 'mime' => 'image/jpeg'];
 }
 // --------------------------------------------------------------- resumo das camadas da peça (o que a IA "lê" além da imagem)
-function paCamadas($doc, $w, $h) {
-    $pg = isset($doc['paginas']) ? ($doc['paginas'][0] ?? []) : $doc; $out = []; $imgs = [];
+function paCamadas($doc, $w, $h, $pagina = 0, $prefixo = 'principal') {
+    $pg = isset($doc['paginas']) ? ($doc['paginas'][$pagina] ?? []) : $doc; $out = []; $imgs = [];
     foreach ((array)($pg['objects'] ?? []) as $i => $o) {
         $t = $o['type'] ?? ''; $sx = (float)($o['scaleX'] ?? 1); $sy = (float)($o['scaleY'] ?? 1);
         $ww = round(((float)($o['width'] ?? 0)) * $sx / $w * 100); $hh = round(((float)($o['height'] ?? 0)) * $sy / $h * 100);
         $x = round(((float)($o['left'] ?? 0)) / $w * 100); $y = round(((float)($o['top'] ?? 0)) / $h * 100);
         $fill = is_string($o['fill'] ?? null) ? $o['fill'] : 'gradiente';
         if ($t === 'textbox') $out[] = sprintf('texto "%s" · %s %s · %dpx · cor %s · x%d y%d w%d · alinhado %s', mb_substr((string)($o['text'] ?? ''), 0, 80), $o['fontFamily'] ?? '', $o['fontWeight'] ?? '', (int)($o['fontSize'] ?? 0), $fill, $x, $y, $ww, $o['textAlign'] ?? 'left');
-        elseif ($t === 'image') { $n = (string)($o['name'] ?? ('imagem ' . ($i + 1))); $imgs[] = ['ref' => 'principal:' . $i, 'nome' => $n, 'src' => (string)($o['pdFonte'] ?: ($o['src'] ?? ''))]; $out[] = sprintf('imagem "%s" (ref principal:%d) · x%d y%d w%d h%d', $n, $i, $x, $y, $ww, $hh); }
+        elseif ($t === 'image') { $n = (string)($o['name'] ?? ('imagem ' . ($i + 1))); $ref = $prefixo . ':p' . ($pagina + 1) . ':' . $i; $imgs[] = ['ref' => $ref, 'nome' => $n, 'src' => (string)($o['pdFonte'] ?: ($o['src'] ?? ''))]; $out[] = sprintf('imagem "%s" (ref %s) · x%d y%d w%d h%d', $n, $ref, $x, $y, $ww, $hh); }
         else $out[] = sprintf('%s "%s" · cor %s · x%d y%d w%d h%d · opacidade %s', $t, (string)($o['name'] ?? ''), $fill, $x, $y, $ww, $hh, (string)($o['opacity'] ?? 1));
     }
     return [$out, $imgs, is_string($pg['background'] ?? null) ? $pg['background'] : '#ffffff'];
@@ -73,14 +73,16 @@ function paJson($t) { $t = trim($t); if (preg_match('/```(?:json)?\s*(.*?)```/s'
 // =============================================================== ações
 if ($acao === 'kit_status') { [, $st] = paKit((string)($b['client_id'] ?? '')); echo json_encode($st, JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'pauta_listar') {
-    $q = '/rest/v1/pd_pautas?select=id,client_id,nome,status,rodada,kit_status,principal_id,mudado_em,clients(name)&order=mudado_em.desc&limit=60'; if (!empty($b['client_id'])) $q .= '&client_id=eq.' . urlencode((string)$b['client_id']);
-    $r = sd_supabase($q); if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v117 (pauta) no Supabase.', 500); echo json_encode(['pautas' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit;
+    $q = '/rest/v1/pd_pautas?select=id,client_id,nome,status,rodada,kit_status,principal_id,familia,qtd,mudado_em,clients(name)&order=mudado_em.desc&limit=60'; if (!empty($b['client_id'])) $q .= '&client_id=eq.' . urlencode((string)$b['client_id']);
+    $r = sd_supabase($q); if (($r['code'] ?? 500) >= 300) $r = sd_supabase(str_replace(',familia,qtd', '', $q)); if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v117 (pauta) no Supabase.', 500); echo json_encode(['pautas' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'pauta_salvar') {
     $id = (string)($b['id'] ?? ''); if (empty($b['client_id']) && !$id) sd_fail('Toda pauta é de um cliente.');
     $d = ['mudado_em' => gmdate('c')]; foreach (['nome' => 120, 'texto' => 20000, 'briefing' => 6000] as $k => $n) if (isset($b[$k])) $d[$k] = mb_substr((string)$b[$k], 0, $n);
     if (array_key_exists('pasta_drive', $b)) { $p = (string)$b['pasta_drive']; if (preg_match('~folders/([\w\-]+)~', $p, $m)) $p = $m[1]; $d['pasta_drive'] = $p ?: null; }
     if (array_key_exists('principal_id', $b)) $d['principal_id'] = $b['principal_id'] ?: null;
+    if (!empty($b['familia']) && in_array($b['familia'], ['social', 'papelaria', 'apresentacao', 'book'], true)) $d['familia'] = $b['familia'];
+    if (isset($b['qtd'])) $d['qtd'] = max(0, min(200, (int)$b['qtd']));
     if (!$id) { $d['client_id'] = (string)$b['client_id']; $d['criado_por'] = $u['id']; $d['nome'] = $d['nome'] ?? 'Pauta'; $r = sd_supabase('/rest/v1/pd_pautas', 'POST', $d, ['Prefer: return=representation']); }
     else $r = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', $d, ['Prefer: return=representation']);
     if (empty($r['body'][0])) sd_fail('Não consegui salvar a pauta: ' . ($r['raw'] ?? ''), 500);
@@ -99,66 +101,79 @@ if ($acao === 'licao_salvar') {
     sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => ($b['client_id'] ?? null) ?: null, 'tipo' => 'regra', 'texto' => $t, 'por' => $u['id']]); echo json_encode(['ok' => true]); exit;
 }
 
-if ($acao === 'derivar') {   // a jogada da IA
+$FAMILIAS = [
+  'social' => ['nome' => 'conteúdo social', 'papeis' => ['principal' => 'post de feed'], 'min' => ['principal']],
+  'papelaria' => ['nome' => 'papelaria', 'papeis' => ['principal' => 'cartão de visita'], 'min' => ['principal']],
+  'apresentacao' => ['nome' => 'apresentação', 'papeis' => ['capa' => 'capa', 'segunda capa' => 'segunda capa / abertura', 'tela clara' => 'tela de conteúdo clara', 'tela escura' => 'tela de conteúdo escura'], 'min' => ['capa', 'tela clara']],
+  'book' => ['nome' => 'book / livro', 'papeis' => ['capa' => 'capa', 'pagina 1' => 'página 1 (abertura)', 'entrada de capitulo' => 'entrada de capítulo', 'texto a' => 'página de texto, modelo A', 'texto b' => 'página de texto, modelo B', 'final' => 'página final'], 'min' => ['capa', 'texto a']],
+];
+if ($acao === 'familias') { echo json_encode(['familias' => $FAMILIAS], JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     $id = (string)($b['id'] ?? ''); $p = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&select=*,clients(name)')['body'][0] ?? null; if (!$p) sd_fail('Pauta não encontrada.', 404);
-    if (empty($p['principal_id'])) sd_fail('Faça e salve a peça principal (feed) antes do play.');
+    $fam = $FAMILIAS[$p['familia'] ?? 'social'] ?? $FAMILIAS['social']; $famId = $p['familia'] ?: 'social';
+    if (empty($p['principal_id'])) sd_fail('Faça e salve a peça principal antes do play.');
     $pr = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($p['principal_id']) . '&select=id,nome,formato,doc,thumb_url')['body'][0] ?? null; if (!$pr) sd_fail('Peça principal não encontrada.', 404);
-    $png = (string)($b['principal_png'] ?? ''); if (strpos($png, ',') !== false) $png = substr($png, strpos($png, ',') + 1); if (!$png) sd_fail('Mande a imagem da peça principal (o Estúdio faz isso sozinho).');
+    $pngs = array_values(array_filter(array_map(fn($x) => strpos((string)$x, ',') !== false ? substr($x, strpos($x, ',') + 1) : (string)$x, (array)($b['principal_pngs'] ?? ($b['principal_png'] ? [$b['principal_png']] : [])))));
+    if (!$pngs) sd_fail('Mande as imagens das páginas da principal (o Estúdio faz isso sozinho).');
     $feedback = mb_substr(trim((string)($b['feedback'] ?? '')), 0, 4000);
     [$kit, $kitSt] = paKit($p['client_id']);
     $rodada = (int)$p['rodada'] + 1; $hist = is_array($p['historico']) ? $p['historico'] : [];
-    if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => $feedback, 'por' => $u['id']]); }
+    if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'derivando', 'rodada' => $rodada, 'historico' => $hist, 'kit_status' => $kitSt, 'erro' => null, 'mudado_em' => gmdate('c')]);
     // imagens disponíveis: pasta da pauta (ou cliente › MÍDIA)
     $imgs = []; $thumbs = [];
     try { if (paPonteOk()) { $pasta = $p['pasta_drive'] ?: null;
         if (!$pasta) { $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($p['client_id']) . '&select=name,drive_id')['body'][0] ?? []; if (!empty($c['drive_id'])) { $g = ponte('pasta_garantir', ['pai_id' => $c['drive_id'], 'nome' => 'MÍDIA', 'criar' => false]); $pasta = $g['id'] ?? null; } }
         if ($pasta) { $l = ponte('listar', ['folderId' => $pasta]); foreach ((array)($l['arquivos'] ?? []) as $f) { $m = (string)($f['mime'] ?? ''); if (stripos($m, 'image/') !== 0 || stripos($m, 'svg') !== false) continue; $imgs[] = ['id' => $f['id'], 'nome' => $f['name']]; if (count($thumbs) < 12) { $t = paThumbB64($f['id'], 420); if ($t) $thumbs[] = ['id' => $f['id'], 'nome' => $f['name']] + $t; } } } } } catch (Exception $e) { /* sem pasta: a IA usa as imagens da principal */ }
-    [$camadas, $imgsPrincipal, $fundo] = paCamadas($pr['doc'], (int)$pr['formato']['w'], (int)$pr['formato']['h']);
+    // páginas da principal, cada uma com o papel que o humano deu
+    $docP = $pr['doc']; $pags = isset($docP['paginas']) ? $docP['paginas'] : [$docP]; $papeis = (array)($docP['papeis'] ?? []); $W0 = (int)$pr['formato']['w']; $H0 = (int)$pr['formato']['h'];
+    $resumoPrincipal = ''; $imgsPrincipal = [];
+    foreach ($pags as $i => $pg) { [$camadas, $ip, $fundo] = paCamadas($docP, $W0, $H0, $i); $imgsPrincipal = array_merge($imgsPrincipal, $ip); $papel = trim((string)($papeis[$i] ?? '')) ?: ($famId === 'social' || $famId === 'papelaria' ? 'principal' : 'sem papel');
+        $resumoPrincipal .= "\nPÁGINA " . ($i + 1) . " · papel: $papel · fundo $fundo · camadas:\n- " . implode("\n- ", $camadas ?: ['(vazia)']) . "\n"; }
+    $faltam = array_values(array_filter($fam['min'], fn($r) => $r === 'principal' ? false : !in_array($r, array_map(fn($x) => strtolower(trim((string)$x)), $papeis), true)));
+    if ($faltam) sd_fail('Esta família precisa das páginas-modelo: ' . implode(', ', $faltam) . '. Marque o papel de cada página na barra de pranchetas.');
     $lic = sd_supabase('/rest/v1/pd_estudio_licoes?ativa=eq.true&or=(client_id.eq.' . urlencode($p['client_id']) . ',client_id.is.null)&select=tipo,texto&order=em.desc&limit=40')['body'] ?? [];
-    $ex = sd_supabase('/rest/v1/pd_pautas?client_id=eq.' . urlencode($p['client_id']) . '&status=in.(aprovada,produzida)&id=neq.' . urlencode($id) . '&select=aprovado&order=mudado_em.desc&limit=1')['body'][0]['aprovado'] ?? null;
-    // derivadas atuais (o humano pode ter editado): resumo das camadas de cada uma
+    $ex = sd_supabase('/rest/v1/pd_pautas?client_id=eq.' . urlencode($p['client_id']) . '&familia=eq.' . urlencode($famId) . '&status=in.(aprovada,produzida)&id=neq.' . urlencode($id) . '&select=aprovado&order=mudado_em.desc&limit=1')['body'][0]['aprovado'] ?? null;
     $atuais = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada&arquivada=eq.false&select=nome,derivada_tipo,formato,doc,spec&order=ordem.asc')['body'] ?? [];
-    $resumoAtuais = []; foreach ($atuais as $a) { [$cs] = paCamadas($a['doc'], (int)$a['formato']['w'], (int)$a['formato']['h']); $resumoAtuais[] = ($a['derivada_tipo'] ?: 'peça') . ' "' . $a['nome'] . '" (página 1): ' . implode(' | ', array_slice($cs, 0, 14)); }
-
+    $resumoAtuais = []; foreach ($atuais as $a) { [$cs] = paCamadas($a['doc'], (int)$a['formato']['w'], (int)$a['formato']['h'], 0, 'derivada'); $resumoAtuais[] = ($a['derivada_tipo'] ?: 'peça') . ' "' . $a['nome'] . '" (página 1): ' . implode(' | ', array_slice($cs, 0, 14)); }
     $cores = implode(', ', array_map(fn($c) => ($c['name'] ?? '') . ' ' . ($c['hex'] ?? ''), array_filter((array)$kit['colors'], fn($c) => !empty($c['hex']))));
     $fontes = implode(', ', array_map(fn($f) => $f['name'], array_filter((array)$kit['fonts'], fn($f) => !empty($f['name']))));
     $logos = array_keys(array_filter((array)($kit['logos'] ?? []), fn($l) => !empty($l['file_url'])));
-    $system = <<<TXT
-Você é a diretora de arte da Pontodot. Recebe UMA peça principal de feed feita por um humano e deriva o resto do conteúdo da pauta, no mesmo sistema visual, sem inventar outro estilo. Você NÃO escreve texto novo que não esteja no texto da pauta ou na peça principal: você distribui, hierarquiza e corta o texto que recebeu. Você responde SÓ com JSON válido, sem comentários, no formato:
-{"raciocinio":"3 linhas no máximo: o que você viu na principal e o que repetiu nas derivações",
- "derivacoes":[
-  {"tipo":"carrossel","titulo":"nome curto","paginas":[PAGINA,...]},
-  {"tipo":"stories","titulo":"...","paginas":[PAGINA]},
-  {"tipo":"video","titulo":"...","roteiro":{"estilo":"frase","legenda_posicao":"baixo-centro|centro|cima","capa":PAGINA,"boards":[{"pagina":PAGINA,"fala":"texto da locução/legenda","duracao_s":4},...4 boards],"encerramento":PAGINA}}
- ]}
-PAGINA = {"fundo":"#hex","camadas":[CAMADA,...]} — camadas de baixo para cima. Medidas em PORCENTAGEM da largura (x, w, tamanho) e da altura (y, h) da peça.
+    $qtd = (int)($p['qtd'] ?: ($famId === 'apresentacao' ? 40 : ($famId === 'book' ? 24 : 0)));
+    $gram = <<<TXT
+Você responde SÓ com JSON válido, sem comentários. Medidas em PORCENTAGEM da largura (x, w, tamanho) e da altura (y, h) da peça de destino.
+PAGINA = {"fundo":"#hex","camadas":[CAMADA,...]} — camadas de baixo para cima.
+   ou, quando existe uma página-modelo da principal para seguir: {"herda":"<papel da página-modelo>","fundo":"#hex opcional","substituir":[{"nome":"<nome exato da camada no modelo>","texto":"novo texto"} | {"nome":"<nome>","imagem":"ID da galeria OU ref da principal"}],"camadas":[CAMADA extra,...]} — herdar copia TODAS as camadas do modelo e troca só o que estiver em substituir; use isso sempre que puder: é o que mantém o sistema.
 CAMADA = {"tipo":"texto","texto":"...","fonte":"nome","peso":"400|700|900","tamanho":7,"cor":"#hex","x":6,"y":12,"w":88,"alinhar":"left|center|right","entrelinha":1.1}
-       | {"tipo":"imagem","imagem":"ID da galeria OU principal:N","x":0,"y":0,"w":100,"h":55,"ajuste":"cobrir"}
+       | {"tipo":"imagem","imagem":"ID da galeria OU ref principal:pN:i","x":0,"y":0,"w":100,"h":55,"ajuste":"cobrir"}
        | {"tipo":"forma","forma":"rect|circle","cor":"#hex","x":0,"y":60,"w":100,"h":40,"opacidade":0.9,"cantos":0}
        | {"tipo":"gradiente","direcao":"baixo|cima","cor":"#000000","x":0,"y":0,"w":100,"h":100,"forca":0.75}
        | {"tipo":"logo","x":6,"y":90,"w":16}
-Regras: carrossel com 1080×1350 e de 4 a 7 páginas (capa forte, miolo com uma ideia por página, última com chamada); 3 stories 1080×1920 (respeite área livre: nada de texto nos 13% de cima e nos 18% de baixo); vídeo em 1080×1920 com capa, 4 boards e encerramento. Use SÓ as fontes do kit (ou as da principal) e SÓ as cores do kit (ou as da principal). Nunca deixe uma palavra sozinha na última linha de um título: encurte ou quebre antes. Tamanhos de texto em % da largura: título 7–10, subtítulo 4–5, corpo 2.6–3.4. Mantenha margens (x≥6, w≤88) salvo imagens e formas de fundo. Use as imagens da galeria pelo ID; se não houver, use as da principal (principal:N). Quando o kit estiver incompleto, siga a principal e marque no raciocínio o que ficou provisório.
+Regras gerais: use SÓ as fontes e cores do kit ou da principal; nunca deixe uma palavra sozinha na última linha de um título; margens x≥6 e w≤88 salvo imagens e formas de fundo; use só o texto da pauta e da principal (distribua, hierarquize, corte; não invente). Quando o kit estiver incompleto, siga a principal e diga no raciocinio o que ficou provisório.
 TXT;
-    $txt = "CLIENTE: {$p['clients']['name']}\nPAUTA: {$p['nome']}\nRODADA: $rodada\n\nBRIEFING (o que o humano pediu):\n" . ($p['briefing'] ?: '(sem briefing)') . "\n\nTEXTO DA PAUTA (só este texto pode aparecer nas peças):\n" . ($p['texto'] ?: '(sem texto além do que está na peça principal)') .
+    if ($famId === 'social') $system = "Você é a diretora de arte da Pontodot. Recebe UM post de feed feito por um humano e deriva o resto do conteúdo social no mesmo sistema visual.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"carrossel\",\"titulo\":\"...\",\"paginas\":[PAGINA x4-7]},{\"tipo\":\"stories\",\"titulo\":\"...\",\"paginas\":[PAGINA]} x3,{\"tipo\":\"video\",\"titulo\":\"...\",\"roteiro\":{\"estilo\":\"frase\",\"legenda_posicao\":\"baixo-centro|centro|cima\",\"capa\":PAGINA,\"boards\":[{\"pagina\":PAGINA,\"fala\":\"locução/legenda\",\"duracao_s\":4} x4],\"encerramento\":PAGINA}}]}\nCarrossel 1080×1350 (capa forte, uma ideia por página, última com chamada); stories 1080×1920 (nada nos 13% de cima e 18% de baixo); vídeo 1080×1920. Tamanhos de texto em % da largura: título 7–10, subtítulo 4–5, corpo 2.6–3.4.";
+    elseif ($famId === 'papelaria') $system = "Você é a diretora de arte da Pontodot. Recebe UM cartão de visita feito por um humano e deriva a papelaria inteira com a mesma lógica (filetes, proporções, hierarquia, cores, fontes, posição do logo).\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"papelaria\",\"item\":\"timbrado\",\"titulo\":\"Papel timbrado A4\",\"formato\":{\"mm\":[210,297]},\"paginas\":[PAGINA]}, ...]}\nEntregue, nesta ordem, um item por derivação: timbrado (mm 210×297), envelope (mm 220×110), assinatura de e-mail (px 600×200: formato {\"px\":[600,200]}), pasta (mm 220×310, só a frente), cracha (mm 54×86), adesivo (mm 50×50), bloco (mm 148×210), capa de proposta (mm 210×297). Em impresso, lembre: texto de corpo entre 7 e 10 pt ≈ tamanho 3–4.5 em % da largura de um A4; o papel tem 5 mm de sangria por lado já incluídos na página (deixe 10% de respiro além do corte para o que não sangra).";
+    elseif ($famId === 'apresentacao') $system = "Você é a diretora de arte da Pontodot. Recebe as páginas-modelo de uma apresentação feitas por um humano (capa, segunda capa, tela clara, tela escura) e monta o deck inteiro com $qtd telas, usando HERDA em todas as telas (cada tela herda de um modelo e troca só textos e imagens). Distribua o TEXTO DA PAUTA pelas telas: uma ideia por tela, títulos curtos, corpo enxuto; alterne clara/escura com ritmo; abra seções com uma tela que herda da segunda capa; feche com uma tela que herda da capa.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"apresentacao\",\"titulo\":\"nome do deck\",\"paginas\":[PAGINA x $qtd]}]}";
+    else $system = "Você é a diretora de arte da Pontodot. Recebe as páginas-modelo de um book/livro feitas por um humano (capa, página 1, entrada de capítulo, texto A, texto B, final) e diagrama o book inteiro com $qtd páginas, usando HERDA em todas (cada página herda de um modelo e troca só textos e imagens). Distribua o TEXTO DA PAUTA em capítulos: cada capítulo abre com uma entrada de capítulo e segue alternando texto A e texto B; comece pela capa e página 1 e termine na final. Respeite o texto: não corte frases no meio; se o texto for longo demais para a quantidade de páginas, diga no raciocinio quantas páginas faltariam.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"book\",\"titulo\":\"nome do book\",\"paginas\":[PAGINA x $qtd]}]}";
+    $txt = "CLIENTE: {$p['clients']['name']}\nPAUTA: {$p['nome']} · família: {$fam['nome']}\nRODADA: $rodada\n\nBRIEFING (o que o humano pediu):\n" . ($p['briefing'] ?: '(sem briefing)') . "\n\nTEXTO DA PAUTA (só este texto pode aparecer nas peças):\n" . ($p['texto'] ?: '(sem texto além do que está na principal)') .
         "\n\nKIT DE MARCA: cores: " . ($cores ?: 'nenhuma') . " · fontes: " . ($fontes ?: 'nenhuma') . " · logos: " . (implode(', ', $logos) ?: 'nenhum') . ($kitSt['completo'] ? '' : ' · KIT INCOMPLETO (faltam: ' . implode(', ', $kitSt['faltam']) . ')') .
-        "\n\nPEÇA PRINCIPAL ({$pr['formato']['w']}×{$pr['formato']['h']}, fundo $fundo) — camadas:\n- " . implode("\n- ", $camadas) .
+        "\n\nPEÇA PRINCIPAL \"{$pr['nome']}\" ({$W0}×{$H0}" . (!empty($pr['formato']['mm']) ? ', ' . $pr['formato']['mm'][0] . '×' . $pr['formato']['mm'][1] . ' mm + sangria' : '') . "), " . count($pags) . " página(s):\n" . $resumoPrincipal .
         "\n\nIMAGENS DISPONÍVEIS NA GALERIA (use pelo ID):\n" . ($imgs ? implode("\n", array_map(fn($i) => $i['id'] . ' · ' . $i['nome'], array_slice($imgs, 0, 60))) : '(pasta vazia: use as imagens da principal)') .
         "\n\nIMAGENS DA PRINCIPAL: " . ($imgsPrincipal ? implode('; ', array_map(fn($i) => $i['ref'] . ' = ' . $i['nome'], $imgsPrincipal)) : 'nenhuma') .
         ($lic ? "\n\nLIÇÕES DESTE CLIENTE (obrigatórias):\n- " . implode("\n- ", array_map(fn($l) => '[' . $l['tipo'] . '] ' . $l['texto'], $lic)) : '') .
-        ($ex ? "\n\nEXEMPLO APROVADO NA PAUTA ANTERIOR DESTE CLIENTE (repita a lógica):\n" . mb_substr(json_encode($ex, JSON_UNESCAPED_UNICODE), 0, 6000) : '') .
+        ($ex ? "\n\nEXEMPLO APROVADO NA PAUTA ANTERIOR DESTA FAMÍLIA (repita a lógica):\n" . mb_substr(json_encode($ex, JSON_UNESCAPED_UNICODE), 0, 6000) : '') .
         ($resumoAtuais ? "\n\nDERIVAÇÕES ATUAIS (o humano pode ter mexido; o que ele mudou é lei):\n- " . implode("\n- ", $resumoAtuais) : '') .
         ($feedback ? "\n\nFEEDBACK DO HUMANO NESTA RODADA (manda em tudo):\n$feedback" : '') .
-        "\n\nA imagem a seguir é a peça principal. Depois dela, miniaturas da galeria, cada uma precedida do seu ID.";
-    $content = [['type' => 'text', 'text' => $txt], ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => 'image/png', 'data' => $png]]];
+        "\n\nAs imagens a seguir são as páginas da principal, na ordem (PÁGINA 1, 2…). Depois delas, miniaturas da galeria, cada uma precedida do seu ID.";
+    $content = [['type' => 'text', 'text' => $txt]];
+    foreach ($pngs as $i => $png) { $content[] = ['type' => 'text', 'text' => 'PÁGINA ' . ($i + 1) . ' · papel: ' . (trim((string)($papeis[$i] ?? '')) ?: 'principal')]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => 'image/png', 'data' => $png]]; }
     foreach ($thumbs as $t) { $content[] = ['type' => 'text', 'text' => 'ID ' . $t['id'] . ' · ' . $t['nome']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
-    try { [$resp, $custo] = paClaude($system, $content); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON. Início da resposta: ' . mb_substr($resp, 0, 200)); }
+    try { [$resp, $custo] = paClaude($system, $content, $qtd > 12 ? 32000 : 16000); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON. Início da resposta: ' . mb_substr($resp, 0, 200)); }
     catch (Exception $e) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => $e->getMessage(), 'mudado_em' => gmdate('c')]); sd_fail($e->getMessage(), 500); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'revisao', 'plano' => $plano, 'custo_usd' => (float)$p['custo_usd'] + $custo, 'mudado_em' => gmdate('c')]);
-    // as derivadas antigas desta pauta são arquivadas: o Estúdio cria as novas a partir do plano
     sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada', 'PATCH', ['arquivada' => true]);
     $galeria = []; foreach ($imgs as $i) $galeria[$i['id']] = '/pd-estudio.php?img=' . rawurlencode($i['id']) . '&k=' . paAssina($i['id']) . '&w=2400';
-    echo json_encode(['ok' => true, 'rodada' => $rodada, 'plano' => $plano, 'galeria' => $galeria, 'kit' => $kitSt, 'custo' => round($custo, 4)], JSON_UNESCAPED_UNICODE); exit;
+    echo json_encode(['ok' => true, 'rodada' => $rodada, 'familia' => $famId, 'plano' => $plano, 'galeria' => $galeria, 'kit' => $kitSt, 'custo' => round($custo, 4)], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'aprovar') {
     $id = (string)($b['id'] ?? ''); $p = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&select=id,client_id,plano,rodada')['body'][0] ?? null; if (!$p) sd_fail('Pauta não encontrada.', 404);
