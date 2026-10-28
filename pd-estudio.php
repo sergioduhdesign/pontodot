@@ -157,6 +157,17 @@ function esItensDaPasta($pasta) {
     $ps = array_keys($pastas); sort($ps, SORT_NATURAL | SORT_FLAG_CASE);
     return ['pasta_url' => 'https://drive.google.com/drive/folders/' . $pasta, 'itens' => $itens, 'pastas' => $ps];
 }
+if ($acao === 'elementos') {   // vetores que existem nas peças do cliente (grafismos, caminhos, máscaras, grupos SVG) — pra reutilizar
+    $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Escolha o cliente.');
+    $r = sd_supabase('/rest/v1/pd_pecas?client_id=eq.' . urlencode($cid) . '&arquivada=eq.false&select=nome,doc,mudado_em&order=mudado_em.desc&limit=40')['body'] ?? [];
+    $itens = []; $vistos = [];
+    foreach ($r as $pc) { $doc = $pc['doc'] ?? []; $pags = isset($doc['paginas']) ? $doc['paginas'] : [$doc];
+        foreach ($pags as $pg) foreach ((array)($pg['objects'] ?? []) as $o) { $t = $o['type'] ?? '';
+            $vet = in_array($t, ['path', 'group', 'polygon', 'polyline'], true) || !empty($o['pdMask']) || (($o['pdTag'] ?? '') === 'grafismo'); if (!$vet || preg_match('/logo/i', (string)($o['name'] ?? ''))) continue;
+            $chave = md5(($o['name'] ?? '') . '|' . $t . '|' . mb_substr(json_encode($o['path'] ?? $o['objects'] ?? $o['points'] ?? ''), 0, 400)); if (isset($vistos[$chave])) continue; $vistos[$chave] = 1;
+            unset($o['clipPath_abs']); $itens[] = ['nome' => trim((string)($o['name'] ?? '')) ?: ($t === 'group' ? 'grupo' : 'vetor'), 'de' => $pc['nome'], 'obj' => $o]; if (count($itens) >= 40) break 3; } }
+    echo json_encode(['itens' => $itens], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'banco_listar') {   // bancos salvos: da casa + deste cliente
     $q = '/rest/v1/pd_bancos_drive?select=id,nome,folder_id,url,client_id&order=nome.asc'; $cid = (string)($b['client_id'] ?? '');
     $q .= $cid ? '&or=(client_id.is.null,client_id.eq.' . urlencode($cid) . ')' : '&client_id=is.null';
