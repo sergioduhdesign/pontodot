@@ -139,6 +139,42 @@ if ($acao === 'galeria') {   // tudo que está em cliente › MÍDIA (e subpasta
     usort($itens, fn($a, $b2) => strcmp((string)$b2['modificado'], (string)$a['modificado']));
     echo json_encode(['pasta_url' => 'https://drive.google.com/drive/folders/' . $pasta, 'itens' => $itens], JSON_UNESCAPED_UNICODE); exit;
 }
+function esPastaDoLink($link) { $link = trim((string)$link); if (preg_match('~/folders/([\w\-]+)~', $link, $m)) return $m[1]; if (preg_match('~[?&]id=([\w\-]+)~', $link, $m)) return $m[1]; if (preg_match('~^[\w\-]{20,}$~', $link)) return $link; sd_fail('Cole o link de uma pasta do Drive.'); }
+function esItensDaPasta($pasta) {
+    try { $l = ponte('listar', ['folderId' => $pasta]); } catch (Exception $e) { sd_fail('Não consegui ler a pasta: ' . $e->getMessage() . ' (a pasta precisa estar compartilhada com a conta da ponte).', 500); }
+    $itens = []; $pastas = [];
+    foreach ((array)($l['arquivos'] ?? []) as $f) {
+        $m = (string)($f['mime'] ?? ''); $ehImg = stripos($m, 'image/') === 0 && stripos($m, 'svg') === false; $ehVid = stripos($m, 'video/') === 0; $ehSvg = stripos($m, 'svg') !== false;
+        if (!$ehImg && !$ehVid && !$ehSvg) continue;
+        $sub = strpos((string)$f['path'], '/') !== false ? substr((string)$f['path'], 0, strrpos((string)$f['path'], '/')) : ''; if ($sub !== '') $pastas[$sub] = true;
+        $k = esAssina($f['id']); $base = '/pd-estudio.php?img=' . rawurlencode($f['id']) . '&k=' . $k;
+        $itens[] = ['id' => $f['id'], 'nome' => $f['name'], 'path' => $f['path'], 'sub' => $sub, 'tipo' => $ehVid ? 'video' : ($ehSvg ? 'vetor' : 'foto'), 'arquivo' => $base . '&w=0', 'bytes' => (int)($f['size'] ?? 0), 'url' => $f['url'],
+            'thumb' => ($ehImg || $ehSvg) ? $base . '&w=400' : null, 'cheia' => ($ehImg || $ehSvg) ? $base . '&w=2400' : null, 'modificado' => $f['modified'] ?? null];
+    }
+    usort($itens, fn($a, $b2) => strcmp((string)$a['path'], (string)$b2['path']));
+    $ps = array_keys($pastas); sort($ps, SORT_NATURAL | SORT_FLAG_CASE);
+    return ['pasta_url' => 'https://drive.google.com/drive/folders/' . $pasta, 'itens' => $itens, 'pastas' => $ps];
+}
+if ($acao === 'banco_listar') {   // bancos salvos: da casa + deste cliente
+    $q = '/rest/v1/pd_bancos_drive?select=id,nome,folder_id,url,client_id&order=nome.asc'; $cid = (string)($b['client_id'] ?? '');
+    $q .= $cid ? '&or=(client_id.is.null,client_id.eq.' . urlencode($cid) . ')' : '&client_id=is.null';
+    $r = sd_supabase($q); if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v125 (bancos do Drive) no Supabase.', 500);
+    echo json_encode(['bancos' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'banco_ver') {   // lista uma pasta do Drive (salva ou só colada)
+    $pasta = !empty($b['id']) ? (sd_supabase('/rest/v1/pd_bancos_drive?id=eq.' . urlencode((string)$b['id']) . '&select=folder_id')['body'][0]['folder_id'] ?? sd_fail('Banco não encontrado.', 404)) : esPastaDoLink($b['link'] ?? '');
+    $out = esItensDaPasta($pasta); $out['folder_id'] = $pasta;
+    $out['salvo'] = (bool)(sd_supabase('/rest/v1/pd_bancos_drive?folder_id=eq.' . urlencode($pasta) . '&select=id&limit=1')['body'][0] ?? null);
+    echo json_encode($out, JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'banco_salvar') {
+    $pasta = esPastaDoLink($b['link'] ?? ''); $nome = mb_substr(trim((string)($b['nome'] ?? '')), 0, 80) ?: 'Banco'; $cid = !empty($b['client_id']) ? (string)$b['client_id'] : null;
+    $r = sd_supabase('/rest/v1/pd_bancos_drive', 'POST', ['nome' => $nome, 'folder_id' => $pasta, 'url' => 'https://drive.google.com/drive/folders/' . $pasta, 'client_id' => $cid, 'criado_por' => $u['id']], ['Prefer: return=representation']);
+    if (($r['code'] ?? 500) >= 300) sd_fail(strpos((string)($r['raw'] ?? ''), 'duplicate') !== false ? 'Este banco já está salvo.' : 'Rode o SQL v125 no Supabase.', 500);
+    pdAcervo('link', 'estudio', ['categoria' => 'banco_fotos', 'client_id' => $cid, 'nome' => $nome, 'url' => 'https://drive.google.com/drive/folders/' . $pasta, 'nota' => 'Banco de imagens no Drive', 'por' => $u['id']]);
+    echo json_encode(['ok' => true, 'banco' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'banco_apagar') { sd_supabase('/rest/v1/pd_bancos_drive?id=eq.' . urlencode((string)($b['id'] ?? '')) . ($u['role'] === 'admin' ? '' : '&criado_por=eq.' . urlencode($u['id'])), 'DELETE'); echo json_encode(['ok' => true]); exit; }
 if ($acao === 'subir') {   // upload em lote para cliente › MÍDIA (› subpasta opcional). Cada arquivo numa chamada; o navegador manda um por vez.
     $c = esCliente((string)($b['client_id'] ?? '')); $a = (array)($b['arquivo'] ?? []); if (empty($a['b64']) || empty($a['nome'])) sd_fail('Arquivo vazio.');
     $bytes = esB64($a['b64']); if (strlen($bytes) > 45 * 1024 * 1024) sd_fail('Por enquanto a ponte do Drive aceita até 45 MB por arquivo. Para maiores, suba direto na pasta MÍDIA do cliente no Drive.');

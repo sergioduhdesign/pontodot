@@ -149,6 +149,11 @@ if ($acao === 'pauta_listar') {
     $q = '/rest/v1/pd_pautas?select=id,client_id,nome,status,rodada,kit_status,principal_id,familia,qtd,mudado_em,clients(name)&order=mudado_em.desc&limit=60'; if (!empty($b['client_id'])) $q .= '&client_id=eq.' . urlencode((string)$b['client_id']);
     $r = sd_supabase($q); if (($r['code'] ?? 500) >= 300) $r = sd_supabase(str_replace(',familia,qtd', '', $q)); if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v117 (pauta) no Supabase.', 500); echo json_encode(['pautas' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit;
 }
+if ($acao === 'refs_listar') {   // referências guardadas: deste cliente + das outras (a casa inteira), mais recentes primeiro
+    $cid = (string)($b['client_id'] ?? ''); $r = sd_supabase('/rest/v1/pd_acervo?categoria=eq.referencia&select=id,client_id,nome,url,nota,em,clients(name)&order=em.desc&limit=80')['body'] ?? [];
+    usort($r, fn($a, $b2) => (($b2['client_id'] === $cid) <=> ($a['client_id'] === $cid)) ?: strcmp((string)$b2['em'], (string)$a['em']));
+    echo json_encode(['refs' => $r], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'pauta_salvar') {
     $id = (string)($b['id'] ?? ''); if (empty($b['client_id']) && !$id) sd_fail('Toda pauta é de um cliente.');
     $d = ['mudado_em' => gmdate('c')]; foreach (['nome' => 120, 'texto' => 20000, 'briefing' => 6000] as $k => $n) if (isset($b[$k])) $d[$k] = mb_substr((string)$b[$k], 0, $n);
@@ -173,6 +178,12 @@ if ($acao === 'pauta_salvar') {
     }
     $r['body'][0] = $pa; if ($aviso) $r['body'][0]['_aviso'] = $aviso;
     if (!empty($b['principal_id'])) sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)$b['principal_id']), 'PATCH', ['pauta_id' => $r['body'][0]['id'], 'papel' => 'principal']);
+    // toda referência usada fica guardada no acervo (categoria 'referencia'), pra reaproveitar em qualquer trabalho
+    $links = array_merge((array)($d['refs'] ?? []), !empty($d['texto_link']) ? [$d['texto_link']] : [], !empty($d['pasta_drive']) ? [$d['pasta_drive']] : []);
+    foreach (array_slice(array_unique(array_filter($links)), 0, 20) as $lk) { if (!preg_match('~^https?://~i', $lk)) continue;
+        $ja = sd_supabase('/rest/v1/pd_acervo?categoria=eq.referencia&url=eq.' . urlencode($lk) . '&select=id&limit=1')['body'][0] ?? null; if ($ja) continue;
+        $host = preg_replace('~^www\.~', '', (string)parse_url($lk, PHP_URL_HOST)); $cat = $lk === ($d['texto_link'] ?? '') ? 'texto' : ($lk === ($d['pasta_drive'] ?? '') ? 'imagens' : 'visual');
+        pdAcervo('link', 'estudio', ['categoria' => 'referencia', 'client_id' => $r['body'][0]['client_id'], 'nome' => $host, 'url' => $lk, 'nota' => $cat . ' · ' . ($r['body'][0]['nome'] ?? '') . ' · ' . ($r['body'][0]['familia'] ?? ''), 'por' => $u['id']]); }
     echo json_encode(['ok' => true, 'pauta' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'pauta_abrir') {
