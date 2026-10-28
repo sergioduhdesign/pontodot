@@ -2353,7 +2353,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v248 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v249 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5197,17 +5197,34 @@ function htmlOficina(){
 // ESTÚDIO — editor de peças (posts, stories, capas) dentro da PD. Abre por cima da home, como a Sala.
 // ---------------------------------------------------------------------
 let EST = { d:null, msg:'' };
+let EST_ABAS=[];   // [{id, nome, iframe, dirty}]
 function abrirEstudio(params){
   let ov = document.getElementById('estOv');
   if (!ov){
     ov = document.createElement('div'); ov.id = 'estOv'; ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg,#fff);display:none;flex-direction:column';
-    ov.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(128,128,128,.25);background:inherit"><button class="btn" style="min-height:32px;padding:5px 12px;font-size:11.5px" onclick="estVoltar()">← Voltar à home</button><b style="font-size:13px">Estúdio</b><span class="nota">Salva sozinho a cada mudança.</span></div><iframe style="flex:1;border:0;width:100%" allow="clipboard-write"></iframe>';
+    ov.innerHTML = '<div id="estAbas" style="display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid rgba(128,128,128,.25);background:inherit;overflow-x:auto"></div><div id="estCorpo" style="flex:1;position:relative"></div>';
     document.body.appendChild(ov);
+    window.addEventListener('message', e => { const d = e.data || {}; if (d.tipo === 'est-nome'){ const ab = EST_ABAS.find(x => x.iframe.contentWindow === e.source); if (ab){ ab.nome = d.nome; ab.dirty = !!d.dirty; estAbasRender(); } } else if (d.tipo === 'est-aviso'){ balaoIA(d); } });
   }
-  ov.querySelector('iframe').src = 'estudio.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()) + (params ? '&' + params : '');
-  ov.style.display = 'flex';
+  const id = 'est' + Date.now() + Math.random().toString(36).slice(2, 5);
+  const f = document.createElement('iframe'); f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:none'; f.setAttribute('allow', 'clipboard-write');
+  f.src = 'estudio.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()) + (params ? '&' + params : '');
+  document.getElementById('estCorpo').appendChild(f); EST_ABAS.push({ id, nome: 'Nova peça', iframe: f, dirty: false }); estAbaVai(id); ov.style.display = 'flex';
 }
-async function estVoltar(){const ov=document.getElementById('estOv');const w=ov&&ov.querySelector('iframe')&&ov.querySelector('iframe').contentWindow;try{if(w&&w.antesDeSair){const ok=await w.antesDeSair();if(!ok)return;}}catch(e){}ov.style.display='none';EST.d=null;renderBoard();}
+function estAbaVai(id){ EST_ABAS.forEach(a => a.iframe.style.display = a.id === id ? 'block' : 'none'); EST_ATUAL = id; estAbasRender(); }
+let EST_ATUAL = null;
+function estAbasRender(){ const el = document.getElementById('estAbas'); if (!el) return;
+  el.innerHTML = `<button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="estVoltar()">← Home</button>` + EST_ABAS.map(a => `<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 8px 5px 12px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;${a.id === EST_ATUAL ? 'background:rgba(128,128,128,.18);font-weight:700' : 'opacity:.75'}" onclick="estAbaVai('${a.id}')">${esc(a.nome)}${a.dirty ? ' <small style="opacity:.6">•</small>' : ''}<button title="Fechar" style="border:0;background:transparent;color:inherit;cursor:pointer;font-size:13px;padding:0 2px" onclick="event.stopPropagation();estAbaFecha('${a.id}')">×</button></span>`).join('') + `<button class="btn" style="min-height:30px;width:30px;padding:0;font-size:14px" title="Abrir outra peça (as rodadas continuam rodando em cada aba)" onclick="abrirEstudio('')">+</button><span class="nota" style="margin-left:auto">cada aba trabalha sozinha · salva sozinho</span>`; }
+async function estAbaFecha(id){ const a = EST_ABAS.find(x => x.id === id); if (!a) return; try { const w = a.iframe.contentWindow; if (w && w.antesDeSair){ const ok = await w.antesDeSair(); if (!ok) return; } } catch(e){}
+  a.iframe.remove(); EST_ABAS = EST_ABAS.filter(x => x.id !== id); if (!EST_ABAS.length){ document.getElementById('estOv').style.display = 'none'; EST.d = null; renderBoard(); return; } if (EST_ATUAL === id) estAbaVai(EST_ABAS[EST_ABAS.length - 1].id); else estAbasRender(); }
+// balão da IA: carinha + "terminei xyz!" no canto, some sozinho
+function balaoIA(d){ const q = d.quem || {}; let box = document.getElementById('balaoIA'); if (!box){ box = document.createElement('div'); box.id = 'balaoIA'; box.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9600;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none'; document.body.appendChild(box); }
+  const el = document.createElement('div'); el.style.cssText = 'display:flex;align-items:flex-end;gap:8px;pointer-events:auto;animation:balaoEntra .35s ease';
+  el.innerHTML = `<div style="background:var(--bg,#fff);color:inherit;border:1px solid rgba(128,128,128,.3);border-radius:14px 14px 4px 14px;padding:10px 14px;max-width:300px;font-size:13px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.2)"><b>${esc(q.nome || 'IA')}</b><br>${esc(d.texto || '')}${d.peca ? `<br><small style="opacity:.6">${esc(d.peca)}</small>` : ''}</div><img src="/icone-ia.php?p=${encodeURIComponent(q.personagem || 'maestro')}&s=128" alt="" style="width:52px;height:52px;border-radius:50%;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.25);flex-shrink:0">`;
+  el.onclick = () => el.remove(); box.appendChild(el); setTimeout(() => { el.style.transition = 'opacity .5s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }, 9000);
+  if (!document.getElementById('balaoCss')){ const st = document.createElement('style'); st.id = 'balaoCss'; st.textContent = '@keyframes balaoEntra{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}'; document.head.appendChild(st); }
+}
+async function estVoltar(){for(const a of EST_ABAS){try{const w=a.iframe.contentWindow;if(w&&w.antesDeSair){const ok=await w.antesDeSair();if(!ok){estAbaVai(a.id);return;}}}catch(e){}}document.getElementById('estOv').style.display='none';EST.d=null;renderBoard();}
 async function estCarrega(){
   try { const { data:{ session } } = await sbR.auth.getSession();
     const r = await fetch('/pd-estudio.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'listar' }) });

@@ -77,6 +77,39 @@ const EXEC = {
     const nome = nomeLimpo((e.titulo || 'apresentacao') + '.pptx'); const f = path.join(dir, nome); await p.writeFile({ fileName: f });
     return { arquivos: [await subir(t, f, nome, 'application/vnd.openxmlformats-officedocument.presentationml.presentation')] };
   },
+  // VÍDEO v1 — entrada: { nome, w, h, fps, cenas:[{dur, trans:'corte'|'fade', fundo_url (PNG das camadas abaixo do clipe), topo_url (PNG transparente das camadas acima), clipes:[{url, ini, fim, x, y, w, h, vol, mudo}]}],
+  //                       trilha:{url, vol, ini}, locucao:{url, vol, ini} }  → MP4 H.264/AAC
+  async video(t, dir) {
+    const e = t.entrada || {}; const W = +e.w || 1080, H = +e.h || 1920, fps = +e.fps || 30; const cenas = Array.isArray(e.cenas) ? e.cenas : [];
+    if (!cenas.length) throw new Error('Vídeo sem cenas.');
+    const esc = v => String(v).replace(/'/g, "\\'");
+    const lista = [];
+    for (let i = 0; i < cenas.length; i++) { const c = cenas[i]; const dur = Math.max(0.5, +c.dur || 4); await log(t, `Cena ${i + 1}/${cenas.length} (${dur}s)`);
+      const args = ['-y', '-hide_banner', '-loglevel', 'error']; const fc = []; let idx = 0; const ins = [];
+      const bg = c.fundo_url ? await baixar(c.fundo_url, path.join(dir, `bg${i}.png`)) : null;
+      if (bg) { args.push('-loop', '1', '-t', String(dur), '-i', bg); ins.push('bg'); } else { args.push('-f', 'lavfi', '-t', String(dur), '-i', `color=c=${esc(c.cor || '#000000')}:s=${W}x${H}:r=${fps}`); ins.push('bg'); }
+      let v = '[0:v]scale=' + W + ':' + H + ',format=rgba[v0]'; fc.push(v); let cur = 'v0'; let audioClip = null;
+      for (const [k, cl] of (c.clipes || []).entries()) { const f = await baixar(cl.url, path.join(dir, `clip${i}_${k}.mp4`)); const ini = Math.max(0, +cl.ini || 0); const fim = cl.fim ? Math.max(ini + .1, +cl.fim) : null;
+        args.push('-stream_loop', '-1', '-ss', String(ini), ...(fim ? ['-to', String(fim)] : []), '-i', f); const n = ++idx; const cw = Math.max(2, Math.round(+cl.w || W)), ch = Math.max(2, Math.round(+cl.h || H));
+        fc.push(`[${n}:v]scale=${cw}:${ch}:force_original_aspect_ratio=increase,crop=${cw}:${ch},setpts=PTS-STARTPTS,format=rgba[c${k}]`); fc.push(`[${cur}][c${k}]overlay=${Math.round(+cl.x || 0)}:${Math.round(+cl.y || 0)}:shortest=0[v${n}]`); cur = `v${n}`;
+        if (!cl.mudo && audioClip === null) audioClip = { n, vol: cl.vol == null ? 1 : +cl.vol }; }
+      if (c.topo_url) { const tp = await baixar(c.topo_url, path.join(dir, `top${i}.png`)); args.push('-loop', '1', '-t', String(dur), '-i', tp); const n = ++idx; fc.push(`[${n}:v]scale=${W}:${H},format=rgba[tp]`); fc.push(`[${cur}][tp]overlay=0:0[v${n}]`); cur = `v${n}`; }
+      const fadeD = c.trans === 'fade' ? 0.5 : 0; const vfade = fadeD ? `,fade=t=in:st=0:d=${fadeD},fade=t=out:st=${Math.max(0, dur - fadeD)}:d=${fadeD}` : '';
+      fc.push(`[${cur}]format=yuv420p,fps=${fps}${vfade}[vout]`);
+      if (audioClip) fc.push(`[${audioClip.n}:a]volume=${audioClip.vol},apad,atrim=0:${dur},asetpts=PTS-STARTPTS[aout]`); else { args.push('-f', 'lavfi', '-t', String(dur), '-i', 'anullsrc=r=48000:cl=stereo'); fc.push(`[${++idx}:a]anull[aout]`); }
+      const out = path.join(dir, `cena${i}.mp4`);
+      args.push('-filter_complex', fc.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', String(dur), '-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-shortest', out);
+      await run('ffmpeg', args, { maxBuffer: 50e6, timeout: 20 * 60e3 }); lista.push(out); }
+    const txt = path.join(dir, 'lista.txt'); fs.writeFileSync(txt, lista.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
+    const junto = path.join(dir, 'junto.mp4'); await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', txt, '-c', 'copy', junto], { maxBuffer: 50e6, timeout: 10 * 60e3 });
+    const total = cenas.reduce((n, c) => n + Math.max(0.5, +c.dur || 4), 0); const nome = nomeLimpo((e.nome || 'video') + '.mp4'); const fim = path.join(dir, nome);
+    const fx = []; const args2 = ['-y', '-hide_banner', '-loglevel', 'error', '-i', junto]; let n = 0; const mix = ['[0:a]'];
+    for (const [k, tr] of [['trilha', e.trilha], ['locucao', e.locucao]]) { if (!tr || !tr.url) continue; const ext = (() => { try { return path.extname(new URL(tr.url).pathname); } catch (e) { return path.extname(tr.url); } })() || '.m4a'; const f = await baixar(tr.url, path.join(dir, k + ext)); args2.push('-i', f); n++; const d = Math.round(Math.max(0, +tr.ini || 0) * 1000);
+      fx.push(`[${n}:a]adelay=${d}|${d},volume=${tr.vol == null ? (k === 'trilha' ? .35 : 1) : +tr.vol},apad[a${n}]`); mix.push(`[a${n}]`); }
+    if (n) { fx.push(`${mix.join('')}amix=inputs=${n + 1}:duration=first:normalize=0,atrim=0:${total}[am]`); args2.push('-filter_complex', fx.join(';'), '-map', '0:v', '-map', '[am]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', fim); await run('ffmpeg', args2, { maxBuffer: 50e6, timeout: 10 * 60e3 }); }
+    else fs.copyFileSync(junto, fim);
+    return { arquivos: [await subir(t, fim, nome, 'video/mp4')], resultado: { cenas: cenas.length, segundos: total, w: W, h: H } };
+  },
   // entrada: { nome, html | html_url, formato:'A4'|'A5'|'Letter', largura_mm, altura_mm, margem_mm, paisagem,
   //            impresso:true → PDF para gráfica: CMYK (Ghostscript), texto em curvas, imagens sem reamostragem (300 dpi), sangria já incluída na medida }
   async pdf(t, dir) {

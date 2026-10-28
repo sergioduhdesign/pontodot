@@ -26,9 +26,12 @@ if (!empty($_GET['img'])) {
     $orig = ES_CACHE . '/' . $id; $tipo = $orig . '.tipo';
     if (!is_file($orig) || filesize($orig) === 0) {
         if (!esPonteOk()) { http_response_code(500); exit('ponte do Drive não configurada'); }
-        try { $r = ponte('baixar', ['fileId' => $id]); } catch (Exception $e) { http_response_code(502); exit('não consegui buscar no Drive: ' . $e->getMessage()); }
-        $bytes = base64_decode((string)($r['b64'] ?? ''), true); if (!$bytes) { http_response_code(502); exit('arquivo vazio'); }
-        @file_put_contents($orig, $bytes); @file_put_contents($tipo, (string)($r['mime'] ?? 'image/jpeg'));
+        // arquivos grandes (vídeo, áudio) vêm em pedaços de 15 MB; os pequenos, de uma vez
+        try { $r = ponte('baixar_parte', ['fileId' => $id, 'inicio' => 0, 'tamanho' => 15728640]); $mimeD = (string)($r['mime'] ?? 'application/octet-stream'); $fh = fopen($orig, 'wb'); fwrite($fh, base64_decode((string)($r['b64'] ?? ''), true) ?: '');
+            $pos = strlen(base64_decode((string)($r['b64'] ?? ''), true) ?: ''); $total = (int)($r['total'] ?? 0); $n = 0;
+            while ($pos < $total && empty($r['fim']) && $n++ < 40) { $r = ponte('baixar_parte', ['fileId' => $id, 'inicio' => $pos, 'tamanho' => 15728640]); $b2 = base64_decode((string)($r['b64'] ?? ''), true) ?: ''; if ($b2 === '') break; fwrite($fh, $b2); $pos += strlen($b2); }
+            fclose($fh); } catch (Exception $e) { @unlink($orig); http_response_code(502); exit('não consegui buscar no Drive: ' . $e->getMessage()); }
+        if (!is_file($orig) || filesize($orig) === 0) { @unlink($orig); http_response_code(502); exit('arquivo vazio'); } @file_put_contents($tipo, $mimeD);
     }
     $mime = is_file($tipo) ? trim((string)file_get_contents($tipo)) : 'image/jpeg';
     $arq = $orig;
@@ -39,7 +42,10 @@ if (!empty($_GET['img'])) {
                     if ($mime === 'image/png') imagepng($n, $red, 6); else imagejpeg($n, $red, 86); imagedestroy($n); } else { copy($orig, $red); } imagedestroy($im); } }
         if (is_file($red)) $arq = $red;
     }
-    header('Content-Type: ' . $mime); header('Content-Length: ' . filesize($arq)); header('Cache-Control: private, max-age=604800'); header('Access-Control-Allow-Origin: *'); readfile($arq); exit;
+    header('Content-Type: ' . $mime); header('Cache-Control: private, max-age=604800'); header('Access-Control-Allow-Origin: *'); header('Accept-Ranges: bytes');
+    $size = filesize($arq); $ini = 0; $fim = $size - 1;
+    if (!empty($_SERVER['HTTP_RANGE']) && preg_match('/bytes=(\d*)-(\d*)/', $_SERVER['HTTP_RANGE'], $m)) { $ini = $m[1] !== '' ? (int)$m[1] : max(0, $size - (int)$m[2]); $fim = $m[2] !== '' && $m[1] !== '' ? min($size - 1, (int)$m[2]) : $size - 1; http_response_code(206); header("Content-Range: bytes $ini-$fim/$size"); }
+    header('Content-Length: ' . ($fim - $ini + 1)); $fh = fopen($arq, 'rb'); fseek($fh, $ini); $resta = $fim - $ini + 1; while ($resta > 0 && !feof($fh)) { $chunk = fread($fh, min(1048576, $resta)); echo $chunk; $resta -= strlen($chunk); flush(); } fclose($fh); exit;
 }
 
 // ---------------------------------------------------------------- POST: equipe
@@ -124,10 +130,10 @@ if ($acao === 'galeria') {   // tudo que está em cliente › MÍDIA (e subpasta
     try { $pasta = esSub(esPastaCliente($c), 'MÍDIA'); $l = ponte('listar', ['folderId' => $pasta]); } catch (Exception $e) { sd_fail($e->getMessage(), 500); }
     $itens = [];
     foreach ((array)($l['arquivos'] ?? []) as $f) {
-        $m = (string)($f['mime'] ?? ''); $ehImg = stripos($m, 'image/') === 0 && stripos($m, 'svg') === false; $ehVid = stripos($m, 'video/') === 0; $ehSvg = stripos($m, 'svg') !== false;
-        if (!$ehImg && !$ehVid && !$ehSvg) continue;
+        $m = (string)($f['mime'] ?? ''); $ehImg = stripos($m, 'image/') === 0 && stripos($m, 'svg') === false; $ehVid = stripos($m, 'video/') === 0; $ehSvg = stripos($m, 'svg') !== false; $ehAud = stripos($m, 'audio/') === 0 || preg_match('/\.(mp3|m4a|wav|aac|ogg)$/i', (string)$f['name']);
+        if (!$ehImg && !$ehVid && !$ehSvg && !$ehAud) continue;
         $k = esAssina($f['id']); $base = '/pd-estudio.php?img=' . rawurlencode($f['id']) . '&k=' . $k;
-        $itens[] = ['id' => $f['id'], 'nome' => $f['name'], 'path' => $f['path'], 'tipo' => $ehVid ? 'video' : ($ehSvg ? 'vetor' : 'foto'), 'bytes' => (int)($f['size'] ?? 0), 'url' => $f['url'],
+        $itens[] = ['id' => $f['id'], 'nome' => $f['name'], 'path' => $f['path'], 'tipo' => $ehVid ? 'video' : ($ehAud ? 'audio' : ($ehSvg ? 'vetor' : 'foto')), 'arquivo' => $base . '&w=0', 'bytes' => (int)($f['size'] ?? 0), 'url' => $f['url'],
             'thumb' => ($ehImg || $ehSvg) ? $base . '&w=400' : null, 'cheia' => ($ehImg || $ehSvg) ? $base . '&w=2400' : null, 'modificado' => $f['modified'] ?? null];
     }
     usort($itens, fn($a, $b2) => strcmp((string)$b2['modificado'], (string)$a['modificado']));

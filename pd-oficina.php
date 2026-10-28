@@ -126,6 +126,17 @@ if (in_array($acao, $WORKER, true)) {
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 $admin = $u['role'] === 'admin';
 
+if ($acao === 'anexar') {   // a equipe sobe um arquivo (quadro, clipe, áudio) pro bucket "oficina" e recebe o link assinado para a receita
+    $a = (array)($b['arquivo'] ?? []); if (empty($a['b64']) || empty($a['nome'])) sd_fail('Arquivo vazio.');
+    $raw = (string)$a['b64']; if (strpos($raw, ',') !== false) $raw = substr($raw, strpos($raw, ',') + 1); $bytes = base64_decode($raw, true); if (!$bytes) sd_fail('Arquivo inválido.');
+    if (strlen($bytes) > 120 * 1024 * 1024) sd_fail('Arquivo maior que 120 MB: suba no Drive do cliente (MÍDIA) e use pela galeria.');
+    $path = 'anexos/' . date('Ymd') . '/' . bin2hex(random_bytes(6)) . '-' . preg_replace('/[^\w.\-]+/u', '_', (string)$a['nome']);
+    $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/oficina/' . implode('/', array_map('rawurlencode', explode('/', $path))));
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 170, CURLOPT_POSTFIELDS => $bytes, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Content-Type: ' . ((string)($a['mime'] ?? '') ?: 'application/octet-stream'), 'x-upsert: true']]);
+    curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); if ($code >= 300) sd_fail('Não consegui guardar o anexo (HTTP ' . $code . ').', 500);
+    $url = ofLinkStorage($path); if (!$url) sd_fail('Não consegui assinar o anexo.', 500);
+    echo json_encode(['ok' => true, 'url' => $url, 'path' => $path, 'bytes' => strlen($bytes)]); exit;
+}
 if ($acao === 'inicio') {
     $mods = array_values(array_filter(ofModulos(), fn($m) => ofPodeVer($m, $u)));
     $tr = ofSup('/rest/v1/pd_trabalhos?select=id,modulo,titulo,status,prioridade,erro,saida,client_id,task_id,pedido_por,pedido_via,criado_em,inicio_em,fim_em,clients(name),profiles!pd_trabalhos_pedido_por_fkey(name)&order=criado_em.desc&limit=60')['body'] ?? [];
