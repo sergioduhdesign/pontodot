@@ -33,7 +33,7 @@ jobs:
       - name: Ferramentas (ffmpeg, ghostscript, pptx, chromium para PDF)
         working-directory: oficina
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg ghostscript >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg ghostscript qpdf >/dev/null
           npm init -y >/dev/null
           npm i --no-audit --no-fund pptxgenjs@4.0.1 playwright@1.63.0
           npx playwright install --with-deps chromium

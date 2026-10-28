@@ -32,6 +32,30 @@ async function subir(t, arquivoLocal, nome, mime) {
   if (!r.ok) throw new Error('Upload falhou (' + r.status + '): ' + (await r.text()).slice(0, 200));
   return { nome, path: p, bytes: bytes.length, mime };
 }
+// Reescreve os content streams do PDF (RGB do Chromium) trocando cores de marcação por CMYK real.
+// Tabela fixa (barra de cores, marcas, preto) + mapa do kit do cliente {'#hex':[c,m,y,k] em 0..1}.
+const CMYK_FIXO = { '#000000':[0,0,0,1], '#010101':[1,1,1,1], '#00aeef':[1,0,0,0], '#ec008c':[0,1,0,0], '#fff100':[0,0,1,0], '#2e3192':[1,1,0,0], '#ed1c24':[0,1,1,0], '#00a651':[1,0,1,0],
+  '#6dcff6':[.5,0,0,0], '#f49ac1':[0,.5,0,0], '#fff799':[0,0,.5,0], '#575757':[0,0,0,.8], '#9d9d9d':[0,0,0,.5], '#d9d9d9':[0,0,0,.2] };
+async function cmykExato(arq, mapaKit) {
+  const tab = []; const hex2 = h => { const m = /^#?([0-9a-f]{6})$/i.exec(String(h).trim()); if (!m) return null; const n = parseInt(m[1], 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
+  for (const [h, k] of Object.entries(Object.assign({}, mapaKit, CMYK_FIXO))) { const rgb = hex2(h); if (rgb && Array.isArray(k) && k.length === 4) tab.push({ rgb, k: k.map(v => Math.max(0, Math.min(1, +v || 0))) }); }
+  const qdf = arq + '.qdf'; await run('qpdf', ['--qdf', '--object-streams=disable', '--stream-data=uncompress', arq, qdf], { maxBuffer: 200e6 });
+  let txt = fs.readFileSync(qdf, 'latin1'); let trocas = 0;
+  const f4 = v => (Math.round(v * 1000) / 1000).toString();
+  const acha = (r, g, b) => { let best = null, bd = 1; for (const e of tab) { const d = Math.abs(e.rgb[0] - r) + Math.abs(e.rgb[1] - g) + Math.abs(e.rgb[2] - b); if (d < bd) { bd = d; best = e; } } return bd <= 0.02 ? best : null; };
+  const num = '(-?\\d*\\.?\\d+)';
+  txt = txt.replace(/(\d+ 0 obj\s*<<[\s\S]*?>>\s*stream\r?\n)([\s\S]*?)(\r?\nendstream)/g, (m, cab, corpo, fim) => {
+    if (/\/Subtype\s*\/Image|\/FontFile|\/Length1|\/XObject\s*$/.test(cab) && !/\/Subtype\s*\/Form/.test(cab)) return m;
+    if (/\/Subtype\s*\/Image/.test(cab)) return m;
+    let c = corpo.replace(new RegExp(`(^|\\s)${num}\\s+${num}\\s+${num}\\s+(rg|RG)(?=\\s|$)`, 'g'), (mm, pre, r, g, b, op) => { const e = acha(+r, +g, +b); if (!e) return mm; trocas++; return `${pre}${e.k.map(f4).join(' ')} ${op === 'rg' ? 'k' : 'K'}`; });
+    c = c.replace(new RegExp(`(^|\\s)${num}\\s+(g|G)(?=\\s|$)`, 'g'), (mm, pre, v, op) => { const e = acha(+v, +v, +v); if (!e) return mm; trocas++; return `${pre}${e.k.map(f4).join(' ')} ${op === 'g' ? 'k' : 'K'}`; });
+    // cor via colorspace ICC/sRGB (/CsN cs r g b sc|scn): mesma troca
+    c = c.replace(new RegExp(`(^|\\s)${num}\\s+${num}\\s+${num}\\s+(sc|scn|SC|SCN)(?=\\s|$)`, 'g'), (mm, pre, r, g, b, op) => { const e = acha(+r, +g, +b); if (!e) return mm; trocas++; return `${pre}${e.k.map(f4).join(' ')} ${/^s/.test(op) ? 'k' : 'K'}`; });
+    return cab + c + fim; });
+  fs.writeFileSync(qdf, txt, 'latin1');
+  const { stdout } = await run('fix-qdf', [qdf], { maxBuffer: 400e6, encoding: 'latin1' }); fs.writeFileSync(arq, stdout, 'latin1'); fs.unlinkSync(qdf);
+  return trocas;
+}
 const nomeLimpo = s => String(s || 'arquivo').replace(/[^\w.\-]+/g, '_').slice(0, 120);
 
 // ---------------------------------------------------------------- executores
@@ -122,6 +146,9 @@ const EXEC = {
     if (e.largura_mm && e.altura_mm) { opt.width = e.largura_mm + 'mm'; opt.height = e.altura_mm + 'mm'; } else { opt.format = e.formato || 'A4'; opt.landscape = !!e.paisagem; }
     await pg.pdf(opt); await br.close();
     if (e.impresso) {
+      // 1) cores exatas: preto → K 100; barra de cores, marcas e cores do kit com CMYK definido → valores reais (DeviceCMYK, o Ghostscript não mexe)
+      try { await cmykExato(bruto, e.cmyk_map || {}); await log(t, 'Cores exatas aplicadas: preto 100% K, barra e marcas em CMYK real' + (Object.keys(e.cmyk_map || {}).length ? ', ' + Object.keys(e.cmyk_map).length + ' cor(es) do kit' : '') + '.'); }
+      catch (err) { await log(t, 'Aviso: não consegui aplicar cores exatas (' + err.message + '); seguindo com conversão ICC.'); }
       await log(t, 'Convertendo para CMYK e curvas (Ghostscript)…');
       const icc = fs.existsSync(path.join(__dirname, 'icc', 'saida.icc')) ? path.join(__dirname, 'icc', 'saida.icc') : null;   // opcional: FOGRA39 / ISO Coated v2 colocado em oficina/icc/saida.icc
       const args = ['-q', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.6', '-dNoOutputFonts', '-sColorConversionStrategy=CMYK', '-dProcessColorModel=/DeviceCMYK', '-dOverrideICC=true',
