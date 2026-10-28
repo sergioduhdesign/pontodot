@@ -50,6 +50,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   <button class="btn i" onclick="salvar()" title="Salvar (⌘S)"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
   <button class="btn i" onclick="menuExport()" title="Exportar"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg></button>
   <button class="btn i" onclick="mudaMedida()" title="Mudar a medida da peça"><svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg></button>
+  <button class="btn" id="btnPlay" onclick="desdobrar()" title="Desdobrar: a IA deriva as outras peças desta família a partir desta (abre a Pauta)"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Desdobrar</button>
   <button class="btn p" id="btnPrincipal" onclick="ehImp()?exportarImpresso():exportarTudo()" title="Gera e guarda no Drive"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg> <span id="btnPrincipalTxt">Recortes → Drive</span></button>
 </div>
 <div class="barra2" id="barra2">
@@ -564,6 +565,16 @@ async function pautaUI(){const el=$('#p-pauta');if(!PECA.client_id){el.innerHTML
       <div class="row" style="margin-top:6px"><button class="btn s" ${PA.busy?'disabled':''} onclick="derivar($('#paFeed').value)">Mandar de volta</button><button class="btn s p" ${PA.busy?'disabled':''} onclick="aprovar()">OK · produzir tudo</button></div>`:''}
     ${P.plano&&P.plano.raciocinio?`<div class="lab">O que a IA viu</div><div style="font-size:12px;line-height:1.4;color:var(--gray)">${esc(P.plano.raciocinio)}</div>`:''}
     ${P.historico&&P.historico.length?`<div class="lab">Feedbacks</div>${P.historico.map(h=>`<div style="font-size:11.5px;line-height:1.35;margin-bottom:4px"><b>r${h.rodada}</b> ${esc(h.feedback)}</div>`).join('')}`:''}`;}
+// Desdobrar: um clique faz tudo — salva, abre/cria a pauta desta família, marca esta peça como modelo e dá o play.
+async function desdobrar(){const fam=FAM_DO_TIPO(F().tipo);if(!fam){msg('Esta peça ainda não tem família de desdobramento (social, papelaria, apresentação, book).',5000);return;}
+  if(!PECA.client_id){msg('Escolha o cliente no topo.');falta('#cli');return;}
+  const papeis=FAM_PAPEIS[fam];if(papeis.length>1){const min=fam==='apresentacao'?['capa','tela clara']:['capa','texto a'];const marc=(PECA.papeis||[]).filter(Boolean);const faltam=min.filter(r=>!marc.includes(r));if(faltam.length){aba('pauta');msg('Marque o papel das pranchetas-modelo (ícone de etiqueta na barra de pranchetas). Faltam: '+faltam.join(', ')+'.',7000);falta('#pags');return;}}
+  if(!await salvar())return;aba('pauta');PA.msg='Preparando a pauta…';pautaUI();
+  try{if(!PA.atual||(PA.atual.familia||'social')!==fam||PA.atual.client_id!==PECA.client_id){const lista=(await ia({acao:'pauta_listar',client_id:PECA.client_id})).pautas||[];const aberta=lista.find(p=>(p.familia||'social')===fam&&p.principal_id===PECA.id)||lista.find(p=>(p.familia||'social')===fam&&['rascunho','revisao','derivando','erro'].includes(p.status));
+      if(aberta){await pautaAbrir(aberta.id);}else{const r=await ia({acao:'pauta_salvar',client_id:PECA.client_id,familia:fam,nome:($('#nome').value||FAM_NOME[fam])+' · '+new Date().toLocaleDateString('pt-BR'),qtd:fam==='apresentacao'?40:fam==='book'?24:0});await pautaAbrir(r.pauta.id);}}
+    if(PA.atual.principal_id!==PECA.id){await ia({acao:'pauta_salvar',id:PA.atual.id,principal_id:PECA.id,familia:fam});await pautaAbrir(PA.atual.id);}
+    await derivar('');}
+  catch(e){PA.msg=e.message;pautaUI();}}
 async function pautaNova(){const fam=FAM_DO_TIPO(F().tipo)||'social';try{const r=await ia({acao:'pauta_salvar',client_id:PECA.client_id,familia:fam,nome:FAM_NOME[fam]+' '+new Date().toLocaleDateString('pt-BR'),qtd:fam==='apresentacao'?40:fam==='book'?24:0});await pautaAbrir(r.pauta.id);}catch(e){msg(e.message);}}
 async function pautaAbrir(id){try{const r=await ia({acao:'pauta_abrir',id});PA.atual=r.pauta;PA.pecas=r.pecas;PA.kit=r.kit;PA.kitCli=r.pauta.client_id;PA.msg='';if(r.pauta.client_id!==PECA.client_id){$('#cli').value=r.pauta.client_id;await trocaCliente();}pautaUI();}catch(e){msg(e.message);}}
 async function pautaSalva(){if(!PA.atual)return;try{const r=await ia({acao:'pauta_salvar',id:PA.atual.id,nome:$('#paNome').value,texto:$('#paTexto').value,briefing:$('#paBrief').value,pasta_drive:$('#paPasta').value,...($('#paQtd')?{qtd:+$('#paQtd').value}:{})});Object.assign(PA.atual,r.pauta);}catch(e){msg(e.message);}}
