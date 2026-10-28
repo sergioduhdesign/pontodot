@@ -177,8 +177,9 @@ if ($acao === 'pauta_salvar') {
 }
 if ($acao === 'pauta_abrir') {
     $id = (string)($b['id'] ?? ''); $p = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&select=*,clients(name)')['body'][0] ?? null; if (!$p) sd_fail('Pauta não encontrada.', 404);
-    $pc = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&arquivada=eq.false&select=id,nome,formato,thumb_url,papel,derivada_tipo,ordem,roteiro,mudado_em&order=ordem.asc,criado_em.asc')['body'] ?? [];
-    [, $st] = paKit($p['client_id']); echo json_encode(['pauta' => $p, 'pecas' => $pc, 'kit' => $st], JSON_UNESCAPED_UNICODE); exit;
+    $pc = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&arquivada=eq.false&select=id,nome,formato,thumb_url,papel,derivada_tipo,ordem,roteiro,avaliacao,rodada,mudado_em&order=ordem.asc,criado_em.asc')['body'] ?? [];
+    $todas = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada&select=id,nome,thumb_url,derivada_tipo,avaliacao,rodada,arquivada&order=rodada.asc,ordem.asc')['body'] ?? [];
+    [, $st] = paKit($p['client_id']); echo json_encode(['pauta' => $p, 'pecas' => $pc, 'rodadas' => $todas, 'kit' => $st, 'quem' => paQuemFaz($u)], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'licoes') { $cid = (string)($b['client_id'] ?? ''); $r = sd_supabase('/rest/v1/pd_estudio_licoes?ativa=eq.true&or=(client_id.eq.' . urlencode($cid) . ',client_id.is.null)&select=id,client_id,tipo,texto,em&order=em.desc&limit=60'); echo json_encode(['licoes' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'licao_salvar') {
@@ -193,6 +194,25 @@ $FAMILIAS = [
   'apresentacao' => ['nome' => 'apresentação', 'papeis' => ['capa' => 'capa', 'segunda capa' => 'segunda capa / abertura', 'tela clara' => 'tela de conteúdo clara', 'tela escura' => 'tela de conteúdo escura'], 'min' => ['capa', 'tela clara']],
   'book' => ['nome' => 'book / livro', 'papeis' => ['capa' => 'capa', 'pagina 1' => 'página 1 (abertura)', 'entrada de capitulo' => 'entrada de capítulo', 'texto a' => 'página de texto, modelo A', 'texto b' => 'página de texto, modelo B', 'final' => 'página final'], 'min' => ['capa', 'texto a']],
 ];
+function paQuemFaz($u) {
+    $j = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode($u['id']) . '&select=user_id,personagem,apelido')['body'][0] ?? null;
+    if (!$j) { $f = sd_supabase('/rest/v1/pd_formacoes?apta_em=not.is.null&skill_id=like.ARTE*&select=ia_user_id,personagem&limit=1')['body'][0] ?? null; if ($f) $j = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode($f['ia_user_id']) . '&select=user_id,personagem,apelido')['body'][0] ?? ['user_id' => $f['ia_user_id'], 'personagem' => $f['personagem'], 'apelido' => '']; }
+    if (!$j) return ['id' => null, 'personagem' => 'maestro', 'nome' => 'a IA da casa'];
+    $cat = function_exists('pdPersonagens') ? pdPersonagens() : []; $pers = strtolower(trim((string)$j['personagem']));
+    return ['id' => $j['user_id'], 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers))];
+}
+if ($acao === 'quem_faz') { echo json_encode(paQuemFaz($u), JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'avaliar') {   // joinha por peça
+    $v = in_array($b['avaliacao'] ?? '', ['gostei', 'nao'], true) ? $b['avaliacao'] : null;
+    sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)($b['id'] ?? '')), 'PATCH', ['avaliacao' => $v]); echo json_encode(['ok' => true]); exit;
+}
+if ($acao === 'rodada_voltar') {   // reativa as derivações de uma rodada anterior (e guarda as atuais)
+    $id = (string)($b['id'] ?? ''); $r = (int)($b['rodada'] ?? 0); if (!$id || !$r) sd_fail('Qual rodada?');
+    sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada', 'PATCH', ['arquivada' => true]);
+    sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada&rodada=eq.' . $r, 'PATCH', ['arquivada' => false]);
+    echo json_encode(['ok' => true]); exit;
+}
+if ($acao === 'parar') { $id = (string)($b['id'] ?? ''); sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&status=eq.derivando', 'PATCH', ['status' => 'revisao', 'erro' => 'Rodada interrompida por quem pediu.', 'mudado_em' => gmdate('c')]); echo json_encode(['ok' => true]); exit; }
 if ($acao === 'familias') { echo json_encode(['familias' => $FAMILIAS], JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     $id = (string)($b['id'] ?? ''); $p = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&select=*,clients(name)')['body'][0] ?? null; if (!$p) sd_fail('Pauta não encontrada.', 404);
@@ -226,6 +246,7 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     $lic = sd_supabase('/rest/v1/pd_estudio_licoes?ativa=eq.true&or=(client_id.eq.' . urlencode($p['client_id']) . ',client_id.is.null)&select=tipo,texto&order=em.desc&limit=40')['body'] ?? [];
     $ex = sd_supabase('/rest/v1/pd_pautas?client_id=eq.' . urlencode($p['client_id']) . '&familia=eq.' . urlencode($famId) . '&status=in.(aprovada,produzida)&id=neq.' . urlencode($id) . '&select=aprovado&order=mudado_em.desc&limit=1')['body'][0]['aprovado'] ?? null;
     $atuais = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada&arquivada=eq.false&select=nome,derivada_tipo,formato,doc,spec&order=ordem.asc')['body'] ?? [];
+    $avals = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada&arquivada=eq.false&avaliacao=not.is.null&select=nome,derivada_tipo,avaliacao')['body'] ?? [];
     $resumoAtuais = []; foreach ($atuais as $a) { [$cs] = paCamadas($a['doc'], (int)$a['formato']['w'], (int)$a['formato']['h'], 0, 'derivada'); $resumoAtuais[] = ($a['derivada_tipo'] ?: 'peça') . ' "' . $a['nome'] . '" (página 1): ' . implode(' | ', array_slice($cs, 0, 14)); }
     $cores = implode(', ', array_map(fn($c) => ($c['name'] ?? '') . ' ' . ($c['hex'] ?? ''), array_filter((array)$kit['colors'], fn($c) => !empty($c['hex']))));
     $fontes = implode(', ', array_map(fn($f) => $f['name'], array_filter((array)$kit['fonts'], fn($f) => !empty($f['name']))));
@@ -241,7 +262,7 @@ CAMADA = {"tipo":"texto","texto":"...","fonte":"nome","peso":"400|700|900","tama
        | {"tipo":"gradiente","direcao":"baixo|cima","cor":"#000000","x":0,"y":0,"w":100,"h":100,"forca":0.75}
        | {"tipo":"logo","x":6,"y":90,"w":16,"opacidade":1,"desfoque":0,"cor":"#hex opcional (pinta o logo quando ele é vetor)"}
 Imagem e logo aceitam "opacidade" (0–1) e "desfoque" (0–1): um logo grande, cinza/claro, com desfoque e opacidade baixa, serve de fundo (marca d'água). Formas finas (w ou h de 0.3–1%) servem de filetes de acabamento.
-Regras gerais: use SÓ as fontes e cores do kit ou da principal; nunca deixe uma palavra sozinha na última linha de um título; margens x≥6 e w≤88 salvo imagens e formas de fundo; use só o texto da pauta e da principal (distribua, hierarquize, corte; não invente). Quando o kit estiver incompleto, siga a principal e diga no raciocinio o que ficou provisório.
+REGRAS DA CASA (inegociáveis): o logotipo nunca é esticado, girado, cortado, recolorido fora do kit nem reduzido abaixo de 8% da largura; ele vai inteiro, com área de respiro; quando herdar de um modelo, a camada do logo fica como está. Nunca mude a proporção de nenhuma imagem (só cobrir/cortar pela moldura). Use SÓ as fontes e cores do kit ou da principal; nunca deixe uma palavra sozinha na última linha de um título; margens x≥6 e w≤88 salvo imagens e formas de fundo; use só o texto da pauta e da principal (distribua, hierarquize, corte; não invente). Quando o kit estiver incompleto, siga a principal e diga no raciocinio o que ficou provisório.
 TXT;
     if ($famId === 'social') $system = "Você é a diretora de arte da Pontodot. Recebe UM post de feed feito por um humano e deriva o resto do conteúdo social no mesmo sistema visual.\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"carrossel\",\"titulo\":\"...\",\"paginas\":[PAGINA x4-7]},{\"tipo\":\"stories\",\"titulo\":\"...\",\"paginas\":[PAGINA]} x3,{\"tipo\":\"video\",\"titulo\":\"...\",\"roteiro\":{\"estilo\":\"frase\",\"legenda_posicao\":\"baixo-centro|centro|cima\",\"capa\":PAGINA,\"boards\":[{\"pagina\":PAGINA,\"fala\":\"locução/legenda\",\"duracao_s\":4} x4],\"encerramento\":PAGINA}}]}\nCarrossel 1080×1350 (capa forte, uma ideia por página, última com chamada); stories 1080×1920 (nada nos 13% de cima e 18% de baixo); vídeo 1080×1920. Tamanhos de texto em % da largura: título 7–10, subtítulo 4–5, corpo 2.6–3.4.";
     elseif ($famId === 'papelaria') $system = "Você é a diretora de arte da Pontodot. Recebe UM cartão de visita feito por um humano e deriva a papelaria inteira com a mesma lógica (filetes, proporções, hierarquia, cores, fontes, posição do logo).\n$gram\nFormato da resposta: {\"raciocinio\":\"3 linhas\",\"derivacoes\":[{\"tipo\":\"papelaria\",\"item\":\"timbrado\",\"titulo\":\"Papel timbrado A4\",\"formato\":{\"mm\":[210,297]},\"paginas\":[PAGINA]}, ...]}\nEntregue, nesta ordem, um item por derivação: timbrado (mm 210×297), envelope (mm 220×110), assinatura de e-mail (px 600×200: formato {\"px\":[600,200]}), pasta (mm 220×310, só a frente), cracha (mm 54×86), adesivo (mm 50×50), bloco (mm 148×210), capa de proposta (mm 210×297). Em impresso, lembre: texto de corpo entre 7 e 10 pt ≈ tamanho 3–4.5 em % da largura de um A4; o papel tem 5 mm de sangria por lado já incluídos na página (deixe 10% de respiro além do corte para o que não sangra).";
@@ -255,6 +276,7 @@ TXT;
         ($lic ? "\n\nLIÇÕES DESTE CLIENTE (obrigatórias):\n- " . implode("\n- ", array_map(fn($l) => '[' . $l['tipo'] . '] ' . $l['texto'], $lic)) : '') .
         ($ex ? "\n\nEXEMPLO APROVADO NA PAUTA ANTERIOR DESTA FAMÍLIA (repita a lógica):\n" . mb_substr(json_encode($ex, JSON_UNESCAPED_UNICODE), 0, 6000) : '') .
         ($resumoAtuais ? "\n\nDERIVAÇÕES ATUAIS (o humano pode ter mexido; o que ele mudou é lei):\n- " . implode("\n- ", $resumoAtuais) : '') .
+        ($avals ? "\n\nAVALIAÇÃO PEÇA A PEÇA DA RODADA ANTERIOR (👍 = manter como está, só refinar; 👎 = refazer do zero com outra solução):\n- " . implode("\n- ", array_map(fn($a) => ($a['avaliacao'] === 'gostei' ? '👍 ' : '👎 ') . ($a['derivada_tipo'] ?: '') . ' "' . $a['nome'] . '"', $avals)) : '') .
         ($feedback ? "\n\nFEEDBACK DO HUMANO NESTA RODADA (manda em tudo):\n$feedback" : '') .
         ($refTxt ? "\n\nREFERÊNCIAS QUE O HUMANO MANDOU (para olhar e se inspirar: ritmo, hierarquia, acabamento — nunca copiar texto, logo ou identidade de outra marca):\n- " . implode("\n- ", $refTxt) : '') .
         "\n\nAs imagens a seguir são as páginas da principal, na ordem (PÁGINA 1, 2…). Depois delas, miniaturas da galeria, cada uma precedida do seu ID.";
@@ -264,16 +286,19 @@ TXT;
     foreach ($refImgs as $t) { $content[] = ['type' => 'text', 'text' => 'REFERÊNCIA (só inspiração): ' . $t['rot']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
     try { [$resp, $custo, $us] = paClaude($system, $content, 32000); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON' . (($us['stop_reason'] ?? '') === 'max_tokens' ? ' (resposta cortada pelo limite de tamanho)' : '') . '. Início da resposta: ' . mb_substr($resp, 0, 200)); }
     catch (Exception $e) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => $e->getMessage(), 'plano' => ['bruto' => mb_substr((string)($resp ?? ''), 0, 60000), 'stop' => $us['stop_reason'] ?? ''], 'mudado_em' => gmdate('c')]); sd_fail($e->getMessage(), 500); }
+    $atual = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&select=status')['body'][0]['status'] ?? ''; if ($atual !== 'derivando') sd_fail('Rodada interrompida.', 409);   // quem pediu clicou em parar
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'revisao', 'plano' => $plano, 'custo_usd' => (float)$p['custo_usd'] + $custo, 'mudado_em' => gmdate('c')]);
     sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada', 'PATCH', ['arquivada' => true]);
+    $quem = paQuemFaz($u); sd_supabase('/rest/v1/pd_ia_trabalho', 'POST', ['ia_user_id' => $quem['id'], 'personagem' => $quem['personagem'], 'client_id' => $p['client_id'], 'pauta_id' => $id, 'familia' => $famId, 'rodada' => $rodada, 'resultado' => 'derivou', 'custo_usd' => $custo]);
     $galeria = []; foreach ($imgs as $i) $galeria[$i['id']] = '/pd-estudio.php?img=' . rawurlencode($i['id']) . '&k=' . paAssina($i['id']) . '&w=2400';
-    echo json_encode(['ok' => true, 'rodada' => $rodada, 'familia' => $famId, 'plano' => $plano, 'galeria' => $galeria, 'kit' => $kitSt, 'custo' => round($custo, 4)], JSON_UNESCAPED_UNICODE); exit;
+    echo json_encode(['ok' => true, 'rodada' => $rodada, 'familia' => $famId, 'quem' => $quem, 'plano' => $plano, 'galeria' => $galeria, 'kit' => $kitSt, 'custo' => round($custo, 4)], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'aprovar') {
     $id = (string)($b['id'] ?? ''); $p = sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id) . '&select=id,client_id,plano,rodada')['body'][0] ?? null; if (!$p) sd_fail('Pauta não encontrada.', 404);
     $specs = sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada&arquivada=eq.false&select=nome,derivada_tipo,spec,roteiro&order=ordem.asc')['body'] ?? [];
     $apr = ['rodada' => (int)$p['rodada'], 'derivacoes' => array_map(fn($s) => ['tipo' => $s['derivada_tipo'], 'titulo' => $s['nome'], 'spec' => $s['spec'], 'roteiro' => $s['roteiro']], $specs), 'raciocinio' => $p['plano']['raciocinio'] ?? ''];
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'aprovada', 'aprovado' => $apr, 'mudado_em' => gmdate('c')]);
+    $quem = paQuemFaz($u); sd_supabase('/rest/v1/pd_ia_trabalho', 'POST', ['ia_user_id' => $quem['id'], 'personagem' => $quem['personagem'], 'client_id' => $p['client_id'], 'pauta_id' => $id, 'familia' => '', 'rodada' => (int)$p['rodada'], 'resultado' => 'aprovada']);
     sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'aprovacao', 'texto' => 'Pauta aprovada na rodada ' . $p['rodada'] . ' com ' . count($specs) . ' derivações (' . implode(', ', array_unique(array_column($specs, 'derivada_tipo'))) . '). Repetir a lógica.', 'por' => $u['id']]);
     echo json_encode(['ok' => true]); exit;
 }
