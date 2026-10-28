@@ -70,6 +70,13 @@ function paBaixaUrl($url, $max = 6000000) {
 function paAbs($base, $src) { $src = html_entity_decode(trim($src)); if (preg_match('~^https?://~i', $src)) return $src; if (strpos($src, '//') === 0) return 'https:' . $src; $u = parse_url($base); $raiz = ($u['scheme'] ?? 'https') . '://' . ($u['host'] ?? ''); if (strpos($src, '/') === 0) return $raiz . $src; $dir = preg_replace('~/[^/]*$~', '/', $u['path'] ?? '/'); return $raiz . $dir . $src; }
 /** Para cada link: pasta do Drive → imagens; arquivo do Drive → imagem; site → og:image + imagens grandes da página. Devolve [texto, [imagens]]. */
 function paReferencias($links, $maxImgs = 10) {
+    // cache de 24 h por link: a segunda rodada não baixa tudo de novo
+    if (!is_dir(ES_CACHE)) { @mkdir(ES_CACHE, 0755, true); @file_put_contents(ES_CACHE . '/.htaccess', "Deny from all\n"); }
+    $ck = ES_CACHE . '/refs-' . md5(json_encode(array_values((array)$links))) . '.json';
+    if (is_file($ck) && time() - filemtime($ck) < 86400) { $c = json_decode((string)file_get_contents($ck), true); if (is_array($c) && isset($c[0], $c[1])) return $c; }
+    $r = paReferencias2($links, $maxImgs); @file_put_contents($ck, json_encode($r)); return $r;
+}
+function paReferencias2($links, $maxImgs = 10) {
     $txt = []; $imgs = [];
     foreach ((array)$links as $n => $url) { if (count($imgs) >= $maxImgs) break; $rot = 'REF ' . ($n + 1);
         if (preg_match('~drive\.google\.com/drive/(?:u/\d+/)?folders/([\w\-]+)~', $url, $m)) {
