@@ -72,7 +72,7 @@ function esPastaCliente($c) {   // pasta-raiz do cliente no Drive (cria dentro d
 }
 function esSub($paiId, $nome) { $p = ponte('pasta_garantir', ['pai_id' => $paiId, 'nome' => $nome, 'criar' => true]); if (empty($p['id'])) throw new Exception('Não consegui abrir a pasta ' . $nome . ' no Drive.'); return $p['id']; }
 function esNomeSeguro($s) { $s = preg_replace('/[\/\\\\:*?"<>|]+/u', '-', trim((string)$s)); return mb_substr($s, 0, 90) ?: 'peca'; }
-$SEL = 'id,client_id,task_id,nome,formato,thumb_url,modelo,arquivada,criado_por,criado_em,mudado_em,exportada,pauta_id,papel,derivada_tipo,ordem,clients(name)';
+$SEL = 'id,client_id,task_id,nome,formato,thumb_url,modelo,arquivada,oculta,criado_por,criado_em,mudado_em,exportada,pauta_id,papel,derivada_tipo,ordem,clients(name)';
 
 if ($acao === 'listar') {
     $q = '/rest/v1/pd_pecas?arquivada=eq.false&select=' . $SEL . '&order=mudado_em.desc&limit=120';
@@ -80,7 +80,8 @@ if ($acao === 'listar') {
     if (!empty($b['modelos'])) $q .= '&modelo=eq.true';
     if (empty($b['todas'])) $q .= '&papel=neq.derivada';   // derivadas aparecem dentro da pauta, não na lista geral
     $r = sd_supabase($q);
-    if (($r['code'] ?? 500) >= 300) { $r = sd_supabase(str_replace([',pauta_id,papel,derivada_tipo,ordem', '&papel=neq.derivada'], '', $q)); }   // antes do SQL v117
+    if (($r['code'] ?? 500) >= 300) { $r = sd_supabase(str_replace(',oculta', '', $q)); }   // antes do SQL v127
+    if (($r['code'] ?? 500) >= 300) { $r = sd_supabase(str_replace([',oculta', ',pauta_id,papel,derivada_tipo,ordem', '&papel=neq.derivada'], '', $q)); }   // antes do SQL v117
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v116 (estúdio) no Supabase.', 500);
     echo json_encode(['pecas' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit;
 }
@@ -100,6 +101,7 @@ if ($acao === 'salvar') {
     $r = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id), 'PATCH', $d, ['Prefer: return=representation']); if (empty($r['body'][0])) sd_fail('Não consegui salvar: ' . ($r['raw'] ?? ''), 500);
     $p = $r['body'][0]; unset($p['doc']); echo json_encode(['ok' => true, 'peca' => $p], JSON_UNESCAPED_UNICODE); exit;
 }
+if ($acao === 'ocultar') { sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)($b['id'] ?? '')), 'PATCH', ['oculta' => true]); echo json_encode(['ok' => true]); exit; }
 if ($acao === 'arquivar') {
     sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)($b['id'] ?? '')), 'PATCH', ['arquivada' => !isset($b['arquivada']) || (bool)$b['arquivada'], 'mudado_em' => gmdate('c')]); echo json_encode(['ok' => true]); exit;
 }

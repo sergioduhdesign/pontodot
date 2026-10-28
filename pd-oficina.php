@@ -139,7 +139,7 @@ if ($acao === 'anexar') {   // a equipe sobe um arquivo (quadro, clipe, áudio) 
 }
 if ($acao === 'inicio') {
     $mods = array_values(array_filter(ofModulos(), fn($m) => ofPodeVer($m, $u)));
-    $tr = ofSup('/rest/v1/pd_trabalhos?select=id,modulo,titulo,status,prioridade,erro,saida,client_id,task_id,pedido_por,pedido_via,criado_em,inicio_em,fim_em,entrada->lote,clients(name),profiles!pd_trabalhos_pedido_por_fkey(name)&order=criado_em.desc&limit=80')['body'] ?? [];
+    $tr = ofSup('/rest/v1/pd_trabalhos?select=id,modulo,titulo,status,prioridade,erro,saida,client_id,task_id,pedido_por,pedido_via,criado_em,inicio_em,fim_em,oculto,entrada->lote,clients(name),profiles!pd_trabalhos_pedido_por_fkey(name)&order=criado_em.desc&limit=80')['body'] ?? [];
     $cfg = ['worker_chave' => defined('SD_OFICINA_KEY') && SD_OFICINA_KEY, 'acorda_github' => defined('SD_GITHUB_TOKEN') && SD_GITHUB_TOKEN, 'drive' => (bool)pdDriveClientes()];
     $pulso = ofSup('/rest/v1/pd_batimento?chave=eq.oficina&select=ultima_em,detalhe')['body'][0] ?? null;
     echo json_encode(['admin' => $admin, 'modulos' => $mods, 'trabalhos' => $tr, 'cfg' => $cfg, 'pulso' => $pulso], JSON_UNESCAPED_UNICODE); exit;
@@ -168,6 +168,11 @@ if ($acao === 'ok') {
 if ($acao === 'cancelar') {
     $tid = (string)($b['id'] ?? ''); $r = ofSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($tid) . '&status=in.(fila,aguardando_ok)', 'PATCH', ['status' => 'cancelado', 'fim_em' => gmdate('c')], ['Prefer: return=representation']);
     if (empty($r['body'][0])) sd_fail('Só dá para cancelar o que ainda não começou.'); ofLog($tid, $r['body'][0]['modulo'], 'cancelou', $u['name'] . ' cancelou.'); echo json_encode(['ok' => true]); exit;
+}
+if ($acao === 'ocultar') {   // some da lista curta da home; continua na lista completa
+    $lote = (string)($b['lote_id'] ?? ''); $tid = (string)($b['id'] ?? '');
+    if ($lote) ofSup('/rest/v1/pd_trabalhos?entrada->lote->>id=eq.' . urlencode($lote), 'PATCH', ['oculto' => true]); elseif ($tid) ofSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($tid), 'PATCH', ['oculto' => true]);
+    echo json_encode(['ok' => true]); exit;
 }
 if ($acao === 'apagar') {   // tira da lista um trabalho terminado (erro, cancelado, pronto); os arquivos no Drive ficam
     $tid = (string)($b['id'] ?? ''); $r = ofSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($tid) . '&status=in.(erro,cancelado,pronto)', 'DELETE', null, ['Prefer: return=representation']);
