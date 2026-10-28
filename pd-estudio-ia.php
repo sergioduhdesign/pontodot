@@ -111,11 +111,22 @@ function paClaude($system, $content, $max = 16000) {
 }
 function paJson($t) { $t = trim($t); if (preg_match('/```(?:json)?\s*(.*?)```/s', $t, $m)) $t = $m[1]; $a = strpos($t, '{'); if ($a === false) return null; $t = substr($t, $a);
     $z = strrpos($t, '}'); $j = $z !== false ? json_decode(substr($t, 0, $z + 1), true) : null; if (is_array($j)) return $j;
-    // limpeza leve: aspas tipográficas, vírgulas sobrando, caracteres de controle
-    $c = str_replace(['“', '”', '„'], '"', $t); $c = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', ' ', $c); $c = preg_replace('/,\s*([}\]])/', '$1', $c);
+    // limpeza: aspas tipográficas, vírgulas sobrando, caracteres de controle, quebras de linha e aspas cruas DENTRO das strings
+    $c = str_replace(['“', '”', '„'], '"', $t); $c = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', ' ', $c); $c = paJsonStrings($c); $c = preg_replace('/,\s*([}\]])/', '$1', $c);
     $z = strrpos($c, '}'); $j = $z !== false ? json_decode(substr($c, 0, $z + 1), true) : null; if (is_array($j)) return $j;
     // resposta cortada no meio: fecha no último item completo da lista de derivações e fecha o JSON
     return paJsonConserta($c);
+}
+function paJsonStrings($t) {   // dentro de strings: \n cru vira \\n, aspas cruas viram \" (quando não fecham a string)
+    $n = strlen($t); $o = ''; $str = false; $esc = false;
+    for ($i = 0; $i < $n; $i++) { $ch = $t[$i];
+        if ($str) { if ($esc) { $o .= $ch; $esc = false; continue; } if ($ch === '\\') { $o .= $ch; $esc = true; continue; }
+            if ($ch === "\n") { $o .= '\\n'; continue; } if ($ch === "\r") continue; if ($ch === "\t") { $o .= '\\t'; continue; }
+            if ($ch === '"') { $j = $i + 1; while ($j < $n && ($t[$j] === ' ' || $t[$j] === "\n" || $t[$j] === "\r" || $t[$j] === "\t")) $j++; $prox = $j < $n ? $t[$j] : '';
+                if ($prox === ',' || $prox === '}' || $prox === ']' || $prox === ':') { $str = false; $o .= $ch; } else $o .= '\\"'; continue; }
+            $o .= $ch; continue; }
+        if ($ch === '"') $str = true; $o .= $ch; }
+    return $o;
 }
 function paJsonConserta($t) {
     $n = strlen($t); $str = false; $esc = false; $pilha = []; $ultimoFechaItem = -1;   // posição depois de um '}' que fecha um item de nível 2 (dentro de "derivacoes")
@@ -252,7 +263,7 @@ TXT;
     foreach ($thumbs as $t) { $content[] = ['type' => 'text', 'text' => 'ID ' . $t['id'] . ' · ' . $t['nome']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
     foreach ($refImgs as $t) { $content[] = ['type' => 'text', 'text' => 'REFERÊNCIA (só inspiração): ' . $t['rot']]; $content[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $t['mime'], 'data' => $t['b64']]]; }
     try { [$resp, $custo, $us] = paClaude($system, $content, 32000); $plano = paJson($resp); if (!$plano || empty($plano['derivacoes'])) throw new Exception('A IA não devolveu o plano em JSON' . (($us['stop_reason'] ?? '') === 'max_tokens' ? ' (resposta cortada pelo limite de tamanho)' : '') . '. Início da resposta: ' . mb_substr($resp, 0, 200)); }
-    catch (Exception $e) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => $e->getMessage(), 'mudado_em' => gmdate('c')]); sd_fail($e->getMessage(), 500); }
+    catch (Exception $e) { sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => $e->getMessage(), 'plano' => ['bruto' => mb_substr((string)($resp ?? ''), 0, 60000), 'stop' => $us['stop_reason'] ?? ''], 'mudado_em' => gmdate('c')]); sd_fail($e->getMessage(), 500); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'revisao', 'plano' => $plano, 'custo_usd' => (float)$p['custo_usd'] + $custo, 'mudado_em' => gmdate('c')]);
     sd_supabase('/rest/v1/pd_pecas?pauta_id=eq.' . urlencode($id) . '&papel=eq.derivada', 'PATCH', ['arquivada' => true]);
     $galeria = []; foreach ($imgs as $i) $galeria[$i['id']] = '/pd-estudio.php?img=' . rawurlencode($i['id']) . '&k=' . paAssina($i['id']) . '&w=2400';
