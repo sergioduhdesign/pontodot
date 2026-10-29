@@ -2358,7 +2358,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v281 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v282 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5293,7 +5293,7 @@ function abrirEstudio(params){
       .gad .gad-ico.est-aceso{box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 22px rgba(255,255,255,.55);animation:estPulsa 1.6s ease-in-out infinite}html.dia .frente .gad .gad-ico.est-aceso{box-shadow:0 0 0 2px rgba(26,27,30,.6),0 0 18px rgba(26,27,30,.35)}
       @keyframes estPulsa{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`; document.head.appendChild(st); }
     document.body.appendChild(ov);
-    window.addEventListener('message', e => { const d = e.data || {}; if (d.tipo === 'est-nome'){ const ab = EST_ABAS.find(x => x.iframe.contentWindow === e.source); if (ab){ ab.nome = d.nome; ab.dirty = !!d.dirty; estAbasRender(); } } else if (d.tipo === 'est-aviso'){ balaoIA(d); if (OFI.d) ofiCarrega(); } else if (d.tipo === 'est-filme'){ abrirEstudio('area=video' + (d.cliente ? '&cliente=' + d.cliente : '')); } else if (d.tipo === 'est-area'){ estIrArea(d.area, d.cliente); } else if (d.tipo === 'est-tarefa'){ try { carregarReal().catch(() => {}); toast('Tarefa ' + d.id + ' criada no funil.'); } catch(e){} } });
+    window.addEventListener('message', e => { const d = e.data || {}; if (d.tipo === 'est-nome'){ const ab = EST_ABAS.find(x => x.iframe.contentWindow === e.source); if (ab && (ab.nome !== d.nome || ab.dirty !== !!d.dirty)){ ab.nome = d.nome; ab.dirty = !!d.dirty; estAbasRender(); } } else if (d.tipo === 'est-aviso'){ balaoIA(d); if (OFI.d) ofiCarrega(); } else if (d.tipo === 'est-filme'){ abrirEstudio('area=video' + (d.cliente ? '&cliente=' + d.cliente : '')); } else if (d.tipo === 'est-area'){ estIrArea(d.area, d.cliente); } else if (d.tipo === 'est-tarefa'){ try { carregarReal().catch(() => {}); toast('Tarefa ' + d.id + ' criada no funil.'); } catch(e){} } });
   }
   if (params === undefined && EST_ABAS.length){ estRestaurar(); return; }
   EST_MIN = false; estAceso();
@@ -5303,7 +5303,9 @@ function abrirEstudio(params){
   f.src = pag + '?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()) + '&area=' + area + (params ? '&' + params : ''); f.dataset.area = area;
   document.getElementById('estCorpo').appendChild(f); EST_ABAS.push({ id, nome: { copys:'Nova copy', audio:'Locução', video:'Novo filme', grafica:'Nova peça (gráfica)' }[area] || 'Nova peça', iframe: f, dirty: false, area }); estAbaVai(id); ov.style.display = 'flex';
 }
-function estAbaVai(id){ EST_ABAS.forEach(a => a.iframe.style.display = a.id === id ? 'block' : 'none'); EST_ATUAL = id; estAbasRender(); }
+// leve: só a aba ativa (e com o Studio à vista) trabalha; as outras ficam abertas mas em pausa (sem polling, sem fila de observação) — retomam na hora
+function estPausa(){ EST_ABAS.forEach(a => { try { a.iframe.contentWindow.postMessage({ tipo: (!EST_MIN && a.id === EST_ATUAL) ? 'est-retoma' : 'est-pausa' }, '*'); } catch(e){} }); }
+function estAbaVai(id){ EST_ABAS.forEach(a => a.iframe.style.display = a.id === id ? 'block' : 'none'); EST_ATUAL = id; estAbasRender(); estPausa(); }
 let EST_ATUAL = null;
 function estAbasRender(){ const el = document.getElementById('estBarra'); if (!el) return;
   const I = d => `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -5327,10 +5329,10 @@ function estArqPinta(){ const box = document.getElementById('estArq'); if (!box 
   box.innerHTML = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input placeholder="buscar peça ou cliente…" value="${esc(EST.aq || '')}" oninput="EST.aq=this.value;estArqPinta()" style="flex:1;height:32px;border:1px solid rgba(128,128,128,.35);border-radius:7px;background:transparent;color:inherit;padding:0 10px;font-size:12.5px"><small class="nota" style="margin:0">${ps.length}</small></div>` +
     (ps.map(p => `<div style="display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px solid rgba(128,128,128,.2);cursor:pointer" onclick="EST_ARQ_ABERTO=false;document.getElementById('estArq').style.display='none';abrirEstudio('peca=${p.id}&area=${/^filme-/.test((p.formato || {}).tipo || '') ? 'video' : ((p.formato || {}).impresso ? 'grafica' : 'digital')}')">${p.thumb_url ? `<img src="${esc(p.thumb_url)}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">` : '<span style="width:40px;height:40px;border-radius:6px;background:rgba(128,128,128,.15);flex-shrink:0"></span>'}<span style="min-width:0;flex:1"><b style="display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nome)}</b><small style="opacity:.65;font-size:11px">${esc(p.clients?.name || 'sem cliente')} · ${esc((p.formato || {}).nome || '')}${p.modelo ? ' · modelo' : ''}${p.papel === 'derivada' ? ' · derivação' : ''} · ${new Date(p.mudado_em || p.criado_em).toLocaleDateString('pt-BR')}</small></span></div>`).join('') || '<div class="nota">Nenhuma peça.</div>'); }
 function estIconeRect(){ const b = [...document.querySelectorAll('.gad .gad-ico')].find(x => /^(Estúdio|Studio Design)/.test(x.title || '')); return b ? b.getBoundingClientRect() : null; }
-function estMinimizar(){ EST_MIN = true; EST_ARQ_ABERTO = false; const ov = document.getElementById('estOv'); if (!ov) return; const r = estIconeRect(); renderBoard(); estAceso();
+function estMinimizar(){ EST_MIN = true; estPausa(); EST_ARQ_ABERTO = false; const ov = document.getElementById('estOv'); if (!ov) return; const r = estIconeRect(); renderBoard(); estAceso();
   if (!r){ ov.style.display = 'none'; return; } const cx = r.left + r.width / 2, cy = r.top + r.height / 2; ov.style.transition = 'transform .38s cubic-bezier(.4,0,.2,1), opacity .38s'; ov.style.transform = `translate(${cx - innerWidth / 2}px, ${cy - innerHeight / 2}px) scale(.04)`; ov.style.opacity = '.15';
   setTimeout(() => { ov.style.display = 'none'; ov.style.transition = ''; ov.style.transform = ''; ov.style.opacity = ''; }, 390); }
-function estRestaurar(){ EST_MIN = false; const ov = document.getElementById('estOv'); if (!ov || !EST_ABAS.length){ estAceso(); return; } const r = estIconeRect(); estAbasRender(); estAceso();
+function estRestaurar(){ EST_MIN = false; estPausa(); const ov = document.getElementById('estOv'); if (!ov || !EST_ABAS.length){ estAceso(); return; } const r = estIconeRect(); estAbasRender(); estAceso();
   if (r){ const cx = r.left + r.width / 2, cy = r.top + r.height / 2; ov.style.transition = 'none'; ov.style.transform = `translate(${cx - innerWidth / 2}px, ${cy - innerHeight / 2}px) scale(.04)`; ov.style.opacity = '.15'; }
   ov.style.display = 'flex'; requestAnimationFrame(() => requestAnimationFrame(() => { ov.style.transition = 'transform .38s cubic-bezier(.4,0,.2,1), opacity .38s'; ov.style.transform = 'none'; ov.style.opacity = '1'; setTimeout(() => { ov.style.transition = ''; ov.style.transform = ''; }, 400); })); renderBoard(); }
 function estAceso(){ document.querySelectorAll('.gad .gad-ico').forEach(b => { if (/^(Estúdio|Studio Design|Trabalho)/.test(b.title || '')){ const on = EST_MIN && EST_ABAS.length > 0; b.classList.toggle('est-aceso', on); if (on && !b._estClick){ b._estClick = 1; b.addEventListener('click', e => { if (EST_MIN && EST_ABAS.length){ e.stopPropagation(); e.preventDefault(); estRestaurar(); } }, true); } } }); }
@@ -6344,7 +6346,7 @@ function alinharConjunto(){
     } else if (_clTop != null) c.style.top = _clTop + 'px';
   } catch(e){}
 }
-setInterval(alinharConjunto, 900);
+setInterval(() => { if (!document.hidden) alinharConjunto(); }, 900);
 setInterval(()=>{ try{ $('#clAdmin')?.classList.toggle('tem', !!$('#clBadge')?.classList.contains('on')); }catch(e){} }, 1500);
 document.addEventListener('click', e => { if (!e.target.closest('#clMenu,#clAdmin')) $('#clMenu')?.classList.remove('on'); });
 let _clSel = -1, _clAch = [];
@@ -7983,7 +7985,7 @@ async function entrarReal(session){
   const _bg = ()=>{ try { carregarPub(); carregarAds(); } catch(e){} };
   setTimeout(_bg, 2500);
   setTimeout(()=>{ try { falarNome(); carregarFundos(); } catch(e){} }, 3200);
-  setInterval(()=>{ carregarReal().catch(()=>{}); carregarThreadsSalvas(); _bg(); }, 60000);
+  setInterval(()=>{ if (document.hidden) return; carregarReal().catch(()=>{}); carregarThreadsSalvas(); _bg(); }, 60000);
   if (perfil && ['admin','team'].includes(perfil.role)) {
     setTimeout(roboLote, 8000);
     setInterval(roboLote, 90000);
@@ -10002,7 +10004,7 @@ setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZap
 setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 60000);
 // Saída de materiais: sonda silenciosa (a oficina trabalha com você fora; a bolinha conta o que ficou pronto)
 async function ofiSonda(){ try { if (!sbR || !perfil || !['admin', 'team'].includes(perfil.role)) return; ofiPautas(); const d = await ofiFala({ acao:'inicio' }); const antes = JSON.stringify((OFI.d && OFI.d.trabalhos || []).map(t => t.id + t.status)); OFI.d = d; const depois = JSON.stringify(d.trabalhos.map(t => t.id + t.status)); pintarBolinhas(); if (antes !== depois) renderBoard(); } catch(e){} }
-setTimeout(ofiSonda, 6000); setInterval(ofiSonda, 90000);
+setTimeout(ofiSonda, 6000); setInterval(() => { if (!document.hidden) ofiSonda(); }, 90000);
 </script>
 <script id="lote-161-js">
 /* nome da tela no meio do topo + gestos do celular */

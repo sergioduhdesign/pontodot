@@ -160,10 +160,12 @@ function esItensDaPasta($pasta) {
 if ($acao === 'tarefa_criar') {   // trabalho É a tarefa: cria a tarefa no funil a partir da ferramenta
     $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Toda tarefa é de um cliente.');
     $nid = sd_supabase('/rest/v1/rpc/next_task_id', 'POST', new stdClass())['body'] ?? null; if (!$nid || !is_string($nid)) sd_fail('Não consegui gerar o número da tarefa.', 500);
-    $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=name,team_key')['body'][0] ?? []; $resp = strtoupper(trim((string)($pf['team_key'] ?? '')) ?: (explode(' ', trim((string)($pf['name'] ?? $u['name'] ?? 'SERGIO')))[0] ?: 'SERGIO'));
+    $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=name,team_key')['body'][0] ?? [];
+    $validos = array_values(array_unique(array_filter(array_map(fn($x) => strtoupper(trim((string)($x['team_key'] ?? ''))), sd_supabase('/rest/v1/profiles?team_key=not.is.null&select=team_key&limit=200')['body'] ?? []))));   // o enum team_member = as chaves reais do time
+    $resp = strtoupper(trim((string)($pf['team_key'] ?? ''))); if (!in_array($resp, $validos, true)) { $pn = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT', explode(' ', trim((string)($pf['name'] ?? $u['name'] ?? '')))[0])); $resp = in_array($pn, $validos, true) ? $pn : ($validos[0] ?? 'SERGIO'); }
     $d = ['id' => $nid, 'action' => mb_substr(trim((string)($b['action'] ?? 'Trabalho')), 0, 160), 'status' => in_array($b['status'] ?? '', ['BRIEFING', 'EM ANDAMENTO'], true) ? $b['status'] : 'EM ANDAMENTO', 'resp' => $resp, 'project' => mb_substr((string)($b['project'] ?? 'GERAL'), 0, 60) ?: 'GERAL', 'week' => 'ESTA SEMANA', 'created_by' => $u['id'], 'client_id' => $cid];
     if (!empty($b['date_int']) && preg_match('/^\d{4}-\d{2}-\d{2}/', $b['date_int'])) $d['date_int'] = substr($b['date_int'], 0, 10); if (!empty($b['obs'])) $d['obs'] = mb_substr((string)$b['obs'], 0, 800);
-    $r = sd_supabase('/rest/v1/tasks', 'POST', $d, ['Prefer: return=representation']); if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui criar a tarefa: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200), 500);
+    $r = sd_supabase('/rest/v1/tasks', 'POST', $d, ['Prefer: return=representation']); if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui criar a tarefa (' . $resp . '): ' . mb_substr((string)($r['raw'] ?? json_encode($r['body'] ?? '')), 0, 240), 500);
     pdEvento($nid, 'trabalho', 'Trabalho aberto no Studio Design (' . mb_substr((string)($b['area'] ?? ''), 0, 20) . ')', (string)($b['nome'] ?? ''), $u['name'] ?? 'Equipe', 'humano');
     echo json_encode(['ok' => true, 'tarefa' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
 }
