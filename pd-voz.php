@@ -34,7 +34,7 @@ $instr = 'Locução publicitária em português do Brasil, natural, dicção cla
 // 1) gera
 $ch = curl_init('https://api.openai.com/v1/audio/speech');
 curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 150, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_OPENAI_KEY, 'Content-Type: application/json'],
-    CURLOPT_POSTFIELDS => json_encode(['model' => 'gpt-4o-mini-tts', 'voice' => $voz[0], 'input' => $texto, 'instructions' => $instr, 'response_format' => 'mp3', 'speed' => $vel])]);
+    CURLOPT_POSTFIELDS => json_encode(['model' => 'gpt-4o-mini-tts', 'voice' => $voz[0], 'input' => $texto, 'instructions' => $instr, 'response_format' => 'mp3', 'speed' => round((float)$vel, 2)])]);
 $mp3 = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch);
 if ($code !== 200 || !$mp3 || strlen($mp3) < 1000) sd_fail('A voz premium respondeu HTTP ' . $code . ($err ? ' · ' . $err : '') . ' · ' . mb_substr((string)$mp3, 0, 200), 502);
 $arq = $nome . '-' . date('Ymd-His') . '.mp3';   // nome bonito (Drive)
