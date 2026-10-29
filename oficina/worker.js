@@ -127,13 +127,37 @@ const EXEC = {
       const args = ['-y', '-hide_banner', '-loglevel', 'error']; const fc = []; let idx = 0; const ins = [];
       const bg = c.fundo_url ? await baixar(c.fundo_url, path.join(dir, `bg${i}.png`)) : null;
       if (bg) { args.push('-loop', '1', '-t', String(dur), '-i', bg); ins.push('bg'); } else { args.push('-f', 'lavfi', '-t', String(dur), '-i', `color=c=${esc(c.cor || '#000000')}:s=${W}x${H}:r=${fps}`); ins.push('bg'); }
-      let v = '[0:v]scale=' + W + ':' + H + ',format=rgba[v0]'; fc.push(v); let cur = 'v0'; let audioClip = null;
+      const nf = Math.round(dur * fps); let v;
+      if (bg && c.movimento === 'zoom') v = `[0:v]scale=${W * 2}:${H * 2},zoompan=z='1+0.12*min(on/${nf},1)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${fps},format=rgba[v0]`;
+      else if (bg && c.movimento === 'zoom-out') v = `[0:v]scale=${W * 2}:${H * 2},zoompan=z='1.12-0.12*min(on/${nf},1)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${fps},format=rgba[v0]`;
+      else if (bg && c.movimento === 'pan') v = `[0:v]scale=${W * 2}:${H * 2},zoompan=z='1.1':d=1:x='(iw-iw/zoom)*min(on/${nf},1)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${fps},format=rgba[v0]`;
+      else v = '[0:v]scale=' + W + ':' + H + ',format=rgba[v0]';
+      fc.push(v); let cur = 'v0'; let audioClip = null;
+      // PACKSHOT / ASSINATURA: fundo na cor do cliente + logo animado + tagline (PNG feito no Studio com a fonte do kit)
+      if (c.packshot && c.packshot.logo_url) { const pk = c.packshot; const lg = await baixar(pk.logo_url, path.join(dir, `logo${i}.png`)); args.push('-loop', '1', '-framerate', String(fps), '-t', String(dur), '-i', lg); const n = ++idx;
+        const lw = Math.max(2, Math.round(+pk.w || W * .4)); let lh = lw; try { const pr = await run('ffprobe', ['-v', 'error', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', lg]); const [pw, ph] = pr.stdout.trim().split(',').map(Number); if (pw && ph) lh = Math.round(lw * ph / pw); } catch {} const cx = Math.round((W - lw) / 2), cy = Math.round(H * (+pk.y || .42) - lh / 2); const ease = `(1-pow(1-min(t/0.9,1),3))`; const anim = String(pk.anim || 'fade');
+        let pre = `[${n}:v]scale=${lw}:-1,format=rgba`; let ox = String(cx), oy = String(cy);
+        if (anim === 'fade') pre += `,fade=t=in:st=0.15:d=0.8:alpha=1`;
+        else if (anim === 'zoom') pre = `[${n}:v]scale=${lw * 2}:-1,zoompan=z='1.6-0.6*min(on/${Math.round(fps * .9)},1)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${lw}x${lh}:fps=${fps},format=rgba,fade=t=in:st=0:d=0.4:alpha=1`;
+        else if (anim === 'zoom-out') pre = `[${n}:v]scale=${lw * 2}:-1,zoompan=z='1+0.5*(1-min(on/${Math.round(fps * .9)},1))':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${lw}x${lh}:fps=${fps},format=rgba,fade=t=in:st=0:d=0.3:alpha=1`;
+        else if (anim === 'slide-esq') ox = `${-lw}+(${cx}+${lw})*${ease}`;
+        else if (anim === 'slide-dir') ox = `${W}-(${W}-${cx})*${ease}`;
+        else if (anim === 'slide-cima') oy = `${-Math.round(H * .3)}+(${cy}+${Math.round(H * .3)})*${ease}`;
+        else if (anim === 'slide-baixo') oy = `${H}-(${H}-${cy})*${ease}`;
+        else if (anim === 'queda') oy = `${-Math.round(H * .3)}+(${cy}+${Math.round(H * .3)})*(1-pow(1-min(t/1.1,1),2))+if(lt(t,1.1),0,-40*sin(min((t-1.1)*6,3.14159)))`;
+        else if (anim === 'wipe-h') pre += `,crop=w='max(2,min(iw,iw*min(t/0.9,1)))':h=ih:x=0:y=0`;
+        else if (anim === 'wipe-v') pre += `,crop=w=iw:h='max(2,min(ih,ih*min(t/0.9,1)))':x=0:y=0`;
+        else if (anim === 'pulso') pre += `,fade=t=in:st=0:d=0.3:alpha=1`;
+        fc.push(anim === 'cor-corta' && pk.fundo2 ? `${pre},split[lg][lg2]` : `${pre}[lg]`); fc.push(`[${cur}][lg]overlay=x='${ox}':y='${oy}':eval=frame:shortest=0[v${n}]`); cur = `v${n}`;
+        if (anim === 'pulso') { fc.push(`[${cur}]scale=w='iw*(1+0.02*sin(t*4))':h='ih*(1+0.02*sin(t*4))':eval=frame,crop=${W}:${H}:(iw-${W})/2:(ih-${H})/2[v${n}p]`); cur = `v${n}p`; }
+        if (anim === 'cor-corta' && pk.fundo2) { fc.push(`[${cur}]drawbox=c=${esc(pk.fundo2)}:t=fill:enable='gte(t,${(dur / 2).toFixed(2)})'[v${n}c]`); cur = `v${n}c`; fc.push(`[${cur}][lg2]overlay=${cx}:${cy}:enable='gte(t,${(dur / 2).toFixed(2)})'[v${n}d]`); cur = `v${n}d`; }
+        if (pk.tag_url) { const tg = await baixar(pk.tag_url, path.join(dir, `tag${i}.png`)); args.push('-loop', '1', '-framerate', String(fps), '-t', String(dur), '-i', tg); const m = ++idx; fc.push(`[${m}:v]scale=${W}:${H},format=rgba,fade=t=in:st=${(dur * .4).toFixed(2)}:d=0.6:alpha=1[tg]`); fc.push(`[${cur}][tg]overlay=0:0[v${m}]`); cur = `v${m}`; } }
       for (const [k, cl] of (c.clipes || []).entries()) { const f = await baixar(cl.url, path.join(dir, `clip${i}_${k}.mp4`)); const ini = Math.max(0, +cl.ini || 0); const fim = cl.fim ? Math.max(ini + .1, +cl.fim) : null;
         args.push('-stream_loop', '-1', '-ss', String(ini), ...(fim ? ['-to', String(fim)] : []), '-i', f); const n = ++idx; const cw = Math.max(2, Math.round(+cl.w || W)), ch = Math.max(2, Math.round(+cl.h || H));
         fc.push(`[${n}:v]scale=${cw}:${ch}:force_original_aspect_ratio=increase,crop=${cw}:${ch},setpts=PTS-STARTPTS,format=rgba[c${k}]`); fc.push(`[${cur}][c${k}]overlay=${Math.round(+cl.x || 0)}:${Math.round(+cl.y || 0)}:shortest=0[v${n}]`); cur = `v${n}`;
         if (!cl.mudo && audioClip === null) audioClip = { n, vol: cl.vol == null ? 1 : +cl.vol }; }
       if (c.topo_url) { const tp = await baixar(c.topo_url, path.join(dir, `top${i}.png`)); args.push('-loop', '1', '-t', String(dur), '-i', tp); const n = ++idx; fc.push(`[${n}:v]scale=${W}:${H},format=rgba[tp]`); fc.push(`[${cur}][tp]overlay=0:0[v${n}]`); cur = `v${n}`; }
-      const fadeD = c.trans === 'fade' ? 0.5 : 0; const vfade = fadeD ? `,fade=t=in:st=0:d=${fadeD},fade=t=out:st=${Math.max(0, dur - fadeD)}:d=${fadeD}` : '';
+      const fadeD = ['fade', 'preto', 'branco'].includes(c.trans) ? 0.5 : 0; const fc_ = c.trans === 'branco' ? ':c=white' : ''; const vfade = fadeD ? `,fade=t=in:st=0:d=${fadeD}${fc_},fade=t=out:st=${Math.max(0, dur - fadeD)}:d=${fadeD}${fc_}` : '';
       fc.push(`[${cur}]format=yuv420p,fps=${fps}${vfade}[vout]`);
       if (audioClip) fc.push(`[${audioClip.n}:a]volume=${audioClip.vol},apad,atrim=0:${dur},asetpts=PTS-STARTPTS[aout]`); else { args.push('-f', 'lavfi', '-t', String(dur), '-i', 'anullsrc=r=48000:cl=stereo'); fc.push(`[${++idx}:a]anull[aout]`); }
       const out = path.join(dir, `cena${i}.mp4`);
