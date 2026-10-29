@@ -1,6 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Studio Design · Filme · Pontodot</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/pd-studio.js"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32;--azul:#2f7fd1;--roxo:#7c4dff;--verde:#1f8a55;--lar:#e07a1f}
 *{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--ink);font:400 13px/1.4 "Helvetica Neue","Inter Tight",system-ui,sans-serif;overflow:hidden}
@@ -31,7 +32,7 @@ h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
   <select id="fmt" onchange="FILME.fmt=this.value;dirty=true;palco()" title="Formato"><option value="v">Filme vertical · 1080×1920</option><option value="h">Filme horizontal · 1920×1080</option><option value="q">Filme quadrado · 1080×1080</option></select>
   <input class="nome" id="nome" placeholder="Nome do filme" value="Filme" onchange="dirty=true;nomeAba()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small>
-  <span class="sep"></span>
+  <span class="sep"></span><div id="pdIA"></div><span class="sep"></span>
   <button class="btn i" onclick="salvar()" title="Salvar (⌘S)"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
   <button class="btn p" onclick="renderizar()" title="Renderiza o MP4 na oficina e guarda no Drive"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg> Gerar saída</button>
 </div>
@@ -65,7 +66,7 @@ async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoR
   const {data}=await sb.from('clients').select('id,name,active').order('name');CLIS=(data||[]).filter(c=>c.active!==false);$('#cli').innerHTML='<option value="">Escolha o cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   if(q.get('cliente'))$('#cli').value=q.get('cliente');
   if(q.get('peca'))await abrir(q.get('peca'));else await trocaCliente();
-  palco();tlPinta();nomeAba();window.addEventListener('resize',palco);document.addEventListener('keydown',teclas);
+  palco();tlPinta();nomeAba();pdStudio.iniciar('video',{getClientId:()=>PECA.client_id,getPecaId:()=>PECA.id,getNome:()=>$('#nome').value},ses);window.addEventListener('resize',palco);document.addEventListener('keydown',teclas);
   setInterval(()=>{if(dirty&&PECA.client_id)salvar(true);},5000);}
 async function trocaCliente(){PECA.client_id=$('#cli').value||null;KIT=null;if(PECA.client_id){try{const {data}=await sb.from('brand_kits').select('*').eq('client_id',PECA.client_id).maybeSingle();KIT=data||null;}catch(e){}await galeria();}}
 // ---------- mídia
@@ -75,13 +76,13 @@ async function galeria(){if(!PECA.client_id){$('#mMsg').textContent='Escolha o c
   $('#mVid').innerHTML=vid.map((x,i)=>`<div class="it" title="${esc(x.nome)}" onclick="midiaAdd(${i})">${x.thumb?`<img src="${esc(x.thumb)}">`:`<div style="display:grid;place-items:center;height:100%;background:#2a2a2a;color:#fff;font-size:20px">▶</div>`}<small>${esc(x.nome)}</small></div>`).join('')||'<div class="vazio" style="grid-column:1/-1">Nada em MÍDIA. Suba aqui ou solte na pasta do Drive.</div>';
   $('#mAud').innerHTML=aud.map(x=>`<div class="it aud" title="${esc(x.nome)}"><span>♪</span><small>${esc(x.nome)}</small><div style="position:absolute;top:3px;right:3px;display:flex;gap:2px"><button class="btn s" style="min-height:0;padding:2px 5px;font-size:10px" onclick="event.stopPropagation();audioSet('a1','${esc(location.origin+x.arquivo)}','${esc(x.nome)}')" title="Usar como trilha">trilha</button><button class="btn s" style="min-height:0;padding:2px 5px;font-size:10px" onclick="event.stopPropagation();audioSet('a2','${esc(location.origin+x.arquivo)}','${esc(x.nome)}')" title="Usar como locução">voz</button></div></div>`).join('')||'<div class="vazio" style="grid-column:1/-1">Sem áudios.</div>';
   $('#mMsg').textContent='';}catch(e){$('#mMsg').textContent=e.message;}}
-function midiaAdd(i){const vid=GAL.filter(x=>x.tipo==='video'||x.tipo==='foto');const x=vid[i];if(!x)return;const url=location.origin+x.arquivo;if(x.tipo==='foto'){FILME.v.push({tipo:'img',url:x.cheia?location.origin+x.cheia:url,nome:x.nome,dur:4,trans:'corte'});dirty=true;tlPinta();return;}
+function midiaAdd(i){const vid=GAL.filter(x=>x.tipo==='video'||x.tipo==='foto');const x=vid[i];if(!x)return;pdStudio.observa('clipe',{tipo:x.tipo});const url=location.origin+x.arquivo;if(x.tipo==='foto'){FILME.v.push({tipo:'img',url:x.cheia?location.origin+x.cheia:url,nome:x.nome,dur:4,trans:'corte'});dirty=true;tlPinta();return;}
   const vd=document.createElement('video');vd.preload='metadata';vd.src=url;vd.onloadedmetadata=()=>{FILME.v.push({tipo:'vid',url,nome:x.nome,dur:vd.duration||5,ini:0,fim:null,vol:1,mudo:false,trans:'corte'});dirty=true;tlPinta();};vd.onerror=()=>{FILME.v.push({tipo:'vid',url,nome:x.nome,dur:5,ini:0,fim:null,vol:1,mudo:false,trans:'corte'});dirty=true;tlPinta();};}
 async function subir(inp){const fs=[...inp.files];inp.value='';for(const f of fs){try{const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});const r=await api('pd-oficina.php',{acao:'anexar',arquivo:{nome:f.name,mime:f.type,b64}});
     if(f.type.startsWith('audio/'))audioSet(FILME.a1?'a2':'a1',r.url,f.name);else if(f.type.startsWith('image/'))FILME.v.push({tipo:'img',url:r.url,nome:f.name,dur:4,trans:'corte'});else{const vd=document.createElement('video');vd.preload='metadata';vd.src=r.url;await new Promise(res=>{vd.onloadedmetadata=res;vd.onerror=res;});FILME.v.push({tipo:'vid',url:r.url,nome:f.name,dur:vd.duration||5,ini:0,fim:null,vol:1,mudo:false,trans:'corte'});}
     dirty=true;tlPinta();}catch(e){msg(e.message,6000);}}}
 function audioSet(k,url,nome){FILME[k]={url,nome,vol:k==='a1'?.35:1,ini:0};dirty=true;tlPinta();msg((k==='a1'?'Trilha':'Locução')+': '+nome);}
-function addTexto(){const t0=TL.t||0;FILME.t.push({texto:'Seu texto aqui',ini:t0,dur:3,tam:7,cor:'#ffffff',fundo:'',anc:4,fonte:(KIT&&KIT.fonts&&KIT.fonts[0]&&KIT.fonts[0].name)||'Inter',peso:'700'});TL.sel={k:'t',i:FILME.t.length-1};dirty=true;tlPinta();propsUI();}
+function addTexto(){pdStudio.observa('texto_filme',{});const t0=TL.t||0;FILME.t.push({texto:'Seu texto aqui',ini:t0,dur:3,tam:7,cor:'#ffffff',fundo:'',anc:4,fonte:(KIT&&KIT.fonts&&KIT.fonts[0]&&KIT.fonts[0].name)||'Inter',peso:'700'});TL.sel={k:'t',i:FILME.t.length-1};dirty=true;tlPinta();propsUI();}
 // ---------- tempo
 const durClip=c=>c.tipo==='img'?(+c.dur||4):Math.max(.1,((c.fim==null?c.dur:c.fim)-(c.ini||0)));
 function total(){return FILME.v.reduce((a,c)=>a+durClip(c),0);}
@@ -149,7 +150,7 @@ async function salvar(silencio){if(!PECA.client_id){if(!silencio){msg('Escolha o
 async function abrir(id){try{const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});PECA.id=p.id;$('#cli').value=p.client_id||'';await trocaCliente();$('#nome').value=p.nome;FILME=Object.assign({fmt:'v',v:[],t:[],a1:null,a2:null},(p.doc&&p.doc.filme)||{});if(!FMT[FILME.fmt])FILME.fmt='v';}catch(e){msg(e.message,6000);}}
 async function antesDeSair(){if(!dirty)return true;return await salvar(true);}
 // ---------- render (oficina): V em sequência; textos viram camada PNG por cena; A1/A2 por cima
-async function renderizar(){if(!PECA.client_id){msg('Escolha o cliente.');return;}if(!FILME.v.length){msg('Coloque pelo menos um clipe.');return;}if(!await salvar(true))return;const [w,h]=FMT[FILME.fmt];ocupa();
+async function renderizar(){pdStudio.observa('render',{clipes:FILME.v.length,textos:FILME.t.length,dur:total()});if(!PECA.client_id){msg('Escolha o cliente.');return;}if(!FILME.v.length){msg('Coloque pelo menos um clipe.');return;}if(!await salvar(true))return;const [w,h]=FMT[FILME.fmt];ocupa();
   try{const cenas=[];let acc=0;for(const c of FILME.v){const d=durClip(c);const ativos=FILME.t.filter(t=>t.ini<acc+d&&t.ini+t.dur>acc);let topo=null;
       if(ativos.length){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const save=$('#pc');const tmp=FILME.t;FILME.t=ativos;const old=$('#pc');document.body.appendChild(cv);cv.id='pcTmp';const x=cv.getContext('2d');x.clearRect(0,0,w,h);
         ativos.forEach(tx=>{const fs=w*(tx.tam||7)/100;x.font=`${tx.peso||'700'} ${fs}px "${tx.fonte||'Inter'}",sans-serif`;const linhas=String(tx.texto||'').split('\n');const col=(tx.anc||4)%3,row=Math.floor((tx.anc||4)/3);const pad=w*.06,lh=fs*1.15,bh=linhas.length*lh;x.textAlign=col===0?'left':col===2?'right':'center';x.textBaseline='top';const px=col===0?pad:col===2?w-pad:w/2;const py=row===0?pad:row===2?h-pad-bh:(h-bh)/2;if(tx.fundo){x.fillStyle=tx.fundo;const tw=Math.max(...linhas.map(l=>x.measureText(l).width));const bx=col===0?px-fs*.3:col===2?px-tw-fs*.3:px-tw/2-fs*.3;x.fillRect(bx,py-fs*.15,tw+fs*.6,bh+fs*.3);}x.fillStyle=tx.cor||'#fff';if(!tx.fundo){x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=fs*.25;}linhas.forEach((l,i)=>x.fillText(l,px,py+i*lh));x.shadowBlur=0;});

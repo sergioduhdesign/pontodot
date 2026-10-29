@@ -3,6 +3,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Poppins:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Bebas+Neue&family=Oswald:wght@400;700&family=Lora:wght@400;700&family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@400;700&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script src="/pd-studio.js"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
 @media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212;--pano:#0c0c0d}}
@@ -53,6 +54,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   <button class="btn i" onclick="salvar()" title="Salvar (⌘S)"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
   <button class="btn i" onclick="menuExport()" title="Exportar"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg></button>
   <button class="btn i" onclick="mudaMedida()" title="Mudar a medida da peça"><svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg></button>
+  <div id="pdIA"></div><span class="sep"></span>
   <button class="btn" id="btnPlay" onclick="verDerivacoes()" title="Derivações desta peça: a IA gera as outras peças da família; o painel fica fixo enquanto você edita"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="13" width="7" height="7" rx="1.5"/><rect x="14" y="13" width="7" height="7" rx="1.5"/></svg> Ver derivações</button>
   <button class="btn p" id="btnPrincipal" onclick="gerarSaida()" title="Gera os arquivos finais (PDF de gráfica ou recortes) e guarda no Drive"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg> <span id="btnPrincipalTxt">Recortes → Drive</span></button>
 </div>
@@ -171,7 +173,7 @@ let OCUP=0,OCUP_T=null;const OCUP_TXT={'buscar':'Buscando no banco de mídia…'
 function ocupa(txt){OCUP++;const e=$('#ocupado');if(!e)return;$('#ocupadoTxt').textContent=txt||'Pensando…';e.classList.add('on');}
 function desocupa(){OCUP=Math.max(0,OCUP-1);if(!OCUP){const e=$('#ocupado');if(e)e.classList.remove('on');}}
 async function api(arq,b,signal){ocupa(OCUP_TXT[b&&b.acao]||'Pensando…');try{const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b),signal});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}finally{desocupa();}}
-const q=new URLSearchParams(location.search);
+const q=new URLSearchParams(location.search);const AREA=q.get('area')==='grafica'?'grafica':'digital';
 
 // ---------- boot
 async function boot(){
@@ -197,14 +199,15 @@ async function boot(){
   if(q.get('cliente'))$('#cli').value=q.get('cliente'); if(q.get('tarefa'))PECA.task_id=q.get('tarefa');
   await trocaCliente();
   ajustaViewport();window.addEventListener('resize',()=>{ajustaViewport();zoomAjusta();});
-  if(q.get('peca')) await abrirPeca(q.get('peca')); else { aplicaFormato(FORMATOS[0]); montaPaginas([null]); marca(true); }
+  if(q.get('peca')) await abrirPeca(q.get('peca')); else { aplicaFormato(AREA==='grafica'?FORMATOS.find(f=>f.impresso):FORMATOS[0]); montaPaginas([null]); marca(true); }
+  pdStudio.iniciar(AREA,{getClientId:()=>PECA.client_id,getPecaId:()=>PECA.id,getNome:()=>$('#nome').value},ses);document.title=(AREA==='grafica'?'Edição gráfica':'Arte digital')+' · Studio Design';
   abaAbre('marca');caixaArrasto();divisor();
   if(q.get('pauta')){try{await pautaAbrir(q.get('pauta'));abaAbre('pauta');PA.fixa=true;}catch(e){msg(e.message);}}
 }
 function ajustaViewport(){const p=$('#pano');C.setDimensions({width:p.clientWidth,height:p.clientHeight});const s=$('#seg');s.width=p.clientWidth;s.height=p.clientHeight;}
 
 // ---------- formatos
-function montaFormatos(){const gs={};FORMATOS.forEach((f,i)=>{(gs[f.g]=gs[f.g]||[]).push(`<option value="${i}">${esc(f.nome)}${f.impresso||f.livre?'':' · '+f.w+'×'+f.h+' px'}</option>`)});
+function montaFormatos(){const gs={};FORMATOS.forEach((f,i)=>{if(f.filme)return;if(AREA==='grafica'?!f.impresso:f.impresso)return;(gs[f.g]=gs[f.g]||[]).push(`<option value="${i}">${esc(f.nome)}${f.impresso||f.livre?'':' · '+f.w+'×'+f.h+' px'}</option>`)});
   const kit=(KIT&&KIT.grids||[]).filter(g=>g.w&&g.h);if(kit.length)gs['Kit do cliente']=kit.map((g,i)=>`<option value="k${i}">${esc(g.name||'Formato')} · ${g.w}×${g.h}</option>`);
   $('#fmt').innerHTML=Object.entries(gs).map(([g,o])=>`<optgroup label="${esc(g)}">${o.join('')}</optgroup>`).join('');
   if(F()){const i=FORMATOS.findIndex(x=>x.tipo===F().tipo);if(i>=0)$('#fmt').value=i;}}
@@ -212,7 +215,7 @@ function formatoSel(){const v=$('#fmt').value;if(v.startsWith('k')){const g=(KIT
   if(f.livre){const wm=+prompt('Largura final em mm (sem sangria)',F()&&F().mm?F().mm[0]:100)||100,hm=+prompt('Altura final em mm',F()&&F().mm?F().mm[1]:100)||100;return{g:'Impresso',tipo:'impresso-livre',nome:wm+'×'+hm+' mm',mm:[wm,hm],w:mm2px(wm+2*SANGRIA),h:mm2px(hm+2*SANGRIA),impresso:true};}return f;}
 function aplicaFormato(f){PECA.formato={tipo:f.tipo,nome:f.nome,w:f.w,h:f.h,impresso:!!f.impresso,mm:f.mm||null,sangria:f.impresso?SANGRIA:0,dpi:f.impresso?DPI:72,guias:(F()&&F().guias)||[],margem:(F()&&F().margem)||0};
   const t=$('#btnPrincipalTxt');if(t)t.textContent='Gerar saída';segsUI();if($('#p-pauta').style.display!=='none')pautaUI();}
-function trocaFormato(){const f=formatoSel();if(f.filme){try{parent.postMessage({tipo:'est-filme',cliente:PECA.client_id||'',fmt:f.tipo.slice(-1)},'*');}catch(e){}$('#fmt').value=String(FORMATOS.indexOf(F()));return;}const vazio=objetos().length===0;const docs=[];for(let i=0;i<PECA.nPag;i++)docs.push(docPagina(i));aplicaFormato(f);montaPaginas(docs);if(vazio&&f.seed)semente(f.seed);marca();}
+function trocaFormato(){const f=formatoSel();if(f.filme){pdStudio.irPara('video');$('#fmt').value=String(FORMATOS.indexOf(F()));return;}pdStudio.observa('formato',{tipo:f.tipo});const vazio=objetos().length===0;const docs=[];for(let i=0;i<PECA.nPag;i++)docs.push(docPagina(i));aplicaFormato(f);montaPaginas(docs);if(vazio&&f.seed)semente(f.seed);marca();}
 async function mudaMedida(){const imp=ehImp();const cur=imp?F().mm||[px2mm(W())-2*SANGRIA,px2mm(Hh())-2*SANGRIA]:[W(),Hh()];
   const w=+prompt(imp?'Largura final em mm (sem sangria)':'Largura em px',Math.round(cur[0]*10)/10);if(!w)return;const h=+prompt(imp?'Altura final em mm':'Altura em px',Math.round(cur[1]*10)/10);if(!h)return;
   const esc2=await perguntar('Redimensionar o conteúdo junto?',{ok:'Sim, junto',cancelar:'Manter tamanhos'});const W0=W(),H0=Hh();const docs=[];for(let i=0;i<PECA.nPag;i++)docs.push(docPagina(i));
@@ -269,7 +272,7 @@ function mouseUp(e){if(DES){desUp();return;}if(ZDRAG){const d=ZDRAG;ZDRAG=null;C
   if(DRAG){DRAG=null;C.selection=true;return;}if(FERR==='caneta')penUp(e);if(PENEDIT.on)penEditUp(e);GUIA_TMP=[];desenhaSeg();}
 function duploClique(e){const t=e.target;if(!t||t.pdPage!==undefined)return;if(t.type==='textbox')return;if(t.type==='image'){cropEntra(t);return;}if(t.type==='group'&&t.pdMask){maskEntra(t);return;}if(t.type==='path'&&t.pdPontos){penEditEntra(t);return;}}
 const FERR_DESENHA=['texto','rect','elipse','linha','moldura','gota'];let DES=null;
-function ferramenta(f){FERR=f;PAN=f==='mao';ZOOMT=f==='zoomf';C.defaultCursor=f==='caneta'||FERR_DESENHA.includes(f)?'crosshair':f==='mao'?'grab':f==='zoomf'?'zoom-in':'default';C.setCursor(C.defaultCursor);const livre=f==='sel';C.selection=livre;C.forEachObject(o=>{if(o.pdPage===undefined)o.evented=livre;});if(!livre)C.discardActiveObject();document.querySelectorAll('[data-ferr]').forEach(b=>b.classList.toggle('on',b.dataset.ferr===f));if(f!=='caneta'&&PEN.pts.length)penCancela();C.requestRenderAll();const painel={texto:'texto',caneta:'formas',rect:'formas',elipse:'formas',linha:'formas',moldura:'imagens',gota:'efeitos'}[f];if(painel){PA.fixa=false;abaAbre(painel);}}
+function ferramenta(f){if(window.pdStudio&&f!==FERR)pdStudio.observa('ferramenta',{f});FERR=f;PAN=f==='mao';ZOOMT=f==='zoomf';C.defaultCursor=f==='caneta'||FERR_DESENHA.includes(f)?'crosshair':f==='mao'?'grab':f==='zoomf'?'zoom-in':'default';C.setCursor(C.defaultCursor);const livre=f==='sel';C.selection=livre;C.forEachObject(o=>{if(o.pdPage===undefined)o.evented=livre;});if(!livre)C.discardActiveObject();document.querySelectorAll('[data-ferr]').forEach(b=>b.classList.toggle('on',b.dataset.ferr===f));if(f!=='caneta'&&PEN.pts.length)penCancela();C.requestRenderAll();const painel={texto:'texto',caneta:'formas',rect:'formas',elipse:'formas',linha:'formas',moldura:'imagens',gota:'efeitos'}[f];if(painel){PA.fixa=false;abaAbre(painel);}}
 let SEC_DRAG=null;function secDrag(e,id){SEC_DRAG=id;e.dataTransfer.effectAllowed='move';}function secDrop(e,id){e.preventDefault();if(!SEC_DRAG||SEC_DRAG===id)return;const a=$('#'+SEC_DRAG),b=$('#'+id);const pai=a.parentElement;if(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)pai.insertBefore(a,b.nextSibling);else pai.insertBefore(a,b);SEC_DRAG=null;try{localStorage.setItem('pd_gbase_ordem',[...pai.children].map(x=>x.id).join(','));}catch(x){}}
 function divisor(){const d=$('#gDiv'),g=$('#gaveta');if(!d)return;try{const v=localStorage.getItem('pd_gbase');if(v)g.style.setProperty('--gbase',v);const ord=(localStorage.getItem('pd_gbase_ordem')||'').split(',').filter(Boolean);const base=$('#gBase');ord.forEach(id=>{const el=$('#'+id);if(el)base.appendChild(el);});}catch(e){}
   d.addEventListener('pointerdown',e=>{e.preventDefault();const r=g.getBoundingClientRect();const mv=ev=>{const pct=Math.max(10,Math.min(80,(r.bottom-ev.clientY)/r.height*100));g.style.setProperty('--gbase',pct+'%');};const up=()=>{document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);try{localStorage.setItem('pd_gbase',g.style.getPropertyValue('--gbase'));}catch(x){}};document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);});}
@@ -350,7 +353,7 @@ async function vetoresUI(){formasUI();const el=$('#elemCli');if(!el)return;if(!P
   if(!ELEM.itens.length){el.innerHTML='<div class="vazio" style="grid-column:1/-1">Nenhum vetor nas peças deste cliente ainda. Desenhe com a caneta ou traga um SVG em DS: ele aparece aqui.</div>';return;}
   el.innerHTML=ELEM.itens.map((it,i)=>`<div class="tp" title="${esc(it.nome)} · de ${esc(it.de||'')}" style="display:grid;place-items:center;aspect-ratio:1;background:var(--bg);border:1px solid var(--line);border-radius:7px;cursor:pointer;overflow:hidden" onclick="elemUsa(${i})"><img id="elTh${i}" alt="" style="max-width:88%;max-height:88%"></div>`).join('');
   ELEM.itens.forEach((it,i)=>{try{fabric.util.enlivenObjects([it.obj],ls=>{const g=ls[0];if(!g)return;const sc=new fabric.StaticCanvas(null,{width:120,height:120});const b=g.getBoundingRect(true,true);const k=Math.min(100/Math.max(1,g.getScaledWidth()),100/Math.max(1,g.getScaledHeight()));g.set({scaleX:(g.scaleX||1)*k,scaleY:(g.scaleY||1)*k,left:60,top:60,originX:'center',originY:'center',angle:0});sc.add(g);sc.renderAll();const im=document.getElementById('elTh'+i);if(im)im.src=sc.toDataURL({format:'png'});});}catch(e){}});}
-function elemUsa(i){const it=ELEM.itens[i];if(!it)return;fabric.util.enlivenObjects([JSON.parse(JSON.stringify(it.obj))],ls=>{const g=ls[0];if(!g)return;const k=Math.min(1,(W()*.4)/Math.max(1,g.getScaledWidth()));g.set({scaleX:(g.scaleX||1)*k,scaleY:(g.scaleY||1)*k,angle:0,name:it.nome||'elemento',pdTag:'grafismo'});centro(g);marca();});}
+function elemUsa(i){const it=ELEM.itens[i];if(!it)return;pdStudio.observa('elemento_cliente',{nome:it.nome});fabric.util.enlivenObjects([JSON.parse(JSON.stringify(it.obj))],ls=>{const g=ls[0];if(!g)return;const k=Math.min(1,(W()*.4)/Math.max(1,g.getScaledWidth()));g.set({scaleX:(g.scaleX||1)*k,scaleY:(g.scaleY||1)*k,angle:0,name:it.nome||'elemento',pdTag:'grafismo'});centro(g);marca();});}
 function formasUI(){$('#formas').innerHTML=Object.entries(FORMAS).map(([k,[n,mk]])=>{const o=mk(100);o.set({left:0,top:0,originX:'left',originY:'top',fill:'currentColor',stroke:null});const w=o.getScaledWidth(),h=o.getScaledHeight();return `<button class="ico f" title="${esc(n)}" onclick="addForma('${k}')"><svg viewBox="-4 -4 ${w+8} ${h+8}">${o.toSVG()}</svg></button>`;}).join('');}
 function addArquivos(inp){[...inp.files].forEach(f=>{const r=new FileReader();r.onload=e=>addImagemUrl(e.target.result,f.name);r.readAsDataURL(f);});inp.value='';}
 function ehSvg(url,nome){return /\.svg(\?|$)/i.test(url)||/\.svg$/i.test(nome||'')||/^data:image\/svg/i.test(url);}
@@ -612,7 +615,7 @@ const ACABAMENTOS=[
   ['hachura','Hachura',o=>({fill:hachura(corKit(0,'#121212'))})],
   ['sobre-foto','Sobre foto',o=>({fill:'#ffffff',shadow:new fabric.Shadow({color:'rgba(0,0,0,.55)',blur:Math.max(8,W()*.02),offsetX:0,offsetY:Math.max(1,W()*.002)})})]];
 function hachura(cor){const c=document.createElement('canvas');c.width=c.height=12;const x=c.getContext('2d');x.strokeStyle=cor;x.lineWidth=3;x.beginPath();x.moveTo(-3,9);x.lineTo(9,-3);x.moveTo(3,15);x.lineTo(15,3);x.stroke();return new fabric.Pattern({source:c,repeat:'repeat'});}
-function acabamento(k){const o=C.getActiveObject();if(!o||o.type!=='textbox'){msg('Selecione um texto (ou crie um em Tipologia).');return;}const a=ACABAMENTOS.find(x=>x[0]===k);if(!a)return;const base={shadow:null,stroke:null,strokeWidth:0,textBackgroundColor:'',paintFirst:'fill'};if(k!=='limpo'&&o.pdAcab&&o.pdAcab!==k){/* troca de acabamento: limpa o anterior */}Object.assign(base,a[2](o));o.set(base);o.set('pdAcab',k);o.dirty=true;C.requestRenderAll();marca();tipologiaUI();}
+function acabamento(k){const o=C.getActiveObject();if(!o||o.type!=='textbox'){msg('Selecione um texto (ou crie um em Tipologia).');return;}pdStudio.observa('acabamento',{k,fonte:o.fontFamily});const a=ACABAMENTOS.find(x=>x[0]===k);if(!a)return;const base={shadow:null,stroke:null,strokeWidth:0,textBackgroundColor:'',paintFirst:'fill'};if(k!=='limpo'&&o.pdAcab&&o.pdAcab!==k){/* troca de acabamento: limpa o anterior */}Object.assign(base,a[2](o));o.set(base);o.set('pdAcab',k);o.dirty=true;C.requestRenderAll();marca();tipologiaUI();}
 function fontesDoCliente(){return [...new Set((KIT&&KIT.fonts||[]).map(f=>f.name))];}
 function combina(n){const cli=fontesDoCliente();if(!cli.length)return true;const cats=new Set(cli.map(catDe));const c=catDe(n);if(cats.has('sans')&&cats.size===1)return c==='serif'||c==='sans';if(cats.has('serif')&&cats.size===1)return c==='sans'||c==='serif';return c==='sans'||cats.has(c);}
 function tipologiaUI(){const el=$('#tipo');if(!el)return;const o=C.getActiveObject();const txt=o&&o.type==='textbox'?o:null;const cli=fontesDoCliente();const atual=txt?txt.fontFamily:null;
@@ -634,7 +637,7 @@ async function fontesLista(){await fontesCasa();const el=$('#fontesLista');if(!e
   const sec=(t,l,g)=>{const ls=l.filter(passa);return ls.length?`<div class="lab">${t} · ${ls.length}</div>`+ls.slice(0,80).map(n=>it(n,g)).join(''):'';};
   el.innerHTML=sec('Da casa',casa,'casa')+sec('Web',web,'web')||'<div class="vazio">Nada com esse filtro.</div>';
   [...casa.filter(passa).slice(0,80),...web.filter(passa).slice(0,80)].forEach(n=>garanteWeb(n).catch(()=>{}));}
-async function fonteClique(n){await garanteFonte(n);await garanteWeb(n);const o=C.getActiveObject();if(o&&o.type==='textbox'){setP('fontFamily',n);o.initDimensions();C.renderAll();}else{addTexto('titulo');setP('fontFamily',n);}tipologiaUI();}
+async function fonteClique(n){pdStudio.observa('fonte',{n});await garanteFonte(n);await garanteWeb(n);const o=C.getActiveObject();if(o&&o.type==='textbox'){setP('fontFamily',n);o.initDimensions();C.renderAll();}else{addTexto('titulo');setP('fontFamily',n);}tipologiaUI();}
 async function fonteSubir(inp,destino){const fs=[...inp.files];inp.value='';for(const f of fs){try{const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});
     const fam=prompt('Nome da família para "'+f.name+'"',f.name.replace(/\.(ttf|otf|woff2?)$/i,'').replace(/[-_](regular|bold|black|light|italic)/ig,''))||'';if(!fam)continue;
     await api('pd-estudio.php',{acao:'fonte_subir',destino,client_id:PECA.client_id,familia:fam,arquivo:{nome:f.name,b64}});msg(f.name+' subiu ('+(destino==='cliente'?'kit do cliente':'fontes da casa')+').');}catch(e){msg(f.name+': '+e.message,5000);}}
@@ -782,7 +785,7 @@ let PA_T0=0,PA_TM=null;function cronoPauta(){clearInterval(PA_TM);PA_T0=Date.now
 async function confirmaLogo(){if(PECA.id!==PA.atual.principal_id)return true;const cands=objetos().filter(o=>o.type==='image'||o.pdTipo==='vetor'||o.type==='group');if(!cands.length)return true;
   if(objetos().some(o=>/logo/i.test(o.name||'')))return true;
   const op=cands.map((o,i)=>(i+1)+' · '+(o.name||o.type)+(o.pdFonte?' ('+o.pdFonte.split('/').pop().slice(0,30)+')':''));const r=prompt('Nenhuma camada está marcada como logotipo. Qual delas é o logo? (a IA nunca mexe nele)\n'+op.join('\n')+'\n0 = não tem logo nesta peça');if(r===null)return false;const n=parseInt(r,10);if(n>0&&cands[n-1]){cands[n-1].set('name','logotipo');marca();await salvar(undefined,true);}return true;}
-async function derivar(feedback){if(!PA.atual||PA.busy)return;if(!PA.atual.principal_id){msg('Falta a peça-modelo: faça, salve e clique em "Usar a peça aberta".',6000);falta('#paSemPrincipal');return;}if(!await confirmaLogo())return;if(dirty){if(!await salvar())return;}
+async function derivar(feedback){pdStudio.observa('derivar',{fam:PA.atual&&PA.atual.familia,feedback:!!feedback});if(!PA.atual||PA.busy)return;if(!PA.atual.principal_id){msg('Falta a peça-modelo: faça, salve e clique em "Usar a peça aberta".',6000);falta('#paSemPrincipal');return;}if(!await confirmaLogo())return;if(dirty){if(!await salvar())return;}
   PA.busy=true;PA.msg='A IA está olhando os modelos, o kit, o texto e as imagens…';cronoPauta();pautaUI();
   try{const {p:pr,pgs,pngs}=await pngsDaPeca(PA.atual.principal_id);PA_ABORT=new AbortController();const r=await api('pd-estudio-ia.php',{acao:'derivar',id:PA.atual.id,feedback,principal_pngs:pngs},PA_ABORT.signal);PA_ABORT=null;
     PA.msg='Plano recebido. Montando as peças…';pautaUI();ocupa('Montando as derivações…');
@@ -914,7 +917,7 @@ async function abrirPeca(id){if(!await antesDeSair())return;try{if(CROP.on)cropS
   $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;nomeAba();if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
   const f=p.formato.impresso?Object.assign({},p.formato):(FORMATOS.find(x=>x.tipo===p.formato.tipo)||{tipo:p.formato.tipo||'kit',nome:p.formato.nome,w:p.formato.w,h:p.formato.h});aplicaFormato(f);F().guias=(p.doc&&p.doc.guias)||[];F().margem=(p.doc&&p.doc.margem)||0;
   H=[];HI=-1;montaPaginas(pgs,()=>{marca(true);dirty=false;});msg(ehModelo?'Modelo aberto como peça nova.':'Peça aberta.');}catch(e){msg(e.message);}}
-async function salvar(modelo,silencio){if(CROP.on)cropSai();if(MASK.on)maskSai();const ativo=C.getActiveObject();if(!silencio){C.discardActiveObject();C.renderAll();}if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);falta('#cli');return;}
+async function salvar(modelo,silencio){if(!silencio)pdStudio.observa('salvou',{modelo:!!modelo,camadas:objetos().length,formato:F().tipo});if(CROP.on)cropSai();if(MASK.on)maskSai();const ativo=C.getActiveObject();if(!silencio){C.discardActiveObject();C.renderAll();}if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);falta('#cli');return;}
   try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,task_id:PECA.task_id,nome:$('#nome').value,formato:PECA.formato,doc:{paginas:todasPaginas(),tipo:PECA.formato.tipo,guias:F().guias||[],margem:F().margem||0,papeis:PECA.papeis||[],video:PECA.video||null},thumb:await thumb(),...(modelo!==undefined?{modelo}:{})});
     PECA.id=r.peca.id;dirty=false;nomeAba();if(!silencio)msg(modelo?'Salva como modelo.':'Salva.');else{const e=$('#salvoEm');if(e)e.textContent='salvo '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}if(PA.atual&&PA.pecas.some(x=>x.id===PECA.id))pautaAbrir(PA.atual.id);return true;}catch(e){msg(e.message,5000);return false;}}
 
@@ -956,7 +959,7 @@ async function svgImpresso(dPag,Wq,Hq,opt){opt=opt||{};const d=dPag||docPagina(P
 async function htmlImpressoTodas(pgs,Wq,Hq,opt){const htmls=[];for(let i=0;i<pgs.length;i++)htmls.push(await svgImpresso(pgs[i],Wq,Hq,opt));if(htmls.length===1)return htmls[0];
   const head=htmls[0].match(/<head>([\s\S]*?)<\/head>/)[1];const corpos=htmls.map(h=>h.match(/<body>([\s\S]*?)<\/body>/)[1]);return `<!doctype html><html><head>${head}</head><body>${corpos.join('')}</body></html>`;}
 async function verDerivacoes(){abaAbre('pauta');PA.fixa=true;if(!PA.atual){try{await desdobrarPrepara();}catch(e){}}}
-async function gerarSaida(){if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);falta('#cli');return;}
+async function gerarSaida(){pdStudio.observa('saida',{formato:F().tipo,impresso:ehImp()});if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);falta('#cli');return;}
   const deriv=PA.atual&&PA.atual.client_id===PECA.client_id?PA.pecas.filter(x=>x.papel==='derivada'):[];
   if(deriv.length){const todas=await perguntar('Este lote tem '+deriv.length+' derivações.\nGerar a saída de todas as peças (esta incluída) ou só deste documento?',{ok:'Todas as peças',cancelar:'Só este documento'});if(todas){await aprovar(true);return;}}
   if(ehImp())await exportarImpresso();else await exportarTudo();}

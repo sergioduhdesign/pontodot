@@ -66,6 +66,21 @@ const EXEC = {
     const f = path.join(dir, 'eco.txt'); fs.writeFileSync(f, txt);
     return { arquivos: [await subir(t, f, 'eco.txt', 'text/plain')], resultado: { ffmpeg: ff, node: process.version } };
   },
+  // entrada: { texto, voz: pf_dora|pm_alex|pm_santa, velocidade: 1.0, nome } → locução MP3 (Kokoro-82M, português do Brasil, roda em CPU)
+  async voz(t, dir) {
+    const e = t.entrada || {}; const texto = String(e.texto || '').trim(); if (!texto) throw new Error('Sem texto para a locução.');
+    const voz = /^p[fm]_[a-z]+$/.test(String(e.voz || '')) ? e.voz : 'pf_dora'; const vel = Math.max(.6, Math.min(1.6, Number(e.velocidade || 1)));
+    await log(t, 'Preparando a voz (Kokoro, ' + voz + ')…');
+    try { await run('python3', ['-c', 'import kokoro'], { timeout: 60e3 }); } catch { await log(t, 'Instalando o motor de voz (1ª vez na máquina: ~2 min)…'); await run('pip', ['install', '-q', 'kokoro>=0.9.4', 'soundfile', 'misaki[pt]'], { maxBuffer: 50e6, timeout: 15 * 60e3 }); }
+    const py = path.join(dir, 'voz.py'); const txt = path.join(dir, 'texto.txt'); fs.writeFileSync(txt, texto);
+    fs.writeFileSync(py, `import sys, soundfile as sf, numpy as np\nfrom kokoro import KPipeline\ntexto = open(sys.argv[1], encoding='utf-8').read()\npipe = KPipeline(lang_code='p')\npartes = []\nfor _, _, audio in pipe(texto, voice=sys.argv[2], speed=float(sys.argv[3]), split_pattern=r'\\n+'):\n    partes.append(np.asarray(audio)); partes.append(np.zeros(int(24000*0.35)))\nsf.write(sys.argv[4], np.concatenate(partes), 24000)\n`);
+    const wav = path.join(dir, 'voz.wav'); await run('python3', [py, txt, voz, String(vel), wav], { maxBuffer: 50e6, timeout: 20 * 60e3 });
+    const nome = nomeLimpo((e.nome || 'locucao') + '.mp3'); const mp3 = path.join(dir, nome);
+    await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', wav, '-codec:a', 'libmp3lame', '-b:a', '192k', '-ar', '44100', mp3]);
+    const dur = parseFloat((await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp3])).stdout) || 0;
+    await log(t, 'Locução pronta: ' + dur.toFixed(1) + ' s.');
+    return { arquivos: [await subir(t, mp3, nome, 'audio/mpeg')], resultado: { voz, velocidade: vel, duracao_s: Math.round(dur * 10) / 10, caracteres: texto.length } };
+  },
   // entrada: { arquivos:[{nome,url}], receita:[ ["-i","{in:base.mp4}","-i","{in:trilha.mp3}","-map","0:v","-map","1:a","-shortest","{out:final.mp4}"], ... ] }
   async ffmpeg(t, dir) {
     const e = t.entrada || {}; const ins = {};

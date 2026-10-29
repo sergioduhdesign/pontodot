@@ -146,11 +146,11 @@ function esItensDaPasta($pasta) {
     try { $l = ponte('listar', ['folderId' => $pasta]); } catch (Exception $e) { sd_fail('Não consegui ler a pasta: ' . $e->getMessage() . ' (a pasta precisa estar compartilhada com a conta da ponte).', 500); }
     $itens = []; $pastas = [];
     foreach ((array)($l['arquivos'] ?? []) as $f) {
-        $m = (string)($f['mime'] ?? ''); $ehImg = stripos($m, 'image/') === 0 && stripos($m, 'svg') === false; $ehVid = stripos($m, 'video/') === 0; $ehSvg = stripos($m, 'svg') !== false;
-        if (!$ehImg && !$ehVid && !$ehSvg) continue;
+        $m = (string)($f['mime'] ?? ''); $ehImg = stripos($m, 'image/') === 0 && stripos($m, 'svg') === false; $ehVid = stripos($m, 'video/') === 0; $ehSvg = stripos($m, 'svg') !== false; $ehAud = stripos($m, 'audio/') === 0 || preg_match('/\.(mp3|m4a|wav|aac|ogg)$/i', (string)$f['name']);
+        if (!$ehImg && !$ehVid && !$ehSvg && !$ehAud) continue;
         $sub = strpos((string)$f['path'], '/') !== false ? substr((string)$f['path'], 0, strrpos((string)$f['path'], '/')) : ''; if ($sub !== '') $pastas[$sub] = true;
         $k = esAssina($f['id']); $base = '/pd-estudio.php?img=' . rawurlencode($f['id']) . '&k=' . $k;
-        $itens[] = ['id' => $f['id'], 'nome' => $f['name'], 'path' => $f['path'], 'sub' => $sub, 'tipo' => $ehVid ? 'video' : ($ehSvg ? 'vetor' : 'foto'), 'arquivo' => $base . '&w=0', 'bytes' => (int)($f['size'] ?? 0), 'url' => $f['url'],
+        $itens[] = ['id' => $f['id'], 'nome' => $f['name'], 'path' => $f['path'], 'sub' => $sub, 'tipo' => $ehVid ? 'video' : ($ehAud ? 'audio' : ($ehSvg ? 'vetor' : 'foto')), 'arquivo' => $base . '&w=0', 'bytes' => (int)($f['size'] ?? 0), 'url' => $f['url'],
             'thumb' => ($ehImg || $ehSvg) ? $base . '&w=400' : null, 'cheia' => ($ehImg || $ehSvg) ? $base . '&w=2400' : null, 'modificado' => $f['modified'] ?? null];
     }
     usort($itens, fn($a, $b2) => strcmp((string)$a['path'], (string)$b2['path']));

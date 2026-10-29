@@ -103,6 +103,25 @@ if ($acao === 'curso_salvar') {
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v113 no Supabase.', 500);
     echo json_encode(['ok' => true, 'slug' => $slug]); exit;
 }
+// ---------- PD · Studio Design: quem são as IAs de cada área e a IA assistindo o humano trabalhar
+if ($acao === 'area_quem') {   // {minha: a IA da pessoa, mestre: a IA da área, chefe: Maestro, hoje: quantas observações a minha IA fez hoje nessa área}
+    $area = (string)($b['area'] ?? ''); $cat = pdPersonagens();
+    $j = pdAulaSup('/rest/v1/pd_jeito?user_id=eq.' . urlencode($u['id']) . '&select=user_id,personagem,apelido')['body'][0] ?? null;
+    $minha = $j ? ['id' => $j['user_id'], 'personagem' => strtolower((string)$j['personagem']), 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[strtolower((string)$j['personagem'])][0] ?? 'minha IA')] : null;
+    $mestre = pdQuemFazArea($area ?: 'digital');
+    $hoje = 0; try { $d0 = gmdate('Y-m-d') . 'T00:00:00Z'; $r = pdAulaSup('/rest/v1/pd_observacoes?user_id=eq.' . urlencode($u['id']) . '&em=gte.' . $d0 . ($area ? '&area=eq.' . urlencode($area) : '') . '&select=id&limit=1000'); $hoje = count($r['body'] ?? []); } catch (Throwable $e) {}
+    $total = 0; try { $r = pdAulaSup('/rest/v1/pd_observacoes?user_id=eq.' . urlencode($u['id']) . ($area ? '&area=eq.' . urlencode($area) : '') . '&select=id&limit=5000'); $total = count($r['body'] ?? []); } catch (Throwable $e) {}
+    echo json_encode(['minha' => $minha, 'mestre' => $mestre, 'chefe' => ['personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'chefe da casa'], 'hoje' => $hoje, 'total' => $total, 'masters' => pdAreaMasters()], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_id, evento, dados}] — a IA da pessoa (ou a mestre da área) registra como aprendizado
+    $lote = is_array($b['lote'] ?? null) ? array_slice($b['lote'], 0, 100) : []; if (!$lote) { echo json_encode(['ok' => true, 'n' => 0]); exit; }
+    $j = pdAulaSup('/rest/v1/pd_jeito?user_id=eq.' . urlencode($u['id']) . '&select=user_id,personagem')['body'][0] ?? null; $linhas = [];
+    foreach ($lote as $o) { $area = mb_substr((string)($o['area'] ?? ''), 0, 20); $q = $j ?: pdQuemFazArea($area ?: 'digital'); $ia = $j ? $j['user_id'] : ($q['id'] ?? null);
+        $linhas[] = ['area' => $area, 'client_id' => ($o['client_id'] ?? null) ?: null, 'peca_id' => preg_match('/^[0-9a-f-]{36}$/i', (string)($o['peca_id'] ?? '')) ? $o['peca_id'] : null, 'user_id' => $u['id'], 'ia_user_id' => $ia, 'personagem' => strtolower((string)($j['personagem'] ?? ($q['personagem'] ?? ''))), 'evento' => mb_substr((string)($o['evento'] ?? ''), 0, 60), 'dados' => is_array($o['dados'] ?? null) ? $o['dados'] : null, 'em' => !empty($o['em']) ? gmdate('c', (int)($o['em'] / 1000)) : gmdate('c')]; }
+    $r = pdAulaSup('/rest/v1/pd_observacoes', 'POST', $linhas); if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v128 no Supabase.', 500);
+    echo json_encode(['ok' => true, 'n' => count($linhas)]); exit;
+}
+if ($acao === 'masters_salvar') { if (!$ehAdmin) sd_fail('Só admin.', 403); $m = is_array($b['masters'] ?? null) ? array_map(fn($v) => strtolower(preg_replace('/[^a-z]/i', '', (string)$v)), $b['masters']) : []; pdAulaSup('/rest/v1/app_settings?id=eq.1', 'PATCH', ['area_masters' => $m]); echo json_encode(['ok' => true]); exit; }
 if (!$ehAdmin) sd_fail('Só admin.', 403);
 if ($acao === 'perm_lista') {
     $pf = pdAulaSup('/rest/v1/profiles?active=eq.true&client_id=is.null&select=id,name,role&order=name&limit=100')['body'] ?? [];

@@ -14,9 +14,10 @@
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-lib.php';
 @set_time_limit(280); @ini_set('memory_limit', '768M');
+if (!defined('ES_CACHE')) define('ES_CACHE', __DIR__ . '/.cache-midia');
+if (defined('PD_SO_FUNCOES')) return;   // outro arquivo (pd-copy.php) só quer as funções (paClaude, paReferencias, paJson…), que o PHP já carregou
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'pauta_listar');
-const ES_CACHE = __DIR__ . '/.cache-midia';
 function paPonteOk() { return function_exists('ponte') && defined('SD_PONTE_URL') && defined('SD_PONTE_KEY') && SD_PONTE_KEY; }
 function paAssina($id) { return substr(hash_hmac('sha256', 'midia:' . $id, SD_SECRET_KEY), 0, 24); }
 

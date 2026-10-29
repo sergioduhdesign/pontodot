@@ -1,0 +1,85 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio Design · Locução e trilha · Pontodot</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/pd-studio.js"></script>
+<style>
+:root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--ink);font:400 13px/1.45 "Helvetica Neue","Inter Tight",system-ui,sans-serif;overflow:hidden}
+#app{display:grid;grid-template-rows:48px 1fr;height:100%}
+.top{display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--bg)}.top .nome{flex:1;min-width:100px}.sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+select,input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-height:36px}
+.btn{font:500 12.5px "Helvetica Neue","Inter Tight";padding:7px 11px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.i{width:36px;height:36px;padding:0;justify-content:center}.btn.s{padding:5px 9px;font-size:12px;min-height:30px}.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.btn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.meio{display:grid;grid-template-columns:300px 1fr;min-height:0}
+.lado{border-right:1px solid var(--line);background:var(--soft);overflow:auto;padding:14px}
+h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gray);margin:0 0 8px}h3:not(:first-child){margin-top:16px}.lab{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--gray);margin:10px 0 4px}.vazio{color:var(--gray);font-size:12px;padding:6px 0}.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.centro{display:flex;flex-direction:column;min-height:0;background:var(--pano)}
+.lista{flex:1;min-height:0;overflow:auto;padding:22px 26px}
+.take{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:10px}.take .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:#fff;font-size:16px}.take .tx{flex:1;min-width:0}.take .tx b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.take .tx small{color:var(--gray)}.take audio{height:32px;max-width:260px}
+.prompt{border-top:1px solid var(--line);background:var(--bg);padding:14px 26px 16px;display:flex;flex-direction:column;gap:10px}
+.prompt textarea{width:100%;min-height:90px;font-size:15px;border-radius:12px;padding:12px 14px;resize:vertical;line-height:1.5}
+.chip{padding:4px 10px;border:1px solid var(--line);border-radius:99px;font-size:12px;cursor:pointer;background:var(--bg);white-space:nowrap}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.voz{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent}.voz:hover{background:var(--bg)}.voz.on{background:var(--bg);border-color:var(--line)}.voz b{font-size:12.5px;display:block}.voz small{color:var(--gray);display:block}
+.msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:7px;font-size:12.5px;opacity:0;transition:.2s;pointer-events:none;z-index:50}.msg.on{opacity:1}
+.ocupado{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);z-index:60}.ocupado.on{display:grid}.ocupado i{width:28px;height:28px;border:3px solid rgba(0,0,0,.15);border-top-color:var(--ink);border-radius:50%;animation:gira .8s linear infinite}@keyframes gira{to{transform:rotate(360deg)}}
+</style></head><body><div id="app">
+<div class="top">
+  <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
+  <input class="nome" id="nome" placeholder="Nome da locução" value="Locução" onchange="nomeAba()">
+  <span class="sep"></span>
+  <button class="btn i" onclick="recarrega()" title="Atualizar"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
+  <span class="sep"></span><div id="pdIA"></div>
+</div>
+<div class="meio">
+  <div class="lado">
+    <h3>Voz</h3><div id="vozes"></div>
+    <div class="lab">Velocidade</div><div class="row"><input type="range" id="vel" min="0.7" max="1.4" step="0.05" value="1" style="min-height:0;padding:0;flex:1" oninput="$('#velV').textContent=(+this.value).toFixed(2)+'×'"><span id="velV" style="width:48px">1.00×</span></div>
+    <div class="vazio" style="line-height:1.4">Vozes em português do Brasil (motor Kokoro, roda na oficina). Pausa = linha em branco. Ênfase: letras MAIÚSCULAS na palavra. Pra narrar número, escreva por extenso.</div>
+    <h3>Trilhas <small class="vazio" style="display:inline;text-transform:none;letter-spacing:0">· da casa e do cliente</small></h3>
+    <div class="row" style="margin-bottom:6px"><input id="bkLink" placeholder="link de uma pasta do Drive com músicas" style="flex:1;min-width:120px"><button class="btn s" onclick="bancoVer()">ver</button></div>
+    <div id="bkChips" class="row" style="gap:4px"></div><div id="trilhas"></div>
+  </div>
+  <div class="centro">
+    <div class="lista"><h3 style="margin-bottom:12px">Locuções deste cliente</h3><div id="takes"><div class="vazio">Escolha o cliente.</div></div></div>
+    <div class="prompt">
+      <textarea id="texto" placeholder="Escreva o texto da locução. Uma linha em branco faz pausa.&#10;&#10;Ex.: Morar bem é acordar com a luz certa.&#10;&#10;Conheça o decorado. Visite o Jardim das Palmeiras."></textarea>
+      <div class="row" style="justify-content:space-between"><span class="vazio" id="contagem">0 caracteres · ~0 s</span><div class="row"><button class="btn" onclick="previa()" title="Prévia rápida com a voz do navegador (não é a voz final)"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Prévia</button><button class="btn p" onclick="gerar()"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg> Gerar locução</button></div></div>
+    </div>
+  </div>
+</div></div>
+<div class="msg" id="msg"></div><div class="ocupado" id="ocupado"><i></i></div>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let sb,ses,CLIS=[],CID=null,VOZ='pf_dora',TAKES=[],BK={lista:[],atual:null};
+const VOZES=[['pf_dora','Dora','feminina · clara, institucional'],['pm_alex','Alex','masculina · jovem, direta'],['pm_santa','Santa','masculina · grave, narrador']];
+let OCUP=0;function ocupa(){OCUP++;$('#ocupado').classList.add('on');}function desocupa(){OCUP=Math.max(0,OCUP-1);if(!OCUP)$('#ocupado').classList.remove('on');}
+let MSGT;function msg(t,ms=3500){const e=$('#msg');e.textContent=t;e.classList.add('on');clearTimeout(MSGT);MSGT=setTimeout(()=>e.classList.remove('on'),ms);}
+async function api(arq,b){ocupa();try{const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}finally{desocupa();}}
+function nomeAba(){try{parent.postMessage({tipo:'est-nome',nome:$('#nome').value||'Locução',dirty:false},'*');}catch(e){}}
+const q=new URLSearchParams(location.search);
+async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoRefreshToken:false}});ses=(await sb.auth.getSession()).data.session;if(!ses){document.body.innerHTML='<div style="padding:20px">Entre na PD primeiro.</div>';return;}
+  const {data}=await sb.from('clients').select('id,name,active').order('name');CLIS=(data||[]).filter(c=>c.active!==false);$('#cli').innerHTML='<option value="">Escolha o cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  vozesUI();if(q.get('cliente'))$('#cli').value=q.get('cliente');await trocaCliente();pdStudio.iniciar('audio',{getClientId:()=>CID,getNome:()=>$('#nome').value},ses);nomeAba();
+  $('#texto').addEventListener('input',()=>{const n=$('#texto').value.length;$('#contagem').textContent=n+' caracteres · ~'+Math.round(n/15)+' s';});bancosUI();setInterval(recarrega,30000);}
+function vozesUI(){$('#vozes').innerHTML=VOZES.map(([id,n,d])=>`<div class="voz ${VOZ===id?'on':''}" onclick="VOZ='${id}';vozesUI();pdStudio.observa('voz',{voz:'${id}'})"><span style="width:30px;height:30px;border-radius:50%;background:${id.startsWith('pf')?'#e5007d':'#2f7fd1'};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700">${n[0]}</span><div><b>${n}</b><small>${d}</small></div></div>`).join('');}
+async function trocaCliente(){CID=$('#cli').value||null;await recarrega();}
+async function recarrega(){if(!CID){$('#takes').innerHTML='<div class="vazio">Escolha o cliente.</div>';return;}try{const r=await api('pd-oficina.php',{acao:'inicio'});TAKES=(r.trabalhos||[]).filter(t=>t.modulo==='voz'&&t.client_id===CID);takesUI();}catch(e){msg(e.message,6000);}}
+function takesUI(){const st={fila:'na fila',rodando:'gravando…',pronto:'pronta',erro:'erro',cancelado:'cancelada'};$('#takes').innerHTML=TAKES.map(t=>{const a=(t.saida&&t.saida.arquivos||[])[0];const res=(t.saida&&t.saida.resultado)||{};const e=t.entrada||{};const v=VOZES.find(x=>x[0]===e.voz)||VOZES[0];
+  return `<div class="take"><span class="ic" style="background:${t.status==='pronto'?'var(--ok)':t.status==='erro'?'var(--bad)':'#999'}">${t.status==='pronto'?'♪':t.status==='erro'?'!':'…'}</span><div class="tx"><b>${esc(t.titulo||'Locução')}</b><small>${v[1]} · ${esc(st[t.status]||t.status)}${res.duracao_s?' · '+res.duracao_s+' s':''} · ${new Date(t.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${t.erro?' · '+esc(t.erro):''}</small><small style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px">${esc((e.texto||'').slice(0,160))}</small></div>${a&&(a.url||a.drive_url)?`<audio controls preload="none" src="${esc(a.url||a.drive_url)}"></audio>${a.drive_url?`<a class="btn s" href="${esc(a.drive_url)}" target="_blank" rel="noopener" title="No Drive (MÍDIA › ÁUDIO)">Drive</a>`:''}<button class="btn s" onclick="reusar(${TAKES.indexOf(t)})" title="Reaproveitar o texto">↻</button>`:''}</div>`;}).join('')||'<div class="vazio">Nenhuma locução ainda. Escreva embaixo e gere.</div>';}
+function reusar(i){const t=TAKES[i];if(!t)return;$('#texto').value=(t.entrada||{}).texto||'';$('#texto').dispatchEvent(new Event('input'));VOZ=(t.entrada||{}).voz||VOZ;vozesUI();}
+function previa(){const t=$('#texto').value.trim();if(!t){msg('Escreva o texto.');return;}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=+$('#vel').value;const vs=speechSynthesis.getVoices().filter(v=>/pt[-_]BR/i.test(v.lang));if(vs.length)u.voice=vs[VOZ.startsWith('pf')?0:Math.min(1,vs.length-1)];speechSynthesis.speak(u);msg('Prévia com a voz do navegador — a final é a da oficina.');}catch(e){msg('Seu navegador não tem voz em português.');}}
+async function gerar(){if(!CID){msg('Escolha o cliente.');return;}const texto=$('#texto').value.trim();if(!texto){msg('Escreva o texto.');return;}const nome=($('#nome').value||'locucao').replace(/[\/\\:*?"<>|]+/g,'-');
+  try{const r=await api('pd-oficina.php',{acao:'pedir',modulo:'voz',titulo:'Locução · '+nome,client_id:CID,ok_agora:true,entrada:{nome,texto,voz:VOZ,velocidade:+$('#vel').value,drive_subpasta:'MÍDIA/ÁUDIO',pedido:'Locução por IA ('+VOZ+'): '+texto.length+' caracteres'}});
+    msg(r.trabalho&&r.trabalho.status==='fila'?'Gravando na oficina. Chega em 1 a 4 min; aparece aqui e em cliente › MÍDIA › ÁUDIO.':'Pedido: '+(r.trabalho&&r.trabalho.status),8000);pdStudio.observa('gerou_locucao',{voz:VOZ,chars:texto.length,vel:+$('#vel').value});await recarrega();
+    if(r.trabalho){const id=r.trabalho.id;const tm=setInterval(async()=>{try{const j=await api('pd-oficina.php',{acao:'ver',id});const st=j.trabalho&&j.trabalho.status;if(st==='pronto'||st==='erro'){clearInterval(tm);await recarrega();pdStudio.avisa(st==='pronto'?'Terminei a locução '+nome+'! Já dá pra ouvir e está no Drive.':'Não consegui gravar '+nome+': '+(j.trabalho.erro||'erro'));}}catch(e){}},30000);}}
+  catch(e){msg(e.message,8000);}}
+// trilhas: bancos do Drive (os mesmos do Studio) + MÍDIA do cliente
+async function bancosUI(){try{const r=await api('pd-estudio.php',{acao:'banco_listar',client_id:CID});BK.lista=r.bancos||[];}catch(e){BK.lista=[];}
+  $('#bkChips').innerHTML=`<span class="chip ${BK.atual==='cli'?'on':''}" onclick="trilhasCliente()">MÍDIA do cliente</span>`+BK.lista.map(b=>`<span class="chip ${BK.atual===b.id?'on':''}" onclick="bancoVer('${b.id}')">${esc(b.nome)}</span>`).join('');}
+function trilhaLista(itens){$('#trilhas').innerHTML=itens.length?itens.map(x=>`<div class="voz"><span style="width:30px;height:30px;border-radius:50%;background:#333;color:#fff;display:grid;place-items:center">♪</span><div style="min-width:0;flex:1"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.nome)}</b><audio controls preload="none" src="${esc(x.src)}" style="height:28px;width:100%"></audio></div></div>`).join(''):'<div class="vazio">Nenhum áudio nesta pasta.</div>';}
+async function trilhasCliente(){if(!CID){msg('Escolha o cliente.');return;}BK.atual='cli';bancosUI();try{const r=await api('pd-estudio.php',{acao:'galeria',client_id:CID});trilhaLista((r.itens||[]).filter(x=>x.tipo==='audio').map(x=>({nome:x.nome,src:location.origin+x.arquivo})));}catch(e){msg(e.message);}}
+async function bancoVer(id){const link=($('#bkLink').value||'').trim();if(!id&&!link)return;try{const r=await api('pd-estudio.php',id?{acao:'banco_ver',id}:{acao:'banco_ver',link});BK.atual=id||null;bancosUI();const itens=(r.itens||[]).filter(x=>/\.(mp3|m4a|wav|aac|ogg)$/i.test(x.nome)||x.tipo==='audio').map(x=>({nome:x.nome,src:location.origin+x.arquivo}));trilhaLista(itens);
+    if(!id&&!r.salvo&&confirm('Salvar esta pasta como banco de trilhas da casa?')){const nome=prompt('Nome do banco:','Trilhas')||'Trilhas';await api('pd-estudio.php',{acao:'banco_salvar',link,nome,client_id:null});bancosUI();}}catch(e){msg(e.message,6000);}}
+async function antesDeSair(){return true;}
+boot();
+</script></body></html>
