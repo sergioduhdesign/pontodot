@@ -119,6 +119,7 @@ const EXEC = {
   // VÍDEO v1 — entrada: { nome, w, h, fps, cenas:[{dur, trans:'corte'|'fade', fundo_url (PNG das camadas abaixo do clipe), topo_url (PNG transparente das camadas acima), clipes:[{url, ini, fim, x, y, w, h, vol, mudo}]}],
   //                       trilha:{url, vol, ini}, locucao:{url, vol, ini} }  → MP4 H.264/AAC
   async video(t, dir) {
+    const tp = (t.entrada || {}).tipo; if (tp === 'cortes_analise') return CORTES.analise(t, dir); if (tp === 'cortes_render') return CORTES.render(t, dir);
     const e = t.entrada || {}; const W = +e.w || 1080, H = +e.h || 1920, fps = +e.fps || 30; const cenas = Array.isArray(e.cenas) ? e.cenas : [];
     if (!cenas.length) throw new Error('Vídeo sem cenas.');
     const esc = v => String(v).replace(/'/g, "\\'");
@@ -199,6 +200,7 @@ const EXEC = {
   }
 };
 
+const CORTES = require('./cortes.js')({ PD, KEY, pd, log, subir, nomeLimpo });
 // ---------------------------------------------------------------- ciclo
 (async () => {
   await pd('pulso').catch(() => {});
