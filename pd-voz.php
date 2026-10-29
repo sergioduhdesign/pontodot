@@ -3,13 +3,21 @@
 // Entrega: MP3 no Storage (bucket "pecas", público) + cópia em cliente › MÍDIA › ÁUDIO no Drive + registro em pd_trabalhos (módulo voz, pronto)
 // pra aparecer em Saída de materiais e na tela de Locução. A oficina (Kokoro) continua como alternativa gratuita.
 require_once __DIR__ . '/sd-auth.php';
+define('PD_SO_FUNCOES', true);
 require_once __DIR__ . '/pd-lib.php';
+require_once __DIR__ . '/pd-estudio-ia.php';
 header('Content-Type: application/json; charset=utf-8');
 @set_time_limit(180);
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'gerar');
 $VOZES = ['dora' => ['nova', 'feminina · clara, institucional'], 'alex' => ['ash', 'masculina · jovem, direta'], 'santa' => ['onyx', 'masculina · grave, narrador'], 'lia' => ['coral', 'feminina · quente, próxima'], 'sol' => ['sage', 'feminina · calma, premium'], 'rui' => ['echo', 'masculina · neutra, comercial']];
 if ($acao === 'vozes') { echo json_encode(['premium' => defined('SD_OPENAI_KEY') && SD_OPENAI_KEY, 'vozes' => array_map(fn($k, $v) => ['id' => $k, 'nome' => ucfirst($k), 'desc' => $v[1]], array_keys($VOZES), $VOZES)], JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'preparar') {   // roteiro visual → roteiro falado (números, datas, siglas, marcas por extenso), sem mudar o sentido
+    $t = trim((string)($b['texto'] ?? '')); if ($t === '') sd_fail('Sem texto.'); $pron = mb_substr(trim((string)($b['pronuncia'] ?? '')), 0, 400);
+    $sys = "Você prepara roteiros de locução em português do Brasil para serem LIDOS EM VOZ ALTA. Reescreva SÓ a forma de leitura: valores por extenso (R$ 1.350 → mil trezentos e cinquenta reais), datas, horários, metragens (m² → metros quadrados), telefones em grupos, siglas (leia como se fala), endereços e abreviações. NÃO mude o sentido, não acrescente nem corte frases, preserve as linhas em branco (pausas) e as palavras em MAIÚSCULAS (ênfase). Se houver regras de pronúncia, aplique. Responda SÓ com o texto pronto, sem comentários.";
+    try { [$out] = paClaude($sys, [['type' => 'text', 'text' => ($pron ? "REGRAS DE PRONÚNCIA: $pron\n\n" : '') . "ROTEIRO:\n$t"]], 3000); } catch (Exception $e) { sd_fail($e->getMessage(), 502); }
+    echo json_encode(['texto' => trim((string)$out)], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'amostra') {   // frase de amostra de cada voz: gerada UMA vez, guardada no Storage e reaproveitada (custo zero nas próximas)
     $vk = strtolower((string)($b['voz'] ?? '')); if (!isset($VOZES[$vk])) sd_fail('Voz desconhecida.');
     $key = 'voz-amostras/' . $vk . '-v1.mp3'; $pub = SD_SUPABASE_URL . '/storage/v1/object/public/pecas/' . $key;
@@ -30,7 +38,7 @@ $texto = trim((string)($b['texto'] ?? '')); if ($texto === '') sd_fail('Sem text
 $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Escolha o cliente.');
 $vk = strtolower((string)($b['voz'] ?? 'dora')); $voz = $VOZES[$vk] ?? $VOZES['dora']; $vel = max(.7, min(1.4, (float)($b['velocidade'] ?? 1)));
 $tom = trim((string)($b['tom'] ?? '')); $nome = preg_replace('/[^\w\-. ]+/u', '-', (string)($b['nome'] ?? 'locucao')) ?: 'locucao';
-$instr = 'Locução publicitária em português do Brasil, natural, dicção clara, sem sotaque estrangeiro, pausas respeitando a pontuação' . ($vel < .95 ? ', ritmo calmo' : ($vel > 1.1 ? ', ritmo ágil' : '')) . ($tom ? '. Tom: ' . mb_substr($tom, 0, 200) : '. Tom: confiante e próximo, como um narrador de marca premium') . '. Palavras em MAIÚSCULAS ganham ênfase. Linha em branco = pausa curta.';
+$instr = 'Locução publicitária em português do Brasil, natural, dicção clara, sem sotaque estrangeiro, pausas respeitando a pontuação' . ($vel < .95 ? ', ritmo calmo' : ($vel > 1.1 ? ', ritmo ágil' : '')) . ($tom ? '. Tom: ' . mb_substr($tom, 0, 700) : '. Tom: confiante e próximo, como um narrador de marca premium') . '. Palavras em MAIÚSCULAS ganham ênfase. Linha em branco = pausa curta. Leia o roteiro integralmente, sem acrescentar, trocar nem omitir palavras; as indicações de direção não são para serem faladas.';
 // 1) gera
 $ch = curl_init('https://api.openai.com/v1/audio/speech');
 curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 150, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_OPENAI_KEY, 'Content-Type: application/json'],
