@@ -55,7 +55,7 @@ select,input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:
 <!-- 1 · começar -->
 <div class="tela on" id="tIni"><div class="ini">
   <h1>Cortes inteligentes</h1><p class="sub">Suba um vídeo longo e receba os melhores trechos em 9:16, com legenda palavra por palavra.</p>
-  <label class="drop" id="drop" for="arq"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></svg><b>Solte o vídeo aqui ou clique para escolher</b><span class="vazio">MP4, MOV… até ~50 MB direto; maior que isso, cole o link do Drive</span></label>
+  <label class="drop" id="drop" for="arq"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></svg><b>Solte o vídeo aqui ou clique para escolher</b><span class="vazio">qualquer tamanho: o vídeo sobe em pedaços, com barra de progresso real</span></label>
   <input type="file" id="arq" accept="video/*,audio/*" style="display:none">
   <div class="ou">ou cole um link</div>
   <div class="row"><input id="link" placeholder="link do Google Drive ou link direto do arquivo (.mp4)" style="flex:1;min-width:200px"><button class="btn p" onclick="comLink()" title="Gerar cortes a partir do link"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Gerar cortes</button></div>
@@ -125,13 +125,18 @@ drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0])sobe(e.dataTransfer.
 function precisaCliente(){if(!CID){msg('Escolha o cliente: todo trabalho é de um cliente.');$('#cli').focus();return false;}return true;}
 function opcoesPedido(){return {n:OPC.n,dur_min:OPC.dmin,dur_max:OPC.dmax,idioma:OPC.idioma,enquadramento:OPC.enq,foco:$('#foco').value.trim()};}
 async function sobe(f){
-  if(!precisaCliente())return;if(f.size>50*1024*1024){msg('Arquivo grande (>50 MB): suba no Drive e cole o link aqui.',9000);return;}
-  tela('tProc');$('#pTit').textContent='Enviando o vídeo…';$('#pSub').textContent=f.name;$('#pLog').textContent='';$('#pRetry').style.display='none';
-  try{const u=await ct('upload_url',{nome:f.name});
-    await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('PUT',u.put_url);x.setRequestHeader('Content-Type',f.type||'video/mp4');x.setRequestHeader('x-upsert','true');x.upload.onprogress=e=>{if(e.lengthComputable)$('#pBar').style.width=Math.round(e.loaded/e.total*60)+'%';};x.onload=()=>x.status<300?ok():no(new Error('Envio falhou ('+x.status+'): '+x.responseText.slice(0,160)));x.onerror=()=>no(new Error('Envio falhou (rede).'));x.send(f);});
-    await pede({tipo:'upload',path:u.path,url:u.get_url},f.name.replace(/\.[^.]+$/,''));
+  if(!precisaCliente())return;const PT=16*1024*1024,n=Math.ceil(f.size/PT);
+  tela('tProc');$('#pTit').textContent='Enviando o vídeo…';$('#pLog').textContent='';$('#pRetry').style.display='none';$('#pBar').style.width='0';
+  const gb=x=>x>=1073741824?(x/1073741824).toFixed(2)+' GB':Math.round(x/1048576)+' MB';
+  try{const u=await ct('upload_partes',{nome:f.name,n});const feito=new Array(n).fill(0);let prox=0,t0=Date.now(),cancel=false;
+    const mostra=()=>{const s=feito.reduce((a,b)=>a+b,0),pc=s/f.size*100,vel=s/Math.max(1,(Date.now()-t0)/1000);$('#pBar').style.width=Math.min(100,pc)+'%';$('#pSub').textContent=f.name+' · '+pc.toFixed(1)+'% · '+gb(s)+' de '+gb(f.size)+' · '+(vel/1048576).toFixed(1)+' MB/s'+(vel>0?' · faltam ~'+fmtT((f.size-s)/vel):'');};
+    const envia=(i)=>new Promise((ok,no)=>{let tent=0;const tenta=()=>{const x=new XMLHttpRequest();x.open('PUT',u.partes[i].put_url);x.setRequestHeader('Content-Type','application/octet-stream');x.setRequestHeader('x-upsert','true');x.upload.onprogress=e=>{feito[i]=e.loaded;mostra();};x.onload=()=>{if(x.status<300){feito[i]=Math.min(PT,f.size-i*PT);mostra();ok();}else falha(x.status+' '+x.responseText.slice(0,120));};x.onerror=()=>falha('rede');const falha=m=>{if(++tent<4){feito[i]=0;setTimeout(tenta,1200*tent);}else no(new Error('Pedaço '+(i+1)+'/'+n+' falhou: '+m));};x.send(f.slice(i*PT,Math.min(f.size,(i+1)*PT)));};tenta();});
+    const nada=async()=>{while(prox<n&&!cancel){const i=prox++;try{await envia(i);}catch(e){cancel=true;throw e;}}};
+    await Promise.all([nada(),nada(),nada()]);
+    await pede({tipo:'partes',partes:u.partes.map(p=>({path:p.path})),bytes:f.size},f.name.replace(/\.[^.]+$/,''));
   }catch(e){procErro(e.message);}
 }
+const fmtT=s=>s>3600?Math.round(s/3600*10)/10+' h':s>60?Math.round(s/60)+' min':Math.round(s)+' s';
 async function comLink(){
   if(!precisaCliente())return;const l=$('#link').value.trim();if(!/^https:\/\//i.test(l)){msg('Cole um link https.');return;}
   if(/youtube\.com|youtu\.be|instagram\.com|tiktok\.com|facebook\.com|vimeo\.com/i.test(l)){msg('Desse site não: baixar de lá fere os termos. Use o arquivo original ou o link do Drive.',9000);return;}
@@ -147,8 +152,8 @@ async function pede(fonte,nome){
 function procErro(t){$('#pTit').textContent='Não deu certo';$('#pSub').textContent=t;$('#pRetry').style.display='';$('#pBar').style.width='0';}
 async function reanalisa(){tela('tIni');P=null;}
 // ---------- acompanhar a análise
-function acompanha(){tela('tProc');clearInterval(POLL);$('#pTit').textContent='Lendo o vídeo…';$('#pSub').textContent='Pode fechar esta aba: o trabalho continua na Oficina e volta aqui.';$('#pBar').style.width='60%';let n=0;
-  const ciclo=async()=>{if(document.hidden)return;try{const p=await ct('projeto',{id:P.id});P=p;$('#pLog').textContent=(p.log||[]).slice(-8).join('\n');$('#pBar').style.width=Math.min(95,60+(p.log||[]).length*5)+'%';
+function acompanha(){tela('tProc');clearInterval(POLL);$('#pTit').textContent='Lendo o vídeo…';$('#pSub').textContent='Pode fechar esta aba: o trabalho continua na Oficina e volta aqui.';$('#pBar').style.width='10%';let n=0;
+  const ciclo=async()=>{if(document.hidden)return;try{const p=await ct('projeto',{id:P.id});P=p;$('#pLog').textContent=(p.log||[]).slice(-8).join('\n');$('#pBar').style.width=Math.min(95,10+(p.log||[]).length*8)+'%';
     if(p.status==='erro'||p.status==='cancelado'){clearInterval(POLL);procErro(p.erro||'A Oficina não conseguiu ler o vídeo.');}
     else if(p.status==='pronto'){clearInterval(POLL);if(!p.cortes.length){$('#pTit').textContent='A IA está escolhendo os melhores trechos…';$('#pSub').textContent='';await sugerir(true);}else editor();}
   }catch(e){if(++n>5){clearInterval(POLL);procErro(e.message);}}};

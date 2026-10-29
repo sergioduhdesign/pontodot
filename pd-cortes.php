@@ -46,6 +46,14 @@ if ($acao === 'upload_url') {   // o navegador sobe o vídeo direto no Storage (
     if (empty($r['body']['url'])) sd_fail('Não consegui preparar o envio (o bucket "oficina" existe? rode o SQL v115).', 500);
     echo json_encode(['put_url' => SD_SUPABASE_URL . '/storage/v1' . $r['body']['url'], 'path' => $path, 'get_url' => ctLinkLeitura($path)], JSON_UNESCAPED_UNICODE); exit;
 }
+if ($acao === 'upload_partes') {   // vídeo de qualquer tamanho: o navegador manda em pedaços de ~16 MB, cada um num arquivo; a Oficina junta
+    $n = max(1, min(400, (int)($b['n'] ?? 1))); $nome = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)iconv('UTF-8', 'ASCII//TRANSLIT', (string)($b['nome'] ?? 'video.mp4'))) ?: 'video.mp4';
+    $base = 'cortes/' . date('Ymd') . '/' . bin2hex(random_bytes(5)); $partes = [];
+    for ($i = 0; $i < $n; $i++) { $path = $base . '/p' . str_pad((string)$i, 4, '0', STR_PAD_LEFT) . '-' . mb_substr($nome, 0, 60);
+        $r = ctSup('/storage/v1/object/upload/sign/oficina/' . implode('/', array_map('rawurlencode', explode('/', $path))), 'POST', new stdClass(), ['Authorization: Bearer ' . SD_SECRET_KEY]);
+        if (empty($r['body']['url'])) sd_fail('Não consegui preparar o envio (bucket "oficina"?).', 500); $partes[] = ['put_url' => SD_SUPABASE_URL . '/storage/v1' . $r['body']['url'], 'path' => $path]; }
+    echo json_encode(['partes' => $partes], JSON_UNESCAPED_UNICODE); exit;
+}
 function ctJob($id) { $t = ctSup('/rest/v1/pd_trabalhos?id=eq.' . urlencode($id) . '&select=*')['body'][0] ?? null; if (!$t) sd_fail('Projeto não encontrado.', 404); return $t; }
 if ($acao === 'projetos') {
     $q = '/rest/v1/pd_trabalhos?modulo=eq.video&entrada->>tipo=eq.cortes_analise&select=id,titulo,status,erro,criado_em,fim_em,client_id,entrada,saida,clients(name)&order=criado_em.desc&limit=30';
@@ -55,7 +63,7 @@ if ($acao === 'projetos') {
 }
 if ($acao === 'projeto') {   // tudo que a tela precisa pra reabrir: palavras, vídeo de prévia (link novo), cortes, fonte pra renderizar
     $t = ctJob((string)($b['id'] ?? '')); $res = $t['saida']['resultado'] ?? []; $arqs = $t['saida']['arquivos'] ?? []; $prox = null; foreach ($arqs as $a) if (preg_match('/proxy/', (string)($a['nome'] ?? ''))) $prox = !empty($a['path']) ? ctLinkLeitura($a['path'], 86400) : null;
-    $fonte = $t['entrada']['fonte'] ?? []; if (($fonte['tipo'] ?? '') === 'upload' && !empty($fonte['path'])) $fonte['url'] = ctLinkLeitura($fonte['path']);
+    $fonte = $t['entrada']['fonte'] ?? []; if (($fonte['tipo'] ?? '') === 'partes') { foreach ($fonte['partes'] as $k => $pp) $fonte['partes'][$k]['url'] = ctLinkLeitura($pp['path']); } if (($fonte['tipo'] ?? '') === 'upload' && !empty($fonte['path'])) $fonte['url'] = ctLinkLeitura($fonte['path']);
     $log = ctSup('/rest/v1/pd_oficina_log?trabalho_id=eq.' . urlencode($t['id']) . '&select=detalhe,em&order=em.asc&limit=60')['body'] ?? [];
     echo json_encode(['id' => $t['id'], 'titulo' => $t['titulo'], 'status' => $t['status'], 'erro' => $t['erro'], 'client_id' => $t['client_id'], 'task_id' => $t['task_id'], 'opcoes' => $t['entrada']['opcoes'] ?? [], 'fonte' => $fonte, 'palavras' => $res['palavras'] ?? [], 'duracao' => $res['duracao'] ?? null, 'idioma' => $res['idioma'] ?? null, 'proxy_url' => $prox, 'cortes' => $t['entrada']['cortes'] ?? [], 'log' => array_map(fn($l) => $l['detalhe'], $log)], JSON_UNESCAPED_UNICODE); exit;
 }

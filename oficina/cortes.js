@@ -17,6 +17,11 @@ module.exports = (H) => {
       while (pos < total) { const r = await api('drive_parte', { file_id: id, inicio: pos }); const buf = Buffer.from(r.b64 || '', 'base64'); if (!buf.length) break; fs.writeSync(fd, buf); pos += buf.length; total = r.total || pos; if (r.fim) break; await log(t, `Baixando do Drive… ${Math.round(pos / 1048576)} MB`); }
       fs.closeSync(fd); if (pos < 1000) throw new Error('Não consegui ler o arquivo do Drive (permissão do link?).'); return dest;
     }
+    if (f.tipo === 'partes') {
+      const fd = fs.openSync(dest, 'w'); let n = 0; const tot = (f.partes || []).length;
+      for (const p of f.partes) { const r = await fetch(p.url); if (!r.ok) throw new Error('Pedaço ' + (n + 1) + ' do vídeo não baixou (' + r.status + ').'); fs.writeSync(fd, Buffer.from(await r.arrayBuffer())); n++; if (n % 5 === 0 || n === tot) await log(t, `Juntando o vídeo… ${n}/${tot} pedaços`); }
+      fs.closeSync(fd); return dest;
+    }
     const url = f.url; if (!/^https:\/\//i.test(url || '')) throw new Error('Link inválido (só https).');
     const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('Download falhou (' + r.status + ').');
     const ct = r.headers.get('content-type') || ''; if (/text\/html/.test(ct)) throw new Error('Esse link é uma página, não um arquivo de vídeo. Use upload ou um link direto/Drive.');
