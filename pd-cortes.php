@@ -13,22 +13,23 @@ $b = sd_body(); $acao = (string)($b['acao'] ?? '');
 function ctSup($path, $m = 'GET', $body = null, $h = []) { return sd_supabase($path, $m, $body, $h); }
 function ctLinkLeitura($path, $seg = 604800) { $r = ctSup('/storage/v1/object/sign/oficina/' . implode('/', array_map('rawurlencode', explode('/', $path))), 'POST', ['expiresIn' => $seg], ['Authorization: Bearer ' . SD_SECRET_KEY]); return !empty($r['body']['signedURL']) ? SD_SUPABASE_URL . '/storage/v1' . $r['body']['signedURL'] : null; }
 
+function ctWhisper($b64, $ext, $mime, $idioma) {   // áudio → palavras com tempo (OpenAI Whisper)
+    if (!defined('SD_OPENAI_KEY') || !SD_OPENAI_KEY) sd_fail('Sem SD_OPENAI_KEY no servidor.', 500);
+    $raw = base64_decode($b64, true); if (!$raw || strlen($raw) < 1000) sd_fail('Áudio vazio.');
+    $tmp = tempnam(sys_get_temp_dir(), 'ct') . '.' . $ext; file_put_contents($tmp, $raw);
+    $post = ['file' => new CURLFile($tmp, $mime, 'parte.' . $ext), 'model' => 'whisper-1', 'response_format' => 'verbose_json', 'timestamp_granularities[]' => 'word'];
+    $lang = preg_replace('/[^a-z]/', '', strtolower($idioma)); if ($lang && $lang !== 'auto') $post['language'] = substr($lang, 0, 2);
+    $ch = curl_init('https://api.openai.com/v1/audio/transcriptions'); curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 240, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_OPENAI_KEY], CURLOPT_POSTFIELDS => $post]);
+    $out = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch); @unlink($tmp);
+    if ($code !== 200) sd_fail('Transcrição respondeu HTTP ' . $code . ($err ? ' · ' . $err : '') . ' · ' . mb_substr((string)$out, 0, 200), 502);
+    $j = json_decode((string)$out, true) ?: []; $pal = [];
+    foreach ((array)($j['words'] ?? []) as $w) { $t = trim((string)($w['word'] ?? '')); if ($t === '') continue; $pal[] = [$t, round((float)$w['start'], 2), round((float)$w['end'], 2)]; }
+    return ['palavras' => $pal, 'idioma' => $j['language'] ?? null, 'duracao' => $j['duration'] ?? null];
+}
 // ---------------------------------------------------------------- lado da Oficina
 if (!empty($b['key'])) {
     if (!defined('SD_OFICINA_KEY') || !hash_equals((string)SD_OFICINA_KEY, (string)$b['key'])) sd_fail('Chave da oficina inválida.', 403);
-    if ($acao === 'transcrever_parte') {   // um pedaço de áudio (mp3, até ~10 min) → palavras com tempo
-        if (!defined('SD_OPENAI_KEY') || !SD_OPENAI_KEY) sd_fail('Sem SD_OPENAI_KEY no servidor.', 500);
-        $raw = base64_decode((string)($b['b64'] ?? ''), true); if (!$raw || strlen($raw) < 1000) sd_fail('Áudio vazio.');
-        $tmp = tempnam(sys_get_temp_dir(), 'ct') . '.mp3'; file_put_contents($tmp, $raw);
-        $post = ['file' => new CURLFile($tmp, 'audio/mpeg', 'parte.mp3'), 'model' => 'whisper-1', 'response_format' => 'verbose_json', 'timestamp_granularities[]' => 'word'];
-        $lang = preg_replace('/[^a-z]/', '', strtolower((string)($b['idioma'] ?? ''))); if ($lang && $lang !== 'auto') $post['language'] = substr($lang, 0, 2);
-        $ch = curl_init('https://api.openai.com/v1/audio/transcriptions'); curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 240, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_OPENAI_KEY], CURLOPT_POSTFIELDS => $post]);
-        $out = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch); @unlink($tmp);
-        if ($code !== 200) sd_fail('Transcrição respondeu HTTP ' . $code . ($err ? ' · ' . $err : '') . ' · ' . mb_substr((string)$out, 0, 200), 502);
-        $j = json_decode((string)$out, true) ?: []; $pal = [];
-        foreach ((array)($j['words'] ?? []) as $w) { $t = trim((string)($w['word'] ?? '')); if ($t === '') continue; $pal[] = [$t, round((float)$w['start'], 2), round((float)$w['end'], 2)]; }
-        echo json_encode(['palavras' => $pal, 'idioma' => $j['language'] ?? null, 'duracao' => $j['duration'] ?? null], JSON_UNESCAPED_UNICODE); exit;
-    }
+    if ($acao === 'transcrever_parte') { echo json_encode(ctWhisper((string)($b['b64'] ?? ''), 'mp3', 'audio/mpeg', (string)($b['idioma'] ?? '')), JSON_UNESCAPED_UNICODE); exit; }
     if ($acao === 'drive_parte') {   // pedaço de um arquivo do Drive (a oficina não tem acesso ao Drive; a ponte tem)
         $r = ponte('baixar_parte', ['fileId' => (string)($b['file_id'] ?? ''), 'inicio' => (int)($b['inicio'] ?? 0), 'tamanho' => 15728640]);
         echo json_encode(['b64' => $r['b64'] ?? '', 'total' => $r['total'] ?? 0, 'fim' => !empty($r['fim']), 'nome' => $r['nome'] ?? '', 'mime' => $r['mime'] ?? ''], JSON_UNESCAPED_UNICODE); exit;
@@ -39,6 +40,7 @@ if (!empty($b['key'])) {
 // ---------------------------------------------------------------- lado da equipe
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 
+if ($acao === 'transcrever_trecho') { echo json_encode(ctWhisper((string)($b['b64'] ?? ''), 'wav', 'audio/wav', (string)($b['idioma'] ?? '')), JSON_UNESCAPED_UNICODE); exit; }   // trecho curto (WAV) vindo do navegador
 if ($acao === 'upload_url') {   // o navegador sobe o vídeo direto no Storage (sem passar pelo PHP): devolve onde PUT e o link de leitura da Oficina
     $nome = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)iconv('UTF-8', 'ASCII//TRANSLIT', (string)($b['nome'] ?? 'video.mp4'))) ?: 'video.mp4';
     $path = 'cortes/' . date('Ymd') . '/' . bin2hex(random_bytes(5)) . '-' . mb_substr($nome, 0, 80);
