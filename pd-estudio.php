@@ -206,6 +206,24 @@ if ($acao === 'tarefa_criar') {   // trabalho É a tarefa: cria a tarefa no funi
     pdEvento($nid, 'trabalho', 'Trabalho aberto no Studio Design (' . mb_substr((string)($b['area'] ?? ''), 0, 20) . ')', (string)($b['nome'] ?? ''), $u['name'] ?? 'Equipe', 'humano');
     echo json_encode(['ok' => true, 'tarefa' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
 }
+if ($acao === 'tarefas_sugeridas') {   // lista de tarefas pra vincular: as que fazem mais sentido pra ESTA ferramenta primeiro; busca simples por número ou texto
+    $cid = (string)($b['client_id'] ?? ''); $area = (string)($b['area'] ?? ''); $q = trim((string)($b['q'] ?? '')); $q0 = preg_replace('/[^\p{L}\p{N} .-]/u', '', $q);
+    $url = '/rest/v1/tasks?select=id,action,status,client_id,clients(name)&order=id.desc&limit=' . ($q0 !== '' ? 40 : 120);
+    if ($q0 !== '') { $e = '*' . str_replace([' ', '*'], ['*', ''], $q0) . '*'; $url .= '&or=(id.ilike.' . rawurlencode($e) . ',action.ilike.' . rawurlencode($e) . ')'; } elseif ($cid) $url .= '&client_id=eq.' . urlencode($cid);
+    $ts = sd_supabase($url)['body'] ?? []; $ids = array_map(fn($t) => $t['id'], $ts); $tem = [];
+    if ($ids) { $in = '(' . implode(',', array_map(fn($i) => '"' . $i . '"', $ids)) . ')';
+        foreach (sd_supabase('/rest/v1/pd_trabalhos?task_id=in.' . rawurlencode($in) . '&select=task_id,modulo&limit=1000')['body'] ?? [] as $r) $tem[$r['task_id']][$r['modulo'] === 'voz' ? 'audio' : ($r['modulo'] === 'video' ? 'video' : 'outro')] = ($tem[$r['task_id']][$r['modulo'] === 'voz' ? 'audio' : ($r['modulo'] === 'video' ? 'video' : 'outro')] ?? 0) + 1;
+        foreach (sd_supabase('/rest/v1/pd_pecas?task_id=in.' . rawurlencode($in) . '&select=task_id,formato&limit=1000')['body'] ?? [] as $r) { $k = preg_match('/imp|grafic|print|a4|folder/i', (string)$r['formato']) ? 'grafica' : 'digital'; $tem[$r['task_id']][$k] = ($tem[$r['task_id']][$k] ?? 0) + 1; }
+        try { foreach (sd_supabase('/rest/v1/pd_copys?task_id=in.' . rawurlencode($in) . '&select=task_id&limit=1000')['body'] ?? [] as $r) $tem[$r['task_id']]['copys'] = ($tem[$r['task_id']]['copys'] ?? 0) + 1; } catch (Throwable $e) {} }
+    $kw = ['copys' => '/copy|legenda|texto|roteiro|calend|slogan|naming|conte[uú]do|post|pauta/i', 'audio' => '/locu|[aá]udio|trilha|spot|r[aá]dio|jingle|podcast|voz/i', 'video' => '/v[ií]deo|reels|filme|corte|stories|motion|anima/i', 'digital' => '/arte|criativo|pe[cç]a|layout|banner|post|feed|stories|an[uú]ncio|campanha|card/i', 'grafica' => '/gr[aá]fic|impress|folder|outdoor|flyer|cartaz|banner|adesivo|r[oó]tulo/i'];
+    $out = [];
+    foreach ($ts as $t) { $sc = 0; $why = []; if ($cid && $t['client_id'] === $cid) $sc += 30; $n = $tem[$t['id']][$area] ?? 0; if ($n) { $sc += 100 + min(20, $n); $why[] = 'já tem ' . $n . ' ' . ['audio' => 'locuç' . ($n > 1 ? 'ões' : 'ão'), 'video' => 'vídeo' . ($n > 1 ? 's' : ''), 'copys' => 'cop' . ($n > 1 ? 'ys' : 'y'), 'digital' => 'peça' . ($n > 1 ? 's' : ''), 'grafica' => 'peça' . ($n > 1 ? 's' : '')][$area] ?? 'trabalho'; }
+        elseif (!empty($tem[$t['id']])) { $sc += 15; $why[] = 'tem trabalho em outra área'; }
+        if (isset($kw[$area]) && preg_match($kw[$area], (string)$t['action'])) { $sc += 60; $why[] = 'combina com ' . ['copys' => 'copy', 'audio' => 'locução', 'video' => 'vídeo', 'digital' => 'arte', 'grafica' => 'gráfica'][$area]; }
+        if (preg_match('/CONCLU|ENTREG|ARQUIV|CANCEL|PUBLIC/i', (string)$t['status'])) $sc -= 80;
+        $out[] = ['id' => $t['id'], 'action' => $t['action'], 'status' => $t['status'], 'cliente' => $t['clients']['name'] ?? '', 'client_id' => $t['client_id'], 'porque' => implode(' · ', $why), 'sc' => $sc]; }
+    usort($out, fn($a, $b2) => $b2['sc'] <=> $a['sc'] ?: strcmp($b2['id'], $a['id'])); echo json_encode(['tarefas' => array_slice($out, 0, 40)], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'tarefa_ver') { $id = strtoupper(trim((string)($b['id'] ?? ''))); if (preg_match('/^\d{1,5}$/', $id)) $id = 'SD-' . str_pad($id, 4, '0', STR_PAD_LEFT); $t = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($id) . '&select=id,action,status,client_id,clients(name)')['body'][0] ?? null; if (!$t) sd_fail('Tarefa ' . $id . ' não existe.', 404); echo json_encode(['tarefa' => $t], JSON_UNESCAPED_UNICODE); exit; }
 if ($acao === 'trabalhos_da_tarefa') {   // o que já existe no Studio pra esta tarefa (peças, filmes, copys)
     $tid = (string)($b['task_id'] ?? ''); if (!$tid) sd_fail('Sem tarefa.');
