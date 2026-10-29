@@ -74,6 +74,23 @@ function esSub($paiId, $nome) { $p = ponte('pasta_garantir', ['pai_id' => $paiId
 function esNomeSeguro($s) { $s = preg_replace('/[\/\\\\:*?"<>|]+/u', '-', trim((string)$s)); return mb_substr($s, 0, 90) ?: 'peca'; }
 $SEL = 'id,client_id,task_id,nome,formato,thumb_url,modelo,arquivada,oculta,criado_por,criado_em,mudado_em,exportada,pauta_id,papel,derivada_tipo,ordem,clients(name)';
 
+// apagar de verdade qualquer coisa feita no Studio: peça (arte/gráfica/filme), copy ou locução. drive:true também manda os arquivos do Drive pra lixeira (recuperável).
+function esDriveIds($urls) { $ids = []; foreach ((array)$urls as $u2) { if (preg_match('~/file/d/([\w-]{15,})|[?&]id=([\w-]{15,})~', (string)$u2, $m)) $ids[] = $m[1] ?: $m[2]; } return array_values(array_unique($ids)); }
+if ($acao === 'item_apagar') {
+    $tipo = (string)($b['tipo'] ?? ''); $iid = (string)($b['id'] ?? ''); $comDrive = !empty($b['drive']); if ($iid === '') sd_fail('Sem id.'); $urls = []; $stor = []; $nome = '';
+    if ($tipo === 'copy') { $x = sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode($iid) . '&select=nome')['body'][0] ?? null; if (!$x) sd_fail('Não encontrei.', 404); $nome = $x['nome'] ?? '';
+        sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode($iid), 'DELETE'); }
+    elseif ($tipo === 'audio') { $x = sd_supabase('/rest/v1/pd_trabalhos?id=eq.' . urlencode($iid) . '&select=status,titulo,saida')['body'][0] ?? null; if (!$x) sd_fail('Não encontrei.', 404); if (in_array($x['status'], ['rodando'], true)) sd_fail('Está gravando agora: espere terminar ou cancele na Saída de materiais.');
+        $nome = $x['titulo'] ?? ''; foreach ((array)($x['saida']['arquivos'] ?? []) as $a) { if (!empty($a['drive_url'])) $urls[] = $a['drive_url']; if (!empty($a['path'])) $stor[] = $a['path']; }
+        sd_supabase('/rest/v1/pd_trabalhos?id=eq.' . urlencode($iid), 'DELETE'); }
+    elseif (in_array($tipo, ['arte', 'grafica', 'video'], true)) { $x = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($iid) . '&select=nome,exportada')['body'][0] ?? null; if (!$x) sd_fail('Não encontrei.', 404); $nome = $x['nome'] ?? '';
+        foreach ((array)($x['exportada'] ?? []) as $a) { if (!empty($a['drive_url'])) $urls[] = $a['drive_url']; if (!empty($a['path'])) $stor[] = $a['path']; }
+        sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($iid), 'PATCH', ['arquivada' => true]); }
+    else sd_fail('Tipo desconhecido.');
+    foreach ($stor as $sp) { $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/pecas/' . implode('/', array_map('rawurlencode', explode('/', $sp)))); curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => 'DELETE', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY]]); curl_exec($ch); curl_close($ch); }
+    $aviso = null; $drive = 0; if ($comDrive && ($ids = esDriveIds($urls))) { try { $r = ponte('lixeira', ['ids' => $ids]); $drive = count(array_filter((array)($r['lixeira'] ?? []), fn($v) => $v === 'ok')); } catch (Exception $e) { $aviso = strpos($e->getMessage(), 'desconhecida') !== false ? 'Tirei da lista, mas os arquivos do Drive ficaram: atualize a ponte do Drive (cole o SD-Ponte.gs novo no Apps Script e reimplante).' : 'Tirei da lista; o Drive não respondeu: ' . $e->getMessage(); } }
+    echo json_encode(['ok' => true, 'nome' => $nome, 'drive_na_lixeira' => $drive, 'aviso' => $aviso], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'listar') {
     $q = '/rest/v1/pd_pecas?arquivada=eq.false&select=' . $SEL . '&order=mudado_em.desc&limit=120';
     if (!empty($b['client_id'])) $q .= '&client_id=eq.' . urlencode((string)$b['client_id']);
@@ -83,7 +100,15 @@ if ($acao === 'listar') {
     if (($r['code'] ?? 500) >= 300) { $r = sd_supabase(str_replace(',oculta', '', $q)); }   // antes do SQL v127
     if (($r['code'] ?? 500) >= 300) { $r = sd_supabase(str_replace([',oculta', ',pauta_id,papel,derivada_tipo,ordem', '&papel=neq.derivada'], '', $q)); }   // antes do SQL v117
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v116 (estúdio) no Supabase.', 500);
-    echo json_encode(['pecas' => $r['body'] ?? []], JSON_UNESCAPED_UNICODE); exit;
+    $pecas = $r['body'] ?? []; $itens = [];
+    foreach ($pecas as $p) { $f = (array)($p['formato'] ?? []); $itens[] = ['id' => $p['id'], 'tipo' => preg_match('/^filme-/', (string)($f['tipo'] ?? '')) ? 'video' : (!empty($f['impresso']) ? 'grafica' : 'arte'), 'nome' => $p['nome'], 'cliente' => $p['clients']['name'] ?? '', 'client_id' => $p['client_id'], 'sub' => (string)($f['nome'] ?? '') . (!empty($p['modelo']) ? ' · modelo' : '') . (($p['papel'] ?? '') === 'derivada' ? ' · derivação' : ''), 'thumb_url' => $p['thumb_url'] ?? null, 'oculta' => !empty($p['oculta']), 'mudado_em' => $p['mudado_em'] ?? $p['criado_em']]; }
+    if (empty($b['modelos']) && empty($b['so_pecas'])) {   // tudo que se faz no Studio entra na mesma lista: copys e locuções
+        $qc = '/rest/v1/pd_copys?select=id,client_id,nome,variantes,mudado_em,clients(name)&order=mudado_em.desc&limit=60' . (!empty($b['client_id']) ? '&client_id=eq.' . urlencode((string)$b['client_id']) : '');
+        $rc = sd_supabase($qc); foreach (($rc['code'] ?? 500) < 300 ? ($rc['body'] ?? []) : [] as $c) { $n = count((array)(($c['variantes']['itens'] ?? []))); $itens[] = ['id' => $c['id'], 'tipo' => 'copy', 'nome' => $c['nome'] ?: 'Copy', 'cliente' => $c['clients']['name'] ?? '', 'client_id' => $c['client_id'], 'sub' => $n ? $n . ' peça' . ($n > 1 ? 's' : '') . ' de texto' : 'sem texto ainda', 'thumb_url' => null, 'oculta' => false, 'mudado_em' => $c['mudado_em']]; }
+        $qv = '/rest/v1/pd_trabalhos?modulo=eq.voz&select=id,client_id,titulo,status,criado_em,saida,clients(name)&order=criado_em.desc&limit=60' . (!empty($b['client_id']) ? '&client_id=eq.' . urlencode((string)$b['client_id']) : '');
+        $rv = sd_supabase($qv); foreach (($rv['code'] ?? 500) < 300 ? ($rv['body'] ?? []) : [] as $t) { $ar = ($t['saida']['arquivos'][0] ?? []); $itens[] = ['id' => $t['id'], 'tipo' => 'audio', 'nome' => $t['titulo'] ?: 'Locução', 'cliente' => $t['clients']['name'] ?? '', 'client_id' => $t['client_id'], 'sub' => ['fila' => 'na fila', 'rodando' => 'gravando…', 'pronto' => 'pronta', 'erro' => 'erro', 'cancelado' => 'cancelada'][$t['status']] ?? $t['status'], 'thumb_url' => null, 'oculta' => false, 'mudado_em' => $t['criado_em'], 'audio_url' => $ar['url'] ?? ($ar['drive_url'] ?? null)]; } }
+    usort($itens, fn($a, $b2) => strcmp((string)$b2['mudado_em'], (string)$a['mudado_em']));
+    echo json_encode(['pecas' => $pecas, 'itens' => $itens], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'abrir') {
     $p = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode((string)($b['id'] ?? '')) . '&select=*')['body'][0] ?? null; if (!$p) sd_fail('Peça não encontrada.', 404);

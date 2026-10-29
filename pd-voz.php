@@ -23,6 +23,8 @@ curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CU
     CURLOPT_POSTFIELDS => json_encode(['model' => 'gpt-4o-mini-tts', 'voice' => $voz[0], 'input' => $texto, 'instructions' => $instr, 'response_format' => 'mp3', 'speed' => $vel])]);
 $mp3 = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch);
 if ($code !== 200 || !$mp3 || strlen($mp3) < 1000) sd_fail('A voz premium respondeu HTTP ' . $code . ($err ? ' · ' . $err : '') . ' · ' . mb_substr((string)$mp3, 0, 200), 502);
+$arq = $nome . '-' . date('Ymd-His') . '.mp3';   // nome bonito (Drive)
+$slug = trim(preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)iconv('UTF-8', 'ASCII//TRANSLIT', $nome)), '-') ?: 'locucao'; $path = 'voz/' . $cid . '/' . $slug . '-' . date('Ymd-His') . '.mp3';   // chave do Storage só em ASCII
 // 2) guarda no Storage (bucket pecas, público). Se o bucket não existir ou barrar áudio, cria/ajusta e tenta de novo; se ainda assim falhar, a locução segue só pelo Drive.
 $aviso = null; $url = null; $pathEnc = implode('/', array_map('rawurlencode', explode('/', $path)));
 $sbHdr = ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY];
@@ -37,11 +39,12 @@ if ($c2 >= 300) {   // conserta o bucket: cria se faltar; se existir, libera qua
     [$c2, $o2] = $subir(); }
 if ($c2 < 300) $url = SD_SUPABASE_URL . '/storage/v1/object/public/pecas/' . $pathEnc; else $aviso = 'O MP3 não pôde ser guardado no Storage (HTTP ' . $c2 . ': ' . mb_substr($o2, 0, 160) . '). Seguiu só pelo Drive.';
 // 3) cópia no Drive: cliente › MÍDIA › ÁUDIO
-$drive = null; $pastaUrl = null;
+$drive = null; $pastaUrl = null; $driveErr = null;
 try { if (function_exists('ponte') && defined('SD_PONTE_URL') && SD_PONTE_URL) { $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid) . '&select=name,drive_id')['body'][0] ?? []; $raiz = $c['drive_id'] ?? null;
     if (!$raiz && $c && pdDriveClientes()) { $g0 = ponte('pasta_garantir', ['pai_id' => pdDriveClientes(), 'nome' => $c['name'], 'criar' => true]); $raiz = $g0['id'] ?? null; }
-    if ($raiz) { $m = ponte('pasta_garantir', ['pai_id' => $raiz, 'nome' => 'MÍDIA', 'criar' => true]); $a = ponte('pasta_garantir', ['pai_id' => $m['id'], 'nome' => 'ÁUDIO', 'criar' => true]); $g = ponte('gravar', ['folderId' => $a['id'], 'nome' => $arq, 'mime' => 'audio/mpeg', 'b64' => base64_encode($mp3), 'substituir' => false]); $drive = $g['url'] ?? null; $pastaUrl = 'https://drive.google.com/drive/folders/' . $a['id']; } } } catch (Throwable $e) {}
-if (!$url && !$drive) sd_fail(($aviso ?: 'Não consegui guardar o MP3.') . ' Sem Drive também: confira a pasta do cliente.', 500);
+    if ($raiz) { $m = ponte('pasta_garantir', ['pai_id' => $raiz, 'nome' => 'MÍDIA', 'criar' => true]); $a = ponte('pasta_garantir', ['pai_id' => $m['id'], 'nome' => 'ÁUDIO', 'criar' => true]); $g = ponte('gravar', ['folderId' => $a['id'], 'nome' => $arq, 'mime' => 'audio/mpeg', 'b64' => base64_encode($mp3), 'substituir' => false]); $drive = $g['url'] ?? null; $pastaUrl = 'https://drive.google.com/drive/folders/' . $a['id']; } else { $driveErr = 'cliente sem pasta no Drive'; } } else { $driveErr = 'ponte do Drive não configurada'; } } catch (Throwable $e) { $driveErr = $e->getMessage(); }
+if (!$url && !$drive) sd_fail(($aviso ?: 'Não consegui guardar o MP3.') . ' Drive: ' . ($driveErr ?: 'sem resposta') . '.', 500);
+if ($url && !$drive && $driveErr) $aviso = 'Guardei no Storage, mas o Drive não pegou: ' . $driveErr . '.';
 // 4) registra como trabalho pronto (aparece em Saída de materiais e na tela de Locução)
 $dur = round(strlen($mp3) / 24000, 1);   // ~192 kbps → estimativa
 $saida = ['arquivos' => [['nome' => $arq, 'path' => $path, 'bytes' => strlen($mp3), 'mime' => 'audio/mpeg', 'url' => $url, 'drive_url' => $drive, 'drive_pasta' => $pastaUrl, 'em' => gmdate('c')]], 'resultado' => ['voz' => $vk, 'motor' => 'premium', 'velocidade' => $vel, 'duracao_s' => $dur, 'caracteres' => mb_strlen($texto)]];

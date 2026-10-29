@@ -45,6 +45,7 @@ function doPost(e) {
       pasta_subpastas: pastaSubpastas_, pasta_garantir: pastaGarantir_,
       docs_listar: docsListar_, doc_ler: reuniaoLer_,
       // aprovações morando no Drive em vez de comer o plano do Supabase
+      lixeira: lixeira_,
       aprov_pasta: aprovPasta_, aprov_subir: aprovSubir_,
       aprov_puxar: aprovPuxar_, aprov_conferir: aprovConferir_
     };
@@ -646,4 +647,16 @@ function autorizar() {
   DriveApp.getRootFolder();
   DocumentApp.getActiveDocument;      // só para o Google reconhecer o uso do serviço Docs
   Logger.log('Autorizado: ' + Session.getEffectiveUser().getEmail());
+}
+
+
+/** Manda arquivos pra LIXEIRA do Drive (recuperável por 30 dias). Só arquivos.
+ *  d.ids = ['fileId', ...]  ->  { lixeira: { id: 'ok' | 'sem acesso' } } */
+function lixeira_(d) {
+  var ids = d.ids || [], out = {};
+  for (var i = 0; i < ids.length && i < 100; i++) {
+    try { DriveApp.getFileById(ids[i]).setTrashed(true); out[ids[i]] = 'ok'; }
+    catch (e) { out[ids[i]] = 'sem acesso'; }
+  }
+  return { lixeira: out };
 }
