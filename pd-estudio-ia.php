@@ -236,7 +236,7 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     $pr = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($p['principal_id']) . '&select=id,nome,formato,doc,thumb_url')['body'][0] ?? null; if (!$pr) sd_fail('Peça principal não encontrada.', 404);
     $pngs = array_values(array_filter(array_map(fn($x) => strpos((string)$x, ',') !== false ? substr($x, strpos($x, ',') + 1) : (string)$x, (array)($b['principal_pngs'] ?? ($b['principal_png'] ? [$b['principal_png']] : [])))));
     if (!$pngs) sd_fail('Mande as imagens das páginas da principal (o Estúdio faz isso sozinho).');
-    $feedback = mb_substr(trim((string)($b['feedback'] ?? '')), 0, 4000);
+    $feedback = mb_substr(trim((string)($b['feedback'] ?? '')), 0, 4000); $repBloco = pdRepertorioBloco((array)($b['repertorio'] ?? []), $famId === 'papelaria' ? 'grafica' : 'digital');
     $textoPauta = (string)($p['texto'] ?? '');
     if (!empty($p['texto_link']) && paPonteOk()) { $lid = preg_match('~/d/([\w\-]+)|id=([\w\-]+)~', $p['texto_link'], $m) ? ($m[1] ?: $m[2]) : trim($p['texto_link']);
         try { $r0 = ponte('reuniao_ler', ['doc_id' => $lid]); $tl = trim((string)($r0['texto'] ?? '')); if ($tl === '') { $r1 = ponte('baixar', ['fileId' => $lid]); $tl = trim((string)base64_decode((string)($r1['b64'] ?? ''), true)); } if ($tl !== '') $textoPauta = mb_substr($tl, 0, 60000); }
@@ -244,6 +244,7 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     [$kit, $kitSt] = paKit($p['client_id']);
     $refsTodas = array_values(array_unique(array_merge(!empty($p['site_link']) ? [$p['site_link']] : [], (array)($p['refs'] ?? []))));
     [$refTxt, $refImgs] = $refsTodas ? paReferencias($refsTodas) : [[], []];
+    foreach ((array)($b['repertorio'] ?? []) as $rid) { $rid = preg_replace('/[^A-Z0-9]/', '', (string)$rid); $fi = __DIR__ . '/assets/refs/' . $rid . '.jpg'; if ($rid && is_file($fi) && count($refImgs) < 6) { $rr = pdRepertorioRef($rid); $refImgs[] = ['rot' => 'repertório ' . $rid . ' · ' . ($rr['nome'] ?? '') . ' (estude ritmo, hierarquia e matéria; nunca copie)', 'mime' => 'image/jpeg', 'b64' => base64_encode(file_get_contents($fi))]; } }
     $rodada = (int)$p['rodada'] + 1; $hist = is_array($p['historico']) ? $p['historico'] : [];
     if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]); }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'derivando', 'rodada' => $rodada, 'historico' => $hist, 'kit_status' => $kitSt, 'erro' => null, 'mudado_em' => gmdate('c')]);
@@ -295,7 +296,7 @@ TXT;
         ($ex ? "\n\nEXEMPLO APROVADO NA PAUTA ANTERIOR DESTA FAMÍLIA (repita a lógica):\n" . mb_substr(json_encode($ex, JSON_UNESCAPED_UNICODE), 0, 6000) : '') .
         ($resumoAtuais ? "\n\nDERIVAÇÕES ATUAIS (o humano pode ter mexido; o que ele mudou é lei):\n- " . implode("\n- ", $resumoAtuais) : '') .
         ($avals ? "\n\nAVALIAÇÃO PEÇA A PEÇA DA RODADA ANTERIOR (👍 = manter como está, só refinar; 👎 = refazer do zero com outra solução):\n- " . implode("\n- ", array_map(fn($a) => ($a['avaliacao'] === 'gostei' ? '👍 ' : '👎 ') . ($a['derivada_tipo'] ?: '') . ' "' . $a['nome'] . '"', $avals)) : '') .
-        ($feedback ? "\n\nFEEDBACK DO HUMANO NESTA RODADA (manda em tudo):\n$feedback" : '') .
+        ($feedback ? "\n\nFEEDBACK DO HUMANO NESTA RODADA (manda em tudo):\n$feedback" : '') . $repBloco .
         ($p['design_system'] === true ? "\n\nDESIGN SYSTEM: o cliente TEM design system (o kit): siga cores, fontes e logo à risca, sem variações." : ($p['design_system'] === false ? "\n\nDESIGN SYSTEM: o cliente NÃO tem design system. Extraia o sistema da peça principal (cores, fontes, grafismos, respiro) e do site/rede social nas referências, e seja rigorosamente consistente entre as peças — você está definindo o sistema agora." : '')) .
         ($refTxt ? "\n\nREFERÊNCIAS QUE O HUMANO MANDOU (para olhar e se inspirar: ritmo, hierarquia, acabamento — nunca copiar texto, logo ou identidade de outra marca):\n- " . implode("\n- ", $refTxt) : '') .
         "\n\nAs imagens a seguir são as páginas da principal, na ordem (PÁGINA 1, 2…). Depois delas, miniaturas da galeria, cada uma precedida do seu ID.";

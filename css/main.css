@@ -761,6 +761,8 @@ body.role-client #sidebar-tab{display:none!important;}
    Horário, Importar, Redes sociais), menores que os cards normais. */
 .cards-grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;}
 .cards-grid-4 .entity-card{padding:12px;}
+#admin-config .cards-grid-4{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;}
+#admin-config .cards-grid-4 .entity-card{padding:14px 16px;}
 .cards-grid-4 .entity-card-name{font-size:12.5px;}
 .cards-grid-4 .entity-card-meta{font-size:10.5px;}
 /* Item do menu "+ Conta" */

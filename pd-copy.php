@@ -87,7 +87,7 @@ if ($acao === 'apagar') { sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode((st
 function cpGerar($b, $u) {
     $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Escolha o cliente.');
     $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid) . '&select=name,segment,site')['body'][0] ?? []; $kit = sd_supabase('/rest/v1/brand_kits?client_id=eq.' . urlencode($cid) . '&select=tom,voz,sobre')['body'][0] ?? [];
-    $br = (array)($b['briefing'] ?? []); $n = max(1, min(8, (int)($b['variantes'] ?? 3))); $dados = mb_substr((string)($b['dados'] ?? ''), 0, 40000);
+    $br = (array)($b['briefing'] ?? []); $repBloco = pdRepertorioBloco((array)($br['repertorio'] ?? []), 'copys'); unset($br['repertorio']); $n = max(1, min(8, (int)($b['variantes'] ?? 3))); $dados = mb_substr((string)($b['dados'] ?? ''), 0, 40000);
     $links = array_slice(array_filter(array_map('trim', (array)($b['links'] ?? []))), 0, 6); $lidos = []; foreach ($links as $lk) { $t = cpLeLink($lk); if ($t !== '') $lidos[] = "[$lk]\n" . mb_substr($t, 0, 12000); }
     $base = []; foreach (cpEstilosBase() as $e) $base[$e['id']] = $e; $sel = (array)($b['estilos'] ?? []); $estTxt = [];
     foreach ($sel as $se) { $sid = (string)($se['id'] ?? ''); $peso = max(1, min(3, (int)($se['peso'] ?? 2))); if (isset($base[$sid])) $estTxt[] = "- {$base[$sid]['nome']} (peso $peso/3): {$base[$sid]['dna']}";
@@ -102,7 +102,7 @@ function cpGerar($b, $u) {
             "\n\nBRIEFING:\n" . implode("\n", array_map(fn($k) => "- $k: " . (is_array($br[$k]) ? implode(', ', $br[$k]) : $br[$k]), array_keys(array_filter($br, fn($v) => $v !== '' && $v !== null && $v !== [])))) .
             "\n\nCALENDÁRIO DE $dias DIAS. O pedido acima diz a cadência; se não disser, assuma 1 post dia sim dia não e 2 stories por dia." .
             ($estTxt ? "\n\nESTILOS A COMPOR (misture na proporção dos pesos; o resultado é uma voz só):\n" . implode("\n", $estTxt) : '') .
-            ($dados !== '' ? "\n\nDADOS ESTRATÉGICOS (texto enviado):\n$dados" : '') . ($lidos ? "\n\nDADOS ESTRATÉGICOS (lidos dos links):\n" . implode("\n\n", $lidos) : '') .
+            $repBloco . ($dados !== '' ? "\n\nDADOS ESTRATÉGICOS (texto enviado):\n$dados" : '') . ($lidos ? "\n\nDADOS ESTRATÉGICOS (lidos dos links):\n" . implode("\n\n", $lidos) : '') .
             ($refs ? "\n\nREFERÊNCIAS DA CASA (absorva a lógica, nunca copie frases):\n" . implode("\n\n", array_map(fn($r) => "[{$r['nome']}]\n{$r['texto']}", $refs)) : '');
         [$resp, $custo] = paClaude($system, [['type' => 'text', 'text' => $txt]], 32000);
         $j = paJson($resp); if (!$j || empty($j['itens'])) { $j2 = paJson(paJsonConserta($resp)); if ($j2 && !empty($j2['itens'])) $j = $j2; }
@@ -119,7 +119,7 @@ function cpGerar($b, $u) {
         "\n\nBRIEFING:\n" . implode("\n", array_map(fn($k) => "- $k: " . (is_array($br[$k]) ? implode(', ', $br[$k]) : $br[$k]), array_keys(array_filter($br, fn($v) => $v !== '' && $v !== null && $v !== [])))) .
         "\n\nQUANTAS VARIANTES: $n · FORMATO: $fmt" .
         ($estTxt ? "\n\nESTILOS A COMPOR (misture na proporção dos pesos; o resultado é uma voz só, coerente):\n" . implode("\n", $estTxt) : "\n\nESTILO: escolha o que melhor serve ao objetivo e diga qual usou.") .
-        ($dados !== '' ? "\n\nDADOS ESTRATÉGICOS (texto enviado):\n$dados" : '') . ($lidos ? "\n\nDADOS ESTRATÉGICOS (lidos dos links):\n" . implode("\n\n", $lidos) : '') .
+        $repBloco . ($dados !== '' ? "\n\nDADOS ESTRATÉGICOS (texto enviado):\n$dados" : '') . ($lidos ? "\n\nDADOS ESTRATÉGICOS (lidos dos links):\n" . implode("\n\n", $lidos) : '') .
         ($refs ? "\n\nREFERÊNCIAS DA CASA (como escrevem os melhores; absorva a lógica, nunca copie frases):\n" . implode("\n\n", array_map(fn($r) => "[{$r['nome']}]\n{$r['texto']}", $refs)) : '');
     [$resp, $custo] = paClaude($system, [['type' => 'text', 'text' => $txt]], 12000);
     $j = paJson($resp); if (!$j || empty($j['variantes'])) { $j2 = paJson(paJsonConserta($resp)); if ($j2 && !empty($j2['variantes'])) $j = $j2; }

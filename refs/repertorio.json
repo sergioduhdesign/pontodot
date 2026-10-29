@@ -1,0 +1,2472 @@
+{
+  "titulo": "Repertório criativo da PD",
+  "versao": "1.0",
+  "data_pesquisa": "2026-10-29",
+  "contagem": 60,
+  "segmentos": {
+    "CP": "Redação e estratégia verbal",
+    "AD": "Arte digital",
+    "VO": "Locução e atuação vocal",
+    "TR": "Trilha e direção sonora",
+    "VI": "Vídeo e narrativa audiovisual",
+    "GR": "Edição gráfica e identidade"
+  },
+  "introducao": "Este repertório organiza 60 referências para a área de trabalho da PD. A seleção cobre redação, arte digital, locução, trilha, vídeo e edição gráfica. Voz e música foram separadas para que cada uma tenha dez referências próprias. Edição gráfica significa aqui composição, tipografia, identidade e diagramação; a montagem audiovisual aparece na frente de vídeo.\n\nO objetivo é dar ao Claude critérios para escolher uma direção e executá-la. Cada ficha apresenta uma pessoa ou equipe, uma obra de entrada, uma fonte consultável, uma leitura dos recursos de linguagem, uma aplicação na PD e uma instrução que pode ser adaptada às ferramentas. As referências históricas fornecem fundamentos; as práticas contemporâneas ampliam o repertório de produção.\n\nA seleção considera relevância histórica ou profissional, clareza do recurso transferível, documentação disponível e utilidade para o trabalho. Ela não é um ranking universal. Premiação e reputação comprovam reconhecimento; não comprovam aumento de vendas. O desempenho da peça da PD precisa ser verificado no seu público, objetivo e canal.\n\nCréditos e obras são informações apoiadas nas fontes. Estruturas, aplicações, prompts e critérios de avaliação são propostas editoriais deste documento. Não são métodos oficiais dos autores. As fichas de áudio orientam a escuta e a direção; não apresentam medições acústicas das gravações. Links, acervos e páginas de portfólio foram pesquisados em 29 de outubro de 2026.",
+  "instrucao_claude": "Você está estruturando o repertório operacional da PD. Leia este documento e o arquivo 02_base_referencias_PD.json. Use os IDs como identificadores estáveis e mantenha os links e os créditos associados a cada referência.\n\nPara cada pedido de produção, comece com objetivo, público, ação desejada, fatos aprovados, manual da marca, formato e materiais disponíveis. Selecione uma referência principal e, quando necessário, uma complementar com função claramente diferente. Explique a escolha pelo problema que ela resolve.\n\nAbra a obra indicada e verifique o que realmente é acessível. As imagens em 03_imagens_de_referencia são amostras de estudo. Áudio e vídeo devem ser consultados nos links. Não invente observações de uma mídia que você não conseguiu abrir, nem timecodes que não conferiu. Use fontes alternativas verificáveis quando necessário.\n\nConverta o recurso escolhido em instruções observáveis: estrutura do texto, enquadramento, luz, materiais, paleta, comportamento, ritmo, interpretação ou instrumentação. Os prompts das fichas são pontos de partida; substitua os campos entre colchetes e adapte ao formato. Não presuma que todas as ferramentas aceitam os mesmos parâmetros ou marcações de voz.\n\nProduza um piloto antes de multiplicar peças. Compare alternativas com uma variável principal. Preserve os elementos oficiais de produto e identidade. Textos, logotipos, cotas, plantas e números devem ser compostos ou conferidos em ferramenta de edição; não confie na geração raster para informações que precisam ser exatas.\n\nNa saída, entregue: direção escolhida; IDs utilizados; fatos e assets de origem; prompt final; arquivo editável quando aplicável; exportação final; avaliação pelo critério da ficha; pendências reais. Registre o aprendizado do projeto sem transformar preferências estéticas em resultados comerciais comprovados.",
+  "referencias": [
+    {
+      "id": "CP01",
+      "nome": "Claude Hopkins",
+      "papel": "Redação de resposta direta e experimentação",
+      "obra": "Scientific Advertising, 1923",
+      "fonte": "https://www.loc.gov/item/23009362/",
+      "valor": "Base histórica para tratar publicidade como argumento verificável. O livro trabalha especificidade, demonstração e teste. Interessa à PD quando o texto precisa provocar uma ação mensurável e temos fatos suficientes para sustentar a oferta.",
+      "estrutura": "Problema concreto → benefício específico → mecanismo que explica o benefício → prova → ação simples. A primeira frase deve selecionar o público e apresentar uma vantagem compreensível.",
+      "uso": "Landing pages, formulários, anúncios de captação e propostas comerciais. Útil para organizar provas de produto antes de buscar uma frase brilhante.",
+      "direcao": "Escreva uma página para [público] vender [oferta]. Use somente [fatos aprovados]. Abra com o benefício mais relevante, explique por que ele é possível, responda às três objeções registradas e termine com um único próximo passo. Entregue duas versões que alterem apenas a hipótese principal do título.",
+      "busca": "Obra: Claude Hopkins Scientific Advertising specificity samples. Produção: reason why advertising; product demonstration; direct response landing page.",
+      "evitar": "Promessas sem evidência, urgência inventada e confundir o relato de Hopkins com garantia de resultado atual.",
+      "teste": "A promessa tem prova identificável? O teste mede a ação que interessa ao negócio?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://onlinebooks.library.upenn.edu/webbin/book/lookupid?key=olbp36428"
+      ],
+      "acesso": {
+        "status": null,
+        "nota": "The read operation timed out",
+        "verificacao": "Fonte localizada na pesquisa web; consulta direta automatizada limitada"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Redação de resposta direta e experimentação",
+        "reason why advertising",
+        "product demonstration",
+        "direct response landing page."
+      ]
+    },
+    {
+      "id": "CP02",
+      "nome": "David Ogilvy",
+      "papel": "Redação e direção criativa",
+      "obra": "Campanha Rolls Royce e Ogilvy on Advertising",
+      "fonte": "https://ogilvy.relayto.com/e/ogilvy-on-advertising-dq85bunnm5ady",
+      "valor": "Referência para transformar pesquisa de produto em percepção de valor. O caso Rolls Royce mostra como um detalhe concreto pode fazer o trabalho que dezenas de adjetivos tentam fazer. O repertório favorece marcas com qualidade demonstrável.",
+      "estrutura": "Fato surpreendente → significado para o comprador → sequência de provas curtas → convite. Fotografia e título apresentam o mesmo argumento, com funções complementares.",
+      "uso": "Imóveis de alto padrão, materiais de engenharia, páginas de produto e apresentações que precisam justificar preço.",
+      "direcao": "Leia [memorial, entrevistas e diferenciais]. Selecione cinco fatos que um concorrente não poderia declarar sem verificação. Transforme cada fato em um título e explique o benefício humano em até 40 palavras. Escolha o mais forte e desenvolva um anúncio com imagem descritiva, três provas e chamada discreta.",
+      "busca": "Obra: David Ogilvy Rolls Royce factual advertising. Produção: craftsmanship detail; architectural material close up; product proof advertising.",
+      "evitar": "Usar luxo, exclusivo e sofisticado como substitutos de evidência; repetir o anúncio histórico.",
+      "teste": "Se o nome da marca for trocado, a promessa continua específica daquele produto?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://www.ogilvy.com/ideas/ogilvy-75-75-years-iconic-campaigns"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://ogilvy.relayto.com/e/ogilvy-on-advertising-dq85bunnm5ady",
+        "titulo": "",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Redação e direção criativa",
+        "craftsmanship detail",
+        "architectural material close up",
+        "product proof advertising."
+      ]
+    },
+    {
+      "id": "CP03",
+      "nome": "Bill Bernbach e a dupla Koenig Krone",
+      "papel": "Direção criativa integrada à redação e à arte",
+      "obra": "Volkswagen Think Small",
+      "fonte": "https://creativehalloffame.org/inductees/julian-koenig/",
+      "valor": "Referência para transformar uma objeção em identidade. O anúncio integra economia visual e franqueza verbal. Crédito essencial: Julian Koenig é o redator de Think Small; Helmut Krone assina a arte, sob a direção de Bernbach.",
+      "estrutura": "Verdade desconfortável → mudança de perspectiva → demonstração simples. Texto e imagem produzem juntos uma descoberta que nenhum dos dois entregaria sozinho.",
+      "uso": "Produtos compactos, marcas desafiantes e categorias em que todas as campanhas fazem a mesma promessa grandiosa.",
+      "direcao": "Liste as cinco objeções reais a [produto]. Escolha uma que tenha contrapartida positiva comprovada. Crie três conceitos nos quais o título admita o fato e a imagem revele sua vantagem. Entregue título de até oito palavras, texto de até 70 e descrição exata do enquadramento.",
+      "busca": "Obra: Volkswagen Think Small Julian Koenig Helmut Krone. Produção: minimalist print advertising; small product negative space; honest advertising.",
+      "evitar": "Humor que inferioriza o comprador, falsa autodepreciação e creditar toda a execução a Bernbach.",
+      "teste": "Existe uma virada verdadeira ou apenas uma piada que poderia vender qualquer coisa?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://clubedecriacao.com.br/ultimas/george-lois-x-julian-koenig-2/"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://creativehalloffame.org/inductees/julian-koenig/",
+        "titulo": "Julian Koenig &#8211; Creative Hall of Fame &#8211; Creative Hall of Fame",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Direção criativa integrada à redação e à arte",
+        "minimalist print advertising",
+        "small product negative space",
+        "honest advertising."
+      ]
+    },
+    {
+      "id": "CP04",
+      "nome": "David Abbott",
+      "papel": "Redação publicitária e síntese",
+      "obra": "The Economist e o repertório de Abbott",
+      "fonte": "https://www.dandad.org/creative-community/directory/david-abbott",
+      "valor": "Referência para dizer muito com poucas palavras e confiar na inteligência do leitor. Seu repertório combina clareza, observação e uma conclusão que o público completa mentalmente. Serve quando há uma ideia forte que suporta espaço vazio.",
+      "estrutura": "Observação reconhecível → pequena omissão → conclusão do leitor. A imagem pode ser o próprio texto; o acabamento depende de ritmo, escolha verbal e hierarquia.",
+      "uso": "Anúncios institucionais, outdoors, aberturas de apresentação e comunicação de autoridade intelectual.",
+      "direcao": "Escreva 15 títulos sobre [benefício comprovado] para [público]. Cada título deve ter uma leitura imediata e uma segunda percepção, sem trocadilho obrigatório. Limite a nove palavras. Selecione três, explique a lógica de cada um e elimine os que dependam de uma legenda para funcionar.",
+      "busca": "Obra: David Abbott The Economist red white campaign. Produção: intelligent copywriting; typographic poster; understated wit advertising.",
+      "evitar": "Confundir concisão com enigma; buscar uma frase esperta sem relação com a proposta.",
+      "teste": "Uma pessoa do público entende o benefício e a segunda leitura em poucos segundos?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.dandad.org/creative-community/directory/david-abbott",
+        "titulo": "David Abbott",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Redação publicitária e síntese",
+        "intelligent copywriting",
+        "typographic poster",
+        "understated wit advertising."
+      ]
+    },
+    {
+      "id": "CP05",
+      "nome": "Mary Wells Lawrence",
+      "papel": "Redação e direção de experiência de marca",
+      "obra": "Braniff The End of the Plain Plane",
+      "fonte": "https://advertisinghalloffame.org/inductee/mary-wells-lawrence/",
+      "valor": "Referência para fazer uma ideia verbal atravessar produto, ambiente e comunicação. A intervenção na Braniff envolveu a experiência da companhia, incluindo cor e uniformes. É uma boa escola para marcas que precisam tornar sua diferença visível.",
+      "estrutura": "Tensão da categoria → ideia central memorável → manifestações coerentes em vários pontos de contato. A frase organiza uma experiência que o cliente realmente encontra.",
+      "uso": "Lançamentos imobiliários, hotelaria, eventos e plataformas com identidade e comportamento próprios.",
+      "direcao": "Defina a mudança concreta que [marca] entrega à rotina de [público]. Escreva uma ideia central curta e mostre como ela se materializa em anúncio, recepção, vídeo e atendimento. Cada aplicação deve trazer uma evidência diferente da mesma promessa. Aponte o que a operação precisa conseguir cumprir.",
+      "busca": "Obra: Mary Wells Lawrence Braniff End of the Plain Plane. Produção: integrated brand experience; airline color identity; experiential campaign.",
+      "evitar": "Prometer uma experiência que só existe no anúncio; reduzir o repertório a cores chamativas.",
+      "teste": "A mesma ideia é reconhecível no contato comercial e na experiência do produto?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://www.sfomuseum.org/exhibitions/when-you-got-it-flaunt-it-advertising-braniff-international/gallery"
+      ],
+      "acesso": {
+        "status": null,
+        "nota": "HTTP Error 403: Forbidden",
+        "verificacao": "Fonte localizada na pesquisa web; consulta direta automatizada limitada"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Redação e direção de experiência de marca",
+        "integrated brand experience",
+        "airline color identity",
+        "experiential campaign."
+      ]
+    },
+    {
+      "id": "CP06",
+      "nome": "John Hegarty",
+      "papel": "Direção de arte e criação com pensamento narrativo",
+      "obra": "Levi’s Laundrette",
+      "fonte": "https://www.levistrauss.com/2020/11/19/levis-laundrette-ad-reignited-the-501/",
+      "valor": "Entra nesta frente pelo pensamento de campanha, não como redator de ofício. Laundrette mostra como comportamento, produto e cultura podem sustentar uma história com pouco texto. A Levi’s documenta o papel de Hegarty na concepção.",
+      "estrutura": "Situação cotidiana → comportamento inesperado → produto no centro da ação → assinatura curta. A redação prepara uma ideia filmável e sabe quando sair de cena.",
+      "uso": "Filmes de marca, moda, estilo de vida e roteiros imobiliários em que o uso revela o diferencial.",
+      "direcao": "Crie três histórias de 30 segundos para [produto]. Em cada uma, uma pessoa realiza uma ação simples que demonstra [benefício]. A história deve ser entendida sem locução. Descreva começo, mudança e desfecho; só depois proponha uma assinatura de até seis palavras.",
+      "busca": "Obra: Levi’s Laundrette John Hegarty BBH. Produção: visual storytelling commercial; everyday unexpected behavior; product centered narrative.",
+      "evitar": "Dependência de celebridade ou música famosa para a ideia existir; explicar em off tudo que a câmera mostra.",
+      "teste": "O roteiro continua funcionando sem trilha e sem texto explicativo?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.levistrauss.com/2020/11/19/levis-laundrette-ad-reignited-the-501/",
+        "titulo": "How Levi’s® Laundrette Ad Reignited the 501® - Levi Strauss &amp; Co : Levi Strauss &amp; Co",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Direção de arte e criação com pensamento narrativo",
+        "visual storytelling commercial",
+        "everyday unexpected behavior",
+        "product centered narrative."
+      ]
+    },
+    {
+      "id": "CP07",
+      "nome": "Dan Wieden",
+      "papel": "Redação e plataforma de marca",
+      "obra": "Nike Just Do It",
+      "fonte": "https://www.dandad.org/creative-community/directory/dan-wieden",
+      "valor": "Referência para construir uma plataforma verbal capaz de abrigar histórias diferentes. O valor transferível é a relação entre tensão humana e convite à ação. A documentação do D&AD identifica Wieden como criador da assinatura.",
+      "estrutura": "Barreira humana → decisão possível → ação concreta → frase que organiza a atitude. O manifesto ganha força quando vem de cenas específicas, não de abstrações.",
+      "uso": "Manifestos da Pontodot, educação, comunidades e campanhas que precisam durar além de uma peça.",
+      "direcao": "Identifique em [pesquisa do público] o conflito entre desejo e inércia. Escreva um manifesto de 90 palavras usando ações observáveis e uma plataforma de até cinco palavras. Demonstre essa plataforma em três histórias com protagonistas e dificuldades diferentes. Preserve uma voz humana, sem heroísmo automático.",
+      "busca": "Obra: Dan Wieden Nike Just Do It. Produção: human truth brand manifesto; action platform; everyday determination.",
+      "evitar": "Copiar a cadência de Nike; usar superação para encobrir ausência de proposta concreta.",
+      "teste": "A plataforma gera cinco campanhas diferentes e continua pertencendo à marca?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.dandad.org/creative-community/directory/dan-wieden",
+        "titulo": "Dan Wieden",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Redação e plataforma de marca",
+        "human truth brand manifesto",
+        "action platform",
+        "everyday determination."
+      ]
+    },
+    {
+      "id": "CP08",
+      "nome": "Washington Olivetto",
+      "papel": "Redação e direção criativa brasileira",
+      "obra": "Valisère Primeiro Sutiã",
+      "fonte": "https://clubedecriacao.com.br/ultimas/washington/",
+      "valor": "Referência para encontrar uma verdade humana próxima da vida brasileira. O Clube de Criação disponibiliza o filme e contextualiza sua importância. A narrativa permite observar emoção, delicadeza e produto como parte de um momento vivido.",
+      "estrutura": "Situação reconhecível → detalhe emocional → transformação pequena e importante → marca como participante. O roteiro concede ao espectador tempo para perceber.",
+      "uso": "Campanhas sobre morar, relações familiares, rituais de passagem e marcas que dependem de proximidade cultural.",
+      "direcao": "Escreva uma história de 45 segundos sobre [momento real da vida do público]. Escolha um gesto que revele a mudança sem explicação. O produto deve ajudar a ação, sem interrompê-la. Termine com uma frase breve que só faça sentido depois da cena. Entregue também uma versão de 15 segundos.",
+      "busca": "Obra: Washington Olivetto Valisère Primeiro Sutiã 1987. Produção: Brazilian everyday life; intimate family ritual; emotional advertising storytelling.",
+      "evitar": "Sentimentalismo pronto, família de catálogo e atribuição de autoria exclusiva sem conferir a ficha técnica.",
+      "teste": "O gesto parece vivido? A marca participa de modo necessário e plausível?",
+      "periodo": "Legado",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://clubedecriacao.com.br/ultimas/washington/",
+        "titulo": "Washington - Clube de Criação",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Legado",
+        "Redação e direção criativa brasileira",
+        "Brazilian everyday life",
+        "intimate family ritual",
+        "emotional advertising storytelling."
+      ]
+    },
+    {
+      "id": "CP09",
+      "nome": "Joanna Wiebe",
+      "papel": "Copy de conversão e pesquisa de mensagem",
+      "obra": "Copyhackers e trabalho de mensagem",
+      "fonte": "https://copyhackers.com/about-joanna-jo-wiebe/",
+      "valor": "Referência contemporânea para aproximar linguagem do cliente, argumento e conversão. Seu trabalho é uma porta de entrada para pesquisa de mensagem e desenvolvimento de texto orientado a uma ação. Na PD, complementa a criação de campanha com análise do percurso comercial.",
+      "estrutura": "Fala do público → necessidade prioritária → promessa → evidência → objeções → próximo passo. Cada bloco reduz uma dúvida da decisão.",
+      "uso": "Landing pages, onboarding, e-mails comerciais e anúncios que precisam qualificar interessados.",
+      "direcao": "Use [transcrições autorizadas, dúvidas e objeções] para mapear desejo, receio e vocabulário do público. Escreva uma página com hierarquia de mensagens, prova ao lado de cada promessa e CTA claro. Marque como hipótese tudo que não tem evidência. Proponha um teste de mensagem e a métrica de qualidade do lead.",
+      "busca": "Obra: Joanna Wiebe Copyhackers conversion copywriting voice of customer. Produção: customer interview messaging; objection handling; conversion copy.",
+      "evitar": "Inventar entrevistas, depoimentos ou percentuais de ganho; medir apenas cliques quando a meta é venda.",
+      "teste": "Cada trecho responde a uma pergunta real do comprador?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://copyhackers.com/voice-of-customer-in-your-brand/"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://copyhackers.com/about-joanna-jo-wiebe/",
+        "titulo": "About Joanna (Jo) Wiebe, your messaging strategist",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Prática contemporânea",
+        "Copy de conversão e pesquisa de mensagem",
+        "customer interview messaging",
+        "objection handling",
+        "conversion copy."
+      ]
+    },
+    {
+      "id": "CP10",
+      "nome": "Vikki Ross",
+      "papel": "Voz de marca e redação",
+      "obra": "Trabalho de voz para Sky ITV IMAX e BAFTA",
+      "fonte": "https://www.dandad.org/creative-community/directory/vikki-ross",
+      "valor": "Referência contemporânea para transformar personalidade verbal em regras utilizáveis. O perfil do D&AD documenta seu trabalho de voz de marca. É especialmente útil quando várias pessoas ou agentes precisam escrever com consistência.",
+      "estrutura": "Personalidade → escolhas de linguagem → limites → exemplos em contextos distintos. Tom muda com a situação; a identidade verbal permanece reconhecível.",
+      "uso": "Guia de voz da PD, agentes por cliente, microtextos de produto, atendimento e séries editoriais.",
+      "direcao": "Defina a voz de [marca] em quatro comportamentos de escrita. Para cada um, mostre um exemplo aprovado e um inadequado, explicando a diferença. Reescreva a mesma mensagem como anúncio, orientação de interface e resposta a uma dúvida. Inclua vocabulário preferido, palavras vazias a cortar e limites de humor.",
+      "busca": "Obra: Vikki Ross brand voice Sky ITV IMAX. Produção: tone of voice guidelines; brand writing examples; UX microcopy.",
+      "evitar": "Guias compostos só por adjetivos; impor a mesma intensidade emocional a todos os canais.",
+      "teste": "Dois redatores conseguem chegar a textos compatíveis usando apenas as regras?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Redação e estratégia verbal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.dandad.org/creative-community/directory/vikki-ross",
+        "titulo": "Vikki Ross",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "CP",
+        "Prática contemporânea",
+        "Voz de marca e redação",
+        "tone of voice guidelines",
+        "brand writing examples",
+        "UX microcopy."
+      ]
+    },
+    {
+      "id": "AD01",
+      "nome": "John Maeda",
+      "papel": "Design computacional",
+      "obra": "Design by Numbers",
+      "fonte": "https://dbn.media.mit.edu/introduction.html",
+      "valor": "Referência histórica para pensar a imagem como consequência de uma regra. O projeto do MIT ensina programação por desenho. Para a PD, o ganho é produzir famílias visuais consistentes, em que variações compartilham uma lógica explícita.",
+      "estrutura": "Definir unidade, grade, regra de repetição e variável. Gerar versões alterando apenas posição, escala ou densidade; preservar paleta e hierarquia.",
+      "uso": "Capas seriadas, padrões de identidade, sistemas generativos e visualizações abstratas. Se os dados forem reais, preservar a correspondência entre dado e forma.",
+      "direcao": "Create an original geometric composition from one repeated module. Use a fixed grid, two brand colors and controlled changes in scale. Keep a clear quiet area for a headline. Produce a family of six variations governed by the same rule. Explain the rule before rendering; no random decorative marks.",
+      "busca": "Obra: John Maeda Design by Numbers MIT. Assets: generative grid; algorithmic pattern; modular geometric composition.",
+      "evitar": "Chamar qualquer abstração de dado ou IA; acrescentar formas aleatórias sem função.",
+      "teste": "As seis peças parecem pertencer ao mesmo sistema mesmo sem logotipo?",
+      "periodo": "Legado",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://mitpress.mit.edu/9780262632447/design-by-numbers/"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://dbn.media.mit.edu/introduction.html",
+        "titulo": "Design By Numbers :: Introduction",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Legado",
+        "Design computacional",
+        "generative grid",
+        "algorithmic pattern",
+        "modular geometric composition."
+      ]
+    },
+    {
+      "id": "AD02",
+      "nome": "Joshua Davis",
+      "papel": "Arte generativa e código criativo",
+      "obra": "Arquivo Praystation",
+      "fonte": "https://joshuadavis.com/ps1-praystation-v2",
+      "valor": "Referência para combinar vocabulário gráfico autoral e distribuição procedural. O arquivo Praystation permite estudar composição computacional da primeira internet; parte do material depende de Flash, por isso as imagens estáticas são o ponto de entrada mais estável.",
+      "estrutura": "Criar um conjunto pequeno de elementos → distribuir por regras → controlar densidade e sobreposição → selecionar o resultado com melhor foco.",
+      "uso": "Pôsteres, visuais de eventos, capas e identidades com energia. Adequado a peças expressivas; não é a primeira escolha para informações comerciais densas.",
+      "direcao": "Build an original procedural poster from five custom vector motifs. Use a restricted palette and asymmetric clusters. Increase detail around one focal region while leaving generous negative space elsewhere. Generate twelve compositions, then select three with different density. Keep typography on a separate editable layer.",
+      "busca": "Obra: Joshua Davis Praystation ps1. Assets: generative vector poster; controlled chaos; procedural botanical geometry.",
+      "evitar": "Ruído uniforme, ornamento sem foco e reutilização de arquivos antigos como se fossem automaticamente livres.",
+      "teste": "Há uma regra perceptível e um ponto de atenção claro?",
+      "periodo": "Pioneiro com prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://joshuadavis.com/ps1-praystation-v2",
+        "titulo": "ps1.praystation.v2 — Joshua Davis Studios",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD02.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Pioneiro com prática contemporânea",
+        "Arte generativa e código criativo",
+        "generative vector poster",
+        "controlled chaos",
+        "procedural botanical geometry."
+      ]
+    },
+    {
+      "id": "AD03",
+      "nome": "Refik Anadol",
+      "papel": "Arte de dados e instalações",
+      "obra": "Unsupervised no MoMA",
+      "fonte": "https://www.moma.org/calendar/exhibitions/5535",
+      "valor": "Referência contemporânea para tratar processamento computacional como matéria visual e espacial. O MoMA documenta o uso de IA e dados de sua coleção em Unsupervised. A aplicação na PD é uma interpretação visual; um render fluido, sozinho, não constitui arte de dados.",
+      "estrutura": "Massa contínua → deslocamento lento → transições de densidade e cor → sensação de escala. Vincular qualquer narrativa sobre dados a uma origem documentada.",
+      "uso": "Aberturas de eventos, fundos de palco e peças conceituais sobre inteligência, memória e transformação.",
+      "direcao": "Create an original abstract field of densely layered particles flowing as one continuous volume. Use slow coherent motion, large scale and a restrained brand palette. Keep the camera stable and preserve a quiet title area. No literal buildings or faces. Describe the piece as visual abstraction unless real data actually drives it.",
+      "busca": "Obra: Refik Anadol Unsupervised MoMA. Assets: fluid particle field; data sculpture abstract; immersive generative installation.",
+      "evitar": "Usar fluidos multicoloridos como atalho para qualquer tema de tecnologia; inventar processamento de dados.",
+      "teste": "A abstração reforça o conceito da peça e deixa a mensagem legível?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.moma.org/calendar/exhibitions/5535",
+        "titulo": "Refik Anadol: Unsupervised | MoMA",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD03.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Arte de dados e instalações",
+        "fluid particle field",
+        "data sculpture abstract",
+        "immersive generative installation."
+      ]
+    },
+    {
+      "id": "AD04",
+      "nome": "Six N Five",
+      "papel": "Arte digital e direção de ambientes",
+      "obra": "Arquivo Digital e The Circle",
+      "fonte": "https://sixnfive.com/project-category/digital/",
+      "valor": "O estúdio de Ezequiel Pini é uma referência para ambientes digitais de imaginação contida. As composições aproximam volume, arquitetura e contemplação. É particularmente útil para conceito visual, desde que cenas imaginadas sejam distinguidas da apresentação factual de um empreendimento.",
+      "estrutura": "Poucos volumes → materiais precisos → luz ampla → uma impossibilidade espacial discreta → respiro. A estranheza depende de organização, não de excesso.",
+      "uso": "Conceitos de marca, capas da escola, mundos da Pontodot e imagens de atmosfera para campanhas.",
+      "direcao": "Create an original contemplative CGI environment with a limited set of architectural volumes, matte mineral surfaces and soft daylight. Introduce one subtle impossible spatial relationship. Use a calm palette and a single focal object. Keep generous negative space. This is a conceptual scene, not a representation of an actual development.",
+      "busca": "Obra: Six N Five The Circle digital archive. Assets: surreal minimal architecture; sculptural landscape; contemplative CGI.",
+      "evitar": "Render genérico bege, objetos sem escala e acrescentar lagos ou estruturas a fotos de produto real.",
+      "teste": "A imagem tem uma ideia espacial própria e uma hierarquia evidente?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://sixnfive.com/project-category/digital/",
+        "titulo": "Digital Archives - Six N. Five",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD04.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Arte digital e direção de ambientes",
+        "surreal minimal architecture",
+        "sculptural landscape",
+        "contemplative CGI."
+      ]
+    },
+    {
+      "id": "AD05",
+      "nome": "GMUNK",
+      "papel": "Direção visual fotografia experimental e motion",
+      "obra": "The Spectrum Series",
+      "fonte": "https://gmunk.com/The-Spectrum-Series",
+      "valor": "Referência para estudar luz, percepção e textura como conteúdo da imagem. The Spectrum Series permite observar a investigação de espectros de cor em paisagens. O repertório também atravessa instalações e cinema, mas a ficha toma esta série como recorte.",
+      "estrutura": "Estrutura real reconhecível → alteração cromática coerente → luz como protagonista → contraste entre matéria e percepção.",
+      "uso": "Campanhas conceituais, tecnologia, música e visuais de experiência. Em imóveis, usar a experimentação em peças conceituais, preservando materiais e cores nas imagens de venda.",
+      "direcao": "Create an original landscape study with coherent spectral color relationships, deep tonal separation and tactile natural detail. Let directional light reveal layers of the scene. Use one dominant hue and one supporting hue. Preserve believable geometry and material texture; avoid rainbow gradients and decorative lens flares.",
+      "busca": "Obra: GMUNK The Spectrum Series. Assets: infrared landscape; experimental optics; spectral photography; light installation.",
+      "evitar": "Confundir cor experimental com fidelidade documental; aplicar neon sem relação com o conceito.",
+      "teste": "A luz organiza a cena mesmo quando a imagem é vista em miniatura?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://gmunk.com/The-Spectrum-Series",
+        "titulo": "The Spectrum Series — GMUNK",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD05.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Direção visual fotografia experimental e motion",
+        "infrared landscape",
+        "experimental optics",
+        "spectral photography",
+        "light installation."
+      ]
+    },
+    {
+      "id": "AD06",
+      "nome": "Nidia Dias",
+      "papel": "Direção criativa e design 3D",
+      "obra": "IBM Design com Tendril",
+      "fonte": "https://nidiadias.com/works/ibm-design",
+      "valor": "Referência contemporânea para construir uma linguagem de materiais e formas que possa atravessar uma marca. A página do projeto identifica Tendril, IBM e o papel de Nidia. Interessa à PD por mostrar como um quadro de estilo pode organizar uma série inteira.",
+      "estrutura": "Conceito → família de formas → comportamento de materiais → composição → variação. Definir o sistema antes da animação reduz inconsistências entre cenas.",
+      "uso": "Filmes de tecnologia, explicações abstratas de serviços e quadros de estilo para apresentações de criação.",
+      "direcao": "Develop three original styleframes for [concept]. Use one consistent material vocabulary, a controlled color system and clearly differentiated foreground, subject and background. Make each frame express a different stage of the same process. Specify surface roughness, lighting direction and object scale before animation.",
+      "busca": "Obra: Nidia Dias IBM Design Tendril. Assets: abstract technology 3D; tactile styleframes; procedural material study.",
+      "evitar": "Formas abstratas intercambiáveis, textura sem função e atribuir a uma pessoa toda a execução do estúdio.",
+      "teste": "Os três quadros sustentam a mesma linguagem e explicam etapas distintas?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://nidiadias.com/works/ibm-design",
+        "titulo": "IBM Design — Nidia Dias",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD06.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Direção criativa e design 3D",
+        "abstract technology 3D",
+        "tactile styleframes",
+        "procedural material study."
+      ]
+    },
+    {
+      "id": "AD07",
+      "nome": "Peter Tarka",
+      "papel": "Direção de arte e composição 3D",
+      "obra": "Portfólio comercial e experimentos",
+      "fonte": "https://petertarka.com/",
+      "valor": "Referência para compor volumes e materiais com presença gráfica. Seu portfólio reúne trabalho comercial e experimentação, oferecendo um repertório útil de equilíbrio entre objetos, cores e áreas vazias. A ficha usa o conjunto como estudo de composição, sem atribuir uma imagem a cliente não identificado.",
+      "estrutura": "Grupo de formas com pesos distintos → hierarquia de escala → contraste entre materiais → luz de estúdio → silhueta legível.",
+      "uso": "Campanhas digitais, peças de produto, capas e ilustrações de conceitos abstratos com impacto imediato.",
+      "direcao": "Create an original three-dimensional still life with five geometric objects arranged as one balanced sculptural composition. Use clear differences in scale, matte and polished materials, crisp contact shadows and a controlled studio background. Keep the silhouette readable at small size. Reserve space for an editable headline.",
+      "busca": "Obra: Peter Tarka commercial work personal experiments. Assets: geometric 3D still life; sculptural product composition; tactile abstract shapes.",
+      "evitar": "Encher a cena de objetos, sombra borrada artificial e materiais sem escala.",
+      "teste": "O conjunto mantém equilíbrio e leitura no tamanho de um post no celular?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://petertarka.com/",
+        "titulo": "Peter Tarka - London Based Art Direction &amp; 3D Studio",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD07.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Direção de arte e composição 3D",
+        "geometric 3D still life",
+        "sculptural product composition",
+        "tactile abstract shapes."
+      ]
+    },
+    {
+      "id": "AD08",
+      "nome": "Loish",
+      "papel": "Pintura digital e personagens",
+      "obra": "Original Art de Lois van Baarle",
+      "fonte": "https://loish.net/portfolio/original-art/",
+      "valor": "Referência para relacionar gesto, silhueta e cor em personagens. O portfólio autoral e a apresentação profissional documentam sua atuação em pintura digital e character design. Para a PD, o estudo ajuda a preservar expressividade ao variar pose, figurino e contexto.",
+      "estrutura": "Gesto principal → silhueta clara → massas de cor → foco no rosto ou ação → acabamento seletivo. Detalhar mais o que carrega a emoção.",
+      "uso": "Personagens da Pontodot, estudos de expressão, ilustrações editoriais e desenvolvimento de poses.",
+      "direcao": "Design an original character with a clear gesture, readable silhouette and harmonious color masses. Use expressive posture and selective painterly detail around the face and hands. Keep the approved anatomy, costume and palette across three poses. Avoid generic beauty retouching and unrelated decorative accessories.",
+      "busca": "Obra: Loish Original Art character design. Assets: expressive digital character painting; gesture silhouette; painterly color studies.",
+      "evitar": "Mudar traços de identidade entre imagens; reproduzir um personagem existente do portfólio.",
+      "teste": "A personalidade continua reconhecível em silhueta e nas três poses?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://loish.net/portfolio/original-art/",
+        "titulo": "Original Art &#8211; Loish.net",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD08.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Pintura digital e personagens",
+        "expressive digital character painting",
+        "gesture silhouette",
+        "painterly color studies."
+      ]
+    },
+    {
+      "id": "AD09",
+      "nome": "Rafael Grassetti",
+      "papel": "Escultura digital e direção de personagens",
+      "obra": "Portfólio de jogos e God of War",
+      "fonte": "https://www.rgrassetti.com/games",
+      "valor": "Referência brasileira para volume, anatomia e materialidade de personagens. Seu site apresenta o trabalho em jogos e sua participação em God of War. A contribuição para a PD está na consistência tridimensional e no desenho de personagens que resistem a novos ângulos.",
+      "estrutura": "Estrutura anatômica → massas grandes → planos secundários → materiais → detalhes. A hierarquia impede que textura esconda problemas de construção.",
+      "uso": "Mascotes 3D, personagens recorrentes e fichas de identidade com vistas frontal, lateral e posterior.",
+      "direcao": "Build an original stylized 3D character from the approved model sheet. Establish anatomy and large volumes before surface detail. Produce front, side, back and three-quarter views under neutral studio lighting. Keep proportions, facial structure and costume construction identical across views. Separate skin, fabric and hard-surface materials.",
+      "busca": "Obra: Raf Grassetti God of War portfolio. Assets: character sculpt turnaround; stylized anatomy; character material study.",
+      "evitar": "Importar personagens de franquias para a marca; esconder anatomia incorreta com detalhe.",
+      "teste": "O personagem parece o mesmo indivíduo em todos os ângulos?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.rgrassetti.com/games",
+        "titulo": "Games | Grassetti",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD09.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Escultura digital e direção de personagens",
+        "character sculpt turnaround",
+        "stylized anatomy",
+        "character material study."
+      ]
+    },
+    {
+      "id": "AD10",
+      "nome": "ManvsMachine",
+      "papel": "Design direção e efeitos visuais",
+      "obra": "Nike Air Max",
+      "fonte": "https://mvsm.rbln7.com/project/air-max",
+      "valor": "Referência para transformar benefício físico em metáfora visual. O case Air Max descreve uma exploração de ar e espaço negativo. A ficha registra a colaboração com Nike, Mother e profissionais de fotografia e montagem; o resultado é trabalho de equipe.",
+      "estrutura": "Benefício do produto → fenômeno material análogo → experimento visual → retorno ao produto. A beleza da simulação precisa carregar uma informação.",
+      "uso": "Filmes de produto, diferenciais técnicos, apresentações de engenharia e demonstrações conceituais.",
+      "direcao": "Translate [verified product benefit] into one original physical visual metaphor. Show the material behavior clearly, then connect it to the real product. Use precise lighting, controlled camera motion and stable geometry. Deliver three styleframes and a five-shot sequence. Avoid effects that imply unverified performance.",
+      "busca": "Obra: ManvsMachine Nike Air Max negative space. Assets: physical product metaphor; material simulation; premium product CGI.",
+      "evitar": "Simulação bonita sem relação com o benefício; sugerir desempenho não comprovado.",
+      "teste": "O público consegue explicar qual benefício a sequência demonstrou?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Arte digital",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://mvsm.rbln7.com/project/air-max",
+        "titulo": "ManvsMachine - Air Max",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/AD10.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "AD",
+        "Prática contemporânea",
+        "Design direção e efeitos visuais",
+        "physical product metaphor",
+        "material simulation",
+        "premium product CGI."
+      ]
+    },
+    {
+      "id": "VO01",
+      "nome": "Don LaFontaine",
+      "papel": "Locução de trailers",
+      "obra": "Arquivo oficial e Ask Don",
+      "fonte": "https://donlafontaine.com/ask-don/",
+      "valor": "Referência histórica de narrativa promocional com presença e progressão dramática. O arquivo reúne gravações do próprio locutor. O que interessa é a arquitetura da interpretação: preparar a expectativa, sustentar uma palavra e entregar a virada.",
+      "estrutura": "Entrada concentrada → informação em blocos → pausa antes da virada → fechamento firme. O contraste de energia vale mais que manter intensidade máxima.",
+      "uso": "Teasers, trailers e chamadas de eventos em que a escala dramática é pertinente.",
+      "direcao": "Dirija uma voz original, adulta e de registro confortável. Leia [texto] em blocos claros; comece contido, aumente a energia na descoberta e faça uma pausa curta antes de [frase central]. Preserve articulação e naturalidade. Grave uma versão dramática e outra com metade da intensidade, sem imitar o timbre de uma pessoa.",
+      "busca": "Escuta: Don LaFontaine Ask Don vocal techniques. Banco: cinematic trailer narration; dramatic promo voice; controlled intensity.",
+      "evitar": "Gravidade artificial, voz comprimida em excesso e trailer épico para uma mensagem cotidiana.",
+      "teste": "Há progressão dramática sem perder compreensão nem soar como caricatura?",
+      "periodo": "Legado",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://donlafontaine.com/ask-don/",
+        "titulo": "Ask Don - Don Lafontaine",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Legado",
+        "Locução de trailers",
+        "cinematic trailer narration",
+        "dramatic promo voice",
+        "controlled intensity."
+      ]
+    },
+    {
+      "id": "VO02",
+      "nome": "Peter Coyote",
+      "papel": "Narração documental",
+      "obra": "Seleção de documentários no site oficial",
+      "fonte": "https://petercoyote.com/voice-artist/",
+      "valor": "Referência para sustentar histórias longas com clareza e presença discreta. O site reúne projetos de narração. Para a PD, serve como escola de relação entre voz, informação e imagem, especialmente quando a credibilidade depende de o texto parecer entendido.",
+      "estrutura": "Pensamento completo → respiração → conexão com a frase seguinte. Priorizar os verbos e relações de causa; variar a intensidade segundo o conteúdo.",
+      "uso": "Institucionais, documentários de marca, histórias de território e vídeos com dados contextualizados.",
+      "direcao": "Use uma voz original de narrador próximo, sereno e atento. Leia [texto] como quem compreende o assunto e conversa com uma pessoa. Organize pausas por ideia, reduza ênfases promocionais e deixe as imagens respirarem. Faça uma segunda tomada mais íntima, mantendo o mesmo grau de clareza.",
+      "busca": "Escuta: Peter Coyote voice artist documentary narration. Banco: warm documentary narrator; thoughtful factual narration.",
+      "evitar": "Monotonia confundida com sobriedade; impor solenidade a informações simples.",
+      "teste": "O ouvinte acompanha a relação entre as ideias sem precisar ver a tela?",
+      "periodo": "Prática de referência documental",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://petercoyote.com/voice-artist/",
+        "titulo": "VOICE ARTIST - Peter Coyote",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Prática de referência documental",
+        "Narração documental",
+        "warm documentary narrator",
+        "thoughtful factual narration."
+      ]
+    },
+    {
+      "id": "VO03",
+      "nome": "David Attenborough",
+      "papel": "Apresentação e narração de natureza",
+      "obra": "Blue Planet",
+      "fonte": "https://tv.apple.com/gb/show/blue-planet/umc.cmc.346rvkjbcu5bbovyv23stty16",
+      "valor": "Referência de curiosidade guiada: a voz ajuda a perceber algo que está acontecendo diante da câmera. A página do distribuidor identifica a narração de Blue Planet. É um repertório útil para natureza, ciência e transformação observável.",
+      "estrutura": "Apresentar o contexto → chamar atenção para um detalhe → revelar sua função → ampliar o significado. A surpresa nasce do fato.",
+      "uso": "Conteúdo de território, biodiversidade, urbanismo e explicações da escola Pontodot.",
+      "direcao": "Dirija uma voz original em português brasileiro com curiosidade tranquila. Em [texto], destaque a descoberta, não o adjetivo. Faça uma pausa para o espectador observar [detalhe visível] antes de explicar sua função. Use vocabulário concreto e mantenha o tom de descoberta compartilhada.",
+      "busca": "Escuta: David Attenborough Blue Planet narration. Banco: curious nature documentary voice; gentle scientific storytelling.",
+      "evitar": "Imitar sotaque ou identidade vocal; inventar fatos sobre fauna, ambiente ou sustentabilidade.",
+      "teste": "Cada comentário da voz ajuda a ver ou compreender algo real da cena?",
+      "periodo": "Legado",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://tv.apple.com/gb/show/blue-planet/umc.cmc.346rvkjbcu5bbovyv23stty16",
+        "titulo": "‎Blue Planet - Apple TV",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Legado",
+        "Apresentação e narração de natureza",
+        "curious nature documentary voice",
+        "gentle scientific storytelling."
+      ]
+    },
+    {
+      "id": "VO04",
+      "nome": "Morgan Freeman",
+      "papel": "Narração cinematográfica",
+      "obra": "Life on Our Planet",
+      "fonte": "https://www.netflix.com/tudum/articles/life-on-our-planet-release-date-news-trailer",
+      "valor": "Referência de narração que confere escala à história sem depender de aceleração. A Netflix disponibiliza contexto e trailer do projeto. Para a PD, o recurso relevante é a combinação de calma, frases bem resolvidas e perspectiva temporal.",
+      "estrutura": "Afirmação simples → tempo para assimilação → expansão do cenário → fechamento que conecta o particular ao conjunto.",
+      "uso": "Filmes institucionais, história de empresas e narrativas de legado fundamentadas em fatos.",
+      "direcao": "Escolha uma voz original com presença tranquila e boa articulação. Leia [texto] em ritmo moderado, preservando finais de frase. Dê peso apenas às palavras que mudam o sentido. Use pausas para transições de tempo e mantenha calor humano, sem empostação exagerada ou tentativa de reproduzir uma voz conhecida.",
+      "busca": "Escuta: Life on Our Planet Morgan Freeman official trailer. Banco: calm cinematic narrator; grounded storytelling voice.",
+      "evitar": "Tom de verdade absoluta para hipóteses; lentidão ornamental que esvazia o conteúdo.",
+      "teste": "A autoridade vem da clareza e do texto, sem depender de uma voz famosa?",
+      "periodo": "Legado",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.netflix.com/tudum/articles/life-on-our-planet-release-date-news-trailer",
+        "titulo": "The Morgan Freeman Narrated &#x27;Life On Our Planet&#x27; Isn&#x27;t Just Another Dinosaur Documentary - Netflix Tudum",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Legado",
+        "Narração cinematográfica",
+        "calm cinematic narrator",
+        "grounded storytelling voice."
+      ]
+    },
+    {
+      "id": "VO05",
+      "nome": "Angela Bassett",
+      "papel": "Narração com presença dramática",
+      "obra": "Queens da National Geographic",
+      "fonte": "https://www.nationalgeographic.com/animals/topic/queens",
+      "valor": "Referência contemporânea de força, envolvimento e flexibilidade emocional na narração. A página oficial oferece trailer e identifica sua participação. O repertório ajuda a criar presença sem limitar a autoridade a vozes masculinas graves.",
+      "estrutura": "Situação → tensão → decisão → consequência. Variar força e proximidade; a intensidade acompanha o acontecimento.",
+      "uso": "Campanhas com protagonistas, histórias de liderança, natureza e filmes que pedem energia adulta.",
+      "direcao": "Dirija uma voz original com firmeza, presença e calor. Abra [texto] de forma próxima, aumente a energia na ação principal e recue quando a cena pedir delicadeza. Preserve contrastes e pronúncia clara. Grave uma versão com maior urgência e outra mais reflexiva, sem reproduzir identidade vocal alheia.",
+      "busca": "Escuta: Queens National Geographic Angela Bassett trailer. Banco: confident female documentary narration; warm powerful voice.",
+      "evitar": "Confundir firmeza com agressividade; manter a mesma intensidade do começo ao fim.",
+      "teste": "A interpretação muda junto com o sentido e preserva a pessoa por trás da voz?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.nationalgeographic.com/animals/topic/queens",
+        "titulo": "Queens | National Geographic",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Prática contemporânea",
+        "Narração com presença dramática",
+        "confident female documentary narration",
+        "warm powerful voice."
+      ]
+    },
+    {
+      "id": "VO06",
+      "nome": "Fernanda Montenegro",
+      "papel": "Interpretação e leitura dramática",
+      "obra": "Leitura de Simone de Beauvoir",
+      "fonte": "https://www.sescsp.org.br/editorial/fernanda-montenegro-traz-leitura-dramatica-de-simone-de-beauvoir-para-o-sesc-14-bis/",
+      "valor": "Referência brasileira de interpretação sustentada pelo entendimento do texto. A fonte do Sesc documenta a leitura; funciona como contexto de estudo, não como demo comercial. O interesse para a PD está no peso do pensamento e na precisão das mudanças emocionais.",
+      "estrutura": "Identificar intenção → localizar mudança de pensamento → respirar segundo o sentido → concluir a ideia. O texto determina a pausa.",
+      "uso": "Manifestos, homenagens, filmes culturais e narrações que precisam de densidade humana.",
+      "direcao": "Antes de gravar [texto], explique em uma frase o que a pessoa quer comunicar. Marque as mudanças de pensamento e apenas três palavras decisivas. Dirija uma voz original, madura ou não, com interpretação contida. Faça uma tomada conversada e outra mais dramática; selecione a que melhor preserva o sentido.",
+      "busca": "Estudo: Fernanda Montenegro leitura Simone de Beauvoir Sesc. Banco: Brazilian Portuguese dramatic reading; intimate literary narration.",
+      "evitar": "Copiar maneirismos, associar maturidade a voz artificialmente envelhecida e dramatizar todas as palavras.",
+      "teste": "A interpretação esclarece o pensamento ou compete com ele?",
+      "periodo": "Legado",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://www.youtube.com/watch?v=OlkHIbmz6BE"
+      ],
+      "acesso": {
+        "status": null,
+        "nota": "HTTP Error 403: Forbidden",
+        "verificacao": "Fonte localizada na pesquisa web; consulta direta automatizada limitada"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Legado",
+        "Interpretação e leitura dramática",
+        "Brazilian Portuguese dramatic reading",
+        "intimate literary narration."
+      ]
+    },
+    {
+      "id": "VO07",
+      "nome": "Antônio Abujamra",
+      "papel": "Interpretação oral e presença cênica",
+      "obra": "Poesias e textos em Provocações",
+      "fonte": "https://culturaplay.tvcultura.com.br/channels/154/subchannels/283/embeds/17389-provocacoes-silvio-de-abreu",
+      "valor": "Referência de tensão verbal e mudança de expectativa. O arquivo da TV Cultura reúne entrevista e leitura de textos. O recurso transferível é o uso consciente de silêncio, aceleração e quebra de cadência para fazer uma ideia ser percebida.",
+      "estrutura": "Pensamento reconhecível → suspensão → palavra decisiva → consequência. A pausa precisa criar sentido, não somente solenidade.",
+      "uso": "Peças autorais, provocações editoriais e aberturas de filmes sobre escolhas e comportamento.",
+      "direcao": "Dirija [texto] como uma reflexão que acaba de ocorrer. Use uma voz original com intenção clara. Marque uma pausa antes da virada principal e deixe o restante fluir com naturalidade. Faça uma versão sem qualquer pausa dramática para comparar. Escolha a que mais torna a ideia compreensível e necessária.",
+      "busca": "Escuta: Antônio Abujamra Provocações poema TV Cultura. Banco: thoughtful dramatic monologue; intentional pause voice.",
+      "evitar": "Transformar toda frase em aforismo; teatralidade que ridiculariza a mensagem comercial.",
+      "teste": "Ao retirar a pausa, perde-se um sentido real ou apenas um efeito?",
+      "periodo": "Legado",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://culturaplay.tvcultura.com.br/channels/154/subchannels/283/embeds/17389-provocacoes-silvio-de-abreu",
+        "titulo": "Cultura Play | Canal \"Provocações\" | Subcanal \"Provocações Retrô | 2023\"",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Legado",
+        "Interpretação oral e presença cênica",
+        "thoughtful dramatic monologue",
+        "intentional pause voice."
+      ]
+    },
+    {
+      "id": "VO08",
+      "nome": "Regina Bittar",
+      "papel": "Locução publicitária e comunicação profissional",
+      "obra": "Repertório oficial de locução",
+      "fonte": "https://www.reginabittar.com.br/locutora-videos",
+      "valor": "Referência brasileira diretamente aplicável à produção publicitária. O repertório permite consultar trabalhos e diferentes contextos de voz. Para a PD, oferece um ponto de estudo de clareza, modulação e adequação da interpretação ao produto.",
+      "estrutura": "Intenção comercial → frase natural → informação destacada → chamada compreensível. Adaptar a energia ao canal e à duração.",
+      "uso": "Vídeos comerciais, varejo, apresentações de serviço, orientação de interface e conteúdos explicativos.",
+      "direcao": "Leia [texto] em português brasileiro com articulação precisa e intenção de ajudar a decisão. Realce [benefício] e [próximo passo]. Faça três tomadas: conversa próxima, apresentação institucional e chamada comercial. Preserve a inteligibilidade de números e nomes. Use voz original ou uma voz da biblioteca cuja licença cubra o projeto.",
+      "busca": "Escuta: Regina Bittar locutora vídeos Gallo 100 anos. Banco: Brazilian Portuguese clear commercial voice; conversational female narration.",
+      "evitar": "Sorriso permanente em texto sério, aceleração que prejudica preços e entonação automática de anúncio.",
+      "teste": "O benefício e a ação são entendidos na primeira escuta?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.reginabittar.com.br/locutora-videos",
+        "titulo": "Regina Bittar, Locutora, Speech Coach, Workshop de locução",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Prática contemporânea",
+        "Locução publicitária e comunicação profissional",
+        "Brazilian Portuguese clear commercial voice",
+        "conversational female narration."
+      ]
+    },
+    {
+      "id": "VO09",
+      "nome": "Wendel Bezerra",
+      "papel": "Atuação e direção de dublagem",
+      "obra": "Canal do artista e UniDub",
+      "fonte": "https://www.youtube.com/watch?v=4Y5aClel6G8",
+      "valor": "Referência brasileira para tratar voz como atuação de personagem. O material do próprio artista e a UniDub documentam sua prática. A aplicação na PD é construir intenção, consistência e reação, sem transferir para um mascote a identidade de personagens conhecidos.",
+      "estrutura": "Quem fala → o que quer → para quem fala → reação ao acontecimento. A voz muda por emoção, preservando a identidade.",
+      "uso": "Personagens da Pontodot, diálogos curtos, explicações com mascotes e séries recorrentes.",
+      "direcao": "Crie uma ficha vocal original para [personagem]: faixa confortável, energia habitual, velocidade e modo de reagir. Grave a mesma frase em curiosidade, frustração e alegria. Preserve a identidade entre estados e evite marcas reconhecíveis de personagens existentes. Direcione a intenção antes de ajustar qualquer parâmetro da ferramenta.",
+      "busca": "Escuta: Wendel Bezerra dublagem pelo Brasil todo UniDub. Banco: original character voice; Brazilian Portuguese expressive dialogue.",
+      "evitar": "Escolher um timbre divertido sem personagem; repetir a voz de Goku ou Bob Esponja.",
+      "teste": "O personagem continua reconhecível ao trocar de emoção?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://unidub.com.br/sobre-nos/"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.youtube.com/watch?v=4Y5aClel6G8",
+        "titulo": "",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Prática contemporânea",
+        "Atuação e direção de dublagem",
+        "original character voice",
+        "Brazilian Portuguese expressive dialogue."
+      ]
+    },
+    {
+      "id": "VO10",
+      "nome": "Guilherme Briggs",
+      "papel": "Atuação vocal e construção de personagens",
+      "obra": "Entrevista no Zappeando",
+      "fonte": "https://redeglobo.globo.com/redeamazonica/zappeando/noticia/zappeando-bate-papo-com-guilherme-briggs.ghtml",
+      "valor": "Referência brasileira de amplitude interpretativa e presença de personagem. A reportagem da emissora aponta a entrevista e sua atuação em dublagem. A ficha orienta estudo de intenção e contraste, sem apresentar a página como um banco de vozes reutilizáveis.",
+      "estrutura": "Postura do personagem → intenção da fala → mudança emocional → resposta. Diferenciar os personagens por comportamento, além da altura da voz.",
+      "uso": "Elenco da Pontodot, personagens narradores e diálogos em que vozes precisam ser distintas e consistentes.",
+      "direcao": "Defina duas vozes originais para [personagens]. Diferencie-as por ritmo, energia, articulação e atitude diante do mundo. Escreva um diálogo de seis falas em que cada um queira algo diferente. Grave versões com humor sutil e com seriedade. Evite reproduzir vozes de atores ou personagens já conhecidos.",
+      "busca": "Estudo: Guilherme Briggs Zappeando entrevista. Banco: character acting contrast; Brazilian Portuguese voice cast.",
+      "evitar": "Caricatura usada como única identidade; confundir variação de pitch com interpretação.",
+      "teste": "É possível identificar quem fala sem ver a imagem ou o nome?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Locução e atuação vocal",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://www.sescsp.org.br/editorial/guilherme-briggs-no-animerp-2026/"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://redeglobo.globo.com/redeamazonica/zappeando/noticia/zappeando-bate-papo-com-guilherme-briggs.ghtml",
+        "titulo": "Zappeando bate-papo com Guilherme Briggs | Rede globo",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VO",
+        "Prática contemporânea",
+        "Atuação vocal e construção de personagens",
+        "character acting contrast",
+        "Brazilian Portuguese voice cast."
+      ]
+    },
+    {
+      "id": "TR01",
+      "nome": "Bernard Herrmann",
+      "papel": "Composição para cinema",
+      "obra": "Psycho",
+      "fonte": "https://www.bafta.org/stories/behind-mask-music-psycho/",
+      "valor": "Referência histórica para obter identidade sonora com uma paleta restrita. A análise da BAFTA destaca a escolha de cordas em Psycho. A lição utilizável é coerência de timbre e função dramática, sem transportar automaticamente a sensação de terror.",
+      "estrutura": "Escolher uma família instrumental → criar uma célula curta → variar articulação e densidade → usar silêncio como contraste.",
+      "uso": "Suspense editorial, expectativa e peças em que um material sonoro único precisa construir reconhecimento.",
+      "direcao": "Compose an original 30-second instrumental cue using only a small string ensemble. Develop a short rhythmic cell through changes in articulation and register. Start sparse, increase tension in the middle, then end cleanly. Keep space for narration. Do not quote existing melodies or recognizable film motifs.",
+      "busca": "Escuta: Bernard Herrmann Psycho score BAFTA. Banco: minimal string tension; restrained suspense strings; chamber ostinato.",
+      "evitar": "Copiar o gesto musical da cena do chuveiro; associar uma marca acolhedora a ameaça involuntária.",
+      "teste": "A restrição instrumental cria identidade e serve ao sentimento pretendido?",
+      "periodo": "Legado",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.bafta.org/stories/behind-mask-music-psycho/",
+        "titulo": "Behind the Mask: Music in Psycho - Bafta",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Legado",
+        "Composição para cinema",
+        "minimal string tension",
+        "restrained suspense strings",
+        "chamber ostinato."
+      ]
+    },
+    {
+      "id": "TR02",
+      "nome": "Ennio Morricone",
+      "papel": "Composição cinematográfica",
+      "obra": "The Mission e Cinema Paradiso",
+      "fonte": "https://www.festival-cannes.com/en/p/ennio-morricone/",
+      "valor": "Referência histórica para melodias com função narrativa e contraste entre intimidade e escala. O catálogo do Festival de Cannes confirma os créditos. A PD pode estudar a construção de um tema que volte com significado, em vez de buscar uma trilha grandiosa em cada cena.",
+      "estrutura": "Instrumento solista → frase memorável original → resposta do conjunto → expansão na resolução emocional.",
+      "uso": "Filmes sobre território, memória, vínculos e trajetórias. A intensidade deve acompanhar uma história concreta.",
+      "direcao": "Compose an original lyrical theme for solo woodwind and restrained strings. Begin intimate, introduce a second layer after the main idea is established, and reserve the fullest arrangement for the final emotional turn. Keep the melody simple and distinct from existing scores. Create 60-second and 30-second versions with resolved endings.",
+      "busca": "Escuta: Ennio Morricone The Mission Cinema Paradiso. Banco: lyrical oboe strings; intimate cinematic melody; emotional orchestral theme.",
+      "evitar": "Melodrama permanente, coral automático e melodia reconhecível de filme.",
+      "teste": "O tema sustenta a emoção mesmo com poucos instrumentos?",
+      "periodo": "Legado",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.festival-cannes.com/en/p/ennio-morricone/",
+        "titulo": "Ennio MORRICONE - Festival de Cannes",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Legado",
+        "Composição cinematográfica",
+        "lyrical oboe strings",
+        "intimate cinematic melody",
+        "emotional orchestral theme."
+      ]
+    },
+    {
+      "id": "TR03",
+      "nome": "John Williams",
+      "papel": "Composição temática",
+      "obra": "Filmografia e temas de cinema",
+      "fonte": "https://www.johnwilliams.org/compositions/film",
+      "valor": "Referência para associar identidade e desenvolvimento musical. A filmografia oficial é a entrada para selecionar obras de estudo. Na PD, o princípio vale especialmente para personagens, séries e assinaturas que precisam permanecer reconhecíveis.",
+      "estrutura": "Motivo original curto → associação consistente → variação de andamento ou instrumentação → retorno reconhecível.",
+      "uso": "Identidade sonora, personagens da Pontodot, vinhetas e séries de conteúdo com continuidade.",
+      "direcao": "Create an original four-note sonic motif for [brand or character]. Develop three versions: curious, reassuring and celebratory. Preserve the recognizable interval shape while changing orchestration and rhythm. Deliver a two-second signature and a 20-second cue. Avoid musical quotations and excessive orchestral scale.",
+      "busca": "Escuta: John Williams official compositions film. Banco: original leitmotif; orchestral brand theme; melodic sonic logo.",
+      "evitar": "Confundir referência temática com copiar temas famosos; soar como franquia de cinema.",
+      "teste": "As três versões são reconhecidas como parte da mesma identidade?",
+      "periodo": "Legado",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.johnwilliams.org/compositions/film",
+        "titulo": "John Williams | Films",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Legado",
+        "Composição temática",
+        "original leitmotif",
+        "orchestral brand theme",
+        "melodic sonic logo."
+      ]
+    },
+    {
+      "id": "TR04",
+      "nome": "Brian Eno",
+      "papel": "Música ambiente e sistemas sonoros",
+      "obra": "Ambient 1 Music for Airports",
+      "fonte": "https://www.moma.org/artists/38770-brian-eno",
+      "valor": "Referência para música que organiza o ambiente e deixa espaço para atenção. O acervo do MoMA registra o álbum. A contribuição à PD é pensar duração, repetição e baixa densidade como escolhas de direção, especialmente sob voz e imagens contemplativas.",
+      "estrutura": "Eventos espaçados → camadas de duração diferente → transições lentas → ausência de ápice obrigatório.",
+      "uso": "Arquitetura, bem-estar, espaços de contemplação, espera e fundos para narração delicada.",
+      "direcao": "Create an original ambient bed with sparse piano tones, soft sustained textures and slowly overlapping phrases. Avoid a strong beat and sudden harmonic changes. Leave wide gaps for narration and environmental sound. Make a seamless 60-second loop and a separate version with a gentle resolved ending.",
+      "busca": "Escuta: Brian Eno Ambient 1 Music for Airports. Banco: sparse ambient piano; beatless atmospheric bed; generative calm soundscape.",
+      "evitar": "Pad genérico sem intenção; música tão rarefeita que a cena perde direção.",
+      "teste": "A trilha cria espaço e mantém interesse sem disputar com a voz?",
+      "periodo": "Legado",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.moma.org/artists/38770-brian-eno",
+        "titulo": "Brian Eno | MoMA",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Legado",
+        "Música ambiente e sistemas sonoros",
+        "sparse ambient piano",
+        "beatless atmospheric bed",
+        "generative calm soundscape."
+      ]
+    },
+    {
+      "id": "TR05",
+      "nome": "Ryuichi Sakamoto",
+      "papel": "Composição e pesquisa sonora",
+      "obra": "async",
+      "fonte": "https://www.milanrecords.com/release/async/",
+      "valor": "Referência para aproximar instrumento, silêncio e sons do mundo. A gravadora descreve o uso de objetos cotidianos e gravações de campo em async. Para a PD, isso permite criar vínculos entre ambiente real e música, com escala íntima.",
+      "estrutura": "Som de lugar → nota ou gesto instrumental → ressonância → pausa → pequena transformação. A matéria sonora deve ter origem coerente com a cena.",
+      "uso": "Filmes de morar, arquitetura, memória, natureza e experiências sensoriais de marca.",
+      "direcao": "Compose an original intimate cue using sparse piano, subtle room resonance and field recordings from [actual environment]. Let environmental sound establish the space before the music enters. Keep dynamics restrained and allow silence between phrases. Deliver separate music and ambience stems. No borrowed melodies or copyrighted samples.",
+      "busca": "Escuta: Ryuichi Sakamoto async Milan Records. Banco: intimate piano field recording; organic ambient texture; minimal acoustic soundscape.",
+      "evitar": "Ruídos decorativos sem relação com o lugar; transformar intimidade em tristeza automática.",
+      "teste": "Os sons fazem a cena parecer situada em um lugar específico?",
+      "periodo": "Legado",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.milanrecords.com/release/async/",
+        "titulo": "Ryuichi Sakamoto: async - Soundtrack - Milan Records",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Legado",
+        "Composição e pesquisa sonora",
+        "intimate piano field recording",
+        "organic ambient texture",
+        "minimal acoustic soundscape."
+      ]
+    },
+    {
+      "id": "TR06",
+      "nome": "Hans Zimmer",
+      "papel": "Composição híbrida e progressão",
+      "obra": "Interstellar",
+      "fonte": "https://www.youtube.com/watch?v=YF1eYbfbH5k",
+      "valor": "Referência para construir progressão por pulsação, camadas e escala. O álbum oficial de WaterTower Music permite consulta direta. Para a PD, interessa a curva de energia: uma ideia simples ganha densidade até um ponto decisivo.",
+      "estrutura": "Pulso inicial → camadas graduais → expansão de registro → ápice único → liberação. A duração do filme determina quando a curva muda.",
+      "uso": "Lançamentos, eventos e filmes de visão de futuro que comportem energia crescente.",
+      "direcao": "Compose an original 45-second instrumental cue with a steady pulse, warm sustained harmony and gradual layering. Build toward one clear peak near the final third, then leave space for the brand signature. Use restrained low percussion and a clean ending. Avoid recognizable film melodies, trailer braams and constant maximum intensity.",
+      "busca": "Escuta: Hans Zimmer Interstellar WaterTower official. Banco: cinematic pulse build; restrained organ atmosphere; inspirational hybrid score.",
+      "evitar": "Épico sem justificativa, graves que escondem a voz e crescimento que nunca chega a lugar algum.",
+      "teste": "O ponto alto coincide com a principal descoberta do filme?",
+      "periodo": "Legado",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.youtube.com/watch?v=YF1eYbfbH5k",
+        "titulo": "",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Legado",
+        "Composição híbrida e progressão",
+        "cinematic pulse build",
+        "restrained organ atmosphere",
+        "inspirational hybrid score."
+      ]
+    },
+    {
+      "id": "TR07",
+      "nome": "Hildur Guðnadóttir",
+      "papel": "Composição e textura sonora",
+      "obra": "Chernobyl",
+      "fonte": "https://store.deutschegrammophon.com/en-en/collections/startseite/products/hildur-gudnadottir-chernobyl-ost",
+      "valor": "Referência contemporânea para encontrar música dentro da matéria sonora de um ambiente. A gravadora documenta gravações feitas em uma usina para Chernobyl. O aprendizado transferível é transformar som de lugar em estrutura, respeitando o clima que ele produz.",
+      "estrutura": "Captar uma textura real → selecionar frequências e pulsos → organizar tensão → reservar mudanças para os momentos necessários.",
+      "uso": "Documentários, temas industriais, tecnologia e filmes em que materialidade importa. Usar com cuidado em marcas que pedem leveza.",
+      "direcao": "Create an original sound-led cue from recordings of [approved real environment]. Build a restrained tonal bed from its textures, with subtle acoustic layers. Keep the arrangement sparse and preserve room for speech. Deliver separate ambience, tonal and rhythmic stems. Target [emotion] explicitly; do not default to menace.",
+      "busca": "Escuta: Hildur Guðnadóttir Chernobyl soundtrack. Banco: textural cinematic soundscape; industrial ambient; acoustic drone.",
+      "evitar": "Som sombrio por hábito; usar ruído de máquina como efeito de tecnologia genérico.",
+      "teste": "A textura pertence ao universo do filme e comunica a emoção escolhida?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://store.deutschegrammophon.com/en-en/collections/startseite/products/hildur-gudnadottir-chernobyl-ost",
+        "titulo": "Hildur Guðnadóttir - Hildur Guðnadóttir - Chernobyl OST - Deutsche Grammophon",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Prática contemporânea",
+        "Composição e textura sonora",
+        "textural cinematic soundscape",
+        "industrial ambient",
+        "acoustic drone."
+      ]
+    },
+    {
+      "id": "TR08",
+      "nome": "Trent Reznor e Atticus Ross",
+      "papel": "Composição eletrônica para cinema",
+      "obra": "The Social Network",
+      "fonte": "https://music.apple.com/us/album/the-social-network-soundtrack-from-the-motion-picture/395740920",
+      "valor": "Referência contemporânea para tensão interna, pulso eletrônico e contraste entre precisão e fragilidade. A página do álbum identifica a dupla e a trilha. Na PD, funciona para temas de mudança e inteligência quando se deseja energia sem fanfarra.",
+      "estrutura": "Pulso discreto → textura eletrônica → elemento acústico vulnerável → densidade progressiva. Evitar preencher todo o espectro o tempo inteiro.",
+      "uso": "Tecnologia, pensamento estratégico, documentários empresariais e filmes sobre transformação.",
+      "direcao": "Compose an original electronic cue with a restrained pulse, a fragile piano element and subtly evolving textures. Keep the mood focused and thoughtful rather than aggressive. Build tension through harmonic movement and layering, not louder drums. Create a narration-friendly mix and a clean 30-second ending.",
+      "busca": "Escuta: Trent Reznor Atticus Ross The Social Network. Banco: minimal electronic tension; reflective technology underscore; pulse piano texture.",
+      "evitar": "Associar inovação automaticamente a ansiedade; copiar sequências melódicas conhecidas.",
+      "teste": "A tensão estimula atenção sem tornar a mensagem ameaçadora?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://music.apple.com/us/album/the-social-network-soundtrack-from-the-motion-picture/395740920",
+        "titulo": "‎The Social Network (Soundtrack from the Motion Picture) - Album by Trent Reznor &amp; Atticus Ross - Apple Music",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Prática contemporânea",
+        "Composição eletrônica para cinema",
+        "minimal electronic tension",
+        "reflective technology underscore",
+        "pulse piano texture."
+      ]
+    },
+    {
+      "id": "TR09",
+      "nome": "A R Rahman",
+      "papel": "Composição e integração de linguagens",
+      "obra": "Slumdog Millionaire e repertório cinematográfico",
+      "fonte": "https://www.masterworksbroadway.com/artist/a-r-rahman-0/",
+      "valor": "Referência para integrar tradições musicais e produção contemporânea em uma linguagem própria. A gravadora documenta sua trajetória e trilhas. Para a PD, a aplicação exige contexto cultural e escolhas específicas de instrumentação, evitando uma ideia genérica de exotismo.",
+      "estrutura": "Base rítmica definida → timbre culturalmente situado → harmonia contemporânea → crescimento de participação.",
+      "uso": "Filmes de comunidade, celebração, movimento e campanhas com identidade cultural concreta.",
+      "direcao": "Compose an original uplifting instrumental cue combining [specified acoustic tradition] with contemporary electronic production. Use a clear rhythmic foundation and a small number of identifiable instruments. Build a sense of collective movement without imitation or generic exotic effects. Leave a midrange pocket for narration and deliver an instrumental-only version.",
+      "busca": "Escuta: A R Rahman Slumdog Millionaire Masterworks. Banco: contemporary world fusion instrumental; acoustic electronic celebration.",
+      "evitar": "Misturar instrumentos de culturas distintas sem intenção; vozes decorativas usadas como estereótipo.",
+      "teste": "A escolha cultural é específica, pertinente e identificável?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.masterworksbroadway.com/artist/a-r-rahman-0/",
+        "titulo": "A R Rahman - The Official Masterworks Broadway Site",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Prática contemporânea",
+        "Composição e integração de linguagens",
+        "contemporary world fusion instrumental",
+        "acoustic electronic celebration."
+      ]
+    },
+    {
+      "id": "TR10",
+      "nome": "Antonio Pinto",
+      "papel": "Composição para cinema documentário e publicidade",
+      "obra": "Senna e portfólio Supersonica",
+      "fonte": "https://supersonica.tv/antonio-pinto/",
+      "valor": "Referência brasileira para conectar narrativa humana, pulso e emoção cinematográfica. O portfólio da Supersonica reúne cinema, documentários e publicidade. A ficha usa Senna como porta de entrada, evitando atribuir a um único compositor trilhas realizadas em parceria.",
+      "estrutura": "Gesto instrumental íntimo → repetição com movimento → camadas proporcionais à trajetória → resolução emocional.",
+      "uso": "Histórias de marca, pessoas, território e filmes empresariais que precisam de emoção sem grandiloquência.",
+      "direcao": "Compose an original human-scale cinematic cue with acoustic strings or guitar, a gentle rhythmic pulse and restrained electronic support. Begin close and tactile, build with the story and reserve the fullest texture for the final turning point. Avoid sentimental excess. Deliver separate stems and versions for 60, 30 and 15 seconds.",
+      "busca": "Escuta: Antonio Pinto Senna Supersonica. Banco: organic cinematic documentary; acoustic pulse emotional; Brazilian instrumental underscore.",
+      "evitar": "Trilha motivacional intercambiável e exagerar a emoção antes de a história conquistá-la.",
+      "teste": "A música cresce porque a narrativa mudou, ou apenas porque passou tempo?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Trilha e direção sonora",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": null,
+        "nota": "HTTP Error 406: Not Acceptable",
+        "verificacao": "Fonte localizada na pesquisa web; consulta direta automatizada limitada"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "TR",
+        "Prática contemporânea",
+        "Composição para cinema documentário e publicidade",
+        "organic cinematic documentary",
+        "acoustic pulse emotional",
+        "Brazilian instrumental underscore."
+      ]
+    },
+    {
+      "id": "VI01",
+      "nome": "Alfred Hitchcock",
+      "papel": "Direção e narrativa visual",
+      "obra": "Vertigo",
+      "fonte": "https://www.bfi.org.uk/film/489eada8-7d7e-594c-acac-5903f43f4b85/vertigo",
+      "valor": "Referência histórica para controlar o que o espectador sabe e quando sabe. O filme oferece um repertório de ponto de vista, expectativa e informação visual. A aplicação à publicidade pode ser uma revelação simples, sem importar suspense pesado.",
+      "estrutura": "Mostrar o olhar → mostrar o objeto → adiar parte da informação → revelar → observar a reação. A ordem dos planos muda a compreensão.",
+      "uso": "Teasers, revelação de produto e filmes curtos que precisam construir curiosidade com poucos elementos.",
+      "direcao": "Create a five-shot sequence for [verified product feature]. Begin with a character noticing something, show a precise detail, withhold the full context for one beat, then reveal the complete situation and a believable reaction. Keep geography and screen direction consistent. Use no horror imagery and no unmotivated camera movement.",
+      "busca": "Obra: Alfred Hitchcock Vertigo visual storytelling. Banco: subjective point of view; suspense reveal; reaction close up.",
+      "evitar": "Mistério que esconde a proposta por tempo demais; efeito de câmera sem função.",
+      "teste": "Cada corte muda a informação disponível e conduz à revelação?",
+      "periodo": "Legado",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.bfi.org.uk/film/489eada8-7d7e-594c-acac-5903f43f4b85/vertigo",
+        "titulo": "Vertigo (1958) | BFI",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Legado",
+        "Direção e narrativa visual",
+        "subjective point of view",
+        "suspense reveal",
+        "reaction close up."
+      ]
+    },
+    {
+      "id": "VI02",
+      "nome": "Stanley Kubrick",
+      "papel": "Direção composição e ritmo",
+      "obra": "2001 A Space Odyssey",
+      "fonte": "https://www.bfi.org.uk/film/cefccdb2-b558-5623-9c17-72b4be7bd4c1/2001-a-space-odyssey",
+      "valor": "Referência histórica para precisão espacial, duração e relação entre imagem e som. A página do BFI documenta o filme e sua construção de escala. Para a PD, o recorte é composição deliberada: posição de câmera, linhas e tempo de observação.",
+      "estrutura": "Estabelecer geometria → deixar uma ação ocupar o espaço → mover a câmera com propósito → cortar quando a relação muda.",
+      "uso": "Arquitetura, design, tecnologia e apresentação de espaços que pedem domínio visual.",
+      "direcao": "Film [approved location] with carefully aligned architectural lines and a deliberate central or balanced composition. Use one slow, stable camera movement and a single restrained human action. Preserve the actual geometry and materials. Let the shot last long enough to read the space. Avoid wide-angle distortion and decorative transitions.",
+      "busca": "Obra: Stanley Kubrick 2001 BFI. Banco: symmetrical architecture shot; precise cinematic composition; slow controlled dolly.",
+      "evitar": "Simetria automática em toda cena, frieza incompatível com a marca e lentidão sem informação.",
+      "teste": "A posição e o movimento da câmera ajudam a compreender o espaço?",
+      "periodo": "Legado",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.bfi.org.uk/film/cefccdb2-b558-5623-9c17-72b4be7bd4c1/2001-a-space-odyssey",
+        "titulo": "2001: A Space Odyssey (1968) | BFI",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Legado",
+        "Direção composição e ritmo",
+        "symmetrical architecture shot",
+        "precise cinematic composition",
+        "slow controlled dolly."
+      ]
+    },
+    {
+      "id": "VI03",
+      "nome": "Agnès Varda",
+      "papel": "Direção e observação documental",
+      "obra": "Cléo from 5 to 7",
+      "fonte": "https://www.criterionchannel.com/films/2fF9cClV/cleo-from-5-to-7",
+      "valor": "Referência histórica para observar pessoas e lugares com interesse real. O filme aproxima tempo vivido, cidade e subjetividade. Para a PD, esse repertório ajuda a substituir cenas genéricas de felicidade por ações pequenas e observáveis.",
+      "estrutura": "Pessoa em situação → detalhe do lugar → encontro ou gesto → mudança de percepção. O ambiente participa da história.",
+      "uso": "Filmes de bairro, comunidades, território e cotidiano do morar; retratos de pessoas da empresa.",
+      "direcao": "Create a short observational sequence around [real person or approved character] moving through [actual place]. Focus on small gestures, meaningful environmental details and natural pauses. Alternate a wider contextual shot with close details. Use believable ambient sound and avoid staged smiles, explanatory posing or generic stock-family behavior.",
+      "busca": "Obra: Agnès Varda Cléo from 5 to 7. Banco: observational documentary; everyday city detail; natural human gesture.",
+      "evitar": "Simular depoimento espontâneo de cliente real; confundir observação com falta de estrutura.",
+      "teste": "Há algo específico daquela pessoa e daquele lugar que sobreviveria sem a marca?",
+      "periodo": "Legado",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.criterionchannel.com/geo-block",
+        "titulo": "Geo Block | Criterion Channel",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Legado",
+        "Direção e observação documental",
+        "observational documentary",
+        "everyday city detail",
+        "natural human gesture."
+      ]
+    },
+    {
+      "id": "VI04",
+      "nome": "Wong Kar Wai",
+      "papel": "Direção atmosfera e tempo",
+      "obra": "In the Mood for Love",
+      "fonte": "https://www.criterion.com/films/198-in-the-mood-for-love",
+      "valor": "Referência para emoção construída por espaço, repetição e proximidade. A Criterion registra também a fotografia de Christopher Doyle e Mark Lee Ping-bin. O recorte da PD é atmosfera relacional; direção, fotografia, arte e montagem trabalham juntas.",
+      "estrutura": "Espaço parcial → gesto contido → repetição com mudança → detalhe sensorial. Cor e som conectam os momentos.",
+      "uso": "Hotelaria, lifestyle, interiores e filmes de marca com intimidade e tempo de contemplação.",
+      "direcao": "Create an original intimate interior sequence with layered framing, practical light sources and restrained human gestures. Use a consistent warm-cool color relationship and repeat one visual detail with a small emotional change. Keep the environment believable and the pacing unhurried. Avoid copying costumes, scenes or recognizable compositions from existing films.",
+      "busca": "Obra: Wong Kar Wai In the Mood for Love. Banco: intimate cinematic interior; layered doorway framing; practical warm light.",
+      "evitar": "Neon gratuito, tristeza como sinônimo de sofisticação e copiar imagens icônicas.",
+      "teste": "A atmosfera vem das relações entre pessoa e espaço, além da correção de cor?",
+      "periodo": "Legado",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.criterion.com/films/198-in-the-mood-for-love",
+        "titulo": "In the Mood for Love (2000) | The Criterion Collection",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Legado",
+        "Direção atmosfera e tempo",
+        "intimate cinematic interior",
+        "layered doorway framing",
+        "practical warm light."
+      ]
+    },
+    {
+      "id": "VI05",
+      "nome": "Spike Jonze",
+      "papel": "Direção e imaginação física",
+      "obra": "Apple Welcome Home",
+      "fonte": "https://www.oneclub.org/awards/theoneshow/-award/32934/welcome-home/",
+      "valor": "Referência para transformar um estado emocional em ação física. O arquivo do One Show documenta o trabalho de Apple, agência e produtora. Para a PD, a força está em usar uma transformação visual para tornar um benefício sensível.",
+      "estrutura": "Estado inicial → contato com produto → ação corporal → transformação do ambiente → novo estado. A fantasia deve obedecer a uma regra.",
+      "uso": "Campanhas de experiência, música, criatividade e mundos imaginados da Pontodot.",
+      "direcao": "Write a 30-second visual story in which [product benefit] changes how a character experiences a room. Begin with a believable everyday action, then introduce one consistent physical transformation. Keep the character identity and movement continuous. Plan the transformation in three achievable stages and finish on a clear emotional change.",
+      "busca": "Obra: Spike Jonze Apple Welcome Home. Banco: physical surrealism commercial; expressive choreography; practical transforming room.",
+      "evitar": "Transformação aleatória em todas as superfícies; produto desconectado do acontecimento.",
+      "teste": "A mudança física traduz uma mudança emocional e um benefício específico?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.oneclub.org/awards/theoneshow/-award/32934/welcome-home/",
+        "titulo": "Apple | Welcome Home | The One Club",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Prática contemporânea",
+        "Direção e imaginação física",
+        "physical surrealism commercial",
+        "expressive choreography",
+        "practical transforming room."
+      ]
+    },
+    {
+      "id": "VI06",
+      "nome": "Michel Gondry",
+      "papel": "Direção invenção visual e ritmo",
+      "obra": "The Chemical Brothers Star Guitar",
+      "fonte": "https://www.youtube.com/watch?v=0S43IwBF0uM",
+      "valor": "Referência para transformar regra e repetição em encantamento visual. O videoclipe oficial credita Gondry. Na PD, a abordagem favorece sequências em que um elemento reaparece de forma coerente, conectado ao ritmo e à ideia.",
+      "estrutura": "Definir uma regra visual → associar eventos à música → repetir com variações → revelar o sistema ao espectador.",
+      "uso": "Vídeos musicais, conteúdos da escola, peças curtas de ritmo e campanhas com objetos ou módulos recorrentes.",
+      "direcao": "Create a 20-second sequence governed by one clear visual rule. Associate each recurring sound with a specific visual event and repeat it consistently. Introduce only one new variation at a time. Use practical-looking materials and stable spatial relationships. Deliver a beat map before generating the individual shots.",
+      "busca": "Obra: Michel Gondry Star Guitar official. Banco: rhythmic visual repetition; practical illusion; music synchronized objects.",
+      "evitar": "Cortar em toda batida sem progressão; trocar a regra no meio da peça.",
+      "teste": "O espectador consegue perceber a regra sem receber uma explicação?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.youtube.com/watch?v=0S43IwBF0uM",
+        "titulo": "",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Prática contemporânea",
+        "Direção invenção visual e ritmo",
+        "rhythmic visual repetition",
+        "practical illusion",
+        "music synchronized objects."
+      ]
+    },
+    {
+      "id": "VI07",
+      "nome": "Jonathan Glazer",
+      "papel": "Direção publicitária e metáfora",
+      "obra": "Guinness Surfer",
+      "fonte": "https://www.academyfilms.com/portfolio/guinness-surfer",
+      "valor": "Referência para uma metáfora visual forte sustentada por execução cinematográfica. O portfólio da produtora oferece o filme. O princípio útil para a PD é escolher uma imagem central e construir a expectativa até sua manifestação.",
+      "estrutura": "Espera → tensão crescente → imagem decisiva → resolução ligada à promessa. Fotografia, montagem e som convergem para o mesmo acontecimento.",
+      "uso": "Filmes de lançamento, marcas com presença e narrativas que comportem uma metáfora de escala.",
+      "direcao": "Develop a 45-second film around one original visual metaphor for [brand promise]. Begin with anticipation, build through a small number of precise shots and reserve the strongest image for the decisive moment. Use tactile cinematography and purposeful sound. Explain how the final image resolves the opening expectation.",
+      "busca": "Obra: Jonathan Glazer Guinness Surfer Academy Films. Banco: cinematic metaphor commercial; anticipation payoff; tactile high contrast film.",
+      "evitar": "Espetáculo sem promessa, metáforas incompatíveis e imitar cavalos ou ondas da campanha.",
+      "teste": "A imagem principal só poderia estar naquele conceito?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.academyfilms.com/portfolio/guinness-surfer",
+        "titulo": "Guinness &#x27;Surfer&#x27; - Academy Films",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Prática contemporânea",
+        "Direção publicitária e metáfora",
+        "cinematic metaphor commercial",
+        "anticipation payoff",
+        "tactile high contrast film."
+      ]
+    },
+    {
+      "id": "VI08",
+      "nome": "Fernando Meirelles",
+      "papel": "Direção e produção brasileira",
+      "obra": "Portfólio O2 Filmes",
+      "fonte": "https://o2filmes.com/diretores/fernando-meirelles/",
+      "valor": "Referência brasileira para narrativa com energia, presença humana e contexto. O portfólio reúne longas e publicidade. A leitura para a PD prioriza pessoas em ação e montagem informativa. Cidade de Deus envolve também Kátia Lund na codireção; os créditos devem acompanhar qualquer estudo específico.",
+      "estrutura": "Ação concreta → detalhe relevante → consequência → ampliação do contexto. A câmera participa sem destruir a leitura do espaço.",
+      "uso": "Filmes de território, bastidores, pessoas que constroem e histórias de marcas brasileiras.",
+      "direcao": "Create a grounded sequence about [real work or daily activity]. Show people doing something specific, use close details to clarify the action and widen the frame to reveal its social or spatial context. Allow controlled camera presence while preserving continuity. Build rhythm from meaningful actions, not random fast cuts.",
+      "busca": "Obra: Fernando Meirelles O2 Filmes portfolio. Banco: Brazilian documentary commercial; authentic work process; dynamic human storytelling.",
+      "evitar": "Estereotipar brasilidade, câmera tremida por hábito e copiar a linguagem de uma obra inteira.",
+      "teste": "A energia vem da ação e o contexto continua compreensível?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://o2filmes.com/diretores/fernando-meirelles/",
+        "titulo": "O2 Filmes",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Prática contemporânea",
+        "Direção e produção brasileira",
+        "Brazilian documentary commercial",
+        "authentic work process",
+        "dynamic human storytelling."
+      ]
+    },
+    {
+      "id": "VI09",
+      "nome": "Wes Anderson",
+      "papel": "Direção de arte e encenação",
+      "obra": "The Grand Budapest Hotel",
+      "fonte": "https://www.searchlightpictures.com/thegrandbudapesthotel",
+      "valor": "Referência para construir mundos consistentes por cor, objetos, composição e atuação. O site da distribuidora oferece trailer e materiais do filme. Para a PD, o aprendizado é a disciplina do universo visual, sem repetir personagens ou cenários reconhecíveis.",
+      "estrutura": "Paleta e regras espaciais → objetos coerentes → atuação com intenção → movimento de câmera previsível → variação dentro do sistema.",
+      "uso": "Universos de personagens, filmes de produto com humor e campanhas que precisam de identidade serial.",
+      "direcao": "Design an original stylized world with a fixed color palette, carefully chosen props and consistent spatial rules. Use frontal or clearly organized compositions, precise entrances and restrained comic timing. Define costumes and object materials before shooting. Preserve the brand identity and avoid recreating recognizable movie sets.",
+      "busca": "Obra: Wes Anderson Grand Budapest Hotel Searchlight. Banco: meticulously art directed set; frontal composition; restrained visual comedy.",
+      "evitar": "Filtro pastel como conceito; simetria sem propósito e decoração que engole o produto.",
+      "teste": "As regras do mundo são claras e geram novas cenas consistentes?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.searchlightpictures.com/thegrandbudapesthotel",
+        "titulo": "The Grand Budapest Hotel - Searchlight Pictures",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Prática contemporânea",
+        "Direção de arte e encenação",
+        "meticulously art directed set",
+        "frontal composition",
+        "restrained visual comedy."
+      ]
+    },
+    {
+      "id": "VI10",
+      "nome": "Daniels",
+      "papel": "Roteiro direção e invenção audiovisual",
+      "obra": "Everything Everywhere All at Once",
+      "fonte": "https://a24films.com/films/everything-everywhere-all-at-once",
+      "valor": "Referência contemporânea para unir mudanças radicais de forma a um conflito humano legível. A A24 identifica Daniel Kwan e Daniel Scheinert como roteiristas e diretores. A aplicação à PD é definir um eixo emocional antes de multiplicar variações visuais.",
+      "estrutura": "Desejo humano simples → mundos ou situações contrastantes → elemento que se repete → resolução do conflito inicial.",
+      "uso": "Campanhas de criatividade, aprendizagem, tecnologia e narrativas do universo Pontodot.",
+      "direcao": "Write a 30-second story with three contrasting visual situations connected by one character, one recurring action and one clear emotional goal. Keep each situation visually simple. Use transitions motivated by matching action or shape, and end by resolving the original human need. Generate each shot separately and edit for continuity.",
+      "busca": "Obra: Daniels Everything Everywhere All at Once A24. Banco: emotional surreal storytelling; match cut transformation; parallel visual worlds.",
+      "evitar": "Excesso de universos sem eixo, transições como único assunto e geração de tudo num único plano.",
+      "teste": "A pessoa consegue contar a história em uma frase depois de assistir?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Vídeo e narrativa audiovisual",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://a24films.com/films/everything-everywhere-all-at-once",
+        "titulo": "Everything Everywhere All At Once | A24",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "VI",
+        "Prática contemporânea",
+        "Roteiro direção e invenção audiovisual",
+        "emotional surreal storytelling",
+        "match cut transformation",
+        "parallel visual worlds."
+      ]
+    },
+    {
+      "id": "GR01",
+      "nome": "Josef Müller Brockmann",
+      "papel": "Design gráfico e organização visual",
+      "obra": "Musica Viva 1958",
+      "fonte": "https://www.moma.org/collection/works/7233",
+      "valor": "Referência histórica do design suíço para construir hierarquia e relações espaciais. O acervo do MoMA fornece a obra e sua ficha. A leitura para a PD é disciplina de organização: alinhamentos, intervalos e proporções dão unidade mesmo quando a composição é assimétrica.",
+      "estrutura": "Grade → hierarquia tipográfica → agrupamento por função → respiro → contraste pontual. Definir o sistema antes de distribuir o conteúdo.",
+      "uso": "Apresentações, relatórios, carrosséis informativos e materiais de produto com vários níveis de informação.",
+      "direcao": "Monte [peça] com grade de seis colunas, margens consistentes e três níveis tipográficos. Agrupe informações relacionadas e alinhe elementos por uma lógica única. Use uma cor de apoio e preserve espaço vazio. Entregue o arquivo com texto editável e explique como a grade se adapta a três formatos.",
+      "busca": "Obra: Josef Müller Brockmann Musica Viva 1958. Banco: Swiss typographic grid; asymmetric editorial layout; geometric concert poster.",
+      "evitar": "Copiar o cartaz; aplicar grade rígida sem considerar o fluxo de leitura.",
+      "teste": "O leitor identifica título, informação principal e próximo passo em sequência?",
+      "periodo": "Legado",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.moma.org/collection/works/7233",
+        "titulo": "Josef Müller-Brockmann. Musica Viva. 1958 | MoMA",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR01.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado",
+        "Design gráfico e organização visual",
+        "Swiss typographic grid",
+        "asymmetric editorial layout",
+        "geometric concert poster."
+      ]
+    },
+    {
+      "id": "GR02",
+      "nome": "Massimo Vignelli e Bob Noorda",
+      "papel": "Sistemas de identidade e informação",
+      "obra": "NYCTA Graphic Standards Manual",
+      "fonte": "https://www.sfmoma.org/artwork/2015.688/",
+      "valor": "Referência histórica de sistema que precisa funcionar em muitos suportes. O SFMOMA identifica Vignelli, Noorda e Unimark como autores do manual. Na PD, o valor está em definir padrões suficientes para que a produção mantenha consistência sem redesenhar tudo.",
+      "estrutura": "Inventário de situações → regras tipográficas e cromáticas → componentes → exemplos de aplicação → exceções justificadas.",
+      "uso": "Manuais de marca, sinalização, templates e componentes recorrentes de apresentação.",
+      "direcao": "Crie um sistema para [marca] com regras explícitas de títulos, textos, imagens, cores e espaçamentos. Teste o mesmo conteúdo em capa, página de dados e peça de orientação. Especifique o que permanece fixo e o que pode variar. Preserve legibilidade nas menores aplicações previstas.",
+      "busca": "Obra: Vignelli Noorda NYCTA Graphics Standards Manual 1970. Banco: wayfinding system; modernist brand manual; modular information design.",
+      "evitar": "Muitas exceções, confundir consistência com monotonia e apagar o crédito de Noorda.",
+      "teste": "Outra pessoa consegue produzir uma peça coerente usando apenas o sistema?",
+      "periodo": "Legado",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.sfmoma.org/artwork/2015.688/",
+        "titulo": "Massimo Vignelli and Bob Noorda, New York City Transit Authority Graphic Standards Manual, 1970 &middot; SFMOMA",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado",
+        "Sistemas de identidade e informação",
+        "wayfinding system",
+        "modernist brand manual",
+        "modular information design."
+      ]
+    },
+    {
+      "id": "GR03",
+      "nome": "Paul Rand",
+      "papel": "Identidade visual e pensamento simbólico",
+      "obra": "IBM identidade e relatórios",
+      "fonte": "https://www.paulrand.design/work/IBM.html",
+      "valor": "Referência para concentrar significado em poucos elementos e aplicar uma identidade com inteligência. O arquivo reúne marcas, relatórios e peças de IBM. O recorte útil para a PD é relacionar síntese simbólica e variedade de aplicações.",
+      "estrutura": "Conceito claro → forma simples → contraste → aplicação coerente. A metáfora visual deve continuar compreensível em tamanho reduzido.",
+      "uso": "Identidades, capas institucionais, materiais de marca e apresentações com uma ideia visual central.",
+      "direcao": "Traduza [conceito da marca] em três metáforas visuais simples. Desenvolva cada uma com poucos elementos, contornos claros e bom contraste. Teste em preto e branco, pequena escala e junto ao nome. Escolha a solução mais distintiva e aplique em capa, assinatura e peça editorial sem acrescentar ornamentos.",
+      "busca": "Obra: Paul Rand IBM annual reports rebus. Banco: modernist visual metaphor; simple corporate symbol; conceptual annual report.",
+      "evitar": "Reproduzir marcas existentes, minimalismo sem significado e símbolo que só funciona grande.",
+      "teste": "A ideia continua reconhecível com poucos elementos e em vários tamanhos?",
+      "periodo": "Legado",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.paulrand.design/work/IBM.html",
+        "titulo": "IBM | Paul Rand: Modernist Master 1914-1996",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR03.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado",
+        "Identidade visual e pensamento simbólico",
+        "modernist visual metaphor",
+        "simple corporate symbol",
+        "conceptual annual report."
+      ]
+    },
+    {
+      "id": "GR04",
+      "nome": "Paula Scher",
+      "papel": "Tipografia e identidade cultural",
+      "obra": "The Public Theater",
+      "fonte": "https://www.pentagram.com/work/the-public-theater",
+      "valor": "Referência para usar tipografia como presença de marca e organização do espaço. A Pentagram documenta a evolução do sistema do Public Theater. Para a PD, o aprendizado é dar voz à informação por escala, peso e ritmo sem abandonar hierarquia.",
+      "estrutura": "Mensagem principal → contraste de escala e largura → composição espacial → blocos de apoio. A força nasce de relações deliberadas entre palavras.",
+      "uso": "Eventos, capas editoriais, lançamentos e peças em que o texto deve ser o elemento visual dominante.",
+      "direcao": "Crie um cartaz tipográfico original para [mensagem]. Escolha uma família com variação de peso ou largura e use a escala para orientar a leitura. Faça a palavra principal ocupar o espaço com intenção. Mantenha data, local e ação em um segundo nível legível. Entregue também a versão reduzida para celular.",
+      "busca": "Obra: Paula Scher Public Theater Pentagram. Banco: expressive typography poster; condensed type hierarchy; cultural identity design.",
+      "evitar": "Misturar muitas fontes, esmagar letras e transformar informação essencial em textura.",
+      "teste": "A composição tem energia e a informação funcional continua fácil de localizar?",
+      "periodo": "Legado em prática contemporânea",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.pentagram.com/work/the-public-theater",
+        "titulo": "The Public Theater",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR04.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado em prática contemporânea",
+        "Tipografia e identidade cultural",
+        "expressive typography poster",
+        "condensed type hierarchy",
+        "cultural identity design."
+      ]
+    },
+    {
+      "id": "GR05",
+      "nome": "Milton Glaser",
+      "papel": "Ilustração e design gráfico",
+      "obra": "Dylan 1966",
+      "fonte": "https://www.moma.org/collection/works/8108",
+      "valor": "Referência para síntese ilustrativa com personalidade e memória visual. O MoMA contextualiza o cartaz Dylan e sua construção. O recurso transferível é o contraste entre uma forma imediatamente reconhecível e um tratamento expressivo concentrado.",
+      "estrutura": "Silhueta clara → intervenção gráfica localizada → paleta intencional → assinatura tipográfica simples. A imagem tem leitura global antes do detalhe.",
+      "uso": "Cartazes, capas, cultura, personagens e campanhas com uma imagem central memorável.",
+      "direcao": "Crie uma ilustração original para [conceito] a partir de uma silhueta simples. Concentre a expressão em uma região da imagem usando formas orgânicas e uma paleta controlada. Preserve contraste com o fundo e reserve uma área limpa para título. Não reproduza retratos, contornos ou arranjos de uma obra existente.",
+      "busca": "Obra: Milton Glaser Dylan MoMA. Banco: conceptual silhouette illustration; organic color poster; expressive graphic portrait.",
+      "evitar": "Pastiche psicodélico, copiar o cabelo do cartaz e usar muitas cores sem função.",
+      "teste": "A imagem é lembrada pela ideia central, além da paleta?",
+      "periodo": "Legado",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.moma.org/collection/works/8108",
+        "titulo": "Milton Glaser. Dylan. 1966 | MoMA",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR05.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado",
+        "Ilustração e design gráfico",
+        "conceptual silhouette illustration",
+        "organic color poster",
+        "expressive graphic portrait."
+      ]
+    },
+    {
+      "id": "GR06",
+      "nome": "Neville Brody",
+      "papel": "Tipografia experimental e sistemas editoriais",
+      "obra": "The Face e Brody Associates",
+      "fonte": "https://www.brody-associates.com/about",
+      "valor": "Referência para transformar linguagem tipográfica em identidade editorial. Sua trajetória passa por The Face e programas de marca. A PD pode estudar como tensões de escala, ritmo e forma criam voz, mantendo uma estrutura de leitura planejada.",
+      "estrutura": "Escolher uma tensão tipográfica → definir regras de composição → variar títulos e aberturas → preservar texto funcional.",
+      "uso": "Revistas, capas, moda, música e marcas com posicionamento cultural forte.",
+      "direcao": "Desenvolva uma linguagem editorial para [marca] usando contraste de escala, peso e orientação tipográfica. Defina uma regra experimental para títulos e uma regra estável para textos longos. Produza capa e duas páginas internas. Use fontes adequadas ao projeto e mantenha títulos e textos como elementos editáveis.",
+      "busca": "Obra: Neville Brody The Face typography. Banco: experimental editorial typography; new wave graphic design; expressive magazine layout.",
+      "evitar": "Experimentar simultaneamente em tudo; deixar a informação funcional tão difícil quanto a capa.",
+      "teste": "Existe uma personalidade consistente sem comprometer a leitura prolongada?",
+      "periodo": "Legado em prática contemporânea",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://www.brody-associates.com/work/1985-buffalo"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.brody-associates.com/about",
+        "titulo": "Brody Associates | About Us",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR06.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado em prática contemporânea",
+        "Tipografia experimental e sistemas editoriais",
+        "experimental editorial typography",
+        "new wave graphic design",
+        "expressive magazine layout."
+      ]
+    },
+    {
+      "id": "GR07",
+      "nome": "David Carson",
+      "papel": "Design editorial expressivo",
+      "obra": "Ray Gun e portfólio do estúdio",
+      "fonte": "https://www.davidcarsonstudio.com/",
+      "valor": "Referência para composição intuitiva, textura e ruptura das convenções editoriais. O portfólio permite observar uma linguagem que trata a página como imagem. Para a PD, é uma opção expressiva localizada, não o padrão para peças de venda que dependem de leitura rápida.",
+      "estrutura": "Imagem ou textura dominante → fragmentação controlada → contraste tipográfico → ponto de leitura preservado.",
+      "uso": "Capas, moda, música, editoriais autorais e peças de impacto com pouco texto obrigatório.",
+      "direcao": "Crie uma capa editorial original com textura tátil, recortes e tipografia expressiva. Escolha um único foco e limite a fragmentação às áreas secundárias. Preserve a leitura do título e da marca. Use elementos editáveis e apresente uma segunda versão mais limpa para avaliar o limite entre expressão e ruído.",
+      "busca": "Obra: David Carson Ray Gun studio work. Banco: grunge editorial layout; tactile collage typography; expressive magazine cover.",
+      "evitar": "Ilegibilidade como valor automático; aplicar a mesma abordagem a preço, contrato ou informação técnica.",
+      "teste": "A ruptura aumenta o significado da peça ou apenas dificulta a leitura?",
+      "periodo": "Legado em prática contemporânea",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.davidcarsonstudio.com/",
+        "titulo": "Home - David Carson Studio",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR07.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado em prática contemporânea",
+        "Design editorial expressivo",
+        "grunge editorial layout",
+        "tactile collage typography",
+        "expressive magazine cover."
+      ]
+    },
+    {
+      "id": "GR08",
+      "nome": "Jessica Walsh e equipe",
+      "papel": "Branding direção de arte e produção",
+      "obra": "Portfólio de branding da &Walsh",
+      "fonte": "https://andwalsh.com/work/branding/",
+      "valor": "Referência contemporânea para fazer cor, linguagem, fotografia e objetos trabalharem como um universo de marca. O portfólio reúne sistemas completos. O interesse para a PD é a consistência entre conceito e desdobramentos, com espaço para humor e materialidade.",
+      "estrutura": "Ideia de marca → paleta proprietária → tipografia → comportamento dos objetos → imagens → aplicações coerentes.",
+      "uso": "Marcas de consumo, plataformas criativas, campanhas digitais e sistemas de conteúdo.",
+      "direcao": "Crie uma direção de arte original para [marca] baseada em [conceito]. Defina uma paleta curta, uma lógica tipográfica e um comportamento visual recorrente. Aplique em três peças com objetos, fotografia ou ilustração coerentes. Use humor somente quando ele reforçar a proposta e preserve a legibilidade do produto.",
+      "busca": "Obra: Jessica Walsh andWalsh branding Coconut Cult. Banco: bold color brand system; playful art direction; tactile product campaign.",
+      "evitar": "Copiar paletas e composições identificáveis; cenografia que fica mais interessante que a oferta.",
+      "teste": "As aplicações parecem pertencer à mesma marca sem depender do logotipo?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://andwalsh.com/work/all/coconut-cult/"
+      ],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://andwalsh.com/work/branding/",
+        "titulo": "Work &Walsh",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR08.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Prática contemporânea",
+        "Branding direção de arte e produção",
+        "bold color brand system",
+        "playful art direction",
+        "tactile product campaign."
+      ]
+    },
+    {
+      "id": "GR09",
+      "nome": "Kiko Farkas e Máquina Estúdio",
+      "papel": "Design brasileiro e linguagem de cartaz",
+      "obra": "Cartazes da Osesp",
+      "fonte": "https://www.kikofarkas.com.br/cartazes/osesp-2006/",
+      "valor": "Referência brasileira para traduzir um assunto em relações visuais, evitando sua representação mais óbvia. O estúdio descreve a série Osesp e a decisão de não usar os clichês usuais da música erudita. É uma boa escola de interpretação, série e variação.",
+      "estrutura": "Identificar qualidade do assunto → encontrar equivalente visual → explorar repetição e diferença → organizar informação.",
+      "uso": "Séries editoriais, eventos, capas e campanhas em que o mesmo tema precisa render muitas peças.",
+      "direcao": "Escolha três qualidades de [tema], como ritmo, densidade ou equilíbrio. Traduza cada uma em uma composição visual original sem usar o objeto mais óbvio da categoria. Defina uma área constante para informações e produza uma série de seis cartazes. Mantenha parentesco visual sem repetir a mesma imagem.",
+      "busca": "Obra: Kiko Farkas Osesp 2006 Máquina Estúdio. Banco: conceptual poster series; visual rhythm; Brazilian graphic design.",
+      "evitar": "Metáfora que ninguém consegue relacionar ao assunto; variações cosméticas sem ideia.",
+      "teste": "Cada peça acrescenta uma leitura ao tema e continua parte da série?",
+      "periodo": "Prática contemporânea",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [],
+      "acesso": {
+        "status": 200,
+        "url_final": "https://www.kikofarkas.com.br/cartazes/osesp-2006/",
+        "titulo": "osesp 2006 - Projetos - Kiko Farkas",
+        "verificacao": "Página acessível por HTTP em 2026-10-29"
+      },
+      "imagem_local": "03_imagens_de_referencia/GR09.jpg",
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Prática contemporânea",
+        "Design brasileiro e linguagem de cartaz",
+        "conceptual poster series",
+        "visual rhythm",
+        "Brazilian graphic design."
+      ]
+    },
+    {
+      "id": "GR10",
+      "nome": "Aloísio Magalhães",
+      "papel": "Identidade e design moderno brasileiro",
+      "obra": "Identidades símbolos e atuação na Esdi",
+      "fonte": "https://esdi.uerj.br/esdianos/274/aloisio-magalhaes",
+      "valor": "Referência histórica brasileira para conciliar síntese formal, sistema e contexto cultural. A Esdi documenta sua atuação e projetos. Para a PD, interessa construir identidade a partir de uma lógica própria, evitando símbolos genéricos importados de bancos.",
+      "estrutura": "Pesquisar contexto → encontrar princípio de forma → sintetizar → repetir e transformar → testar aplicações reais.",
+      "uso": "Marcas de território, instituições, urbanismo e sistemas de identidade que precisam durar.",
+      "direcao": "Pesquise [contexto cultural e territorial] e selecione um princípio formal verificável. Desenvolva três símbolos originais com construção simples e boa reprodução. Teste repetição, padrões, redução e aplicação junto ao nome. Justifique a relação entre forma e contexto sem inventar significados históricos ou culturais.",
+      "busca": "Obra: Aloísio Magalhães Esdi identidade visual. Banco: Brazilian modernist identity; modular geometric symbol; territorial brand design.",
+      "evitar": "Símbolos de lugar genéricos, folclore decorativo e justificativas inventadas depois do desenho.",
+      "teste": "A forma possui uma relação defensável com o contexto e funciona como sistema?",
+      "periodo": "Legado",
+      "segmento": "Edição gráfica e identidade",
+      "consultado_em": "2026-10-29",
+      "fontes_complementares": [
+        "https://www.pvdi.com.br/historia/"
+      ],
+      "acesso": {
+        "status": null,
+        "nota": "HTTP Error 503: Service Unavailable",
+        "verificacao": "Fonte localizada na pesquisa web; consulta direta automatizada limitada"
+      },
+      "imagem_local": null,
+      "natureza_direcao": "Proposta editorial original para adaptação à PD; não é um método oficial do autor.",
+      "tags": [
+        "GR",
+        "Legado",
+        "Identidade e design moderno brasileiro",
+        "Brazilian modernist identity",
+        "modular geometric symbol",
+        "territorial brand design."
+      ]
+    }
+  ],
+  "familias_de_linguagem": [
+    [
+      "Sistema suíço",
+      "GR01",
+      "Grade, alinhamento, assimetria organizada, contraste tipográfico e espaços constantes.",
+      "Relatório, carrossel informativo e apresentação.",
+      "Create a clear asymmetric grid with consistent margins, three text levels and one accent color."
+    ],
+    [
+      "Modernismo de identidade",
+      "GR02 GR03 GR10",
+      "Poucos elementos, símbolo claro e regras que se mantêm em muitos suportes.",
+      "Identidade, manual, sinalização e templates.",
+      "Build a simple visual system with a distinctive symbol, controlled typography and repeatable layout rules."
+    ],
+    [
+      "Tipografia como imagem",
+      "GR04 GR06",
+      "Escala, peso, largura e orientação produzem ritmo; informações funcionais mantêm hierarquia.",
+      "Cartaz, capa e campanha cultural.",
+      "Use expressive typographic scale and rhythm while preserving the reading order and practical information."
+    ],
+    [
+      "Colagem editorial",
+      "GR07",
+      "Recorte, textura, sobreposição e ruptura localizada. Um foco preserva a leitura.",
+      "Editorial autoral, moda e música.",
+      "Create a tactile editorial collage with one dominant focal point and a clearly readable headline."
+    ],
+    [
+      "Ilustração de síntese",
+      "GR05 GR09",
+      "Silhueta reconhecível, metáfora visual e variações com parentesco.",
+      "Capas, campanhas e séries de cartazes.",
+      "Translate the concept into a simple silhouette and one original visual metaphor with controlled color."
+    ],
+    [
+      "CGI contemplativo",
+      "AD04",
+      "Poucos volumes, materiais coerentes, luz ampla, respiro e uma estranheza espacial.",
+      "Conceito, capa e universo imaginado.",
+      "Create a calm sculptural environment with matte materials, generous negative space and one subtle spatial surprise."
+    ],
+    [
+      "CGI de produto",
+      "AD07 AD10",
+      "Volume legível, iluminação precisa, contato entre materiais e metáfora do benefício.",
+      "Demonstração, produto e lançamento.",
+      "Make the verified product benefit visible through a coherent physical metaphor and precise material behavior."
+    ],
+    [
+      "Imagem procedural",
+      "AD01 AD02 AD03",
+      "Regra, repetição e variação controlada. A origem de dados só é alegada quando real.",
+      "Sistemas, eventos e experiências digitais.",
+      "Generate a visual family from one explicit rule, with controlled density and a consistent brand palette."
+    ],
+    [
+      "Personagem expressivo",
+      "AD08 AD09 VO09 VO10",
+      "Gesto, silhueta, anatomia, paleta e identidade vocal consistentes entre estados.",
+      "Pontodot, mascotes e séries.",
+      "Preserve the approved character identity while varying posture, expression and emotional intention."
+    ],
+    [
+      "Realismo observado",
+      "VI03 VI08 VO02",
+      "Ações específicas, detalhe do lugar, som ambiente e pessoas com comportamento plausível.",
+      "Território, marca e cotidiano do morar.",
+      "Observe one meaningful action in a specific place, using natural gestures, contextual detail and believable ambient sound."
+    ],
+    [
+      "Intimidade cinematográfica",
+      "VI04 VO06 TR05",
+      "Enquadramento em camadas, gesto contido, pausas e som que situa o ambiente.",
+      "Interiores, memória e vínculos.",
+      "Build intimacy through restrained gestures, practical light, layered framing and sparse acoustic sound."
+    ],
+    [
+      "Metáfora e transformação",
+      "VI05 VI06 VI07 VI10",
+      "Uma regra visual liga o benefício à transformação; o conflito humano continua simples.",
+      "Criatividade, tecnologia e experiência.",
+      "Use one consistent visual transformation to make the product benefit and the human change understandable."
+    ]
+  ],
+  "bancos_e_acervos": [
+    [
+      "Envato",
+      "Assets de imagem vídeo áudio e templates",
+      "https://elements.envato.com/",
+      "Pesquisar o objeto, a luz, o material, a ação e o formato. Abrir o item, conferir autoria e registrar o uso no projeto conforme a licença aplicável."
+    ],
+    [
+      "Adobe Stock",
+      "Fotos vídeos e templates",
+      "https://stock.adobe.com/",
+      "Pesquisar por assunto e tratamento visual. Distinguir material editorial de comercial e conferir a licença do item."
+    ],
+    [
+      "Adobe Fonts",
+      "Famílias tipográficas",
+      "https://fonts.adobe.com/fonts",
+      "Buscar categoria, largura, peso e idioma. Confirmar a disponibilidade na conta e as regras da aplicação prevista."
+    ],
+    [
+      "Unsplash",
+      "Fotografia",
+      "https://unsplash.com/",
+      "Usar assunto, ambiente e luz como busca. Conferir a licença aplicável à imagem e o contexto de uso de pessoas e marcas."
+    ],
+    [
+      "Pexels",
+      "Fotografia e vídeo",
+      "https://www.pexels.com/",
+      "Buscar ações específicas e consistência de cena. Verificar licença e evitar juntar ambientes que fingem representar um mesmo imóvel."
+    ],
+    [
+      "Artlist",
+      "Trilha efeitos e footage",
+      "https://artlist.io/royalty-free-music",
+      "Buscar emoção, instrumento, intensidade e função. Conferir se o plano e a licença cobrem cliente, canal e mídia do projeto."
+    ],
+    [
+      "Epidemic Sound",
+      "Trilha e efeitos sonoros",
+      "https://www.epidemicsound.com/tools/",
+      "Comparar energia, densidade e versões disponíveis. Testar a música sob a locução antes de escolher."
+    ],
+    [
+      "Musicbed",
+      "Pesquisa e licenciamento musical",
+      "https://www.musicbed.com/",
+      "Procurar canção ou instrumental pelo caráter da história. Conferir a modalidade de licença para a aplicação comercial."
+    ],
+    [
+      "Freesound",
+      "Sons de ambiente e efeitos",
+      "https://freesound.org/help/faq/",
+      "Conferir a licença de cada arquivo; CC0, atribuição e restrições não são intercambiáveis. Registrar o autor quando necessário."
+    ],
+    [
+      "D&AD e The One Show",
+      "Campanhas créditos e estudos",
+      "https://www.dandad.org/work/d-ad-awards-archive",
+      "Filtrar por disciplina, ano e categoria. Usar como acervo de referência, não como banco de assets comerciais."
+    ],
+    [
+      "ShotDeck",
+      "Fotogramas para estudo de cinema",
+      "https://shotdeck.com/",
+      "Buscar composição, iluminação e contexto cinematográfico. Tratar os fotogramas como referência; conferir acesso e condições de uso."
+    ],
+    [
+      "Behance e ArtStation",
+      "Portfólios e processos",
+      "https://www.behance.net/",
+      "Buscar autor, projeto e linguagem. Confirmar a autoria na página do criador e seguir para a fonte do projeto."
+    ]
+  ],
+  "combinacoes": [
+    {
+      "nome": "Imóvel de alto padrão",
+      "refs": "CP02 AD10 VI02 VO02 TR05 GR02",
+      "objetivo": "Tornar o valor percebido demonstrável.",
+      "briefing": "Usar arquitetura oficial, materiais e diferenciais comprovados. Definir o público e o próximo passo comercial. Separar conceito de atmosfera de representação do produto.",
+      "direcao": "Abra com um detalhe construtivo que sustente o benefício. Passe ao espaço completo, mostre uma ação humana discreta e termine com a informação comercial essencial. Câmera estável, luz coerente com o ambiente, tipografia sóbria e voz próxima. A trilha deve deixar ouvir o lugar.",
+      "entrega": "Filme de 30 segundos, peça vertical e abertura de apresentação. Estrutura sugerida: 0–5 s detalhe; 5–15 s espaço e prova; 15–24 s experiência; 24–30 s marca e ação.",
+      "busca": "architectural material detail natural light; contemporary residence slow dolly; intimate piano ambient",
+      "avaliar": "Fidelidade arquitetônica, prova do diferencial, leitura no celular e qualidade do contato gerado."
+    },
+    {
+      "nome": "Produto compacto e condição comercial",
+      "refs": "CP03 CP09 GR01 VO08",
+      "objetivo": "Transformar uma objeção real em vantagem compreensível e captar interesse qualificado.",
+      "briefing": "Receber metragem, planta, condição comercial, regras e disponibilidade atuais. Não preencher valores ausentes com exemplos que pareçam oferta real.",
+      "direcao": "Escolha uma objeção comprovada do público. Mostre sua contrapartida com planta ou uso real do espaço. Título curto, uma prova e CTA específico. Na página, responda às dúvidas mais próximas da decisão. A clareza da oferta tem prioridade sobre a ornamentação.",
+      "entrega": "Três anúncios com hipóteses distintas, página de destino e versão de 15 segundos. Manter oferta e caminho de cadastro iguais para comparar mensagens.",
+      "busca": "compact apartment practical layout; small living space natural light; clear real estate typography",
+      "avaliar": "Compreensão da oferta, taxa de contato qualificado e coerência entre anúncio, página e atendimento."
+    },
+    {
+      "nome": "Território e marca institucional",
+      "refs": "CP08 VI03 VI08 VO02 TR10 GR09",
+      "objetivo": "Demonstrar relação concreta com lugar e pessoas.",
+      "briefing": "Reunir cenas e informações reais do território, ações da empresa e pessoas autorizadas a participar. Separar fatos de aspirações.",
+      "direcao": "Escolha uma ação pequena que revele o cuidado com o lugar. Observe mãos, caminhos, hábitos e sons reais. O texto acompanha a cena com linguagem concreta. Use uma série gráfica derivada de um atributo local verificável e mantenha espaço para informação.",
+      "entrega": "Filme de 60 segundos, corte de 30 e série de seis peças. Estrutura: lugar; ação; pessoa; consequência; compromisso sustentado por evidência.",
+      "busca": "Brazilian landscape everyday life; hands working natural detail; organic documentary underscore",
+      "avaliar": "Especificidade do lugar, autenticidade das ações e ausência de promessa ambiental sem comprovação."
+    },
+    {
+      "nome": "Escola e personagens da Pontodot",
+      "refs": "CP10 AD08 AD09 VO09 VO10 VI06 TR03",
+      "objetivo": "Construir reconhecimento e ensinar com personagens consistentes.",
+      "briefing": "Usar a ficha oficial de cada personagem, voz de marca, universo e objetivo pedagógico. O roteiro precisa levar a uma aprendizagem observável.",
+      "direcao": "Defina uma intenção por personagem e um problema por episódio. Preserve silhueta, proporções, cores, figurino e voz. Use uma regra visual simples para explicar a lição. O tema musical deve variar mantendo parentesco. Crie o primeiro quadro antes de animar e valide os estados emocionais.",
+      "entrega": "Ficha de personagem, teste de três expressões, piloto de 20 segundos e versões curtas. Criar personagens novos apenas quando o briefing pedir.",
+      "busca": "original expressive character turnaround; educational visual metaphor; curious sonic motif",
+      "avaliar": "Consistência entre episódios, clareza da lição e capacidade de reconhecer o personagem sem nome."
+    },
+    {
+      "nome": "Autoridade e conteúdo de especialista",
+      "refs": "CP04 CP09 VO08 GR01 GR04",
+      "objetivo": "Tornar uma ideia útil fácil de entender e lembrar.",
+      "briefing": "Receber tese, evidência, público e ação desejada. Identificar o que é dado, opinião, projeção e recomendação.",
+      "direcao": "Abra com uma conclusão específica. Mostre a evidência e explique sua consequência prática. Use título forte e hierarquia estável. Uma mudança de escala tipográfica pode destacar a tese; a fonte e o contexto do dado devem permanecer legíveis. A voz explica, sem discursar.",
+      "entrega": "Carrossel de seis telas, roteiro de 45 segundos e resumo de uma página. Uma tela por função: tese, contexto, prova, implicação, aplicação e ação.",
+      "busca": "editorial data presentation; clear typography thought leadership; documentary talking head",
+      "avaliar": "Precisão do argumento, utilidade percebida e ações qualificadas; curtidas isoladas não validam autoridade."
+    },
+    {
+      "nome": "Campanha conceitual de criatividade",
+      "refs": "CP07 AD02 AD06 VI10 TR08 GR06",
+      "objetivo": "Dar forma a uma promessa de transformação sem perder o eixo humano.",
+      "briefing": "Escolher uma tensão real do público e uma mudança que o produto permite. Estabelecer o que a campanha precisa fazer além de chamar atenção.",
+      "direcao": "Mantenha um personagem ou objeto recorrente em três situações visuais. Use uma regra de transformação e um sistema de cor. O pulso musical organiza o percurso; a assinatura resolve a tensão inicial. Gere cenas separadamente para controlar consistência e monte a progressão depois.",
+      "entrega": "Filme de 30 segundos, três quadros de estilo e peças estáticas derivadas do mesmo sistema.",
+      "busca": "original visual transformation; controlled generative composition; thoughtful electronic pulse",
+      "avaliar": "Compreensão da promessa, reconhecimento de marca e ligação entre efeito visual e benefício."
+    }
+  ],
+  "qualidade": [
+    [
+      "Copy",
+      "A promessa está sustentada, a mensagem tem hierarquia e o próximo passo é claro. Verificar nomes, números, contexto e revisão em português."
+    ],
+    [
+      "Arte digital",
+      "Há um foco, materiais coerentes e anatomia consistente. Conferir mãos, faces, perspectivas, contato com o chão e identidade do personagem. Não alterar arquitetura real para encaixar um estilo."
+    ],
+    [
+      "Locução",
+      "A pessoa parece compreender o texto. Conferir pronúncia, pausas, números e emoção. Usar voz original ou licenciada; uma referência de interpretação não autoriza clonar identidade vocal."
+    ],
+    [
+      "Trilha e som",
+      "Música, voz e ambiente cumprem funções diferentes. Testar inteligibilidade em celular e fones, conferir distorção e cortes de final. Usar música original ou licenciada para o projeto."
+    ],
+    [
+      "Vídeo",
+      "Cada plano acrescenta informação. Conferir continuidade, identidade, mãos, objetos, física e relação entre movimento e câmera. Produzir planos curtos e controláveis quando a geração longa perder consistência."
+    ],
+    [
+      "Edição gráfica",
+      "Tipografia, alinhamento, entrelinha e hierarquia estão coerentes. Verificar cortes, margens, marcas, qualidade das imagens e texto editável. Formatos derivam da composição; não basta recortar automaticamente."
+    ]
+  ],
+  "imagens": {
+    "AD02": {
+      "arquivo": "03_imagens_de_referencia/AD02.jpg",
+      "pagina_origem": "https://joshuadavis.com/ps1-praystation-v2",
+      "url_imagem": "https://freight.cargo.site/w/1100/i/0f46bc8dfdb7972579067d1dfaa6533efab0b98c5a45bf08ffc6d2def43530ab/3f088e3df612889ecdd5942b.jpg",
+      "largura": 1000,
+      "altura": 1000,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Joshua Davis • interface do arquivo Praystation"
+    },
+    "AD03": {
+      "arquivo": "03_imagens_de_referencia/AD03.jpg",
+      "pagina_origem": "https://www.moma.org/calendar/exhibitions/5535",
+      "url_imagem": "https://www.moma.org/d/assets/W1siZiIsIjIwMjIvMTEvMDIvNWs3Mmp2b2g3b18yMDIyX0FOQURPTF9VbnN1cGVydmlzZWRfTWFjaGluZV9IYWxsdWNpbmF0aW9uc19Nb01BLmpwZyJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDIwMDB4MjAwMFx1MDAzZSJdXQ/2022_ANADOL_Unsupervised-Machine-Hallucinations-MoMA.jpg?sha=197a2fa38c444f29",
+      "largura": 970,
+      "altura": 1000,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Refik Anadol • imagem de Unsupervised no acervo do MoMA"
+    },
+    "AD04": {
+      "arquivo": "03_imagens_de_referencia/AD04.jpg",
+      "pagina_origem": "https://sixnfive.com/project-category/digital/",
+      "url_imagem": "https://sixnfive.com/wp-content/uploads/2020/09/night_hr_web-640x512.jpg",
+      "largura": 640,
+      "altura": 512,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Six N Five • seleção do arquivo Digital"
+    },
+    "AD05": {
+      "arquivo": "03_imagens_de_referencia/AD05.jpg",
+      "pagina_origem": "https://gmunk.com/The-Spectrum-Series",
+      "url_imagem": "https://freight.cargo.site/w/1200/i/6d518fdcf226f8c07e1447d152f5d3885c8d18176758825f93d7fb26318156f8/INFRA3984_TAM_36x24_480nm_4500px.jpg",
+      "largura": 1000,
+      "altura": 593,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "GMUNK • The Spectrum Series"
+    },
+    "AD06": {
+      "arquivo": "03_imagens_de_referencia/AD06.jpg",
+      "pagina_origem": "https://nidiadias.com/works/ibm-design",
+      "url_imagem": "https://framerusercontent.com/images/EkXSXCifjn308kfPp0T5pRBKCY.jpg?width=1920&height=1080",
+      "largura": 1000,
+      "altura": 563,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Nidia Dias • imagem publicada na página IBM Design"
+    },
+    "AD07": {
+      "arquivo": "03_imagens_de_referencia/AD07.jpg",
+      "pagina_origem": "https://petertarka.com/",
+      "url_imagem": "https://admin.petertarka.com/wp-content/uploads/2026/08/og-image.jpg",
+      "largura": 1000,
+      "altura": 525,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Peter Tarka • apresentação do portfólio comercial"
+    },
+    "AD08": {
+      "arquivo": "03_imagens_de_referencia/AD08.jpg",
+      "pagina_origem": "https://loish.net/portfolio/original-art/",
+      "url_imagem": "https://loish.net/wp-content/uploads/2026/09/loish_art_03-450x455.png?x16833",
+      "largura": 450,
+      "altura": 455,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Loish • seleção de Original Art"
+    },
+    "AD09": {
+      "arquivo": "03_imagens_de_referencia/AD09.jpg",
+      "pagina_origem": "https://www.rgrassetti.com/games",
+      "url_imagem": "https://static.wixstatic.com/media/73f922_45299a3b3527436ba2a3e4ac339c6a53~mv2.jpg/v1/fit/w_480,h_1373,q_90,enc_avif,quality_auto/73f922_45299a3b3527436ba2a3e4ac339c6a53~mv2.jpg",
+      "largura": 479,
+      "altura": 670,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Rafael Grassetti • personagem do portfólio de jogos"
+    },
+    "GR01": {
+      "arquivo": "03_imagens_de_referencia/GR01.jpg",
+      "pagina_origem": "https://www.moma.org/collection/works/7233",
+      "url_imagem": "https://www.moma.org/media/W1siZiIsIjIxMTU0MSJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDUxMng1MTJcdTAwM2UiXV0.jpg?sha=56953003fa4d222e",
+      "largura": 364,
+      "altura": 512,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Josef Müller Brockmann • Musica Viva 1958"
+    },
+    "GR03": {
+      "arquivo": "03_imagens_de_referencia/GR03.jpg",
+      "pagina_origem": "https://www.paulrand.design/work/IBM.html",
+      "url_imagem": "https://assets.paulrand.design/Works/IBM/Annual%20Reports/1957/Web/IBM%20Annual%20Report%2C%201957-450.webp",
+      "largura": 450,
+      "altura": 585,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Paul Rand • IBM Annual Report 1957"
+    },
+    "GR04": {
+      "arquivo": "03_imagens_de_referencia/GR04.jpg",
+      "pagina_origem": "https://www.pentagram.com/work/the-public-theater",
+      "url_imagem": "https://pentagram-production.imgix.net/wp/592c9da0ae2a8/ps-public-full-200.jpg?auto=compress%2Cformat&fit=min&fm=jpg&q=80&rect=%2C%2C%2C&w=640&s=9193bf377285ea3696f75abe58f5307a",
+      "largura": 395,
+      "altura": 960,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Paula Scher e Pentagram • The Public Theater"
+    },
+    "GR05": {
+      "arquivo": "03_imagens_de_referencia/GR05.jpg",
+      "pagina_origem": "https://www.moma.org/collection/works/8108",
+      "url_imagem": "https://www.moma.org/media/W1siZiIsIjIxMTg4OCJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDUxMng1MTJcdTAwM2UiXV0.jpg?sha=d9610cba95c3777c",
+      "largura": 340,
+      "altura": 512,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Milton Glaser • Dylan 1966"
+    },
+    "GR06": {
+      "arquivo": "03_imagens_de_referencia/GR06.jpg",
+      "pagina_origem": "https://www.brody-associates.com/work/1985-buffalo",
+      "url_imagem": "https://framerusercontent.com/images/kC1FfqgltKnHfWWeUQcAAOCVI9o.jpg?width=2813&height=2250",
+      "largura": 1000,
+      "altura": 800,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Neville Brody e equipe • 1985 Buffalo"
+    },
+    "GR07": {
+      "arquivo": "03_imagens_de_referencia/GR07.jpg",
+      "pagina_origem": "https://www.davidcarsonstudio.com/",
+      "url_imagem": "https://www.davidcarsonstudio.com/wp-content/uploads/2024/11/ss111309.jpg",
+      "largura": 1000,
+      "altura": 968,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "David Carson • seleção do portfólio do estúdio"
+    },
+    "GR08": {
+      "arquivo": "03_imagens_de_referencia/GR08.jpg",
+      "pagina_origem": "https://andwalsh.com/work/branding/",
+      "url_imagem": "https://andwalsh.com/_image/800x/5d09d4dc69ab2bc929255fd23fa6a7c6.jpg",
+      "largura": 800,
+      "altura": 923,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Jessica Walsh e equipe • Coconut Cult"
+    },
+    "GR09": {
+      "arquivo": "03_imagens_de_referencia/GR09.jpg",
+      "pagina_origem": "https://www.kikofarkas.com.br/cartazes/osesp-2006/",
+      "url_imagem": "https://www.kikofarkas.com.br/app/uploads/2015/10/osesp-cartazes-10-semana4-2006-1200x1758.jpg",
+      "largura": 683,
+      "altura": 1000,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "Kiko Farkas e Máquina Estúdio • cartaz Osesp 2006"
+    },
+    "AD10": {
+      "arquivo": "03_imagens_de_referencia/AD10.jpg",
+      "pagina_origem": "https://mvsm.rbln7.com/project/air-max",
+      "url_imagem": "https://images.ctfassets.net/ptipx192lmqd/JmetQA87VQvtj0m2qxvOM/0f41b4466dadca2ec88cec3d1bd06ebb/AM17_AV_11.jpg?w=1920&h=1080&fit=fill&&fl=progressive&q=80",
+      "largura": 1000,
+      "altura": 563,
+      "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+      "legenda": "ManvsMachine • Nike Air Max"
+    }
+  },
+  "organizacao": "Organização sugerida no Drive\nPD / Repertorio Criativo / 01_Documento\nPD / Repertorio Criativo / 02_Base\nPD / Repertorio Criativo / 03_Imagens de referencia\n\nManter apenas esses níveis para o repertório. Nas produções, usar cliente / projeto / entrega, conforme a organização adotada pela PD. Não mover arquivos existentes sem uma tarefa específica.\n\nNome de referência local: ID.jpg. Nome de produção: CLIENTE_PROJETO_PECA_FORMATO_v01.ext. O ID da referência pertence aos metadados do projeto; não precisa aparecer na peça publicada.\n\nCada asset de produção deve guardar origem, autor, licença aplicável, data, projeto e caminho local. As amostras deste pacote são referências de estudo com fonte identificada; não constituem uma coleção de assets liberados para campanhas.\n\nAtualização do repertório: quando uma referência for usada, registrar aplicação, decisão, resultado observado e eventual limitação. Quando um link falhar, preservar o ID e adicionar uma fonte substituta verificada. A versão inicial tem data de pesquisa em 29 de outubro de 2026; atualizações futuras devem registrar nova data."
+}

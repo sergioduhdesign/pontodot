@@ -989,3 +989,21 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     if ($resp === '') { $enviar('Não consegui pensar nisso agora. Tenta de novo em instantes?'); return; }
     $enviar(mb_substr($resp, 0, 3500));
 }
+
+// ---------- Repertório criativo da PD (refs/repertorio.json: 60 referências CP/AD/VO/TR/VI/GR, 12 famílias de linguagem, combinações de partida, bancos) ----------
+function pdRepertorio() { static $R = null; if ($R === null) { $R = json_decode((string)@file_get_contents(__DIR__ . '/refs/repertorio.json'), true) ?: ['referencias' => [], 'familias_de_linguagem' => [], 'combinacoes' => [], 'bancos_e_acervos' => [], 'qualidade' => []]; } return $R; }
+function pdRepertorioSeg($area) { return ['copys' => ['CP'], 'digital' => ['AD', 'GR'], 'audio' => ['VO', 'TR'], 'video' => ['VI'], 'grafica' => ['GR', 'AD']][$area] ?? ['CP', 'AD', 'VO', 'TR', 'VI', 'GR']; }
+function pdRepertorioRef($id) { foreach (pdRepertorio()['referencias'] as $r) if ($r['id'] === $id) return $r; return null; }
+// bloco de prompt a partir dos ids escolhidos (CP01…, fam:N, comb:N); $area filtra o que entra de uma combinação
+function pdRepertorioBloco($ids, $area = null) { $R = pdRepertorio(); $segs = $area ? pdRepertorioSeg($area) : null; $refs = []; $fams = []; $out = [];
+    foreach ((array)$ids as $id) { $id = trim((string)$id); if ($id === '') continue;
+        if (preg_match('/^fam:(\d+)$/', $id, $m)) { if (isset($R['familias_de_linguagem'][(int)$m[1]])) $fams[] = $R['familias_de_linguagem'][(int)$m[1]]; continue; }
+        if (preg_match('/^comb:(\d+)$/', $id, $m)) { $c = $R['combinacoes'][(int)$m[1]] ?? null; if (!$c) continue; $out[] = "PONTO DE PARTIDA \"{$c['nome']}\" — objetivo: {$c['objetivo']}\nBriefing: {$c['briefing']}\nDireção: {$c['direcao']}" . (!empty($c['entrega']) ? "\nEntrega: {$c['entrega']}" : '');
+            foreach (preg_split('/\s+/', (string)$c['refs']) as $rid) if ($rid && (!$segs || in_array(substr($rid, 0, 2), $segs, true))) $refs[] = $rid; continue; }
+        $refs[] = $id; }
+    foreach (array_unique($refs) as $rid) { $r = pdRepertorioRef($rid); if (!$r) continue;
+        $out[] = "[{$r['id']}] {$r['nome']} — {$r['papel']} ({$r['obra']})\nEstrutura: {$r['estrutura']}\nDireção: {$r['direcao']}\nEvitar: {$r['evitar']}\nVerificação: {$r['teste']}"; }
+    foreach ($fams as $f) $out[] = "FAMÍLIA DE LINGUAGEM \"{$f[0]}\" (base {$f[1]}): {$f[2]} Uso: {$f[3]} Regra: {$f[4]}";
+    if (!$out) return '';
+    $q = ''; foreach ((array)($R['qualidade'] ?? []) as $qq) { $k = strtolower((string)$qq[0]); if (($area === 'copys' && $k === 'copy') || (in_array($area, ['digital', 'grafica'], true) && strpos($k, 'arte') === 0) || ($area === 'video' && strpos($k, 'v') === 0) || ($area === 'audio' && (strpos($k, 'loc') === 0 || strpos($k, 'tri') === 0))) $q .= "\n- " . $qq[1]; }
+    return "\n\nREPERTÓRIO ESCOLHIDO PELO HUMANO (absorva a lógica e a estrutura; é inspiração de método, nunca cópia de obra, frase, logo ou identidade de terceiros; o nome da referência não aparece na peça):\n" . implode("\n\n", $out) . ($q ? "\n\nANTES DE ENTREGAR, VERIFIQUE:" . $q : ''); }

@@ -1,0 +1,155 @@
+{
+  "AD02": {
+    "arquivo": "03_imagens_de_referencia/AD02.jpg",
+    "pagina_origem": "https://joshuadavis.com/ps1-praystation-v2",
+    "url_imagem": "https://freight.cargo.site/w/1100/i/0f46bc8dfdb7972579067d1dfaa6533efab0b98c5a45bf08ffc6d2def43530ab/3f088e3df612889ecdd5942b.jpg",
+    "largura": 1000,
+    "altura": 1000,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Joshua Davis • interface do arquivo Praystation"
+  },
+  "AD03": {
+    "arquivo": "03_imagens_de_referencia/AD03.jpg",
+    "pagina_origem": "https://www.moma.org/calendar/exhibitions/5535",
+    "url_imagem": "https://www.moma.org/d/assets/W1siZiIsIjIwMjIvMTEvMDIvNWs3Mmp2b2g3b18yMDIyX0FOQURPTF9VbnN1cGVydmlzZWRfTWFjaGluZV9IYWxsdWNpbmF0aW9uc19Nb01BLmpwZyJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDIwMDB4MjAwMFx1MDAzZSJdXQ/2022_ANADOL_Unsupervised-Machine-Hallucinations-MoMA.jpg?sha=197a2fa38c444f29",
+    "largura": 970,
+    "altura": 1000,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Refik Anadol • imagem de Unsupervised no acervo do MoMA"
+  },
+  "AD04": {
+    "arquivo": "03_imagens_de_referencia/AD04.jpg",
+    "pagina_origem": "https://sixnfive.com/project-category/digital/",
+    "url_imagem": "https://sixnfive.com/wp-content/uploads/2020/09/night_hr_web-640x512.jpg",
+    "largura": 640,
+    "altura": 512,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Six N Five • seleção do arquivo Digital"
+  },
+  "AD05": {
+    "arquivo": "03_imagens_de_referencia/AD05.jpg",
+    "pagina_origem": "https://gmunk.com/The-Spectrum-Series",
+    "url_imagem": "https://freight.cargo.site/w/1200/i/6d518fdcf226f8c07e1447d152f5d3885c8d18176758825f93d7fb26318156f8/INFRA3984_TAM_36x24_480nm_4500px.jpg",
+    "largura": 1000,
+    "altura": 593,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "GMUNK • The Spectrum Series"
+  },
+  "AD06": {
+    "arquivo": "03_imagens_de_referencia/AD06.jpg",
+    "pagina_origem": "https://nidiadias.com/works/ibm-design",
+    "url_imagem": "https://framerusercontent.com/images/EkXSXCifjn308kfPp0T5pRBKCY.jpg?width=1920&height=1080",
+    "largura": 1000,
+    "altura": 563,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Nidia Dias • imagem publicada na página IBM Design"
+  },
+  "AD07": {
+    "arquivo": "03_imagens_de_referencia/AD07.jpg",
+    "pagina_origem": "https://petertarka.com/",
+    "url_imagem": "https://admin.petertarka.com/wp-content/uploads/2026/08/og-image.jpg",
+    "largura": 1000,
+    "altura": 525,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Peter Tarka • apresentação do portfólio comercial"
+  },
+  "AD08": {
+    "arquivo": "03_imagens_de_referencia/AD08.jpg",
+    "pagina_origem": "https://loish.net/portfolio/original-art/",
+    "url_imagem": "https://loish.net/wp-content/uploads/2026/09/loish_art_03-450x455.png?x16833",
+    "largura": 450,
+    "altura": 455,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Loish • seleção de Original Art"
+  },
+  "AD09": {
+    "arquivo": "03_imagens_de_referencia/AD09.jpg",
+    "pagina_origem": "https://www.rgrassetti.com/games",
+    "url_imagem": "https://static.wixstatic.com/media/73f922_45299a3b3527436ba2a3e4ac339c6a53~mv2.jpg/v1/fit/w_480,h_1373,q_90,enc_avif,quality_auto/73f922_45299a3b3527436ba2a3e4ac339c6a53~mv2.jpg",
+    "largura": 479,
+    "altura": 670,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Rafael Grassetti • personagem do portfólio de jogos"
+  },
+  "GR01": {
+    "arquivo": "03_imagens_de_referencia/GR01.jpg",
+    "pagina_origem": "https://www.moma.org/collection/works/7233",
+    "url_imagem": "https://www.moma.org/media/W1siZiIsIjIxMTU0MSJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDUxMng1MTJcdTAwM2UiXV0.jpg?sha=56953003fa4d222e",
+    "largura": 364,
+    "altura": 512,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Josef Müller Brockmann • Musica Viva 1958"
+  },
+  "GR03": {
+    "arquivo": "03_imagens_de_referencia/GR03.jpg",
+    "pagina_origem": "https://www.paulrand.design/work/IBM.html",
+    "url_imagem": "https://assets.paulrand.design/Works/IBM/Annual%20Reports/1957/Web/IBM%20Annual%20Report%2C%201957-450.webp",
+    "largura": 450,
+    "altura": 585,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Paul Rand • IBM Annual Report 1957"
+  },
+  "GR04": {
+    "arquivo": "03_imagens_de_referencia/GR04.jpg",
+    "pagina_origem": "https://www.pentagram.com/work/the-public-theater",
+    "url_imagem": "https://pentagram-production.imgix.net/wp/592c9da0ae2a8/ps-public-full-200.jpg?auto=compress%2Cformat&fit=min&fm=jpg&q=80&rect=%2C%2C%2C&w=640&s=9193bf377285ea3696f75abe58f5307a",
+    "largura": 395,
+    "altura": 960,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Paula Scher e Pentagram • The Public Theater"
+  },
+  "GR05": {
+    "arquivo": "03_imagens_de_referencia/GR05.jpg",
+    "pagina_origem": "https://www.moma.org/collection/works/8108",
+    "url_imagem": "https://www.moma.org/media/W1siZiIsIjIxMTg4OCJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDUxMng1MTJcdTAwM2UiXV0.jpg?sha=d9610cba95c3777c",
+    "largura": 340,
+    "altura": 512,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Milton Glaser • Dylan 1966"
+  },
+  "GR06": {
+    "arquivo": "03_imagens_de_referencia/GR06.jpg",
+    "pagina_origem": "https://www.brody-associates.com/work/1985-buffalo",
+    "url_imagem": "https://framerusercontent.com/images/kC1FfqgltKnHfWWeUQcAAOCVI9o.jpg?width=2813&height=2250",
+    "largura": 1000,
+    "altura": 800,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Neville Brody e equipe • 1985 Buffalo"
+  },
+  "GR07": {
+    "arquivo": "03_imagens_de_referencia/GR07.jpg",
+    "pagina_origem": "https://www.davidcarsonstudio.com/",
+    "url_imagem": "https://www.davidcarsonstudio.com/wp-content/uploads/2024/11/ss111309.jpg",
+    "largura": 1000,
+    "altura": 968,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "David Carson • seleção do portfólio do estúdio"
+  },
+  "GR08": {
+    "arquivo": "03_imagens_de_referencia/GR08.jpg",
+    "pagina_origem": "https://andwalsh.com/work/branding/",
+    "url_imagem": "https://andwalsh.com/_image/800x/5d09d4dc69ab2bc929255fd23fa6a7c6.jpg",
+    "largura": 800,
+    "altura": 923,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Jessica Walsh e equipe • Coconut Cult"
+  },
+  "GR09": {
+    "arquivo": "03_imagens_de_referencia/GR09.jpg",
+    "pagina_origem": "https://www.kikofarkas.com.br/cartazes/osesp-2006/",
+    "url_imagem": "https://www.kikofarkas.com.br/app/uploads/2015/10/osesp-cartazes-10-semana4-2006-1200x1758.jpg",
+    "largura": 683,
+    "altura": 1000,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "Kiko Farkas e Máquina Estúdio • cartaz Osesp 2006"
+  },
+  "AD10": {
+    "arquivo": "03_imagens_de_referencia/AD10.jpg",
+    "pagina_origem": "https://mvsm.rbln7.com/project/air-max",
+    "url_imagem": "https://images.ctfassets.net/ptipx192lmqd/JmetQA87VQvtj0m2qxvOM/0f41b4466dadca2ec88cec3d1bd06ebb/AM17_AV_11.jpg?w=1920&h=1080&fit=fill&&fl=progressive&q=80",
+    "largura": 1000,
+    "altura": 563,
+    "uso": "Imagem de referência para estudo; não é asset liberado para publicação.",
+    "legenda": "ManvsMachine • Nike Air Max"
+  }
+}
