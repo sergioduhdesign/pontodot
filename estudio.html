@@ -46,7 +46,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
 <div class="top">
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
   <select id="fmt" onchange="trocaFormato()" title="Tipo da peça"></select>
-  <input class="nome" id="nome" placeholder="Nome da peça" value="Sem nome" onchange="dirty=true;autoSalvar();nomeAba()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small>
+  <input class="nome" id="nome" placeholder="Nome da peça" value="Sem nome" onchange="dirty=true;autoSalvar();nomeAba()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small><button class="btn s" id="btnTarefa" onclick="tarefaLiga()" title="Trabalho é tarefa: cria no funil ou liga a uma existente">sem tarefa</button>
   <span class="sep"></span>
   <button class="btn i" onclick="hist(-1)" title="Desfazer (⌘Z)"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
   <button class="btn i" onclick="hist(1)" title="Refazer (⇧⌘Z)"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -196,7 +196,7 @@ async function boot(){
   document.addEventListener('keydown',teclas);document.addEventListener('keyup',e=>{if(e.code==='Space'){PAN=FERR==='mao';ZOOMT=FERR==='zoomf';ZDRAG=null;C.defaultCursor=FERR==='caneta'||FERR_DESENHA.includes(FERR)?'crosshair':FERR==='mao'?'grab':FERR==='zoomf'?'zoom-in':'default';C.setCursor(C.defaultCursor);desenhaSeg();}if(ZOOMT&&e.key==='Alt'){C.defaultCursor='zoom-in';C.setCursor('zoom-in');}});
   document.addEventListener('click',e=>{if(!e.target.closest('.menu,.top,#ctx'))fechaMenu();if(!e.target.closest('#ctx'))fechaCtx();});
   try{const s=JSON.parse(localStorage.getItem('pd_est_seg')||'{}');Object.assign(SEG,s);}catch(e){}
-  if(q.get('cliente'))$('#cli').value=q.get('cliente'); if(q.get('tarefa'))PECA.task_id=q.get('tarefa');
+  if(q.get('cliente'))$('#cli').value=q.get('cliente'); if(q.get('tarefa'))PECA.task_id=q.get('tarefa');tarefaUI();
   await trocaCliente();
   ajustaViewport();window.addEventListener('resize',()=>{ajustaViewport();zoomAjusta();});
   if(q.get('peca')) await abrirPeca(q.get('peca')); else { aplicaFormato(AREA==='grafica'?FORMATOS.find(f=>f.impresso):FORMATOS[0]); montaPaginas([null]); marca(true); }
@@ -914,10 +914,11 @@ async function abrirPeca(id){if(!await antesDeSair())return;try{if(CROP.on)cropS
   const ehModelo=!!p.modelo&&PECA.client_id&&p.client_id!==PECA.client_id;
   const pgs=p.doc&&p.doc.paginas?p.doc.paginas:[p.doc];
   PECA={id:ehModelo?null:p.id,client_id:ehModelo?PECA.client_id:(p.client_id||null),task_id:p.task_id||null,formato:null,pag:0,nPag:pgs.length,fundos:[],papeis:(p.doc&&p.doc.papeis)||[],video:(p.doc&&p.doc.video)||null};
-  $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;nomeAba();if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
+  $('#nome').value=ehModelo?p.nome+' (cópia)':p.nome;nomeAba();tarefaUI();if(!ehModelo){$('#cli').value=p.client_id||'';await trocaCliente();}
   const f=p.formato.impresso?Object.assign({},p.formato):(FORMATOS.find(x=>x.tipo===p.formato.tipo)||{tipo:p.formato.tipo||'kit',nome:p.formato.nome,w:p.formato.w,h:p.formato.h});aplicaFormato(f);F().guias=(p.doc&&p.doc.guias)||[];F().margem=(p.doc&&p.doc.margem)||0;
   H=[];HI=-1;montaPaginas(pgs,()=>{marca(true);dirty=false;});msg(ehModelo?'Modelo aberto como peça nova.':'Peça aberta.');}catch(e){msg(e.message);}}
 async function salvar(modelo,silencio){if(!silencio)pdStudio.observa('salvou',{modelo:!!modelo,camadas:objetos().length,formato:F().tipo});if(CROP.on)cropSai();if(MASK.on)maskSai();const ativo=C.getActiveObject();if(!silencio){C.discardActiveObject();C.renderAll();}if(!PECA.client_id&&!modelo){msg('Toda peça é de um cliente: escolha no topo.',4000);falta('#cli');return;}
+  if(!PECA.id&&!PECA.task_id&&PECA.client_id&&!modelo&&!silencio){await pdStudio.vincularTarefa({getClientId:()=>PECA.client_id,getTaskId:()=>PECA.task_id,setTaskId:v=>{PECA.task_id=v||null;},getNome:()=>$('#nome').value});tarefaUI();}
   try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,task_id:PECA.task_id,nome:$('#nome').value,formato:PECA.formato,doc:{paginas:todasPaginas(),tipo:PECA.formato.tipo,guias:F().guias||[],margem:F().margem||0,papeis:PECA.papeis||[],video:PECA.video||null},thumb:await thumb(),...(modelo!==undefined?{modelo}:{})});
     PECA.id=r.peca.id;dirty=false;nomeAba();if(!silencio)msg(modelo?'Salva como modelo.':'Salva.');else{const e=$('#salvoEm');if(e)e.textContent='salvo '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}if(PA.atual&&PA.pecas.some(x=>x.id===PECA.id))pautaAbrir(PA.atual.id);return true;}catch(e){msg(e.message,5000);return false;}}
 
@@ -958,6 +959,8 @@ async function svgImpresso(dPag,Wq,Hq,opt){opt=opt||{};const d=dPag||docPagina(P
   return `<!doctype html><html><head><meta charset="utf-8">${links.join('')}<style>${css}@page{size:${PW}mm ${PH}mm;margin:0}html,body{margin:0;padding:0;width:${PW}mm;height:${PH}mm}.folha{position:relative;width:${PW}mm;height:${PH}mm}.folha>svg{position:absolute;left:0;top:0}.arte{position:absolute;left:${M}mm;top:${M}mm;width:${wmm}mm;height:${hmm}mm;overflow:hidden}.arte svg{display:block}.folha{page-break-after:always;break-after:page}.folha:last-child{page-break-after:auto;break-after:auto}</style></head><body><div class="folha">${folha}<div class="arte">${svg}</div></div></body></html>`;}
 async function htmlImpressoTodas(pgs,Wq,Hq,opt){const htmls=[];for(let i=0;i<pgs.length;i++)htmls.push(await svgImpresso(pgs[i],Wq,Hq,opt));if(htmls.length===1)return htmls[0];
   const head=htmls[0].match(/<head>([\s\S]*?)<\/head>/)[1];const corpos=htmls.map(h=>h.match(/<body>([\s\S]*?)<\/body>/)[1]);return `<!doctype html><html><head>${head}</head><body>${corpos.join('')}</body></html>`;}
+function tarefaUI(){const b=$('#btnTarefa');if(b){b.textContent=PECA.task_id?PECA.task_id:'sem tarefa';b.classList.toggle('p',!!PECA.task_id);}}
+async function tarefaLiga(){if(!PECA.client_id){msg('Escolha o cliente.');return;}await pdStudio.vincularTarefa({getClientId:()=>PECA.client_id,getTaskId:()=>PECA.task_id,setTaskId:v=>{PECA.task_id=v||null;dirty=true;},getNome:()=>$('#nome').value});tarefaUI();if(PECA.task_id&&PECA.id)await salvar(undefined,true);}
 async function verDerivacoes(){abaAbre('pauta');PA.fixa=true;if(!PA.atual){try{await desdobrarPrepara();}catch(e){}}}
 async function gerarSaida(){pdStudio.observa('saida',{formato:F().tipo,impresso:ehImp()});if(!PECA.client_id){msg('Toda peça é de um cliente.',4000);falta('#cli');return;}
   const deriv=PA.atual&&PA.atual.client_id===PECA.client_id?PA.pecas.filter(x=>x.papel==='derivada'):[];

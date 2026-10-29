@@ -157,6 +157,25 @@ function esItensDaPasta($pasta) {
     $ps = array_keys($pastas); sort($ps, SORT_NATURAL | SORT_FLAG_CASE);
     return ['pasta_url' => 'https://drive.google.com/drive/folders/' . $pasta, 'itens' => $itens, 'pastas' => $ps];
 }
+if ($acao === 'tarefa_criar') {   // trabalho É a tarefa: cria a tarefa no funil a partir da ferramenta
+    $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Toda tarefa é de um cliente.');
+    $nid = sd_supabase('/rest/v1/rpc/next_task_id', 'POST', new stdClass())['body'] ?? null; if (!$nid || !is_string($nid)) sd_fail('Não consegui gerar o número da tarefa.', 500);
+    $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=name,chave,sigla')['body'][0] ?? []; $resp = strtoupper((string)($pf['chave'] ?? $pf['sigla'] ?? mb_substr((string)($pf['name'] ?? 'SD'), 0, 3)));
+    $d = ['id' => $nid, 'action' => mb_substr(trim((string)($b['action'] ?? 'Trabalho')), 0, 160), 'status' => in_array($b['status'] ?? '', ['BRIEFING', 'EM ANDAMENTO'], true) ? $b['status'] : 'EM ANDAMENTO', 'resp' => $resp ?: 'SD', 'project' => mb_substr((string)($b['project'] ?? 'GERAL'), 0, 60) ?: 'GERAL', 'week' => 'ESTA SEMANA', 'created_by' => $u['id'], 'client_id' => $cid];
+    if (!empty($b['date_int']) && preg_match('/^\d{4}-\d{2}-\d{2}/', $b['date_int'])) $d['date_int'] = substr($b['date_int'], 0, 10); if (!empty($b['obs'])) $d['obs'] = mb_substr((string)$b['obs'], 0, 800);
+    $r = sd_supabase('/rest/v1/tasks', 'POST', $d, ['Prefer: return=representation']); if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui criar a tarefa: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200), 500);
+    pdEvento($nid, 'trabalho', 'Trabalho aberto no Studio Design (' . mb_substr((string)($b['area'] ?? ''), 0, 20) . ')', (string)($b['nome'] ?? ''), $u['name'] ?? 'Equipe', 'humano');
+    echo json_encode(['ok' => true, 'tarefa' => $r['body'][0]], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'tarefa_ver') { $id = strtoupper(trim((string)($b['id'] ?? ''))); if (preg_match('/^\d{1,5}$/', $id)) $id = 'SD-' . str_pad($id, 4, '0', STR_PAD_LEFT); $t = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($id) . '&select=id,action,status,client_id,clients(name)')['body'][0] ?? null; if (!$t) sd_fail('Tarefa ' . $id . ' não existe.', 404); echo json_encode(['tarefa' => $t], JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'trabalhos_da_tarefa') {   // o que já existe no Studio pra esta tarefa (peças, filmes, copys)
+    $tid = (string)($b['task_id'] ?? ''); if (!$tid) sd_fail('Sem tarefa.');
+    $pecas = sd_supabase('/rest/v1/pd_pecas?task_id=eq.' . urlencode($tid) . '&arquivada=eq.false&select=id,nome,formato,thumb_url,mudado_em,papel&order=mudado_em.desc&limit=40')['body'] ?? [];
+    $copys = []; try { $copys = sd_supabase('/rest/v1/pd_copys?task_id=eq.' . urlencode($tid) . '&select=id,nome,mudado_em,set_id&order=mudado_em.desc&limit=20')['body'] ?? []; } catch (Throwable $e) {}
+    $vozes = sd_supabase('/rest/v1/pd_trabalhos?task_id=eq.' . urlencode($tid) . '&modulo=eq.voz&select=id,titulo,status,criado_em&order=criado_em.desc&limit=20')['body'] ?? [];
+    $t = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($tid) . '&select=id,action,client_id,clients(name)')['body'][0] ?? null;
+    echo json_encode(['tarefa' => $t, 'pecas' => $pecas, 'copys' => $copys, 'vozes' => $vozes], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'elementos') {   // vetores que existem nas peças do cliente (grafismos, caminhos, máscaras, grupos SVG) — pra reutilizar
     $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Escolha o cliente.');
     $r = sd_supabase('/rest/v1/pd_pecas?client_id=eq.' . urlencode($cid) . '&arquivada=eq.false&select=nome,doc,mudado_em&order=mudado_em.desc&limit=40')['body'] ?? [];

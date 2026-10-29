@@ -31,7 +31,7 @@ h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr
 <div class="top">
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
   <select id="fmt" onchange="FILME.fmt=this.value;dirty=true;palco()" title="Formato"><option value="v">Filme vertical · 1080×1920</option><option value="h">Filme horizontal · 1920×1080</option><option value="q">Filme quadrado · 1080×1080</option></select>
-  <input class="nome" id="nome" placeholder="Nome do filme" value="Filme" onchange="dirty=true;nomeAba()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small>
+  <input class="nome" id="nome" placeholder="Nome do filme" value="Filme" onchange="dirty=true;nomeAba()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small><button class="btn s" id="btnTarefa" onclick="tarefaLiga()" title="Trabalho é tarefa">sem tarefa</button>
   <span class="sep"></span><div id="pdIA"></div><span class="sep"></span>
   <button class="btn i" onclick="salvar()" title="Salvar (⌘S)"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
   <button class="btn p" onclick="renderizar()" title="Renderiza o MP4 na oficina e guarda no Drive"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg> Gerar saída</button>
@@ -51,7 +51,7 @@ h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let sb,ses,CLIS=[],KIT=null,dirty=false,PECA={id:null,client_id:null};
+let sb,ses,CLIS=[],KIT=null,dirty=false,PECA={id:null,client_id:null,task_id:null};
 const FMT={v:[1080,1920],h:[1920,1080],q:[1080,1080]};
 // o filme: trilhas V (clipes em sequência), T (textos com início e duração), A1 trilha, A2 locução
 let FILME={fmt:'v',v:[],t:[],a1:null,a2:null};
@@ -64,8 +64,8 @@ function avisa(texto){try{parent.postMessage({tipo:'est-aviso',texto,quem:null,p
 const q=new URLSearchParams(location.search);
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoRefreshToken:false}});ses=(await sb.auth.getSession()).data.session;if(!ses){document.body.innerHTML='<div style="padding:20px">Entre na PD primeiro.</div>';return;}
   const {data}=await sb.from('clients').select('id,name,active').order('name');CLIS=(data||[]).filter(c=>c.active!==false);$('#cli').innerHTML='<option value="">Escolha o cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  if(q.get('cliente'))$('#cli').value=q.get('cliente');
-  if(q.get('peca'))await abrir(q.get('peca'));else await trocaCliente();
+  if(q.get('cliente'))$('#cli').value=q.get('cliente');if(q.get('tarefa'))PECA.task_id=q.get('tarefa');
+  if(q.get('peca'))await abrir(q.get('peca'));else await trocaCliente();tarefaUI();
   palco();tlPinta();nomeAba();pdStudio.iniciar('video',{getClientId:()=>PECA.client_id,getPecaId:()=>PECA.id,getNome:()=>$('#nome').value},ses);window.addEventListener('resize',palco);document.addEventListener('keydown',teclas);
   setInterval(()=>{if(dirty&&PECA.client_id)salvar(true);},5000);}
 async function trocaCliente(){PECA.client_id=$('#cli').value||null;KIT=null;if(PECA.client_id){try{const {data}=await sb.from('brand_kits').select('*').eq('client_id',PECA.client_id).maybeSingle();KIT=data||null;}catch(e){}await galeria();}}
@@ -145,9 +145,11 @@ function pausa(){TL.tocando=false;cancelAnimationFrame(TICK);$('#pv').pause();if
 function irInicio(){pausa();TL.t=0;mostraEm(0);tlPinta();}
 // ---------- salvar / abrir
 async function thumb(){const c=document.createElement('canvas');const [w,h]=FMT[FILME.fmt];c.width=400;c.height=Math.round(400*h/w);const x=c.getContext('2d');x.fillStyle='#111';x.fillRect(0,0,c.width,c.height);try{const e=clipEm(0);if(e){if(e.c.tipo==='img'){const im=new Image();im.crossOrigin='anonymous';im.src=e.c.url;await new Promise(r=>{im.onload=r;im.onerror=r;});x.drawImage(im,0,0,c.width,c.height);}else{const pv=$('#pv');if(pv.readyState>=2)x.drawImage(pv,0,0,c.width,c.height);}}}catch(err){}x.drawImage($('#pc'),0,0,c.width,c.height);return c.toDataURL('image/jpeg',.7);}
-async function salvar(silencio){if(!PECA.client_id){if(!silencio){msg('Escolha o cliente.');}return false;}const [w,h]=FMT[FILME.fmt];
-  try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,nome:$('#nome').value||'Filme',formato:{tipo:'filme-'+FILME.fmt,nome:'Filme '+(FILME.fmt==='v'?'vertical':FILME.fmt==='h'?'horizontal':'quadrado'),w,h},doc:{version:'5',objects:[],filme:FILME},thumb:await thumb()});PECA.id=r.peca.id;dirty=false;$('#salvoEm').textContent='salvo '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});nomeAba();if(!silencio)msg('Salvo.');return true;}catch(e){if(!silencio)msg(e.message,6000);return false;}}
-async function abrir(id){try{const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});PECA.id=p.id;$('#cli').value=p.client_id||'';await trocaCliente();$('#nome').value=p.nome;FILME=Object.assign({fmt:'v',v:[],t:[],a1:null,a2:null},(p.doc&&p.doc.filme)||{});if(!FMT[FILME.fmt])FILME.fmt='v';}catch(e){msg(e.message,6000);}}
+function tarefaUI(){const b=$('#btnTarefa');if(b){b.textContent=PECA.task_id?PECA.task_id:'sem tarefa';b.classList.toggle('p',!!PECA.task_id);}}
+async function tarefaLiga(){if(!PECA.client_id){msg('Escolha o cliente.');return;}await pdStudio.vincularTarefa({getClientId:()=>PECA.client_id,getTaskId:()=>PECA.task_id,setTaskId:v=>{PECA.task_id=v||null;dirty=true;},getNome:()=>$('#nome').value});tarefaUI();}
+async function salvar(silencio){if(!PECA.client_id){if(!silencio){msg('Escolha o cliente.');}return false;}if(!PECA.id&&!PECA.task_id&&!silencio){await tarefaLiga();}const [w,h]=FMT[FILME.fmt];
+  try{const r=await api('pd-estudio.php',{acao:'salvar',id:PECA.id,client_id:PECA.client_id,task_id:PECA.task_id,nome:$('#nome').value||'Filme',formato:{tipo:'filme-'+FILME.fmt,nome:'Filme '+(FILME.fmt==='v'?'vertical':FILME.fmt==='h'?'horizontal':'quadrado'),w,h},doc:{version:'5',objects:[],filme:FILME},thumb:await thumb()});PECA.id=r.peca.id;dirty=false;$('#salvoEm').textContent='salvo '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});nomeAba();if(!silencio)msg('Salvo.');return true;}catch(e){if(!silencio)msg(e.message,6000);return false;}}
+async function abrir(id){try{const {peca:p}=await api('pd-estudio.php',{acao:'abrir',id});PECA.id=p.id;PECA.task_id=p.task_id||null;tarefaUI();$('#cli').value=p.client_id||'';await trocaCliente();$('#nome').value=p.nome;FILME=Object.assign({fmt:'v',v:[],t:[],a1:null,a2:null},(p.doc&&p.doc.filme)||{});if(!FMT[FILME.fmt])FILME.fmt='v';}catch(e){msg(e.message,6000);}}
 async function antesDeSair(){if(!dirty)return true;return await salvar(true);}
 // ---------- render (oficina): V em sequência; textos viram camada PNG por cena; A1/A2 por cima
 async function renderizar(){pdStudio.observa('render',{clipes:FILME.v.length,textos:FILME.t.length,dur:total()});if(!PECA.client_id){msg('Escolha o cliente.');return;}if(!FILME.v.length){msg('Coloque pelo menos um clipe.');return;}if(!await salvar(true))return;const [w,h]=FMT[FILME.fmt];ocupa();

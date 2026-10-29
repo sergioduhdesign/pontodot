@@ -24,7 +24,7 @@ h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr
 </style></head><body><div id="app">
 <div class="top">
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
-  <input class="nome" id="nome" placeholder="Nome da locução" value="Locução" onchange="nomeAba()">
+  <input class="nome" id="nome" placeholder="Nome da locução" value="Locução" onchange="nomeAba()"><button class="btn s" id="btnTarefa" onclick="tarefaLiga()" title="Trabalho é tarefa">sem tarefa</button>
   <span class="sep"></span>
   <button class="btn i" onclick="recarrega()" title="Atualizar"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
   <span class="sep"></span><div id="pdIA"></div>
@@ -50,7 +50,7 @@ h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let sb,ses,CLIS=[],CID=null,VOZ='pf_dora',TAKES=[],BK={lista:[],atual:null};
+let sb,ses,CLIS=[],CID=null,VOZ='pf_dora',TAKES=[],BK={lista:[],atual:null},TASK=null;
 const VOZES=[['pf_dora','Dora','feminina · clara, institucional'],['pm_alex','Alex','masculina · jovem, direta'],['pm_santa','Santa','masculina · grave, narrador']];
 let OCUP=0;function ocupa(){OCUP++;$('#ocupado').classList.add('on');}function desocupa(){OCUP=Math.max(0,OCUP-1);if(!OCUP)$('#ocupado').classList.remove('on');}
 let MSGT;function msg(t,ms=3500){const e=$('#msg');e.textContent=t;e.classList.add('on');clearTimeout(MSGT);MSGT=setTimeout(()=>e.classList.remove('on'),ms);}
@@ -59,7 +59,7 @@ function nomeAba(){try{parent.postMessage({tipo:'est-nome',nome:$('#nome').value
 const q=new URLSearchParams(location.search);
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoRefreshToken:false}});ses=(await sb.auth.getSession()).data.session;if(!ses){document.body.innerHTML='<div style="padding:20px">Entre na PD primeiro.</div>';return;}
   const {data}=await sb.from('clients').select('id,name,active').order('name');CLIS=(data||[]).filter(c=>c.active!==false);$('#cli').innerHTML='<option value="">Escolha o cliente</option>'+CLIS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  vozesUI();if(q.get('cliente'))$('#cli').value=q.get('cliente');await trocaCliente();pdStudio.iniciar('audio',{getClientId:()=>CID,getNome:()=>$('#nome').value},ses);nomeAba();
+  vozesUI();if(q.get('cliente'))$('#cli').value=q.get('cliente');if(q.get('tarefa'))TASK=q.get('tarefa');tarefaUI();await trocaCliente();pdStudio.cresce($('#texto'),320);pdStudio.iniciar('audio',{getClientId:()=>CID,getNome:()=>$('#nome').value},ses);nomeAba();
   $('#texto').addEventListener('input',()=>{const n=$('#texto').value.length;$('#contagem').textContent=n+' caracteres · ~'+Math.round(n/15)+' s';});bancosUI();setInterval(recarrega,30000);}
 function vozesUI(){$('#vozes').innerHTML=VOZES.map(([id,n,d])=>`<div class="voz ${VOZ===id?'on':''}" onclick="VOZ='${id}';vozesUI();pdStudio.observa('voz',{voz:'${id}'})"><span style="width:30px;height:30px;border-radius:50%;background:${id.startsWith('pf')?'#e5007d':'#2f7fd1'};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700">${n[0]}</span><div><b>${n}</b><small>${d}</small></div></div>`).join('');}
 async function trocaCliente(){CID=$('#cli').value||null;await recarrega();}
@@ -68,8 +68,10 @@ function takesUI(){const st={fila:'na fila',rodando:'gravando…',pronto:'pronta
   return `<div class="take"><span class="ic" style="background:${t.status==='pronto'?'var(--ok)':t.status==='erro'?'var(--bad)':'#999'}">${t.status==='pronto'?'♪':t.status==='erro'?'!':'…'}</span><div class="tx"><b>${esc(t.titulo||'Locução')}</b><small>${v[1]} · ${esc(st[t.status]||t.status)}${res.duracao_s?' · '+res.duracao_s+' s':''} · ${new Date(t.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${t.erro?' · '+esc(t.erro):''}</small><small style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px">${esc((e.texto||'').slice(0,160))}</small></div>${a&&(a.url||a.drive_url)?`<audio controls preload="none" src="${esc(a.url||a.drive_url)}"></audio>${a.drive_url?`<a class="btn s" href="${esc(a.drive_url)}" target="_blank" rel="noopener" title="No Drive (MÍDIA › ÁUDIO)">Drive</a>`:''}<button class="btn s" onclick="reusar(${TAKES.indexOf(t)})" title="Reaproveitar o texto">↻</button>`:''}</div>`;}).join('')||'<div class="vazio">Nenhuma locução ainda. Escreva embaixo e gere.</div>';}
 function reusar(i){const t=TAKES[i];if(!t)return;$('#texto').value=(t.entrada||{}).texto||'';$('#texto').dispatchEvent(new Event('input'));VOZ=(t.entrada||{}).voz||VOZ;vozesUI();}
 function previa(){const t=$('#texto').value.trim();if(!t){msg('Escreva o texto.');return;}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=+$('#vel').value;const vs=speechSynthesis.getVoices().filter(v=>/pt[-_]BR/i.test(v.lang));if(vs.length)u.voice=vs[VOZ.startsWith('pf')?0:Math.min(1,vs.length-1)];speechSynthesis.speak(u);msg('Prévia com a voz do navegador — a final é a da oficina.');}catch(e){msg('Seu navegador não tem voz em português.');}}
-async function gerar(){if(!CID){msg('Escolha o cliente.');return;}const texto=$('#texto').value.trim();if(!texto){msg('Escreva o texto.');return;}const nome=($('#nome').value||'locucao').replace(/[\/\\:*?"<>|]+/g,'-');
-  try{const r=await api('pd-oficina.php',{acao:'pedir',modulo:'voz',titulo:'Locução · '+nome,client_id:CID,ok_agora:true,entrada:{nome,texto,voz:VOZ,velocidade:+$('#vel').value,drive_subpasta:'MÍDIA/ÁUDIO',pedido:'Locução por IA ('+VOZ+'): '+texto.length+' caracteres'}});
+function tarefaUI(){const b=$('#btnTarefa');if(b){b.textContent=TASK||'sem tarefa';b.classList.toggle('p',!!TASK);}}
+async function tarefaLiga(){if(!CID){msg('Escolha o cliente.');return;}await pdStudio.vincularTarefa({getClientId:()=>CID,getTaskId:()=>TASK,setTaskId:v=>{TASK=v||null;},getNome:()=>$('#nome').value});tarefaUI();}
+async function gerar(){if(!CID){msg('Escolha o cliente.');return;}const texto=$('#texto').value.trim();if(!texto){msg('Escreva o texto.');return;}if(!TASK)await tarefaLiga();const nome=($('#nome').value||'locucao').replace(/[\/\\:*?"<>|]+/g,'-');
+  try{const r=await api('pd-oficina.php',{acao:'pedir',modulo:'voz',titulo:'Locução · '+nome,client_id:CID,ok_agora:true,task_id:TASK||null,entrada:{nome,texto,voz:VOZ,velocidade:+$('#vel').value,drive_subpasta:'MÍDIA/ÁUDIO',pedido:'Locução por IA ('+VOZ+'): '+texto.length+' caracteres'}});
     msg(r.trabalho&&r.trabalho.status==='fila'?'Gravando na oficina. Chega em 1 a 4 min; aparece aqui e em cliente › MÍDIA › ÁUDIO.':'Pedido: '+(r.trabalho&&r.trabalho.status),8000);pdStudio.observa('gerou_locucao',{voz:VOZ,chars:texto.length,vel:+$('#vel').value});await recarrega();
     if(r.trabalho){const id=r.trabalho.id;const tm=setInterval(async()=>{try{const j=await api('pd-oficina.php',{acao:'ver',id});const st=j.trabalho&&j.trabalho.status;if(st==='pronto'||st==='erro'){clearInterval(tm);await recarrega();pdStudio.avisa(st==='pronto'?'Terminei a locução '+nome+'! Já dá pra ouvir e está no Drive.':'Não consegui gravar '+nome+': '+(j.trabalho.erro||'erro'));}}catch(e){}},30000);}}
   catch(e){msg(e.message,8000);}}
