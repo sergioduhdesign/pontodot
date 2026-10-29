@@ -74,6 +74,11 @@ function esSub($paiId, $nome) { $p = ponte('pasta_garantir', ['pai_id' => $paiId
 function esNomeSeguro($s) { $s = preg_replace('/[\/\\\\:*?"<>|]+/u', '-', trim((string)$s)); return mb_substr($s, 0, 90) ?: 'peca'; }
 $SEL = 'id,client_id,task_id,nome,formato,thumb_url,modelo,arquivada,oculta,criado_por,criado_em,mudado_em,exportada,pauta_id,papel,derivada_tipo,ordem,clients(name)';
 
+if ($acao === 'voz_listar') {   // locuções do cliente, COM a voz usada, o texto e o motor (a lista geral da oficina só traz o essencial)
+    $cid = (string)($b['client_id'] ?? ''); if (!$cid) { echo json_encode(['trabalhos' => []]); exit; }
+    $r = sd_supabase('/rest/v1/pd_trabalhos?modulo=eq.voz&client_id=eq.' . urlencode($cid) . '&select=id,titulo,status,erro,criado_em,entrada,saida,client_id&order=criado_em.desc&limit=40');
+    echo json_encode(['trabalhos' => ($r['code'] ?? 500) < 300 ? ($r['body'] ?? []) : []], JSON_UNESCAPED_UNICODE); exit;
+}
 // apagar de verdade qualquer coisa feita no Studio: peça (arte/gráfica/filme), copy ou locução. drive:true também manda os arquivos do Drive pra lixeira (recuperável).
 function esDriveIds($urls) { $ids = []; foreach ((array)$urls as $u2) { if (preg_match('~/file/d/([\w-]{15,})|[?&]id=([\w-]{15,})~', (string)$u2, $m)) $ids[] = $m[1] ?: $m[2]; } return array_values(array_unique($ids)); }
 if ($acao === 'item_apagar') {

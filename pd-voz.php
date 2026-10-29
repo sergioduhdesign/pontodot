@@ -10,6 +10,20 @@ $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_f
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'gerar');
 $VOZES = ['dora' => ['nova', 'feminina · clara, institucional'], 'alex' => ['ash', 'masculina · jovem, direta'], 'santa' => ['onyx', 'masculina · grave, narrador'], 'lia' => ['coral', 'feminina · quente, próxima'], 'sol' => ['sage', 'feminina · calma, premium'], 'rui' => ['echo', 'masculina · neutra, comercial']];
 if ($acao === 'vozes') { echo json_encode(['premium' => defined('SD_OPENAI_KEY') && SD_OPENAI_KEY, 'vozes' => array_map(fn($k, $v) => ['id' => $k, 'nome' => ucfirst($k), 'desc' => $v[1]], array_keys($VOZES), $VOZES)], JSON_UNESCAPED_UNICODE); exit; }
+if ($acao === 'amostra') {   // frase de amostra de cada voz: gerada UMA vez, guardada no Storage e reaproveitada (custo zero nas próximas)
+    $vk = strtolower((string)($b['voz'] ?? '')); if (!isset($VOZES[$vk])) sd_fail('Voz desconhecida.');
+    $key = 'voz-amostras/' . $vk . '-v1.mp3'; $pub = SD_SUPABASE_URL . '/storage/v1/object/public/pecas/' . $key;
+    $ch = curl_init($pub); curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10]); curl_exec($ch); $ok = curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200; curl_close($ch);
+    if ($ok) { echo json_encode(['ok' => true, 'url' => $pub, 'cache' => true]); exit; }
+    if (!defined('SD_OPENAI_KEY') || !SD_OPENAI_KEY) sd_fail('Sem SD_OPENAI_KEY no servidor.');
+    $frase = 'Olá, eu sou a voz ' . ucfirst($vk) . '. Morar bem é acordar com a luz certa, todos os dias.';
+    $ch = curl_init('https://api.openai.com/v1/audio/speech');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_OPENAI_KEY, 'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['model' => 'gpt-4o-mini-tts', 'voice' => $VOZES[$vk][0], 'input' => $frase, 'instructions' => 'Locução publicitária em português do Brasil, natural, dicção clara. Tom confiante e próximo.', 'response_format' => 'mp3'])]);
+    $mp3 = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); if ($code !== 200 || strlen((string)$mp3) < 1000) sd_fail('A voz respondeu HTTP ' . $code . '.', 502);
+    $up = function () use ($mp3, $key) { $ch = curl_init(SD_SUPABASE_URL . '/storage/v1/object/pecas/' . $key); curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_POSTFIELDS => $mp3, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Content-Type: audio/mpeg', 'x-upsert: true']]); curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); return $c; };
+    if ($up() >= 300) { echo json_encode(['ok' => true, 'url' => 'data:audio/mpeg;base64,' . base64_encode($mp3), 'cache' => false]); exit; }   // não guardou: toca assim mesmo
+    echo json_encode(['ok' => true, 'url' => $pub, 'cache' => false]); exit; }
 if ($acao !== 'gerar') sd_fail('Ação desconhecida.');
 if (!defined('SD_OPENAI_KEY') || !SD_OPENAI_KEY) sd_fail('Sem SD_OPENAI_KEY no servidor: a locução premium não tem chave. Use a voz da oficina.');
 $texto = trim((string)($b['texto'] ?? '')); if ($texto === '') sd_fail('Sem texto.'); if (mb_strlen($texto) > 4000) sd_fail('Até 4.000 caracteres por locução (divida em partes).');
