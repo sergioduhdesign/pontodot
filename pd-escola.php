@@ -111,7 +111,10 @@ if ($acao === 'area_quem') {   // {minha: a IA da pessoa, mestre: a IA da área,
     $mestre = pdQuemFazArea($area ?: 'digital');
     $hoje = 0; try { $d0 = gmdate('Y-m-d') . 'T00:00:00Z'; $r = pdAulaSup('/rest/v1/pd_observacoes?user_id=eq.' . urlencode($u['id']) . '&em=gte.' . $d0 . ($area ? '&area=eq.' . urlencode($area) : '') . '&select=id&limit=1000'); $hoje = count($r['body'] ?? []); } catch (Throwable $e) {}
     $total = 0; try { $r = pdAulaSup('/rest/v1/pd_observacoes?user_id=eq.' . urlencode($u['id']) . ($area ? '&area=eq.' . urlencode($area) : '') . '&select=id&limit=5000'); $total = count($r['body'] ?? []); } catch (Throwable $e) {}
-    echo json_encode(['minha' => $minha, 'mestre' => $mestre, 'chefe' => ['personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'chefe da casa'], 'hoje' => $hoje, 'total' => $total, 'masters' => pdAreaMasters()], JSON_UNESCAPED_UNICODE); exit;
+    $recentes = []; try { $r = pdAulaSup('/rest/v1/pd_observacoes?user_id=eq.' . urlencode($u['id']) . ($area ? '&area=eq.' . urlencode($area) : '') . '&select=evento,dados,em,client_id&order=em.desc&limit=8'); $recentes = array_map(fn($x) => ['evento' => $x['evento'], 'dados' => is_array($x['dados']) ? array_slice($x['dados'], 0, 4, true) : null, 'em' => $x['em']], $r['body'] ?? []); } catch (Throwable $e) {}
+    $relogio = pdRelogioCatum($minha['id'] ?? null); $relogioMestre = pdRelogioCatum($mestre['id'] ?? null);
+    $porque = 'definida no Painel › Inteligências da casa como mestre de ' . ($area ?: 'digital') . ': é ela quem assina o que sai daqui quando você não tem IA sua, e quem revisa o que a sua faz.';
+    echo json_encode(['minha' => $minha, 'mestre' => $mestre + ['porque' => $porque], 'chefe' => ['personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'chefe da casa', 'porque' => 'distribui o trabalho entre as IAs, cobra prazo e revisa antes de ir pro cliente'], 'hoje' => $hoje, 'total' => $total, 'masters' => pdAreaMasters(), 'recentes' => $recentes, 'relogio' => $relogio, 'relogio_mestre' => $relogioMestre], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_id, evento, dados}] — a IA da pessoa (ou a mestre da área) registra como aprendizado
     $lote = is_array($b['lote'] ?? null) ? array_slice($b['lote'], 0, 100) : []; if (!$lote) { echo json_encode(['ok' => true, 'n' => 0]); exit; }
@@ -146,6 +149,7 @@ if ($acao === 'ias_casa') {   // as IAs agênticas já habilitadas (formação a
         $ias[$k] = $ias[$k] ?? ['id' => $k, 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'titulo' => $cat[$pers][2] ?? '', 'dona' => $nm[$k] ?? '', 'aptas' => [], 'formando' => []];
         if (!empty($f['apta_em'])) $ias[$k]['aptas'][] = $sn[$f['skill_id']] ?? $f['skill_id']; else $ias[$k]['formando'][] = $sn[$f['skill_id']] ?? $f['skill_id']; }
     $lista = array_values(array_filter($ias, fn($i) => $i['aptas']));   // só as habilitadas entram na casa
+    foreach ($lista as &$i) $i['relogio'] = pdRelogioCatum($i['id']); unset($i);
     usort($lista, fn($a, $b2) => count($b2['aptas']) <=> count($a['aptas']));
     $fixas = [['id' => 'dot', 'personagem' => 'dot', 'nome' => 'dot', 'titulo' => 'consultor externo', 'dona' => '', 'aptas' => ['transporte e produção externa'], 'fixa' => true], ['id' => 'maestro', 'personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'distribui, cobra e revisa', 'dona' => '', 'aptas' => ['orquestração'], 'fixa' => true]];
     $out = ['ias' => $lista, 'fixas' => $fixas]; if ($ehAdmin) $out['motores'] = ['dot' => 'GPT (projeto do Sérgio)', 'maestro' => 'Claude', 'personagens' => 'Claude (' . (defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5') . ')'];

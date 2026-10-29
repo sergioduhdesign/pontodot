@@ -1007,3 +1007,26 @@ function pdRepertorioBloco($ids, $area = null) { $R = pdRepertorio(); $segs = $a
     if (!$out) return '';
     $q = ''; foreach ((array)($R['qualidade'] ?? []) as $qq) { $k = strtolower((string)$qq[0]); if (($area === 'copys' && $k === 'copy') || (in_array($area, ['digital', 'grafica'], true) && strpos($k, 'arte') === 0) || ($area === 'video' && strpos($k, 'v') === 0) || ($area === 'audio' && (strpos($k, 'loc') === 0 || strpos($k, 'tri') === 0))) $q .= "\n- " . $qq[1]; }
     return "\n\nREPERTÓRIO ESCOLHIDO PELO HUMANO (absorva a lógica e a estrutura; é inspiração de método, nunca cópia de obra, frase, logo ou identidade de terceiros; o nome da referência não aparece na peça):\n" . implode("\n\n", $out) . ($q ? "\n\nANTES DE ENTREGAR, VERIFIQUE:" . $q : ''); }
+
+// ---------- Relógio de Catum: o tempo da IA medido em HORAS DE OFÍCIO (hC), não em relógio de parede ----------
+// Uma hora de Catum = uma hora de um profissional sênior fazendo o mesmo. Três fontes somam:
+//  1) OBSERVAÇÃO: assistir o humano trabalhar na plataforma. Cada observação marca um bloco de 5 min; blocos distintos × 5 min (1:1 — a IA "vive" aquele tempo).
+//  2) TRABALHO: cada entrega vale o tempo humano padrão daquela tarefa (tabela abaixo) — é aqui que o tempo da IA passa diferente: ela entrega em minutos o que custaria horas.
+//  3) ESTUDO: aula validada na Escola = 8 h (uma habilidade = um dia de formação); reprovada = 2 h (errou, mas aprendeu).
+// Compressão = horas de ofício entregues ÷ tempo real de máquina (≈ 3 min por entrega). Níveis pela regra das 10.000 horas.
+function pdCatumEquivalencias() { return ['derivou' => ['social' => 2.0, 'papelaria' => 1.5, 'apresentacao' => 4.0, 'book' => 4.0, '' => 2.0], 'aprovada' => 0.5, 'gerou' => 0.5, 'calendario' => 6.0, 'executou_tarefa' => 0.75, 'erro' => 0.1]; }
+function pdCatumNivel($h) { foreach ([[10000, 'mestre'], [3000, 'sênior'], [1000, 'pleno'], [300, 'júnior'], [50, 'iniciante']] as [$min, $n]) if ($h >= $min) return [$n, $min]; return ['aprendiz', 0]; }
+function pdRelogioCatum($iaId) { $o = ['observou_h' => 0, 'entregou_h' => 0, 'estudou_h' => 0, 'entregas' => 0, 'aulas' => 0, 'hoje_h' => 0, 'desde' => null];
+    if (!$iaId) return $o; $d0 = gmdate('Y-m-d') . 'T00:00:00Z';
+    try { $r = sd_supabase('/rest/v1/pd_observacoes?ia_user_id=eq.' . urlencode($iaId) . '&select=em&order=em.asc&limit=20000')['body'] ?? []; $bl = []; $blHoje = [];
+        foreach ($r as $x) { $t = strtotime($x['em']); $k = intdiv($t, 300); $bl[$k] = 1; if ($x['em'] >= $d0) $blHoje[$k] = 1; if (!$o['desde']) $o['desde'] = $x['em']; }
+        $o['observou_h'] = count($bl) * 5 / 60; $o['hoje_h'] += count($blHoje) * 5 / 60; } catch (Throwable $e) {}
+    try { $eq = pdCatumEquivalencias(); $r = sd_supabase('/rest/v1/pd_ia_trabalho?ia_user_id=eq.' . urlencode($iaId) . '&select=familia,resultado,em&limit=20000')['body'] ?? [];
+        foreach ($r as $x) { $res = (string)$x['resultado']; $h = $res === 'derivou' ? ($eq['derivou'][$x['familia']] ?? $eq['derivou']['']) : ($eq[$res] ?? 0.5); $o['entregou_h'] += $h; $o['entregas']++; if ($x['em'] >= $d0) $o['hoje_h'] += $h; if (!$o['desde'] || $x['em'] < $o['desde']) $o['desde'] = $x['em']; } } catch (Throwable $e) {}
+    try { $r = sd_supabase('/rest/v1/pd_aulas?ia_user_id=eq.' . urlencode($iaId) . '&modo=neq.teste&status=in.(validada,reprovada)&select=status,criada_em&limit=5000')['body'] ?? [];
+        foreach ($r as $x) { $h = $x['status'] === 'validada' ? 8 : 2; $o['estudou_h'] += $h; $o['aulas']++; if ($x['criada_em'] >= $d0) $o['hoje_h'] += $h; } } catch (Throwable $e) {}
+    $o['total_h'] = $o['observou_h'] + $o['entregou_h'] + $o['estudou_h']; [$o['nivel'], $o['nivel_min']] = pdCatumNivel($o['total_h']);
+    $prox = null; foreach ([50, 300, 1000, 3000, 10000] as $m) if ($o['total_h'] < $m) { $prox = $m; break; } $o['proximo_h'] = $prox;
+    $o['compressao'] = $o['entregas'] ? round($o['entregou_h'] / ($o['entregas'] * 3 / 60), 1) : 0;   // 1 h real de máquina ≈ N h de ofício
+    foreach (['observou_h', 'entregou_h', 'estudou_h', 'total_h', 'hoje_h'] as $k) $o[$k] = round($o[$k], 1);
+    return $o; }
