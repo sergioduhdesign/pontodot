@@ -170,7 +170,8 @@ const EXEC = {
     const total = cenas.reduce((n, c) => n + Math.max(0.5, +c.dur || 4), 0); const nome = nomeLimpo((e.nome || 'video') + '.mp4'); const fim = path.join(dir, nome);
     const fx = []; const args2 = ['-y', '-hide_banner', '-loglevel', 'error', '-i', junto]; let n = 0; const mix = ['[0:a]'];
     for (const [k, tr] of [['trilha', e.trilha], ['locucao', e.locucao]]) { if (!tr || !tr.url) continue; const ext = (() => { try { return path.extname(new URL(tr.url).pathname); } catch (e) { return path.extname(tr.url); } })() || '.m4a'; const f = await baixar(tr.url, path.join(dir, k + ext)); args2.push('-i', f); n++; const d = Math.round(Math.max(0, +tr.ini || 0) * 1000);
-      fx.push(`[${n}:a]adelay=${d}|${d},volume=${tr.vol == null ? (k === 'trilha' ? .35 : 1) : +tr.vol},apad[a${n}]`); mix.push(`[a${n}]`); }
+      const de = Math.max(0, +tr.de || 0); const corte = (de || tr.len != null) ? `atrim=start=${de}${tr.len != null ? ':end=' + (de + Math.max(.1, +tr.len)) : ''},asetpts=PTS-STARTPTS,` : '';
+      fx.push(`[${n}:a]${corte}adelay=${d}|${d},volume=${tr.vol == null ? (k === 'trilha' ? .35 : 1) : +tr.vol},apad[a${n}]`); mix.push(`[a${n}]`); }
     if (n) { fx.push(`${mix.join('')}amix=inputs=${n + 1}:duration=first:normalize=0,atrim=0:${total}[am]`); args2.push('-filter_complex', fx.join(';'), '-map', '0:v', '-map', '[am]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', fim); await run('ffmpeg', args2, { maxBuffer: 50e6, timeout: 10 * 60e3 }); }
     else fs.copyFileSync(junto, fim);
     return { arquivos: [await subir(t, fim, nome, 'video/mp4')], resultado: { cenas: cenas.length, segundos: total, w: W, h: H } };
