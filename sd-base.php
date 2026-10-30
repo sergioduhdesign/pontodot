@@ -5,7 +5,7 @@
 // Sem ela, tudo segue em sd.sergioduh.com (as duas casas funcionam ao mesmo tempo).
 if (!function_exists('sd_base')) {
     function sd_base() {
-        return rtrim(defined('PD_BASE_URL') ? PD_BASE_URL : 'https://sd.sergioduh.com', '/');
+        return rtrim(defined('PD_BASE_URL') ? PD_BASE_URL : 'https://pontodot.ai', '/');
     }
     // origens aceitas para CORS e para links vindos de fora
     function sd_origens() {

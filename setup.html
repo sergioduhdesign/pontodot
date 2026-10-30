@@ -298,8 +298,18 @@
     document.getElementById('error-state').style.display = 'flex';
   }
 
+  // Convite com o endereço da Pontodot (?token_hash=…): valida aqui mesmo e abre a sessão
+  const _qs = new URLSearchParams(window.location.search);
+  const _th = _qs.get('token_hash');
+  if (_th) {
+    (async () => {
+      const { error } = await sb.auth.verifyOtp({ token_hash: _th, type: _qs.get('type') === 'recovery' ? 'recovery' : 'invite' });
+      if (error) { document.getElementById('form-state').style.display = 'none'; document.getElementById('error-state').style.display = 'flex'; }
+      else window.history.replaceState(null, '', window.location.pathname);
+    })();
+  }
   // Sem token nenhum — redireciona para login
-  if (!hash.includes('type=invite') && !hash.includes('type=recovery') && !hash.includes('error=')) {
+  else if (!hash.includes('type=invite') && !hash.includes('type=recovery') && !hash.includes('error=')) {
     window.location.href = '/index.html';
   }
 

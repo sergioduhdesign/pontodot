@@ -54,6 +54,9 @@ $d = $gen['body'];
 // O GoTrue devolve o objeto User no TOPO, junto de action_link.
 $newUserId = $d['id'] ?? ($d['user']['id'] ?? null);
 $link      = $d['action_link'] ?? ($d['properties']['action_link'] ?? null);
+// link com o endereço da Pontodot (o do Supabase fica escondido): a página valida o convite sozinha
+$hashed    = $d['hashed_token'] ?? ($d['properties']['hashed_token'] ?? null);
+if ($hashed) $link = sd_base() . '/setup.html?token_hash=' . rawurlencode($hashed) . '&type=invite';
 
 if (!$newUserId) sd_fail('O Supabase não devolveu o ID do usuário criado.', 502);
 
@@ -81,17 +84,28 @@ if ($role !== 'client' && $funcoes) {
 }
 
 // --- 3. Email de convite ---------------------------------------------
-$subject = 'Seu acesso ao Pontodot — workflow';
-$message = "Ola, $name!\n\n"
-         . "Voce foi convidado(a) para acessar o Pontodot — workflow.\n\n"
-         . "Clique no link abaixo para criar sua senha e entrar na plataforma:\n\n"
-         . "$link\n\n"
-         . "Este link e valido por 24 horas.\n\n"
-         . "Pontodot\n" . sd_base();
-$headers = "From: workflow@sergioduh.com\r\n"
+$primeiro = explode(' ', $name)[0];
+$subject = $primeiro . ', seu acesso à Pontodot está pronto';
+$h = fn($t) => htmlspecialchars((string)$t, ENT_QUOTES, 'UTF-8');
+$html = '<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif">'
+  . '<div style="max-width:520px;margin:0 auto;padding:36px 24px;color:#f2f2f2">'
+  . '<img src="' . $h(sd_base()) . '/assets/logo-pontodot-white.svg" alt="pontodot" height="30" style="display:block;margin-bottom:28px">'
+  . '<h1 style="font-size:24px;font-weight:500;margin:0 0 14px;letter-spacing:-.01em">Oi, ' . $h($primeiro) . '! 👋</h1>'
+  . '<p style="font-size:15px;line-height:1.6;color:#cfcfcf;margin:0 0 22px">Você foi convidado(a) para a <b style="color:#fff">Pontodot</b>, a plataforma onde a gente organiza o trabalho, as tarefas e as aprovações. Falta só criar a sua senha.</p>'
+  . '<a href="' . $h($link) . '" style="display:inline-block;background:#fff;color:#0b0b0d;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px">Criar minha senha e entrar</a>'
+  . '<p style="font-size:12.5px;line-height:1.6;color:#8a8a8a;margin:26px 0 0">O link vale por 24 horas e é só seu. Se o botão não abrir, copie e cole no navegador:<br><span style="word-break:break-all;color:#9a9a9a">' . $h($link) . '</span></p>'
+  . '<p style="font-size:12px;color:#6b6b6b;margin:30px 0 0;border-top:1px solid #222;padding-top:16px">Pontodot · ' . $h(preg_replace('#^https?://#', '', sd_base())) . '</p>'
+  . '</div></body></html>';
+$texto = "Oi, $primeiro!\n\nVocê foi convidado(a) para a Pontodot, a plataforma onde a gente organiza o trabalho, as tarefas e as aprovações.\n\nCrie sua senha e entre:\n$link\n\nO link vale por 24 horas e é só seu.\n\nPontodot · " . sd_base();
+$bnd = 'pd' . bin2hex(random_bytes(8));
+$headers = "From: Pontodot <workflow@sergioduh.com>\r\n"
          . "Reply-To: contato@sergioduh.com\r\n"
-         . "Content-Type: text/plain; charset=UTF-8";
+         . "MIME-Version: 1.0\r\n"
+         . "Content-Type: multipart/alternative; boundary=\"$bnd\"";
+$message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($texto))
+         . "--$bnd\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
+         . "--$bnd--";
 
-@mail($email, $subject, $message, $headers);
+@mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $message, $headers);
 
 echo json_encode(['success' => true, 'link' => $link, 'user_id' => $newUserId], JSON_UNESCAPED_UNICODE);
