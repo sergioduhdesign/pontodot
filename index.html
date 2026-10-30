@@ -2358,7 +2358,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v310 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v311 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5381,6 +5381,81 @@ const PD_AREAS = {
   audio:   { nome:'Locução e trilha', ico:'<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3M9 21h6"/>' },
   video:   { nome:'Vídeos', ico:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor"/>' },
   grafica: { nome:'Edição gráfica', ico:'<rect x="5" y="5" width="14" height="14" rx="1"/><path d="M2 5h2M2 19h2M20 5h2M20 19h2M5 2v2M19 2v2M5 20v2M19 20v2M9 15l2-6h2l2 6M10 13h4"/>' } };
+// ============================================================================
+// HORA DE CATUM — termômetro de produção de copy (o primeiro). Mede se o personagem já pode assumir a tarefa.
+// "Aprovada de primeira" = o humano topa usar ("tá bom pra mostrar"), na aprovação interna. O cliente não entra.
+// Sem trabalho avaliado = SEM LEITURA (nunca zero). Poucos trabalhos = "em formação". Correção por mudança de direção/briefing ambíguo não é erro da IA.
+// ============================================================================
+const CAT = { d:null, em:0, carregando:false, erro:'' };
+async function catFala(dados){
+  const { data:{ session } } = await sbR.auth.getSession();
+  const r = await fetch('/pd-catum.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify(dados) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+  return j;
+}
+const catNome = p => { const s = String(p || ''); return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'IA'; };
+const catMinTxt = m => { m = Math.round(+m || 0); return m >= 60 ? (Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '')) : (m + ' min'); };
+function catLinha(l){
+  if (!l) return 'Hora de Catum · Copy · sem leitura';
+  const nome = catNome(l.personagem);
+  if (l.estado === 'sem_leitura') return 'Hora de Catum · ' + nome + ' · sem leitura';
+  if (l.estado === 'em_formacao') return 'Hora de Catum · ' + nome + ' · em formação · ' + l.primeira + ' de ' + l.avaliadas + ' de primeira';
+  return 'Hora de Catum · ' + nome + ' · ' + Math.round(l.prontidao * 100) + '% de primeira' + (l.tendencia === 'sobe' ? ' ↑' : l.tendencia === 'cai' ? ' ↓' : '');
+}
+function catPilula(){
+  let el = document.getElementById('catPil');
+  if (!window.REAL || !perfil || perfil.role === 'client' || !ehDesk()){ if (el) el.remove(); return; }
+  if (!el){ el = document.createElement('button'); el.id = 'catPil'; el.type = 'button'; el.onclick = abrirCatum;
+    el.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:90;border:1px solid rgba(255,255,255,.25);background:rgba(20,20,22,.72);color:#fff;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font:500 11.5px/1 inherit;font-family:inherit;letter-spacing:.02em;padding:6px 13px;border-radius:999px;cursor:pointer;opacity:.85;white-space:nowrap;max-width:70vw;overflow:hidden;text-overflow:ellipsis';
+    el.onmouseenter = () => el.style.opacity = 1; el.onmouseleave = () => el.style.opacity = .85; document.body.appendChild(el); }
+  el.textContent = CAT.d ? catLinha((CAT.d.leituras || [])[0]) : 'Hora de Catum';
+  el.title = 'Já posso confiar este trabalho a esta IA? Abrir o termômetro';
+}
+async function catCarrega(forca){
+  if (!window.REAL || !perfil || perfil.role === 'client' || CAT.carregando) return;
+  if (!forca && Date.now() - CAT.em < 120000) return;
+  CAT.carregando = true;
+  try { CAT.d = await catFala({ acao:'ler' }); CAT.em = Date.now(); CAT.erro = ''; } catch(e){ CAT.erro = e.message; }
+  CAT.carregando = false; catPilula();
+}
+function catIniciar(){ catCarrega(true); if (!window._catTimer) window._catTimer = setInterval(() => catCarrega(false), 300000); }
+function htmlCatum(){
+  const D = CAT.d;
+  if (!D) return `<h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Hora de Catum</h3><p style="font-size:14px;line-height:1.5">${esc(CAT.erro || 'Carregando…')}</p>`;
+  const T = D.tarefa || {}, L = D.leituras || [], AC = D.a_classificar || [];
+  const cards = L.length ? L.map(l => {
+    const est = l.estado === 'sem_leitura' ? 'Sem leitura' : l.estado === 'em_formacao' ? 'Em formação' : 'Cotada';
+    const falta = l.estado === 'cotada' ? '' : `<div style="opacity:.7;font-size:12.5px;margin-top:4px">Faltam ${Math.max(0, l.minimo - l.avaliadas)} peças avaliadas para mostrar a cotação (mínimo ${l.minimo}). Antes disso, nenhuma porcentagem.</div>`;
+    return `<div style="border-top:1px solid rgba(128,128,128,.3);padding:12px 0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:15px">${esc(catNome(l.personagem))}</b><span style="font-size:11.5px;opacity:.8">${est}${l.tendencia ? ' · ' + (l.tendencia === 'sobe' ? 'tendência de alta' : l.tendencia === 'cai' ? 'tendência de queda' : 'estável') : ''}</span></div>
+      <div style="font-size:13.5px;margin-top:6px"><b>${l.primeira} de ${l.avaliadas}</b> aprovadas de primeira${l.estado === 'cotada' ? ' · <b>' + Math.round(l.prontidao * 100) + '%</b>' : ''}</div>${falta}
+      <div style="font-size:12.5px;opacity:.85;margin-top:6px;line-height:1.5">Equivalente entregue sem correção: <b>${catMinTxt(l.equivalente_min)}</b> de trabalho humano de referência.<br>Tempo devolvido (estimativa; a revisão do humano ainda não é medida): <b>${catMinTxt(l.devolvido_min)}</b>${l.correcoes_com_minutos ? ' · ' + l.correcoes_com_minutos + ' correção(ões) com minutos registrados' : ''}.${l.ia_seg_medio_por_peca ? '<br>Tempo médio da IA por peça: ' + l.ia_seg_medio_por_peca + ' s.' : ''}</div>
+      <div style="font-size:11.5px;opacity:.65;margin-top:6px">${l.fora_da_conta ? l.fora_da_conta + ' correção(ões) por mudança de direção ou briefing ambíguo, fora da conta. ' : ''}${l.pendentes ? l.pendentes + ' peça(s) aguardando aprovação interna. ' : ''}${l.atribuicao === 'mestre_da_area' ? 'Copy sem registro de autoria: atribuída ao mestre da área.' : ''}</div></div>`;
+  }).join('') : `<div style="border-top:1px solid rgba(128,128,128,.3);padding:14px 0;font-size:13.5px;line-height:1.5">Nenhuma copy avaliada ainda. <b>Sem leitura não é zero</b>: significa que ainda não houve trabalho para medir. A primeira leitura nasce quando as peças de uma copy passam pela aprovação interna.</div>`;
+  const motivos = AC.length ? `<div style="border-top:1px solid rgba(128,128,128,.3);padding:12px 0"><b style="font-size:13.5px">Correções a classificar (${AC.length})</b>
+      <div style="font-size:12px;opacity:.75;margin:3px 0 8px;line-height:1.45">Marque por que a peça foi corrigida. Só "erro da IA" conta contra a cotação. Os minutos que o humano gastou são opcionais.</div>
+      ${AC.map((a, i) => `<div style="padding:8px 0;border-top:1px dashed rgba(128,128,128,.25)"><div style="font-size:12.5px"><b>${esc(a.copy)}</b> · ${esc(a.titulo)} · v${a.versao} · ${esc(catNome(a.personagem))}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><input id="catMin${i}" type="number" min="0" placeholder="min" style="width:62px;padding:5px 7px;border-radius:7px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit">
+          <button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="catMotivo('${esc(a.item_id)}','erro_ia',${i})">Erro da IA</button>
+          <button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="catMotivo('${esc(a.item_id)}','mudanca_direcao',${i})">Mudou a direção</button>
+          <button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="catMotivo('${esc(a.item_id)}','briefing_ambiguo',${i})">Briefing ambíguo</button></div></div>`).join('')}</div>` : '';
+  const aviso = D.tabela_motivos === false ? `<p style="font-size:12.5px;color:#b45309">Falta rodar o SQL v134 no Supabase para gravar motivos e a tabela de referência.</p>` : '';
+  return `<h3 style="margin:0 0 4px;font-size:21px;font-weight:400">Hora de Catum</h3>
+    <p style="margin:0 0 8px;font-size:13px;opacity:.8">Já posso confiar este trabalho a esta IA? Por enquanto, só <b>${esc(T.nome || 'Copy')}</b>.</p>${aviso}${cards}${motivos}
+    <p style="font-size:11.5px;opacity:.6;line-height:1.5;margin:12px 0 0">Unidade: ${esc(T.unidade || '')}. Referência humana: ${esc(String(T.ref_min || ''))} min de trabalho ativo (${esc(T.ref_origem || '')}); é estimativa de planejamento, ainda não validada com dados da SD. "De primeira" = o humano topa usar, na aprovação interna; o cliente não entra na conta.</p>
+    <button class="btn" style="margin-top:12px;min-height:40px;width:100%;justify-content:center" onclick="fecharJanela()">Fechar</button>`;
+}
+function abrirCatum(){
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 20px 18px;max-height:84vh;overflow:auto">${htmlCatum()}</div>`);
+  catCarrega(true).then(() => { const cx = document.querySelector('#janela .caixa'); if (cx && /Hora de Catum/.test(cx.textContent)) cx.innerHTML = htmlCatum(); });
+}
+async function catMotivo(id, motivo, i){
+  const m = (document.getElementById('catMin' + i) || {}).value;
+  try { await catFala({ acao:'motivo', item_id:id, motivo, humano_min: m === '' ? null : m }); await catCarrega(true); const cx = document.querySelector('#janela .caixa'); if (cx) cx.innerHTML = htmlCatum(); toast('Anotado.'); }
+  catch(e){ toast('Não consegui anotar: ' + e.message); }
+}
+
 // Ferramentas do Studio: Copys é de todos; as outras 4 só abrem para quem o admin liberou (perfil.studio_areas). Admin vê tudo.
 function estLiberada(k){ try { return k === 'copys' || ehAdmin() || (Array.isArray(perfil && perfil.studio_areas) && perfil.studio_areas.includes(k)); } catch(e){ return k === 'copys'; } }
 function estAviso(nome){ toast((nome || 'Essa ferramenta') + ' ainda não está liberada para você. Abri Copys. Peça ao Sérgio para liberar.'); }
@@ -8020,6 +8095,7 @@ async function entrarReal(session){
     return;
   }
   window.REAL = true;
+  setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
   $('#cluster')?.classList.add('on');
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }
   sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
