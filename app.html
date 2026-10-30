@@ -5624,13 +5624,32 @@ function svgPieChart(dados, tamanho){
 // filtro de cliente e exportação em PDF (via impressão do navegador,
 // mais confiável que montar layout de gráfico manualmente no jsPDF).
 // ================================================================
+
+// BI: "briefing não é atraso". As visões do banco (v_bi_*) não sabiam disso;
+// aqui o painel limpa o que elas devolvem com a regra da casa:
+// atrasada = tem prazo vencido e NÃO está em BRIEFING nem ENTREGUE.
+function biTaskAtrasada(t){
+  if (!t || t.status === 'BRIEFING' || t.status === 'ENTREGUE') return false;
+  const prazo = t.date_int || t.date_cli; if (!prazo) return false;
+  return String(prazo).slice(0,10) < new Date().toLocaleDateString('sv-SE');
+}
+function biLimpaAtrasadas(res, max){
+  const mapa = new Map((window.tasks||tasks||[]).map(t => [t.id, t]));
+  const data = (res.data||[]).filter(r => { const t = mapa.get(r.id); return !(t && (t.status === 'BRIEFING' || t.status === 'ENTREGUE')); });
+  return Object.assign({}, res, { data: max ? data.slice(0, max) : data, count: data.length });
+}
+function biLimpaCarga(res){
+  const lista = (window.tasks||tasks||[]);
+  (res.data||[]).forEach(r => { r.atrasadas = lista.filter(t => t.resp === r.responsavel && biTaskAtrasada(t)).length; });
+  return res;
+}
 async function renderBIResumo(){
   const box = document.getElementById('bi-resumo-body');
   if (!box) return;
   try {
     const [atrasadas, carga, entregas] = await Promise.all([
-      sb.from('v_bi_atrasadas').select('id', { count: 'exact', head: true }),
-      sb.from('v_bi_carga_equipe').select('*'),
+      sb.from('v_bi_atrasadas').select('id').limit(2000).then(r => biLimpaAtrasadas(r)),
+      sb.from('v_bi_carga_equipe').select('*').then(biLimpaCarga),
       sb.from('v_bi_entregas_periodo').select('entregas,mes'),
     ]);
 
@@ -5722,12 +5741,12 @@ async function exportBIPDF(btn){
 
     // ------- consulta tudo de uma vez -------
     const [atrasadas, paradas, briefEntrega, inicioAprov, gargalo, cargaEquipe, entregasPeriodo, ciclosAlt, demoraAprovar, tempoVolume] = await Promise.all([
-      aplicaFiltro(sb.from('v_bi_atrasadas').select('*')).limit(9),
+      aplicaFiltro(sb.from('v_bi_atrasadas').select('*')).limit(60).then(r => biLimpaAtrasadas(r, 9)),
       aplicaFiltro(sb.from('v_bi_paradas').select('*')).limit(9),
       sb.from('v_bi_tempo_briefing_entrega').select('*').limit(9),
       sb.from('v_bi_tempo_inicio_aprovacao').select('*').limit(9),
       sb.from('v_bi_gargalo_etapa').select('*').limit(9),
-      sb.from('v_bi_carga_equipe').select('*').limit(9),
+      sb.from('v_bi_carga_equipe').select('*').limit(9).then(biLimpaCarga),
       aplicaFiltro(sb.from('v_bi_entregas_periodo').select('*')).order('semana',{ascending:false}).limit(12),
       aplicaFiltro(sb.from('v_bi_ciclos_alteracao').select('*')).limit(9),
       aplicaFiltro(sb.from('v_bi_demora_aprovar').select('*')).limit(9),
@@ -5908,12 +5927,12 @@ async function renderBIDetalheCorpo(){
       atrasadas, paradas, briefEntrega, inicioAprov, gargalo,
       cargaEquipe, entregasPeriodo, ciclosAlt, demoraAprovar, tempoVolume
     ] = await Promise.all([
-      aplicaFiltro(sb.from('v_bi_atrasadas').select('*')).limit(10),
+      aplicaFiltro(sb.from('v_bi_atrasadas').select('*')).limit(60).then(r => biLimpaAtrasadas(r, 10)),
       aplicaFiltro(sb.from('v_bi_paradas').select('*')).limit(10),
       sb.from('v_bi_tempo_briefing_entrega').select('*').limit(8),
       sb.from('v_bi_tempo_inicio_aprovacao').select('*').limit(8),
       sb.from('v_bi_gargalo_etapa').select('*').limit(8),
-      sb.from('v_bi_carga_equipe').select('*').limit(10),
+      sb.from('v_bi_carga_equipe').select('*').limit(10).then(biLimpaCarga),
       aplicaFiltro(sb.from('v_bi_entregas_periodo').select('*')).order('semana',{ascending:false}).limit(10),
       aplicaFiltro(sb.from('v_bi_ciclos_alteracao').select('*')).limit(10),
       aplicaFiltro(sb.from('v_bi_demora_aprovar').select('*')).limit(10),
