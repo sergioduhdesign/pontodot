@@ -17,7 +17,7 @@ $transferTo = $body['transfer_to'] ?? null;
 if (!$userId) sd_fail('user_id obrigatório.');
 if ($userId === $me['id']) sd_fail('Você não pode remover a própria conta.', 403);
 
-if ($transferTo !== null && !in_array($transferTo, ['SERGIO','JOY','LUANA','JUAN','CLIENTE','OUTROS'], true)) {
+if ($transferTo !== null && !preg_match('/^[A-Z][A-Z0-9]{1,19}$/', (string)$transferTo)) {
     sd_fail('Responsável de destino inválido.');
 }
 

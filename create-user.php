@@ -27,7 +27,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) sd_fail('Email inválido.');
 if (!in_array($role, ['admin','team','client','agent'], true)) sd_fail('Perfil inválido.');
 if ($role === 'client' && !$client_id)          sd_fail('Escolha a empresa que este usuário representa.');
 if ($role !== 'client')                         $client_id = null;
-if ($team_key !== null && !in_array($team_key, ['SERGIO','JOY','LUANA','JUAN','CLIENTE','OUTROS'], true)) {
+if ($team_key !== null && !preg_match('/^[A-Z][A-Z0-9]{1,19}$/', (string)$team_key)) {
     sd_fail('Chave de setor inválida.');
 }
 

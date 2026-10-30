@@ -698,8 +698,10 @@ function pdCopyParaCriativos($cp, $setId, $itens, $quem = 'Equipe', $respForcado
     if (!empty($cp['criativo_task_id'])) return ['ja' => $cp['criativo_task_id']];
     if (empty($cp['client_id']) || !$setId) return null;
     $resp = strtoupper(trim((string)$respForcado));
-    if ($resp === '') { try { $resp = strtoupper(trim((string)(sd_supabase('/rest/v1/app_settings?id=eq.1&select=criativo_resp')['body'][0]['criativo_resp'] ?? ''))); } catch (Throwable $e) {} }
-    if ($resp === '') $resp = 'SERGIO';
+    if ($resp === '') { $padrao = ''; try { $padrao = strtoupper(trim((string)(sd_supabase('/rest/v1/app_settings?id=eq.1&select=criativo_resp')['body'][0]['criativo_resp'] ?? ''))); } catch (Throwable $e) {}
+        $temVideo = false; foreach ($itens as $it0) if (in_array(strtolower((string)($it0['tipo'] ?? '')), ['reels', 'stories'], true)) $temVideo = true;
+        try { $resp = pdRespDaFuncao($temVideo ? 'video' : 'designer', ''); if ($resp === '' && $temVideo) $resp = pdRespDaFuncao('designer', ''); } catch (Throwable $e) {}
+        if ($resp === '') $resp = $padrao ?: 'SERGIO'; }
     $nid = sd_supabase('/rest/v1/rpc/next_task_id', 'POST', (object)[]);
     $id = is_string($nid['body'] ?? null) ? trim($nid['body'], '"') : ($nid['body'] ?? null);
     if (($nid['code'] ?? 500) >= 300 || !$id) return null;
@@ -740,7 +742,7 @@ function pdIaZapCliente($cl, $tel, $texto, $tipo = 'text') {
         [$code, $raw] = pdZapEnviar($tel, $msg, true);
         pdAvisoLog('whatsapp', $tel, $nomeCl, null, $msg, $code === 200 ? 'enviado' : 'erro', $code === 200 ? null : 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 160), 'ia', null, $cid ?: null, $code === 200 ? pdWamid($raw) : null);
     };
-    $atend = 'JOY'; try { $x = strtoupper(trim((string)(sd_supabase('/rest/v1/app_settings?id=eq.1&select=atendimento_resp')['body'][0]['atendimento_resp'] ?? ''))); if ($x !== '') $atend = $x; } catch (Throwable $e) {}
+    $atend = 'JOY'; try { $x = strtoupper(trim((string)(sd_supabase('/rest/v1/app_settings?id=eq.1&select=atendimento_resp')['body'][0]['atendimento_resp'] ?? ''))); if ($x !== '') $atend = $x; $atend = pdRespDaFuncao('atendimento', $atend); } catch (Throwable $e) {}
     $chamar = function ($motivo) use ($atend, $nomeCl, $cid, $texto) {
         try { pdNotificarResp($atend, 'cliente_msg', '💬 ' . $nomeCl . ' precisa de você', mb_substr($motivo !== '' ? $motivo : $texto, 0, 280), null, null, null); } catch (Throwable $e) {}
     };
@@ -790,6 +792,37 @@ function pdIaZapCliente($cl, $tel, $texto, $tipo = 'text') {
     }
     if ($resp === '') { $enviar('Recebi sua mensagem! Já passei para o time. 🙂'); $chamar(''); return; }
     $enviar(mb_substr($resp, 0, 1500));
+}
+
+
+// =====================================================================
+// FUNÇÕES DA EQUIPE — o admin dá a cada pessoa (profiles.funcoes) e o fluxo
+// encaminha o trabalho por função, não por nome.
+// =====================================================================
+function pdFuncoesCatalogo() { return [
+  'direcao' => 'Direção criativa', 'estrategia' => 'Estratégia / planejamento', 'atendimento' => 'Atendimento', 'producao' => 'Gestão de projetos / produção',
+  'copy' => 'Copywriter', 'designer' => 'Designer', 'video' => 'Motion / editor de vídeo', 'som' => 'Sound designer / locução', 'foto3d' => 'Fotografia / 3D',
+  'social' => 'Social media', 'trafego' => 'Tráfego pago', 'webdev' => 'Web dev', 'gestao_equipe' => 'Gestão de equipe']; }
+// Chave de responsável (tasks.resp) para quem não tem uma: primeiro nome sem acento, em caixa alta, única.
+function pdTeamKeyNova($nome, $idPessoa) {
+    $b = strtoupper(preg_replace('/[^A-Za-z]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', explode(' ', trim((string)$nome))[0]))) ?: 'PESSOA';
+    $b = substr($b, 0, 16); $k = $b;
+    for ($i = 2; $i < 30; $i++) {
+        $x = sd_supabase('/rest/v1/profiles?team_key=eq.' . urlencode($k) . '&id=neq.' . urlencode((string)$idPessoa) . '&select=id&limit=1')['body'] ?? [];
+        if (!$x) return $k; $k = $b . $i;
+    }
+    return $b . substr(md5($idPessoa), 0, 4);
+}
+// Quem recebe o trabalho de uma função: a pessoa com menos tarefas abertas. Devolve a team_key ou $padrao.
+function pdRespDaFuncao($funcao, $padrao) {
+    $r = sd_supabase('/rest/v1/profiles?active=eq.true&role=in.(team,admin)&funcoes=cs.' . rawurlencode('{' . $funcao . '}') . '&select=id,team_key&limit=20');
+    $pessoas = array_values(array_filter((array)($r['body'] ?? []), fn($x) => !empty($x['team_key']) && !in_array($x['team_key'], ['OUTROS', 'CLIENTE'], true)));
+    if (!$pessoas) return $padrao;
+    if (count($pessoas) === 1) return $pessoas[0]['team_key'];
+    $abertas = (array)(sd_supabase('/rest/v1/tasks?status=neq.ENTREGUE&select=resp&limit=2000')['body'] ?? []);
+    $cont = []; foreach ($abertas as $t) { $k = $t['resp'] ?? ''; $cont[$k] = ($cont[$k] ?? 0) + 1; }
+    usort($pessoas, fn($a, $b) => ($cont[$a['team_key']] ?? 0) <=> ($cont[$b['team_key']] ?? 0));
+    return $pessoas[0]['team_key'];
 }
 
 // Retrospectiva pedida pelo WhatsApp: acha o cliente, usa o relatório de hoje ou gera na hora, devolve os links.

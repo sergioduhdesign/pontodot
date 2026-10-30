@@ -407,8 +407,12 @@ function buildRespCfg(teamMembers) {
     // com a chave do RESP_CFG (sem isso o dono da conta nunca tinha avatar).
     const stripAccents = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     const key = m.team_key || stripAccents(m.name.split(' ')[0]).toUpperCase();
+    if (!RESP_CFG[key] && m.team_key && m.role !== 'client') {   // pessoa nova: ganha o próprio responsável (cor estável pelo nome)
+      const cores = ['#0891b2','#be185d','#15803d','#b45309','#4338ca','#0f766e','#a21caf','#c2410c'];
+      let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      RESP_CFG[key] = { label: m.name.split(' ')[0], color: cores[h % cores.length], avatar: null };
+    }
     if (RESP_CFG[key]) {
-      // Só atualiza avatar e nome — não cria novas chaves
       RESP_CFG[key].avatar = m.avatar_url || null;
       RESP_CFG[key].label  = m.name.split(' ')[0]; // primeiro nome real
       RESP_CFG[key].id     = m.id;
