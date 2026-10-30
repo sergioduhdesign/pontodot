@@ -12,7 +12,7 @@ if ($acao === 'listar') {
 }
 if ($acao === 'criar') {
     $a = ['op' => 'criar', 'texto' => $b['texto'] ?? '', 'quando' => $b['quando'] ?? '', 'recorrencia' => $b['recorrencia'] ?? 'nenhuma', 'hora' => $b['hora'] ?? '',
-        'dow' => $b['dow'] ?? null, 'dom' => $b['dom'] ?? null, 'task_id' => $b['task_id'] ?? '', 'via' => 'plataforma'];
+        'dow' => $b['dow'] ?? null, 'dom' => $b['dom'] ?? null, 'task_id' => $b['task_id'] ?? '', 'via' => 'plataforma', 'para_id' => $b['para_id'] ?? ''];
     $m = pdZapLembrete($a, $u);
     if (strpos($m, '⏰') !== 0) sd_fail(trim(preg_replace('/^[^\p{L}\p{N}]+/u', '', $m)));
     echo json_encode(['ok' => true, 'msg' => $m], JSON_UNESCAPED_UNICODE); exit;

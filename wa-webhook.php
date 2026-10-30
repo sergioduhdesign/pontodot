@@ -58,9 +58,10 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         }
         $para = ctype_digit($de) ? pdZapNormaliza($de) : $de;
         // quem é? (por número: equipe ou cliente)
-        $quem = $nomes[$de] ?? null; $cid = null; $membro = null;
+        $quem = $nomes[$de] ?? null; $cid = null; $membro = null; $clRow = null;
         foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) { $quem = $p['name']; $membro = $p; break; }
-        if (!$cid) foreach ((array)(sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap')['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; break; }
+        { $cr = sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap,ia_zap'); if (($cr['code'] ?? 500) >= 300) $cr = sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap'); }
+        if (!$cid) foreach ((array)($cr['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; $clRow = $cl; break; }
         $linha = ['canal' => 'whatsapp', 'para' => $para, 'quem' => $quem, 'corpo' => mb_substr($txt, 0, 2000),
             'status' => 'recebida', 'origem' => 'entrada', 'direcao' => 'entrada', 'wamid' => $id, 'client_id' => $cid,
             'midia_path' => $mid['path'], 'midia_tipo' => $mid['tipo'], 'midia_nome' => $mid['nome']];
@@ -73,6 +74,8 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
+        // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
+        if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t, $mid['path'] ? $mid : null); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
     }
     foreach ((array)($c['value']['statuses'] ?? []) as $s) {

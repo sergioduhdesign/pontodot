@@ -1490,6 +1490,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </div>
           <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="mc-zap-ativo"> <b>Avisar este cliente</b> <span style="color:var(--text3);font-weight:400">(WhatsApp e e-mail, nos lotes de aprovação)</span></label>
           <div style="font-size:11px;color:var(--text3);margin-top:5px">Desligado, nenhum aviso sai para este cliente, mesmo com o número salvo.</div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="mc-ia-zap"> <b>Gigi (IA) responde no WhatsApp</b> <span style="color:var(--text3);font-weight:400">(vê só os dados deste cliente)</span></label>
+          <div style="font-size:11px;color:var(--text3);margin-top:5px">Ligado, o cliente conversa com a Gigi pelo número da plataforma. Pedidos viram tarefa e o que for sensível chama o atendimento. Todo recado dele aparece como alarme para os admins. Exige o SQL v131.</div>
         </div>
         </div>
         <div class="mc-aba" data-aba="esteira" style="display:none">
@@ -7159,7 +7161,7 @@ async function pdPainelCliente(cid){
   const [{ data: contas }, adR, { data: cli }] = await Promise.all([
     sb.from('social_accounts').select('platform,account_name,status').eq('client_id', cid),
     sb.from('meta_ad_accounts').select('id,nome,moeda').eq('client_id', cid),
-    sb.from('clients').select('zap,zap_ativo,email_aviso').eq('id', cid).single().then(r=>r, ()=>({data:null})),
+    sb.from('clients').select('*').eq('id', cid).single().then(r=>r, ()=>({data:null})),
   ]);
   const linhas = [];
   (contas||[]).forEach(c => linhas.push(`<div>${c.platform==='instagram'?'📷':'📘'} <b>${esc(c.account_name||'')}</b> <span style="color:var(--text3)">· ${c.status==='conectada'?'conectada':esc(c.status||'')}</span></div>`));
@@ -7169,6 +7171,7 @@ async function pdPainelCliente(cid){
   document.getElementById('mc-zap').value = (cli&&cli.zap)||'';
   document.getElementById('mc-email-aviso').value = (cli&&cli.email_aviso)||'';
   document.getElementById('mc-zap-ativo').checked = !!(cli&&cli.zap_ativo);
+  document.getElementById('mc-ia-zap').checked = !!(cli&&cli.ia_zap);
   // site
   const { data: site } = await sb.from('pd_sites').select('*').eq('client_id', cid).maybeSingle()
     .then(r=>r, ()=>({data:null}));
@@ -7210,7 +7213,9 @@ async function pdZapSalvar(){
   const zap=document.getElementById('mc-zap').value.replace(/[^\d+]/g,'')||null;
   const email_aviso=document.getElementById('mc-email-aviso').value.trim()||null;
   const zap_ativo=!!document.getElementById('mc-zap-ativo').checked;
-  const { error } = await sb.from('clients').update({ zap, email_aviso, zap_ativo }).eq('id', currentClientId);
+  const ia_zap=!!document.getElementById('mc-ia-zap').checked;
+  let { error } = await sb.from('clients').update({ zap, email_aviso, zap_ativo, ia_zap }).eq('id', currentClientId);
+  if (error && /ia_zap/i.test(error.message||'')) { if (ia_zap) { showToast('Falta rodar o SQL v131 para ligar a Gigi.','error'); return; } ({ error } = await sb.from('clients').update({ zap, email_aviso, zap_ativo }).eq('id', currentClientId)); }
   showToast(error ? 'Não salvei: '+error.message+' (rode o SQL v97).' : (zap_ativo?'Avisos ligados para este cliente.':'Dados salvos. Avisos desligados.'), error?'error':'success');
 }
 async function pdSiteTestar(){
