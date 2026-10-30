@@ -1582,7 +1582,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       </div>
       <div class="field-row">
         <div class="field"><div class="field-label">Nível de Acesso</div><select class="field-select" id="u-role" onchange="onUserRole(this.value)"><option value="team">Equipe</option><option value="client">Cliente</option><option value="admin">Admin</option></select></div>
-        <div class="field" id="u-teamkey-wrap"><div class="field-label">Setor</div><select class="field-select" id="u-teamkey"><option value="JOY">Atendimento / Fluxo (Joy)</option><option value="LUANA">Design / Produção (Luana)</option><option value="JUAN">Web / Campanha (Juan)</option><option value="SERGIO">Brand / Conceito / Design (Sérgio Duh)</option><option value="OUTROS">Outros (em aberto)</option></select></div>
+        <div class="field" id="u-teamkey-wrap" style="grid-column:1/-1"><div class="field-label">Funções (marque uma ou mais)</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="direcao" style="margin-right:5px">Direção criativa</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="estrategia" style="margin-right:5px">Estratégia / planejamento</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="atendimento" style="margin-right:5px">Atendimento</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="producao" style="margin-right:5px">Gestão de projetos / produção</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="copy" style="margin-right:5px">Copywriter</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="designer" style="margin-right:5px">Designer</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="video" style="margin-right:5px">Motion / editor de vídeo</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="som" style="margin-right:5px">Sound designer / locução</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="foto3d" style="margin-right:5px">Fotografia / 3D</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="social" style="margin-right:5px">Social media</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="trafego" style="margin-right:5px">Tráfego pago</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="webdev" style="margin-right:5px">Web dev</label><label style="font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--border);cursor:pointer"><input type="checkbox" class="u-func" value="gestao_equipe" style="margin-right:5px">Gestão de equipe</label></div></div>
       </div>
       <div class="field" id="u-client-wrap" style="display:none"><div class="field-label">Cliente</div><select class="field-select" id="u-client-sel"><option value="">Selecione...</option></select></div>
     </div>
@@ -9364,7 +9364,7 @@ async function saveUser(){
   const name=document.getElementById('u-name').value.trim();
   const email=document.getElementById('u-email').value.trim();
   const role=document.getElementById('u-role').value;
-  const team_key=document.getElementById('u-teamkey')?.value||null;
+  const funcoes=[...document.querySelectorAll('#modal-new-user .u-func:checked')].map(i=>i.value);
   const client_id=role==='client'?(document.getElementById('u-client-sel')?.value||null):null;
   if(!name||!email){showToast('Nome e email obrigatórios.','warn');return;}
   if(role==='client'&&!client_id){showToast('Selecione o cliente que esse usuário representa.','warn');return;}
@@ -9373,7 +9373,7 @@ async function saveUser(){
   btn.textContent='Gerando link...';btn.disabled=true;
 
   try{
-    const result = await sdFetch('/create-user.php',{email,name,role,team_key,client_id});
+    const result = await sdFetch('/create-user.php',{email,name,role,funcoes,client_id});
     // A rede de segurança antiga (gravar client_id pelo navegador) foi removida:
     // agora o próprio create-user.php grava, e a RLS impede escrita direta.
 

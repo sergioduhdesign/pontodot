@@ -10,6 +10,7 @@ require_once __DIR__ . '/sd-base.php';
 // =====================================================================
 
 require_once __DIR__ . '/sd-auth.php';
+require_once __DIR__ . '/pd-lib.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') sd_fail('Método não permitido', 405);
 
@@ -20,6 +21,8 @@ $email     = trim($body['email'] ?? '');
 $name      = trim($body['name'] ?? '');
 $role      = $body['role'] ?? 'team';
 $team_key  = $body['team_key'] ?? null;
+$funcoes   = array_values(array_unique(array_filter(array_map('strval', (array)($body['funcoes'] ?? [])), fn($x) => isset(pdFuncoesCatalogo()[$x]))));
+if ($team_key === null && $role !== 'client') $team_key = 'OUTROS';   // trocada abaixo por um responsável próprio quando há funções
 $client_id = $body['client_id'] ?? null;
 
 if (!$email || !$name)                          sd_fail('Email e nome são obrigatórios.');
@@ -68,6 +71,13 @@ $prof = sd_supabase('/rest/v1/profiles', 'POST', [
 if ($prof['code'] >= 300) {
     error_log('SD create-user: falha ao gravar profile: ' . $prof['raw']);
     sd_fail('Usuário criado no Auth, mas o perfil não foi salvo. Avise o desenvolvedor.', 502);
+}
+
+// --- 2b. Funções (v132) e responsável próprio da pessoa ----------------
+if ($role !== 'client' && $funcoes) {
+    $tk = pdTeamKeyNova($name, $newUserId);
+    $fx = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($newUserId), 'PATCH', ['funcoes' => '{' . implode(',', $funcoes) . '}', 'team_key' => $tk]);
+    if (($fx['code'] ?? 500) >= 300) error_log('SD create-user: funções não gravadas (rode o SQL v132): ' . ($fx['raw'] ?? ''));
 }
 
 // --- 3. Email de convite ---------------------------------------------
