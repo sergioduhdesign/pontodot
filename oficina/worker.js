@@ -165,8 +165,16 @@ const EXEC = {
       const out = path.join(dir, `cena${i}.mp4`);
       args.push('-filter_complex', fc.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', String(dur), '-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-shortest', out);
       await run('ffmpeg', args, { maxBuffer: 50e6, timeout: 20 * 60e3 }); lista.push(out); }
-    const txt = path.join(dir, 'lista.txt'); fs.writeFileSync(txt, lista.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
-    const junto = path.join(dir, 'junto.mp4'); await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', txt, '-c', 'copy', junto], { maxBuffer: 50e6, timeout: 10 * 60e3 });
+    const junto = path.join(dir, 'junto.mp4');
+    const xs = cenas.map((c, i) => (i < cenas.length - 1 && /^x-/.test(c.trans || '')) ? { nome: String(c.trans).slice(2), d: 0 } : null);
+    if (xs.some(Boolean) && lista.length === cenas.length) {   // transições reais entre cenas (xfade); o tempo total não muda
+      const durs = []; for (const f of lista) durs.push(parseFloat((await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f])).stdout) || 0);
+      xs.forEach((x, i) => { if (x) x.d = Math.max(.2, Math.min(+cenas[i].trans_dur || .6, durs[i] * .9, durs[i + 1] * .9)); });
+      await require('./transicoes.js')(lista, durs, xs, junto);
+    } else {
+      const txt = path.join(dir, 'lista.txt'); fs.writeFileSync(txt, lista.map(f => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
+      await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', txt, '-c', 'copy', junto], { maxBuffer: 50e6, timeout: 10 * 60e3 });
+    }
     const total = cenas.reduce((n, c) => n + Math.max(0.5, +c.dur || 4), 0); const nome = nomeLimpo((e.nome || 'video') + '.mp4'); const fim = path.join(dir, nome);
     const fx = []; const args2 = ['-y', '-hide_banner', '-loglevel', 'error', '-i', junto]; let n = 0; const mix = ['[0:a]'];
     for (const [k, tr] of [['trilha', e.trilha], ['locucao', e.locucao]]) { if (!tr || !tr.url) continue; const ext = (() => { try { return path.extname(new URL(tr.url).pathname); } catch (e) { return path.extname(tr.url); } })() || '.m4a'; const f = await baixar(tr.url, path.join(dir, k + ext)); args2.push('-i', f); n++; const d = Math.round(Math.max(0, +tr.ini || 0) * 1000);
