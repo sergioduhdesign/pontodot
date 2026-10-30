@@ -156,7 +156,8 @@ const EXEC = {
       for (const [k, cl] of (c.clipes || []).entries()) { const f = await baixar(cl.url, path.join(dir, `clip${i}_${k}.mp4`)); const ini = Math.max(0, +cl.ini || 0); const fim = cl.fim ? Math.max(ini + .1, +cl.fim) : null;
         args.push('-stream_loop', '-1', '-ss', String(ini), ...(fim ? ['-to', String(fim)] : []), '-i', f); const n = ++idx; const cw = Math.max(2, Math.round(+cl.w || W)), ch = Math.max(2, Math.round(+cl.h || H));
         fc.push(`[${n}:v]scale=${cw}:${ch}:force_original_aspect_ratio=increase,crop=${cw}:${ch},setpts=PTS-STARTPTS,format=rgba[c${k}]`); fc.push(`[${cur}][c${k}]overlay=${Math.round(+cl.x || 0)}:${Math.round(+cl.y || 0)}:shortest=0[v${n}]`); cur = `v${n}`;
-        if (!cl.mudo && audioClip === null) audioClip = { n, vol: cl.vol == null ? 1 : +cl.vol }; }
+        const temAudio = ((await run('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', f]).catch(() => ({ stdout: '' }))).stdout || '').trim() !== '';   // clipe de drone (DJI) vem sem faixa de áudio
+        if (!cl.mudo && temAudio && audioClip === null) audioClip = { n, vol: cl.vol == null ? 1 : +cl.vol }; }
       if (c.topo_url) { const tp = await baixar(c.topo_url, path.join(dir, `top${i}.png`)); args.push('-loop', '1', '-t', String(dur), '-i', tp); const n = ++idx; fc.push(`[${n}:v]scale=${W}:${H},format=rgba[tp]`); fc.push(`[${cur}][tp]overlay=0:0[v${n}]`); cur = `v${n}`; }
       const fadeD = ['fade', 'preto', 'branco'].includes(c.trans) ? 0.5 : 0; const fc_ = c.trans === 'branco' ? ':c=white' : ''; const vfade = fadeD ? `,fade=t=in:st=0:d=${fadeD}${fc_},fade=t=out:st=${Math.max(0, dur - fadeD)}:d=${fadeD}${fc_}` : '';
       fc.push(`[${cur}]format=yuv420p,fps=${fps}${vfade}[vout]`);
