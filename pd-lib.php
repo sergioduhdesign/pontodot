@@ -903,6 +903,9 @@ function pdZapAcao($a, $p, $statusValidos) {
             if (!$patch) return "⚠️ Não entendi o que mudar na $tid.";
             $r = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($tid), 'PATCH', $patch);
             if (($r['code'] ?? 500) >= 300) return "⚠️ O banco recusou a mudança na $tid.";
+            $conf = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($tid) . '&select=' . implode(',', array_keys($patch)) . '&limit=1')['body'][0] ?? null;   // releitura: só vale se está lá
+            if (!$conf) return "⚠️ A $tid não foi alterada (não achei a tarefa depois da gravação).";
+            foreach ($patch as $kk => $vv) if (substr((string)($conf[$kk] ?? ''), 0, strlen((string)$vv)) !== (string)$vv) return "⚠️ A $tid não ficou como pedido ($kk continua " . mb_substr((string)($conf[$kk] ?? 'vazio'), 0, 40) . ").";
             pdEvento($tid, 'edicao', 'Alterado por ' . $nome . ' (WhatsApp)', json_encode($patch, JSON_UNESCAPED_UNICODE), $nome, 'pessoa');
             return "✅ Mudei na $rot: " . implode(' · ', array_map(fn($k, $v) => "$k=" . mb_substr((string)$v, 0, 60), array_keys($patch), $patch));
         }
@@ -1171,18 +1174,38 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     // a IA às vezes escreve o JSON da ação sem o ##ACAO## (ou repete): aceita as duas formas, executa uma vez só e nunca mostra o JSON à pessoa
     $ajs = [];
     if (preg_match_all('/^[ \t]*(?:##ACAO##\s*)?(\{"tipo".*\})\s*$/mu', $resp, $am0)) { $ajs = array_values(array_unique($am0[1])); $resp = trim(preg_replace('/^[ \t]*(?:##ACAO##\s*)?\{"tipo".*\}\s*$/mu', '', $resp)); }
-    $am = [1 => $ajs];
+    // ---- GARANTIA: o que a pessoa lê como "feito" é SEMPRE o resultado do sistema, nunca a palavra da IA ----
+    $reivindica = fn($t) => (bool)preg_match('/✅|❌|\b(pronto|prontinho|feito|feita|atualizad[oa]s?|criei|criad[oa]s?|mudei|movid[oa]s?|apagad[oa]s?|entregue|executando|executei|resolvido)\b/iu', (string)$t);
+    $pareceOrdem = !preg_match('/\?\s*$/u', trim($texto)) && (preg_match('/\bSD-\d+/i', $texto) || preg_match('/\b(cria\w*|muda\w*|coloca\w*|entrega\w*|apaga\w*|move\w*|mover|passa\w*|adiciona\w*|acrescenta\w*|faz|faça|fa[cz]a tudo|executa\w*|bora|sim)\b/iu', $texto));
+    if (!$ajs && $reivindica($resp) && $pareceOrdem && !$querPesquisa) {   // a IA disse que ia/fez mas não escreveu as ações: pede só as ações e executa
+        $m2 = $msgs; $m2[] = ['role' => 'assistant', 'content' => $resp !== '' ? $resp : '(sem texto)'];
+        $m2[] = ['role' => 'user', 'content' => 'Você não escreveu as linhas ##ACAO##, então NADA foi executado. Escreva AGORA somente as linhas ##ACAO## (uma por linha, JSON compacto, nenhum outro texto) que executam TUDO o que a pessoa pediu: cada mudança de prazo/status, cada tarefa a criar (uma ação "criar" com todas as novas). Use calendario_proximos_dias para as datas. Omita só o que você realmente não pode fazer (ex.: apagar).'];
+        [$c2, $r2] = $chamar(['model' => $body['model'], 'max_tokens' => 2500, 'system' => $sys, 'messages' => $m2]);
+        if ($c2 === 200) { $j2 = json_decode((string)$r2, true); $t2 = ''; foreach ((array)($j2['content'] ?? []) as $b2) if (($b2['type'] ?? '') === 'text') $t2 .= $b2['text'];
+            if (preg_match_all('/^[ \t]*(?:##ACAO##\s*)?(\{"tipo".*\})\s*$/mu', $t2, $am2)) $ajs = array_values(array_unique($am2[1])); }
+    }
+    $am = [1 => $ajs]; $propsta = $resp;
     if ($ajs) {
         $resp = trim(preg_replace('/^[ \t]*##ACAO##.*$/mu', '', $resp)); $feitos = [];
         $totalA = count($am[1]); $execA = 0;
         foreach (array_slice($am[1], 0, 30) as $aj) { $ao = json_decode($aj, true); if (is_array($ao)) { $feitos[] = pdZapAcao($ao, $p, $statusValidos); $execA++; } }
         $feitos = array_values(array_filter($feitos, fn($x) => trim((string)$x) !== ''));
         $okA = count(array_filter($feitos, fn($x) => strpos((string)$x, '⚠️') === false));
-        // o resultado de verdade é o do sistema: o texto da IA nunca fala por ele
-        $resp = trim(preg_replace('/^.*(?:✅|☑️|✔️).*$/mu', '', $resp));
+        // só o sistema fala de resultado: a prosa da IA que afirma feito/criado/apagado é descartada
+        $linhasOk = array_filter(preg_split('/\R/u', $resp), fn($l) => !$reivindica($l));
+        $resp = trim(implode("\n", $linhasOk));
         if ($feitos) $resp = trim($resp) . "\n\n" . implode("\n", $feitos);
         if ($execA < $totalA) $resp .= "\n\n⚠️ Executei só " . $execA . " de " . $totalA . " ações (limite por mensagem). Me peça as que faltaram.";
         elseif ($okA < count($feitos)) $resp .= "\n\n⚠️ " . (count($feitos) - $okA) . " ação(ões) não passaram: veja os ⚠️ acima.";
+        else $resp .= "\n\n(" . $okA . " ação(ões) gravadas e conferidas no sistema.)";
+    } elseif ($reivindica($resp) && !$pareceOrdem && preg_match_all('/\bSD-\d+/i', $resp . ' ' . $texto, $idm)) {   // "confirma que foi feito?": responde com o que está GRAVADO, não com a palavra da IA
+        $ids = array_slice(array_values(array_unique(array_map('strtoupper', $idm[0]))), 0, 15);
+        $rr = (array)(sd_supabase('/rest/v1/tasks?id=in.(' . implode(',', array_map('rawurlencode', $ids)) . ')&select=id,action,status,date_int,date_cli,resp')['body'] ?? []);
+        $ach = []; foreach ($rr as $t) $ach[$t['id']] = $t;
+        $ls = []; foreach ($ids as $i) $ls[] = isset($ach[$i]) ? '• ' . $i . ' ' . mb_substr((string)$ach[$i]['action'], 0, 40) . ' — ' . $ach[$i]['status'] . ' · prazo ' . (substr((string)($ach[$i]['date_int'] ?? ''), 0, 10) ?: 'sem') : '• ' . $i . ' — não existe mais no sistema';
+        $resp = "📋 Conferi agora no sistema (é isto que está gravado):\n" . implode("\n", $ls);
+    } elseif ($reivindica($resp) && preg_match('/\bSD-\d+|\btarefa/iu', $resp) && $pareceOrdem) {
+        $resp = "⚠️ NADA foi alterado no sistema. Eu não consegui montar as ações desse pedido. Me manda de novo, de preferência em itens (ex.: \"SD-1234 → 02/11\"), que eu executo e confirmo com o resultado real.";
     }
     if (preg_match('/##SALVAR##\s*(\{.*\})\s*$/su', $resp, $sm)) {
         $resp = trim(preg_replace('/##SALVAR##.*$/su', '', $resp)); $sj = json_decode($sm[1], true); $tid = strtoupper(trim((string)($sj['task_id'] ?? '')));
