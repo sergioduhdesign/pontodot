@@ -26,6 +26,15 @@ if ($acao === 'salvar') {
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v132 no Supabase.', 500);
     echo json_encode(['ok' => true, 'funcoes' => $f, 'team_key' => $upd['team_key'] ?? $alvo['team_key']], JSON_UNESCAPED_UNICODE); exit;
 }
+if ($acao === 'ferramentas') {
+    // libera/retira as ferramentas do Studio de uma pessoa (Copys é de todos). Só o admin.
+    if ($me['role'] !== 'admin') sd_fail('Só o admin libera ferramentas.', 403);
+    $ok = ['digital', 'audio', 'video', 'grafica'];
+    $a = array_values(array_unique(array_filter(array_map('strval', (array)($b['areas'] ?? [])), fn($x) => in_array($x, $ok, true))));
+    $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', ['studio_areas' => '{' . implode(',', $a) . '}']);
+    if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v133 no Supabase.', 500);
+    echo json_encode(['ok' => true, 'areas' => $a], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'acesso') {
     if ($uid === $me['id']) sd_fail('Você não pode mudar o próprio acesso.', 403);
     if ($alvo['role'] === 'admin' && $me['role'] !== 'admin') sd_fail('Só admin mexe no acesso de admin.', 403);

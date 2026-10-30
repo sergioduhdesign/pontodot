@@ -7078,7 +7078,7 @@ async function salvarPermissoes(){
 async function abrirEquipeFuncoes(){
   let cat;
   try{ cat=(await sdFetch('/pd-funcoes.php',{acao:'catalogo'})).catalogo; }catch(e){ showToast('Sem permissão: '+(e.message||e),'error'); return; }
-  const{data:pessoas}=await sb.from('profiles').select('id,name,role,team_key,active,avatar_url,funcoes').neq('role','client').order('name');
+  const{data:pessoas}=await sb.from('profiles').select('*').neq('role','client').order('name');
   const lista=(pessoas||[]).filter(p=>p.name&&!p.name.includes('@'));
   const ov=document.createElement('div'); ov.id='ov-equipe';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -7086,7 +7086,8 @@ async function abrirEquipeFuncoes(){
   const linha=p=>{ const fs=(p.funcoes||[]);
     return `<div style="padding:12px 0;border-bottom:1px solid var(--border);opacity:${p.active===false?.55:1}">
       <div style="display:flex;align-items:center;gap:10px"><b style="flex:1">${esc2(p.name)} <span style="font-weight:400;color:var(--text3);font-size:11px">${p.role==='admin'?'Admin':'Equipe'}${p.team_key?' · '+esc2(p.team_key):''}</span></b>${p.id!==profile.id?acessoToggleF(p.id,p.active!==false):''}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(cat).map(([k,v])=>`<label style="font-size:12px;padding:4px 9px;border-radius:14px;border:1px solid var(--border);cursor:pointer;background:${fs.includes(k)?'var(--text)':'transparent'};color:${fs.includes(k)?'var(--bg,#fff)':'inherit'}"><input type="checkbox" data-p="${p.id}" data-f="${k}" ${fs.includes(k)?'checked':''} style="display:none" onchange="salvarFuncoes('${p.id}')">${esc2(v)}</label>`).join('')}</div></div>`; };
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(cat).map(([k,v])=>`<label style="font-size:12px;padding:4px 9px;border-radius:14px;border:1px solid var(--border);cursor:pointer;background:${fs.includes(k)?'var(--text)':'transparent'};color:${fs.includes(k)?'var(--bg,#fff)':'inherit'}"><input type="checkbox" data-p="${p.id}" data-f="${k}" ${fs.includes(k)?'checked':''} style="display:none" onchange="salvarFuncoes('${p.id}')">${esc2(v)}</label>`).join('')}</div>
+      ${profile.role==='admin'&&p.role!=='admin'?`<div style="margin-top:8px;font-size:11px;color:var(--text3)">Ferramentas liberadas (Copys é de todos)</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${[['digital','Arte digital'],['audio','Locução e trilha'],['video','Vídeos'],['grafica','Edição gráfica']].map(([k,n])=>{ const on=(p.studio_areas||[]).includes(k); return `<label style="font-size:12px;padding:4px 9px;border-radius:14px;border:1px solid var(--border);cursor:pointer;background:${on?'#16a34a':'transparent'};color:${on?'#fff':'inherit'}"><input type="checkbox" data-pf="${p.id}" data-a="${k}" ${on?'checked':''} style="display:none" onchange="salvarFerramentas('${p.id}')">${n}</label>`; }).join('')}</div>`:''}</div>`; };
   ov.innerHTML=`<div style="background:var(--surface,#fff);color:var(--text,#111);border-radius:14px;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:18px 20px">
     <div style="display:flex;align-items:center;margin-bottom:4px"><b style="font-size:16px;flex:1">Equipe e funções</b><button onclick="document.getElementById('ov-equipe').remove()" aria-label="Fechar" style="background:none;border:0;font-size:18px;cursor:pointer;color:inherit">✕</button></div>
     <div style="font-size:12px;color:var(--text3)">Marque as funções de cada pessoa. O fluxo encaminha por função: copy pronta → Designer ou Vídeo; pedido do cliente → Atendimento. Quem tem a mesma função recebe por rodízio de carga.</div>
@@ -7100,6 +7101,14 @@ async function setAcessoF(id,ativo,el){
   if(!ativo && !confirm('Desabilitar o acesso desta pessoa? Nada é apagado e dá para habilitar de novo.')){ el.checked=true; return; }
   try{ await sdFetch('/pd-funcoes.php',{acao:'acesso',user_id:id,ativo}); showToast(ativo?'Acesso habilitado.':'Acesso desabilitado.','success'); document.getElementById('ov-equipe')?.remove(); abrirEquipeFuncoes(); }
   catch(e){ showToast('Não consegui: '+(e.message||e),'error'); el.checked=!ativo; }
+}
+async function salvarFerramentas(uid){
+  const as=[...document.querySelectorAll(`#ov-equipe input[data-pf="${uid}"]:checked`)].map(i=>i.dataset.a);
+  try{
+    await sdFetch('/pd-funcoes.php',{acao:'ferramentas',user_id:uid,areas:as});
+    document.querySelectorAll(`#ov-equipe input[data-pf="${uid}"]`).forEach(i=>{ const l=i.parentElement; l.style.background=i.checked?'#16a34a':'transparent'; l.style.color=i.checked?'#fff':'inherit'; });
+    showToast('Ferramentas salvas.','success');
+  }catch(e){ showToast('Não salvei: '+(e.message||e),'error'); }
 }
 async function salvarFuncoes(uid){
   const fs=[...document.querySelectorAll(`#ov-equipe input[data-p="${uid}"]:checked`)].map(i=>i.dataset.f);
