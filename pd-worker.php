@@ -657,4 +657,5 @@ $n10 = w_rotina_zap();               echo "Rotina da equipe: $n10\n";
 $n11 = w_skills();                   echo "Skills anunciadas: $n11\n";
 $n12 = retro_relogio();            echo "Retrospectiva: $n12\n";
 $n13 = pdIncubacaoRelogio();       echo "Sala de aula: $n13\n";
+$n14 = pdLembretesDisparar();        echo "Lembretes: $n14\n";
 echo "\nConcluido.\n";

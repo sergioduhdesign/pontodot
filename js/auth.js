@@ -26,6 +26,12 @@ const Auth = {
     if (!session) { window.location.href = '/index.html'; return null; }
     const profile = await this.getProfile();
     if (!profile) { window.location.href = '/index.html'; return null; }
+    if (profile.active === false) {   // acesso desabilitado pelo admin
+      try { sessionStorage.setItem('sd_sem_acesso', '1'); } catch (e) {}
+      await sb.auth.signOut();
+      window.location.href = '/index.html';
+      return null;
+    }
     if (allowedRoles.length && !allowedRoles.includes(profile.role)) {
       await sb.auth.signOut();
       window.location.href = '/index.html';

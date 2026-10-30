@@ -2358,7 +2358,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v296 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v297 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4118,12 +4118,61 @@ function htmlPerfilPessoa(){
       <div class="mia-acoes">
         <button onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
         <button onclick="fecharJanela();abrirFundos()">Fundo do app</button>
+        <button onclick="fecharJanela();abrirLembretes()" title="Lembretes" aria-label="Lembretes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> Lembretes</button>
         <button onclick="sairConta()" style="margin-left:auto;opacity:1;font-weight:500">Desconectar PD</button>
       </div>
       <div class="pf-cancelar"><button onclick="abrirCancelarConta()">Cancelar minha conta…</button></div>
     </div>
   </div></div>`;
 }
+
+// ---------------- LEMBRETES (os mesmos do zap: "me lembra toda segunda às 9h") ----------------
+async function lembApi(corpo){
+  const { data:{ session } } = await sbR.auth.getSession();
+  const r = await fetch('/pd-lembretes.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token }, body: JSON.stringify(corpo) });
+  const j = await r.json().catch(()=>({})); if(!r.ok || j.error) throw new Error(j.error || ('HTTP '+r.status)); return j;
+}
+const REC_ROT = { nenhuma:'uma vez', diaria:'todo dia', dias_uteis:'dias úteis', semanal:'toda semana', mensal:'todo mês' };
+async function abrirLembretes(){
+  if (!window.REAL){ toast('Entra na conta primeiro.'); return; }
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:16px;max-width:460px"><div style="display:flex;align-items:center;margin-bottom:8px"><b style="font-size:15px">Lembretes</b><button class="acao-cab" style="margin-left:auto" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div id="lembLista" style="max-height:32vh;overflow:auto;font-size:13px">Carregando…</div>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(127,127,127,.3)">
+      <input id="lbTexto" type="text" placeholder="O que lembrar" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit">
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+        <select id="lbRec" onchange="lembRecMuda()" style="padding:8px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit"><option value="nenhuma">Uma vez</option><option value="diaria">Todo dia</option><option value="dias_uteis">Dias úteis</option><option value="semanal">Toda semana</option><option value="mensal">Todo mês</option></select>
+        <input id="lbQuando" type="datetime-local" style="padding:8px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit">
+        <input id="lbHora" type="time" value="09:00" style="display:none;padding:8px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit">
+        <select id="lbDow" style="display:none;padding:8px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit"><option value="1">Seg</option><option value="2">Ter</option><option value="3">Qua</option><option value="4">Qui</option><option value="5">Sex</option><option value="6">Sáb</option><option value="7">Dom</option></select>
+        <input id="lbDom" type="number" min="1" max="31" value="1" style="display:none;width:64px;padding:8px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit">
+        <button onclick="lembCriar()" aria-label="Adicionar lembrete" title="Adicionar" style="margin-left:auto;padding:8px 14px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
+      <small id="lbMsg" style="display:block;margin-top:6px"></small>
+    </div></div>`);
+  lembLista();
+}
+function lembRecMuda(){
+  const r = document.getElementById('lbRec').value, uma = r === 'nenhuma';
+  document.getElementById('lbQuando').style.display = uma ? '' : 'none';
+  document.getElementById('lbHora').style.display = uma ? 'none' : '';
+  document.getElementById('lbDow').style.display = r === 'semanal' ? '' : 'none';
+  document.getElementById('lbDom').style.display = r === 'mensal' ? '' : 'none';
+}
+async function lembLista(){
+  const el = document.getElementById('lembLista'); if (!el) return;
+  try {
+    const { lembretes } = await lembApi({ acao:'listar' });
+    el.innerHTML = lembretes.length ? lembretes.map(l => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(127,127,127,.18)"><div style="flex:1"><div>${esc(l.texto)}</div><small style="opacity:.7">${new Date(l.proximo).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'})} · ${REC_ROT[l.recorrencia]||''}${l.via==='zap'?' · pelo zap':''}</small></div><button onclick="lembCancelar(${l.id})" aria-label="Cancelar lembrete" title="Cancelar" style="opacity:.7">✕</button></div>`).join('') : '<small style="opacity:.7">Nenhum lembrete. Pelo zap também vale: "me lembra toda segunda às 9h de ver os posts".</small>';
+  } catch(e){ el.innerHTML = '<small>Não carreguei: ' + esc(e.message) + '</small>'; }
+}
+async function lembCriar(){
+  const g = id => document.getElementById(id).value, m = document.getElementById('lbMsg'), r = g('lbRec');
+  const corpo = { acao:'criar', texto:g('lbTexto').trim(), recorrencia:r };
+  if (r === 'nenhuma') corpo.quando = g('lbQuando').replace('T',' '); else { corpo.hora = g('lbHora'); corpo.dow = +g('lbDow'); corpo.dom = +g('lbDom'); }
+  try { await lembApi(corpo); document.getElementById('lbTexto').value = ''; m.textContent = 'Marcado ✓'; lembLista(); }
+  catch(e){ m.textContent = e.message; }
+}
+async function lembCancelar(id){ try { await lembApi({ acao:'cancelar', id }); lembLista(); } catch(e){ toast(e.message); } }
 function abrirPerfil(){
   if (!window.REAL){ toast('Entra na conta primeiro.'); return; }
   // o conteúdo nasce completo e do tamanho final: o fio da borda mede a caixa uma vez só
@@ -7819,6 +7868,7 @@ const LOGIN_CSS = `
 .login-legal a{color:inherit}`;
 
 function mostrarLogin(){
+  try { if (sessionStorage.getItem('sd_sem_acesso')){ sessionStorage.removeItem('sd_sem_acesso'); setTimeout(()=>toast('Seu acesso está desabilitado. Fale com o administrador.'), 600); } } catch(e){}
   if ($('#loginVeu')) return;
   // sem sessão: o endereço abre a home pública (o ícone redondo de lá entra na plataforma)
   try { sessionStorage.setItem('pd_visitante','1'); } catch(e){}
@@ -7950,6 +8000,12 @@ async function entrarReal(session){
   const { data: p } = await sbR.from('profiles').select('*').eq('id', session.user.id).single();
   perfil = p || { id: session.user.id, name: 'SD' };
   if (perfil.cancelada_em){ telaContaCancelada(); return; }
+  if (perfil.active === false){   // acesso desabilitado pelo admin: sai e avisa
+    try { await sbR.auth.signOut(); } catch(e){}
+    mostrarLogin();
+    setTimeout(()=>toast('Seu acesso está desabilitado. Fale com o administrador.'), 600);
+    return;
+  }
   window.REAL = true;
   $('#cluster')?.classList.add('on');
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }

@@ -78,8 +78,10 @@ if ($acao === 'aprovacao') {   // manda pro cliente como a arte: lote de aprova�
     $r = sd_supabase('/rest/v1/approval_items', 'POST', $linhas); if (($r['code'] ?? 500) >= 300 && strpos((string)($r['raw'] ?? ''), '23514') !== false) { foreach ($linhas as $k => $l) $linhas[$k]['kind'] = 'material'; $r = sd_supabase('/rest/v1/approval_items', 'POST', $linhas); }
     if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui criar as peças do lote: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200), 500);
     sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode($id), 'PATCH', ['set_id' => $sid, 'mudado_em' => gmdate('c')]);
+    $criativo = null; $visual = false; foreach ($linhas as $l) if (in_array($l['kind'], ['feed', 'carrossel', 'stories', 'reels'], true)) $visual = true;
+    if ($visual && empty($b['sem_criativo'])) { try { $criativo = pdCopyParaCriativos($cp, $sid, $itens, $u['name'] ?? 'Equipe', $b['resp'] ?? null, $u['id'] ?? null); } catch (Throwable $e) { error_log('copy->criativos: ' . $e->getMessage()); } }
     if ($cp['task_id']) { pdEvento($cp['task_id'], 'aprovacao', 'Copys no lote de aprovação' . ($interno ? ' (revisão interna)' : ''), count($linhas) . ' peça(s) de texto · ' . ($cp['nome'] ?? ''), $u['name'] ?? 'Equipe', 'humano'); if (!$interno) sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($cp['task_id']), 'PATCH', ['status' => 'DELEGADA']); }
-    echo json_encode(['ok' => true, 'set_id' => $sid, 'url' => '/aprovacao.html?set=' . $sid, 'n' => count($linhas)], JSON_UNESCAPED_UNICODE); exit;
+    echo json_encode(['ok' => true, 'set_id' => $sid, 'url' => '/aprovacao.html?set=' . $sid, 'n' => count($linhas), 'criativo' => $criativo], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'executar_tarefa') {   // a IA faz sozinha: lê a tarefa, gera e já deixa no lote de revisão interna
     $tid = (string)($b['task_id'] ?? ''); $t = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($tid) . '&select=id,action,obs,client_id,status')['body'][0] ?? null; if (!$t || empty($t['client_id'])) sd_fail('Tarefa sem cliente.');
