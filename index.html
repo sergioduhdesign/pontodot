@@ -5718,10 +5718,11 @@ const GADGETS = {
       ['Todos os 9',`toast('Abre a lista de clientes.')`]); } },
   equipe:    { nome:'Equipe', html:()=>{
       if (window.REAL){
-        return gadCaixa('Equipe', (PERFIS.filter(p=>p.name).slice(0,8).map(p=>{
+        iaGarante();
+        return gadCaixa('Equipe', (PERFIS.filter(p=>p.name && !p.client_id).map(p=>{
           const pn = p.name.split(' ')[0];
           const n = tasksReais.filter(t=>ehDe(t,p)).length;
-          return `<button class="gente" style="width:100%" onclick="abrirChatCom('${p.name.replace(/'/g,'’')}')">${avatarImg(p.name,p.avatar_url,30)}<div class="c"><div style="font-size:12px">${pn}</div><div class="d" style="font-size:10px;color:var(--branco2)">${n} tarefa${n===1?'':'s'} aberta${n===1?'':'s'} · <b>falar</b></div></div></button>`;
+          return `<button class="gente" style="width:100%" onclick="abrirChatCom('${p.name.replace(/'/g,'’')}')">${avatarImg(p.name,p.avatar_url,30)}<div class="c"><div style="font-size:12px">${pn}</div><div class="d" style="font-size:10px;color:var(--branco2)">${n} tarefa${n===1?'':'s'} aberta${n===1?'':'s'} · <b>falar</b></div>${iaDe(p) ? `<div style="font-size:10px;color:var(--branco2);margin-top:1px">${iaChip(p, 14)}</div>` : ''}</div></button>`;
         }).join('') || '<div class="nota">Equipe ainda carregando…</div>'),
         ['Ver a equipe', `abrirEquipe()`]);
       }
@@ -5796,7 +5797,12 @@ async function abrirClientesAdmin(){
   </div>`, true);
 }
 // a equipe do SD — ver e falar
+// a IA de cada pessoa da equipe (vem da lista "Inteligências da casa")
+function iaDe(p){ try { return ((IACASA.d && IACASA.d.ias) || []).find(i => i.id === p.id) || null; } catch(e){ return null; } }
+function iaChip(p, t){ const ia = iaDe(p); if (!ia) return ''; return `<span style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle"><img src="/icone-ia.php?p=${encodeURIComponent(ia.personagem)}&s=48" alt="" style="width:${t||16}px;height:${t||16}px;border-radius:50%;object-fit:cover"><span>IA ${esc(ia.nome)}</span></span>`; }
+function iaGarante(){ if (window.REAL && !IACASA.d && !IACASA.msg && !IACASA.indo){ IACASA.indo = true; iasCarrega(); } }
 function abrirEquipe(){
+  iaGarante();
   const meu = (perfil?.name||'');
   abrirJanela(`<div class="caixa invertida" style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -5805,7 +5811,7 @@ function abrirEquipe(){
     </div>
     <div class="nota" style="margin:2px 0 10px">toque em falar e a mensagem fica registrada na tarefa da pessoa</div>
     <div style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none">
-      ${PERFIS.filter(p=>p.name).map(p=>{
+      ${PERFIS.filter(p=>p.name && !p.client_id).map(p=>{
         const pn = p.name.split(' ')[0];
         const minhas = tasksReais.filter(t=>ehDe(t,p));
         const atr = minhas.filter(ehAtrasada).length;
@@ -5813,7 +5819,8 @@ function abrirEquipe(){
         return `<div class="t-linha" style="cursor:default">
           ${avatarImg(p.name, p.avatar_url, 32)}
           <div class="t-main"><span class="nome" style="flex:none">${p.name}${p.name===meu?' <small style="opacity:.5">(você)</small>':''}</span>
-            <small>${minhas.length} tarefa${minhas.length===1?'':'s'} aberta${minhas.length===1?'':'s'}${atr?` · ${atr} atrasada${atr===1?'':'s'}`:''}</small></div>
+            <small>${minhas.length} tarefa${minhas.length===1?'':'s'} aberta${minhas.length===1?'':'s'}${atr?` · ${atr} atrasada${atr===1?'':'s'}`:''}</small>
+            ${iaChip(p, 15) ? `<small style="opacity:.8">${iaChip(p, 15)}</small>` : ''}</div>
           <button class="btn" style="min-height:34px" onclick="fecharJanela();abrirTodasResp('${esc(chaveDe(p))}')">tarefas</button>
           ${p.name===meu?'':`<button class="btn" style="min-height:34px" title="Conversar com ${pn}" onclick="fecharJanela();abrirChatCom('${nome}')">${icoMini('balao',14)} conversar</button>`}
         </div>`;
