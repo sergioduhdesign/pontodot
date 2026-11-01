@@ -87,8 +87,9 @@ function ajudaCss(){
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
-  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:top .5s cubic-bezier(.22,.8,.26,.99),left .5s cubic-bezier(.22,.8,.26,.99),width .5s cubic-bezier(.22,.8,.26,.99),height .5s cubic-bezier(.22,.8,.26,.99),border-radius .5s cubic-bezier(.22,.8,.26,.99),opacity .35s ease}
-  #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:ajSurge .25s ease;opacity:1;transition:top .5s cubic-bezier(.22,.8,.26,.99),left .5s cubic-bezier(.22,.8,.26,.99),opacity .18s ease}
+  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:opacity .32s ease;animation:ajBrilho 2.6s ease-in-out infinite}
+  @keyframes ajBrilho{0%,100%{box-shadow:0 0 14px 2px rgba(255,255,255,.45),0 0 40px 10px rgba(255,255,255,.16),0 0 0 9999px rgba(0,0,0,.45)}50%{box-shadow:0 0 22px 4px rgba(255,255,255,.75),0 0 60px 16px rgba(255,255,255,.3),0 0 0 9999px rgba(0,0,0,.45)}}
+  #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);opacity:1;transition:opacity .3s ease}
   #pdAjudaOv .cxa.centro{left:50%;top:50%;transform:translate(-50%,-50%)}
   #pdAjudaOv .cxa.canto{top:auto!important;left:14px!important;bottom:74px;transform:none!important}
   @keyframes ajSurge{from{opacity:0}to{opacity:1}}
@@ -125,35 +126,42 @@ function abrirAjuda(chave, passo, origem){
   ajudaCss();
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
-  _ajudaSegue++;
-  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
-  let espera = 0;
-  if (tour && !origem){
-    const abre = (window.PD_AJUDA_ABRE || {})[chave];
-    if (abre){ try { const desfaz = abre(); if (desfaz){ _ajudaDesfaz = desfaz; espera = 520; } } catch(e){} }
-  }
+  const tok = ++_ajudaSegue;
+  const corpo = `<div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape"><span style="flex:1"></span>${tour
+    ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
+       ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
+    : `<button class="bt p" onclick="fecharAjuda()">Entendi</button>`}</div>`;
+  const abreProximo = () => {
+    // 3) abre o que precisa (se precisa) e só então acende a luz
+    let espera = 0;
+    if (tour && !origem){
+      const abre = (window.PD_AJUDA_ABRE || {})[chave];
+      if (abre){ try { const desfaz = abre(); if (desfaz){ _ajudaDesfaz = desfaz; espera = 560; } } catch(e){} }
+    }
+    setTimeout(() => { if (tok === _ajudaSegue) ajudaMira(chave, origem); }, espera);
+  };
   let ov = document.getElementById('pdAjudaOv');
   if (ov){
-    const cx = ov.querySelector('.cxa');
-    const corpo = `<div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape">${tour
-      ? `<span style="flex:1"></span>${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
-         ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
-      : `<span style="flex:1"></span><button class="bt p" onclick="fecharAjuda()">Entendi</button>`}</div>`;
-    if (cx){ cx.style.opacity = '0'; setTimeout(() => { cx.innerHTML = corpo; cx.style.opacity = '1'; }, 160); }
-    setTimeout(() => ajudaMira(chave, origem), Math.max(espera, 180));
+    // troca de passo: 1) apaga a caixa e a luz  2) fecha o que estava aberto  3) abre o novo, acende, e a caixa aparece
+    const cx = ov.querySelector('.cxa'), f = document.getElementById('pdAjudaFoco');
+    if (cx){ cx.style.opacity = '0'; cx.dataset.espera = '1'; }
+    if (f){ f.id = ''; f.style.opacity = '0'; setTimeout(() => f.remove(), 360); }
+    setTimeout(() => {
+      if (tok !== _ajudaSegue) return;
+      let fechou = 0;
+      if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; fechou = 480; }
+      if (cx) cx.innerHTML = corpo;
+      setTimeout(() => { if (tok === _ajudaSegue) abreProximo(); }, fechou);
+    }, 340);
     if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
     return;
   }
+  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
   ov = document.createElement('div'); ov.id = 'pdAjudaOv';
   ov.onclick = e => { if (e.target === ov) fecharAjuda(); };
-  const pts = tour ? `<span style="flex:1"></span>` : '<span style="flex:1"></span>';
-  const bts = tour
-    ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
-       ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
-    : `<button class="bt p" onclick="fecharAjuda()">Entendi</button>`;
-  ov.innerHTML = `<div class="cxa centro"><div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape">${pts}${bts}</div></div>`;
+  ov.innerHTML = `<div class="cxa centro" style="opacity:0" data-espera="1">${corpo}</div>`;
   document.body.appendChild(ov);
-  setTimeout(() => ajudaMira(chave, origem), espera);
+  abreProximo();
   if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
 }
 function ajudaMira(chave, origem, deNovo){
@@ -198,7 +206,10 @@ function ajudaMira(chave, origem, deNovo){
         const f = document.getElementById('pdAjudaFoco');
         if (f && !f.dataset.saindo){ f.dataset.saindo = '1'; f.style.opacity = '0'; setTimeout(() => { if (f.dataset.saindo) f.remove(); }, 400); }
       }
-      if (agora - sumiuEm > 1400 && !noVerso && !cx.classList.contains('centro')){ cx.classList.add('centro'); cx.style.top = ''; cx.style.left = ''; cx.style.transform = ''; ultimo = null; }
+      if (agora - sumiuEm > (!origem && !((window.PD_AJUDA_ALVO || {})[chave] || []).length ? 60 : 900)){
+        if (!noVerso && !cx.classList.contains('centro')){ cx.classList.add('centro'); cx.style.top = ''; cx.style.left = ''; cx.style.transform = ''; ultimo = null; }
+        if (cx.dataset.espera){ delete cx.dataset.espera; cx.style.opacity = '1'; }
+      }
       requestAnimationFrame(quadro); return;
     }
     sumiuEm = 0;
@@ -225,6 +236,7 @@ function ajudaMira(chave, origem, deNovo){
         if (!ultimo || Math.abs(rr.top - ultimo.top) > 6 || Math.abs(rr.left - ultimo.left) > 6 || Math.abs(rr.height - ultimo.height) > 6 || Math.abs(rr.width - ultimo.width) > 6) ajudaPosiciona(cx, rr);
       }
       ultimo = rr;
+      if (cx.dataset.espera){ delete cx.dataset.espera; requestAnimationFrame(() => { cx.style.opacity = '1'; }); }
     }
     requestAnimationFrame(quadro);
   };
