@@ -318,7 +318,7 @@ function ajudaPrimeiraVez(){
     if (el.closest(NAO)) return false;
     if (el.querySelector('div,p,ul,ol,table,button,input,select,textarea,img,svg,h1,h2,h3,h4,a[href]')) return false;
     if ((el.getAttribute('style') || '').indexOf('pre-wrap') > -1) return false;
-    const t = limpo(el.textContent); if (t.length < 30 || MUDO.test(t)) return false;
+    const t = limpo(el.textContent); if (t.length < 40 || MUDO.test(t)) return false;
     if (!el.matches(SEL)){
       const fs = parseFloat((el.style && el.style.fontSize) || '0');
       if (!(fs > 0 && fs <= 12.6)) return false;
@@ -364,11 +364,14 @@ function ajudaPrimeiraVez(){
     el.dataset.pdq = '1';
     const q = `<button type="button" class="ajuda-q" onclick="event.stopPropagation();abrirAjuda('${chave}',undefined,this)" title="Ler a explicação" aria-label="Explicação">?</button>`;
     // logo abaixo de um título: o texto some e o ? vai pro lado do título
+    // um ? por caixinha: se a caixa já tem o dela, o texto entra nele (ou some, se o ? é manual)
+    const caixa = el.closest('.gad,.caixa,.modal');
+    if (caixa){ const ex = caixa.querySelector('.ajuda-q'); if (ex && !el.contains(ex)){ const k = ex.dataset.auto; if (k && window.PD_AJUDA[k]) window.PD_AJUDA[k].p += '<br><br>' + html; delete window.PD_AJUDA[chave]; el.style.display = 'none'; return; } }
     const vazio = /^(nenhum|nenhuma|sem |ainda n|nada |prancheta vazia)/i.test(t);
     const cab = vazio ? null : cabecalhoDe(el);
     if (cab){
-      const ja = cab.querySelector('.ajuda-q[data-auto]');
-      if (ja){ const k = ja.dataset.auto; window.PD_AJUDA[k].p += '<br><br>' + html; delete window.PD_AJUDA[chave]; }
+      const ja = cab.querySelector('.ajuda-q');
+      if (ja){ const k = ja.dataset.auto; if (k && window.PD_AJUDA[k]) window.PD_AJUDA[k].p += '<br><br>' + html; delete window.PD_AJUDA[chave]; }
       else { cab.insertAdjacentHTML('beforeend', q.replace('<button ', '<button data-auto="' + chave + '" ')); }
       el.style.display = 'none'; return;
     }
@@ -380,10 +383,19 @@ function ajudaPrimeiraVez(){
       if (sm.dataset.pdq || sm.id) return;
       const t = limpo(sm.textContent).replace(/^[·•\-–—\s]+/, ''); if (t.length < 10 || MUDO.test(t)) return;
       const h = sm.closest('h1,h2,h3,h4'); if (!h || h.closest(NAO)) return;
+      sm.dataset.pdq = '1';
+      const txt = esc2(t.charAt(0).toUpperCase() + t.slice(1));
+      const ja = h.querySelector('.ajuda-q');
+      if (ja){ const k = ja.dataset.auto; if (k && window.PD_AJUDA[k]) window.PD_AJUDA[k].p += '<br><br>' + txt; sm.style.display = 'none'; return; }
       const chave = 'auto' + (++n);
-      window.PD_AJUDA[chave] = { t: limpo(h.firstChild && h.firstChild.textContent) || 'Como funciona', p: esc2(t.charAt(0).toUpperCase() + t.slice(1)) };
-      sm.dataset.pdq = '1'; sm.className = ''; sm.removeAttribute('style');
-      sm.innerHTML = `<button type="button" class="ajuda-q" onclick="event.stopPropagation();abrirAjuda('${chave}',undefined,this)" aria-label="Explicação">?</button>`;
+      window.PD_AJUDA[chave] = { t: limpo(h.firstChild && h.firstChild.textContent) || 'Como funciona', p: txt };
+      sm.className = ''; sm.removeAttribute('style');
+      sm.innerHTML = `<button type="button" class="ajuda-q" data-auto="${chave}" onclick="event.stopPropagation();abrirAjuda('${chave}',undefined,this)" aria-label="Explicação">?</button>`;
+    });
+  }
+  function umPorTitulo(raiz){
+    raiz.querySelectorAll('h1,h2,h3,h4,label,.field-label,.gad-tit,.cx-cab').forEach(h => {
+      const qs = h.querySelectorAll('.ajuda-q'); for (let i = 1; i < qs.length; i++) qs[i].remove();
     });
   }
   function varre(raiz){
@@ -395,11 +407,11 @@ function ajudaPrimeiraVez(){
   }
   function inicia(){
     if (window.__pdqIniciado) return; window.__pdqIniciado = true;
-    varre(document.body);
+    varre(document.body); umPorTitulo(document);
     const fila = new Set();
     new MutationObserver(ms => {
       ms.forEach(m => m.addedNodes.forEach(nd => { if (nd.nodeType === 1 && !(nd.classList && (nd.classList.contains('ajuda-q') || nd.id === 'pdAjudaOv' || nd.id === 'pdAjudaFoco'))) fila.add(nd); }));
-      if (!agenda && fila.size) agenda = setTimeout(() => { agenda = 0; const l = [...fila]; fila.clear(); l.forEach(varre); }, 120);
+      if (!agenda && fila.size) agenda = setTimeout(() => { agenda = 0; const l = [...fila]; fila.clear(); l.forEach(varre); umPorTitulo(document); }, 120);
     }).observe(document.body, { childList: true, subtree: true });
   }
   window.ajudaAutoVarre = varre;
