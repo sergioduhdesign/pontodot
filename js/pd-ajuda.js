@@ -26,10 +26,35 @@ window.PD_AJUDA = {
 };
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
 window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola'];
+window.PD_AJUDA_ALVO = {
+  tarefas: ['#cxTarefas', '.gad[data-fk="gad-tarefas"]'],
+  trabalho: ['.gad[data-fk="gad-estudio"]', '#estBarra'],
+  copys: ['.gad[data-fk="gad-estudio"]', '#ajudaCopys', '.top'],
+  aprovacoes: ['.gad[data-fk="gad-aprovacoes"]'],
+  social: ['.gad[data-fk="gad-social"]'],
+  publicacao: ['.gad[data-fk="gad-publicacao"]'],
+  anuncios: ['.gad[data-fk="gad-anuncios"]'],
+  minhaia: ['.gad[data-fk="gad-minhaia"]'],
+  cronograma: ['.gad[data-fk="gad-cronograma"]'],
+  zap: ['.gad[data-fk="gad-zap"]'],
+  escola: ['.gad[data-fk="gad-escola"]'],
+  oficina: ['.gad[data-fk="gad-oficina"]'],
+  ias: ['.gad[data-fk="gad-ias"]'],
+  catum: ['#catPil'],
+  plataforma: [],
+};
+function ajudaAlvoEl(chave, origem){
+  if (origem && origem.closest){ const cx = origem.closest('.caixa,.card,.cxa,.top,.lado'); if (cx) return cx; }
+  for (const sel of (window.PD_AJUDA_ALVO[chave] || [])){
+    const el = document.querySelector(sel);
+    if (el && el.offsetParent !== null && el.getBoundingClientRect().width > 4) return el;
+  }
+  return null;
+}
 
 function ajudaBtn(chave, claro){
   if (!window.PD_AJUDA[chave]) return '';
-  return `<button type="button" class="ajuda-q${claro ? ' claro' : ''}" onclick="event.stopPropagation();abrirAjuda('${chave}')" title="O que é isso?" aria-label="Ajuda">?</button>`;
+  return `<button type="button" class="ajuda-q${claro ? ' claro' : ''}" onclick="event.stopPropagation();abrirAjuda('${chave}',undefined,this)" title="O que é isso?" aria-label="Ajuda">?</button>`;
 }
 function ajudaCss(){
   if (document.getElementById('ajudaCss')) return;
@@ -37,36 +62,63 @@ function ajudaCss(){
   st.textContent = `
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
-  #pdAjudaOv{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-  #pdAjudaOv .cxa{background:#fff;color:#121212;border-radius:16px;max-width:400px;width:100%;padding:26px 24px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:ajSurge .22s ease}
-  @keyframes ajSurge{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
-  #pdAjudaOv .kk{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.45;margin-bottom:10px}
-  #pdAjudaOv h3{margin:0 0 10px;font-size:19px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
-  #pdAjudaOv p{margin:0 0 18px;font-size:13.5px;line-height:1.6;opacity:.8;text-align:left}
-  #pdAjudaOv .pts{display:flex;gap:5px;justify-content:center;margin-bottom:14px}
+  #pdAjudaOv{position:fixed;inset:0;z-index:100002}
+  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:1.5px solid rgba(255,255,255,.95);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.42),0 0 0 4px rgba(255,255,255,.18);transition:top .28s ease,left .28s ease,width .28s ease,height .28s ease}
+  #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:ajSurge .22s ease}
+  #pdAjudaOv .cxa.centro{left:50%;top:50%;transform:translate(-50%,-50%)}
+  @keyframes ajSurge{from{opacity:0}to{opacity:1}}
+  #pdAjudaOv .kk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.45;margin-bottom:7px}
+  #pdAjudaOv h3{margin:0 0 7px;font-size:16.5px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
+  #pdAjudaOv p{margin:0 0 14px;font-size:13px;line-height:1.55;opacity:.8}
+  #pdAjudaOv .rodape{display:flex;align-items:center;gap:8px}
+  #pdAjudaOv .pts{display:flex;gap:4px;flex:1}
   #pdAjudaOv .pts i{width:5px;height:5px;border-radius:50%;background:#121212;opacity:.18}#pdAjudaOv .pts i.on{opacity:.9}
-  #pdAjudaOv .bts{display:flex;gap:8px;justify-content:center}
-  #pdAjudaOv .bt{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:999px;padding:9px 20px;font:500 12.5px/1 inherit;font-family:inherit;cursor:pointer}
+  #pdAjudaOv .bt{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:999px;padding:8px 16px;font:500 12px/1 inherit;font-family:inherit;cursor:pointer}
   #pdAjudaOv .bt.p{background:#121212;color:#fff;border-color:#121212}
   .entenda-pd{position:fixed;left:14px;bottom:14px;z-index:89;border:1px solid rgba(128,128,128,.35);background:rgba(20,20,22,.6);color:#fff;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:999px;padding:7px 13px;font:500 11px/1 inherit;font-family:inherit;letter-spacing:.03em;cursor:pointer;opacity:.6;display:inline-flex;align-items:center;gap:6px}
   .entenda-pd:hover{opacity:1}
   @media (max-width:999px){.entenda-pd{bottom:calc(14px + env(safe-area-inset-bottom));left:10px;padding:6px 11px}}`;
   document.head.appendChild(st);
 }
-function fecharAjuda(){ const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); }
-function abrirAjuda(chave, passo){
+function fecharAjuda(){ const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove(); }
+function ajudaPosiciona(cx, alvo){
+  // a caixinha fica PERTO da coisa: embaixo quando cabe, senão em cima, senão do lado
+  const m = 10, vw = innerWidth, vh = innerHeight, r = alvo.getBoundingClientRect(), c = cx.getBoundingClientRect();
+  let top, left = Math.max(12, Math.min(r.left, vw - c.width - 12));
+  if (r.bottom + m + c.height <= vh - 8) top = r.bottom + m;
+  else if (r.top - m - c.height >= 8) top = r.top - m - c.height;
+  else { top = Math.max(8, Math.min(r.top, vh - c.height - 8)); left = r.right + m + c.width <= vw - 8 ? r.right + m : Math.max(8, r.left - m - c.width); }
+  cx.style.top = top + 'px'; cx.style.left = left + 'px';
+}
+function abrirAjuda(chave, passo, origem){
   ajudaCss(); fecharAjuda();
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
+  const alvo = ajudaAlvoEl(chave, origem);
   const ov = document.createElement('div'); ov.id = 'pdAjudaOv';
   ov.onclick = e => { if (e.target === ov) fecharAjuda(); };
-  const pts = tour ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : '';
+  const pts = tour ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : '<span style="flex:1"></span>';
   const bts = tour
-    ? `<div class="bts">${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
-       ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}</div>`
-    : `<div class="bts"><button class="bt p" onclick="fecharAjuda()">Entendi</button></div>`;
-  ov.innerHTML = `<div class="cxa"><div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p>${pts}${bts}</div>`;
+    ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
+       ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
+    : `<button class="bt p" onclick="fecharAjuda()">Entendi</button>`;
+  ov.innerHTML = `<div class="cxa centro"><div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape">${pts}${bts}</div></div>`;
   document.body.appendChild(ov);
+  if (alvo){
+    try { alvo.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){}
+    requestAnimationFrame(() => {
+      const el = document.getElementById('pdAjudaOv'); if (!el) return;
+      const r = alvo.getBoundingClientRect();
+      if (r.width > 2 && r.height > 2){
+        const f = document.createElement('div'); f.id = 'pdAjudaFoco';
+        f.style.top = (r.top - 5) + 'px'; f.style.left = (r.left - 5) + 'px';
+        f.style.width = (r.width + 10) + 'px'; f.style.height = (r.height + 10) + 'px';
+        document.body.appendChild(f);
+        const cx = el.querySelector('.cxa'); cx.classList.remove('centro'); cx.style.transform = 'none';
+        ajudaPosiciona(cx, f);
+      }
+    });
+  }
   if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
 }
 function tourPlataforma(){ abrirAjuda(window.PD_TOUR[0], 0); }
