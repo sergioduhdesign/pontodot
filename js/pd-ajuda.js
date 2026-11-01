@@ -80,8 +80,8 @@ function ajudaCss(){
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
-  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:top .28s ease,left .28s ease,width .28s ease,height .28s ease,border-radius .28s ease}
-  #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:ajSurge .22s ease}
+  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:top .5s cubic-bezier(.22,.8,.26,.99),left .5s cubic-bezier(.22,.8,.26,.99),width .5s cubic-bezier(.22,.8,.26,.99),height .5s cubic-bezier(.22,.8,.26,.99),border-radius .5s cubic-bezier(.22,.8,.26,.99),opacity .35s ease}
+  #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:ajSurge .25s ease;opacity:1;transition:top .5s cubic-bezier(.22,.8,.26,.99),left .5s cubic-bezier(.22,.8,.26,.99),opacity .18s ease}
   #pdAjudaOv .cxa.centro{left:50%;top:50%;transform:translate(-50%,-50%)}
   @keyframes ajSurge{from{opacity:0}to{opacity:1}}
   #pdAjudaOv .kk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.45;margin-bottom:7px}
@@ -98,7 +98,10 @@ function ajudaCss(){
   document.head.appendChild(st);
 }
 let _ajudaDesfaz = null, _ajudaSegue = 0;
-function fecharAjuda(trocando){ _ajudaSegue++; const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
+function fecharAjuda(trocando){ _ajudaSegue++;
+  const o = document.getElementById('pdAjudaOv'), f = document.getElementById('pdAjudaFoco');
+  if (o){ o.id = ''; o.style.pointerEvents = 'none'; const cx = o.querySelector('.cxa'); if (cx) cx.style.opacity = '0'; setTimeout(() => o.remove(), 260); }
+  if (f){ f.id = ''; f.style.opacity = '0'; setTimeout(() => f.remove(), 380); }
   if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
   if (!trocando && window._ajudaDesfazTour){ try { window._ajudaDesfazTour(); } catch(e){} window._ajudaDesfazTour = null; } }
 function ajudaPosiciona(cx, r){
@@ -111,15 +114,29 @@ function ajudaPosiciona(cx, r){
   cx.style.top = top + 'px'; cx.style.left = left + 'px';
 }
 function abrirAjuda(chave, passo, origem){
-  ajudaCss(); fecharAjuda(true);
+  ajudaCss();
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
+  _ajudaSegue++;
+  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
   let espera = 0;
   if (tour && !origem){
     const abre = (window.PD_AJUDA_ABRE || {})[chave];
     if (abre){ try { const desfaz = abre(); if (desfaz){ _ajudaDesfaz = desfaz; espera = 520; } } catch(e){} }
   }
-  const ov = document.createElement('div'); ov.id = 'pdAjudaOv';
+  let ov = document.getElementById('pdAjudaOv');
+  if (ov){
+    const cx = ov.querySelector('.cxa');
+    const corpo = `<div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape">${tour
+      ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
+         ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
+      : `<span style="flex:1"></span><button class="bt p" onclick="fecharAjuda()">Entendi</button>`}</div>`;
+    if (cx){ cx.style.opacity = '0'; setTimeout(() => { cx.innerHTML = corpo; cx.style.opacity = '1'; }, 160); }
+    setTimeout(() => ajudaMira(chave, origem), Math.max(espera, 180));
+    if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
+    return;
+  }
+  ov = document.createElement('div'); ov.id = 'pdAjudaOv';
   ov.onclick = e => { if (e.target === ov) fecharAjuda(); };
   const pts = tour ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : '<span style="flex:1"></span>';
   const bts = tour
@@ -162,8 +179,9 @@ function ajudaMira(chave, origem, deNovo){
     const alvo = ajudaAlvoEl(chave, origem);
     const r = alvo ? ajudaRectW(alvo) : null;
     if (!r || r.width < 3 || r.height < 3){
-      // alvo sumiu (re-render, caixa fechando): some o foco e centraliza
-      const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
+      // alvo sumiu (re-render, caixa fechando): foco se apaga em fade e a caixinha centraliza
+      const f = document.getElementById('pdAjudaFoco');
+      if (f && !f.dataset.saindo){ f.dataset.saindo = '1'; f.style.opacity = '0'; setTimeout(() => { if (f.dataset.saindo) f.remove(); }, 400); }
       if (!cx.classList.contains('centro')){ cx.classList.add('centro'); cx.style.top = ''; cx.style.left = ''; cx.style.transform = ''; }
       ultimo = null; requestAnimationFrame(quadro); return;
     }
@@ -172,7 +190,8 @@ function ajudaMira(chave, origem, deNovo){
     const mudou = !ultimo || Math.abs(rr.top - ultimo.top) > 1.5 || Math.abs(rr.left - ultimo.left) > 1.5 || Math.abs(rr.width - ultimo.width) > 1.5 || Math.abs(rr.height - ultimo.height) > 1.5;
     if (mudou){
       let f = document.getElementById('pdAjudaFoco');
-      if (!f){ f = document.createElement('div'); f.id = 'pdAjudaFoco'; document.body.appendChild(f); }
+      if (!f){ f = document.createElement('div'); f.id = 'pdAjudaFoco'; f.style.opacity = '0'; document.body.appendChild(f); requestAnimationFrame(() => f.style.opacity = '1'); }
+      if (f.dataset.saindo){ delete f.dataset.saindo; f.style.opacity = '1'; }
       f.style.top = rr.top + 'px'; f.style.left = rr.left + 'px';
       f.style.width = rr.width + 'px'; f.style.height = rr.height + 'px';
       try { const cs = alvo.el.ownerDocument.defaultView.getComputedStyle(alvo.el);
