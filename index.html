@@ -2352,13 +2352,14 @@ pdAbertura(false);
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
+<script src="/js/pd-ajuda.js?v=312"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v311 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v312 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4328,8 +4329,9 @@ function campoAjusta(){}
 // ---------- DESK: gadgets ----------
 const ehDesk = () => matchMedia('(min-width:1000px)').matches;
 function gadCaixa(titulo, corpo, acao){
+  const ajk = (window.PD_AJUDA_TIT || {})[titulo];
   return `<div class="caixa painel" style="margin-top:0">
-    <h4>${titulo}</h4>${corpo}
+    <h4>${titulo}${ajk && window.ajudaBtn ? ajudaBtn(ajk) : ''}</h4>${corpo}
     ${acao?`<div style="margin-top:11px"><button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px" onclick="${acao[1].replace(/"/g,'&quot;')}">${acao[0]}</button></div>`:''}
   </div>`;
 }
@@ -5350,7 +5352,16 @@ function abrirEstudio(params){
       #estBarra .areas{display:flex;align-items:center;gap:2px;height:44px;margin-left:8px;padding:0 10px;border-left:1px solid rgba(128,128,128,.35)}#estBarra .ar{width:34px;height:32px;border:0;border-radius:8px;background:transparent;color:#121212;cursor:pointer;display:grid;place-items:center;opacity:.55;position:relative}#estBarra .ar svg{width:18px;height:18px}#estBarra .ar:hover{opacity:1;background:rgba(0,0,0,.06)}#estBarra .ar.tem{opacity:.9}#estBarra .ar.tem::after{content:'';position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:#1f8a55}#estBarra .ar.on{opacity:1;background:#121212;color:#fff}
       #estBarra .jan{display:flex;align-items:center;gap:4px;height:44px;margin-left:4px;padding-left:10px;border-left:1px solid rgba(128,128,128,.35)}#estBarra .jan button{width:30px;height:30px;border:1px solid rgba(128,128,128,.35);border-radius:7px;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center}#estBarra .jan button:hover{background:rgba(128,128,128,.14)}
       .gad .gad-ico.est-aceso{box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 22px rgba(255,255,255,.55);animation:estPulsa 1.6s ease-in-out infinite}html.dia .frente .gad .gad-ico.est-aceso{box-shadow:0 0 0 2px rgba(26,27,30,.6),0 0 18px rgba(26,27,30,.35)}
-      @keyframes estPulsa{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`; document.head.appendChild(st); }
+      @keyframes estPulsa{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+      @media (max-width:999px){
+        #estBarra{height:52px;padding:0 6px;gap:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+        #estBarra::-webkit-scrollbar{display:none}
+        #estBarra .marca span{display:none}#estBarra .marca img{height:13px}
+        #estBarra .eb{padding:6px 9px;font-size:11px}
+        #estBarra .abas .aba .nm{max-width:72px}
+        #estBarra .ar{width:40px;height:38px}#estBarra .ar svg{width:20px;height:20px}
+        #estBarra .jan button{width:36px;height:36px}
+      }`; document.head.appendChild(st); }
     document.body.appendChild(ov);
     window.addEventListener('message', e => { const d = e.data || {}; if (d.tipo === 'est-nome'){ const ab = EST_ABAS.find(x => x.iframe.contentWindow === e.source); if (ab && (ab.nome !== d.nome || ab.dirty !== !!d.dirty)){ ab.nome = d.nome; ab.dirty = !!d.dirty; estAbasRender(); } } else if (d.tipo === 'est-aviso'){ balaoIA(d); if (OFI.d) ofiCarrega(); } else if (d.tipo === 'est-filme'){ abrirEstudio('area=video' + (d.cliente ? '&cliente=' + d.cliente : '')); } else if (d.tipo === 'est-cortes'){ abrirEstudio('area=video&cortes=1' + (d.cliente ? '&cliente=' + d.cliente : '')); } else if (d.tipo === 'est-area'){ estIrArea(d.area, d.cliente); } else if (d.tipo === 'est-acao'){ const ab = EST_ABAS.find(x => x.iframe.contentWindow === e.source); const A = { arquivos: () => estArquivos(), minimizar: () => estMinimizar(), fechar: () => ab && estAbaFecha(ab.id), tema: () => alternarTema(), habilidades: () => { estMinimizar(); abrirHabilidades(); }, som: () => alternarSom(), avisos: () => { estMinimizar(); avisosSituacao(); }, atualizar: () => location.reload(), versao: () => toast('pontodot ' + (window.SD_VERSAO || '')) }; try { (A[d.acao] || (() => {}))(); } catch(err){} } else if (d.tipo === 'est-tarefa'){ try { carregarReal().catch(() => {}); toast('Tarefa ' + d.id + ' criada no funil.'); } catch(e){} } });
   }
@@ -5371,7 +5382,7 @@ function estAbasRender(){ const el = document.getElementById('estBarra'); if (!e
   el.innerHTML = `<div class="marca" title="PD Studio"><img src="assets/logo-pontodot-white.svg" alt="pontodot" class="lg-w"><img src="assets/logo-pontodot.svg" alt="pontodot" class="lg-k" style="display:none"><span>studio design</span></div>
     <button class="eb ${EST_ARQ_ABERTO ? 'on' : ''}" onclick="estArquivos()" title="Todos os arquivos — abrem em abas, sem sair daqui">Arquivos</button>
     <div class="abas">${EST_ABAS.map(a => `<span class="aba ${a.id === EST_ATUAL ? 'on' : ''}" onclick="estAbaVai('${a.id}')" title="${esc(a.nome)} · ${(PD_AREAS[a.area] || {}).nome || ''}"><span style="opacity:.55;display:inline-flex">${I((PD_AREAS[a.area] || PD_AREAS.digital).ico)}</span><span class="nm">${esc(a.nome)}</span>${a.dirty ? '<small style="opacity:.6">•</small>' : ''}<button class="x" title="Fechar esta peça" onclick="event.stopPropagation();estAbaFecha('${a.id}')">×</button></span>`).join('')}<button class="mais" title="Nova aba (na área que estiver aberta)" onclick="abrirEstudio('area=' + ((EST_ABAS.find(x => x.id === EST_ATUAL) || {}).area || 'digital'))">+</button></div>
-    <div class="areas">${Object.entries(PD_AREAS).map(([k, a]) => `<button class="ar ${EST_ABAS.some(x => x.id === EST_ATUAL && x.area === k) ? 'on' : ''} ${EST_ABAS.some(x => x.area === k) ? 'tem' : ''}" style="${estLiberada(k) ? '' : 'opacity:.28;filter:grayscale(1)'}" title="${a.nome}${estLiberada(k) ? (EST_ABAS.some(x => x.area === k) ? ' · aberta' : '') : ' · ainda não liberada para você'}" onclick="estIrArea('${k}')">${I(a.ico)}</button>`).join('')}</div>
+    <div class="areas">${Object.entries(PD_AREAS).filter(([k]) => ehDesk() || estLiberada(k)).map(([k, a]) => `<button class="ar ${EST_ABAS.some(x => x.id === EST_ATUAL && x.area === k) ? 'on' : ''} ${EST_ABAS.some(x => x.area === k) ? 'tem' : ''}" style="${estLiberada(k) ? '' : 'opacity:.28;filter:grayscale(1)'}" title="${a.nome}${estLiberada(k) ? (EST_ABAS.some(x => x.area === k) ? ' · aberta' : '') : ' · ainda não liberada para você'}" onclick="estIrArea('${k}')">${I(a.ico)}</button>`).join('')}</div>
     <div class="jan"><button title="Minimizar: o Studio Design continua trabalhando; o ícone na home fica aceso" onclick="estMinimizar()">${I('<path d="M5 12h14"/>')}</button><button title="Fechar o Studio Design (todas as abas)" onclick="estFecharTudo()">${I('<path d="M6 6l12 12M18 6 6 18"/>')}</button></div>`;
   el.querySelector('.lg-w').style.display = 'none'; el.querySelector('.lg-k').style.display = ''; }
 let EST_ARQ_ABERTO = false, EST_MIN = false;
@@ -5397,11 +5408,9 @@ async function catFala(dados){
 const catNome = p => { const s = String(p || ''); return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'IA'; };
 const catMinTxt = m => { m = Math.round(+m || 0); return m >= 60 ? (Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '')) : (m + ' min'); };
 function catLinha(l){
-  if (!l) return 'Hora de Catum · Copy · sem leitura';
+  if (!l || l.estado === 'sem_leitura') return 'Hora de Catum · ainda sem trabalhos pra medir';
   const nome = catNome(l.personagem);
-  if (l.estado === 'sem_leitura') return 'Hora de Catum · ' + nome + ' · sem leitura';
-  if (l.estado === 'em_formacao') return 'Hora de Catum · ' + nome + ' · em formação · ' + l.primeira + ' de ' + l.avaliadas + ' de primeira';
-  return 'Hora de Catum · ' + nome + ' · ' + Math.round(l.prontidao * 100) + '% de primeira' + (l.tendencia === 'sobe' ? ' ↑' : l.tendencia === 'cai' ? ' ↓' : '');
+  return 'Hora de Catum · ' + nome + ' acertou ' + l.primeira + ' de ' + l.avaliadas + (l.tendencia === 'sobe' ? ' ↑' : l.tendencia === 'cai' ? ' ↓' : '');
 }
 function catPilula(){
   let el = document.getElementById('catPil');
@@ -5425,25 +5434,25 @@ function htmlCatum(){
   if (!D) return `<h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Hora de Catum</h3><p style="font-size:14px;line-height:1.5">${esc(CAT.erro || 'Carregando…')}</p>`;
   const T = D.tarefa || {}, L = D.leituras || [], AC = D.a_classificar || [];
   const cards = L.length ? L.map(l => {
-    const est = l.estado === 'sem_leitura' ? 'Sem leitura' : l.estado === 'em_formacao' ? 'Em formação' : 'Cotada';
-    const falta = l.estado === 'cotada' ? '' : `<div style="opacity:.7;font-size:12.5px;margin-top:4px">Faltam ${Math.max(0, l.minimo - l.avaliadas)} peças avaliadas para mostrar a cotação (mínimo ${l.minimo}). Antes disso, nenhuma porcentagem.</div>`;
+    const frase = l.avaliadas === 0 ? 'ainda não tem trabalho avaliado'
+      : `acertou de primeira <b>${l.primeira} de ${l.avaliadas}</b>` + (l.estado === 'cotada' ? ` — pronta pra assumir ${Math.round(l.prontidao * 100)}% das vezes` : '');
+    const falta = l.estado === 'cotada' ? '' : l.avaliadas === 0 ? '' : `<div style="opacity:.65;font-size:12px;margin-top:4px">Ainda aprendendo: a leitura firma com ${l.minimo} trabalhos avaliados (tem ${l.avaliadas}).</div>`;
     return `<div style="border-top:1px solid rgba(128,128,128,.3);padding:12px 0">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:15px">${esc(catNome(l.personagem))}</b><span style="font-size:11.5px;opacity:.8">${est}${l.tendencia ? ' · ' + (l.tendencia === 'sobe' ? 'tendência de alta' : l.tendencia === 'cai' ? 'tendência de queda' : 'estável') : ''}</span></div>
-      <div style="font-size:13.5px;margin-top:6px"><b>${l.primeira} de ${l.avaliadas}</b> aprovadas de primeira${l.estado === 'cotada' ? ' · <b>' + Math.round(l.prontidao * 100) + '%</b>' : ''}</div>${falta}
-      <div style="font-size:12.5px;opacity:.85;margin-top:6px;line-height:1.5">Equivalente entregue sem correção: <b>${catMinTxt(l.equivalente_min)}</b> de trabalho humano de referência.<br>Tempo devolvido (estimativa; a revisão do humano ainda não é medida): <b>${catMinTxt(l.devolvido_min)}</b>${l.correcoes_com_minutos ? ' · ' + l.correcoes_com_minutos + ' correção(ões) com minutos registrados' : ''}.${l.ia_seg_medio_por_peca ? '<br>Tempo médio da IA por peça: ' + l.ia_seg_medio_por_peca + ' s.' : ''}</div>
-      <div style="font-size:11.5px;opacity:.65;margin-top:6px">${l.fora_da_conta ? l.fora_da_conta + ' correção(ões) por mudança de direção ou briefing ambíguo, fora da conta. ' : ''}${l.pendentes ? l.pendentes + ' peça(s) aguardando aprovação interna. ' : ''}${l.atribuicao === 'mestre_da_area' ? 'Copy sem registro de autoria: atribuída ao mestre da área.' : ''}</div></div>`;
-  }).join('') : `<div style="border-top:1px solid rgba(128,128,128,.3);padding:14px 0;font-size:13.5px;line-height:1.5">Nenhuma copy avaliada ainda. <b>Sem leitura não é zero</b>: significa que ainda não houve trabalho para medir. A primeira leitura nasce quando as peças de uma copy passam pela aprovação interna.</div>`;
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:15px">${esc(catNome(l.personagem))}</b><span style="font-size:11.5px;opacity:.8">${l.tendencia === 'sobe' ? 'melhorando ↑' : l.tendencia === 'cai' ? 'piorando ↓' : ''}</span></div>
+      <div style="font-size:14px;margin-top:6px">${frase}</div>${falta}
+      <div style="font-size:12.5px;opacity:.85;margin-top:6px;line-height:1.5">Tempo humano que esse trabalho valeria: <b>${catMinTxt(l.equivalente_min)}</b>.${l.ia_seg_medio_por_peca ? ' A IA leva em média ' + l.ia_seg_medio_por_peca + ' s por peça.' : ''}</div>
+      <div style="font-size:11.5px;opacity:.6;margin-top:6px">${l.fora_da_conta ? l.fora_da_conta + ' correção(ões) que não foram culpa dela (mudança de direção ou briefing vago). ' : ''}${l.pendentes ? l.pendentes + ' peça(s) esperando o "tá bom pra mostrar". ' : ''}${l.atribuicao === 'mestre_da_area' ? 'Copys antigas sem autoria: contadas pro mestre da área.' : ''}</div></div>`;
+  }).join('') : `<div style="border-top:1px solid rgba(128,128,128,.3);padding:14px 0;font-size:13.5px;line-height:1.5">Ainda não tem trabalho pra medir. A primeira leitura nasce quando uma copy passa pelo "tá bom pra mostrar" da revisão interna.</div>`;
   const motivos = AC.length ? `<div style="border-top:1px solid rgba(128,128,128,.3);padding:12px 0"><b style="font-size:13.5px">Correções a classificar (${AC.length})</b>
-      <div style="font-size:12px;opacity:.75;margin:3px 0 8px;line-height:1.45">Marque por que a peça foi corrigida. Só "erro da IA" conta contra a cotação. Os minutos que o humano gastou são opcionais.</div>
+      <div style="font-size:12px;opacity:.75;margin:3px 0 8px;line-height:1.45">Por que corrigiu? Só "erro da IA" pesa contra ela.</div>
       ${AC.map((a, i) => `<div style="padding:8px 0;border-top:1px dashed rgba(128,128,128,.25)"><div style="font-size:12.5px"><b>${esc(a.copy)}</b> · ${esc(a.titulo)} · v${a.versao} · ${esc(catNome(a.personagem))}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px"><input id="catMin${i}" type="number" min="0" placeholder="min" style="width:62px;padding:5px 7px;border-radius:7px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit">
           <button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="catMotivo('${esc(a.item_id)}','erro_ia',${i})">Erro da IA</button>
           <button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="catMotivo('${esc(a.item_id)}','mudanca_direcao',${i})">Mudou a direção</button>
           <button class="btn" style="min-height:30px;padding:4px 10px;font-size:11.5px" onclick="catMotivo('${esc(a.item_id)}','briefing_ambiguo',${i})">Briefing ambíguo</button></div></div>`).join('')}</div>` : '';
   const aviso = D.tabela_motivos === false ? `<p style="font-size:12.5px;color:#b45309">Falta rodar o SQL v134 no Supabase para gravar motivos e a tabela de referência.</p>` : '';
-  return `<h3 style="margin:0 0 4px;font-size:21px;font-weight:400">Hora de Catum</h3>
-    <p style="margin:0 0 8px;font-size:13px;opacity:.8">Já posso confiar este trabalho a esta IA? Por enquanto, só <b>${esc(T.nome || 'Copy')}</b>.</p>${aviso}${cards}${motivos}
-    <p style="font-size:11.5px;opacity:.6;line-height:1.5;margin:12px 0 0">Unidade: ${esc(T.unidade || '')}. Referência humana: ${esc(String(T.ref_min || ''))} min de trabalho ativo (${esc(T.ref_origem || '')}); é estimativa de planejamento, ainda não validada com dados da SD. "De primeira" = o humano topa usar, na aprovação interna; o cliente não entra na conta.</p>
+  return `<h3 style="margin:0 0 4px;font-size:21px;font-weight:400">Hora de Catum ${ajudaBtn('catum')}</h3>
+    <p style="margin:0 0 8px;font-size:13px;opacity:.8">Já dá pra confiar o trabalho a essa IA? Por enquanto, só <b>${esc(T.nome || 'Copy')}</b>.</p>${aviso}${cards}${motivos}
     <button class="btn" style="margin-top:12px;min-height:40px;width:100%;justify-content:center" onclick="fecharJanela()">Fechar</button>`;
 }
 function abrirCatum(){
@@ -5525,7 +5534,8 @@ function htmlEstudio(){
   const linhaP = (p, todos) => `<div class="esc-it" style="display:flex;gap:8px;align-items:center;padding:8px 0"><span style="display:flex;gap:8px;align-items:center;flex:1;min-width:0;cursor:pointer" onclick="${todos ? 'fecharJanela();' : ''}abrirEstudio('${estAbreParams(p)}')">${estIcoTipo(p.tipo, 16)}${p.thumb_url ? `<img src="${esc(p.thumb_url)}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0">` : ''}<span style="min-width:0"><b style="display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nome)}${p.oculta && todos ? ' <small class="nota">∅</small>' : ''}</b><small class="nota">${esc(p.cliente || 'sem cliente')} · ${esc(p.sub || '')} · ${new Date(p.mudado_em).toLocaleDateString('pt-BR')}</small></span></span>${p.tipo === 'audio' && p.audio_url ? `<button ${ib2} title="Ouvir" onclick="event.stopPropagation();estOuve('${esc(p.audio_url)}')">${ofiIco('<path d="m8 5 11 7-11 7z" fill="currentColor"/>', 13)}</button>` : ''}${todos ? `<button ${ib2} title="Apagar (e mandar os arquivos do Drive pra lixeira)" onclick="estApagar('${p.id}')">${ofiIco('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', 14)}</button>` : (p.tipo === 'arte' || p.tipo === 'grafica' || p.tipo === 'video' ? `<button ${ib2} title="Tirar da lista da home" onclick="estOcultar('${p.id}')">${ofiIco('<path d="M6 6l12 12M18 6 6 18"/>', 14)}</button>` : `<button ${ib2} title="Apagar" onclick="estApagar('${p.id}')">${ofiIco('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', 14)}</button>`)}</div>`;
   const minim = EST_MIN && EST_ABAS.length ? `<div class="esc-it" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 0" onclick="estRestaurar()"><span style="width:10px;height:10px;border-radius:50%;background:var(--verde,#1f8a55);box-shadow:0 0 10px var(--verde,#1f8a55);flex-shrink:0;animation:estPulsa 1.6s ease-in-out infinite"></span><span style="flex:1;font-size:12.5px"><b>Studio Design aberto</b> · ${EST_ABAS.length} ${EST_ABAS.length > 1 ? 'peças' : 'peça'}: ${esc(EST_ABAS.map(a => a.nome).join(', ')).slice(0, 80)}</span><small class="nota" style="margin:0">voltar →</small></div>` : '';
   const I5 = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-  const areas = `<div class="nota" style="margin:0 0 6px"><b>PD · Studio Design</b> · as cinco áreas de trabalho</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 10px">${Object.entries(PD_AREAS).map(([k, a]) => { const aberta = EST_ABAS.some(x => x.area === k); return `<button class="btn" style="min-height:46px;padding:6px 4px;display:grid;place-items:center;position:relative;${estLiberada(k) ? '' : 'opacity:.3;filter:grayscale(1);'}${aberta ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : ''}" title="${a.nome}${estLiberada(k) ? (aberta ? ' · aberta' : '') : ' · ainda não liberada para você'}" onclick="estIrArea('${k}', ($('#estCli') || {}).value || '')">${I5(a.ico)}${aberta ? '<i style="position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--verde,#1f8a55);animation:estPulsa 1.6s ease-in-out infinite"></i>' : ''}</button>`; }).join('')}</div>`;
+  const areasVis = Object.entries(PD_AREAS).filter(([k]) => ehDesk() || estLiberada(k));
+  const areas = `<div class="nota" style="margin:0 0 6px">Suas ferramentas · apagada = ainda não liberada pra você</div><div style="display:grid;grid-template-columns:repeat(${Math.max(areasVis.length, 1)},1fr);gap:6px;margin:0 0 10px">${areasVis.map(([k, a]) => { const aberta = EST_ABAS.some(x => x.area === k); return `<button class="btn" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;position:relative;${estLiberada(k) ? '' : 'opacity:.3;filter:grayscale(1);'}${aberta ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : ''}" title="${a.nome}${estLiberada(k) ? (aberta ? ' · aberta' : '') : ' · ainda não liberada para você'}" onclick="estIrArea('${k}', ($('#estCli') || {}).value || '')">${I5(a.ico)}${aberta ? '<i style="position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--verde,#1f8a55);animation:estPulsa 1.6s ease-in-out infinite"></i>' : ''}</button>`; }).join('')}</div>`;
   const visiveis = (EST.d || []).filter(p => !p.oculta); const lista = minim + areas + `<div class="esc-bt" style="margin:0 0 6px;align-items:center"><span class="nota" style="margin:0;flex:1">${visiveis.length ? 'trabalhos recentes' : ''}</span><button class="btn" style="min-height:34px;width:34px;padding:0;display:inline-grid;place-items:center" title="Ver todos os trabalhos (com busca; apaga o que sobrou)" onclick="estTodas()">${ofiIco('<path d="M4 6h16M4 12h16M4 18h10"/>', 16)}</button></div>` + visiveis.slice(0, 6).map(p => linhaP(p, false)).join('') + htmlPautas();
   window.estLinhaP = linhaP;
   return gadCaixa('Trabalho', (EST.msg ? `<div class="nota" style="margin:0 0 6px">${esc(EST.msg)}</div>` : '') +
@@ -6130,7 +6140,7 @@ function novoChat(){
 }
 function novaTarefa(){ novoChat(); }
 // No app (celular) o conjunto é FIXO: não dá para pôr nem tirar. Só o que importa no dia a dia.
-const GADGETS_APP = ['tarefas','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','escola'];
+const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','escola'];
 function gadgetsDaTela(){ return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
 
 // setinha à direita: avisa que há mais caixinhas para rolar
@@ -8096,6 +8106,7 @@ async function entrarReal(session){
   }
   window.REAL = true;
   setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
+  if (perfil.role !== 'client') setTimeout(() => { try { ajudaPrimeiraVez(); } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }
   sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
