@@ -86,6 +86,8 @@ function ajudaCss(){
   st.textContent = `
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
+  h1>.ajuda-q,h2>.ajuda-q,h3>.ajuda-q,h4>.ajuda-q{float:right;margin-left:8px;text-transform:none;letter-spacing:0;position:relative}
+  .ajuda-q{position:relative}.ajuda-q::after{content:'';position:absolute;inset:-9px}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
   #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:opacity .32s ease;animation:ajBrilho 2.6s ease-in-out infinite}
   @keyframes ajBrilho{0%,100%{box-shadow:0 0 14px 2px rgba(255,255,255,.45),0 0 40px 10px rgba(255,255,255,.16),0 0 0 9999px rgba(0,0,0,.45)}50%{box-shadow:0 0 22px 4px rgba(255,255,255,.75),0 0 60px 16px rgba(255,255,255,.3),0 0 0 9999px rgba(0,0,0,.45)}}
@@ -260,3 +262,91 @@ function ajudaPrimeiraVez(){
   let visto = null; try { visto = localStorage.getItem('sd_tour_v1'); } catch(e){}
   if (!visto) setTimeout(tourPlataforma, 1200);
 }
+
+/* ===== "?" automático: explicação longa (nota/dica) vira uma linha curta + ? ao lado; clicou, a caixinha explica ===== */
+(function(){
+  const SEL = '.nota,.vazio,.esc-lead2,.esc-nota,.hint,.dica';
+  const MUDO = /\b(erro|falhou|falha|n[ãa]o foi poss[ií]vel|rode o sql|expir|sem permiss|tente de novo|n[ãa]o consegui|servidor)\b/i;
+  const NAO = '.comment,.comments-list,.cmt,.msg,.bolha,.conversa,.t-linha,.det-pop,textarea,input,pre,code,td,th,.cxa,#pdAjudaOv,[contenteditable],.balao,#toast,.toast,.ajuda-ok';
+  const ESTILO = '[style*="color:var(--text3)"],[style*="color:var(--branco2)"],[style*="color: var(--text3)"]';
+  let n = 0, agenda = 0;
+  function limpo(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
+  function ehCandidato(el){
+    if (!el || el.dataset.pdq || !el.closest) return false;
+    if (el.closest(NAO)) return false;
+    if (el.querySelector('div,p,ul,ol,table,button,input,select,textarea,img,svg,h1,h2,h3,h4,a[href]')) return false;
+    if ((el.getAttribute('style') || '').indexOf('pre-wrap') > -1) return false;
+    const t = limpo(el.textContent); if (t.length < 48 || MUDO.test(t)) return false;
+    if (!el.matches(SEL)){
+      const fs = parseFloat((el.style && el.style.fontSize) || '0');
+      if (!(fs > 0 && fs <= 12.6)) return false;
+    }
+    return true;
+  }
+  function titulo(el){
+    let x = el;
+    for (let i = 0; i < 4 && x; i++, x = x.parentElement){
+      let a = x.previousElementSibling;
+      while (a){ if (/^H[1-4]$/.test(a.tagName) || /gad-tit|cx-cab/.test(a.className || '')){ const t = limpo(a.textContent).replace(/\?$/, ''); if (t) return t; } a = a.previousElementSibling; }
+      const h = x.querySelector && x.querySelector('h2,h3,h4'); if (h){ const t = limpo(h.textContent); if (t) return t; }
+    }
+    return 'Como funciona';
+  }
+  // o cabeçalho (título da seção) logo acima do texto: o ? mora no cantinho dele
+  function cabecalhoDe(el){
+    const r0 = el.getBoundingClientRect(); if (!r0.height && !r0.width) return null;
+    let x = el;
+    for (let i = 0; i < 3 && x && x.parentElement; i++, x = x.parentElement){
+      let a = x.previousElementSibling;
+      while (a){
+        if (/^H[1-4]$/.test(a.tagName) || /(^|\s)(gad-tit|cx-cab|sec-t|tit)(\s|$)/.test(a.className || '')){
+          const r = a.getBoundingClientRect();
+          if (r0.top - r.bottom < 280 && r.height < 60 && limpo(a.textContent).length < 60) return a;
+          return null;
+        }
+        a = a.previousElementSibling;
+      }
+    }
+    return null;
+  }
+  function resumo(t){
+    const m = t.match(/^(.{20,95}?[.!?])(\s|$)/); if (m) return m[1];
+    if (t.length <= 95) return t;
+    const c = t.slice(0, 84); const k = c.lastIndexOf(' '); return (k > 40 ? c.slice(0, k) : c) + '…';
+  }
+  function converte(el){
+    const chave = 'auto' + (++n), html = el.innerHTML, t = limpo(el.textContent);
+    window.PD_AJUDA[chave] = { t: titulo(el), p: html };
+    el.dataset.pdq = '1';
+    const q = `<button type="button" class="ajuda-q" onclick="event.stopPropagation();abrirAjuda('${chave}',undefined,this)" title="Ler a explicação" aria-label="Explicação">?</button>`;
+    // logo abaixo de um título: o texto some e o ? vai pro lado do título
+    const vazio = /^(nenhum|nenhuma|sem |ainda n|nada |prancheta vazia)/i.test(t);
+    const cab = vazio ? null : cabecalhoDe(el);
+    if (cab){
+      const ja = cab.querySelector('.ajuda-q[data-auto]');
+      if (ja){ const k = ja.dataset.auto; window.PD_AJUDA[k].p += '<br><br>' + html; delete window.PD_AJUDA[chave]; }
+      else { cab.insertAdjacentHTML('beforeend', q.replace('<button ', '<button data-auto="' + chave + '" ')); }
+      el.style.display = 'none'; return;
+    }
+    el.innerHTML = esc2(resumo(t)).replace(/\s+(\S+)$/, '\u00a0$1') + '\u00a0' + q;
+  }
+  function esc2(s){ return String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])); }
+  function varre(raiz){
+    if (!raiz || raiz.nodeType !== 1) return;
+    ajudaCss();
+    const lista = []; if (raiz.matches && (raiz.matches(SEL) || raiz.matches(ESTILO))) lista.push(raiz);
+    raiz.querySelectorAll(SEL + ',' + ESTILO).forEach(e => lista.push(e));
+    lista.forEach(e => { try { if (ehCandidato(e)) converte(e); } catch(err){} });
+  }
+  function inicia(){
+    if (window.__pdqIniciado) return; window.__pdqIniciado = true;
+    varre(document.body);
+    const fila = new Set();
+    new MutationObserver(ms => {
+      ms.forEach(m => m.addedNodes.forEach(nd => { if (nd.nodeType === 1 && !(nd.classList && (nd.classList.contains('ajuda-q') || nd.id === 'pdAjudaOv' || nd.id === 'pdAjudaFoco'))) fila.add(nd); }));
+      if (!agenda && fila.size) agenda = setTimeout(() => { agenda = 0; const l = [...fila]; fila.clear(); l.forEach(varre); }, 120);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  window.ajudaAutoVarre = varre;
+  if (document.body) inicia(); else document.addEventListener('DOMContentLoaded', inicia);
+})();

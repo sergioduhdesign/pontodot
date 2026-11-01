@@ -1825,6 +1825,19 @@ html.dia .historico .vida-mini{background:rgba(26,27,30,.06);border-color:rgba(2
 #menuMais b{font-weight:500;font-size:14.5px}#menuMais small{font-size:11.5px;opacity:.6}
 html.dia #menuMais{background:rgba(244,243,239,.94)}html.dia #menuMais button:hover{background:rgba(0,0,0,.07)}
 </style>
+<style id="fade-geral">
+/* tudo que aparece/some entra e sai em FADE (nada seco): véus com blur, caixa de tarefa, menus, quadro do verso */
+.fundo .veu{-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:backdrop-filter .55s ease,-webkit-backdrop-filter .55s ease}
+.fundo .veu::after{content:'';position:absolute;inset:0;background:rgba(6,7,6,.9);opacity:0;transition:opacity .55s ease;pointer-events:none}
+.hist-veu,.arte-view,.tarefa-cheia,.menu-ctx,.solta-aqui{transition:opacity .32s ease,display .32s allow-discrete,overlay .32s allow-discrete}
+.hist-veu.oculto,.arte-view.oculto,.tarefa-cheia.oculto,.menu-ctx.oculto,.solta-aqui.oculto{opacity:0}
+.hist-veu:not(.oculto),.arte-view:not(.oculto),.tarefa-cheia:not(.oculto),.menu-ctx:not(.oculto),.solta-aqui:not(.oculto){opacity:1}
+@starting-style{.hist-veu:not(.oculto),.arte-view:not(.oculto),.tarefa-cheia:not(.oculto),.menu-ctx:not(.oculto),.solta-aqui:not(.oculto){opacity:0}}
+.picker-veu.saindo,.picker-pop.saindo{opacity:0;transition:opacity .28s ease;pointer-events:none}
+/* a caixa de tarefa e o menu também descem de leve ao sair */
+.tarefa-cheia.oculto>*{transform:translateY(10px) scale(.985)}
+.tarefa-cheia>*{transition:transform .32s ease}
+</style>
 <style id="gad-empacota">
 /* desktop: as caixinhas se encaixam no espaço (grade densa): as pequenas sobem e preenchem vertical e horizontal */
 @media(min-width:1000px){
@@ -1875,7 +1888,8 @@ html.dia #menuMais{background:rgba(244,243,239,.94)}html.dia #menuMais button:ho
   .hist-pin{display:none}
   .hist-mini{padding:8px;opacity:.7}
   /* chat aberto: escurece tudo que está atrás; sobra o texto da conversa e um X no canto direito */
-  html.emChat .frente .fundo .veu{background:rgba(6,7,6,.9)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:veuEntra .5s ease both}
+  html.emChat .frente .fundo .veu{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  html.emChat .frente .fundo .veu::after{opacity:1}
   html.emChat .lado.frente::before{content:'';position:absolute;inset:0;z-index:1;background:rgba(6,7,6,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);pointer-events:none;animation:veuEntra .5s ease both}
   html.emChat .frente .tela{z-index:2}
   html.dia.emChat .lado.frente::before,html.dia .lado.frente:has(#campo:focus)::before{background:rgba(244,243,239,.94)}   /* modo dia: véu claro, o texto escuro continua legível */
@@ -2361,14 +2375,14 @@ pdAbertura(false);
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
-<script src="/js/pd-ajuda.js?v=312"></script>
+<script src="/js/pd-ajuda.js?v=313"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v321 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v322 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5867,7 +5881,9 @@ try { if (!localStorage.getItem('sd_gad_mig_3')) {
   localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); localStorage.setItem('sd_gad_mig_3','1'); } } catch(e){}
 function salvarGadgets(){ try { localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); } catch(e){} }
 let pickerAberto = false;
-function abrirPicker(){ if (!ehDesk()) return; pickerAberto = !pickerAberto; $('#cluster')?.classList.toggle('esc', pickerAberto); render(); }
+function abrirPicker(){ if (!ehDesk()) return;
+  if (pickerAberto){ const el = document.querySelectorAll('.picker-veu,.picker-pop'); if (el.length){ el.forEach(x => x.classList.add('saindo')); $('#cluster')?.classList.remove('esc'); clearTimeout(window._pkSai); window._pkSai = setTimeout(() => { pickerAberto = false; render(); }, 280); return; } }
+  pickerAberto = !pickerAberto; $('#cluster')?.classList.toggle('esc', pickerAberto); render(); }
 function alternarGadget(id){
   if (GADGETS[id].fixo) return;
   meusGadgets = meusGadgets.includes(id) ? meusGadgets.filter(x=>x!==id) : [...meusGadgets, id];
