@@ -5618,8 +5618,8 @@ function htmlIAs(){
   if (!window.REAL) return gadCaixa('Inteligências da casa', `<div class="nota">Entre na sua conta.</div>`);
   if (!IACASA.d && !IACASA.msg){ iasCarrega(); return gadCaixa('Inteligências da casa', `<div class="nota">Carregando…</div>`); }
   const linha = ia => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:.5px solid var(--sep)"><img src="/icone-ia.php?p=${encodeURIComponent(ia.personagem)}&s=64" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
-    <div style="min-width:0"><b style="font-size:12.5px">${esc(ia.nome)}</b> <small class="nota">· ${esc(ia.titulo || '')}${ia.dona ? ' · de ' + esc(ia.dona) : ''}</small><div class="nota" style="font-size:11px;line-height:1.35">${esc((ia.aptas || []).join(' · '))}</div></div></div>`;
-  const d = IACASA.d; const lista = (d.fixas || []).map(linha).join('') + ((d.ias || []).map(linha).join('') || '<div class="nota" style="padding:6px 0">Nenhuma IA agêntica habilitada ainda. Elas entram aqui quando ficam aptas na Escola.</div>');
+    <div style="min-width:0"><b style="font-size:12.5px">${esc(ia.nome)}</b> <small class="nota">· ${esc(ia.titulo || '')}${ia.dona ? ' · de ' + esc(ia.dona) : ''}</small><div class="nota" style="font-size:11px;line-height:1.35">${(ia.aptas || []).length ? esc(ia.aptas.join(' · ')) : (ia.fixa ? '' : 'estudando na escola — ainda não assumiu trabalho')}</div></div></div>`;
+  const d = IACASA.d; const lista = (d.fixas || []).map(linha).join('') + ((d.ias || []).map(linha).join('') || '<div class="nota" style="padding:6px 0">Nenhuma IA da equipe ainda. Elas aparecem aqui assim que cada pessoa faz o teste e escolhe a sua.</div>');
   return gadCaixa('Inteligências da casa', (IACASA.msg ? `<div class="nota">${esc(IACASA.msg)}</div>` : '') + lista, ['Atualizar', 'IACASA.d=null;renderBoard()']);
 }
 

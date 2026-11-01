@@ -143,12 +143,15 @@ if ($acao === 'ias_casa') {   // as IAs agênticas já habilitadas (formação a
     $forms = pdAulaSup('/rest/v1/pd_formacoes?ativa=eq.true&select=ia_user_id,personagem,skill_id,apta_em&limit=500')['body'] ?? [];
     $jeito = pdAulaSup('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=200')['body'] ?? []; $jm = []; foreach ($jeito as $j) $jm[$j['user_id']] = $j;
     $sk = pdAulaSup('/rest/v1/pd_habilidades?ativa=eq.true&select=skill_id,nome')['body'] ?? []; $sn = []; foreach ($sk as $x) $sn[$x['skill_id']] = $x['nome'];
-    $pf = pdAulaSup('/rest/v1/profiles?select=id,name&limit=300')['body'] ?? []; $nm = []; foreach ($pf as $p) $nm[$p['id']] = $p['name'];
+    $pf = pdAulaSup('/rest/v1/profiles?select=id,name,role,active&limit=300')['body'] ?? []; $nm = []; $eq = []; foreach ($pf as $p) { $nm[$p['id']] = $p['name']; if (in_array($p['role'] ?? '', ['admin','team'], true) && ($p['active'] ?? true) !== false) $eq[$p['id']] = true; }
     $cat = pdPersonagens(); $ias = [];
     foreach ($forms as $f) { $k = $f['ia_user_id']; $j = $jm[$k] ?? []; $pers = strtolower(trim((string)($j['personagem'] ?? $f['personagem'])));
         $ias[$k] = $ias[$k] ?? ['id' => $k, 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'titulo' => $cat[$pers][2] ?? '', 'dona' => $nm[$k] ?? '', 'aptas' => [], 'formando' => []];
         if (!empty($f['apta_em'])) $ias[$k]['aptas'][] = $sn[$f['skill_id']] ?? $f['skill_id']; else $ias[$k]['formando'][] = $sn[$f['skill_id']] ?? $f['skill_id']; }
-    $lista = array_values(array_filter($ias, fn($i) => $i['aptas']));   // só as habilitadas entram na casa
+    // toda a equipe que já fez o teste (tem personagem) aparece na casa; quem ainda não está apta fica como "estudando"
+    foreach ($jm as $k => $j) { if (isset($ias[$k]) || empty($eq[$k]) || trim((string)($j['personagem'] ?? '')) === '') continue; $pers = strtolower(trim((string)$j['personagem']));
+        $ias[$k] = ['id' => $k, 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'titulo' => $cat[$pers][2] ?? '', 'dona' => $nm[$k] ?? '', 'aptas' => [], 'formando' => []]; }
+    $lista = array_values($ias);
     foreach ($lista as &$i) $i['relogio'] = pdRelogioCatum($i['id']); unset($i);
     usort($lista, fn($a, $b2) => count($b2['aptas']) <=> count($a['aptas']));
     $fixas = [['id' => 'dot', 'personagem' => 'dot', 'nome' => 'dot', 'titulo' => 'consultor externo', 'dona' => '', 'aptas' => ['transporte e produção externa'], 'fixa' => true], ['id' => 'maestro', 'personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'distribui, cobra e revisa', 'dona' => '', 'aptas' => ['orquestração'], 'fixa' => true]];
