@@ -8156,7 +8156,10 @@ async function entrarReal(session){
   }
   window.REAL = true;
   setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
-  if (perfil.role !== 'client') setTimeout(() => { try { ajudaPrimeiraVez(); } catch(e){} }, 1800);
+  if (perfil.role !== 'client') setTimeout(() => { try {
+    if (!ehAdmin()) window.PD_TOUR = (window.PD_TOUR || []).filter(k => k !== 'zap');   // o Zap é só do admin: pros outros não existe, nem no tour
+    ajudaPrimeiraVez();
+  } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }
   sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
