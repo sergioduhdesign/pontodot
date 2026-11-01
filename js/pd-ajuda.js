@@ -23,9 +23,14 @@ window.PD_AJUDA = {
   catum: { t: 'Hora de Catum', p: 'O termômetro de confiança: de tantos trabalhos, quantos a IA acertou de primeira — "de primeira" é quando a equipe topa usar sem corrigir. Correção por mudança de direção ou briefing vago não conta contra ela. Quando a leitura firma, você sabe que já dá pra confiar aquela tarefa àquela IA; o valor por trás é tempo humano devolvido.' },
   equipe: { t: 'Equipe e funções', p: 'Marque as funções de cada pessoa (designer, copy, atendimento…): o fluxo encaminha o trabalho por função, com rodízio de carga. O botão verde liga e desliga o acesso sem apagar nada. E as ferramentas de Trabalho são liberadas pessoa por pessoa — Copys é de todos.' },
   aprovacao_interna: { t: 'Revisão interna', p: 'Antes do cliente ver, a equipe confere: aprovou, libera; precisa mexer, o apontamento volta pra IA corrigir. É esse "tá bom pra mostrar" que conta pra Hora de Catum.' },
+  verso: { t: 'O outro lado', p: 'A casa tem dois lados. Girou, apareceu a gestão completa: o funil de trabalho, os quadros, os clientes e o painel de números. Tudo que acontece na frente mora aqui atrás, organizado.' },
+  funil: { t: 'Funil', p: 'Todo trabalho anda por aqui: entra como briefing, vira produção, passa pela aprovação e sai entregue. Os cards andam pelas colunas com prazo e responsável sempre à vista.' },
+  clientes: { t: 'Clientes', p: 'A ficha de cada cliente: marca, acessos, redes conectadas e o zap. É aqui que você liga a Gigi pra atender o cliente no WhatsApp e escolhe quem entra no social.' },
+  painel: { t: 'Painel', p: 'Os números da casa: o que está atrasado de verdade (briefing não conta), a carga de cada pessoa e o ritmo das entregas. O raio-x pra decidir sem achismo.' },
+  pronto: { t: 'É isso', p: 'O S do canto gira entre os dois lados quando você quiser. Qualquer dúvida, procura o ? do ladinho de cada ferramenta — e este tour fica guardado no "Entenda a plataforma".' },
 };
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
-window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola'];
+window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola','verso','funil','clientes','painel','pronto'];
 window.PD_AJUDA_ALVO = {
   tarefas: ['#cxTarefas', '.gad[data-fk="gad-tarefas"]'],
   trabalho: ['.gad[data-fk="gad-estudio"]', '#estBarra'],
@@ -41,15 +46,27 @@ window.PD_AJUDA_ALVO = {
   oficina: ['.gad[data-fk="gad-oficina"]'],
   ias: ['.gad[data-fk="gad-ias"]'],
   catum: ['#catPil'],
-  plataforma: [],
+  plataforma: [], verso: [], pronto: [],
+  funil: ['app::#view-kanban'], clientes: ['app::#view-clientes'], painel: ['app::#view-admin'],
 };
 function ajudaAlvoEl(chave, origem){
-  if (origem && origem.closest){ const cx = origem.closest('.caixa,.card,.cxa,.top,.lado'); if (cx) return cx; }
+  // devolve { el, fr }: fr é o iframe do verso quando o alvo mora lá dentro
+  if (origem && origem.closest){ const cx = origem.closest('.caixa,.card,.cxa,.top,.lado'); if (cx) return { el: cx, fr: null }; }
   for (const sel of (window.PD_AJUDA_ALVO[chave] || [])){
-    const el = document.querySelector(sel);
-    if (el && el.offsetParent !== null && el.getBoundingClientRect().width > 4) return el;
+    let el = null, fr = null;
+    if (sel.indexOf('app::') === 0){
+      fr = document.getElementById('appFrame') || document.getElementById('appMovelFrame');
+      try { el = fr && fr.contentDocument ? fr.contentDocument.querySelector(sel.slice(5)) : null; } catch(e){ el = null; }
+    } else el = document.querySelector(sel);
+    if (el && el.getBoundingClientRect().width > 4 && (fr || el.offsetParent !== null)) return { el, fr };
   }
   return null;
+}
+function ajudaRectW(w){
+  const r = w.el.getBoundingClientRect();
+  if (!w.fr) return r;
+  const o = w.fr.getBoundingClientRect();
+  return { top: r.top + o.top, left: r.left + o.left, width: r.width, height: r.height, bottom: r.bottom + o.top, right: r.right + o.left };
 }
 
 function ajudaBtn(chave, claro){
@@ -81,8 +98,9 @@ function ajudaCss(){
   document.head.appendChild(st);
 }
 let _ajudaDesfaz = null, _ajudaSegue = 0;
-function fecharAjuda(){ _ajudaSegue++; const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
-  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; } }
+function fecharAjuda(trocando){ _ajudaSegue++; const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
+  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
+  if (!trocando && window._ajudaDesfazTour){ try { window._ajudaDesfazTour(); } catch(e){} window._ajudaDesfazTour = null; } }
 function ajudaPosiciona(cx, r){
   // a caixinha fica PERTO da coisa: embaixo quando cabe, senão em cima, senão do lado
   const m = 10, vw = innerWidth, vh = innerHeight, c = cx.getBoundingClientRect();
@@ -93,7 +111,7 @@ function ajudaPosiciona(cx, r){
   cx.style.top = top + 'px'; cx.style.left = left + 'px';
 }
 function abrirAjuda(chave, passo, origem){
-  ajudaCss(); fecharAjuda();
+  ajudaCss(); fecharAjuda(true);
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
   let espera = 0;
@@ -116,7 +134,7 @@ function abrirAjuda(chave, passo, origem){
 function ajudaMira(chave, origem, deNovo){
   // caixa que abriu VAZIA não fica exposta: fecha de volta e a luz destaca o ícone fechado
   if (_ajudaDesfaz && !deNovo){
-    const g = ajudaAlvoEl(chave, origem);
+    const g0 = ajudaAlvoEl(chave, origem), g = g0 && g0.el;
     const corpo = g && g.querySelector ? g.querySelector('.gad-corpo') : null;
     const txt = corpo ? (corpo.innerText || '').replace(/\s+/g, ' ').trim() : null;
     if (corpo && txt !== null && txt.length < 6){
@@ -142,7 +160,7 @@ function ajudaMira(chave, origem, deNovo){
     const ov = document.getElementById('pdAjudaOv'); if (!ov) return;
     const cx = ov.querySelector('.cxa'); if (!cx) return;
     const alvo = ajudaAlvoEl(chave, origem);
-    const r = alvo ? alvo.getBoundingClientRect() : null;
+    const r = alvo ? ajudaRectW(alvo) : null;
     if (!r || r.width < 3 || r.height < 3){
       // alvo sumiu (re-render, caixa fechando): some o foco e centraliza
       const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
@@ -157,7 +175,7 @@ function ajudaMira(chave, origem, deNovo){
       if (!f){ f = document.createElement('div'); f.id = 'pdAjudaFoco'; document.body.appendChild(f); }
       f.style.top = rr.top + 'px'; f.style.left = rr.left + 'px';
       f.style.width = rr.width + 'px'; f.style.height = rr.height + 'px';
-      try { const cs = getComputedStyle(alvo);
+      try { const cs = alvo.el.ownerDocument.defaultView.getComputedStyle(alvo.el);
         f.style.borderRadius = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
           .map(k => (Math.max(0, parseFloat(cs[k]) || 0) + pad) + 'px').join(' ');
       } catch(e){}
@@ -167,7 +185,7 @@ function ajudaMira(chave, origem, deNovo){
     }
     requestAnimationFrame(quadro);
   };
-  if (ajudaAlvoEl(chave, origem)){ try { ajudaAlvoEl(chave, origem).scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){} }
+  { const w = ajudaAlvoEl(chave, origem); if (w && !w.fr){ try { w.el.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){} } }
   quadro();
 }
 function tourPlataforma(){ abrirAjuda(window.PD_TOUR[0], 0); }
