@@ -87,6 +87,9 @@ function ajudaCss(){
   st.textContent = `
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
+  .ajuda-dica{position:fixed;z-index:100003;max-width:min(264px,calc(100vw - 20px));background:rgba(22,23,25,.97);color:#ecebe6;border:.5px solid rgba(255,255,255,.13);border-radius:11px;padding:10px 12px 11px;box-shadow:0 12px 32px rgba(0,0,0,.4);font:12px/1.5 'Helvetica Neue',system-ui,sans-serif;opacity:0;transition:opacity .16s ease;text-align:left}
+  .ajuda-dica b{display:block;font-size:12px;font-weight:600;margin-bottom:3px;letter-spacing:-.005em}
+  .ajuda-dica span{display:block;opacity:.72}
   label>.ajuda-q,.field-label>.ajuda-q,.lab>.ajuda-q{margin-left:6px}
   h1>.ajuda-q,h2>.ajuda-q,h3>.ajuda-q,h4>.ajuda-q{float:right;margin-left:8px;text-transform:none;letter-spacing:0;position:relative}
   .ajuda-q{position:relative}.ajuda-q::after{content:'';position:absolute;inset:-9px}
@@ -110,6 +113,42 @@ function ajudaCss(){
   @media (max-width:999px){.entenda-pd{bottom:calc(14px + env(safe-area-inset-bottom));left:10px;padding:6px 11px}}`;
   document.head.appendChild(st);
 }
+// A dica do "?": caixinha escura, discreta, colada no ? (hover no desktop, toque no celular). Sem blur, sem centro da tela.
+let _dicaEl = null, _dicaDono = null, _dicaT = 0;
+function ajudaDicaFecha(rapido){
+  clearTimeout(_dicaT);
+  const d = _dicaEl; _dicaEl = null; _dicaDono = null; if (!d) return;
+  d.style.opacity = '0'; setTimeout(() => d.remove(), rapido ? 0 : 180);
+}
+function ajudaDica(chave, dono, clique){
+  const d0 = window.PD_AJUDA[chave]; if (!d0 || !dono) return;
+  if (_dicaDono === dono){ if (clique && !(window.matchMedia && window.matchMedia('(hover:hover)').matches)) ajudaDicaFecha(); return; }
+  ajudaDicaFecha(true); ajudaCss();
+  const d = document.createElement('div'); d.className = 'ajuda-dica';
+  d.innerHTML = `<b>${d0.t}</b><span>${d0.p}</span>`;
+  d.addEventListener('mouseenter', () => clearTimeout(_dicaT));
+  d.addEventListener('mouseleave', () => { _dicaT = setTimeout(() => ajudaDicaFecha(), 200); });
+  document.body.appendChild(d); _dicaEl = d; _dicaDono = dono;
+  const r = dono.getBoundingClientRect(), c = d.getBoundingClientRect(), vw = innerWidth, vh = innerHeight, m = 8;
+  let top = r.bottom + m, left = r.left + r.width / 2 - 18;
+  if (top + c.height > vh - 8) top = Math.max(8, r.top - m - c.height);
+  left = Math.max(10, Math.min(left, vw - c.width - 10));
+  d.style.top = top + 'px'; d.style.left = left + 'px';
+  requestAnimationFrame(() => { d.style.opacity = '1'; });
+}
+document.addEventListener('mouseover', e => {
+  const q = e.target && e.target.closest && e.target.closest('.ajuda-q'); if (!q || q === _dicaDono) { if (q) clearTimeout(_dicaT); return; }
+  if (window.matchMedia && !window.matchMedia('(hover:hover)').matches) return;
+  const m = (q.getAttribute('onclick') || '').match(/abrirAjuda\('([^']+)'/); if (!m) return;
+  clearTimeout(_dicaT); _dicaT = setTimeout(() => ajudaDica(m[1], q, false), 140);
+});
+document.addEventListener('mouseout', e => {
+  const q = e.target && e.target.closest && e.target.closest('.ajuda-q'); if (!q) return;
+  clearTimeout(_dicaT); _dicaT = setTimeout(() => { if (_dicaDono === q || !_dicaEl) ajudaDicaFecha(); }, 220);
+});
+document.addEventListener('pointerdown', e => { if (_dicaEl && !(e.target.closest && (e.target.closest('.ajuda-dica') || e.target.closest('.ajuda-q')))) ajudaDicaFecha(); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ajudaDicaFecha(); });
+addEventListener('scroll', () => ajudaDicaFecha(true), true);
 let _ajudaDesfaz = null, _ajudaSegue = 0, _ajudaGrupo = null;
 window.PD_AJUDA_GRUPO = window.PD_AJUDA_GRUPO || {};   // passos que moram dentro da mesma caixa (ex.: trabalho e copys)
 function fecharAjuda(trocando){ _ajudaSegue++;
@@ -129,6 +168,7 @@ function ajudaPosiciona(cx, r){
 }
 function abrirAjuda(chave, passo, origem){
   ajudaCss();
+  if (typeof passo !== 'number' && origem && origem.nodeType === 1) return ajudaDica(chave, origem, true);
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
   const tok = ++_ajudaSegue;
@@ -335,9 +375,20 @@ function ajudaPrimeiraVez(){
     el.innerHTML = vazio ? esc2(resumo(t)).replace(/\s+(\S+)$/, '\u00a0$1') + '\u00a0' + q : q;   // sem título por perto: só o ?, sem texto
   }
   function esc2(s){ return String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])); }
+  function subDeTitulo(raiz){
+    raiz.querySelectorAll('h1 .vazio,h2 .vazio,h3 .vazio,h4 .vazio,h3 small.nota,h3 small.dica').forEach(sm => {
+      if (sm.dataset.pdq || sm.id) return;
+      const t = limpo(sm.textContent).replace(/^[·•\-–—\s]+/, ''); if (t.length < 10 || MUDO.test(t)) return;
+      const h = sm.closest('h1,h2,h3,h4'); if (!h || h.closest(NAO)) return;
+      const chave = 'auto' + (++n);
+      window.PD_AJUDA[chave] = { t: limpo(h.firstChild && h.firstChild.textContent) || 'Como funciona', p: esc2(t.charAt(0).toUpperCase() + t.slice(1)) };
+      sm.dataset.pdq = '1'; sm.className = ''; sm.removeAttribute('style');
+      sm.innerHTML = `<button type="button" class="ajuda-q" onclick="event.stopPropagation();abrirAjuda('${chave}',undefined,this)" aria-label="Explicação">?</button>`;
+    });
+  }
   function varre(raiz){
     if (!raiz || raiz.nodeType !== 1) return;
-    ajudaCss();
+    ajudaCss(); subDeTitulo(raiz.nodeType === 1 ? raiz : document);
     const lista = []; if (raiz.matches && (raiz.matches(SEL) || raiz.matches(ESTILO))) lista.push(raiz);
     raiz.querySelectorAll(SEL + ',' + ESTILO).forEach(e => lista.push(e));
     lista.forEach(e => { try { if (ehCandidato(e)) converte(e); } catch(err){} });
