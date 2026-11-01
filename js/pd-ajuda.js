@@ -29,7 +29,7 @@ window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social
 window.PD_AJUDA_ALVO = {
   tarefas: ['#cxTarefas', '.gad[data-fk="gad-tarefas"]'],
   trabalho: ['.gad[data-fk="gad-estudio"]', '#estBarra'],
-  copys: ['.gad[data-fk="gad-estudio"]', '#ajudaCopys', '.top'],
+  copys: ['.gad[data-fk="gad-estudio"] [title^="Copys"]', '.gad[data-fk="gad-estudio"]', '#ajudaCopys', '.top'],
   aprovacoes: ['.gad[data-fk="gad-aprovacoes"]'],
   social: ['.gad[data-fk="gad-social"]'],
   publicacao: ['.gad[data-fk="gad-publicacao"]'],
@@ -80,7 +80,9 @@ function ajudaCss(){
   @media (max-width:999px){.entenda-pd{bottom:calc(14px + env(safe-area-inset-bottom));left:10px;padding:6px 11px}}`;
   document.head.appendChild(st);
 }
-function fecharAjuda(){ const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove(); }
+let _ajudaDesfaz = null;
+function fecharAjuda(){ const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
+  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; } }
 function ajudaPosiciona(cx, alvo){
   // a caixinha fica PERTO da coisa: embaixo quando cabe, senão em cima, senão do lado
   const m = 10, vw = innerWidth, vh = innerHeight, r = alvo.getBoundingClientRect(), c = cx.getBoundingClientRect();
@@ -94,7 +96,11 @@ function abrirAjuda(chave, passo, origem){
   ajudaCss(); fecharAjuda();
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
-  const alvo = ajudaAlvoEl(chave, origem);
+  let espera = 0;
+  if (tour && !origem){
+    const abre = (window.PD_AJUDA_ABRE || {})[chave];
+    if (abre){ try { const desfaz = abre(); if (desfaz){ _ajudaDesfaz = desfaz; espera = 520; } } catch(e){} }
+  }
   const ov = document.createElement('div'); ov.id = 'pdAjudaOv';
   ov.onclick = e => { if (e.target === ov) fecharAjuda(); };
   const pts = tour ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : '<span style="flex:1"></span>';
@@ -104,6 +110,11 @@ function abrirAjuda(chave, passo, origem){
     : `<button class="bt p" onclick="fecharAjuda()">Entendi</button>`;
   ov.innerHTML = `<div class="cxa centro"><div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape">${pts}${bts}</div></div>`;
   document.body.appendChild(ov);
+  setTimeout(() => ajudaMira(chave, origem), espera);
+  if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
+}
+function ajudaMira(chave, origem){
+  const alvo = ajudaAlvoEl(chave, origem);
   if (alvo){
     try { alvo.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){}
     requestAnimationFrame(() => {
@@ -124,7 +135,6 @@ function abrirAjuda(chave, passo, origem){
       }
     });
   }
-  if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
 }
 function tourPlataforma(){ abrirAjuda(window.PD_TOUR[0], 0); }
 function ajudaBotaoCanto(){

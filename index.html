@@ -2359,7 +2359,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v315 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v316 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5429,6 +5429,26 @@ async function catCarrega(forca){
   CAT.carregando = false; catPilula();
 }
 function catIniciar(){ catCarrega(true); if (!window._catTimer) window._catTimer = setInterval(() => catCarrega(false), 300000); }
+// O tour "abre a coisa de verdade": gadget fechado abre no passo e fecha no próximo.
+window.PD_AJUDA_ABRE = {};
+['trabalho:estudio','copys:estudio','aprovacoes:aprovacoes','social:social','publicacao:publicacao','anuncios:anuncios','cronograma:cronograma','zap:zap','escola:escola','oficina:oficina','ias:ias'].forEach(par => {
+  const [chave, id] = par.split(':');
+  window.PD_AJUDA_ABRE[chave] = () => {
+    if (!gadgetsDaTela().includes(id) || gadsAbertos[id]) return null;
+    try { alternarAbertura(id); } catch(e){ return null; }
+    return () => { try { if (gadsAbertos[id]) alternarAbertura(id); } catch(e){} };
+  };
+});
+window.PD_AJUDA_ABRE.minhaia = () => {
+  if (gadsAbertos.minhaia || !aindaNao(() => temIA(), false)) return null;   // sem IA, o ovo abriria a escola inteira: não abre
+  try { alternarAbertura('minhaia'); } catch(e){ return null; }
+  return () => { try { if (gadsAbertos.minhaia) alternarAbertura('minhaia'); } catch(e){} };
+};
+window.PD_AJUDA_ABRE.tarefas = () => {
+  if (typeof vTarefas === 'undefined' || vTarefas !== 'fechada') return null;
+  vTarefas = 'aberta'; selecionada = -1; renderFlip();
+  return () => { vTarefas = 'fechada'; selecionada = -1; renderFlip(); };
+};
 function htmlCatum(){
   const D = CAT.d;
   if (!D) return `<h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Hora de Catum</h3><p style="font-size:14px;line-height:1.5">${esc(CAT.erro || 'Carregando…')}</p>`;
