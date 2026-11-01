@@ -80,12 +80,12 @@ function ajudaCss(){
   @media (max-width:999px){.entenda-pd{bottom:calc(14px + env(safe-area-inset-bottom));left:10px;padding:6px 11px}}`;
   document.head.appendChild(st);
 }
-let _ajudaDesfaz = null;
-function fecharAjuda(){ const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
+let _ajudaDesfaz = null, _ajudaSegue = 0;
+function fecharAjuda(){ _ajudaSegue++; const o = document.getElementById('pdAjudaOv'); if (o) o.remove(); const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
   if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; } }
-function ajudaPosiciona(cx, alvo){
+function ajudaPosiciona(cx, r){
   // a caixinha fica PERTO da coisa: embaixo quando cabe, senão em cima, senão do lado
-  const m = 10, vw = innerWidth, vh = innerHeight, r = alvo.getBoundingClientRect(), c = cx.getBoundingClientRect();
+  const m = 10, vw = innerWidth, vh = innerHeight, c = cx.getBoundingClientRect();
   let top, left = Math.max(12, Math.min(r.left, vw - c.width - 12));
   if (r.bottom + m + c.height <= vh - 8) top = r.bottom + m;
   else if (r.top - m - c.height >= 8) top = r.top - m - c.height;
@@ -135,28 +135,40 @@ function ajudaMira(chave, origem, deNovo){
       }, 1300);
     }
   }
-  const alvo = ajudaAlvoEl(chave, origem);
-  if (alvo){
-    try { alvo.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){}
-    requestAnimationFrame(() => {
-      const el = document.getElementById('pdAjudaOv'); if (!el) return;
-      const r = alvo.getBoundingClientRect();
-      if (r.width > 2 && r.height > 2){
-        const velho = document.getElementById('pdAjudaFoco'); if (velho) velho.remove();
-        const f = document.createElement('div'); f.id = 'pdAjudaFoco';
-        const pad = 3;
-        f.style.top = (r.top - pad) + 'px'; f.style.left = (r.left - pad) + 'px';
-        f.style.width = (r.width + pad * 2) + 'px'; f.style.height = (r.height + pad * 2) + 'px';
-        try { const cs = getComputedStyle(alvo);
-          f.style.borderRadius = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
-            .map(k => (Math.max(0, parseFloat(cs[k]) || 0) + pad) + 'px').join(' ');
-        } catch(e){}
-        document.body.appendChild(f);
-        const cx = el.querySelector('.cxa'); cx.classList.remove('centro'); cx.style.transform = 'none';
-        ajudaPosiciona(cx, f);
-      }
-    });
-  }
+  const seg = ++_ajudaSegue;
+  let ultimo = null;
+  const quadro = () => {
+    if (seg !== _ajudaSegue) return;
+    const ov = document.getElementById('pdAjudaOv'); if (!ov) return;
+    const cx = ov.querySelector('.cxa'); if (!cx) return;
+    const alvo = ajudaAlvoEl(chave, origem);
+    const r = alvo ? alvo.getBoundingClientRect() : null;
+    if (!r || r.width < 3 || r.height < 3){
+      // alvo sumiu (re-render, caixa fechando): some o foco e centraliza
+      const f = document.getElementById('pdAjudaFoco'); if (f) f.remove();
+      if (!cx.classList.contains('centro')){ cx.classList.add('centro'); cx.style.top = ''; cx.style.left = ''; cx.style.transform = ''; }
+      ultimo = null; requestAnimationFrame(quadro); return;
+    }
+    const pad = 3, rr = { top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
+    rr.bottom = rr.top + rr.height; rr.right = rr.left + rr.width;
+    const mudou = !ultimo || Math.abs(rr.top - ultimo.top) > 1.5 || Math.abs(rr.left - ultimo.left) > 1.5 || Math.abs(rr.width - ultimo.width) > 1.5 || Math.abs(rr.height - ultimo.height) > 1.5;
+    if (mudou){
+      let f = document.getElementById('pdAjudaFoco');
+      if (!f){ f = document.createElement('div'); f.id = 'pdAjudaFoco'; document.body.appendChild(f); }
+      f.style.top = rr.top + 'px'; f.style.left = rr.left + 'px';
+      f.style.width = rr.width + 'px'; f.style.height = rr.height + 'px';
+      try { const cs = getComputedStyle(alvo);
+        f.style.borderRadius = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+          .map(k => (Math.max(0, parseFloat(cs[k]) || 0) + pad) + 'px').join(' ');
+      } catch(e){}
+      if (cx.classList.contains('centro')){ cx.classList.remove('centro'); cx.style.transform = 'none'; }
+      if (!ultimo || Math.abs(rr.top - ultimo.top) > 6 || Math.abs(rr.left - ultimo.left) > 6 || Math.abs(rr.height - ultimo.height) > 6 || Math.abs(rr.width - ultimo.width) > 6) ajudaPosiciona(cx, rr);
+      ultimo = rr;
+    }
+    requestAnimationFrame(quadro);
+  };
+  if (ajudaAlvoEl(chave, origem)){ try { ajudaAlvoEl(chave, origem).scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){} }
+  quadro();
 }
 function tourPlataforma(){ abrirAjuda(window.PD_TOUR[0], 0); }
 function ajudaBotaoCanto(){
