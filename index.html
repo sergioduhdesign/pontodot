@@ -5468,11 +5468,16 @@ function tourVira(){
 }
 function tourView(v){ return () => { tourVira(); const vai = (n = 0) => { try { const w = frameVerso(); if (w && typeof w.setView === 'function'){ w.setView(v); return; } } catch(e){} if (n < 20) setTimeout(() => vai(n + 1), 300); }; setTimeout(() => vai(), 400); return null; }; }
 window.PD_AJUDA_ABRE.verso = () => { tourVira(); return null; };
+window.PD_AJUDA_ABRE.escolaag = tourView('feed');
 window.PD_AJUDA_ABRE.funil = tourView('kanban');
+window.PD_AJUDA_ABRE.lista = tourView('lista');
+window.PD_AJUDA_ABRE.fluxo = tourView('gantt');
+window.PD_AJUDA_ABRE.mural = tourView('mural');
+window.PD_AJUDA_ABRE.redes = tourView('fila');
 window.PD_AJUDA_ABRE.clientes = tourView('clientes');
 window.PD_AJUDA_ABRE.painel = tourView('admin');
 window.PD_AJUDA_ABRE.pronto = () => { tourVira(); return null; };
-if (!ehDesk()) window.PD_TOUR = window.PD_TOUR.filter(k => !['verso','funil','clientes','painel'].includes(k));   // no celular o verso não gira: tour fica na frente
+if (!ehDesk()) window.PD_TOUR = window.PD_TOUR.filter(k => !['verso','escolaag','funil','lista','fluxo','mural','redes','clientes','painel'].includes(k));   // no celular o verso não gira: tour fica na frente
 window.PD_AJUDA_ABRE.tarefas = () => {
   tourFrente();
   if (typeof vTarefas === 'undefined' || vTarefas !== 'fechada') return null;

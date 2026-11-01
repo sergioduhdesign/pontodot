@@ -24,13 +24,18 @@ window.PD_AJUDA = {
   equipe: { t: 'Equipe e funções', p: 'Marque as funções de cada pessoa (designer, copy, atendimento…): o fluxo encaminha o trabalho por função, com rodízio de carga. O botão verde liga e desliga o acesso sem apagar nada. E as ferramentas de Trabalho são liberadas pessoa por pessoa — Copys é de todos.' },
   aprovacao_interna: { t: 'Revisão interna', p: 'Antes do cliente ver, a equipe confere: aprovou, libera; precisa mexer, o apontamento volta pra IA corrigir. É esse "tá bom pra mostrar" que conta pra Hora de Catum.' },
   verso: { t: 'O outro lado', p: 'A casa tem dois lados. Girou, apareceu a gestão completa: o funil de trabalho, os quadros, os clientes e o painel de números. Tudo que acontece na frente mora aqui atrás, organizado.' },
+  escolaag: { t: 'Escola Agêntica', p: 'A primeira aba do verso é a escola das IAs vista por dentro: cursos, aulas e a evolução de cada personagem. Ela ainda está em finalização pra uso — por enquanto você só acompanha; os cursos abrem pra equipe em breve.' },
+  lista: { t: 'Lista', p: 'Os mesmos trabalhos do funil, em linhas: dá pra ordenar, filtrar por cliente, responsável ou status e ver prazo de tudo de uma vez. Ideal pra conferir muita coisa rápido.' },
+  fluxo: { t: 'Fluxo', p: 'O caminho de cada trabalho em forma de mapa: de onde veio, por quem passou e o que falta pra sair. Mostra gargalos e dependências sem precisar abrir card por card.' },
+  mural: { t: 'Mural', p: 'O quadro de avisos da casa: recados, referências e combinados da equipe num lugar só, pra ninguém depender de mensagem perdida.' },
+  redes: { t: 'Redes sociais', p: 'A fila de publicação por rede: o que está agendado, o que já saiu e o que espera aprovação. Daqui você acompanha o calendário de postagens de cada cliente.' },
   funil: { t: 'Funil', p: 'Todo trabalho anda por aqui: entra como briefing, vira produção, passa pela aprovação e sai entregue. Os cards andam pelas colunas com prazo e responsável sempre à vista.' },
   clientes: { t: 'Clientes', p: 'A ficha de cada cliente: marca, acessos, redes conectadas e o zap. É aqui que você liga a Gigi pra atender o cliente no WhatsApp e escolhe quem entra no social.' },
   painel: { t: 'Painel', p: 'Os números da casa: o que está atrasado de verdade (briefing não conta), a carga de cada pessoa e o ritmo das entregas. O raio-x pra decidir sem achismo.' },
   pronto: { t: 'É isso', p: 'O S do canto gira entre os dois lados quando você quiser. Qualquer dúvida, procura o ? do ladinho de cada ferramenta — e este tour fica guardado no "Entenda a plataforma".' },
 };
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
-window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola','verso','funil','clientes','painel','pronto'];
+window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola','verso','escolaag','funil','lista','fluxo','mural','redes','clientes','painel','pronto'];
 window.PD_AJUDA_ALVO = {
   tarefas: ['#cxTarefas', '.gad[data-fk="gad-tarefas"]'],
   trabalho: ['.gad[data-fk="gad-estudio"]', '#estBarra'],
@@ -47,6 +52,8 @@ window.PD_AJUDA_ALVO = {
   ias: ['.gad[data-fk="gad-ias"]'],
   catum: ['#catPil'],
   plataforma: [], verso: [], pronto: [],
+  escolaag: ['app::#view-feed', 'app::#tab-feed'], lista: ['app::#view-lista', 'app::#tab-lista'], fluxo: ['app::#view-gantt', 'app::#tab-gantt'],
+  mural: ['app::#view-mural', 'app::#tab-mural'], redes: ['app::#view-fila', 'app::#tab-fila'],
   funil: ['app::#kanban-board > *:first-child', 'app::#view-kanban'], clientes: ['app::#view-clientes .entity-card', 'app::#view-clientes'], painel: ['app::#view-admin'],
 };
 function ajudaAlvoEl(chave, origem){
