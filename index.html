@@ -5744,7 +5744,7 @@ const GADGETS = {
       <div class="nota" style="margin:8px 0 0">74% na última semana · melhor mês do ano</div>`,
       ['Ver o termômetro',`toast('Abre o termômetro.')`]); } },
   anuncios:  { nome:'Anúncios', html:()=>htmlAnuncios() },
-  escola:    { nome:'Escola das IAs', html:()=>htmlEscola() },
+  escola:    { nome:'Escola das IAs', admin:true, html:()=>htmlEscola() },   // só o admin vê, por enquanto
   oficina:   { nome:'Saída de materiais', html:()=>htmlOficina() },
   estudio:   { nome:'Trabalho', html:()=>htmlEstudio() },
   ias:       { nome:'Inteligências da casa', html:()=>htmlIAs() },
@@ -8157,7 +8157,7 @@ async function entrarReal(session){
   window.REAL = true;
   setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
   if (perfil.role !== 'client') setTimeout(() => { try {
-    if (!ehAdmin()) window.PD_TOUR = (window.PD_TOUR || []).filter(k => k !== 'zap');   // o Zap é só do admin: pros outros não existe, nem no tour
+    if (!ehAdmin()) window.PD_TOUR = (window.PD_TOUR || []).filter(k => k !== 'zap' && k !== 'escola');   // Zap e Escola são só do admin: pros outros não existem, nem no tour
     ajudaPrimeiraVez();
   } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');
