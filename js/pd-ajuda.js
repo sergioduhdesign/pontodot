@@ -20,6 +20,7 @@ window.PD_AJUDA = {
   oficina: { t: 'Saída de materiais', p: 'O balcão de entrega: tudo que a oficina terminou aparece aqui pra você abrir, conferir e usar.' },
   ias: { t: 'Inteligências da casa', p: 'O time de IAs da PD: cada personagem tem um ofício e um jeito. Elas trabalham nas ferramentas, aprendem na escola e aparecem aqui com o que estão fazendo.' },
   lembretes: { t: 'Lembretes', p: 'Peça aqui ou pelo zap: "me lembra amanhã às 9h", com ou sem repetição, pra você ou pra um colega. O aviso chega na plataforma e no zap.' },
+  catumIA: { t: 'Hora de Catum', p: 'É o tempo de ofício que essa IA já acumulou: o que assistiu você fazer, o que entregou e o que estudou. Quanto mais sobe, mais ela faz sozinha.' },
   catum: { t: 'Hora de Catum', p: 'O termômetro de confiança: de tantos trabalhos, quantos a IA acertou de primeira — "de primeira" é quando a equipe topa usar sem corrigir. Correção por mudança de direção ou briefing vago não conta contra ela. Quando a leitura firma, você sabe que já dá pra confiar aquela tarefa àquela IA; o valor por trás é tempo humano devolvido.' },
   equipe: { t: 'Equipe e funções', p: 'Marque as funções de cada pessoa (designer, copy, atendimento…): o fluxo encaminha o trabalho por função, com rodízio de carga. O botão verde liga e desliga o acesso sem apagar nada. E as ferramentas de Trabalho são liberadas pessoa por pessoa — Copys é de todos.' },
   aprovacao_interna: { t: 'Revisão interna', p: 'Antes do cliente ver, a equipe confere: aprovou, libera; precisa mexer, o apontamento volta pra IA corrigir. É esse "tá bom pra mostrar" que conta pra Hora de Catum.' },
@@ -86,6 +87,7 @@ function ajudaCss(){
   st.textContent = `
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
+  label>.ajuda-q,.field-label>.ajuda-q,.lab>.ajuda-q{margin-left:6px}
   h1>.ajuda-q,h2>.ajuda-q,h3>.ajuda-q,h4>.ajuda-q{float:right;margin-left:8px;text-transform:none;letter-spacing:0;position:relative}
   .ajuda-q{position:relative}.ajuda-q::after{content:'';position:absolute;inset:-9px}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
@@ -265,10 +267,10 @@ function ajudaPrimeiraVez(){
 
 /* ===== "?" automático: explicação longa (nota/dica) vira uma linha curta + ? ao lado; clicou, a caixinha explica ===== */
 (function(){
-  const SEL = '.nota,.vazio,.esc-lead2,.esc-nota,.hint,.dica';
+  const SEL = '.nota,.vazio,.esc-lead2,.esc-nota,.hint,.dica,.ip-leg,.ip-sub,.esc-al-nota,.esc-ficcao,.esc-sub,.page-subtitle,.modal-subtitle,.field-hint,.form-hint,.jt-rodape,.jt-intro,.av-legenda,.help-text,.legenda';
   const MUDO = /\b(erro|falhou|falha|n[ãa]o foi poss[ií]vel|rode o sql|expir|sem permiss|tente de novo|n[ãa]o consegui|servidor)\b/i;
   const NAO = '.comment,.comments-list,.cmt,.msg,.bolha,.conversa,.t-linha,.det-pop,textarea,input,pre,code,td,th,.cxa,#pdAjudaOv,[contenteditable],.balao,#toast,.toast,.ajuda-ok';
-  const ESTILO = '[style*="color:var(--text3)"],[style*="color:var(--branco2)"],[style*="color: var(--text3)"]';
+  const ESTILO = '[style*="color:var(--text3)"],[style*="color:var(--branco2)"],[style*="color: var(--text3)"],[style*="color:var(--text2)"],[style*="opacity:.5"],[style*="opacity:.6"],[style*="opacity:.55"],[style*="opacity:.65"],[style*="opacity:.7"]';
   let n = 0, agenda = 0;
   function limpo(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
   function ehCandidato(el){
@@ -276,7 +278,7 @@ function ajudaPrimeiraVez(){
     if (el.closest(NAO)) return false;
     if (el.querySelector('div,p,ul,ol,table,button,input,select,textarea,img,svg,h1,h2,h3,h4,a[href]')) return false;
     if ((el.getAttribute('style') || '').indexOf('pre-wrap') > -1) return false;
-    const t = limpo(el.textContent); if (t.length < 48 || MUDO.test(t)) return false;
+    const t = limpo(el.textContent); if (t.length < 30 || MUDO.test(t)) return false;
     if (!el.matches(SEL)){
       const fs = parseFloat((el.style && el.style.fontSize) || '0');
       if (!(fs > 0 && fs <= 12.6)) return false;
@@ -294,14 +296,16 @@ function ajudaPrimeiraVez(){
   }
   // o cabeçalho (título da seção) logo acima do texto: o ? mora no cantinho dele
   function cabecalhoDe(el){
-    const r0 = el.getBoundingClientRect(); if (!r0.height && !r0.width) return null;
+    const r0 = el.getBoundingClientRect(), oculto = !r0.height && !r0.width;
     let x = el;
-    for (let i = 0; i < 3 && x && x.parentElement; i++, x = x.parentElement){
+    for (let i = 0; i < (oculto ? 2 : 3) && x && x.parentElement; i++, x = x.parentElement){
       let a = x.previousElementSibling;
       while (a){
-        if (/^H[1-4]$/.test(a.tagName) || /(^|\s)(gad-tit|cx-cab|sec-t|tit)(\s|$)/.test(a.className || '')){
+        if (/^(H[1-4]|LABEL)$/.test(a.tagName) || /(^|\s)(gad-tit|cx-cab|sec-t|tit|field-label|form-label|lab|ip-h|modal-title)(\s|$)/.test(a.className || '')){
+          if (limpo(a.textContent).length >= 70) return null;
+          if (oculto) return a;
           const r = a.getBoundingClientRect();
-          if (r0.top - r.bottom < 280 && r.height < 60 && limpo(a.textContent).length < 60) return a;
+          if (r0.top - r.bottom < 150 && r.height < 70) return a;
           return null;
         }
         a = a.previousElementSibling;
@@ -328,7 +332,7 @@ function ajudaPrimeiraVez(){
       else { cab.insertAdjacentHTML('beforeend', q.replace('<button ', '<button data-auto="' + chave + '" ')); }
       el.style.display = 'none'; return;
     }
-    el.innerHTML = esc2(resumo(t)).replace(/\s+(\S+)$/, '\u00a0$1') + '\u00a0' + q;
+    el.innerHTML = vazio ? esc2(resumo(t)).replace(/\s+(\S+)$/, '\u00a0$1') + '\u00a0' + q : q;   // sem título por perto: só o ?, sem texto
   }
   function esc2(s){ return String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c])); }
   function varre(raiz){
