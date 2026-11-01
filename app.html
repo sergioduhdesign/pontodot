@@ -10550,6 +10550,7 @@ function closeGanttDetail(){
 }
 
 function setView(v){
+  try { if (['admin','saude','intensivo'].includes(v) && profile && profile.role !== 'admin') v = 'feed'; } catch(e){}   // o Painel é só do admin
   currentView=v;
   try{ if(window._telaLivre) localStorage.setItem('sd_tela_atual', JSON.stringify({ v, t: Date.now() })); }catch(e){}
   try{ gavetaDaView(v); }catch(e){}

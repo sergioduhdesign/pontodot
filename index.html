@@ -8157,7 +8157,7 @@ async function entrarReal(session){
   window.REAL = true;
   setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
   if (perfil.role !== 'client') setTimeout(() => { try {
-    if (!ehAdmin()) window.PD_TOUR = (window.PD_TOUR || []).filter(k => k !== 'zap' && k !== 'escola');   // Zap e Escola são só do admin: pros outros não existem, nem no tour
+    if (!ehAdmin()) window.PD_TOUR = (window.PD_TOUR || []).filter(k => !['zap','escola','painel'].includes(k));   // Zap, Escola e Painel são só do admin: pros outros não existem, nem no tour
     ajudaPrimeiraVez();
   } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');

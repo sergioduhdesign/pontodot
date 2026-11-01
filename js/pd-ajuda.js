@@ -47,7 +47,7 @@ window.PD_AJUDA_ALVO = {
   ias: ['.gad[data-fk="gad-ias"]'],
   catum: ['#catPil'],
   plataforma: [], verso: [], pronto: [],
-  funil: ['app::#view-kanban'], clientes: ['app::#view-clientes'], painel: ['app::#view-admin'],
+  funil: ['app::#kanban-board > *:first-child', 'app::#view-kanban'], clientes: ['app::#view-clientes .entity-card', 'app::#view-clientes'], painel: ['app::#view-admin'],
 };
 function ajudaAlvoEl(chave, origem){
   // devolve { el, fr }: fr é o iframe do verso quando o alvo mora lá dentro
@@ -83,6 +83,7 @@ function ajudaCss(){
   #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:top .5s cubic-bezier(.22,.8,.26,.99),left .5s cubic-bezier(.22,.8,.26,.99),width .5s cubic-bezier(.22,.8,.26,.99),height .5s cubic-bezier(.22,.8,.26,.99),border-radius .5s cubic-bezier(.22,.8,.26,.99),opacity .35s ease}
   #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:ajSurge .25s ease;opacity:1;transition:top .5s cubic-bezier(.22,.8,.26,.99),left .5s cubic-bezier(.22,.8,.26,.99),opacity .18s ease}
   #pdAjudaOv .cxa.centro{left:50%;top:50%;transform:translate(-50%,-50%)}
+  #pdAjudaOv .cxa.canto{top:auto!important;left:14px!important;bottom:74px;transform:none!important}
   @keyframes ajSurge{from{opacity:0}to{opacity:1}}
   #pdAjudaOv .kk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.45;margin-bottom:7px}
   #pdAjudaOv h3{margin:0 0 7px;font-size:16.5px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
@@ -90,7 +91,7 @@ function ajudaCss(){
   #pdAjudaOv .rodape{display:flex;align-items:center;gap:8px}
   #pdAjudaOv .pts{display:flex;gap:4px;flex:1}
   #pdAjudaOv .pts i{width:5px;height:5px;border-radius:50%;background:#121212;opacity:.18}#pdAjudaOv .pts i.on{opacity:.9}
-  #pdAjudaOv .bt{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:999px;padding:8px 16px;font:500 12px/1 inherit;font-family:inherit;cursor:pointer}
+  #pdAjudaOv .bt{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:999px;padding:8px 16px;font:500 12px/1 inherit;font-family:inherit;cursor:pointer;white-space:nowrap;flex:0 0 auto}
   #pdAjudaOv .bt.p{background:#121212;color:#fff;border-color:#121212}
   .entenda-pd{position:fixed;left:14px;bottom:14px;z-index:89;border:1px solid rgba(128,128,128,.35);background:rgba(20,20,22,.6);color:#fff;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:999px;padding:7px 13px;font:500 11px/1 inherit;font-family:inherit;letter-spacing:.03em;cursor:pointer;opacity:.6;display:inline-flex;align-items:center;gap:6px}
   .entenda-pd:hover{opacity:1}
@@ -128,7 +129,7 @@ function abrirAjuda(chave, passo, origem){
   if (ov){
     const cx = ov.querySelector('.cxa');
     const corpo = `<div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape">${tour
-      ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
+      ? `<span style="flex:1"></span>${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
          ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
       : `<span style="flex:1"></span><button class="bt p" onclick="fecharAjuda()">Entendi</button>`}</div>`;
     if (cx){ cx.style.opacity = '0'; setTimeout(() => { cx.innerHTML = corpo; cx.style.opacity = '1'; }, 160); }
@@ -138,7 +139,7 @@ function abrirAjuda(chave, passo, origem){
   }
   ov = document.createElement('div'); ov.id = 'pdAjudaOv';
   ov.onclick = e => { if (e.target === ov) fecharAjuda(); };
-  const pts = tour ? `<div class="pts">${seq.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>` : '<span style="flex:1"></span>';
+  const pts = tour ? `<span style="flex:1"></span>` : '<span style="flex:1"></span>';
   const bts = tour
     ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
        ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
@@ -171,21 +172,34 @@ function ajudaMira(chave, origem, deNovo){
     }
   }
   const seg = ++_ajudaSegue;
-  let ultimo = null;
+  let ultimo = null, sumiuEm = 0;
   const quadro = () => {
     if (seg !== _ajudaSegue) return;
     const ov = document.getElementById('pdAjudaOv'); if (!ov) return;
     const cx = ov.querySelector('.cxa'); if (!cx) return;
+    const noVerso = document.documentElement.classList.contains('noVerso');
+    if (noVerso && !cx.classList.contains('canto')){ cx.classList.remove('centro'); cx.classList.add('canto'); cx.style.top = ''; cx.style.left = ''; }
+    if (!noVerso && cx.classList.contains('canto')) cx.classList.remove('canto');
     const alvo = ajudaAlvoEl(chave, origem);
     const r = alvo ? ajudaRectW(alvo) : null;
     if (!r || r.width < 3 || r.height < 3){
-      // alvo sumiu (re-render, caixa fechando): foco se apaga em fade e a caixinha centraliza
-      const f = document.getElementById('pdAjudaFoco');
-      if (f && !f.dataset.saindo){ f.dataset.saindo = '1'; f.style.opacity = '0'; setTimeout(() => { if (f.dataset.saindo) f.remove(); }, 400); }
-      if (!cx.classList.contains('centro')){ cx.classList.add('centro'); cx.style.top = ''; cx.style.left = ''; cx.style.transform = ''; }
-      ultimo = null; requestAnimationFrame(quadro); return;
+      // alvo sumiu (tela trocando, caixa fechando): espera um pouco antes de mexer em qualquer coisa —
+      // só se demorar de verdade o foco se apaga em fade e a caixinha vai pro centro
+      const agora = performance.now();
+      if (!sumiuEm) sumiuEm = agora;
+      if (agora - sumiuEm > 400){
+        const f = document.getElementById('pdAjudaFoco');
+        if (f && !f.dataset.saindo){ f.dataset.saindo = '1'; f.style.opacity = '0'; setTimeout(() => { if (f.dataset.saindo) f.remove(); }, 400); }
+      }
+      if (agora - sumiuEm > 1400 && !noVerso && !cx.classList.contains('centro')){ cx.classList.add('centro'); cx.style.top = ''; cx.style.left = ''; cx.style.transform = ''; ultimo = null; }
+      requestAnimationFrame(quadro); return;
     }
+    sumiuEm = 0;
     const pad = 3, rr = { top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
+    if (rr.width > innerWidth * .86 && rr.height > innerHeight * .78){
+      const mx = 18, my = 16;
+      rr.top += my; rr.left += mx; rr.width -= mx * 2; rr.height -= my * 2; rr.cheia = true;
+    }
     rr.bottom = rr.top + rr.height; rr.right = rr.left + rr.width;
     const mudou = !ultimo || Math.abs(rr.top - ultimo.top) > 1.5 || Math.abs(rr.left - ultimo.left) > 1.5 || Math.abs(rr.width - ultimo.width) > 1.5 || Math.abs(rr.height - ultimo.height) > 1.5;
     if (mudou){
@@ -194,12 +208,15 @@ function ajudaMira(chave, origem, deNovo){
       if (f.dataset.saindo){ delete f.dataset.saindo; f.style.opacity = '1'; }
       f.style.top = rr.top + 'px'; f.style.left = rr.left + 'px';
       f.style.width = rr.width + 'px'; f.style.height = rr.height + 'px';
-      try { const cs = alvo.el.ownerDocument.defaultView.getComputedStyle(alvo.el);
+      if (rr.cheia) f.style.borderRadius = '18px';
+      else try { const cs = alvo.el.ownerDocument.defaultView.getComputedStyle(alvo.el);
         f.style.borderRadius = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
           .map(k => (Math.max(0, parseFloat(cs[k]) || 0) + pad) + 'px').join(' ');
       } catch(e){}
-      if (cx.classList.contains('centro')){ cx.classList.remove('centro'); cx.style.transform = 'none'; }
-      if (!ultimo || Math.abs(rr.top - ultimo.top) > 6 || Math.abs(rr.left - ultimo.left) > 6 || Math.abs(rr.height - ultimo.height) > 6 || Math.abs(rr.width - ultimo.width) > 6) ajudaPosiciona(cx, rr);
+      if (!noVerso){
+        if (cx.classList.contains('centro')){ cx.classList.remove('centro'); cx.style.transform = 'none'; }
+        if (!ultimo || Math.abs(rr.top - ultimo.top) > 6 || Math.abs(rr.left - ultimo.left) > 6 || Math.abs(rr.height - ultimo.height) > 6 || Math.abs(rr.width - ultimo.width) > 6) ajudaPosiciona(cx, rr);
+      }
       ultimo = rr;
     }
     requestAnimationFrame(quadro);
