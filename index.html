@@ -5453,6 +5453,7 @@ window.PD_AJUDA_ABRE = {};
 window.PD_AJUDA_ABRE.plataforma = () => { tourFrente(); return null; };
 ['trabalho:estudio','copys:estudio','aprovacoes:aprovacoes','social:social','publicacao:publicacao','anuncios:anuncios','cronograma:cronograma','zap:zap','escola:escola','oficina:oficina','ias:ias'].forEach(par => {
   const [chave, id] = par.split(':');
+  (window.PD_AJUDA_GRUPO = window.PD_AJUDA_GRUPO || {})[chave] = id;
   window.PD_AJUDA_ABRE[chave] = () => {
     tourFrente();
     if (!gadgetsDaTela().includes(id) || gadsAbertos[id]) return null;

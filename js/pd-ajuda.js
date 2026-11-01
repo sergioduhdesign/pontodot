@@ -106,12 +106,13 @@ function ajudaCss(){
   @media (max-width:999px){.entenda-pd{bottom:calc(14px + env(safe-area-inset-bottom));left:10px;padding:6px 11px}}`;
   document.head.appendChild(st);
 }
-let _ajudaDesfaz = null, _ajudaSegue = 0;
+let _ajudaDesfaz = null, _ajudaSegue = 0, _ajudaGrupo = null;
+window.PD_AJUDA_GRUPO = window.PD_AJUDA_GRUPO || {};   // passos que moram dentro da mesma caixa (ex.: trabalho e copys)
 function fecharAjuda(trocando){ _ajudaSegue++;
   const o = document.getElementById('pdAjudaOv'), f = document.getElementById('pdAjudaFoco');
   if (o){ o.id = ''; o.style.pointerEvents = 'none'; const cx = o.querySelector('.cxa'); if (cx) cx.style.opacity = '0'; setTimeout(() => o.remove(), 260); }
   if (f){ f.id = ''; f.style.opacity = '0'; setTimeout(() => f.remove(), 380); }
-  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
+  if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; _ajudaGrupo = null; }
   if (!trocando && window._ajudaDesfazTour){ try { window._ajudaDesfazTour(); } catch(e){} window._ajudaDesfazTour = null; } }
 function ajudaPosiciona(cx, r){
   // a caixinha fica PERTO da coisa: embaixo quando cabe, senão em cima, senão do lado
@@ -136,7 +137,9 @@ function abrirAjuda(chave, passo, origem){
     let espera = 0;
     if (tour && !origem){
       const abre = (window.PD_AJUDA_ABRE || {})[chave];
-      if (abre){ try { const desfaz = abre(); if (desfaz){ _ajudaDesfaz = desfaz; espera = 560; } } catch(e){} }
+      const gNovo = window.PD_AJUDA_GRUPO[chave] || null;
+      if (gNovo && _ajudaDesfaz && _ajudaGrupo === gNovo){ /* já está aberta: segue por dentro dela, sem reabrir */ }
+      else if (abre){ try { const desfaz = abre(); if (desfaz){ _ajudaDesfaz = desfaz; _ajudaGrupo = gNovo; espera = 560; } } catch(e){} }
     }
     setTimeout(() => { if (tok === _ajudaSegue) ajudaMira(chave, origem); }, espera);
   };
@@ -149,7 +152,8 @@ function abrirAjuda(chave, passo, origem){
     setTimeout(() => {
       if (tok !== _ajudaSegue) return;
       let fechou = 0;
-      if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; fechou = 480; }
+      const gProx = window.PD_AJUDA_GRUPO[chave] || null;
+      if (_ajudaDesfaz && !(tour && !origem && gProx && _ajudaGrupo === gProx)){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; _ajudaGrupo = null; fechou = 480; }
       if (cx) cx.innerHTML = corpo;
       setTimeout(() => { if (tok === _ajudaSegue) abreProximo(); }, fechou);
     }, 340);
