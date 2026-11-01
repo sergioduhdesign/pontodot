@@ -63,7 +63,7 @@ function ajudaCss(){
   .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
-  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:1.5px solid rgba(255,255,255,.95);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.42),0 0 0 4px rgba(255,255,255,.18);transition:top .28s ease,left .28s ease,width .28s ease,height .28s ease}
+  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:top .28s ease,left .28s ease,width .28s ease,height .28s ease,border-radius .28s ease}
   #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:ajSurge .22s ease}
   #pdAjudaOv .cxa.centro{left:50%;top:50%;transform:translate(-50%,-50%)}
   @keyframes ajSurge{from{opacity:0}to{opacity:1}}
@@ -111,8 +111,13 @@ function abrirAjuda(chave, passo, origem){
       const r = alvo.getBoundingClientRect();
       if (r.width > 2 && r.height > 2){
         const f = document.createElement('div'); f.id = 'pdAjudaFoco';
-        f.style.top = (r.top - 5) + 'px'; f.style.left = (r.left - 5) + 'px';
-        f.style.width = (r.width + 10) + 'px'; f.style.height = (r.height + 10) + 'px';
+        const pad = 3;
+        f.style.top = (r.top - pad) + 'px'; f.style.left = (r.left - pad) + 'px';
+        f.style.width = (r.width + pad * 2) + 'px'; f.style.height = (r.height + pad * 2) + 'px';
+        try { const cs = getComputedStyle(alvo);
+          f.style.borderRadius = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+            .map(k => (Math.max(0, parseFloat(cs[k]) || 0) + pad) + 'px').join(' ');
+        } catch(e){}
         document.body.appendChild(f);
         const cx = el.querySelector('.cxa'); cx.classList.remove('centro'); cx.style.transform = 'none';
         ajudaPosiciona(cx, f);
