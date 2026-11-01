@@ -113,7 +113,28 @@ function abrirAjuda(chave, passo, origem){
   setTimeout(() => ajudaMira(chave, origem), espera);
   if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
 }
-function ajudaMira(chave, origem){
+function ajudaMira(chave, origem, deNovo){
+  // caixa que abriu VAZIA não fica exposta: fecha de volta e a luz destaca o ícone fechado
+  if (_ajudaDesfaz && !deNovo){
+    const g = ajudaAlvoEl(chave, origem);
+    const corpo = g && g.querySelector ? g.querySelector('.gad-corpo') : null;
+    const txt = corpo ? (corpo.innerText || '').replace(/\s+/g, ' ').trim() : null;
+    if (corpo && txt !== null && txt.length < 6){
+      try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null;
+      setTimeout(() => ajudaMira(chave, origem, true), 340);
+      return;
+    }
+    if (corpo && /carregando|…$/i.test(txt) && txt.length < 24){
+      // ainda nascendo: espera mais um pouco e confere de novo (uma vez)
+      setTimeout(() => {
+        const t2 = (corpo.innerText || '').replace(/\s+/g, ' ').trim();
+        if (document.getElementById('pdAjudaOv') && _ajudaDesfaz && t2.length < 6){
+          try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null;
+          setTimeout(() => ajudaMira(chave, origem, true), 340);
+        } else if (document.getElementById('pdAjudaOv')) ajudaMira(chave, origem, true);
+      }, 1300);
+    }
+  }
   const alvo = ajudaAlvoEl(chave, origem);
   if (alvo){
     try { alvo.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){}
@@ -121,6 +142,7 @@ function ajudaMira(chave, origem){
       const el = document.getElementById('pdAjudaOv'); if (!el) return;
       const r = alvo.getBoundingClientRect();
       if (r.width > 2 && r.height > 2){
+        const velho = document.getElementById('pdAjudaFoco'); if (velho) velho.remove();
         const f = document.createElement('div'); f.id = 'pdAjudaFoco';
         const pad = 3;
         f.style.top = (r.top - pad) + 'px'; f.style.left = (r.left - pad) + 'px';
