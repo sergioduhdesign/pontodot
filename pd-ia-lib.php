@@ -261,10 +261,10 @@ function iaUsuariosCriar($args, $u, $lote) {
         $cid = null; if ($papel === 'client') { $c = iaCliente($p['cliente'] ?? ''); if (!$c) { $out[] = "⚠️ $nome: cliente \"" . ($p['cliente'] ?? '') . "\" não achei"; continue; } $cid = $c['id']; }
         $fun = array_values(array_filter(array_map(fn($x) => iaFuncaoChave($x), (array)($p['funcoes'] ?? []))));
         try {
-            $r = pdUsuarioCriar(['name' => $nome, 'email' => $email, 'role' => $papel, 'client_id' => $cid, 'funcoes' => $fun], $u);
+            $r = pdUsuarioCriar(['name' => $nome, 'email' => $email, 'role' => $papel, 'client_id' => $cid, 'funcoes' => $fun, 'perfil_permissoes' => (string)($p['perfil_permissoes'] ?? '')], $u);
             $uid = $r['user_id']; $extra = [];
             if (!empty($p['zap'])) { $z = preg_replace('/[^\d+]/', '', (string)$p['zap']); sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', ['zap' => $z, 'zap_ativo' => true]); $extra[] = 'zap ' . $z; }
-            if (!empty($p['perfil_permissoes']) && $papel !== 'client') { $pr = iaPermissoesAplicar($uid, $papel, (string)$p['perfil_permissoes'], null); $extra[] = $pr; }
+            if (!empty($r['permissoes'])) $extra[] = $r['permissoes'];
             if (!empty($p['ferramentas']) && $papel !== 'client') { $fr = iaFerramentasAplicar($uid, (array)$p['ferramentas']); $extra[] = $fr; }
             iaRegistra($lote, $u, 'usuario', $uid, null, ['name' => $nome, 'email' => $email, 'role' => $papel], $nome);
             $out[] = "✅ $nome ($email) cadastrad" . ($papel === 'client' ? 'o como cliente' : 'o na equipe') . ($fun ? ' · funções: ' . implode(', ', $fun) : '') . ($r['team_key'] && $r['team_key'] !== 'OUTROS' ? ' · chave ' . $r['team_key'] : '') . ($extra ? ' · ' . implode(' · ', $extra) : '') . ' · convite enviado por e-mail';

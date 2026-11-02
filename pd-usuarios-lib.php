@@ -96,5 +96,18 @@ $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfe
 
 @mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $message, $headers);
 
-    return ['user_id' => $newUserId, 'link' => $link, 'team_key' => $team_key, 'email' => $email, 'name' => $name];
+    // --- 2c. Permissões: pessoa nova NÃO entra vazia. Perfil pedido, ou "Produção" pra equipe (admin já tem tudo). ---
+    $permTxt = '';
+    if ($role === 'team') {
+        $tok = $GLOBALS['PD_IA_TOKEN'] ?? '';
+        if (!$tok) { $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''); if (!$auth && function_exists('apache_request_headers')) { $hh = array_change_key_case(apache_request_headers(), CASE_LOWER); $auth = $hh['authorization'] ?? ''; } if (preg_match('/^Bearer\s+(.+)$/i', trim($auth), $mm)) $tok = $mm[1]; }
+        $quer = trim((string)($body['perfil_permissoes'] ?? '')) ?: 'Produção';
+        $pre = (array)(sd_supabase('/rest/v1/permission_presets?papel=eq.team&select=nome,permissoes&order=ordem')['body'] ?? []);
+        $norm = fn($x) => strtolower(trim((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$x)));
+        $ach = null; foreach ($pre as $x) if ($norm($x['nome'] ?? '') === $norm($quer) || strpos($norm($x['nome'] ?? ''), $norm($quer)) !== false) { $ach = $x; break; }
+        if (!$ach && $pre) $ach = $pre[0];
+        if ($ach && $tok) { $r = sd_supabase('/rest/v1/rpc/set_user_permissions', 'POST', ['p_user_id' => $newUserId, 'p_perms' => array_values((array)($ach['permissoes'] ?? []))], ['Authorization: Bearer ' . $tok]);
+            $permTxt = ($r['code'] ?? 500) < 300 ? ('perfil ' . $ach['nome']) : ''; if (($r['code'] ?? 500) >= 300) error_log('create-user: permissões padrão não gravadas: ' . mb_substr((string)($r['raw'] ?? ''), 0, 160)); }
+    }
+    return ['user_id' => $newUserId, 'link' => $link, 'team_key' => $team_key, 'email' => $email, 'name' => $name, 'permissoes' => $permTxt];
 }

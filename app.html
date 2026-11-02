@@ -9419,7 +9419,7 @@ async function saveUser(){
       </div>
       <div class="modal-body">
         <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
-          Um email de acesso foi enviado automaticamente para <strong>${name}</strong>. 
+          Um email de acesso foi enviado automaticamente para <strong>${name}</strong>${result.permissoes?` · permissões: <strong>${result.permissoes}</strong>`:''}. 
           Se preferir, use o link abaixo para enviar por outro canal — mas atenção: 
           não cole o link no WhatsApp, pois o app de mensagens pode consumir o token automaticamente. 
           Prefira enviar por email.
