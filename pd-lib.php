@@ -854,7 +854,7 @@ function pdZapAcao($a, $p, $statusValidos) {
     if (($a['tipo'] ?? '') === 'recado') return pdZapRecado($a, $p);
     // mesmo motor do chat da plataforma (pd-ia-lib.php): mesmos campos, mesma conferência, mesmo registro pra desfazer
     require_once __DIR__ . '/pd-ia-lib.php';
-    $loteZ = 'zap-' . date('Ymd-His') . '-' . substr(md5((string)($p['id'] ?? '') . microtime(true)), 0, 8);
+    $loteZ = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));   // uuid: o lote fica em pd_ia_acoes, dá pra desfazer pelo chat da plataforma
     if (($a['tipo'] ?? '') === 'criar') { $nv = []; foreach ((array)($a['novas'] ?? []) as $n) { $n = (array)$n; if (isset($n['project']) && !isset($n['projeto'])) $n['projeto'] = $n['project']; $nv[] = $n; } return iaCriar(['novas' => $nv], $p, $loteZ)['texto']; }
     if (($a['tipo'] ?? '') === 'produto') return iaNovoProduto($a, $p, $loteZ)['texto'];
     if (($a['tipo'] ?? '') === 'mudar' && !empty($a['task_id'])) {
