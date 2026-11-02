@@ -26,6 +26,7 @@ $msg = trim((string)($b['mensagem'] ?? '')); if ($msg === '') sd_fail('Mensagem 
 // ---------- CONTEXTO ----------
 $tz = new DateTimeZone('America/Sao_Paulo'); $agora = new DateTime('now', $tz); $hoje = $agora->format('Y-m-d');
 $cal = []; for ($i = 0; $i < 21; $i++) { $d = (clone $agora)->modify("+$i day"); $cal[] = $d->format('Y-m-d') . ' ' . ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][(int)$d->format('w')]; }
+try { pdEquipeChavesGarante(); } catch (Throwable $e) {}
 $equipe = array_values(array_map(fn($p) => ['chave' => $p['key'], 'nome' => $p['nome']], iaEquipe()));
 $clientes = []; $prods = (array)(sd_supabase('/rest/v1/products?select=id,client_id,name&limit=600')['body'] ?? []);
 foreach (iaClientes() as $c) { $pp = []; foreach ($prods as $p) if ($p['client_id'] === $c['id']) $pp[] = $p['name']; $clientes[] = ['nome' => $c['name'], 'produtos' => $pp]; }

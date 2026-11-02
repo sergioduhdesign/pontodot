@@ -813,6 +813,18 @@ function pdTeamMemberGarante($k) {
     if (($r['code'] ?? 500) >= 300) error_log('pd_team_member_garante(' . $k . '): rode o SQL v136 — ' . mb_substr((string)($r['raw'] ?? ''), 0, 160));
     return ($r['code'] ?? 500) < 300;
 }
+// Toda pessoa da equipe tem a PRÓPRIA chave de responsável. Quem ainda está como OUTROS (ou sem chave) ganha a sua agora.
+// Roda em segundos; chamada ao abrir Equipe e funções, no admin e antes da IA responder. Devolve quantas corrigiu.
+function pdEquipeChavesGarante() {
+    $n = 0;
+    foreach ((array)(sd_supabase('/rest/v1/profiles?active=eq.true&client_id=is.null&role=in.(admin,team)&or=(team_key.is.null,team_key.eq.OUTROS)&select=id,name&limit=100')['body'] ?? []) as $p) {
+        if (empty($p['name'])) continue;
+        $k = pdTeamKeyNova($p['name'], $p['id']); pdTeamMemberGarante($k);
+        $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['team_key' => $k]);
+        if (($r['code'] ?? 500) < 300) $n++;
+    }
+    return $n;
+}
 function pdTeamKeyNova($nome, $idPessoa) {
     $b = strtoupper(preg_replace('/[^A-Za-z]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', explode(' ', trim((string)$nome))[0]))) ?: 'PESSOA';
     $b = substr($b, 0, 16); $k = $b;

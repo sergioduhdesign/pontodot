@@ -9,6 +9,7 @@ $eu = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($me['id']) . '&select=f
 $gestor = $me['role'] === 'admin' || in_array('gestao_equipe', (array)$eu, true);
 if (!$gestor) sd_fail('Só admin ou gestão de equipe.', 403);
 $cat = pdFuncoesCatalogo();
+try { pdEquipeChavesGarante(); } catch (Throwable $e) {}
 if ($acao === 'catalogo') { echo json_encode(['ok' => true, 'catalogo' => $cat, 'eu_admin' => $me['role'] === 'admin'], JSON_UNESCAPED_UNICODE); exit; }
 $uid = (string)($b['user_id'] ?? ''); if ($uid === '') sd_fail('user_id obrigatório.');
 $alvo = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid) . '&select=id,name,role,team_key,funcoes')['body'][0] ?? null;
@@ -21,7 +22,7 @@ if ($acao === 'salvar') {
     if ($me['role'] !== 'admin') { $f = array_values(array_diff($f, ['gestao_equipe'])); if ($tinha) $f[] = 'gestao_equipe'; }
     $upd = ['funcoes' => '{' . implode(',', $f) . '}'];
     // quem ainda não tem um "responsável" próprio ganha um (aparece no quadro com o nome dele)
-    if (!empty($f) && (empty($alvo['team_key']) || $alvo['team_key'] === 'OUTROS')) $upd['team_key'] = pdTeamKeyNova($alvo['name'], $alvo['id']);
+    if (empty($alvo['team_key']) || $alvo['team_key'] === 'OUTROS') $upd['team_key'] = pdTeamKeyNova($alvo['name'], $alvo['id']);   // chave própria SEMPRE, com ou sem função
     if (!empty($upd['team_key'])) pdTeamMemberGarante($upd['team_key']); elseif (!empty($alvo['team_key']) && $alvo['team_key'] !== 'OUTROS') pdTeamMemberGarante($alvo['team_key']);
     $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', $upd);
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v132 no Supabase.', 500);

@@ -65,7 +65,7 @@ if ($prof['code'] >= 300) {
 }
 
 // --- 2b. Funções (v132) e responsável próprio da pessoa ----------------
-if ($role !== 'client' && $funcoes) {
+if ($role !== 'client') {
     $tk = pdTeamKeyNova($name, $newUserId); pdTeamMemberGarante($tk);
     $fx = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($newUserId), 'PATCH', ['funcoes' => '{' . implode(',', $funcoes) . '}', 'team_key' => $tk]);
     if (($fx['code'] ?? 500) >= 300) error_log('SD create-user: funções não gravadas (rode o SQL v132): ' . ($fx['raw'] ?? ''));
@@ -109,5 +109,6 @@ $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfe
         if ($ach && $tok) { $r = sd_supabase('/rest/v1/rpc/set_user_permissions', 'POST', ['p_user_id' => $newUserId, 'p_perms' => array_values((array)($ach['permissoes'] ?? []))], ['Authorization: Bearer ' . $tok]);
             $permTxt = ($r['code'] ?? 500) < 300 ? ('perfil ' . $ach['nome']) : ''; if (($r['code'] ?? 500) >= 300) error_log('create-user: permissões padrão não gravadas: ' . mb_substr((string)($r['raw'] ?? ''), 0, 160)); }
     }
+    if ($role !== 'client' && !empty($tk)) $team_key = $tk;
     return ['user_id' => $newUserId, 'link' => $link, 'team_key' => $team_key, 'email' => $email, 'name' => $name, 'permissoes' => $permTxt];
 }
