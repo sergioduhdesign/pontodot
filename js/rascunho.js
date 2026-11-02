@@ -1,4 +1,6 @@
 /* =====================================================================
+// equipe de verdade (quem tem responsável próprio), não a lista fixa de quando a casa nasceu
+function equipeKeys(){ const c = window.RESP_CFG || {}; const k = Object.keys(c).filter(x => !['CLIENTE','OUTROS'].includes(x)); return k.length ? k : ['SERGIO','JOY','LUANA','JUAN']; }
    Pontodot — NOVA TAREFA GUIADA + RASCUNHO ao vivo
    A tarefa nova entra por perguntas simples (cliente → peça → assunto → layout →
    cores → fontes → prazo). A cada resposta, uma telinha "Rascunho" monta um
@@ -189,7 +191,7 @@
       const pz = [['Amanhã', 1], ['2 dias úteis', 2], ['3 dias úteis', 3], ['5 dias úteis', 5], ['Sem data', 0]];
       const us = respUsual(S.cli.id), pj = projetosDe(S.cli.id);
       return `<div class="rsc-sub">Entrega ao cliente</div><div class="rsc-ch">${pz.map(([n, d]) => chip(n, S.prazo === d, `PDRsc.set('prazo',${d})`)).join('')}</div>
-        <div class="rsc-sub">Quem faz</div><div class="rsc-ch">${['SERGIO', 'JOY', 'LUANA', 'JUAN'].map(r => chip(((window.RESP_CFG && RESP_CFG[r] && RESP_CFG[r].label) || r), S.resp === r, `PDRsc.set('resp','${r}')`, r === us ? '<em>costuma ser</em> ' : '')).join('')}</div>
+        <div class="rsc-sub">Quem faz</div><div class="rsc-ch">${equipeKeys().map(r => chip(((window.RESP_CFG && RESP_CFG[r] && RESP_CFG[r].label) || r), S.resp === r, `PDRsc.set('resp','${r}')`, r === us ? '<em>costuma ser</em> ' : '')).join('')}</div>
         <div class="rsc-sub">Projeto / job</div><div class="rsc-ch">${pj.map(p => chip(p, S.projeto === p, `PDRsc.set('projeto','${esc(p).replace(/'/g, '&#39;')}')`)).join('')}${chip('GERAL', S.projeto === 'GERAL', `PDRsc.set('projeto','GERAL')`)}</div>`; } },
     { id: 'rev', q: 'Tudo certo?', dica: 'Confira o rascunho e crie.', ok: () => true, render() {
       const l = (a, b) => b ? `<div class="rsc-rv"><span>${a}</span><b>${esc(b)}</b></div>` : '';
@@ -299,7 +301,7 @@
     if (!S.bg) { const c = cores()[0]; if (c) { S.bg = c.hex; S.acc = S.acc || (cores()[1] || c).hex; } }
     const fs = fontes().map(f => f.name); if (fs.includes(d.fonte_titulo)) S.fT = d.fonte_titulo; if (fs.includes(d.fonte_texto)) S.fC = d.fonte_texto;
     if ([0, 1, 2, 3, 5].includes(Number(d.prazo_dias)) && d.prazo_dias !== null) S.prazo = Number(d.prazo_dias);
-    if (['SERGIO', 'JOY', 'LUANA', 'JUAN'].includes(d.responsavel)) S.resp = d.responsavel; if (!S.resp) S.resp = respUsual(S.cli.id);
+    if (equipeKeys().includes(d.responsavel)) S.resp = d.responsavel; if (!S.resp) S.resp = respUsual(S.cli.id);
     if (d.projeto) S.projeto = String(d.projeto).slice(0, 60);
     let i = 0; while (i < PASSOS.length - 1) { const st = PASSOS[i]; if (st.pula && st.pula()) { i++; continue; } if (!st.ok()) break; i++; }
     PASSO = i;
