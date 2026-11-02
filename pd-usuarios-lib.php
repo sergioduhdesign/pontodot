@@ -47,6 +47,7 @@ if ($hashed) $link = sd_base() . '/setup.html?token_hash=' . rawurlencode($hashe
 if (!$newUserId) throw new Exception('O Supabase não devolveu o ID do usuário criado.');
 
 // --- 2. Criar/atualizar o profile ------------------------------------
+if ($team_key && $team_key !== 'OUTROS') pdTeamMemberGarante($team_key);   // profiles.team_key é o mesmo enum: garante antes de gravar
 $prof = sd_supabase('/rest/v1/profiles', 'POST', [
     'id'        => $newUserId,
     'name'      => $name,

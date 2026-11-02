@@ -37,8 +37,9 @@ grant execute on function public.pd_team_member_garante(text) to authenticated, 
 do $$
 declare r record;
 begin
-  for r in select distinct upper(team_key) as k from public.profiles
-           where team_key is not null and team_key ~ '^[A-Za-z][A-Za-z0-9]{1,19}$'
+  -- profiles.team_key também é do tipo team_member: por isso tudo passa por texto aqui
+  for r in select distinct upper(team_key::text) as k from public.profiles
+           where team_key is not null and team_key::text ~ '^[A-Za-z][A-Za-z0-9]{1,19}$'
   loop
     if not exists (select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'team_member' and e.enumlabel = r.k) then
       execute format('alter type public.team_member add value %L', r.k);
