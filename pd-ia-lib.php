@@ -24,6 +24,8 @@ function iaResp($txt) {
     foreach ($eq as $k => $p) { $n = iaNorm($p['nome']); if ($n === $q || strpos($n, $q) === 0 || strpos($q, explode(' ', $n)[0]) === 0) return $k; }
     return null;
 }
+// chave achada → garante que o enum aceita (v136), uma vez por execução
+function iaRespOk($k) { static $ok = []; if ($k && !isset($ok[$k])) { $ok[$k] = true; if (function_exists('pdTeamMemberGarante')) pdTeamMemberGarante($k); } return $k; }
 function iaClientes() {
     static $c = null; if ($c !== null) return $c;
     $c = (array)(sd_supabase('/rest/v1/clients?active=eq.true&select=id,name&limit=120')['body'] ?? []);
@@ -64,7 +66,7 @@ function iaAlterar($args, $u, $lote) {
         if (!$antes) { $out[] = "⚠️ $tid não existe"; continue; }
         $patch = []; $avisos = [];
         if (!empty($m['status'])) { $st = strtoupper(trim((string)$m['status'])); if (in_array($st, iaStatusValidos(), true)) $patch['status'] = $st; else $avisos[] = "status \"$st\" não existe"; }
-        if (!empty($m['resp'])) { $k = iaResp($m['resp']); if ($k) $patch['resp'] = $k; else { $avisos[] = "\"{$m['resp']}\" não está na equipe (anotei na obs)"; $m['obs_acrescenta'] = trim((string)($m['obs_acrescenta'] ?? '') . " · responsável sugerido: {$m['resp']}"); } }
+        if (!empty($m['resp'])) { $k = iaRespOk(iaResp($m['resp'])); if ($k) $patch['resp'] = $k; else { $avisos[] = "\"{$m['resp']}\" não está na equipe (anotei na obs)"; $m['obs_acrescenta'] = trim((string)($m['obs_acrescenta'] ?? '') . " · responsável sugerido: {$m['resp']}"); } }
         if (array_key_exists('projeto', $m)) { $pj = strtoupper(trim((string)$m['projeto'])); $patch['project'] = $pj !== '' ? mb_substr($pj, 0, 60) : 'GERAL'; }
         if (!empty($m['cliente'])) { $c = iaCliente($m['cliente']); if ($c) $patch['client_id'] = $c['id']; else $avisos[] = "cliente \"{$m['cliente']}\" não achei"; }
         if (array_key_exists('produto', $m)) { $pv = trim((string)$m['produto']); if ($pv === '' || preg_match('/^(nenhum|-|sem)$/i', $pv)) $patch['product_id'] = null;
@@ -100,7 +102,7 @@ function iaCriar($args, $u, $lote) {
         if (!$id) { $out[] = "⚠️ \"$acao\": não consegui gerar o número"; continue; }
         $c = !empty($n['cliente']) ? iaCliente($n['cliente']) : null; if (!empty($n['cliente']) && !$c) $avisos[] = "cliente \"{$n['cliente']}\" não achei";
         $st = strtoupper(trim((string)($n['status'] ?? 'BRIEFING'))); if (!in_array($st, iaStatusValidos(), true)) $st = 'BRIEFING';
-        $resp = !empty($n['resp']) ? iaResp($n['resp']) : null; $obs = trim((string)($n['obs'] ?? ''));
+        $resp = !empty($n['resp']) ? iaRespOk(iaResp($n['resp'])) : null; $obs = trim((string)($n['obs'] ?? ''));
         if (!empty($n['resp']) && !$resp) { $avisos[] = "\"{$n['resp']}\" não está na equipe"; $obs = trim($obs . "\nresponsável sugerido: {$n['resp']}"); }
         $nova = ['id' => $id, 'action' => mb_substr($acao, 0, 160), 'status' => $st, 'resp' => $resp ?: $minhaKey, 'project' => mb_substr(strtoupper(trim((string)($n['projeto'] ?? ''))) ?: 'GERAL', 0, 60), 'week' => 'ESTA SEMANA', 'created_by' => $u['id'] ?? null];
         if ($c) { $nova['client_id'] = $c['id']; if (!empty($n['produto'])) { $p = iaProduto($c['id'], $n['produto']); if ($p) $nova['product_id'] = $p['id']; else $avisos[] = "produto \"{$n['produto']}\" não existe (crie com novo_produto)"; } }

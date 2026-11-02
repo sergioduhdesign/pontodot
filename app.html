@@ -9491,7 +9491,7 @@ async function saveProfile(){
     const roleEl=document.getElementById('prof-role-sel');
     const keyEl=document.getElementById('prof-teamkey-sel');
     if(roleEl)updates.role=roleEl.value;
-    if(keyEl)updates.team_key=keyEl.value;
+    if(keyEl){updates.team_key=keyEl.value;try{await sb.rpc('pd_team_member_garante',{k:keyEl.value});}catch(e){}}
     if(!roleEl&&!keyEl){
       showToast('Papel e setor se alteram na aba Admin.','info');
     }

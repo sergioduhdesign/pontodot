@@ -22,6 +22,7 @@ if ($acao === 'salvar') {
     $upd = ['funcoes' => '{' . implode(',', $f) . '}'];
     // quem ainda não tem um "responsável" próprio ganha um (aparece no quadro com o nome dele)
     if (!empty($f) && (empty($alvo['team_key']) || $alvo['team_key'] === 'OUTROS')) $upd['team_key'] = pdTeamKeyNova($alvo['name'], $alvo['id']);
+    if (!empty($upd['team_key'])) pdTeamMemberGarante($upd['team_key']); elseif (!empty($alvo['team_key']) && $alvo['team_key'] !== 'OUTROS') pdTeamMemberGarante($alvo['team_key']);
     $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', $upd);
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v132 no Supabase.', 500);
     echo json_encode(['ok' => true, 'funcoes' => $f, 'team_key' => $upd['team_key'] ?? $alvo['team_key']], JSON_UNESCAPED_UNICODE); exit;

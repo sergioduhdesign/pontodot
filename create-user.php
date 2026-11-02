@@ -71,6 +71,7 @@ $prof = sd_supabase('/rest/v1/profiles', 'POST', [
     'active'    => true,
 ], ['Prefer: resolution=merge-duplicates']);
 
+if ($prof['code'] < 300 && $team_key && $team_key !== 'OUTROS') pdTeamMemberGarante($team_key);
 if ($prof['code'] >= 300) {
     error_log('SD create-user: falha ao gravar profile: ' . $prof['raw']);
     sd_fail('Usuário criado no Auth, mas o perfil não foi salvo. Avise o desenvolvedor.', 502);
@@ -78,7 +79,7 @@ if ($prof['code'] >= 300) {
 
 // --- 2b. Funções (v132) e responsável próprio da pessoa ----------------
 if ($role !== 'client' && $funcoes) {
-    $tk = pdTeamKeyNova($name, $newUserId);
+    $tk = pdTeamKeyNova($name, $newUserId); pdTeamMemberGarante($tk);
     $fx = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($newUserId), 'PATCH', ['funcoes' => '{' . implode(',', $funcoes) . '}', 'team_key' => $tk]);
     if (($fx['code'] ?? 500) >= 300) error_log('SD create-user: funções não gravadas (rode o SQL v132): ' . ($fx['raw'] ?? ''));
 }

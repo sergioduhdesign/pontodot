@@ -806,6 +806,13 @@ function pdFuncoesCatalogo() { return [
   'copy' => 'Copywriter', 'designer' => 'Designer', 'video' => 'Motion / editor de vídeo', 'som' => 'Sound designer / locução', 'foto3d' => 'Fotografia / 3D',
   'social' => 'Social media', 'trafego' => 'Tráfego pago', 'webdev' => 'Web dev', 'gestao_equipe' => 'Gestão de equipe']; }
 // Chave de responsável (tasks.resp) para quem não tem uma: primeiro nome sem acento, em caixa alta, única.
+// Garante que a chave existe no enum team_member (SQL v136): pessoa nova entra pelo sistema, sem SQL por pessoa.
+function pdTeamMemberGarante($k) {
+    $k = strtoupper(trim((string)$k)); if ($k === '' || !preg_match('/^[A-Z][A-Z0-9]{1,19}$/', $k)) return false;
+    $r = sd_supabase('/rest/v1/rpc/pd_team_member_garante', 'POST', ['k' => $k]);
+    if (($r['code'] ?? 500) >= 300) error_log('pd_team_member_garante(' . $k . '): rode o SQL v136 — ' . mb_substr((string)($r['raw'] ?? ''), 0, 160));
+    return ($r['code'] ?? 500) < 300;
+}
 function pdTeamKeyNova($nome, $idPessoa) {
     $b = strtoupper(preg_replace('/[^A-Za-z]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', explode(' ', trim((string)$nome))[0]))) ?: 'PESSOA';
     $b = substr($b, 0, 16); $k = $b;
