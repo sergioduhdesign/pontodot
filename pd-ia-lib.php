@@ -214,9 +214,230 @@ function iaDesfazer($lote, $u) {
                 $out[] = ($ok ? '↩️ ' : '⚠️ ') . "$alvo recriada" . ($ok ? '' : ' (o banco recusou: ' . mb_substr((string)($r['body']['message'] ?? ''), 0, 80) . ')'); }
             elseif ($tipo === 'comentar') { $r = sd_supabase('/rest/v1/comments?id=eq.' . urlencode($alvo), 'DELETE'); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'comentário removido'; }
             elseif ($tipo === 'produto') { $r = sd_supabase('/rest/v1/products?id=eq.' . urlencode($alvo), 'DELETE'); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'produto removido'; }
+            elseif ($tipo === 'acesso') { $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($alvo), 'PATCH', (array)$a['antes']); $at = !empty($a['antes']['active']); sd_supabase('/auth/v1/admin/users/' . urlencode($alvo), 'PUT', ['ban_duration' => $at ? 'none' : '876000h']); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'acesso voltou como estava'; }
+            elseif ($tipo === 'funcoes') { $an = (array)$a['antes']; $pt = ['funcoes' => '{' . implode(',', (array)($an['funcoes'] ?? [])) . '}']; if (array_key_exists('team_key', $an)) $pt['team_key'] = $an['team_key']; $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($alvo), 'PATCH', $pt); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'funções voltaram como estavam'; }
+            elseif ($tipo === 'ferramentas') { $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($alvo), 'PATCH', ['studio_areas' => '{' . implode(',', (array)($a['antes']['studio_areas'] ?? [])) . '}']); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'ferramentas voltaram como estavam'; }
+            elseif ($tipo === 'cliente') { $r = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($alvo), 'PATCH', ['active' => false]); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'cliente pausado (criado neste lote)'; }
+            elseif ($tipo === 'cliente_editar') { $r = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($alvo), 'PATCH', (array)$a['antes']); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'ficha do cliente voltou como estava'; }
+            elseif ($tipo === 'usuario') { $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($alvo), 'PATCH', ['active' => false]); sd_supabase('/auth/v1/admin/users/' . urlencode($alvo), 'PUT', ['ban_duration' => '876000h']); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'acesso da pessoa cadastrada pausado (o convite deixa de valer)'; }
+            elseif ($tipo === 'permissoes') { $out[] = 'ℹ️ permissões: ajuste na tela de permissões (não desfaço sozinha)'; $ok = true; }
             elseif ($tipo === 'lembrar') { $r = sd_supabase('/rest/v1/sd_memoria?id=eq.' . urlencode($alvo), 'PATCH', ['ativo' => false, 'revogado_em' => date('c')]); $ok = ($r['code'] ?? 500) < 300; $out[] = ($ok ? '↩️ ' : '⚠️ ') . 'memória esquecida'; }
         } catch (Throwable $e) { $out[] = "⚠️ $alvo: " . mb_substr($e->getMessage(), 0, 80); }
         if ($ok) sd_supabase('/rest/v1/pd_ia_acoes?id=eq.' . (int)$a['id'], 'PATCH', ['desfeita_em' => date('c')]);
     }
     return ['ok' => true, 'texto' => implode("\n", $out)];
+}
+
+// =====================================================================================
+// CATÁLOGO ÚNICO DE FERRAMENTAS DA CASA — "dois volantes": tudo que tem botão tem ação aqui.
+// O que decide o que a IA pode acionar é QUEM pede (papel + permissões), nunca o canal.
+// =====================================================================================
+function iaEhAdmin($u) { return (($u['role'] ?? '') === 'admin'); }
+function iaPermissoes($u) {   // permissões da pessoa (my_perms) — com o JWT dela quando houver; admin tem tudo
+    static $cache = null; if ($cache !== null) return $cache;
+    if (iaEhAdmin($u)) return $cache = ['*'];
+    $tok = $GLOBALS['PD_IA_TOKEN'] ?? '';
+    if ($tok) { $r = sd_supabase('/rest/v1/rpc/my_perms', 'POST', (object)[], ['Authorization: Bearer ' . $tok]); if (($r['code'] ?? 500) < 300 && is_array($r['body'])) return $cache = array_values(array_map('strval', $r['body'])); }
+    return $cache = [];
+}
+function iaPode($u, $chave) { $p = iaPermissoes($u); return in_array('*', $p, true) || in_array($chave, $p, true); }
+
+function iaPessoaPorNome($txt, $soAtivos = false) {
+    $q = iaNorm($txt); if ($q === '') return null;
+    $ps = (array)(sd_supabase('/rest/v1/profiles?select=id,name,email,role,team_key,active,client_id,funcoes,studio_areas,zap&limit=300')['body'] ?? []);
+    foreach ($ps as $p) if (iaNorm($p['name']) === $q || iaNorm($p['email'] ?? '') === $q) return $p;
+    foreach ($ps as $p) { $n = iaNorm($p['name']); if (strpos($n, $q) === 0 || explode(' ', $n)[0] === explode(' ', $q)[0]) return $p; }
+    return null;
+}
+
+// ---- pessoas ----
+function iaUsuariosCriar($args, $u, $lote) {
+    if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin cadastra pessoas', 'ids' => []];
+    require_once __DIR__ . '/pd-usuarios-lib.php';
+    $out = [];
+    foreach (array_slice((array)($args['pessoas'] ?? []), 0, 20) as $p) {
+        $p = (array)$p; $nome = trim((string)($p['nome'] ?? '')); $email = trim((string)($p['email'] ?? ''));
+        $papel = in_array($p['papel'] ?? '', ['team', 'admin', 'client'], true) ? $p['papel'] : 'team';
+        $cid = null; if ($papel === 'client') { $c = iaCliente($p['cliente'] ?? ''); if (!$c) { $out[] = "⚠️ $nome: cliente \"" . ($p['cliente'] ?? '') . "\" não achei"; continue; } $cid = $c['id']; }
+        $fun = array_values(array_filter(array_map(fn($x) => iaFuncaoChave($x), (array)($p['funcoes'] ?? []))));
+        try {
+            $r = pdUsuarioCriar(['name' => $nome, 'email' => $email, 'role' => $papel, 'client_id' => $cid, 'funcoes' => $fun], $u);
+            $uid = $r['user_id']; $extra = [];
+            if (!empty($p['zap'])) { $z = preg_replace('/[^\d+]/', '', (string)$p['zap']); sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', ['zap' => $z, 'zap_ativo' => true]); $extra[] = 'zap ' . $z; }
+            if (!empty($p['perfil_permissoes']) && $papel !== 'client') { $pr = iaPermissoesAplicar($uid, $papel, (string)$p['perfil_permissoes'], null); $extra[] = $pr; }
+            if (!empty($p['ferramentas']) && $papel !== 'client') { $fr = iaFerramentasAplicar($uid, (array)$p['ferramentas']); $extra[] = $fr; }
+            iaRegistra($lote, $u, 'usuario', $uid, null, ['name' => $nome, 'email' => $email, 'role' => $papel], $nome);
+            $out[] = "✅ $nome ($email) cadastrad" . ($papel === 'client' ? 'o como cliente' : 'o na equipe') . ($fun ? ' · funções: ' . implode(', ', $fun) : '') . ($r['team_key'] && $r['team_key'] !== 'OUTROS' ? ' · chave ' . $r['team_key'] : '') . ($extra ? ' · ' . implode(' · ', $extra) : '') . ' · convite enviado por e-mail';
+        } catch (Throwable $e) { $out[] = "⚠️ $nome: " . mb_substr($e->getMessage(), 0, 160); }
+    }
+    return ['texto' => implode("\n", $out) ?: '⚠️ nenhuma pessoa', 'ids' => []];
+}
+function iaFuncaoChave($txt) {
+    $cat = pdFuncoesCatalogo(); $q = iaNorm($txt); if ($q === '') return null;
+    if (isset($cat[$q])) return $q;
+    foreach ($cat as $k => $lab) { $l = iaNorm($lab); if ($l === $q || strpos($l, $q) !== false || strpos($q, $k) !== false) return $k; }
+    $ap = ['design' => 'designer', 'arte' => 'designer', 'redator' => 'copy', 'texto' => 'copy', 'copys' => 'copy', 'midia' => 'trafego', 'ads' => 'trafego', 'video' => 'video', 'motion' => 'video', 'edicao' => 'video', 'locucao' => 'som', 'audio' => 'som', 'site' => 'webdev', 'dev' => 'webdev', 'gestao' => 'producao', 'projetos' => 'producao', 'conta' => 'atendimento', 'cs' => 'atendimento', 'social media' => 'social', 'redes' => 'social', 'planejamento' => 'estrategia', 'criacao' => 'direcao', 'trafego' => 'trafego', 'performance' => 'trafego', '3d' => 'foto3d', 'foto' => 'foto3d', 'render' => 'foto3d', 'estrategia' => 'estrategia'];
+    foreach ($ap as $a => $k) if (strpos($q, $a) !== false) return $k;
+    return null;
+}
+function iaUsuarioAcesso($args, $u, $lote) {
+    if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin liga/desliga acesso', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    if ($p['id'] === $u['id']) return ['texto' => '⚠️ você não mexe no próprio acesso', 'ids' => []];
+    $ativo = !empty($args['ativo']);
+    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => $ativo]);
+    sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'PUT', ['ban_duration' => $ativo ? 'none' : '876000h']);
+    iaRegistra($lote, $u, 'acesso', $p['id'], ['active' => $p['active'] ?? true], ['active' => $ativo], $p['name']);
+    return ['texto' => ($ativo ? '✅ acesso de ' : '⏸️ acesso de ') . $p['name'] . ($ativo ? ' reativado' : ' pausado'), 'ids' => []];
+}
+function iaFuncoesDefinir($args, $u, $lote) {
+    if (!iaEhAdmin($u) && !in_array('gestao_equipe', (array)(sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=funcoes')['body'][0]['funcoes'] ?? []), true)) return ['texto' => '⚠️ só admin ou gestão de equipe define funções', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $f = array_values(array_unique(array_filter(array_map('iaFuncaoChave', (array)($args['funcoes'] ?? [])))));
+    if (!$f) return ['texto' => '⚠️ nenhuma função válida (' . implode(', ', array_keys(pdFuncoesCatalogo())) . ')', 'ids' => []];
+    $upd = ['funcoes' => '{' . implode(',', $f) . '}'];
+    if (empty($p['team_key']) || $p['team_key'] === 'OUTROS') { $upd['team_key'] = pdTeamKeyNova($p['name'], $p['id']); pdTeamMemberGarante($upd['team_key']); } else pdTeamMemberGarante($p['team_key']);
+    $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', $upd);
+    if (($r['code'] ?? 500) >= 300) return ['texto' => '⚠️ o banco recusou (rode o SQL v132)', 'ids' => []];
+    iaRegistra($lote, $u, 'funcoes', $p['id'], ['funcoes' => $p['funcoes'] ?? [], 'team_key' => $p['team_key'] ?? null], $upd, $p['name']);
+    return ['texto' => '✅ ' . $p['name'] . ' → ' . implode(', ', $f) . (isset($upd['team_key']) ? ' · chave ' . $upd['team_key'] : ''), 'ids' => []];
+}
+function iaPermissoesAplicar($uid, $papel, $perfil, $chaves) {
+    $tok = $GLOBALS['PD_IA_TOKEN'] ?? ''; if (!$tok) return '⚠️ permissões só pelo chat da plataforma (precisa da sua sessão)';
+    $lista = is_array($chaves) ? $chaves : [];
+    if ($perfil !== '') { $pre = (array)(sd_supabase('/rest/v1/permission_presets?select=*')['body'] ?? []); $q = iaNorm($perfil); $ach = null;
+        foreach ($pre as $x) if (($x['papel'] ?? '') === $papel && (iaNorm($x['nome'] ?? '') === $q || strpos(iaNorm($x['nome'] ?? ''), $q) !== false)) { $ach = $x; break; }
+        if (!$ach) return '⚠️ perfil de permissões "' . $perfil . '" não existe (' . implode(', ', array_map(fn($x) => $x['nome'] ?? '', array_filter($pre, fn($x) => ($x['papel'] ?? '') === $papel))) . ')';
+        $lista = array_merge($lista, (array)($ach['chaves'] ?? $ach['perms'] ?? $ach['permissoes'] ?? [])); }
+    $r = sd_supabase('/rest/v1/rpc/set_user_permissions', 'POST', ['p_user_id' => $uid, 'p_perms' => array_values(array_unique($lista))], ['Authorization: Bearer ' . $tok]);
+    if (($r['code'] ?? 500) >= 300) return '⚠️ permissões não gravadas: ' . mb_substr((string)($r['body']['message'] ?? $r['raw'] ?? ''), 0, 100);
+    return '✅ permissões: ' . ($perfil !== '' ? 'perfil ' . $perfil : count($lista) . ' chaves');
+}
+function iaPermissoesDefinir($args, $u, $lote) {
+    if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin mexe em permissões', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $t = iaPermissoesAplicar($p['id'], $p['role'] ?? 'team', (string)($args['perfil'] ?? ''), (array)($args['chaves'] ?? []));
+    iaRegistra($lote, $u, 'permissoes', $p['id'], null, $args, $p['name']);
+    return ['texto' => $p['name'] . ': ' . $t, 'ids' => []];
+}
+function iaFerramentasAplicar($uid, $areas) {
+    $map = ['digital' => 'digital', 'arte' => 'digital', 'arte digital' => 'digital', 'audio' => 'audio', 'locucao' => 'audio', 'som' => 'audio', 'video' => 'video', 'videos' => 'video', 'grafica' => 'grafica', 'edicao grafica' => 'grafica', 'impresso' => 'grafica', 'todas' => 'todas', 'tudo' => 'todas', 'nenhuma' => 'nenhuma'];
+    $sel = []; foreach ($areas as $a) { $k = $map[iaNorm($a)] ?? null; if ($k === 'todas') $sel = ['digital', 'audio', 'video', 'grafica']; elseif ($k === 'nenhuma') $sel = []; elseif ($k) $sel[] = $k; }
+    $sel = array_values(array_unique($sel));
+    $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', ['studio_areas' => '{' . implode(',', $sel) . '}']);
+    if (($r['code'] ?? 500) >= 300) return '⚠️ ferramentas não gravadas (rode o SQL v133)';
+    return '✅ ferramentas: ' . ($sel ? implode(', ', $sel) : 'só Copys');
+}
+function iaFerramentasLiberar($args, $u, $lote) {
+    if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin libera ferramentas', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $t = iaFerramentasAplicar($p['id'], (array)($args['ferramentas'] ?? []));
+    iaRegistra($lote, $u, 'ferramentas', $p['id'], ['studio_areas' => $p['studio_areas'] ?? []], $args, $p['name']);
+    return ['texto' => $p['name'] . ': ' . $t, 'ids' => []];
+}
+
+// ---- clientes ----
+function iaClienteCriar($args, $u, $lote) {
+    if (!iaEhAdmin($u) && !iaPode($u, 'cliente.criar')) return ['texto' => '⚠️ você não tem permissão pra criar cliente', 'ids' => []];
+    $nome = trim((string)($args['nome'] ?? '')); if ($nome === '') return ['texto' => '⚠️ faltou o nome', 'ids' => []];
+    if ($ja = iaCliente($nome)) if (iaNorm($ja['name']) === iaNorm($nome)) return ['texto' => 'ℹ️ ' . $ja['name'] . ' já existe', 'ids' => []];
+    $slug = preg_replace('/^-|-$/', '', preg_replace('/[^a-z0-9]+/', '-', strtolower(iaNorm($nome)))) . '-' . time();
+    $d = ['name' => $nome, 'slug' => $slug, 'color' => preg_match('/^#[0-9a-f]{6}$/i', (string)($args['cor'] ?? '')) ? $args['cor'] : '#2563eb', 'website' => trim((string)($args['site'] ?? '')) ?: null, 'notes' => trim((string)($args['observacoes'] ?? '')) ?: null];
+    $r = sd_supabase('/rest/v1/clients', 'POST', $d, ['Prefer: return=representation']);
+    if (($r['code'] ?? 500) >= 300) return ['texto' => '⚠️ o banco recusou: ' . mb_substr((string)($r['body']['message'] ?? ''), 0, 100), 'ids' => []];
+    $cid = $r['body'][0]['id']; $pp = [];
+    foreach (array_slice((array)($args['produtos'] ?? []), 0, 20) as $pn) { $pn = trim((string)$pn); if ($pn === '') continue; sd_supabase('/rest/v1/products', 'POST', ['client_id' => $cid, 'name' => mb_substr($pn, 0, 120)]); $pp[] = $pn; }
+    $extra = iaClienteZapAplica($cid, $args);
+    iaRegistra($lote, $u, 'cliente', $cid, null, $d, $nome);
+    return ['texto' => "✅ cliente $nome criado" . ($pp ? ' · produtos: ' . implode(', ', $pp) : '') . ($extra ? ' · ' . $extra : ''), 'ids' => []];
+}
+function iaClienteZapAplica($cid, $args) {
+    $upd = []; $t = [];
+    if (array_key_exists('zap', $args) && $args['zap'] !== null) { $z = preg_replace('/[^\d+]/', '', (string)$args['zap']) ?: null; $upd['zap'] = $z; $upd['zap_ativo'] = (bool)$z; $t[] = $z ? 'zap ' . $z : 'zap removido'; }
+    if (array_key_exists('email_aviso', $args) && $args['email_aviso'] !== null) { $upd['email_aviso'] = trim((string)$args['email_aviso']) ?: null; $t[] = 'e-mail de aviso'; }
+    if (array_key_exists('gigi', $args) && $args['gigi'] !== null) { $upd['ia_zap'] = (bool)$args['gigi']; $t[] = 'Gigi ' . ($upd['ia_zap'] ? 'ligada' : 'desligada'); }
+    if (!$upd) return '';
+    $r = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid), 'PATCH', $upd);
+    return ($r['code'] ?? 500) < 300 ? implode(' · ', $t) : '⚠️ zap/Gigi não gravados (rode o SQL v131)';
+}
+function iaClienteEditar($args, $u, $lote) {
+    if (!iaEhAdmin($u) && !iaPode($u, 'cliente.editar')) return ['texto' => '⚠️ você não tem permissão pra editar cliente', 'ids' => []];
+    $c = iaCliente($args['cliente'] ?? ''); if (!$c) return ['texto' => '⚠️ cliente "' . ($args['cliente'] ?? '') . '" não achei', 'ids' => []];
+    $antes = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($c['id']) . '&select=*&limit=1')['body'][0] ?? [];
+    $upd = []; $t = [];
+    if (!empty($args['nome'])) { $upd['name'] = mb_substr(trim((string)$args['nome']), 0, 120); $t[] = 'nome'; }
+    if (!empty($args['cor']) && preg_match('/^#[0-9a-f]{6}$/i', $args['cor'])) { $upd['color'] = $args['cor']; $t[] = 'cor'; }
+    if (array_key_exists('site', $args)) { $upd['website'] = trim((string)$args['site']) ?: null; $t[] = 'site'; }
+    if (array_key_exists('observacoes', $args)) { $upd['notes'] = trim((string)$args['observacoes']) ?: null; $t[] = 'observações'; }
+    if (array_key_exists('ativo', $args)) { $upd['active'] = (bool)$args['ativo']; $t[] = $upd['active'] ? 'reativado' : 'pausado'; }
+    if ($upd) { $r = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($c['id']), 'PATCH', $upd); if (($r['code'] ?? 500) >= 300) return ['texto' => '⚠️ o banco recusou', 'ids' => []]; }
+    $z = iaClienteZapAplica($c['id'], $args); if ($z) $t[] = $z;
+    iaRegistra($lote, $u, 'cliente_editar', $c['id'], array_intersect_key($antes, $upd + ['zap' => 1, 'zap_ativo' => 1, 'ia_zap' => 1, 'email_aviso' => 1]), $upd, $c['name']);
+    return ['texto' => $t ? '✅ ' . $c['name'] . ' → ' . implode(' · ', $t) : 'ℹ️ nada pra mudar em ' . $c['name'], 'ids' => []];
+}
+
+// ---- lembrete, recado, produção (mesmas rotinas do zap) ----
+function iaLembrete($args, $u, $lote) { $a = $args; $a['tipo'] = 'lembrete'; return ['texto' => pdZapLembrete($a, $u), 'ids' => []]; }
+function iaRecado($args, $u, $lote) { return ['texto' => pdZapRecado(['para' => $args['para'] ?? '', 'texto' => $args['texto'] ?? ''], $u), 'ids' => []]; }
+function iaProducao($args, $u, $lote) {
+    $op = (string)($args['op'] ?? ''); $tid = strtoupper(trim((string)($args['id'] ?? '')));
+    if (!in_array($op, ['play', 'pausar', 'retomar', 'mensagem', 'nota'], true)) return ['texto' => '⚠️ op inválida (play, pausar, retomar, mensagem, nota)', 'ids' => []];
+    $r = pdZapAcao(['tipo' => $op, 'task_id' => $tid, 'texto' => (string)($args['texto'] ?? '')], $u, iaStatusValidos());
+    return ['texto' => str_replace('(WhatsApp)', '', (string)$r), 'ids' => [$tid]];
+}
+
+// ---- catálogo (schema pra IA), filtrado por quem pede ----
+function iaCatalogo($u) {
+    $S = fn($props, $req = []) => ['type' => 'object', 'properties' => $props, 'required' => $req];
+    $str = ['type' => 'string']; $arrS = ['type' => 'array', 'items' => $str]; $bool = ['type' => 'boolean'];
+    $T = [];
+    $T[] = ['name' => 'alterar_tarefas', 'description' => 'Altera tarefas existentes (até 60 por chamada). Campos opcionais por item: status, resp (chave ou nome), projeto, cliente, produto ("" tira), date_int, date_cli ("" tira), action (título), obs (substitui), obs_acrescenta, tarefa_mae (id; "" desliga).',
+        'input_schema' => $S(['mudancas' => ['type' => 'array', 'items' => $S(['id' => $str, 'status' => $str, 'resp' => $str, 'projeto' => $str, 'cliente' => $str, 'produto' => $str, 'date_int' => $str, 'date_cli' => $str, 'action' => $str, 'obs' => $str, 'obs_acrescenta' => $str, 'tarefa_mae' => $str], ['id'])]], ['mudancas'])];
+    $T[] = ['name' => 'criar_tarefas', 'description' => 'Cria tarefas (até 40). Por item: action (título objetivo), cliente, produto, projeto, resp, status (padrão BRIEFING), date_int, date_cli, obs, depois_de (posição 1..n do item que vem antes) ou tarefa_mae (id existente).',
+        'input_schema' => $S(['novas' => ['type' => 'array', 'items' => $S(['action' => $str, 'cliente' => $str, 'produto' => $str, 'projeto' => $str, 'resp' => $str, 'status' => $str, 'date_int' => $str, 'date_cli' => $str, 'obs' => $str, 'depois_de' => ['type' => 'integer'], 'tarefa_mae' => $str], ['action'])]], ['novas'])];
+    $T[] = ['name' => 'excluir_tarefas', 'description' => 'Exclui tarefas de vez (fica cópia pra desfazer).', 'input_schema' => $S(['ids' => $arrS, 'motivo' => $str], ['ids'])];
+    $T[] = ['name' => 'comentar', 'description' => 'Comenta numa tarefa, assinado pela pessoa.', 'input_schema' => $S(['id' => $str, 'texto' => $str], ['id', 'texto'])];
+    $T[] = ['name' => 'novo_produto', 'description' => 'Cria um produto/empreendimento num cliente.', 'input_schema' => $S(['cliente' => $str, 'nome' => $str], ['cliente', 'nome'])];
+    $T[] = ['name' => 'lembrar', 'description' => 'Guarda na memória da casa algo duradouro. escopo: agencia | cliente (alvo = nome) | pessoa | tarefa (alvo = id).',
+        'input_schema' => $S(['memorias' => ['type' => 'array', 'items' => $S(['escopo' => $str, 'alvo' => $str, 'assunto' => $str, 'conteudo' => $str, 'natureza' => $str], ['escopo', 'assunto', 'conteudo'])]], ['memorias'])];
+    $T[] = ['name' => 'ver_tarefa', 'description' => 'Lê uma tarefa completa (campos, comentários, filhas).', 'input_schema' => $S(['id' => $str], ['id'])];
+    $T[] = ['name' => 'lembrete', 'description' => 'Lembrete pra própria pessoa (plataforma + zap). op: criar|cancelar. quando "AAAA-MM-DD HH:MM"; recorrencia nenhuma|diaria|dias_uteis|semanal|mensal (com hora "HH:MM").',
+        'input_schema' => $S(['op' => $str, 'texto' => $str, 'quando' => $str, 'recorrencia' => $str, 'hora' => $str, 'id' => ['type' => 'integer']])];
+    $T[] = ['name' => 'recado', 'description' => 'Leva um recado a um colega da equipe pelo WhatsApp (via a IA dele).', 'input_schema' => $S(['para' => $str, 'texto' => $str], ['para', 'texto'])];
+    $T[] = ['name' => 'producao', 'description' => 'Fala com a IA de produção da tarefa. op: play (dá start), pausar, retomar, mensagem (texto pra IA aplicar no trabalho), nota (anota na tarefa).', 'input_schema' => $S(['op' => $str, 'id' => $str, 'texto' => $str], ['op', 'id'])];
+    if (iaEhAdmin($u) || iaPode($u, 'cliente.criar')) $T[] = ['name' => 'cliente_criar', 'description' => 'Cria um cliente (empresa), com produtos, zap, e-mail de aviso e Gigi (IA de atendimento no zap do cliente).',
+        'input_schema' => $S(['nome' => $str, 'produtos' => $arrS, 'cor' => $str, 'site' => $str, 'observacoes' => $str, 'zap' => $str, 'email_aviso' => $str, 'gigi' => $bool], ['nome'])];
+    if (iaEhAdmin($u) || iaPode($u, 'cliente.editar')) $T[] = ['name' => 'cliente_editar', 'description' => 'Edita a ficha do cliente: nome, cor, site, observações, zap, e-mail de aviso, gigi (liga/desliga a IA de atendimento), ativo (pausa/reativa).',
+        'input_schema' => $S(['cliente' => $str, 'nome' => $str, 'cor' => $str, 'site' => $str, 'observacoes' => $str, 'zap' => $str, 'email_aviso' => $str, 'gigi' => $bool, 'ativo' => $bool], ['cliente'])];
+    if (iaEhAdmin($u)) {
+        $T[] = ['name' => 'usuarios_criar', 'description' => 'Cadastra pessoas (até 20): manda convite por e-mail. papel: team|admin|client (client exige cliente). funcoes: nomes do catálogo (' . implode(', ', pdFuncoesCatalogo()) . '). perfil_permissoes: Produção|Atendimento|Gestor de mídia. ferramentas: digital|audio|video|grafica|todas.',
+            'input_schema' => $S(['pessoas' => ['type' => 'array', 'items' => $S(['nome' => $str, 'email' => $str, 'zap' => $str, 'papel' => $str, 'cliente' => $str, 'funcoes' => $arrS, 'perfil_permissoes' => $str, 'ferramentas' => $arrS], ['nome', 'email'])]], ['pessoas'])];
+        $T[] = ['name' => 'usuario_acesso', 'description' => 'Pausa (ativo=false) ou reativa (ativo=true) o acesso de uma pessoa.', 'input_schema' => $S(['pessoa' => $str, 'ativo' => $bool], ['pessoa', 'ativo'])];
+        $T[] = ['name' => 'funcoes_definir', 'description' => 'Define as funções de uma pessoa (designer, copy, atendimento...). Quem ganha função ganha chave própria de responsável.', 'input_schema' => $S(['pessoa' => $str, 'funcoes' => $arrS], ['pessoa', 'funcoes'])];
+        $T[] = ['name' => 'permissoes_definir', 'description' => 'Permissões da pessoa: perfil pronto (Produção, Atendimento, Gestor de mídia) e/ou chaves (tarefa.criar, tarefa.excluir, social.publicar, social.conectar...).', 'input_schema' => $S(['pessoa' => $str, 'perfil' => $str, 'chaves' => $arrS], ['pessoa'])];
+        $T[] = ['name' => 'ferramentas_liberar', 'description' => 'Libera ferramentas do Studio pra pessoa: digital (arte), audio (locução), video, grafica, todas, nenhuma (só Copys).', 'input_schema' => $S(['pessoa' => $str, 'ferramentas' => $arrS], ['pessoa', 'ferramentas'])];
+    }
+    return $T;
+}
+function iaExecutarTudo($nome, $args, $u, $lote) {
+    switch ($nome) {
+        case 'alterar_tarefas': return iaAlterar($args, $u, $lote);
+        case 'criar_tarefas':   return iaCriar($args, $u, $lote);
+        case 'excluir_tarefas': if (!iaEhAdmin($u) && !iaPode($u, 'tarefa.excluir') && iaPermissoes($u)) return ['texto' => '⚠️ você não tem permissão pra excluir tarefa', 'ids' => []]; return iaExcluir($args, $u, $lote);
+        case 'comentar':        return iaComentar($args, $u, $lote);
+        case 'novo_produto':    return iaNovoProduto($args, $u, $lote);
+        case 'lembrar':         return iaLembrar($args, $u, $lote);
+        case 'ver_tarefa':      return iaVerTarefa($args);
+        case 'lembrete':        return iaLembrete($args, $u, $lote);
+        case 'recado':          return iaRecado($args, $u, $lote);
+        case 'producao':        return iaProducao($args, $u, $lote);
+        case 'cliente_criar':   return iaClienteCriar($args, $u, $lote);
+        case 'cliente_editar':  return iaClienteEditar($args, $u, $lote);
+        case 'usuarios_criar':  return iaUsuariosCriar($args, $u, $lote);
+        case 'usuario_acesso':  return iaUsuarioAcesso($args, $u, $lote);
+        case 'funcoes_definir': return iaFuncoesDefinir($args, $u, $lote);
+        case 'permissoes_definir': return iaPermissoesDefinir($args, $u, $lote);
+        case 'ferramentas_liberar': return iaFerramentasLiberar($args, $u, $lote);
+    }
+    return ['texto' => "⚠️ ferramenta desconhecida $nome", 'ids' => []];
 }
