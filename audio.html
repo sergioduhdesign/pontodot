@@ -121,4 +121,4 @@ async function bancoVer(id){const link=($('#bkLink').value||'').trim();if(!id&&!
     if(!id&&!r.salvo&&confirm('Salvar esta pasta como banco de trilhas da casa?')){const nome=prompt('Nome do banco:','Trilhas')||'Trilhas';await api('pd-estudio.php',{acao:'banco_salvar',link,nome,client_id:null});bancosUI();}}catch(e){msg(e.message,6000);}}
 async function antesDeSair(){return true;}
 boot();
-</script><script src="/js/pd-ajuda.js?v=316"></script></body></html>
+</script><script src="/js/pd-ajuda.js?v=317"></script></body></html>

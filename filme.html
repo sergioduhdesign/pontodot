@@ -335,4 +335,4 @@ async function renderizar(silencio){pdStudio.observa('render',{clipes:FILME.v.le
     if(r.trabalho){const id=r.trabalho.id;const t=setInterval(async()=>{try{const j=await api('pd-oficina.php',{acao:'ver',id});const st=j.trabalho&&j.trabalho.status;if(st==='pronto'){clearInterval(t);avisa('Terminei o filme '+nome+'! Está em Saída de materiais e no Drive.');}else if(st==='erro'){clearInterval(t);avisa('Não consegui terminar o filme '+nome+': '+(j.trabalho.erro||'erro'));}}catch(e){}},40000);}}
   catch(e){msg(e.message,8000);}finally{desocupa();}}
 boot();
-</script><script src="/js/pd-ajuda.js?v=316"></script></body></html>
+</script><script src="/js/pd-ajuda.js?v=317"></script></body></html>
