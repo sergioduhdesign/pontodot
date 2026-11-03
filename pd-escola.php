@@ -152,6 +152,8 @@ if ($acao === 'ias_casa') {   // as IAs agênticas já habilitadas (formação a
     foreach ($jm as $k => $j) { if (isset($ias[$k]) || empty($eq[$k]) || trim((string)($j['personagem'] ?? '')) === '') continue; $pers = strtolower(trim((string)$j['personagem']));
         $ias[$k] = ['id' => $k, 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'titulo' => $cat[$pers][2] ?? '', 'dona' => $nm[$k] ?? '', 'aptas' => [], 'formando' => []]; }
     $lista = array_values($ias);
+    foreach ($lista as &$i) { if (($i['titulo'] ?? '') === '') { $n = strtolower(trim((string)$i['nome'])); $i['titulo'] = $cat[$n][2] ?? ($cat[strtolower((string)$i['personagem'])][2] ?? ''); } }   // sem título: busca pelo nome da IA no catálogo
+    unset($i);
     foreach ($lista as &$i) $i['relogio'] = pdRelogioCatum($i['id']); unset($i);
     usort($lista, fn($a, $b2) => count($b2['aptas']) <=> count($a['aptas']));
     $fixas = [['id' => 'dot', 'personagem' => 'dot', 'nome' => 'dot', 'titulo' => 'consultor externo', 'dona' => '', 'aptas' => ['transporte e produção externa'], 'fixa' => true], ['id' => 'maestro', 'personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'distribui, cobra e revisa', 'dona' => '', 'aptas' => ['orquestração'], 'fixa' => true]];
