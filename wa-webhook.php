@@ -144,6 +144,10 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         } catch (Throwable $e) { error_log('wa-webhook vendas: ' . $e->getMessage()); } }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
+        // o número é de um cliente E aparece num cadastro: se o cadastro é de CLIENTE (perfil de cliente com o zap salvo), é o cliente falando e a Gigi responde;
+        // se é de equipe/admin, quem fala é a equipe (a IA da casa) e não o cliente
+        if ($cid && $membro && ($membro['role'] ?? '') === 'client') $membro = null;
+        elseif ($cid && $membro) { $cid = null; $clRow = null; }
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { try { $ens = pdPalavraEnsinar($membro['id'], $txt); if ($ens) { sd_supabase('/rest/v1/pd_avisos_log?wamid=eq.' . rawurlencode($id), 'PATCH', ['corpo' => '[palavra combinada]']); pdZapDigitando($id); pdZapEnviar($para, $ens, true); continue; } } catch (Throwable $e) {} }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { try { require_once __DIR__ . '/pd-ia-lib.php'; $at = iaAtalhoConvite($membro, $txt); if ($at) { pdZapDigitando($id); pdZapEnviar($para, $at, true); continue; } } catch (Throwable $e) {} }
