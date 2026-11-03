@@ -4444,6 +4444,12 @@ async function carregarZap(forcar){
     const novo = (data[0] && data[0].id) !== (ZAP.rows[0] && ZAP.rows[0].id) || data.length !== ZAP.rows.length
       || data.slice(0,30).map(r=>r.id+(r.entrega||'')+r.status).join() !== ZAP.rows.slice(0,30).map(r=>r.id+(r.entrega||'')+r.status).join();
     ZAP.rows = data;
+    // conversa aberta na tela: o que chega nela já está sendo visto
+    if (atual && String(atual).startsWith('zap:')){
+      const kk = atual.slice(4); let mexeu = false;
+      data.forEach(r => { if (r.direcao === 'entrada' && (zapDig(r.para) || String(r.para)) === kk && eNovo('zap', String(r.id))){ (VISTOS.zap = VISTOS.zap || {})[String(r.id)] = Date.now(); mexeu = true; } });
+      if (mexeu) _salvarVistos();
+    }
     if (novo){
       pintarBolinhas();
       if (atual && String(atual).startsWith('zap:')){ zapMontarThread(atual.slice(4)); const ocupado = (THREADS[atual]||[]).some(m=>m.espera); if (!ocupado) render(); }
