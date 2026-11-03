@@ -815,6 +815,15 @@ function pdTeamMemberGarante($k) {
 }
 // Toda pessoa da equipe tem a PRÓPRIA chave de responsável. Quem ainda está como OUTROS (ou sem chave) ganha a sua agora.
 // Roda em segundos; chamada ao abrir Equipe e funções, no admin e antes da IA responder. Devolve quantas corrigiu.
+// Palavra mágica do zap: a pessoa ensina à própria IA ("guarda: minha palavra mágica é X"); fica em sd_memoria (escopo pessoa).
+// É segredo: nunca entra no contexto da IA, só serve pra confirmar quem fala num número compartilhado.
+function pdPalavraMagica($userId) {
+    $r = sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&ativo=is.true&assunto=ilike.' . rawurlencode('*palavra*m*gica*') . '&select=conteudo&order=created_at.desc&limit=1')['body'][0]['conteudo'] ?? '';
+    $r = trim((string)$r); if ($r === '') return '';
+    if (preg_match('/(?::|\b(?:\x{00E9}|e|eh)\b)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'.\n]{2,40}?)["\x{201D}\x{2019}\']?\s*\.?$/u', $r, $m)) $r = $m[1];   // "minha palavra mágica é abacaxi" → abacaxi
+    return trim($r);
+}
+function pdSegredoNorm($s) { return preg_replace('/[^a-z0-9]/', '', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', trim((string)$s)))); }
 function pdEquipeChavesGarante() {
     $n = 0;
     foreach ((array)(sd_supabase('/rest/v1/profiles?active=eq.true&client_id=is.null&role=in.(admin,team)&or=(team_key.is.null,team_key.eq.OUTROS)&select=id,name&limit=100')['body'] ?? []) as $p) {
@@ -1121,7 +1130,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
     // MEMÓRIA DA CASA (sd_memoria): o que já foi ensinado — agência, esta pessoa e os clientes citados
     $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.cliente)', 'and(escopo.eq.pessoa,escopo_id.eq.' . ($p['id'] ?? '') . ')'];   // o que a casa aprendeu vale para TODA a equipe
-    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
+    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&assunto=not.ilike.' . rawurlencode('*palavra*m*gica*') . '&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
     $nomeDe = array_flip($clientesIds);
     $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
     $statusValidos = array_values(array_unique(array_filter(array_map(fn($t) => (string)($t['status'] ?? ''), $todas)))); foreach (['BRIEFING', 'ENTREGUE'] as $sv) if (!in_array($sv, $statusValidos, true)) $statusValidos[] = $sv;

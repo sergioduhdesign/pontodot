@@ -68,6 +68,19 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
             if (preg_match('/^\s*(?:sou (?:o|a)?|falar como|fala como|agora sou (?:o|a)?|persona)\s*:?\s*(.+?)\s*[.!]?\s*$/iu', $txt, $pm)) {
                 $alvoN = $nrm($pm[1]); foreach ($candidatos as $p) { $pn = $nrm($p['name']); if ($pn === $alvoN || strpos($pn, $alvoN) === 0 || explode(' ', $pn)[0] === explode(' ', $alvoN)[0]) { $trocaPersona = $p; break; } }
             }
+            // resposta à pergunta da palavra mágica (pendência dos últimos 10 min)
+            $pendente = null; $acertou = false; $errou = false;
+            if (!$trocaPersona) {
+                $pp = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_pendente&criado_em=gte.' . rawurlencode(gmdate('c', time() - 600)) . '&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;
+                if ($pp) { $pid0 = substr((string)$pp['ref'], 8); foreach ($candidatos as $p) if ($p['id'] === $pid0) $pendente = $p;
+                    if ($pendente) { $pal = pdPalavraMagica($pendente['id']); if ($pal !== '' && pdSegredoNorm($txt) === pdSegredoNorm($pal)) { $acertou = true; $trocaPersona = $pendente; } else $errou = true;
+                        sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_pendente', 'PATCH', ['status' => $acertou ? 'persona_ok' : 'persona_erro']); } }
+            }
+            $pedePalavra = false;
+            if ($trocaPersona && !$acertou && pdPalavraMagica($trocaPersona['id']) !== '') {   // essa pessoa tem palavra mágica: pede antes de trocar
+                sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $trocaPersona['name'], 'corpo' => 'aguardando palavra mágica', 'status' => 'persona_pendente', 'origem' => 'sistema', 'direcao' => 'entrada', 'ref' => 'persona:' . $trocaPersona['id']]);
+                $pedePalavra = true; $trocaPersona = null;
+            }
             if ($trocaPersona) { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $trocaPersona['name'], 'corpo' => 'persona: ' . $trocaPersona['name'], 'status' => 'persona', 'origem' => 'sistema', 'direcao' => 'entrada', 'ref' => 'persona:' . $trocaPersona['id']]); $membro = $trocaPersona; }
             else {
                 $pr = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona&ref=like.persona:*&criado_em=gte.' . rawurlencode(gmdate('c', time() - 12 * 3600)) . '&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;
@@ -75,6 +88,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                 foreach ($candidatos as $p) if ($pid && $p['id'] === $pid) $membro = $p;
             }
             if ($membro) $quem = $membro['name'];
+            if ($acertou || $errou) $txt = '[palavra mágica]';   // o segredo não fica no histórico
         } elseif ($candidatos) { $membro = $candidatos[0]; $quem = $membro['name']; }
         { $cr = sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap,ia_zap'); if (($cr['code'] ?? 500) >= 300) $cr = sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap'); }
         if (!$cid) foreach ((array)($cr['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; $clRow = $cl; break; }
@@ -89,6 +103,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                 sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'outro', 'user_id' => $ad['id'], 'titulo' => mb_substr('WhatsApp de ' . ($quem ?: '+' . $para), 0, 140),
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
+        if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapEnviar($para, $errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?', true); } catch (Throwable $e) {} continue; }
         if (count($candidatos) > 1 && !$membro) { try { $nomesC = implode(', ', array_map(fn($p) => explode(' ', trim($p['name']))[0], $candidatos)); pdZapEnviar($para, "Esse número está em mais de um cadastro (" . $nomesC . "). Me diz *sou o/a <nome>* que eu falo com você como essa pessoa pelas próximas 12 h.", true); } catch (Throwable $e) {} continue; }
         if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . explode(' ', trim($trocaPersona['name']))[0] . '* nesse número (vale 12 h, ou até você trocar de novo).', true); } catch (Throwable $e) {} continue; }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
