@@ -4487,6 +4487,7 @@ function htmlZap(){
     <div class="rolo-interno">
       ${L.map(linha).join('') || '<div class="nota">Nenhuma conversa de WhatsApp ainda.</div>'}
       <button class="zap-arq-bt" onclick="event.stopPropagation();ZAP.verEquipe=!ZAP.verEquipe;ZAP.rows=[];carregarZap(true);renderBoard()">${ZAP.verEquipe ? '☑' : '☐'} Mostrar também a equipe (teste)</button>
+      ${ZAP.verEquipe && ehAdmin() ? (() => { const n = todas.filter(c => (ZAP.av[c.k] || {}).equipe).length; return n ? `<button class="zap-arq-bt ${ZAP.confirma === 'equipe' ? 'perigo' : ''}" onclick="event.stopPropagation();zapApagarEquipe()">${ZAP.confirma === 'equipe' ? 'Apagar mesmo? clique de novo' : '🗑 Apagar as ' + n + ' conversas internas (equipe)'}</button>` : ''; })() : ''}
       ${A.length ? `<button class="zap-arq-bt" onclick="event.stopPropagation();ZAP.arq=!ZAP.arq;renderBoard()">${ZAP.arq ? '▾' : '▸'} Arquivadas (${A.length})</button>${ZAP.arq ? A.map(linha).join('') : ''}` : ''}
     </div>
   </div>`;
@@ -4551,6 +4552,18 @@ async function zapApagarMsg(id){
   ZAP.rows = ZAP.rows.filter(r => r.id !== id);
   if (String(atual).startsWith('zap:')) zapMontarThread(atual.slice(4));
   pintarBolinhas(); render();
+}
+async function zapApagarEquipe(){   // admin: some da plataforma todas as conversas internas (equipe). No WhatsApp de cada um continua.
+  if (!ehAdmin()) return;
+  if (ZAP.confirma !== 'equipe'){ ZAP.confirma = 'equipe'; setTimeout(()=>{ if (ZAP.confirma === 'equipe'){ ZAP.confirma = null; try{ renderBoard(); }catch(e){} } }, 5000); renderBoard(); return; }
+  ZAP.confirma = null;
+  const ids = ZAP.rows.filter(r => (ZAP.av[zapDig(r.para)] || {}).equipe).map(r => r.id);
+  if (ids.length){
+    const { error } = await sbR.from('pd_avisos_log').update({ apagado_em: new Date().toISOString() }).in('id', ids);
+    if (error){ toast(/apagado_em|column/.test(error.message) ? 'Falta rodar o SQL v99 no Supabase.' : 'Não apagou: ' + error.message); return; }
+    ZAP.rows = ZAP.rows.filter(r => !ids.includes(r.id));
+  }
+  toast(ids.length + ' mensagens internas apagadas daqui.'); pintarBolinhas(); renderBoard();
 }
 async function zapApagarConversa(k){
   if (ZAP.confirma !== k){ ZAP.confirma = k; setTimeout(()=>{ if (ZAP.confirma === k){ ZAP.confirma = null; try{ render(); }catch(e){} } }, 5000); render(); return; }
