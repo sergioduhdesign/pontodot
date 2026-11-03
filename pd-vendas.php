@@ -59,7 +59,7 @@ switch ($acao) {
             'ativo' => true, 'ultimo_erro' => null, 'atualizado_em' => gmdate('c')];
         if ($senha !== '') $row['senha_cifrada'] = vdCifrar($senha);
         if ($at) { $r = vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'PATCH', $row); } else { $row['ultimo_uid'] = 0; $r = vdSup('/rest/v1/pd_vendas_caixas', 'POST', $row); }
-        $cx = vdCaixaDe($cli); $out(['salva' => true, 'teste' => $cx ? vdCaixaTestar($cx) : null]); break;
+        $cx = vdCaixaDe($cli); $out(['salva' => true, 'teste' => ($cx && empty($b['sem_teste'])) ? vdCaixaTestar($cx) : null]); break;
     case 'ver':
         if (!$pid) sd_fail('falta o lead');
         $out(['lead' => vdLinhas(vdSup('/rest/v1/pd_prospects?id=eq.' . $pid . '&select=*'))[0] ?? null,
