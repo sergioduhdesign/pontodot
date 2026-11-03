@@ -418,7 +418,7 @@ function vdFilaEnriquecer($n = 40) {
 function vdDescobrir($consulta, $quantos, $carteira, $uid) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return ['erro' => 'falta SD_ANTHROPIC_KEY'];
     $hoje = count(vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . gmdate('Y-m-d\T00:00:00\Z', strtotime('today')) . '&select=id&limit=50')));
-    if ($hoje >= 60) return ['erro' => 'teto de 60 descobertas por dia atingido (cada uma gasta busca na web)'];
+    $tg = vdTetoGeral()['buscas']; if ($hoje >= $tg) return ['erro' => 'teto geral de ' . $tg . ' buscas por dia atingido (cada uma gasta busca na web)'];
     $quantos = max(3, min(15, (int)$quantos)); $cart = $carteira && $carteira !== 'todas' ? $carteira : null;
     $sys = "Você acha EMPRESAS REAIS para prospecção comercial usando a busca na web. Regras: só inclua empresa cujo site apareceu nos resultados que você leu; nunca invente site, nome ou cidade; prefira as que mostram sinais de momento (lançamento, obras, anúncios). "
          . "Responda SOMENTE um JSON array de até $quantos itens: [{\"nome\":\"\",\"site\":\"\",\"cidade\":\"\",\"uf\":\"\",\"segmento\":\"\",\"instagram\":\"\",\"motivo\":\"1 frase do porquê é um bom lead\"}]. Sem texto fora do JSON.";
@@ -646,6 +646,11 @@ function vdInboxLer($max = 25, $soCarteira = null) {
 
 
 // ------------------------------------------------------------ AUTOMÁTICO diário do Tumi (ligado/desligado por cliente)
+/** Teto geral do Tumi por dia, somando TODOS os clientes (o admin ajusta no painel). */
+function vdTetoGeral() {
+    $v = vdLinhas(vdSup('/rest/v1/pd_vendas_estado?chave=eq.teto_geral&select=valor&limit=1'))[0]['valor'] ?? [];
+    return ['envios' => max(1, (int)($v['envios'] ?? 100)), 'buscas' => max(0, (int)($v['buscas'] ?? 30))];
+}
 function vdAgoraBR() { return new DateTime('now', new DateTimeZone('America/Sao_Paulo')); }
 function vdAutoCfg($cart) { return vdLinhas(vdSup('/rest/v1/pd_vendas_auto?client_id=eq.' . $cart . '&select=*&limit=1'))[0] ?? null; }
 /** Roda a cada tique do relógio: pra cada cliente com o automático ligado, dentro do horário comercial. */
@@ -673,7 +678,7 @@ function vdAuto() {
         }
         $r['abriu'] = $novos;
         // 5) envia até o limite do dia, devagar (poucos por tique, só em horário comercial)
-        $resta = min((int)$cfg['enviar_dia'], VD_TETO_DIA) - vdEnviadosHoje($cart); $env = 0;
+        $resta = min((int)$cfg['enviar_dia'], VD_TETO_DIA) - vdEnviadosHoje($cart); $env = 0; $resta = min($resta, vdTetoGeral()['envios'] - vdEnviadosHoje());   // e o teto geral, somando todos os clientes
         if ($resta > 0 && trim((string)$cfg['oferta']) !== '') {
             foreach (vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?status=in.(aguardando,aprovada)&direcao=eq.saida&canal=eq.email&sequencia=lt.99&select=id,pd_prospects!inner(carteira_id)&pd_prospects.carteira_id=eq.' . $cart . '&order=created_at.asc&limit=' . min(3, $resta))) as $m) {
                 $e = vdEnviar($m['id'], null); if (!empty($e['ok'])) $env++; elseif (!empty($e['teto'])) break; }

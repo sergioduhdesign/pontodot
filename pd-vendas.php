@@ -39,7 +39,12 @@ switch ($acao) {
     case 'auto_ler':
         $o = ['auto' => vdLinhas(vdSup('/rest/v1/pd_vendas_auto?select=*'))];
         if ($cart && $cart !== 'todas') $o['hoje'] = ['enviados' => vdEnviadosHoje($cart)];
-        $out($o); break;
+        $o['teto_geral'] = vdTetoGeral(); $o['hoje_geral'] = vdEnviadosHoje(); $out($o); break;
+    case 'teto_salvar':
+        if (($u['role'] ?? '') !== 'admin') sd_fail('Só o admin muda o teto.', 403);
+        $v = ['envios' => max(1, min(2000, (int)($b['envios'] ?? 100))), 'buscas' => max(0, min(200, (int)($b['buscas'] ?? 30)))];
+        sd_supabase('/rest/v1/pd_vendas_estado?on_conflict=chave', 'POST', ['chave' => 'teto_geral', 'valor' => $v, 'atualizado_em' => gmdate('c')], ['Prefer: resolution=merge-duplicates,return=minimal']);
+        $out(['teto' => $v]); break;
     case 'auto_salvar':
         if (($u['role'] ?? '') !== 'admin') sd_fail('Só o admin liga o automático.', 403);
         if (!$cart || $cart === 'todas') sd_fail('escolha um cliente');
