@@ -163,6 +163,7 @@ function vdEscrever($pid, $canal, $seq = 1, $resposta = null, $oferta = '') {
     if (!$ct && $canal === 'zap' && !empty($p['zap'])) $ct = ['id' => null, 'nome' => $p['nome'], 'zap' => $p['zap']];
     if (!$ct) return ['erro' => 'sem ' . ($canal === 'email' ? 'e-mail' : 'zap') . ' de contato (ou a pessoa pediu pra não receber)'];
     $dono = vdDono($p['carteira_id'] ?? null);
+    if (!$oferta) { $ac = vdLinhas(vdSup('/rest/v1/pd_vendas_auto?client_id=eq.' . ($p['carteira_id'] ?: vdCasaId()) . '&select=oferta&limit=1'))[0] ?? null; $oferta = trim((string)($ac['oferta'] ?? '')); }
     $ia = strtolower($p['ia'] ?: 'tumi'); $iaNome = ucfirst($ia);
     $hist = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?prospect_id=eq.' . $pid . '&select=direcao,canal,corpo,status,created_at&order=created_at.asc&limit=12'));
     $conv = ''; foreach ($hist as $h) $conv .= ($h['direcao'] === 'entrada' ? 'LEAD: ' : 'NÓS: ') . mb_substr(preg_replace('/\s+/', ' ', $h['corpo']), 0, 400) . "\n";
@@ -172,7 +173,7 @@ function vdEscrever($pid, $canal, $seq = 1, $resposta = null, $oferta = '') {
         . "3) Curto: e-mail até 90 palavras, zap até 45. Um único pedido simples no fim (uma pergunta ou 15 minutos de conversa). Português do Brasil, tom humano e direto.\n"
         . "4) Você é uma IA e isso não é segredo: assine como \"$iaNome · IA de vendas de {$dono['nome']}\". Não finja ser uma pessoa.\n"
         . "5) Sequência: 1 = abertura; 2 = follow-up com UM ângulo novo (não repita o 1); 3 = despedida gentil que deixa a porta aberta. Se há resposta do lead, responda a ELA primeiro, sem insistir se ela disse não.\n"
-        . ($oferta ? "6) O que oferecemos (use só isso): $oferta\n" : '')
+        . "6) Você vende PRODUTOS DE AGÊNCIA, simples e do dia a dia (nunca fale de plataforma, software, IA como produto nem de PD). " . ($oferta ? "O que oferecemos (use SÓ isso, nada além): $oferta\n" : "Se não souber o que oferecer, não prometa nada: faça uma pergunta honesta sobre o que a empresa precisa de comunicação/marca hoje.\n")
         . "Responda SOMENTE JSON: {\"angulo\":\"o fato que abre a conversa, em 1 frase\",\"assunto\":\"até 7 palavras, sem caixa alta (vazio no zap)\",\"corpo\":\"a mensagem pronta, sem assinatura repetida\"}";
     $user = "FATOS:\n" . vdFatos($p) . "\n\nCONTATO: " . ($ct['nome'] ?? '') . (!empty($ct['cargo']) ? ' (' . $ct['cargo'] . ')' : '') . "\nCANAL: $canal · MENSAGEM Nº $seq\n"
         . ($conv ? "\nCONVERSA ATÉ AQUI:\n$conv" : '') . ($resposta ? "\nRESPOSTA NOVA DO LEAD:\n" . mb_substr($resposta, 0, 800) : '');
@@ -212,9 +213,10 @@ function vdTermometro() {
 }
 
 // ------------------------------------------------------------ enviar (só o que gente aprovou)
-function vdEnviadosHoje() {
+function vdEnviadosHoje($cart = null) {
     $ini = gmdate('Y-m-d\T00:00:00\Z', strtotime('today'));
-    return count(vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?status=eq.enviada&direcao=eq.saida&enviada_em=gte.' . $ini . '&select=id&limit=1000')));
+    $f = '/rest/v1/pd_prospect_conversas?status=eq.enviada&direcao=eq.saida&enviada_em=gte.' . $ini . ($cart ? '&select=id,pd_prospects!inner(carteira_id)&pd_prospects.carteira_id=eq.' . $cart : '&select=id') . '&limit=1000';
+    return count(vdLinhas(vdSup($f)));
 }
 function vdEnviar($convId, $uid) {
     $c = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?id=eq.' . $convId . '&select=*'))[0] ?? null; if (!$c) return ['erro' => 'mensagem não encontrada'];
@@ -224,7 +226,7 @@ function vdEnviar($convId, $uid) {
     if (in_array($p['estagio'], ['ganho', 'perdido'], true) && $c['sequencia'] != 99) return ['erro' => 'o lead está em "' . $p['estagio'] . '"'];
     $ct = $c['contato_id'] ? (vdLinhas(vdSup('/rest/v1/pd_prospect_contatos?id=eq.' . $c['contato_id'] . '&select=*'))[0] ?? null) : null;
     if ($ct && !empty($ct['opt_out'])) return ['erro' => 'essa pessoa pediu pra não receber mais'];
-    if (vdEnviadosHoje() >= VD_TETO_DIA) return ['erro' => 'teto diário de ' . VD_TETO_DIA . ' envios atingido — amanhã segue', 'teto' => true];
+    if (vdEnviadosHoje($p['carteira_id'] ?? null) >= VD_TETO_DIA) return ['erro' => 'teto diário de ' . VD_TETO_DIA . ' envios atingido — amanhã segue', 'teto' => true];
     $dono = vdDono($p['carteira_id'] ?? null); $ia = ucfirst($p['ia'] ?: 'tumi');
     $ok = false; $erro = null; $wamid = null;
     if ($c['canal'] === 'email') {
@@ -416,7 +418,7 @@ function vdFilaEnriquecer($n = 40) {
 function vdDescobrir($consulta, $quantos, $carteira, $uid) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return ['erro' => 'falta SD_ANTHROPIC_KEY'];
     $hoje = count(vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . gmdate('Y-m-d\T00:00:00\Z', strtotime('today')) . '&select=id&limit=50')));
-    if ($hoje >= 10) return ['erro' => 'teto de 10 descobertas por dia atingido (cada uma gasta busca na web)'];
+    if ($hoje >= 60) return ['erro' => 'teto de 60 descobertas por dia atingido (cada uma gasta busca na web)'];
     $quantos = max(3, min(15, (int)$quantos)); $cart = $carteira && $carteira !== 'todas' ? $carteira : null;
     $sys = "Você acha EMPRESAS REAIS para prospecção comercial usando a busca na web. Regras: só inclua empresa cujo site apareceu nos resultados que você leu; nunca invente site, nome ou cidade; prefira as que mostram sinais de momento (lançamento, obras, anúncios). "
          . "Responda SOMENTE um JSON array de até $quantos itens: [{\"nome\":\"\",\"site\":\"\",\"cidade\":\"\",\"uf\":\"\",\"segmento\":\"\",\"instagram\":\"\",\"motivo\":\"1 frase do porquê é um bom lead\"}]. Sem texto fora do JSON.";
@@ -642,10 +644,50 @@ function vdInboxLer($max = 25, $soCarteira = null) {
     return $t;
 }
 
+
+// ------------------------------------------------------------ AUTOMÁTICO diário do Tumi (ligado/desligado por cliente)
+function vdAgoraBR() { return new DateTime('now', new DateTimeZone('America/Sao_Paulo')); }
+function vdAutoCfg($cart) { return vdLinhas(vdSup('/rest/v1/pd_vendas_auto?client_id=eq.' . $cart . '&select=*&limit=1'))[0] ?? null; }
+/** Roda a cada tique do relógio: pra cada cliente com o automático ligado, dentro do horário comercial. */
+function vdAuto() {
+    $log = []; $d = vdAgoraBR(); $h = (int)$d->format('G'); $dia = $d->format('Y-m-d'); $util = (int)$d->format('N') <= 5;
+    foreach (vdLinhas(vdSup('/rest/v1/pd_vendas_auto?ativo=is.true&select=*')) as $cfg) {
+        $cart = $cfg['client_id']; if (!$util || $h < (int)$cfg['hora_ini'] || $h >= (int)$cfg['hora_fim']) continue; $r = [];
+        $cx = vdCaixaDe($cart); if (!$cx) { $log[$cart] = ['pulado' => 'sem e-mail ligado']; continue; }
+        // 1) acha leads novos (até N por dia) e 2) separa um lote da base grande pra ler os sites — uma vez por dia
+        if (($cfg['ultima_descoberta'] ?? '') !== $dia) {
+            vdSup('/rest/v1/pd_vendas_auto?client_id=eq.' . $cart, 'PATCH', ['ultima_descoberta' => $dia]);   // marca antes: se falhar, não repete o dia todo
+            if (trim((string)$cfg['consulta']) !== '' && (int)$cfg['descobrir_dia'] > 0) { $x = vdDescobrir($cfg['consulta'], (int)$cfg['descobrir_dia'], $cart, null); $r['descobriu'] = !empty($x['ok']) ? 'ok' : ($x['erro'] ?? 'falhou'); }
+            $l = vdLoteCriar(vdFiltroQs(['estagio' => 'novo'], $cart), 'Auto ' . $d->format('d/m'), 200, $cart, null, 'automático'); $r['lote'] = $l['dentro'] ?? ($l['erro'] ?? 0);
+        }
+        // 3) follow-ups que venceram viram rascunho
+        try { $r['follow'] = count(vdCadencia($cart, 5)); } catch (Throwable $e) {}
+        // 4) abertura pros leads lidos e com e-mail (sem encher a fila)
+        $fila = count(vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?status=in.(aguardando,aprovada)&direcao=eq.saida&select=id,pd_prospects!inner(carteira_id)&pd_prospects.carteira_id=eq.' . $cart . '&limit=40')));
+        $novos = 0;
+        if ($fila < 20 && trim((string)$cfg['oferta']) !== '') {
+            $cands = vdLinhas(vdSup('/rest/v1/pd_prospects?carteira_id=eq.' . $cart . '&estagio=eq.novo&enriquecido_em=not.is.null&nota=gte.' . (int)$cfg['nota_min'] . '&select=id,pd_prospect_contatos!inner(email)&pd_prospect_contatos.email=not.is.null&pd_prospect_contatos.opt_out=eq.false&order=nota.desc.nullslast&limit=60'));
+            foreach ($cands as $c) { if ($novos >= 4) break;
+                if (vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?prospect_id=eq.' . $c['id'] . '&select=id&limit=1'))) continue;   // já foi escrito (ou a equipe descartou)
+                $e = vdEscrever($c['id'], 'email', 1); if (!empty($e['ok'])) $novos++; }
+        }
+        $r['abriu'] = $novos;
+        // 5) envia até o limite do dia, devagar (poucos por tique, só em horário comercial)
+        $resta = min((int)$cfg['enviar_dia'], VD_TETO_DIA) - vdEnviadosHoje($cart); $env = 0;
+        if ($resta > 0 && trim((string)$cfg['oferta']) !== '') {
+            foreach (vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?status=in.(aguardando,aprovada)&direcao=eq.saida&canal=eq.email&sequencia=lt.99&select=id,pd_prospects!inner(carteira_id)&pd_prospects.carteira_id=eq.' . $cart . '&order=created_at.asc&limit=' . min(3, $resta))) as $m) {
+                $e = vdEnviar($m['id'], null); if (!empty($e['ok'])) $env++; elseif (!empty($e['teto'])) break; }
+        }
+        $r['enviou'] = $env; $log[$cart] = $r;
+    }
+    return $log;
+}
+
 /** Um tique do relógio da casa: caixa de entrada, fila de sites e (de hora em hora) os follow-ups. */
 function vdTick() {
     $o = [];
     try { $o['inbox'] = vdInboxLer(25); } catch (Throwable $e) { $o['inbox'] = ['erro' => $e->getMessage()]; }
+    try { $o['auto'] = vdAuto(); } catch (Throwable $e) { $o['auto'] = ['erro' => $e->getMessage()]; }
     try { $o['sites'] = vdFilaEnriquecer(40); } catch (Throwable $e) { $o['sites'] = 'erro ' . $e->getMessage(); }
     try { if ((int)date('i') < 5) $o['follow'] = count(vdCadencia('todas', 4)); } catch (Throwable $e) {}
     return $o;

@@ -36,6 +36,22 @@ switch ($acao) {
     case 'descobrir':
         $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
     case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
+    case 'auto_ler':
+        $o = ['auto' => vdLinhas(vdSup('/rest/v1/pd_vendas_auto?select=*'))];
+        if ($cart && $cart !== 'todas') $o['hoje'] = ['enviados' => vdEnviadosHoje($cart)];
+        $out($o); break;
+    case 'auto_salvar':
+        if (($u['role'] ?? '') !== 'admin') sd_fail('Só o admin liga o automático.', 403);
+        if (!$cart || $cart === 'todas') sd_fail('escolha um cliente');
+        $at = vdAutoCfg($cart); $ativo = !empty($b['ativo']); $of = trim(mb_substr((string)($b['oferta'] ?? ''), 0, 1500));
+        if ($ativo && $of === '') sd_fail('Antes de ligar, diga o que o Tumi pode oferecer (produtos de agência, simples).');
+        if ($ativo && !vdCaixaDe($cart)) sd_fail('Antes de ligar, ligue o e-mail desse cliente (Caixa de saída › E-mail dos clientes).');
+        $hi = max(6, min(20, (int)($b['hora_ini'] ?? 9))); $hf = max($hi + 1, min(22, (int)($b['hora_fim'] ?? 18)));
+        $row = ['client_id' => $cart, 'ativo' => $ativo, 'oferta' => $of, 'consulta' => trim(mb_substr((string)($b['consulta'] ?? ''), 0, 300)), 'descobrir_dia' => max(0, min(15, (int)($b['descobrir_dia'] ?? 10))),
+            'enviar_dia' => max(1, min(VD_TETO_DIA, (int)($b['enviar_dia'] ?? 20))), 'nota_min' => max(0, min(100, (int)($b['nota_min'] ?? 0))), 'hora_ini' => $hi, 'hora_fim' => $hf, 'atualizado_em' => gmdate('c')];
+        $r = $at ? vdSup('/rest/v1/pd_vendas_auto?client_id=eq.' . $cart, 'PATCH', $row) : vdSup('/rest/v1/pd_vendas_auto', 'POST', $row);
+        if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v151 no Supabase.', 500);
+        $out(['ok' => true]); break;
     case 'termometro': $out(['t' => vdTermometro()]); break;
     case 'caixas':   // sem a senha: ela nunca volta pro navegador
         $out(['caixas' => array_map(function ($x) { $x['tem_senha'] = !empty($x['senha_cifrada']); $x['senha_tam'] = $x['tem_senha'] ? mb_strlen(vdDecifrar($x['senha_cifrada'])) : 0; unset($x['senha_cifrada']); return $x; }, vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?select=id,client_id,email,usuario,imap_host,imap_porta,smtp_host,smtp_porta,ativo,ultimo_erro,ultima_leitura,senha_cifrada')))]); break;
