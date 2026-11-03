@@ -7707,14 +7707,16 @@ async function mostrarResultado(){
   try {
     try { if (!IACASA.d) await iasCarrega(); } catch(e){}
     const ps = await personagensProximos();
+    const rf = ps.referencia;
     sugestoes = `<div class="jt-sec" style="margin-top:18px">QUEM COMBINA COM ISSO</div>
+      ${rf ? `<p class="jt-intro" style="margin:6px 0 10px">Seu jeito aponta primeiro para <b>${esc(rf.nome)}</b>, mas ela já é de ${esc((rf.dona||'').split(' ')[0])}. Como cada pessoa do time tem uma IA só sua, estas são as mais próximas que estão livres.</p>` : ''}
       <div class="rs-cards">${ps.map(c=>`
         <button class="rs-card ${jeito.personagem===c.id?'on':''}" onclick="abrirFicha('${c.id}','resultado')">
           <img src="${fotoDe(c,"avatar")}" alt="${esc(c.name)}" onerror="this.style.display='none'">
           <b>${esc(c.name)}</b><small>${esc(c.profile_title||'')}</small>
           ${jeito.personagem===c.id?'<i class="rs-sua">sua IA</i>':(donoDaIA(c.id)?`<i class="rs-ver" style="opacity:.6">já é de ${esc((donoDaIA(c.id).dona||'').split(' ')[0])}</i>`:'<i class="rs-ver">conhecer</i>')}
         </button>`).join('')}</div>
-      <p class="jt-rodape">Isso é afinidade de jeito, não probabilidade nem diagnóstico. Empate é empate — escolha quem você quiser.</p>`;
+      <p class="jt-rodape">Isso é afinidade de jeito, não probabilidade nem diagnóstico. Escolha a que mais parecer com você.</p>`;
   } catch(e){ sugestoes = `<p class="jt-rodape">Não consegui carregar os personagens agora: ${esc(e.message)}</p>`; }
 
   abrirJanela(`<div class="caixa invertida" style="padding:22px 18px 16px">
@@ -7740,9 +7742,17 @@ async function personagensProximos(){
     const d = bits.reduce((acc,b,i)=> acc + Math.pow(b - meu[i], 2), 0);
     return { ...c, dist: d };
   }).sort((a,b)=> a.dist - b.dist);
-  // três mais próximos, e todos os empatados no corte (o cânone exige)
-  const corte = com[2] ? com[2].dist : Infinity;
-  return com.filter((c,i)=> i < 3 || c.dist === corte);
+  // BALIZADOR DO TIME: duas pessoas com a mesma IA é perda (cada personagem tem um ofício).
+  // Se o mais próximo já é de um colega, ele sai da lista e entram os mais próximos LIVRES.
+  const reservados = ['gigi','tumi'];   // papéis da casa, não de uma pessoa
+  const tomado = c => !ehCliente() && (reservados.includes(c.id) || !!donoDaIA(c.id));
+  const livres = com.filter(c => !tomado(c));
+  const lista = livres.length ? livres : com;
+  const corte = lista[2] ? lista[2].dist : Infinity;
+  const out = lista.filter((c,i)=> i < 3 || c.dist === corte);
+  const topo = com.find(c => !reservados.includes(c.id)) || com[0];
+  if (topo && out[0] && topo.id !== out[0].id && donoDaIA(topo.id)) out.referencia = { id: topo.id, nome: topo.name, dona: donoDaIA(topo.id).dona || 'alguém do time' };
+  return out;
 }
 
 // =====================================================================
