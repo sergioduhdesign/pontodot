@@ -83,7 +83,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
             }
             if ($trocaPersona) { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $trocaPersona['name'], 'corpo' => 'persona: ' . $trocaPersona['name'], 'status' => 'persona', 'origem' => 'sistema', 'direcao' => 'entrada', 'ref' => 'persona:' . $trocaPersona['id']]); $membro = $trocaPersona; }
             else {
-                $pr = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona&ref=like.persona:*&criado_em=gte.' . rawurlencode(gmdate('c', time() - 12 * 3600)) . '&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;
+                $pr = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona&ref=like.persona:*&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;   // vale até trocar de novo
                 $pid = $pr ? substr((string)$pr['ref'], 8) : null;
                 foreach ($candidatos as $p) if ($pid && $p['id'] === $pid) $membro = $p;
             }
@@ -104,8 +104,8 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
         if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapEnviar($para, $errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?', true); } catch (Throwable $e) {} continue; }
-        if (count($candidatos) > 1 && !$membro) { try { $nomesC = implode(', ', array_map(fn($p) => explode(' ', trim($p['name']))[0], $candidatos)); pdZapEnviar($para, "Esse número está em mais de um cadastro (" . $nomesC . "). Me diz *sou o/a <nome>* que eu falo com você como essa pessoa pelas próximas 12 h.", true); } catch (Throwable $e) {} continue; }
-        if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . explode(' ', trim($trocaPersona['name']))[0] . '* nesse número (vale 12 h, ou até você trocar de novo).', true); } catch (Throwable $e) {} continue; }
+        if (count($candidatos) > 1 && !$membro) { try { $nomesC = implode(', ', array_map(fn($p) => explode(' ', trim($p['name']))[0], $candidatos)); pdZapEnviar($para, "Esse número está em mais de um cadastro (" . $nomesC . "). Me diz *sou o/a <nome>* que eu falo com você como essa pessoa até você trocar.", true); } catch (Throwable $e) {} continue; }
+        if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . explode(' ', trim($trocaPersona['name']))[0] . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
