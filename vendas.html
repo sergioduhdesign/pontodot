@@ -7,10 +7,10 @@
  --verde:#16A34A;--laranja:#D97706;--roxo:#7C3AED;--bad:#ef6a5f;--r:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
-body{background:#0B0C0B;color:var(--branco);font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
+body{background:transparent;color:var(--branco);font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
 #fundo{position:fixed;inset:0;z-index:0;background:#0B0C0B center/cover no-repeat;opacity:.55;transition:opacity 1.6s}
 #fundo:after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(8,10,9,.55),rgba(8,10,9,.78))}
-.w{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:22px 16px 90px}
+.w{position:relative;max-width:980px;margin:0 auto;padding:6px 6px 70px}
 b{font-weight:600}
 h1{font-size:30px;font-weight:300;letter-spacing:-.03em;margin:2px 0 0}
 .eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--branco3)}
@@ -37,10 +37,17 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .msg{padding:50px 0;text-align:center;color:var(--branco2)}.log{font-size:12.5px;color:var(--branco2);margin:8px 0;white-space:pre-wrap}
 .bub{padding:10px 13px;border-radius:16px;margin:7px 0;max-width:88%;white-space:pre-wrap;font-size:13px;border:.5px solid var(--linha);background:rgba(255,255,255,.05)}.bub.e{background:rgba(255,255,255,.88);color:#111;margin-left:auto;border-color:transparent}.bub small{display:block;opacity:.6;font-size:11px;margin-top:5px}
 .dr{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:rgba(12,14,13,.94);border-left:.5px solid var(--linha);padding:20px;overflow:auto}
+.capa{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/1;min-height:120px;border:.5px solid var(--linha)}
+.capa>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 45%}
+.capa-v{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,9,.88) 0%,rgba(8,10,9,.55) 42%,rgba(8,10,9,0) 75%)}
+.capa-t{position:absolute;left:18px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:14px}.capa-t .lg{height:34px;width:auto}
+.capa-c{position:absolute;right:12px;bottom:10px;background:rgba(8,10,9,.55);padding:5px 8px;border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}.capa-c select{padding:5px 8px}
 code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
-</style></head><body><div id="fundo"></div><div class="w">
-<div class="row" style="justify-content:space-between"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1><div class="sub">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div></div>
-<div class="row"><span class="sub">Carteira</span><select id="cart" onchange="troca()"></select></div></div>
+</style></head><body><div class="w">
+<div class="capa"><img src="/pd/tour/clientes.webp" alt=""><div class="capa-v"></div>
+  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1></div></div>
+  <div class="capa-c row"><span class="sub">Carteira</span><select id="cart" onchange="troca()"></select></div></div>
+<div class="sub" style="margin-top:12px">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div>
 <div class="tabs" id="tabs"></div><div id="app"><div class="msg">Carregando…</div></div></div>
 <div class="dr" id="dr" onclick="if(event.target===this)fecha()"><div id="drc"></div></div>
 <script>
@@ -106,6 +113,5 @@ async function esc1(id,canal,b){b.disabled=true;b.textContent='Escrevendo…';tr
 async function addC(id){await api({acao:'contato',id,nome:$('#cn_').value,email:$('#ce_').value,zap:$('#cz_').value}).catch(e=>alert(e.message));await ficha(id);}
 async function resp(id,b){const t=$('#rp').value.trim();if(!t)return;b.disabled=true;try{const r=(await api({acao:'entrada',id,texto:t,canal:$('#rc').value})).r;$('#dl').textContent='Classifiquei como: '+r.intencao+(r.rascunho?' — rascunho de resposta na Caixa de saída.':'');}catch(e){$('#dl').textContent='⚠️ '+e.message;}b.disabled=false;setTimeout(()=>ficha(id),900);}
 async function ganhou(id){if(!confirm('Marcar como ganho e criar o cliente?'))return;try{await api({acao:'ganhou',id});}catch(e){alert(e.message);}await ficha(id);}
-(function(){var c=['capa-2-jardim-1086.jpg'];fetch('/pd/tour/indice.json').catch(function(){});var f=document.getElementById('fundo');f.style.backgroundImage="url('/pd/escola/"+c[0]+"')";})();
 boot();
 </script></body></html>
