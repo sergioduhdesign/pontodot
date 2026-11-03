@@ -287,6 +287,17 @@ function iaFuncaoChave($txt) {
     foreach ($ap as $a => $k) if (strpos($q, $a) !== false) return $k;
     return null;
 }
+function iaConviteReenviar($args, $u, $lote) {
+    if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin reenvia convite', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
+    $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']) . '&select=id,name,email,role,active')['body'][0] ?? null;
+    if (!$pf || empty($pf['email'])) return ['texto' => '⚠️ ' . $p['name'] . ' não tem e-mail no cadastro', 'ids' => []];
+    require_once __DIR__ . '/pd-usuarios-lib.php';
+    $r = pdConviteLink($pf['email'], $pf['name']);
+    if (empty($r['link'])) return ['texto' => '⚠️ não consegui gerar o link: ' . ($r['erro'] ?? '?'), 'ids' => []];
+    iaRegistra($lote, $u, 'convite', $pf['id'], null, ['email' => $pf['email']], $pf['name']);
+    return ['texto' => '🔗 ' . $pf['name'] . ' (' . $pf['email'] . ') — ' . (!empty($r['email_enviado']) ? 'convite reenviado por e-mail' : 'o e-mail NÃO saiu do servidor') . ". Link de acesso (vale 24h, pode mandar por zap):\n   " . $r['link'], 'ids' => []];
+}
 function iaUsuarioAcesso($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin liga/desliga acesso', 'ids' => []];
     $ativo = !empty($args['ativo']);
@@ -423,6 +434,7 @@ function iaCatalogo($u) {
         $T[] = ['name' => 'usuarios_criar', 'description' => 'Cadastra pessoas (até 20): manda convite por e-mail. papel: team|admin|client (client exige cliente). funcoes: nomes do catálogo (' . implode(', ', pdFuncoesCatalogo()) . '). perfil_permissoes: Produção|Atendimento|Gestor de mídia. ferramentas: digital|audio|video|grafica|todas.',
             'input_schema' => $S(['pessoas' => ['type' => 'array', 'items' => $S(['nome' => $str, 'email' => $str, 'zap' => $str, 'papel' => $str, 'cliente' => $str, 'funcoes' => $arrS, 'perfil_permissoes' => $str, 'ferramentas' => $arrS], ['nome', 'email'])]], ['pessoas'])];
         $T[] = ['name' => 'usuario_excluir', 'description' => 'Pede a exclusão de uma pessoa: o SISTEMA lista as contas com e-mail e exige e-mail + senha do admin antes de executar. Você só chama; a confirmação não é sua.', 'input_schema' => $S(['pessoa' => $str, 'tarefas_para' => $str], ['pessoa'])];
+        $T[] = ['name' => 'convite_reenviar', 'description' => 'Gera um NOVO link de acesso (vale 24h) pra uma pessoa já cadastrada e reenvia o e-mail de convite. Use quando o e-mail não chegou ou a pessoa pediu o link; o link vem na resposta e pode ser mandado por zap.', 'input_schema' => $S(['pessoa' => $str], ['pessoa'])];
         $T[] = ['name' => 'usuario_acesso', 'description' => 'Reativa (ativo=true) o acesso de uma pessoa, ou pede a pausa (ativo=false; o sistema confirma com e-mail + senha do admin).', 'input_schema' => $S(['pessoa' => $str, 'ativo' => $bool], ['pessoa', 'ativo'])];
         $T[] = ['name' => 'funcoes_definir', 'description' => 'Define as funções de uma pessoa (designer, copy, atendimento...). Quem ganha função ganha chave própria de responsável.', 'input_schema' => $S(['pessoa' => $str, 'funcoes' => $arrS], ['pessoa', 'funcoes'])];
         $T[] = ['name' => 'permissoes_definir', 'description' => 'Permissões da pessoa: perfil pronto (Produção, Atendimento, Gestor de mídia) e/ou chaves (tarefa.criar, tarefa.excluir, social.publicar, social.conectar...).', 'input_schema' => $S(['pessoa' => $str, 'perfil' => $str, 'chaves' => $arrS], ['pessoa'])];
@@ -446,6 +458,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'cliente_editar':  return iaClienteEditar($args, $u, $lote);
         case 'usuarios_criar':  return iaUsuariosCriar($args, $u, $lote);
         case 'usuario_acesso':  return iaUsuarioAcesso($args, $u, $lote);
+        case 'convite_reenviar': return iaConviteReenviar($args, $u, $lote);
         case 'usuario_excluir': return iaUsuarioExcluir($args, $u, $lote);
         case 'funcoes_definir': return iaFuncoesDefinir($args, $u, $lote);
         case 'permissoes_definir': return iaPermissoesDefinir($args, $u, $lote);
