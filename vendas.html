@@ -79,7 +79,7 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let TETOG=null,AUTO=[],AUTOHOJE=null,TERMO=null,CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
+let AUTOMSG='',TETOG=null,AUTO=[],AUTOHOJE=null,TERMO=null,CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
@@ -102,7 +102,7 @@ function faixa(){const f=$('#faixa');if(!f)return;
   const tot=Object.values(FUN).reduce((a,b)=>a+b,0),conv=['engajado','qualificando','proposta','negociando'].reduce((a,e)=>a+(FUN[e]||0),0);
   f.style.cssText=`display:flex;background:${k.bg};color:${k.fg}`;
   f.innerHTML=`${avDe(c)}<div><div class="nm">${esc(c.name)}</div><div class="nu">${tot.toLocaleString('pt-BR')} leads · ${conv} em conversa · ${CAIXA.length} na caixa de saída</div></div><button class="x" onclick="troca('todas')">ver todos</button>`;}
-async function troca(id){CART=id;EST='';PAG=0;chips();faixa();await carrega();}
+async function troca(id){AUTOMSG='';CART=id;EST='';PAG=0;chips();faixa();await carrega();}
 async function carrega(){
   $('#app')&&($('#app').style.opacity='.55');
   try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);
@@ -150,6 +150,7 @@ function autoUI(){
   return`<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:12px">
     <span class="row" style="gap:12px;align-items:center">${tumiAv(40)}<span><b>Tumi automático</b><br><span class="auto-st ${on?'on':''}">${on?'Ligado'+(AUTOHOJE?` · hoje ${AUTOHOJE.enviados} de ${a.enviar_dia??20} enviados`:''):'Desligado'} · ${esc(c.name)}</span></span></span>
     <button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Tumi automático" title="${on?'Desligar':'Ligar'} o automático" onclick="autoToggle(this,${!on})"><i></i></button></div>
+  ${AUTOMSG?`<div style="margin:12px 0 0;padding:10px 12px;border-radius:12px;border:.5px solid ${/^✅/.test(AUTOMSG)?'rgba(126,226,162,.45)':'rgba(240,177,90,.5)'};background:${/^✅/.test(AUTOMSG)?'rgba(126,226,162,.08)':'rgba(240,177,90,.08)'};color:${/^✅/.test(AUTOMSG)?'#7ee2a2':'#f0b15a'};font-size:12.5px">${esc(AUTOMSG)}</div>`:''}
   <div class="sub" style="margin:12px 0 10px">Ligado, ele trabalha sozinho nos dias úteis, dentro do horário: acha leads novos, lê os sites da base, escreve, envia e faz os follow-ups. As respostas dos leads continuam com você: ele avisa e sugere o texto.</div>
   <div class="sub" style="margin-bottom:5px"><b>O que ${esc(c.name)} vende</b> — produtos, serviços e condições que o Tumi pode oferecer por eles</div>
   <textarea id="aof" rows="3" placeholder="${casa?'ex.: gestão de redes sociais mensal; identidade visual; landing page de lançamento; material de plantão e stand; tráfego pago':'ex.: lotes a partir de ... no loteamento ...; condições de entrada; visita ao decorado (só o que for verdade e atual)'}">${esc(a.oferta||'')}</textarea>
@@ -158,8 +159,8 @@ function autoUI(){
   <div class="cfg"><label>Prospectar por dia (máx. 15)<input id="adi" type="number" min="0" max="15" value="${a.descobrir_dia??10}"></label><label>Enviar por dia (máx. 40)<input id="aen" type="number" min="1" max="40" value="${a.enviar_dia??20}"></label><label>Nota mínima (0 a 100)<input id="ano" type="number" min="0" max="100" value="${a.nota_min??0}"></label><label>Horário (dias úteis)<span class="hh"><input id="ahi" type="number" min="6" max="20" value="${a.hora_ini??9}"><span>às</span><input id="ahf" type="number" min="7" max="22" value="${a.hora_fim??18}"></span></label></div>
   <div class="row" style="margin-top:14px"><button class="btn s" onclick="autoSalvar(this,${on})">Salvar ajustes</button></div></div>`;}
 function tetoSalvar(b){run(b,'Salvando…',async()=>{await api({acao:'teto_salvar',envios:+$('#tge').value,buscas:+$('#tgb').value});LOG='✅ Teto geral salvo.';});}
-function autoToggle(b,ativo){b.disabled=true;(async()=>{try{await api({acao:'auto_salvar',ativo,oferta:$('#aof').value,consulta:$('#aco').value,descobrir_dia:+$('#adi').value,enviar_dia:+$('#aen').value,nota_min:+$('#ano').value,hora_ini:+$('#ahi').value,hora_fim:+$('#ahf').value});LOG=ativo?'✅ Tumi automático ligado.':'Tumi automático desligado.';}catch(e){LOG='⚠️ '+e.message;}await carrega();})();}
-function autoSalvar(b,ativo){run(b,'Salvando…',async()=>{await api({acao:'auto_salvar',ativo,oferta:$('#aof').value,consulta:$('#aco').value,descobrir_dia:+$('#adi').value,enviar_dia:+$('#aen').value,nota_min:+$('#ano').value,hora_ini:+$('#ahi').value,hora_fim:+$('#ahf').value});LOG=ativo?'✅ Tumi automático ligado.':'Salvo. O automático está desligado.';});}
+function autoToggle(b,ativo){AUTOMSG='';b.disabled=true;(async()=>{try{await api({acao:'auto_salvar',ativo,oferta:$('#aof').value,consulta:$('#aco').value,descobrir_dia:+$('#adi').value,enviar_dia:+$('#aen').value,nota_min:+$('#ano').value,hora_ini:+$('#ahi').value,hora_fim:+$('#ahf').value});AUTOMSG=ativo?'✅ Tumi automático ligado. Ele começa no próximo horário comercial de dia útil.':'Tumi automático desligado.';}catch(e){AUTOMSG='⚠️ '+e.message;}await carrega();})();}
+function autoSalvar(b,ativo){AUTOMSG='';run(b,'Salvando…',async()=>{try{await api({acao:'auto_salvar',ativo,oferta:$('#aof').value,consulta:$('#aco').value,descobrir_dia:+$('#adi').value,enviar_dia:+$('#aen').value,nota_min:+$('#ano').value,hora_ini:+$('#ahi').value,hora_fim:+$('#ahf').value});AUTOMSG='✅ Ajustes salvos.';}catch(e){AUTOMSG='⚠️ '+e.message;}});}
 /* ---- e-mail de cada cliente: entra e sai pela caixa DELE ---- */
 function cxDe(id){return CX.find(x=>x.client_id===id);}
 function cxUI(){
