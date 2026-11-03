@@ -320,14 +320,13 @@ function iaFuncoesDefinir($args, $u, $lote) {
     return ['texto' => '✅ ' . $p['name'] . ' → ' . implode(', ', $f) . (isset($upd['team_key']) ? ' · chave ' . $upd['team_key'] : ''), 'ids' => []];
 }
 function iaPermissoesAplicar($uid, $papel, $perfil, $chaves) {
-    $tok = $GLOBALS['PD_IA_TOKEN'] ?? ''; if (!$tok) return '⚠️ permissões só pelo chat da plataforma (precisa da sua sessão)';
     $lista = is_array($chaves) ? $chaves : [];
     if ($perfil !== '') { $pre = (array)(sd_supabase('/rest/v1/permission_presets?select=*')['body'] ?? []); $q = iaNorm($perfil); $ach = null;
         foreach ($pre as $x) if (($x['papel'] ?? '') === $papel && (iaNorm($x['nome'] ?? '') === $q || strpos(iaNorm($x['nome'] ?? ''), $q) !== false)) { $ach = $x; break; }
         if (!$ach) return '⚠️ perfil de permissões "' . $perfil . '" não existe (' . implode(', ', array_map(fn($x) => $x['nome'] ?? '', array_filter($pre, fn($x) => ($x['papel'] ?? '') === $papel))) . ')';
         $lista = array_merge($lista, (array)($ach['chaves'] ?? $ach['perms'] ?? $ach['permissoes'] ?? [])); }
-    $r = sd_supabase('/rest/v1/rpc/set_user_permissions', 'POST', ['p_user_id' => $uid, 'p_perms' => array_values(array_unique($lista))], ['Authorization: Bearer ' . $tok]);
-    if (($r['code'] ?? 500) >= 300) return '⚠️ permissões não gravadas: ' . mb_substr((string)($r['body']['message'] ?? $r['raw'] ?? ''), 0, 100);
+    [$okP, $msgP] = pdPermissoesServidor($uid, array_values(array_unique($lista)), null);
+    if (!$okP) return '⚠️ permissões não gravadas: ' . $msgP;
     return '✅ permissões: ' . ($perfil !== '' ? 'perfil ' . $perfil : count($lista) . ' chaves');
 }
 function iaPermissoesDefinir($args, $u, $lote) {

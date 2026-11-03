@@ -110,8 +110,8 @@ $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfe
         $norm = fn($x) => strtolower(trim((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$x)));
         $ach = null; foreach ($pre as $x) if ($norm($x['nome'] ?? '') === $norm($quer) || strpos($norm($x['nome'] ?? ''), $norm($quer)) !== false) { $ach = $x; break; }
         if (!$ach && $pre) $ach = $pre[0];
-        if ($ach && $tok) { $r = sd_supabase('/rest/v1/rpc/set_user_permissions', 'POST', ['p_user_id' => $newUserId, 'p_perms' => array_values((array)($ach['permissoes'] ?? []))], ['Authorization: Bearer ' . $tok]);
-            $permTxt = ($r['code'] ?? 500) < 300 ? ('perfil ' . $ach['nome']) : ''; if (($r['code'] ?? 500) >= 300) error_log('create-user: permissões padrão não gravadas: ' . mb_substr((string)($r['raw'] ?? ''), 0, 160)); }
+        if ($ach) { [$okP, $msgP] = pdPermissoesServidor($newUserId, array_values((array)($ach['permissoes'] ?? [])), $me['id'] ?? null);
+            $permTxt = $okP ? ('perfil ' . $ach['nome']) : ''; if (!$okP) error_log('create-user: permissões padrão não gravadas: ' . $msgP); }
     }
     if ($role !== 'client' && !empty($tk)) $team_key = $tk;
     return ['user_id' => $newUserId, 'link' => $link, 'team_key' => $team_key, 'email' => $email, 'name' => $name, 'permissoes' => $permTxt];

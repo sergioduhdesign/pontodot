@@ -825,6 +825,17 @@ function pdPalavraMagica($userId) {
     return trim($r);
 }
 function pdSegredoNorm($s) { return preg_replace('/[^a-z0-9]/', '', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', trim((string)$s)))); }
+// Permissões pelo servidor (zap, cadastro sem sessão): mesma regra de set_user_permissions, gravando em profile_permissions.
+function pdPermissoesServidor($userId, array $chaves, $porQuem = null) {
+    $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($userId) . '&select=role')['body'][0] ?? null; if (!$pf) return [false, 'pessoa não encontrada'];
+    $papel = (string)$pf['role'];
+    $cat = (array)(sd_supabase('/rest/v1/permissions?disponivel=is.true&select=key,papeis')['body'] ?? []);
+    $validas = []; foreach ($cat as $c) if (in_array($c['key'], $chaves, true) && in_array($papel, (array)($c['papeis'] ?? []), true)) $validas[] = $c['key'];
+    $validas = array_values(array_unique($validas));
+    sd_supabase('/rest/v1/profile_permissions?profile_id=eq.' . urlencode($userId), 'DELETE');
+    if ($validas) { $r = sd_supabase('/rest/v1/profile_permissions', 'POST', array_map(fn($k) => ['profile_id' => $userId, 'permission' => $k, 'granted_by' => $porQuem], $validas)); if (($r['code'] ?? 500) >= 300) return [false, mb_substr((string)($r['raw'] ?? ''), 0, 120)]; }
+    return [true, count($validas) . ' chaves'];
+}
 function pdEquipeChavesGarante() {
     $n = 0;
     foreach ((array)(sd_supabase('/rest/v1/profiles?active=eq.true&client_id=is.null&role=in.(admin,team)&or=(team_key.is.null,team_key.eq.OUTROS)&select=id,name&limit=100')['body'] ?? []) as $p) {
