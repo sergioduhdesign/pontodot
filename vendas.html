@@ -70,7 +70,7 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
+let TERMO=null,CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
@@ -93,7 +93,7 @@ function faixa(){const f=$('#faixa');if(!f)return;
   f.style.cssText=`display:flex;background:${k.bg};color:${k.fg}`;
   f.innerHTML=`${avDe(c)}<div><div class="nm">${esc(c.name)}</div><div class="nu">${tot.toLocaleString('pt-BR')} leads · ${conv} em conversa · ${CAIXA.length} na caixa de saída</div></div><button class="x" onclick="troca('todas')">ver todos</button>`;}
 async function troca(id){CART=id;EST='';PAG=0;await carrega();}
-async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);try{CX=(await api({acao:'caixas'})).caixas||[];}catch(e){CX=[];}FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);try{CX=(await api({acao:'caixas'})).caixas||[];}catch(e){CX=[];}try{TERMO=(await api({acao:'termometro'})).t;}catch(e){TERMO=null;}FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 function draw(){
   chips();
   $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';draw()">${n}</button>`).join('');
@@ -114,8 +114,11 @@ function vCaixa(){
     ${x.canal==='email'?`<input style="width:100%;margin:8px 0" value="${esc(x.assunto)}" onchange="ed('${x.id}',{assunto:this.value})">`:''}
     <textarea rows="6" onchange="ed('${x.id}',{corpo:this.value})">${esc(x.corpo)}</textarea>
     <div class="row" style="margin-top:8px"><button class="btn p s" onclick="env('${x.id}',this)">Aprovar e enviar</button><button class="btn s" onclick="rej('${x.id}')">Descartar</button></div></div>`).join('')||'<div class="msg">Nada esperando aprovação.</div>';
-  return cxUI()+`<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios. Respostas por e-mail: ${IMAP?'<b style="color:#7ee2a2">lidas sozinhas</b> a cada 5 min':'<b style="color:#f0b15a">nenhum cliente com e-mail ligado</b>'}.</span><span class="row">${IMAP?'<button class="btn s" onclick="lerInbox(this)">Ler e-mails agora</button>':''}${CAIXA.length>1?`<button class="btn p s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</span></div><span class="log">${esc(LOG)}</span>`+c;}
+  return termoUI()+cxUI()+`<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios. Respostas por e-mail: ${IMAP?'<b style="color:#7ee2a2">lidas sozinhas</b> a cada 5 min':'<b style="color:#f0b15a">nenhum cliente com e-mail ligado</b>'}.</span><span class="row">${IMAP?'<button class="btn s" onclick="lerInbox(this)">Ler e-mails agora</button>':''}${CAIXA.length>1?`<button class="btn p s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</span></div><span class="log">${esc(LOG)}</span>`+c;}
 
+function termoUI(){const t=TERMO;if(!t)return'';
+  const l=t.estado==='sem_leitura'?'Ainda sem leitura: aprove as primeiras mensagens pra ele começar a aprender.':t.estado==='em_formacao'?`Em formação: ${t.primeira} de ${t.avaliadas} aprovadas de primeira (a leitura fecha com ${t.minimo}).`:`Aprovadas de primeira: <b>${t.primeira} de ${t.avaliadas}</b> (${Math.round(t.taxa*100)}%).`;
+  return`<div class="card"><b>${esc(t.ia)} · captação de clientes</b><div class="sub" style="margin:4px 0 0">${l} ${t.ajustadas?`${t.ajustadas} ajustadas por você, ${t.descartadas} descartadas. `:''}Cada ajuste que você faz vira lição para ele.</div></div>`;}
 /* ---- e-mail de cada cliente: entra e sai pela caixa DELE ---- */
 function cxDe(id){return CX.find(x=>x.client_id===id);}
 function cxUI(){

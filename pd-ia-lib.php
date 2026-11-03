@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/pd-vendas-lib.php';   // vdPode e o motor Harvey (catálogo de ferramentas de vendas)
+require_once __DIR__ . '/pd-vendas-lib.php';   // vdPode e o motor de vendas do Tumi (catálogo de ferramentas)
 // IA da casa no chat da plataforma — as FERRAMENTAS que ela executa sozinha
 // (criar, alterar, excluir, comentar, produto novo, memória) e o DESFAZER.
 // Tudo passa pela chave do servidor; cada ação grava antes/depois em pd_ia_acoes
@@ -484,7 +484,7 @@ function iaCatalogo($u) {
         $T[] = ['name' => 'ferramentas_liberar', 'description' => 'Libera ferramentas pra pessoa: digital (arte), audio (locução), video, grafica, zap (comunicador de WhatsApp: atendimento e vendas), vendas (prospecção/CRM), todas, nenhuma (só Copys).', 'input_schema' => $S(['pessoa' => $str, 'ferramentas' => $arrS], ['pessoa', 'ferramentas'])];
     }
     if (function_exists('vdPode') && vdPode($u)) {
-        $T[] = ['name' => 'vendas_funil', 'description' => 'CRM de vendas (motor Harvey). Mostra o funil (quantos leads por estágio) da carteira e, com listar=true, os melhores leads. carteira: nome do cliente dono da carteira, ou vazio pra carteira da própria casa, ou "todas".',
+        $T[] = ['name' => 'vendas_funil', 'description' => 'CRM de vendas (captação de clientes, liderada pelo Tumi). Mostra o funil (quantos leads por estágio) da carteira e, com listar=true, os melhores leads. carteira: nome do cliente dono da carteira, ou vazio pra carteira da própria casa, ou "todas".',
             'input_schema' => $S(['carteira' => $str, 'listar' => $bool])];
         $T[] = ['name' => 'vendas_importar', 'description' => 'Cadastra leads na carteira. linhas = uma empresa por linha: "Empresa; site; cidade; segmento; contato; e-mail; zap". Depois busca sinais públicos do site (pixel, WhatsApp, lançamento…) e calcula a nota de encaixe.',
             'input_schema' => $S(['carteira' => $str, 'lote' => $str, 'linhas' => $str], ['linhas'])];
@@ -601,7 +601,7 @@ function iaUsuarioExcluirExec($p, $u, $lote, $para) {
     return ['texto' => '🗑️ ' . $p['name'] . ' (' . $p['email'] . ') removid' . 'o(a) da plataforma' . ($n ? ($para ? " · $n tarefa(s) aberta(s) passaram pra $para" : " · $n tarefa(s) aberta(s) ficaram no nome dela(e)") : ''), 'ids' => []];
 }
 
-// ---------------------------------------------------------------- VENDAS (Harvey) pelo chat e pelo zap
+// ---------------------------------------------------------------- VENDAS (Tumi) pelo chat e pelo zap
 function iaVendasCarteira($txt) {
     $t = trim((string)$txt); if ($t === '' || preg_match('/^(casa|propria|própria|sd|agencia|agência|strat|sd\/strat)$/iu', $t)) { $cid = vdCasaId(); return [$cid, 'SD/STRAT']; }
     if (preg_match('/^todas?$/iu', $t)) return ['todas', 'todas as carteiras'];

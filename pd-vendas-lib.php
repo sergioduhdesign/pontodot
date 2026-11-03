@@ -1,7 +1,7 @@
 <?php
 // =====================================================================
-// PD · VENDAS — o motor tipo HARVEY (ethanplusai/harvey) dentro da casa.
-// Ideia do Harvey: sinais públicos → nota de encaixe → um ÂNGULO específico por lead →
+// PD · VENDAS — a captação de clientes do TUMI (inspirado no agente open-source Harvey) dentro da casa.
+// Ideia: sinais públicos → nota de encaixe → um ÂNGULO específico por lead →
 // sequência curta de mensagens → aprovação humana → envio → resposta classificada.
 // Aqui serve pra e-mail E WhatsApp, e cada CLIENTE tem a própria carteira (carteira_id).
 // Regras duras: nada sai sem aprovação de gente; quem pediu pra sair nunca mais recebe;
@@ -176,16 +176,39 @@ function vdEscrever($pid, $canal, $seq = 1, $resposta = null, $oferta = '') {
         . "Responda SOMENTE JSON: {\"angulo\":\"o fato que abre a conversa, em 1 frase\",\"assunto\":\"até 7 palavras, sem caixa alta (vazio no zap)\",\"corpo\":\"a mensagem pronta, sem assinatura repetida\"}";
     $user = "FATOS:\n" . vdFatos($p) . "\n\nCONTATO: " . ($ct['nome'] ?? '') . (!empty($ct['cargo']) ? ' (' . $ct['cargo'] . ')' : '') . "\nCANAL: $canal · MENSAGEM Nº $seq\n"
         . ($conv ? "\nCONVERSA ATÉ AQUI:\n$conv" : '') . ($resposta ? "\nRESPOSTA NOVA DO LEAD:\n" . mb_substr($resposta, 0, 800) : '');
+    $li = vdLinhas(vdSup('/rest/v1/sd_memoria?escopo=eq.geral&assunto=like.' . rawurlencode('Vendas ·*') . '&select=conteudo&order=created_at.desc&limit=8'));
+    if ($li) $sys .= "\n\nLIÇÕES APRENDIDAS com o que a equipe ajustou antes (siga):\n- " . implode("\n- ", array_column($li, 'conteudo'));
+    $t0 = microtime(true);
     [$txt, , $err] = pdClaude($sys, $user, 900);
     if (!$txt) return ['erro' => 'a IA não respondeu: ' . $err];
     $j = pdJson($txt); if (!$j || empty($j['corpo'])) return ['erro' => 'a IA devolveu algo que não consegui ler'];
     $corpo = trim((string)$j['corpo']);
     $row = ['prospect_id' => $pid, 'contato_id' => $ct['id'] ?? null, 'canal' => $canal, 'direcao' => 'saida', 'sequencia' => $seq, 'assunto' => $canal === 'email' ? mb_substr(trim((string)($j['assunto'] ?? '')) ?: 'Uma ideia pra ' . $p['nome'], 0, 120) : null,
             'corpo' => $corpo, 'status' => 'aguardando', 'escrito_por' => $ia];
-    $r = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas', 'POST', $row)); $id = $r[0]['id'] ?? null;
+    $r = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas', 'POST', $row + ['original_ia' => $corpo])); $id = $r[0]['id'] ?? null;
+    if (!$id) { $r = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas', 'POST', $row)); $id = $r[0]['id'] ?? null; }   // coluna nova ainda não criada
+    try { $tu = vdLinhas(vdSup('/rest/v1/pd_jeito?personagem=ilike.' . rawurlencode($ia) . '&select=user_id&limit=1'))[0]['user_id'] ?? null;
+        if ($tu) vdSup('/rest/v1/pd_ia_trabalho', 'POST', ['ia_user_id' => $tu, 'personagem' => $ia, 'client_id' => $p['carteira_id'] ?? null, 'familia' => 'vendas', 'rodada' => (int)$seq, 'resultado' => 'rascunho']); } catch (Throwable $e) {}
     if (!$id) return ['erro' => 'não consegui gravar o rascunho'];
     if (!empty($j['angulo'])) vdSup('/rest/v1/pd_prospects?id=eq.' . $pid, 'PATCH', ['angulo' => mb_substr((string)$j['angulo'], 0, 300)]);
     return ['ok' => true, 'id' => $id, 'assunto' => $row['assunto'], 'corpo' => $corpo, 'angulo' => $j['angulo'] ?? ''];
+}
+
+/** O humano ajustou o texto antes de aprovar: vira uma lição de ofício (sem dados de ninguém) que o Tumi e as outras IAs passam a seguir. */
+function vdAprender($antes, $depois) {
+    if (!function_exists('pdClaude')) require_once __DIR__ . '/pd-aula-lib.php';
+    $sys = 'Você compara o rascunho de uma IA de vendas com a versão que o humano aprovou e extrai UMA lição de ofício sobre como abordar leads. Remova nomes, empresas, valores, e-mails, telefones e links. Se a mudança for só correção pontual ou gosto sem valor geral, responda exatamente NADA. Responda SOMENTE JSON: {"assunto":"até 8 palavras","conteudo":"1 ou 2 frases, imperativo, prático"} ou NADA.';
+    [$t] = pdClaude($sys, "RASCUNHO DA IA:\n" . mb_substr($antes, 0, 1200) . "\n\nVERSÃO APROVADA:\n" . mb_substr($depois, 0, 1200), 300);
+    if (!$t || stripos(trim($t), 'NADA') === 0) return; $j = pdJson($t); if (!$j || empty($j['assunto']) || empty($j['conteudo'])) return;
+    if (preg_match('/[\w.+-]+@[\w-]+\.[\w.]+|\d{8,}|https?:\/\//u', $j['conteudo'] . $j['assunto'])) return;
+    sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => 'geral', 'escopo_id' => null, 'assunto' => 'Vendas · ' . mb_substr((string)$j['assunto'], 0, 100), 'conteudo' => mb_substr((string)$j['conteudo'], 0, 600), 'natureza' => 'orientacao', 'autor_id' => null, 'origem' => 'geral']);
+}
+/** Termômetro do Tumi: de quantas mensagens a equipe aprovou de primeira (sem mexer no texto). */
+function vdTermometro() {
+    $rs = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?direcao=eq.saida&escrito_por=not.is.null&original_ia=not.is.null&status=in.(enviada,rejeitada)&select=status,corpo,original_ia&limit=5000'));
+    $p = $a = $d = 0; foreach ($rs as $r) { if ($r['status'] === 'rejeitada') $d++; elseif (trim($r['corpo']) === trim($r['original_ia'])) $p++; else $a++; }
+    $n = $p + $a + $d;
+    return ['ia' => 'Tumi', 'primeira' => $p, 'ajustadas' => $a, 'descartadas' => $d, 'avaliadas' => $n, 'minimo' => 20, 'estado' => $n === 0 ? 'sem_leitura' : ($n < 20 ? 'em_formacao' : 'cotada'), 'taxa' => $n >= 20 ? round($p / $n, 3) : null];
 }
 
 // ------------------------------------------------------------ enviar (só o que gente aprovou)
@@ -215,6 +238,7 @@ function vdEnviar($convId, $uid) {
         [$code, $raw] = pdZapEnviar($tel, $c['corpo'] . "\n\n— $ia · IA de vendas de {$dono['nome']}. Pra parar, responda SAIR.", false);
         $ok = $code >= 200 && $code < 300; $wamid = $ok ? pdWamid($raw) : null; if (!$ok) $erro = 'a Meta recusou (HTTP ' . $code . ')';
     } else return ['erro' => 'canal ' . $c['canal'] . ' é manual: registre quando fizer'];
+    if ($ok && !empty($c['original_ia']) && trim($c['original_ia']) !== trim($c['corpo'])) { try { vdAprender($c['original_ia'], $c['corpo']); } catch (Throwable $e) {} }
     $agora = gmdate('c');
     vdSup('/rest/v1/pd_prospect_conversas?id=eq.' . $convId, 'PATCH', $ok ? ['status' => 'enviada', 'enviada_em' => $agora, 'aprovado_por' => $uid, 'wamid' => $wamid] : ['status' => 'falhou', 'motivo_retida' => $erro]);
     if ($ok) {

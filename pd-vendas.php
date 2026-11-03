@@ -1,5 +1,5 @@
 <?php
-// PD · VENDAS — endpoint do CRM/Harvey. Só admin ou equipe com a ferramenta "vendas".
+// PD · VENDAS — endpoint do CRM do Tumi. Só admin ou equipe com a ferramenta "vendas".
 // POST {acao, carteira?: uuid|''|'todas', ...}
 require_once __DIR__ . '/sd-base.php';
 require_once __DIR__ . '/sd-auth.php';
@@ -36,6 +36,7 @@ switch ($acao) {
     case 'descobrir':
         $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
     case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
+    case 'termometro': $out(['t' => vdTermometro()]); break;
     case 'caixas':   // sem a senha: ela nunca volta pro navegador
         $out(['caixas' => array_map(function ($x) { $x['tem_senha'] = !empty($x['senha_cifrada']); $x['senha_tam'] = $x['tem_senha'] ? mb_strlen(vdDecifrar($x['senha_cifrada'])) : 0; unset($x['senha_cifrada']); return $x; }, vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?select=id,client_id,email,usuario,imap_host,imap_porta,smtp_host,smtp_porta,ativo,ultimo_erro,ultima_leitura,senha_cifrada')))]); break;
     case 'caixa_salvar': case 'caixa_testar': case 'caixa_remover': case 'caixa_confiar':
