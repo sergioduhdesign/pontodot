@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vendas — Pontodot</title><meta name="robots" content="noindex,nofollow">
+<title>Dig · garimpo de leads</title><meta name="robots" content="noindex,nofollow">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{--branco:rgba(255,255,255,.92);--branco2:rgba(255,255,255,.62);--branco3:rgba(255,255,255,.38);--linha:rgba(255,255,255,.28);--vidro:rgba(8,10,9,.42);--sep:rgba(255,255,255,.14);
@@ -70,7 +70,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
 </style></head><body><div class="w">
 <div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
-  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1></div><span class="row" style="gap:8px;margin-left:6px;opacity:.95"><span class="tumi" style="width:44px;height:44px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></span></div>
+  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · garimpo de leads</div><h1>Dig</h1></div><span class="row" style="gap:8px;margin-left:6px;opacity:.95"><span class="tumi" style="width:44px;height:44px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></span></div>
 </div>
 <div class="cw"><button class="sc l" onclick="rola(-1)" aria-label="Anterior">‹</button><div class="carts" id="carts"></div><button class="sc r" onclick="rola(1)" aria-label="Próximo">›</button></div>
 <div class="faixa" id="faixa" style="display:none"></div>
@@ -85,7 +85,7 @@ const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google'
 let AUTOMSG='',TETOG=null,AUTO=[],AUTOHOJE=null,TERMO=null,CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
-  if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
+  if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir o Dig.</div>';return;}
   try{const f=await api({acao:'funil'});CARTS=f.carteiras;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
   await carrega();}
 function corDe(c){const h=String(c||'#444').replace('#','');const v=h.length===3?h.split('').map(x=>x+x).join(''):h.padEnd(6,'0');const r=parseInt(v.slice(0,2),16),g=parseInt(v.slice(2,4),16),b=parseInt(v.slice(4,6),16);return {bg:'#'+v.slice(0,6),fg:(r*299+g*587+b*114)/1000>150?'#111':'#fff'};}
