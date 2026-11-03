@@ -457,9 +457,8 @@ function vdSemCitacao($t) {
 }
 function vdInboxCaixa($cx, $max = 25) {
     $cfg = ['h' => $cx['imap_host'], 'u' => $cx['usuario'], 'p' => $cx['senha'], 'port' => (int)($cx['imap_porta'] ?: 993)];
-    $en = 0; $es = '';
-    $fp = @stream_socket_client('ssl://' . $cfg['h'] . ':' . $cfg['port'], $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
-    if (!$fp) { $msg0 = 'não conectei na entrada de ' . $cx['email'] . ': ' . vdPorQue($cfg['h'], $cfg['port']); vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => $msg0]); return ['erro' => $msg0]; } stream_set_timeout($fp, 25); fgets($fp);
+    [$fp, $err] = vdImapAbrir($cx);
+    if (!$fp) { $msg0 = $err . ' — ' . $cx['email']; vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => $err]); return ['erro' => $msg0]; }
     $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
     if (stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cfg['u']) . ' ' . $q($cfg['p'])), 'a1 OK') === false) { fclose($fp); vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => 'o e-mail recusou o login (usuário ou senha)']); return ['erro' => 'o e-mail de ' . $cx['email'] . ' recusou o login (usuário ou senha)']; }
     vdImapCmd($fp, 'a2', 'SELECT INBOX');
@@ -507,6 +506,42 @@ function vdCaixasTodas() {
     $o = []; foreach (vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?ativo=is.true&select=*')) as $r) { if (empty($r['senha_cifrada'])) continue; $r['senha'] = vdDecifrar($r['senha_cifrada']); unset($r['senha_cifrada']); if ($r['senha'] !== '') $o[] = $r; }
     return $o;
 }
+/** Descobre sozinho os servidores do e-mail a partir do endereço — o usuário só informa e-mail e senha. */
+function vdProvedor($dom) {
+    $mx = ''; foreach ((array)@dns_get_record($dom, DNS_MX) as $r) $mx .= ' ' . strtolower($r['target'] ?? '');
+    if (preg_match('/google\.com|googlemail\.com/', $mx)) return ['imap' => [['imap.gmail.com', 993]], 'smtp' => [['smtp.gmail.com', 465]]];
+    if (preg_match('/outlook\.com|protection\.outlook|office365/', $mx)) return ['imap' => [['outlook.office365.com', 993]], 'smtp' => [['smtp.office365.com', 587]]];
+    return null;
+}
+function vdCandidatos($cx, $lado) {
+    $dom = strtolower(substr(strrchr($cx['email'], '@'), 1)); $h = trim((string)($cx[$lado . '_host'] ?? '')); $p = (int)($cx[$lado . '_porta'] ?? 0);
+    $auto = $h === '' || $h === 'mail.' . $dom;
+    if (!$auto) return [[$h, $p ?: ($lado === 'imap' ? 993 : 465)]];
+    if ($pv = vdProvedor($dom)) return $pv[$lado];
+    if ($lado === 'imap') return [['mail.' . $dom, 993], ['imap.' . $dom, 993], [$dom, 993]];
+    return [['mail.' . $dom, 465], ['mail.' . $dom, 587], ['smtp.' . $dom, 465], ['smtp.' . $dom, 587], [$dom, 465]];
+}
+/** Nome do servidor pelo IP (a hospedagem compartilhada costuma ter o certificado no nome dele, não no do domínio). */
+function vdPtr($host) { $ip = @gethostbyname($host); if ($ip === $host) return null; $n = @gethostbyaddr($ip); return ($n && $n !== $ip) ? rtrim($n, '.') : null; }
+/** Conecta com certificado SEMPRE verificado: no nome pedido e, se não bater, no nome real do servidor. */
+function vdTlsConecta($host, $port, $implicito) {
+    $peers = [null]; $pt = vdPtr($host); if ($pt && $pt !== $host) $peers[] = $pt;
+    foreach ($peers as $peer) {
+        $o = ['verify_peer' => true, 'verify_peer_name' => true]; if ($peer) $o['peer_name'] = $peer;
+        $fp = @stream_socket_client(($implicito ? 'ssl://' : 'tcp://') . $host . ':' . $port, $en, $es, 12, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => $o]));
+        if ($fp) return $fp;
+    }
+    return null;
+}
+function vdCaixaLembra($cx, $lado, $h, $p) {
+    if (empty($cx['id']) || (($cx[$lado . '_host'] ?? '') === $h && (int)($cx[$lado . '_porta'] ?? 0) === (int)$p)) return;
+    vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', [$lado . '_host' => $h, $lado . '_porta' => (int)$p]);
+}
+function vdImapAbrir($cx) {
+    $cand = vdCandidatos($cx, 'imap');
+    foreach ($cand as [$h, $p]) { $fp = vdTlsConecta($h, $p, true); if ($fp) { stream_set_timeout($fp, 25); fgets($fp); vdCaixaLembra($cx, 'imap', $h, $p); return [$fp, null]; } }
+    return [null, 'não conectei na entrada: ' . vdPorQue($cand[0][0], $cand[0][1]) . (count($cand) > 1 ? ' (tentei ' . implode(', ', array_map(fn($c) => $c[0], $cand)) . ')' : '')];
+}
 /** Descobre o motivo de não conectar, em português claro: endereço, porta ou certificado. */
 function vdPorQue($h, $p) {
     if (gethostbyname($h) === $h) return "o endereço $h não existe";
@@ -517,15 +552,15 @@ function vdSmtpLe($fp) { $o = ''; while (($l = fgets($fp, 2048)) !== false) { $o
 function vdSmtpCmd($fp, $c) { fwrite($fp, $c . "\r\n"); return vdSmtpLe($fp); }
 /** Abre o SMTP já autenticado. Devolve [$fp, null] ou [null, 'motivo']. Sempre com o certificado verificado. */
 function vdSmtpAbrir($cx) {
-    $h = $cx['smtp_host']; $port = (int)($cx['smtp_porta'] ?: 465); $en = 0; $es = '';
-    $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
-    $fp = @stream_socket_client(($port === 465 ? 'ssl://' : 'tcp://') . $h . ':' . $port, $en, $es, 15, STREAM_CLIENT_CONNECT, $ctx);
-    if (!$fp) { $le = error_get_last(); return [null, 'não conectei no envio: ' . vdPorQue($h, $port)]; }
+    $cand = vdCandidatos($cx, 'smtp'); $fp = null; $h = $port = null;
+    foreach ($cand as [$h, $port]) { $fp = vdTlsConecta($h, $port, $port === 465); if ($fp) break; }
+    if (!$fp) return [null, 'não conectei no envio: ' . vdPorQue($cand[0][0], $cand[0][1]) . (count($cand) > 1 ? ' (tentei ' . implode(', ', array_unique(array_map(fn($c) => $c[0], $cand))) . ')' : '')];
     stream_set_timeout($fp, 25); vdSmtpLe($fp); $eh = 'pontodot.ai';
-    $r = vdSmtpCmd($fp, "EHLO $eh");
-    if ($port !== 465) { vdSmtpCmd($fp, 'STARTTLS'); if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { fclose($fp); return [null, "o envio ($h:$port) não aceitou conexão segura"]; } $r = vdSmtpCmd($fp, "EHLO $eh"); }
-    $a = vdSmtpCmd($fp, 'AUTH LOGIN'); $a = vdSmtpCmd($fp, base64_encode($cx['usuario'])); $a = vdSmtpCmd($fp, base64_encode($cx['senha']));
+    vdSmtpCmd($fp, "EHLO $eh");
+    if ($port !== 465) { vdSmtpCmd($fp, 'STARTTLS'); if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { fclose($fp); return [null, "o envio ($h:$port) não aceitou conexão segura"]; } vdSmtpCmd($fp, "EHLO $eh"); }
+    vdSmtpCmd($fp, 'AUTH LOGIN'); vdSmtpCmd($fp, base64_encode($cx['usuario'])); $a = vdSmtpCmd($fp, base64_encode($cx['senha']));
     if (strpos($a, '235') !== 0) { fclose($fp); return [null, 'o envio recusou o login (usuário ou senha)']; }
+    vdCaixaLembra($cx, 'smtp', $h, $port);
     return [$fp, null];
 }
 function vdSmtpEnviar($cx, $para, $assunto, $corpo, $nomeDe, $extra = '') {
@@ -541,9 +576,9 @@ function vdSmtpEnviar($cx, $para, $assunto, $corpo, $nomeDe, $extra = '') {
 /** Testa a caixa sem mandar nada: entrada (IMAP) e saída (SMTP). */
 function vdCaixaTestar($cx) {
     $r = ['entrada' => null, 'saida' => null];
-    $fp = @stream_socket_client('ssl://' . $cx['imap_host'] . ':' . ((int)($cx['imap_porta'] ?: 993)), $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
-    if (!$fp) { $le = error_get_last(); $r['entrada'] = 'não conectei na entrada: ' . vdPorQue($cx['imap_host'], (int)($cx['imap_porta'] ?: 993)); }
-    else { stream_set_timeout($fp, 20); fgets($fp); $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+    [$fp, $err] = vdImapAbrir($cx);
+    if (!$fp) $r['entrada'] = $err;
+    else { $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
         $r['entrada'] = stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cx['usuario']) . ' ' . $q($cx['senha'])), 'a1 OK') !== false ? true : 'o e-mail recusou o login (usuário ou senha)'; fclose($fp); }
     [$sp, $err] = vdSmtpAbrir($cx); if ($sp) { vdSmtpCmd($sp, 'QUIT'); fclose($sp); $r['saida'] = true; } else $r['saida'] = $err;
     return $r;

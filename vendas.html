@@ -127,10 +127,10 @@ function cxUI(){
 function cxForm(){const c=CARTS.find(x=>x.id===CXED)||{name:''},x=cxDe(CXED)||{};
   return `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--linha,rgba(255,255,255,.12))"><b>${esc(c.name)}</b>
   <div class="row" style="margin:8px 0;gap:8px"><input id="cxe" placeholder="e-mail (vendas@cliente.com.br)" value="${esc(x.email||'')}" style="flex:1;min-width:220px"><input id="cxs" type="password" autocomplete="new-password" placeholder="${x.tem_senha?'senha (deixe vazio pra manter)':'senha do e-mail'}" style="flex:1;min-width:180px"></div>
-  <details ${CXRES&&(CXRES.entrada!==true||CXRES.saida!==true)?'open':''}><summary class="sub" style="cursor:pointer">Servidores (só mude se o teste falhar)</summary>
+  <details ${CXRES&&(CXRES.entrada!==true||CXRES.saida!==true)?'open':''}><summary class="sub" style="cursor:pointer">Servidores (eu descubro sozinho — só mexa se o teste pedir)</summary>
   <div class="row" style="margin:8px 0;gap:8px"><input id="cxu" placeholder="usuário (padrão: o e-mail)" value="${esc(x.usuario&&x.usuario!==x.email?x.usuario:'')}" style="flex:1;min-width:180px">
-  <input id="cxih" placeholder="entrada IMAP (padrão mail.dominio)" value="${esc(x.imap_host||'')}" style="flex:1;min-width:180px"><input id="cxip" type="number" value="${x.imap_porta||993}" style="width:80px">
-  <input id="cxsh" placeholder="saída SMTP (padrão mail.dominio)" value="${esc(x.smtp_host||'')}" style="flex:1;min-width:180px"><input id="cxsp" type="number" value="${x.smtp_porta||465}" style="width:80px"></div></details>
+  <input id="cxih" placeholder="entrada IMAP (vazio = automático)" value="${esc(x.imap_host||'')}" style="flex:1;min-width:180px"><input id="cxip" type="number" value="${x.imap_porta||993}" style="width:80px">
+  <input id="cxsh" placeholder="saída SMTP (vazio = automático)" value="${esc(x.smtp_host||'')}" style="flex:1;min-width:180px"><input id="cxsp" type="number" value="${x.smtp_porta||465}" style="width:80px"></div></details>
   <div class="row" style="gap:8px"><button class="btn p s" onclick="cxSalvar(this)">Salvar e testar</button>${x.email?'<button class="btn s" onclick="cxTestar(this)">Só testar</button><button class="btn s" onclick="cxRemover(this)">Desligar</button>':''}<button class="btn s" onclick="CXED=null;CXRES=null;draw()">Fechar</button></div>${cxRes(CXRES)}</div>`;}
 function cxAbrir(id){CXED=id;CXRES=null;draw();}
 function cxDica(m){m=String(m||'');

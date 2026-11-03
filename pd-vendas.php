@@ -48,8 +48,8 @@ switch ($acao) {
         $dom = substr(strrchr($em, '@'), 1); $senha = (string)($b['senha'] ?? '');
         if ($senha === '' && !$at) sd_fail('falta a senha do e-mail');
         $row = ['client_id' => $cli, 'email' => $em, 'usuario' => trim((string)($b['usuario'] ?? '')) ?: $em,
-            'imap_host' => trim((string)($b['imap_host'] ?? '')) ?: 'mail.' . $dom, 'imap_porta' => (int)($b['imap_porta'] ?? 993) ?: 993,
-            'smtp_host' => trim((string)($b['smtp_host'] ?? '')) ?: 'mail.' . $dom, 'smtp_porta' => (int)($b['smtp_porta'] ?? 465) ?: 465,
+            'imap_host' => trim((string)($b['imap_host'] ?? '')), 'imap_porta' => (int)($b['imap_porta'] ?? 993) ?: 993,
+            'smtp_host' => trim((string)($b['smtp_host'] ?? '')), 'smtp_porta' => (int)($b['smtp_porta'] ?? 465) ?: 465,
             'ativo' => true, 'ultimo_erro' => null, 'atualizado_em' => gmdate('c')];
         if ($senha !== '') $row['senha_cifrada'] = vdCifrar($senha);
         if ($at) { $r = vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'PATCH', $row); } else { $row['ultimo_uid'] = 0; $r = vdSup('/rest/v1/pd_vendas_caixas', 'POST', $row); }
