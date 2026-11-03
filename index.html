@@ -5890,8 +5890,8 @@ function iaDe(p){ try { return ((IACASA.d && IACASA.d.ias) || []).find(i => i.id
 // Gigi joga um verde — trocar ou ficar, a pessoa decide.
 // ============================================================================
 const FUNCAO_ARQUETIPO = { estrategia:'Estrategista', trafego:'Estrategista', webdev:'Estrategista', comercial:'Estrategista', prospeccao:'Estrategista',
-  copy:'Criador', designer:'Criador', video:'Criador', som:'Criador', foto3d:'Criador', social:'Criador', direcao:'Criador',
-  producao:'Realizador', gestao_equipe:'Realizador', atendimento:'Conector' };
+  copy:'Criador', designer:'Criador', video:'Criador', som:'Criador', foto3d:'Criador', direcao:'Criador',
+  producao:'Realizador', gestao_equipe:'Realizador', atendimento:'Conector', social:'Conector' };
 const FUNCAO_ROTULO = { direcao:'Direção criativa', estrategia:'Estratégia / planejamento', atendimento:'Atendimento', producao:'Gestão de projetos / produção', copy:'Copywriter', designer:'Designer', video:'Motion / editor de vídeo', som:'Sound designer / locução', foto3d:'Fotografia / 3D', social:'Social media', trafego:'Tráfego pago / campanhas', webdev:'Web dev / sites e LPs', gestao_equipe:'Gestão de equipe', comercial:'Comercial / vendas', prospeccao:'Prospecção de clientes' };
 function escolherFuncao(k){ jeito.diretas = jeito.diretas || {}; jeito.diretas.funcao_principal = k; guardarJeito(); pintarJeito(); }
 function funcaoPrincipal(p){ const eu = !p || (perfil && p.id === perfil.id); const f = eu && jeito && jeito.diretas && jeito.diretas.funcao_principal; return f || (((p||{}).funcoes||[])[0]) || null; }
