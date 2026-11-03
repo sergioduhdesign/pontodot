@@ -485,14 +485,14 @@ function iaConfirmaProcessar($u, $canal, $chave, $txt) {
     $email = ''; $senha = ''; $num = 0;
     if (preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $t, $em)) { $email = strtolower($em[0]); $senha = trim(str_replace($em[0], '', $t)); }
     elseif (count($ids) === 1 && preg_match('/^(\S+)$/u', $t)) { $num = 1; $senha = $t; }   // só uma conta na lista: basta a palavra
-    elseif (count($ids) === 1 && ($pw = pdPalavraMagica($u['id'] ?? '')) !== '' && strpos(' ' . iaPalavras($t) . ' ', ' ' . iaPalavras($pw) . ' ') !== false) { $num = 1; $senha = $pw; }   // a palavra veio no meio da frase ("a nossa palavra é X")
+    elseif (count($ids) === 1 && ($pw = pdSegredoLimpa(pdPalavraMagica($u['id'] ?? ''))) !== '' && strpos(' ' . iaPalavras($t) . ' ', ' ' . iaPalavras($pw) . ' ') !== false) { $num = 1; $senha = $pw; }   // a palavra veio no meio da frase ("a nossa palavra é X")
     else return null;   // não é a confirmação: segue conversa normal
     $alvo = null; $k = 0; foreach ($ids as $id) { $k++; $p = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($id) . '&select=id,name,email,role,team_key,active')['body'][0] ?? null; if ($p && (($email !== '' && strtolower((string)$p['email']) === $email) || ($num && $k === $num))) { $alvo = $p; break; } }
     if (!$alvo) return ['texto' => '⚠️ Esse e-mail não é de nenhuma das contas listadas. Confere e manda de novo (e-mail + senha).', 'feito' => false];
     $pal = pdPalavraMagica($u['id'] ?? '');
     if ($pal === '') return ['texto' => '⚠️ A gente ainda não combinou uma palavra. Diga *guarda: minha palavra combinada é …* e depois confirme de novo.', 'feito' => false];
     // "palavra combinada Joy", "senha: Joy", "é Joy" → Joy; ou a palavra em qualquer lugar do resto da mensagem
-    $senha = trim(preg_replace('/^(?:a |minha |nossa )?(?:palavra(?: m[áa]gica| combinada| secreta)?|senha|segredo|chave)?\s*(?:é|e|eh|:|=)?\s*/iu', '', trim($senha)));
+    $senha = pdSegredoLimpa($senha); $pal = pdSegredoLimpa($pal);
     $bate = $senha !== '' && (pdSegredoNorm($senha) === pdSegredoNorm($pal) || strpos(' ' . iaPalavras($senha) . ' ', ' ' . iaPalavras($pal) . ' ') !== false);
     if (!$bate) return ['texto' => '⚠️ A palavra combinada não bate. Manda de novo: e-mail + palavra.', 'feito' => false];
     sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_ok']);

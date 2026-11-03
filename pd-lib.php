@@ -819,10 +819,19 @@ function pdTeamMemberGarante($k) {
 // Palavra mágica do zap: a pessoa ensina à própria IA ("guarda: minha palavra mágica é X"); fica em sd_memoria (escopo pessoa).
 // É segredo: nunca entra no contexto da IA, só serve pra confirmar quem fala num número compartilhado.
 // ensino direto pelo sistema (sem depender da IA): "guarda: minha palavra combinada é X" / "minha senha é X" / "palavra mágica: X"
+// tira rótulos que a pessoa junta à palavra ("palavra combinada Joy", "senha Joy", "a palavra é Joy") → "Joy"
+function pdSegredoLimpa($v) {
+    $v = trim((string)$v, " \t\n\"'\x{201C}\x{201D}\x{2018}\x{2019}.!");
+    $v = preg_replace('/^(?:(?:a|o|minha|nossa|e|é|eh|:|=|palavra|magica|mágica|combinada|secreta|senha|segredo|chave|codigo|código|pin|nova|novo|agora|vai|ser|será|sera|entre|nos|nós)\s*[:=]?\s+)+/iu', '', $v);
+    $v = preg_replace('/(?:\s+(?:palavra|magica|mágica|combinada|secreta|senha|segredo|chave))+$/iu', '', $v);
+    return trim($v, " \t\"'\x{201C}\x{201D}\x{2018}\x{2019}.!");
+}
 function pdPalavraEnsinar($userId, $txt) {
     $t = trim((string)$txt);
+    // "quero trocar a palavra combinada … "Joy"" / "nova palavra: "Joy"": o que está entre aspas é a palavra
+    if (preg_match('/palavra|senha|segredo/iu', $t) && preg_match('/(?:troca\w*|muda\w*|nova|novo|define\w*|guarda\w*|agora)/iu', $t) && preg_match('/["\x{201C}\x{2018}\']([^"\x{201D}\x{2019}\'\n]{1,30})["\x{201D}\x{2019}\']/u', $t, $q)) { $t = 'guarda: minha palavra combinada é ' . trim($q[1]); }
     if (!preg_match('/^(?:guarda|guarde|salva|salve|lembra|anota)?[:,]?\s*(?:a |minha |nossa )?(?:palavra(?: m[áa]gica| combinada| secreta| chave)?|senha|segredo|chave|c[oó]digo|pin)(?: (?:do|de|pro|para o?) (?:zap|whats\w*|chat|sistema))?\s*(?:é|e|eh|:|=|ser[áa]|vai ser|agora é|agora e)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'\n]{1,40}?)["\x{201D}\x{2019}\']?\s*[.!]?$/iu', $t, $m)) return null;
-    $v = trim($m[1]); if ($v === '' || str_word_count($v) > 3) return null;
+    $v = pdSegredoLimpa($m[1]); if ($v === '' || str_word_count($v) > 3) return null;
     try { sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&assunto=eq.' . rawurlencode('palavra combinada'), 'PATCH', ['ativo' => false]); } catch (Throwable $e) {}
     $r = sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => 'pessoa', 'escopo_id' => $userId, 'assunto' => 'palavra combinada', 'conteudo' => 'palavra combinada: ' . $v, 'natureza' => 'orientacao', 'autor_id' => $userId, 'origem' => 'sistema']);
     return ($r['code'] ?? 500) < 300 ? '🔑 Combinado. Guardei a palavra entre nós (ela não é a sua senha de acesso — é só pra confirmar comigo as ações sensíveis). Pra trocar, é só me ensinar outra.' : '⚠️ Não consegui guardar agora. Tenta de novo?';
@@ -837,7 +846,7 @@ function pdPalavraMagica($userId) {
         if (!$temaAs && !$temaCo) continue;
         $v = $co;
         if (preg_match('/(?::|=|\b(?:\x{00E9}|e|eh|sera|ser\x{00E1})\b)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'.\n]{1,40}?)["\x{201D}\x{2019}\']?\s*\.?$/u', $co, $mm)) $v = $mm[1];
-        $v = trim($v);
+        $v = pdSegredoLimpa($v);
         if ($v === '' || mb_strlen($v) > 30 || str_word_count($v) > 3) continue;   // isso é texto, não senha
         return $v;
     }
