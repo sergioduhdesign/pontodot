@@ -7293,6 +7293,7 @@ async function pdPainelCliente(cid){
   document.getElementById('mc-redes').innerHTML = linhas.join('') ||
     '<span style="color:var(--text3)">Nada conectado — conecte a Meta na frente (caixinha Anúncios) ou em Admin → Redes sociais.</span>';
   document.getElementById('mc-zap').value = (cli&&cli.zap)||'';
+  window._mcZapAntes = (cli&&cli.zap)||'';
   document.getElementById('mc-email-aviso').value = (cli&&cli.email_aviso)||'';
   document.getElementById('mc-zap-ativo').checked = !!(cli&&cli.zap_ativo);
   document.getElementById('mc-ia-zap').checked = !!(cli&&cli.ia_zap);
@@ -7338,7 +7339,8 @@ async function pdZapSalvar(){
   const zap=document.getElementById('mc-zap').value.replace(/[^\d+]/g,'')||null;
   const email_aviso=document.getElementById('mc-email-aviso').value.trim()||null;
   const zap_ativo=!!document.getElementById('mc-zap-ativo').checked;
-  const ia_zap=!!document.getElementById('mc-ia-zap').checked;
+  let ia_zap=!!document.getElementById('mc-ia-zap').checked;
+  if(zap && !window._mcZapAntes && !ia_zap){ ia_zap=true; document.getElementById('mc-ia-zap').checked=true; }   // primeiro número salvo: a Gigi já nasce ligada
   let { error } = await sb.from('clients').update({ zap, email_aviso, zap_ativo, ia_zap }).eq('id', currentClientId);
   if (error && /ia_zap/i.test(error.message||'')) { if (ia_zap) { showToast('Falta rodar o SQL v131 para ligar a Gigi.','error'); return; } ({ error } = await sb.from('clients').update({ zap, email_aviso, zap_ativo }).eq('id', currentClientId)); }
   showToast(error ? 'Não salvei: '+error.message+' (rode o SQL v97).' : (zap_ativo?'Avisos ligados para este cliente.':'Dados salvos. Avisos desligados.'), error?'error':'success');
