@@ -491,7 +491,10 @@ function iaConfirmaProcessar($u, $canal, $chave, $txt) {
     if (!$alvo) return ['texto' => '⚠️ Esse e-mail não é de nenhuma das contas listadas. Confere e manda de novo (e-mail + senha).', 'feito' => false];
     $pal = pdPalavraMagica($u['id'] ?? '');
     if ($pal === '') return ['texto' => '⚠️ A gente ainda não combinou uma palavra. Diga *guarda: minha palavra combinada é …* e depois confirme de novo.', 'feito' => false];
-    if ($senha === '' || pdSegredoNorm($senha) !== pdSegredoNorm($pal)) return ['texto' => '⚠️ A palavra combinada não bate. Manda de novo: e-mail + palavra.', 'feito' => false];
+    // "palavra combinada Joy", "senha: Joy", "é Joy" → Joy; ou a palavra em qualquer lugar do resto da mensagem
+    $senha = trim(preg_replace('/^(?:a |minha |nossa )?(?:palavra(?: m[áa]gica| combinada| secreta)?|senha|segredo|chave)?\s*(?:é|e|eh|:|=)?\s*/iu', '', trim($senha)));
+    $bate = $senha !== '' && (pdSegredoNorm($senha) === pdSegredoNorm($pal) || strpos(' ' . iaPalavras($senha) . ' ', ' ' . iaPalavras($pal) . ' ') !== false);
+    if (!$bate) return ['texto' => '⚠️ A palavra combinada não bate. Manda de novo: e-mail + palavra.', 'feito' => false];
     sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_ok']);
     $lote = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));
     if ($acao === 'excluir') $r = iaUsuarioExcluirExec($alvo, $u, $lote, null);
