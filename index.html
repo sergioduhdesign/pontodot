@@ -5892,7 +5892,11 @@ function iaDe(p){ try { return ((IACASA.d && IACASA.d.ias) || []).find(i => i.id
 const FUNCAO_ARQUETIPO = { estrategia:'Estrategista', trafego:'Estrategista', webdev:'Estrategista', comercial:'Estrategista', prospeccao:'Estrategista',
   copy:'Criador', designer:'Criador', video:'Criador', som:'Criador', foto3d:'Criador', social:'Criador', direcao:'Criador',
   producao:'Realizador', gestao_equipe:'Realizador', atendimento:'Conector' };
-function arquetipoDaPessoa(p){ const fs = (p && p.funcoes) || []; const c = {}; fs.forEach(f => { const a = FUNCAO_ARQUETIPO[f]; if (a) c[a] = (c[a] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] || null; }
+const FUNCAO_ROTULO = { direcao:'Direção criativa', estrategia:'Estratégia / planejamento', atendimento:'Atendimento', producao:'Gestão de projetos / produção', copy:'Copywriter', designer:'Designer', video:'Motion / editor de vídeo', som:'Sound designer / locução', foto3d:'Fotografia / 3D', social:'Social media', trafego:'Tráfego pago / campanhas', webdev:'Web dev / sites e LPs', gestao_equipe:'Gestão de equipe', comercial:'Comercial / vendas', prospeccao:'Prospecção de clientes' };
+function escolherFuncao(k){ jeito.diretas = jeito.diretas || {}; jeito.diretas.funcao_principal = k; guardarJeito(); pintarJeito(); }
+function funcaoPrincipal(p){ const eu = !p || (perfil && p.id === perfil.id); const f = eu && jeito && jeito.diretas && jeito.diretas.funcao_principal; return f || (((p||{}).funcoes||[])[0]) || null; }
+function arquetipoDaPessoa(p){ const fp = (!p || (perfil && p.id === perfil.id)) && jeito && jeito.diretas && jeito.diretas.funcao_principal; if (fp && FUNCAO_ARQUETIPO[fp]) return FUNCAO_ARQUETIPO[fp];
+  const fs = (p && p.funcoes) || []; const c = {}; fs.forEach(f => { const a = FUNCAO_ARQUETIPO[f]; if (a) c[a] = (c[a] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] || null; }
 function iasDoTime(){ try { return ((IACASA.d && IACASA.d.ias) || []).filter(i => i.id !== (perfil && perfil.id)); } catch(e){ return []; } }
 function donoDaIA(id){ return iasDoTime().find(i => i.personagem === id) || null; }
 function recomendarIA(p){
@@ -7313,7 +7317,11 @@ function pintarJeito(){
   C.innerHTML = `
     <p class="jt-intro">${esc(QUEST.intro)}</p>
 
-    <div class="jt-sec">OS QUATRO PILARES</div>
+    <div class="jt-sec">O QUE VOCÊ VAI FAZER NA CASA?</div>
+    <p class="jt-intro" style="margin:2px 0 8px">Sua função principal. É ela que dá o tom da sua IA.</p>
+    <div class="dp-ops" style="margin-bottom:6px">${Object.entries(FUNCAO_ROTULO).map(([k,n]) => `<button class="dp-op ${((jeito.diretas||{}).funcao_principal||'')===k?'on':''}" onclick="escolherFuncao('${k}')">${esc(n)}</button>`).join('')}</div>
+
+    <div class="jt-sec" style="margin-top:20px">OS QUATRO PILARES</div>
     <div class="pilares">${Object.keys(PILAR).map(barra).join('')}</div>
     ${st.pronto ? '' : `<p class="jt-aviso">${st.feitos} de ${st.total} perguntas respondidas.
       Mover um pilar preenche as 8 perguntas dele de uma vez — depois dá pra refinar uma a uma.</p>`}
@@ -7360,6 +7368,7 @@ function zerarJeito(){
  *  — é o que o cânone pede, e é o que faz a IA mudar de verdade. */
 async function confirmarJeito(){
   const st = jeitoCompleto();
+  if (!(jeito.diretas && jeito.diretas.funcao_principal) && !ehCliente()){ toast('Antes de tudo: escolha o que você vai fazer na casa (topo da tela).'); try { document.getElementById('jeitoCorpo').scrollTo({top:0,behavior:'smooth'}); } catch(e){} return; }
   if (!st.pronto && !confirm(`Faltam ${st.total-st.feitos} perguntas. Salvar assim mesmo?\n\nSem todas, eu não calculo o resultado — mas os ajustes que você escolheu valem.`)) return;
   jeito.confirmado = true;
   jeito.confirmado_em = new Date().toISOString();
