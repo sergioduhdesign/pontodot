@@ -5899,12 +5899,13 @@ function recomendarIA(p){
   const arq = arquetipoDaPessoa(p || perfil); if (!arq || !UNIVERSO) return null;
   const usados = new Set(iasDoTime().map(i => i.personagem));
   const cs = (UNIVERSO.characters || []).filter(c => c.narrative_archetype === arq);
-  return cs.find(c => !usados.has(c.id) && c.id !== 'gigi') || cs[0] || null;
+  const livre = c => !usados.has(c.id) && !['gigi','tumi'].includes(c.id);
+  return cs.find(livre) || (UNIVERSO.characters || []).find(livre) || null;   // nunca sugere IA que já é de colega
 }
 function avisoIARepetida(id){   // texto curto pra tela de escolha; null se está tudo bem
   const d = donoDaIA(id); if (!d) return null;
   const c = (UNIVERSO?.characters || []).find(x => x.id === id), r = recomendarIA(perfil);
-  return `${c ? c.name : id} já trabalha com ${esc(d.dona || 'alguém do time')}. ` + (r && r.id !== id ? `Pelo seu ofício, <b>${esc(r.name)}</b> (${esc(r.especialidade || r.profile_title || '')}) combina mais — mas a escolha é sua.` : 'Pode escolher mesmo assim.');
+  return `${c ? c.name : id} já trabalha com ${esc(d.dona || 'alguém do time')}. ` + (r && r.id !== id ? `Pelo seu ofício, <b>${esc(r.name)}</b> (${esc(r.especialidade || r.profile_title || '')}) combina mais — cada pessoa do time tem uma IA só sua.` : 'Escolha outra.');
 }
 async function recomendacaoSemanal(){
   try {
@@ -7844,6 +7845,7 @@ function voltarDaFicha(){
 /** Só aqui a IA muda de personagem. */
 function confirmarPersonagem(id, mesmoAssim){
   const c = (UNIVERSO?.characters || []).find(x => x.id === id); if (!c) return;
+  if (!ehCliente() && !IACASA.d){ iasCarrega().then(() => confirmarPersonagem(id, mesmoAssim)).catch(()=>{}); return; }   // sem saber quem já tem quem, não decide
   if (!mesmoAssim && !ehCliente()){ const av = avisoIARepetida(id); if (av){
     const r = recomendarIA(perfil);
     abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 20px 18px;max-width:520px;margin:0 auto">
@@ -7851,7 +7853,7 @@ function confirmarPersonagem(id, mesmoAssim){
       <p style="font-size:14px;line-height:1.55;margin:0 0 14px">${av}</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         ${r && r.id !== id ? `<button class="btn cheio" style="background:var(--verde)" onclick="fecharJanela();abrirFicha('${esc(r.id)}','minhaia')">Conhecer ${esc(r.name)}</button>` : ''}
-        <button class="btn" onclick="fecharJanela();confirmarPersonagem('${esc(id)}',true)">Ficar com ${esc(c.name)} mesmo assim</button>
+        <button class="btn" onclick="fecharJanela()">Voltar</button>
       </div></div>`); return; } }
   const primeira = !jeito.personagem;
   jeito.personagem = id;
