@@ -290,6 +290,23 @@ function iaUsuarioAcesso($args, $u, $lote) {
     iaRegistra($lote, $u, 'acesso', $p['id'], ['active' => $p['active'] ?? true], ['active' => $ativo], $p['name']);
     return ['texto' => ($ativo ? '✅ acesso de ' : '⏸️ acesso de ') . $p['name'] . ($ativo ? ' reativado' : ' pausado'), 'ids' => []];
 }
+// excluir pessoa: mesma rotina do delete-user.php (perfil inativo + sai do Auth), com as tarefas dela indo pra alguém
+function iaUsuarioExcluir($args, $u, $lote) {
+    if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin exclui pessoas', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    if ($p['id'] === $u['id']) return ['texto' => '⚠️ você não exclui a própria conta', 'ids' => []];
+    $para = !empty($args['tarefas_para']) ? iaResp($args['tarefas_para']) : null; $n = 0;
+    if (!empty($p['team_key']) && !in_array($p['team_key'], ['OUTROS', 'CLIENTE'], true)) {
+        $tt = (array)(sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE&select=id')['body'] ?? []); $n = count($tt);
+        if ($n && $para) sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE', 'PATCH', ['resp' => $para]);
+    }
+    $antes = ['active' => $p['active'] ?? true, 'email' => $p['email'] ?? '', 'name' => $p['name'], 'role' => $p['role'] ?? 'team', 'team_key' => $p['team_key'] ?? null];
+    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => false]);
+    $del = sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'DELETE');
+    if (!in_array($del['code'] ?? 0, [200, 204, 404], true)) return ['texto' => '⚠️ ' . $p['name'] . ': o acesso foi pausado, mas não consegui remover a conta (HTTP ' . ($del['code'] ?? '?') . ')', 'ids' => []];
+    iaRegistra($lote, $u, 'usuario_excluir', $p['id'], $antes, null, $p['name']);
+    return ['texto' => '🗑️ ' . $p['name'] . ' removid' . 'o(a) da plataforma' . ($n ? ($para ? " · $n tarefa(s) aberta(s) passaram pra $para" : " · $n tarefa(s) aberta(s) ficaram no nome dela(e); me diga pra quem passar") : ''), 'ids' => []];
+}
 function iaFuncoesDefinir($args, $u, $lote) {
     if (!iaEhAdmin($u) && !in_array('gestao_equipe', (array)(sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=funcoes')['body'][0]['funcoes'] ?? []), true)) return ['texto' => '⚠️ só admin ou gestão de equipe define funções', 'ids' => []];
     $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
@@ -412,6 +429,7 @@ function iaCatalogo($u) {
     if (iaEhAdmin($u)) {
         $T[] = ['name' => 'usuarios_criar', 'description' => 'Cadastra pessoas (até 20): manda convite por e-mail. papel: team|admin|client (client exige cliente). funcoes: nomes do catálogo (' . implode(', ', pdFuncoesCatalogo()) . '). perfil_permissoes: Produção|Atendimento|Gestor de mídia. ferramentas: digital|audio|video|grafica|todas.',
             'input_schema' => $S(['pessoas' => ['type' => 'array', 'items' => $S(['nome' => $str, 'email' => $str, 'zap' => $str, 'papel' => $str, 'cliente' => $str, 'funcoes' => $arrS, 'perfil_permissoes' => $str, 'ferramentas' => $arrS], ['nome', 'email'])]], ['pessoas'])];
+        $T[] = ['name' => 'usuario_excluir', 'description' => 'Exclui uma pessoa da plataforma (conta removida; perfil fica inativo no histórico). tarefas_para: nome de quem herda as tarefas abertas dela.', 'input_schema' => $S(['pessoa' => $str, 'tarefas_para' => $str], ['pessoa'])];
         $T[] = ['name' => 'usuario_acesso', 'description' => 'Pausa (ativo=false) ou reativa (ativo=true) o acesso de uma pessoa.', 'input_schema' => $S(['pessoa' => $str, 'ativo' => $bool], ['pessoa', 'ativo'])];
         $T[] = ['name' => 'funcoes_definir', 'description' => 'Define as funções de uma pessoa (designer, copy, atendimento...). Quem ganha função ganha chave própria de responsável.', 'input_schema' => $S(['pessoa' => $str, 'funcoes' => $arrS], ['pessoa', 'funcoes'])];
         $T[] = ['name' => 'permissoes_definir', 'description' => 'Permissões da pessoa: perfil pronto (Produção, Atendimento, Gestor de mídia) e/ou chaves (tarefa.criar, tarefa.excluir, social.publicar, social.conectar...).', 'input_schema' => $S(['pessoa' => $str, 'perfil' => $str, 'chaves' => $arrS], ['pessoa'])];
@@ -435,6 +453,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'cliente_editar':  return iaClienteEditar($args, $u, $lote);
         case 'usuarios_criar':  return iaUsuariosCriar($args, $u, $lote);
         case 'usuario_acesso':  return iaUsuarioAcesso($args, $u, $lote);
+        case 'usuario_excluir': return iaUsuarioExcluir($args, $u, $lote);
         case 'funcoes_definir': return iaFuncoesDefinir($args, $u, $lote);
         case 'permissoes_definir': return iaPermissoesDefinir($args, $u, $lote);
         case 'ferramentas_liberar': return iaFerramentasLiberar($args, $u, $lote);
