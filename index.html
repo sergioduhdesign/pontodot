@@ -7740,7 +7740,10 @@ async function personagensProximos(){
   const com = UNIVERSO.characters.map(c=>{
     const bits = String(c.editorial_workstyle_code||'').split('').map(b => b === '1' ? 80 : 20);
     const d = bits.reduce((acc,b,i)=> acc + Math.pow(b - meu[i], 2), 0);
-    return { ...c, dist: d };
+    // a FUNÇÃO PRINCIPAL dá o tom: personagem de outro ofício leva um peso a mais na distância
+    const arq = arquetipoDaPessoa(perfil);
+    const pen = arq && c.narrative_archetype && c.narrative_archetype !== arq ? 5000 : 0;
+    return { ...c, dist: d + pen };
   }).sort((a,b)=> a.dist - b.dist);
   // BALIZADOR DO TIME: duas pessoas com a mesma IA é perda (cada personagem tem um ofício).
   // Se o mais próximo já é de um colega, ele sai da lista e entram os mais próximos LIVRES.
