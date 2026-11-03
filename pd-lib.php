@@ -819,12 +819,19 @@ function pdTeamMemberGarante($k) {
 // Palavra mágica do zap: a pessoa ensina à própria IA ("guarda: minha palavra mágica é X"); fica em sd_memoria (escopo pessoa).
 // É segredo: nunca entra no contexto da IA, só serve pra confirmar quem fala num número compartilhado.
 function pdPalavraMagica($userId) {
-    $r = sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&ativo=is.true&assunto=ilike.' . rawurlencode('*palavra*m*gica*') . '&select=conteudo&order=created_at.desc&limit=1')['body'][0]['conteudo'] ?? '';
-    $r = trim((string)$r); if ($r === '') return '';
-    if (preg_match('/(?::|\b(?:\x{00E9}|e|eh)\b)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'.\n]{2,40}?)["\x{201D}\x{2019}\']?\s*\.?$/u', $r, $m)) $r = $m[1];   // "minha palavra mágica é abacaxi" → abacaxi
-    $r = trim($r);
-    if (mb_strlen($r) > 30 || str_word_count($r) > 3) return '';   // isso não é uma senha, é um texto: ignora (nunca trava a pessoa por uma memória solta)
-    return $r;
+    // o nome é livre: "palavra mágica", "senha", "segredo", "chave", "código"… vale a ÚLTIMA ensinada
+    $ms = (array)(sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&ativo=is.true&select=assunto,conteudo&order=created_at.desc&limit=20')['body'] ?? []);
+    foreach ($ms as $m) {
+        $as = (string)($m['assunto'] ?? ''); $co = trim((string)($m['conteudo'] ?? ''));
+        $temaAs = (bool)preg_match('/palavra|senha|segredo|chave|c[oó]digo|\bpin\b/iu', $as); $temaCo = (bool)preg_match('/palavra|senha|segredo|chave|c[oó]digo/iu', $co);
+        if (!$temaAs && !$temaCo) continue;
+        $v = $co;
+        if (preg_match('/(?::|=|\b(?:\x{00E9}|e|eh|sera|ser\x{00E1})\b)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'.\n]{1,40}?)["\x{201D}\x{2019}\']?\s*\.?$/u', $co, $mm)) $v = $mm[1];
+        $v = trim($v);
+        if ($v === '' || mb_strlen($v) > 30 || str_word_count($v) > 3) continue;   // isso é texto, não senha
+        return $v;
+    }
+    return '';
 }
 function pdSegredoNorm($s) { return preg_replace('/[^a-z0-9]/', '', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', trim((string)$s)))); }
 // Permissões pelo servidor (zap, cadastro sem sessão): mesma regra de set_user_permissions, gravando em profile_permissions.
@@ -1144,9 +1151,9 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
     // MEMÓRIA DA CASA (sd_memoria): o que já foi ensinado — agência, esta pessoa e os clientes citados
     $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.cliente)', 'and(escopo.eq.pessoa,escopo_id.eq.' . ($p['id'] ?? '') . ')'];   // o que a casa aprendeu vale para TODA a equipe
-    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&assunto=not.ilike.' . rawurlencode('*palavra*m*gica*') . '&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
+    $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
     $nomeDe = array_flip($clientesIds);
-    $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], (array)($mr['body'] ?? []));
+    $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], array_values(array_filter((array)($mr['body'] ?? []), fn($m) => !(($m['escopo'] ?? '') === 'pessoa' && preg_match('/palavra|senha|segredo|chave|c[oó]digo|\bpin\b/iu', (string)($m['assunto'] ?? '') . ' ' . (string)($m['conteudo'] ?? ''))))));   // a senha da pessoa nunca entra no contexto
     $statusValidos = array_values(array_unique(array_filter(array_map(fn($t) => (string)($t['status'] ?? ''), $todas)))); foreach (['BRIEFING', 'ENTREGUE'] as $sv) if (!in_array($sv, $statusValidos, true)) $statusValidos[] = $sv;
     // LINKS pra ver material: lotes de aprovação recentes e a pasta do Drive de cada tarefa com pasta
     $lotes = [];
