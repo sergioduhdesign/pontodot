@@ -5898,16 +5898,26 @@ function funcaoPrincipal(p){ const eu = !p || (perfil && p.id === perfil.id); co
 function arquetipoDaPessoa(p){ const fp = (!p || (perfil && p.id === perfil.id)) && jeito && jeito.diretas && jeito.diretas.funcao_principal; if (fp && FUNCAO_ARQUETIPO[fp]) return FUNCAO_ARQUETIPO[fp];
   const fs = (p && p.funcoes) || []; const c = {}; fs.forEach(f => { const a = FUNCAO_ARQUETIPO[f]; if (a) c[a] = (c[a] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] || null; }
 function iasDoTime(){ try { return ((IACASA.d && IACASA.d.ias) || []).filter(i => i.id !== (perfil && perfil.id)); } catch(e){ return []; } }
+// RODADA: com N personagens, ninguém repete enquanto houver um que ainda não foi de ninguém.
+// Só quando todos já têm dono a rodada vira e cada um pode ter o segundo dono.
+const IA_RESERVADAS = ['gigi','tumi'];   // papéis da casa
+function iaRodada(){
+  const pool = ((UNIVERSO && UNIVERSO.characters) || []).filter(c => !IA_RESERVADAS.includes(c.id));
+  const cont = {}; pool.forEach(c => cont[c.id] = 0);
+  iasDoTime().forEach(i => { if (i.personagem in cont) cont[i.personagem]++; });
+  const min = pool.length ? Math.min(...Object.values(cont)) : 0;
+  return { cont, min };
+}
+function iaOcupada(id){ if (ehCliente()) return false; if (IA_RESERVADAS.includes(id)) return true; const r = iaRodada(); return (r.cont[id] || 0) > r.min; }
 function donoDaIA(id){ return iasDoTime().find(i => i.personagem === id) || null; }
 function recomendarIA(p){
   const arq = arquetipoDaPessoa(p || perfil); if (!arq || !UNIVERSO) return null;
-  const usados = new Set(iasDoTime().map(i => i.personagem));
   const cs = (UNIVERSO.characters || []).filter(c => c.narrative_archetype === arq);
-  const livre = c => !usados.has(c.id) && !['gigi','tumi'].includes(c.id);
+  const livre = c => !iaOcupada(c.id);
   return cs.find(livre) || (UNIVERSO.characters || []).find(livre) || null;   // nunca sugere IA que já é de colega
 }
 function avisoIARepetida(id){   // texto curto pra tela de escolha; null se está tudo bem
-  const d = donoDaIA(id); if (!d) return null;
+  const d = donoDaIA(id); if (!d || !iaOcupada(id)) return null;
   const c = (UNIVERSO?.characters || []).find(x => x.id === id), r = recomendarIA(perfil);
   return `${c ? c.name : id} já trabalha com ${esc(d.dona || 'alguém do time')}. ` + (r && r.id !== id ? `Pelo seu ofício, <b>${esc(r.name)}</b> (${esc(r.especialidade || r.profile_title || '')}) combina mais — cada pessoa do time tem uma IA só sua.` : 'Escolha outra.');
 }
@@ -7757,7 +7767,7 @@ async function personagensProximos(){
   // BALIZADOR DO TIME: duas pessoas com a mesma IA é perda (cada personagem tem um ofício).
   // Se o mais próximo já é de um colega, ele sai da lista e entram os mais próximos LIVRES.
   const reservados = ['gigi','tumi'];   // papéis da casa, não de uma pessoa
-  const tomado = c => !ehCliente() && (reservados.includes(c.id) || !!donoDaIA(c.id));
+  const tomado = c => iaOcupada(c.id);
   const livres = com.filter(c => !tomado(c));
   const lista = livres.length ? livres : com;
   const corte = lista[2] ? lista[2].dist : Infinity;
