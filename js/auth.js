@@ -19,7 +19,7 @@ const Auth = {
   },
   async signOut() {
     await sb.auth.signOut();
-    window.location.href = '/index.html';
+    window.location.href = '/?login=1';
   },
   async requireAuth(allowedRoles = []) {
     const { data: { session } } = await sb.auth.getSession();

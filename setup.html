@@ -280,8 +280,12 @@
   <!-- Link inválido/expirado -->
   <div class="link-error-state" id="error-state">
     <div class="link-error-icon">✕</div>
-    <h2>Link inválido</h2>
-    <p>Este link de acesso expirou ou já foi utilizado. Peça um novo link ao administrador da plataforma.</p>
+    <h2>Esse link já foi usado</h2>
+    <p>Cada link de acesso vale uma vez (ou 24 horas). Se você já criou a sua senha, é só entrar com ela. Se não lembra, peça uma senha nova.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px">
+      <a href="/?login=1" style="display:inline-block;background:#fff;color:#0b0b0d;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:10px">Entrar com e-mail e senha</a>
+      <a href="/?login=1&esqueci=1" style="display:inline-block;border:1px solid #333;color:#ddd;text-decoration:none;font-size:14px;padding:11px 20px;border-radius:10px">Criar uma senha nova</a>
+    </div>
   </div>
 </div>
 

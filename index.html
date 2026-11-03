@@ -8171,6 +8171,7 @@ function mostrarLogin(){
       <a href="/privacidade.html" target="_blank" rel="noopener">Privacidade</a> · <a href="/termos.html" target="_blank" rel="noopener">Termos</a></p></form>`;
   document.body.appendChild(d);
   setTimeout(()=>$('#lgEmail')?.focus(), 80);
+  if (/[?&]esqueci=1/.test(location.search)) setTimeout(() => { const e = $('#lgErr'); if (e) e.textContent = 'Escreve o seu e-mail e clica em "Esqueci a senha": te mando o link pra criar uma senha nova.'; }, 120);
 }
 function lgVerSenha(){
   const i = $('#lgSenha'), b = $('#lgOlho'); if (!i) return;
@@ -8250,7 +8251,7 @@ async function reativarConta(){
   if (error){ const e = $('#reaErr'); if (e) e.textContent = error.message; return; }
   location.reload();
 }
-async function sairConta(){ try{ await sbR.auth.signOut(); }catch(e){} location.reload(); }
+async function sairConta(){ try{ await sbR.auth.signOut(); }catch(e){} location.href = '/?login=1'; }   // sair cai na tela de entrar, não na home pública
 
 async function bootReal(){
   if (!temSupa()) return;
