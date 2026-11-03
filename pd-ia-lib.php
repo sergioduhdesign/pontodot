@@ -508,11 +508,17 @@ function iaUsuarioExcluirExec($p, $u, $lote, $para) {
         if ($n && $para) sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE', 'PATCH', ['resp' => $para]);
     }
     $antes = ['active' => $p['active'] ?? true, 'email' => $p['email'] ?? '', 'name' => $p['name'], 'role' => $p['role'] ?? 'team', 'team_key' => $p['team_key'] ?? null];
-    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => false]);
+    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => false, 'zap' => null]);   // some do painel e do número compartilhado já
     sd_supabase('/rest/v1/profile_permissions?profile_id=eq.' . urlencode($p['id']), 'DELETE');
+    sd_supabase('/rest/v1/pd_avisos_log?ref=eq.' . rawurlencode('persona:' . $p['id']), 'PATCH', ['status' => 'persona_cancelada']);   // se era a persona ativa de um número, solta
     $del = sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'DELETE');
+    if (($del['code'] ?? 0) >= 500) {   // o Auth trava quando alguma tabela ainda aponta pro usuário: tira o perfil (as FKs em cascata somem) e tenta de novo
+        $dp = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'DELETE');
+        if (($dp['code'] ?? 0) < 300) $del = sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'DELETE');
+    }
     if (!in_array($del['code'] ?? 0, [200, 204, 404], true)) { sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'PUT', ['ban_duration' => '876000h']);
         return ['texto' => '⚠️ ' . $p['name'] . ' (' . $p['email'] . '): acesso bloqueado e perfil inativo, mas a conta não saiu do Auth (HTTP ' . ($del['code'] ?? '?') . ': ' . mb_substr((string)($del['body']['msg'] ?? $del['body']['message'] ?? $del['raw'] ?? ''), 0, 120) . ')', 'ids' => []]; }
+    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'DELETE');   // perfil sai junto (se alguma tabela ainda segurar, fica inativo e some do painel)
     iaRegistra($lote, $u, 'usuario_excluir', $p['id'], $antes, null, $p['name']);
     return ['texto' => '🗑️ ' . $p['name'] . ' (' . $p['email'] . ') removid' . 'o(a) da plataforma' . ($n ? ($para ? " · $n tarefa(s) aberta(s) passaram pra $para" : " · $n tarefa(s) aberta(s) ficaram no nome dela(e)") : ''), 'ids' => []];
 }

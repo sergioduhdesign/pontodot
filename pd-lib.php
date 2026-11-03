@@ -1299,7 +1299,13 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
         $resp = "📋 Conferi agora no sistema (é isto que está gravado):\n" . implode("\n", $ls);
     } elseif ($reivindica($resp) && preg_match('/\bSD-\d+|\btarefa/iu', $resp) && $pareceOrdem) {
         $resp = "⚠️ NADA foi alterado no sistema. Eu não consegui montar as ações desse pedido. Me manda de novo, de preferência em itens (ex.: \"SD-1234 → 02/11\"), que eu executo e confirmo com o resultado real.";
+    } elseif (preg_match('/✅|\b(exclu[ií]d[oa]s?|removid[oa]s?|pausad[oa]s?|desativad[oa]s?|reativad[oa]s?|cadastrad[oa]s?|convidad[oa]s?|criad[oa]s?)\b/iu', $resp)
+              && preg_match('/\b(usu[áa]ri[oa]s?|conta|acesso|colaborador\w*|perfil|cadastro)\b/iu', $resp)) {
+        // a IA "disse" que mexeu em usuário/conta sem nenhuma ação executada: isso nunca é verdade
+        $resp = "⚠️ NADA foi executado — eu não acionei nenhuma ação no sistema.\n\nPara excluir ou pausar alguém, me peça de novo (ex.: \"exclui o acesso do Fulano\"): eu listo as contas com e-mail e você confirma respondendo com o e-mail + a senha que me ensinou.";
     }
+    // a IA nunca inventa "senha de admin" nem senhas que não existem: a senha é a que a pessoa me ensinou, e quem pede é o sistema na hora da confirmação
+    if (!$ajs && preg_match('/senha (de|do) (admin|administrador|sistema)/iu', $resp)) $resp = "Não existe senha de admin separada — a senha é a que você me ensinou (\"guarda: minha senha é …\"). Me peça a ação de novo que eu listo as contas e peço a confirmação do jeito certo.";
     if (preg_match('/##SALVAR##\s*(\{.*\})\s*$/su', $resp, $sm)) {
         $resp = trim(preg_replace('/##SALVAR##.*$/su', '', $resp)); $sj = json_decode($sm[1], true); $tid = strtoupper(trim((string)($sj['task_id'] ?? '')));
         $existe = $tid !== '' ? (sd_supabase('/rest/v1/tasks?id=eq.' . rawurlencode($tid) . '&select=id&limit=1')['body'][0]['id'] ?? null) : null;
