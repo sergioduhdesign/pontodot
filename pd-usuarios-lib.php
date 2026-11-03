@@ -93,24 +93,41 @@ $emailOk = pdConviteEmail($email, $name, $link);
 }
 
 // E-mail de convite (capa Catum + logo). Devolve true se o servidor aceitou.
+// Configuração do convite (painel admin → "E-mail de convite"): texto, capa, empresa e site. Com padrão quando vazio.
+function pdConviteConfig() {
+    $st = sd_supabase('/rest/v1/app_settings?id=eq.1&select=convite_texto,convite_capa,empresa_nome,empresa_site')['body'][0] ?? [];
+    $empresa = trim((string)($st['empresa_nome'] ?? '')) ?: 'SD Studio Design';
+    $site    = trim((string)($st['empresa_site'] ?? '')) ?: 'sergioduh.com';
+    $capa    = trim((string)($st['convite_capa'] ?? '')) ?: 'capa-2-jardim-1086.jpg';
+    $texto   = trim((string)($st['convite_texto'] ?? '')) ?: "Você foi convidado(a) para a PD, a plataforma de trabalho da Pontodot.ai Escola Agêntica.\n\nA {empresa} gerencia os trabalhos da equipe por aqui — por isso você recebeu este link. Para começar, falta só criar o seu acesso no link abaixo.";
+    return ['empresa' => $empresa, 'site' => $site, 'capa' => $capa, 'texto' => $texto];
+}
 function pdConviteEmail($email, $name, $link) {
     $primeiro = explode(' ', $name)[0];
-    $subject = $primeiro . ', seu acesso à Pontodot está pronto';
+    $cfg = pdConviteConfig();
+    $subject = $primeiro . ', seu acesso à PD está pronto';
     $h = fn($t) => htmlspecialchars((string)$t, ENT_QUOTES, 'UTF-8');
-    $capas = ['capa-1-aula-1086.jpg', 'capa-2-jardim-1086.jpg', 'capa-3-formatura-1086.jpg']; $capa = $capas[crc32($email) % count($capas)];
+    $txt = str_replace(['{nome}', '{empresa}', '{site}'], [$primeiro, $cfg['empresa'], $cfg['site']], $cfg['texto']);
+    $paras = array_values(array_filter(array_map('trim', preg_split('/\n\s*\n/u', $txt))));
+    $pHtml = implode('', array_map(fn($x) => '<p style="font-size:15px;line-height:1.6;color:#cfcfcf;margin:0 0 16px">' . nl2br($h($x)) . '</p>', $paras));
+    $siteUrl = preg_match('#^https?://#', $cfg['site']) ? $cfg['site'] : 'https://' . $cfg['site'];
+    $siteTxt = preg_replace('#^https?://(www\.)?#', '', $cfg['site']);
     $html = '<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif">'
       . '<div style="max-width:560px;margin:0 auto;padding:28px 0 36px;color:#f2f2f2">'
       . '<div style="border-radius:18px;overflow:hidden;background:#141416">'
-      . '<img src="' . $h(sd_base()) . '/pd/escola/' . $capa . '" alt="Catum" width="560" style="display:block;width:100%;height:auto">'
+      . '<img src="' . $h(sd_base()) . '/pd/escola/' . $h($cfg['capa']) . '" alt="" width="560" style="display:block;width:100%;height:auto">'
       . '<div style="padding:26px 28px 30px">'
       . '<img src="' . $h(sd_base()) . '/assets/email-logo-pontodot.png" alt="pontodot" width="44" height="44" style="display:block;width:44px;height:44px;margin-bottom:20px">'
       . '<h1 style="font-size:24px;font-weight:500;margin:0 0 14px;letter-spacing:-.01em">Oi, ' . $h($primeiro) . '! 👋</h1>'
-      . '<p style="font-size:15px;line-height:1.6;color:#cfcfcf;margin:0 0 22px">Você foi convidado(a) para a <b style="color:#fff">Pontodot</b>, a plataforma onde a gente organiza o trabalho, as tarefas e as aprovações. Falta só criar a sua senha.</p>'
-      . '<a href="' . $h($link) . '" style="display:inline-block;background:#fff;color:#0b0b0d;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px">Criar minha senha e entrar</a>'
+      . $pHtml
+      . '<a href="' . $h($link) . '" style="display:inline-block;background:#fff;color:#0b0b0d;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px;margin-top:6px">Criar meu acesso</a>'
       . '<p style="font-size:12.5px;line-height:1.6;color:#8a8a8a;margin:26px 0 0">O link vale por 24 horas e é só seu. Se o botão não abrir, copie e cole no navegador:<br><span style="word-break:break-all;color:#9a9a9a">' . $h($link) . '</span></p>'
-      . '<p style="font-size:12px;color:#6b6b6b;margin:30px 0 0;border-top:1px solid #222;padding-top:16px">Pontodot · a escola das IAs agênticas · ' . $h(preg_replace('#^https?://#', '', sd_base())) . '</p>'
+      . '<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:30px;border-top:1px solid #222"><tr>'
+      . '<td style="padding-top:16px;font-size:12px;color:#6b6b6b">Pontodot · a escola das IAs agênticas<br><a href="' . $h(sd_base()) . '" style="color:#8a8a8a;text-decoration:none">' . $h(preg_replace('#^https?://#', '', sd_base())) . '</a></td>'
+      . '<td align="right" style="padding-top:16px;font-size:12px;color:#6b6b6b;text-align:right">' . $h($cfg['empresa']) . '<br><a href="' . $h($siteUrl) . '" style="color:#8a8a8a;text-decoration:none">' . $h($siteTxt) . '</a></td>'
+      . '</tr></table>'
       . '</div></div></div></body></html>';
-    $texto = "Oi, $primeiro!\n\nVocê foi convidado(a) para a Pontodot, a plataforma onde a gente organiza o trabalho, as tarefas e as aprovações.\n\nCrie sua senha e entre:\n$link\n\nO link vale por 24 horas e é só seu.\n\nPontodot · " . sd_base();
+    $texto = "Oi, $primeiro!\n\n" . $txt . "\n\nCrie seu acesso:\n$link\n\nO link vale por 24 horas e é só seu.\n\nPontodot · " . sd_base() . "\n" . $cfg['empresa'] . " · " . $siteTxt;
     $bnd = 'pd' . bin2hex(random_bytes(8));
     $headers = "From: Pontodot <workflow@sergioduh.com>\r\n"
              . "Reply-To: contato@sergioduh.com\r\n"
@@ -119,7 +136,6 @@ function pdConviteEmail($email, $name, $link) {
     $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($texto))
              . "--$bnd\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
              . "--$bnd--";
-
     $emailOk = (bool)@mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $message, $headers);
     if (!$emailOk) error_log('create-user: mail() recusou o convite para ' . $email);
     return $emailOk;

@@ -892,6 +892,20 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
               </div>
 
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px;grid-column:span 2">
+                <div class="entity-card-name">E-mail de convite</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <input class="field-input" id="cv-empresa" placeholder="Empresa (ex.: SD Studio Design)" style="flex:1;min-width:150px;font-size:12px;padding:6px 8px">
+                  <input class="field-input" id="cv-site" placeholder="Site (ex.: sergioduh.com)" style="flex:1;min-width:150px;font-size:12px;padding:6px 8px">
+                </div>
+                <textarea class="field-input" id="cv-texto" rows="5" placeholder="Texto do convite. Pode usar {nome}, {empresa} e {site}." style="font-size:12px;line-height:1.5;padding:8px;resize:vertical"></textarea>
+                <div style="display:flex;gap:6px" id="cv-capas"></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn btn-primary btn-sm" onclick="salvarConvite()">Salvar</button>
+                  <span style="font-size:10.5px;color:var(--text3)">Vale pra convite novo e reenvio (painel, chat e zap).</span>
+                </div>
+              </div>
+
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px;grid-column:span 2">
                 <div style="display:flex;align-items:center;gap:7px">
                   <div class="entity-card-name">Quem está trabalhando</div>
                   <button class="btn btn-secondary btn-sm" style="margin-left:auto;padding:3px 9px;font-size:14px" title="Atualizar" aria-label="Atualizar"
@@ -1871,6 +1885,7 @@ let presenceAutoAway=false;
 Theme.init();
 ajustarTopoSidebar();
 carregarHorarioAtendimento();
+carregarConvite();
 
 // Re-renderiza o Crono ao redimensionar (cruzar breakpoint mobile/desktop muda o tamanho de fonte)
 let _ganttResizeT;
@@ -2662,6 +2677,22 @@ function preencherHorarioAdmin(){
   });
 }
 
+// ---- E-mail de convite (app_settings: convite_texto, convite_capa, empresa_nome, empresa_site; SQL v142) ----
+const CV_CAPAS=['capa-1-aula-1086.jpg','capa-2-jardim-1086.jpg','capa-3-formatura-1086.jpg'];
+let cvCapa='capa-2-jardim-1086.jpg';
+async function carregarConvite(){
+  const box=document.getElementById('cv-capas'); if(!box) return;
+  try{const {data}=await sb.from('app_settings').select('convite_texto,convite_capa,empresa_nome,empresa_site').eq('id',1).maybeSingle();
+    if(data){document.getElementById('cv-empresa').value=data.empresa_nome||'';document.getElementById('cv-site').value=data.empresa_site||'';document.getElementById('cv-texto').value=data.convite_texto||'';cvCapa=data.convite_capa||cvCapa;}
+  }catch(e){}
+  box.innerHTML=CV_CAPAS.map(c=>`<img src="pd/escola/${c}" data-capa="${c}" onclick="cvCapa='${c}';carregarConvite()" title="${c}" style="width:33%;aspect-ratio:16/7;object-fit:cover;border-radius:8px;cursor:pointer;opacity:${c===cvCapa?1:.45};outline:${c===cvCapa?'2px solid var(--accent)':'none'};outline-offset:2px">`).join('');
+}
+async function salvarConvite(){
+  const up={convite_texto:document.getElementById('cv-texto').value.trim()||null,convite_capa:cvCapa,empresa_nome:document.getElementById('cv-empresa').value.trim()||null,empresa_site:document.getElementById('cv-site').value.trim()||null};
+  const {error}=await sb.from('app_settings').update(up).eq('id',1);
+  if(error){showToast('Não salvou: '+error.message+(/column/i.test(error.message)?' (rode o SQL v142)':''),'error');return;}
+  showToast('Convite salvo.','success');
+}
 async function salvarHorarioAtendimento(){
   const inicio = document.getElementById('adm-horario-inicio').value;
   const fim = document.getElementById('adm-horario-fim').value;
