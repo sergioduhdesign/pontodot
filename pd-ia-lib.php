@@ -242,13 +242,20 @@ function iaPermissoes($u) {   // permissões da pessoa (my_perms) — com o JWT 
 }
 function iaPode($u, $chave) { $p = iaPermissoes($u); return in_array('*', $p, true) || in_array($chave, $p, true); }
 
+// Acha UMA pessoa pelo nome/e-mail. Nunca chuta: primeiro nome igual não basta quando há mais de um "Sérgio".
+// Devolve o perfil, ou null; $GLOBALS['IA_PESSOA_AMBIGUA'] traz os nomes quando deu empate (pra responder "qual deles?").
 function iaPessoaPorNome($txt, $soAtivos = false) {
+    $GLOBALS['IA_PESSOA_AMBIGUA'] = [];
     $q = iaNorm($txt); if ($q === '') return null;
     $ps = (array)(sd_supabase('/rest/v1/profiles?select=id,name,email,role,team_key,active,client_id,funcoes,studio_areas,zap&limit=300')['body'] ?? []);
-    foreach ($ps as $p) if (iaNorm($p['name']) === $q || iaNorm($p['email'] ?? '') === $q) return $p;
-    foreach ($ps as $p) { $n = iaNorm($p['name']); if (strpos($n, $q) === 0 || explode(' ', $n)[0] === explode(' ', $q)[0]) return $p; }
+    foreach ($ps as $p) if (iaNorm($p['name']) === $q || iaNorm($p['email'] ?? '') === $q || explode('@', iaNorm($p['email'] ?? ''))[0] === $q) return $p;
+    $pal = array_values(array_filter(explode(' ', $q))); $cands = [];
+    foreach ($ps as $p) { $n = ' ' . iaNorm($p['name']) . ' '; $ok = true; foreach ($pal as $w) if (strpos($n, ' ' . $w) === false) { $ok = false; break; } if ($ok) $cands[] = $p; }
+    if (count($cands) === 1) return $cands[0];
+    if (count($cands) > 1) { $GLOBALS['IA_PESSOA_AMBIGUA'] = array_map(fn($p) => trim($p['name']) . ' (' . ($p['role'] === 'admin' ? 'admin' : ($p['role'] === 'client' ? 'cliente' : 'equipe')) . ')', $cands); return null; }
     return null;
 }
+function iaPessoaErro($txt) { $a = $GLOBALS['IA_PESSOA_AMBIGUA'] ?? []; return $a ? '⚠️ "' . $txt . '" bate com mais de uma pessoa: ' . implode(' · ', $a) . '. Qual delas?' : '⚠️ não achei "' . $txt . '"'; }
 
 // ---- pessoas ----
 function iaUsuariosCriar($args, $u, $lote) {
@@ -282,7 +289,7 @@ function iaFuncaoChave($txt) {
 }
 function iaUsuarioAcesso($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin liga/desliga acesso', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
     if ($p['id'] === $u['id']) return ['texto' => '⚠️ você não mexe no próprio acesso', 'ids' => []];
     $ativo = !empty($args['ativo']);
     sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => $ativo]);
@@ -293,7 +300,7 @@ function iaUsuarioAcesso($args, $u, $lote) {
 // excluir pessoa: mesma rotina do delete-user.php (perfil inativo + sai do Auth), com as tarefas dela indo pra alguém
 function iaUsuarioExcluir($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin exclui pessoas', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
     if ($p['id'] === $u['id']) return ['texto' => '⚠️ você não exclui a própria conta', 'ids' => []];
     $para = !empty($args['tarefas_para']) ? iaResp($args['tarefas_para']) : null; $n = 0;
     if (!empty($p['team_key']) && !in_array($p['team_key'], ['OUTROS', 'CLIENTE'], true)) {
@@ -309,7 +316,7 @@ function iaUsuarioExcluir($args, $u, $lote) {
 }
 function iaFuncoesDefinir($args, $u, $lote) {
     if (!iaEhAdmin($u) && !in_array('gestao_equipe', (array)(sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=funcoes')['body'][0]['funcoes'] ?? []), true)) return ['texto' => '⚠️ só admin ou gestão de equipe define funções', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
     $f = array_values(array_unique(array_filter(array_map('iaFuncaoChave', (array)($args['funcoes'] ?? [])))));
     if (!$f) return ['texto' => '⚠️ nenhuma função válida (' . implode(', ', array_keys(pdFuncoesCatalogo())) . ')', 'ids' => []];
     $upd = ['funcoes' => '{' . implode(',', $f) . '}'];
@@ -331,7 +338,7 @@ function iaPermissoesAplicar($uid, $papel, $perfil, $chaves) {
 }
 function iaPermissoesDefinir($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin mexe em permissões', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
     $t = iaPermissoesAplicar($p['id'], $p['role'] ?? 'team', (string)($args['perfil'] ?? ''), (array)($args['chaves'] ?? []));
     iaRegistra($lote, $u, 'permissoes', $p['id'], null, $args, $p['name']);
     return ['texto' => $p['name'] . ': ' . $t, 'ids' => []];
@@ -346,7 +353,7 @@ function iaFerramentasAplicar($uid, $areas) {
 }
 function iaFerramentasLiberar($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin libera ferramentas', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => '⚠️ não achei "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
     $t = iaFerramentasAplicar($p['id'], (array)($args['ferramentas'] ?? []));
     iaRegistra($lote, $u, 'ferramentas', $p['id'], ['studio_areas' => $p['studio_areas'] ?? []], $args, $p['name']);
     return ['texto' => $p['name'] . ': ' . $t, 'ids' => []];
