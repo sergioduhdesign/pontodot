@@ -287,6 +287,18 @@ function iaFuncaoChave($txt) {
     foreach ($ap as $a => $k) if (strpos($q, $a) !== false) return $k;
     return null;
 }
+// atalho determinístico (roda antes da IA): "me dá o link do fulano@x.com", "reenvia o convite da Luana", "link de acesso do Luis"
+function iaAtalhoConvite($u, $txt) {
+    $t = trim((string)$txt);
+    if (!preg_match('/\b(link|convite)\b/iu', $t) || !preg_match('/\b(link (de|do) (acesso|convite|cadastro)|reenvia\w*|manda\w* o link|me d[áa] o link|gera\w* (o |um )?link|novo link|link do|link da|link pro|link pra)\b/iu', $t)) return null;
+    if (!iaEhAdmin($u)) return null;
+    if (preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $t, $em)) $quem = $em[0];
+    else { $quem = trim(preg_replace('/^.*?\b(?:link|convite)\b(?: de acesso| do convite| de cadastro)?(?: d[oa]| pr[oa]| para [oa]?| d[oa]s)?\s*/iu', '', $t)); $quem = trim(preg_replace('/[?.!]+$/u', '', $quem)); }
+    if ($quem === '' || mb_strlen($quem) > 80) return null;
+    $lote = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));
+    $r = iaConviteReenviar(['pessoa' => $quem], $u, $lote);
+    return $r['texto'] ?? null;
+}
 function iaConviteReenviar($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin reenvia convite', 'ids' => []];
     $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];

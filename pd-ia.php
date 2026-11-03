@@ -25,6 +25,7 @@ $msg = trim((string)($b['mensagem'] ?? '')); if ($msg === '') sd_fail('Mensagem 
 $GLOBALS['PD_IA_CANAL'] = 'chat'; $GLOBALS['PD_IA_CHAVE'] = $u['id'];
 // confirmação pendente (excluir/pausar pessoa): e-mail + senha fecham a ação sem passar pela IA
 try { $ens = pdPalavraEnsinar($u['id'], $msg); if ($ens) { echo json_encode(['reply' => $ens, 'feitos' => '', 'lote' => null, 'desfazer' => false, 'ids' => [], 'ferramenta' => true], JSON_UNESCAPED_UNICODE); exit; } } catch (Throwable $e) {}
+try { $at = iaAtalhoConvite($u, $msg); if ($at) { echo json_encode(['reply' => $at, 'feitos' => $at, 'lote' => null, 'desfazer' => false, 'ids' => [], 'ferramenta' => true], JSON_UNESCAPED_UNICODE); exit; } } catch (Throwable $e) {}
 try { $cf = iaConfirmaProcessar($u, 'chat', $u['id'], $msg); if ($cf) { echo json_encode(['reply' => $cf['texto'], 'feitos' => $cf['feito'] ? $cf['texto'] : '', 'lote' => null, 'desfazer' => false, 'ids' => [], 'ferramenta' => true], JSON_UNESCAPED_UNICODE); exit; } } catch (Throwable $e) {}
 
 // ---------- CONTEXTO ----------
