@@ -274,7 +274,7 @@ function iaUsuariosCriar($args, $u, $lote) {
             if (!empty($r['permissoes'])) $extra[] = $r['permissoes'];
             if (!empty($p['ferramentas']) && $papel !== 'client') { $fr = iaFerramentasAplicar($uid, (array)$p['ferramentas']); $extra[] = $fr; }
             iaRegistra($lote, $u, 'usuario', $uid, null, ['name' => $nome, 'email' => $email, 'role' => $papel], $nome);
-            $out[] = "✅ $nome ($email) cadastrad" . ($papel === 'client' ? 'o como cliente' : 'o na equipe') . ($fun ? ' · funções: ' . implode(', ', $fun) : '') . ($r['team_key'] && $r['team_key'] !== 'OUTROS' ? ' · chave ' . $r['team_key'] : '') . ($extra ? ' · ' . implode(' · ', $extra) : '') . ' · convite enviado por e-mail';
+            $out[] = "✅ $nome ($email) cadastrad" . ($papel === 'client' ? 'o como cliente' : 'o na equipe') . ($fun ? ' · funções: ' . implode(', ', $fun) : '') . ($r['team_key'] && $r['team_key'] !== 'OUTROS' ? ' · chave ' . $r['team_key'] : '') . "\n   " . (!empty($r['email_enviado']) ? '📧 convite enviado por e-mail' : '⚠️ o e-mail NÃO saiu do servidor') . " · link de acesso (vale 24h, pode mandar pela pessoa por zap):\n   " . $r['link'] . ($extra ? "\n   " . implode(' · ', $extra) : '') . ' · convite enviado por e-mail';
         } catch (Throwable $e) { $out[] = "⚠️ $nome: " . mb_substr($e->getMessage(), 0, 160); }
     }
     return ['texto' => implode("\n", $out) ?: '⚠️ nenhuma pessoa', 'ids' => []];

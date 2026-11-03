@@ -19,4 +19,4 @@ $me = sd_require_role(['admin']);
 require_once __DIR__ . '/pd-usuarios-lib.php';
 try { $r = pdUsuarioCriar(sd_body(), $me); } catch (Exception $e) { sd_fail($e->getMessage(), 400); }
 $newUserId = $r['user_id']; $link = $r['link'];
-echo json_encode(['success' => true, 'link' => $link, 'user_id' => $newUserId, 'permissoes' => $r['permissoes'] ?? ''], JSON_UNESCAPED_UNICODE);
+echo json_encode(['success' => true, 'link' => $link, 'user_id' => $newUserId, 'permissoes' => $r['permissoes'] ?? '', 'email_enviado' => !empty($r['email_enviado'])], JSON_UNESCAPED_UNICODE);

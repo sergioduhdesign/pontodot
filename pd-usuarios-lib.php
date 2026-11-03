@@ -98,7 +98,8 @@ $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfe
          . "--$bnd\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
          . "--$bnd--";
 
-@mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $message, $headers);
+$emailOk = (bool)@mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $message, $headers);
+if (!$emailOk) error_log('create-user: mail() recusou o convite para ' . $email);
 
     // --- 2c. Permissões: pessoa nova NÃO entra vazia. Perfil pedido, ou "Produção" pra equipe (admin já tem tudo). ---
     $permTxt = '';
@@ -114,5 +115,5 @@ $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfe
             $permTxt = $okP ? ('perfil ' . $ach['nome']) : ''; if (!$okP) error_log('create-user: permissões padrão não gravadas: ' . $msgP); }
     }
     if ($role !== 'client' && !empty($tk)) $team_key = $tk;
-    return ['user_id' => $newUserId, 'link' => $link, 'team_key' => $team_key, 'email' => $email, 'name' => $name, 'permissoes' => $permTxt];
+    return ['user_id' => $newUserId, 'link' => $link, 'team_key' => $team_key, 'email' => $email, 'name' => $name, 'permissoes' => $permTxt, 'email_enviado' => $emailOk];
 }

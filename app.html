@@ -9420,14 +9420,12 @@ async function saveUser(){
     modal.style.zIndex='9999';
     modal.innerHTML=`<div class="modal" style="max-width:500px">
       <div class="modal-head">
-        <div class="modal-title">✅ Convite enviado!</div>
+        <div class="modal-title">${result.email_enviado?'✅ Convite enviado!':'⚠️ Cadastro feito, e-mail não saiu'}</div>
       </div>
       <div class="modal-body">
         <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
-          Um email de acesso foi enviado automaticamente para <strong>${name}</strong>${result.permissoes?` · permissões: <strong>${result.permissoes}</strong>`:''}. 
-          Se preferir, use o link abaixo para enviar por outro canal — mas atenção: 
-          não cole o link no WhatsApp, pois o app de mensagens pode consumir o token automaticamente. 
-          Prefira enviar por email.
+          ${result.email_enviado?`Um e-mail de acesso foi enviado para <strong>${name}</strong>`:`<strong>${name}</strong> foi cadastrado, mas o servidor de e-mail recusou o envio`}${result.permissoes?` · permissões: <strong>${result.permissoes}</strong>`:''}.
+          O link abaixo é o mesmo do e-mail (vale 24h): copie e mande pela pessoa por WhatsApp se preferir.
         </p>
         <div style="display:flex;gap:8px">
           <input id="magic-link-input" class="field-input" value="${link}" readonly
