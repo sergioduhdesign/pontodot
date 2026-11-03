@@ -415,6 +415,7 @@ function buildRespCfg(teamMembers) {
     if (RESP_CFG[key]) {
       RESP_CFG[key].avatar = m.avatar_url || null;
       RESP_CFG[key].label  = m.name.split(' ')[0]; // primeiro nome real
+      RESP_CFG[key].nome   = m.name;                // nome inteiro: as iniciais do avatar saem daqui (LD, CF…)
       RESP_CFG[key].id     = m.id;
     }
   });

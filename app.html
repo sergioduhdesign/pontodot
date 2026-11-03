@@ -1731,7 +1731,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 <script src="https://js.pusher.com/beams/2.1.0/push-notifications-cdn.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/supabase.js?v=20261014v20"></script>
-<script src="js/ui.js?v=20260901v19"></script>
+<script src="js/ui.js?v=20261102v20"></script>
 <script src="js/auth.js?v=20260901v19"></script>
 <script src="js/import.js?v=20260902v29"></script>
 <script src="js/quotes.js?v=20260901v19"></script>
@@ -1746,7 +1746,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 // causa disso, só por deixar de mostrar a fotinha (o que é bem menos grave).
 if (typeof respAvatarHTML !== 'function') {
   window.respAvatarHTML = function(resp, respKey, size, extraStyle) {
-    const initials = respKey==='SERGIO'?'SD':respKey==='CLIENTE'?'CL':(respKey||'?').substring(0,2);
+    const nomeIni = s => String(s||'').trim().split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const initials = respKey==='CLIENTE' ? 'CL' : respKey==='OUTROS' ? 'IA' : (resp && (resp.nome || resp.label) ? nomeIni(resp.nome || resp.label) : (respKey||'?').substring(0,2));
     const fs = Math.round(size*0.34);
     if (resp && resp.avatar) {
       return `<img src="${resp.avatar}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;${extraStyle||''}" title="${resp.label||''}">`;
