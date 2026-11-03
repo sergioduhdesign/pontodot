@@ -1455,7 +1455,7 @@ function pdIaTrabalhoPessoa($userId, $resultado, $familia = 'gestao', $clientId 
         sd_supabase('/rest/v1/pd_ia_trabalho', 'POST', ['ia_user_id' => $userId, 'personagem' => strtolower((string)$j['personagem']), 'client_id' => $clientId, 'familia' => $familia, 'rodada' => 1, 'resultado' => $resultado, 'custo_usd' => 0]);
     } catch (\Throwable $e) {}
 }
-function pdCatumEquivalencias() { return ['derivou' => ['social' => 2.0, 'papelaria' => 1.5, 'apresentacao' => 4.0, 'book' => 4.0, '' => 2.0], 'aprovada' => 0.5, 'gerou' => 0.5, 'calendario' => 6.0, 'executou_tarefa' => 0.75, 'atendeu' => 0.1, 'lembrou' => 0.05, 'cobrou' => 0.1, 'erro' => 0.1]; }
+function pdCatumEquivalencias() { return ['derivou' => ['social' => 2.0, 'papelaria' => 1.5, 'apresentacao' => 4.0, 'book' => 4.0, '' => 2.0], 'aprovada' => 0.5, 'gerou' => 0.5, 'calendario' => 6.0, 'executou_tarefa' => 0.15, 'atendeu' => 0.02, 'lembrou' => 0.01, 'cobrou' => 0.03, 'erro' => 0.1]; }
 function pdCatumNivel($h) { foreach ([[10000, 'mestre'], [3000, 'sênior'], [1000, 'pleno'], [300, 'júnior'], [50, 'iniciante']] as [$min, $n]) if ($h >= $min) return [$n, $min]; return ['aprendiz', 0]; }
 function pdRelogioCatum($iaId) { $o = ['observou_h' => 0, 'entregou_h' => 0, 'estudou_h' => 0, 'entregas' => 0, 'aulas' => 0, 'hoje_h' => 0, 'desde' => null];
     if (!$iaId) return $o; $d0 = gmdate('Y-m-d') . 'T00:00:00Z';
