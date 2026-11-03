@@ -278,7 +278,10 @@ html.dia .frente{background:#F4F3EF}
 
 /* ===== PERFIL DA PESSOA — a mesma ficha da Minha IA ===== */
 .pf .mia-ficha{border-radius:var(--r)}
-.pf-foto{background:rgba(127,127,127,.25);cursor:default}
+.pf-foto{background:rgba(127,127,127,.25);cursor:pointer;position:relative;overflow:hidden}
+.pf-trocar{position:absolute;left:0;right:0;bottom:0;padding:6px 4px;font-size:11px;text-align:center;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.75));opacity:0;transition:opacity .15s}
+.pf-foto:hover .pf-trocar,.pf-foto:focus .pf-trocar{opacity:1}
+@media (hover:none){.pf-trocar{opacity:1}}
 .pf-foto img{width:100%;height:100%;object-fit:cover;display:block}
 .pf-dados{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;padding:2px 2px 6px}
 .pf-d{min-width:0}.pf-d small{display:block;font-size:11.5px;opacity:.6}
@@ -4170,7 +4173,7 @@ function htmlPerfilPessoa(){
   const site = p.site ? `<div class="pf-d"><small>Site</small><span><a href="${/^https?:/.test(p.site)?esc(p.site):'https://'+esc(p.site)}" target="_blank" rel="noopener">${esc(String(p.site).replace(/^https?:\/\//,''))}</a></span></div>` : '';
   return `<div class="mia pf"><div class="mia-ficha">
     <div class="mia-id">
-      <div class="mia-cara pf-foto">${foto}</div>
+      <div class="mia-cara pf-foto" onclick="trocarFotoPerfil()" title="Trocar foto" role="button" tabindex="0">${foto}<span class="pf-trocar">Trocar foto</span></div>
       <div class="mia-tx">
         <small>Eu sou</small><b class="mia-nome">${esc(nome)}</b>
         <small>Natureza</small><span class="mia-up">Humano terrestre</span>
@@ -4261,6 +4264,28 @@ async function lembCriar(){
   catch(e){ m.textContent = e.message; }
 }
 async function lembCancelar(id){ try { await lembApi({ acao:'cancelar', id }); lembLista(); } catch(e){ toast(e.message); } }
+async function trocarFotoPerfil(){
+  if (!window.REAL || !perfil){ toast('Entra na conta primeiro.'); return; }
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    try {
+      toast('Enviando a foto…');
+      const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onerror = () => rej(new Error('Não consegui ler o arquivo.')); fr.onload = () => { const im = new Image(); im.onerror = () => rej(new Error('Esse arquivo não é uma imagem que eu consiga abrir (use JPG ou PNG).')); im.onload = () => { const L = Math.min(im.naturalWidth, im.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 512; c.getContext('2d').drawImage(im, (im.naturalWidth - L) / 2, (im.naturalHeight - L) / 2, L, L, 0, 0, 512, 512); res(c.toDataURL('image/jpeg', .9)); }; im.src = fr.result; }; fr.readAsDataURL(f); });
+      const { data:{ session } } = await sbR.auth.getSession();
+      const r = await fetch('/avatares.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'subir', nome:'perfil', dados: url }) });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.url) throw new Error(j.error || j.erro || ('servidor ' + r.status));
+      const novo = j.url + (String(j.url).includes('?') ? '&' : '?') + 'v=' + Date.now();
+      const u = await sbR.from('profiles').update({ avatar_url: novo }).eq('id', perfil.id).select('id');
+      if (u.error || !u.data || !u.data.length) throw new Error(u.error ? u.error.message : 'o banco não aceitou gravar (permissão). Avise o Sérgio.');
+      perfil.avatar_url = novo; toast('Foto trocada ✓');
+      try { abrirPerfil(); } catch(e){}
+      try { render(); renderBoard(); } catch(e){}
+    } catch(e){ toast('Não troquei a foto: ' + (e.message || e)); }
+  };
+  inp.click();
+}
 function abrirPerfil(){
   if (!window.REAL){ toast('Entra na conta primeiro.'); return; }
   // o conteúdo nasce completo e do tamanho final: o fio da borda mede a caixa uma vez só
