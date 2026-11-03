@@ -9557,7 +9557,7 @@ async function saveProfile(){
   }
   // Próprio perfil
   editingUserId=null;
-  let avatar_url=profile.avatar_url;
+  let avatar_url=profile.avatar_url, avFalhou=false;
   if(profAvBlob){
     let okAv=false;
     try{const fname=`avatars/${profile.id}.jpg`;await sb.storage.from('task-covers').remove([fname]);const{error}=await sb.storage.from('task-covers').upload(fname,profAvBlob,{contentType:'image/jpeg',upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);avatar_url=publicUrl+'?v='+Date.now();okAv=true;}}catch(e){}
@@ -9568,12 +9568,15 @@ async function saveProfile(){
         const r=await fetch('/avatares.php',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({acao:'subir',nome:'perfil',dados})});
         const j=await r.json().catch(()=>({}));
         if(r.ok&&j.ok&&j.url){avatar_url=j.url;okAv=true;}else throw new Error(j.error||j.erro||('servidor '+r.status));
-      }catch(e){showToast('Não consegui subir a foto: '+e.message,'error');}
+      }catch(e){showToast('Não consegui subir a foto: '+e.message,'error'); avFalhou=true;}
     }
   }
   const updates={name,bio:bio||null,avatar_url,birthday:document.getElementById('prof-birthday').value||null,contact:document.getElementById('prof-contact').value||null,social1:document.getElementById('prof-social1').value||null,social2:document.getElementById('prof-social2').value||null,site:document.getElementById('prof-site').value||null};
-  await sb.from('profiles').update(updates).eq('id',profile.id);
+  const ru=await sb.from('profiles').update(updates).eq('id',profile.id).select('id,avatar_url');
+  if(ru.error||!ru.data||!ru.data.length){ showToast('Não consegui gravar o perfil'+(ru.error?': '+ru.error.message:' (permissão do banco). Avise o Sérgio.'),'error'); return; }
   Object.assign(profile,updates);
+  // a home (janela de fora) guarda a própria cópia do perfil: atualiza lá também, senão a foto só troca no próximo login
+  try{ if(window.parent&&window.parent!==window&&window.parent.perfil){ Object.assign(window.parent.perfil,{avatar_url:updates.avatar_url,name:updates.name}); if(typeof window.parent.render==='function') window.parent.render(); if(typeof window.parent.renderBoard==='function') window.parent.renderBoard(); } }catch(e){}
   await pdZapPerfilSalvar(profile.id,true);
   // Propaga nome e avatar no RESP_CFG em memória → reflete nos cards sem recarregar
   const myKey=profile.team_key||profile.role?.toUpperCase();
@@ -9581,7 +9584,7 @@ async function saveProfile(){
     RESP_CFG[myKey].label=updates.name.split(' ')[0];
     if(updates.avatar_url)RESP_CFG[myKey].avatar=updates.avatar_url;
   }
-  showToast('Perfil salvo!','success');
+  if(avFalhou) showToast('Perfil salvo, mas a foto NÃO subiu. Tente uma imagem menor (JPG/PNG até 4 MB).','warn'); else showToast('Perfil salvo!','success');
   closeModal('modal-profile');
   profAvBlob=null;
   setHeaderUser();
