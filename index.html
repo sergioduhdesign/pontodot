@@ -387,7 +387,7 @@ html.dia .frente{background:#F4F3EF}
 
 /* o selo do "Fale comigo" com a carinha dela */
 .selo.com-cara{padding:0;overflow:hidden}
-.selo-cara{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;animation:caraNasce .7s ease both}
+.selo-cara{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
 
 /* a carinha 2×2 na barra, e a passagem do ovo pra ela */
 @keyframes caraNasce{0%{opacity:0;transform:scale(.72);filter:blur(6px)}60%{opacity:1;filter:none;transform:scale(1.03)}100%{opacity:1;transform:none}}
@@ -1537,7 +1537,8 @@ html.dia .cl-res{background:rgba(244,243,239,.96)}
 .gad-bol{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#dc2626;color:#fff;
   font-weight:700;font-size:11px;line-height:20px;text-align:center;padding:0 5px;z-index:4;display:none;
   box-shadow:0 3px 10px rgba(220,38,38,.55);pointer-events:none;font-variant-numeric:tabular-nums}
-.gad.fechado .gad-bol.on{display:block;animation:bolPop .45s cubic-bezier(.3,1.6,.5,1)}
+.gad.fechado .gad-bol.on{display:block}
+.gad.fechado .gad-bol.on.pop{animation:bolPop .45s cubic-bezier(.3,1.6,.5,1)}
 .nv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;margin:0 6px 1px 0;flex-shrink:0}
 .t-linha.nv .nome,.ia-linha.nv .n{font-weight:700}
 .ap-abas{display:flex;gap:6px;margin:0 0 9px;flex-wrap:wrap}
@@ -2390,7 +2391,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v340 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v342 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4625,7 +4626,8 @@ function pintarBolinhas(){ setTimeout(gadFades, 60);
   document.querySelectorAll('.gad-bol').forEach(el => {
     const g = el.dataset.g; let n = 0;
     try { n = NOVIDADES[g] ? NOVIDADES[g]().filter(x => eNovo(g, x.k)).length : 0; } catch(e){}
-    el.textContent = n > 99 ? '99+' : n; el.classList.toggle('on', n > 0);
+    const ant = (window._bolAnt = window._bolAnt || {})[g] || 0; window._bolAnt[g] = n;
+    el.textContent = n > 99 ? '99+' : n; el.classList.toggle('on', n > 0); el.classList.toggle('pop', n > ant);
   });
 }
 
@@ -6427,7 +6429,7 @@ function renderBoard(){
     </div></div></div>`;
   const pk = $('#pickerSlot .fechar-painel'); if (pk) { pk.style.display='block'; pk.onclick = (e)=>{e.stopPropagation();abrirPicker()}; }
   requestAnimationFrame(medirMinis);     // o grid se refez: remede os quadradinhos
-  grid.innerHTML = [...gadgetsDaTela().filter(id=>GADGETS[id] && !GADGETS[id].oculto && gadLiberado(GADGETS[id])), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
+  const _html = [...gadgetsDaTela().filter(id=>GADGETS[id] && !GADGETS[id].oculto && gadLiberado(GADGETS[id])), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
     <div class="gad ${gadsAbertos[id]?'':'fechado'} ${id==='tarefas'&&!gadsAbertos[id]?'mini-largo':''} ${id==='minhaia'&&aindaNao(()=>temIA(),false)?'gad-ia':''} ${id==='minhaia'&&nasceuAgora?'nascendo':''}" data-fk="gad-${id}">
       <button class="gad-ico ${id==='tarefas'?'mini-largo':''}" onpointerdown="abaDown(event,'${id}',false,${id==='tarefas'?'true':'false'})" title="${nomeGad(id)}${id==='tarefas'?' — ver todas':''}">
         ${id==='tarefas' ? TAREFAS.slice(0,5).map(t=>cara(t.cara,28)).join('')
@@ -6443,6 +6445,8 @@ function renderBoard(){
       <div class="gad-corpo">${gadSeguro(id)}</div>
       <i class="gad-bol" data-g="${id}"></i>
     </div>`).join('');
+  if (grid.dataset.ult === _html && grid.children.length){ pintarBolinhas(); return; }   // nada mudou: não refaz (era isso que fazia tudo pulinhar a cada atualização)
+  grid.dataset.ult = _html; grid.innerHTML = _html;
   pintarBolinhas();
   setTimeout(atualizarSetaBoard, 80);
   try { const c = $('#campo'); if (c && !ehDesk()) c.placeholder = 'Peça o que precisa…'; } catch(e){}
