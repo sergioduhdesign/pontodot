@@ -106,3 +106,20 @@ Options -Indexes
 # RewriteCond %{HTTP_HOST} ^(sd\.sergioduh\.com|www\.pontodot\.ai)$ [NC]
 # RewriteCond %{REQUEST_URI} !^/(ponte-drive|wa-webhook|meta-webhook|meta-callback)\.php [NC]
 # RewriteRule ^(.*)$ https://pontodot.ai/$1 [R=301,L]
+
+
+# --- 4. Desempenho: compressão e cache -------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/javascript text/javascript application/json image/svg+xml
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType text/css "access plus 1 hour"
+  ExpiresByType application/javascript "access plus 1 hour"
+  ExpiresByType text/javascript "access plus 1 hour"
+</IfModule>
