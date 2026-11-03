@@ -1,28 +1,45 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vendas — Pontodot</title><meta name="robots" content="noindex,nofollow">
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-:root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--ok:#1f8a55;--mid:#c8941a;--bad:#c63d32;--bg:#fff}
-@media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 14.5px/1.5 "Inter Tight",system-ui,sans-serif}
-.w{max-width:1040px;margin:0 auto;padding:18px 16px 90px}h1{font-size:26px;letter-spacing:-.03em;margin:0}
-.sub{color:var(--gray);font-size:13px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.btn{font:500 13px "Inter Tight";padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.s{padding:5px 11px;font-size:12px}.btn:disabled{opacity:.5}
-input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);max-width:100%}textarea{width:100%}
-.tabs{display:flex;gap:4px;margin:14px 0;border-bottom:1px solid var(--line)}.tabs button{font:500 13.5px "Inter Tight";background:none;border:0;color:var(--gray);padding:9px 12px;cursor:pointer;border-bottom:2px solid transparent}.tabs button.on{color:var(--ink);border-color:var(--ink)}
-.fun{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}.fun button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer;font:inherit;text-align:left;min-width:92px}.fun button b{display:block;font-size:20px;letter-spacing:-.02em}.fun button small{color:var(--gray);text-transform:capitalize}.fun button.on{border-color:var(--ink)}
-.lead{display:flex;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft);margin-bottom:8px;cursor:pointer}.lead:hover{border-color:var(--ink)}
-.nota{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--bg);border:2px solid var(--line)}.nota.alta{border-color:var(--ok);color:var(--ok)}.nota.media{border-color:var(--mid);color:var(--mid)}
-.lead .t{flex:1;min-width:0}.lead .t b{display:block}.lead .t small{color:var(--gray);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--gray);margin:2px 3px 0 0}
-.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--soft);margin-bottom:12px}
-.msg{padding:50px 0;text-align:center;color:var(--gray)}.log{font-size:13px;color:var(--gray);margin:8px 0;white-space:pre-wrap}
-.bub{padding:9px 12px;border-radius:12px;margin:6px 0;max-width:88%;white-space:pre-wrap;font-size:13.5px}.bub.s{background:var(--bg);border:1px solid var(--line)}.bub.e{background:var(--ink);color:var(--bg);margin-left:auto}.bub small{display:block;opacity:.65;font-size:11px;margin-top:4px}
-.dr{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:var(--bg);padding:18px;overflow:auto}
-</style></head><body><div class="w">
-<div class="row" style="justify-content:space-between"><div><h1>Vendas</h1><div class="sub">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div></div>
+:root{--branco:rgba(255,255,255,.92);--branco2:rgba(255,255,255,.62);--branco3:rgba(255,255,255,.38);--linha:rgba(255,255,255,.28);--vidro:rgba(8,10,9,.42);--sep:rgba(255,255,255,.14);
+ --verde:#16A34A;--laranja:#D97706;--roxo:#7C3AED;--bad:#ef6a5f;--r:20px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{background:#0B0C0B;color:var(--branco);font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
+#fundo{position:fixed;inset:0;z-index:0;background:#0B0C0B center/cover no-repeat;opacity:.55;transition:opacity 1.6s}
+#fundo:after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(8,10,9,.55),rgba(8,10,9,.78))}
+.w{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:22px 16px 90px}
+b{font-weight:600}
+h1{font-size:30px;font-weight:300;letter-spacing:-.03em;margin:2px 0 0}
+.eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--branco3)}
+.sub{color:var(--branco2);font-size:12.5px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+a{color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:13px;padding:9px 17px;border-radius:14px;border:.5px solid var(--linha);background:rgba(255,255,255,.06);color:var(--branco);cursor:pointer;text-align:center}
+.btn:hover{background:rgba(255,255,255,.12)}.btn.s{padding:6px 12px;font-size:12px;border-radius:12px}.btn:disabled{opacity:.45}
+.btn.p{background:rgba(22,163,74,.22);border-color:rgba(22,163,74,.75);color:#d9ffe6}.btn.p:hover{background:rgba(22,163,74,.36)}
+.btn.ia{background:rgba(124,58,237,.22);border-color:rgba(124,58,237,.8);color:#eadcff}.btn.ia:hover{background:rgba(124,58,237,.36)}
+input,select,textarea{font:inherit;font-size:13px;padding:9px 12px;border:.5px solid var(--linha);border-radius:12px;background:rgba(0,0,0,.28);color:var(--branco);max-width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textarea{width:100%;resize:vertical}select option{background:#151716}
+::placeholder{color:var(--branco3)}
+.tabs{display:flex;gap:2px;margin:18px 0 16px;border-bottom:.5px solid var(--sep)}
+.tabs button{font:inherit;font-size:13px;background:none;border:0;color:var(--branco3);padding:9px 14px;cursor:pointer;border-bottom:1.5px solid transparent;margin-bottom:-.5px}.tabs button.on{color:var(--branco);border-color:var(--branco)}
+.fun{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px;margin:0 0 14px}
+.fun button{border:.5px solid var(--linha);background:var(--vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:inherit;border-radius:16px;padding:11px 13px;cursor:pointer;font:inherit;text-align:left}
+.fun button b{display:block;font-size:24px;font-weight:300;letter-spacing:-.03em}.fun button small{color:var(--branco2);text-transform:capitalize;font-size:11.5px}.fun button.on{border-color:var(--branco);background:rgba(255,255,255,.1)}
+.lead,.card{border:.5px solid var(--linha);border-radius:var(--r);background:var(--vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.lead{display:flex;gap:14px;align-items:center;padding:12px 15px;margin-bottom:8px;cursor:pointer}.lead:hover{border-color:rgba(255,255,255,.7)}
+.card{padding:16px;margin-bottom:12px}
+.nota{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:300;font-size:15px;border:.5px solid var(--linha);color:var(--branco2)}.nota.alta{border-color:var(--verde);color:#7ee2a2}.nota.media{border-color:var(--laranja);color:#f0b15a}
+.lead .t{flex:1;min-width:0}.lead .t b{display:block;font-weight:500}.lead .t small{color:var(--branco2);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;font-size:11px;padding:2px 9px;border-radius:999px;border:.5px solid var(--linha);color:var(--branco2);margin:2px 4px 0 0}
+.msg{padding:50px 0;text-align:center;color:var(--branco2)}.log{font-size:12.5px;color:var(--branco2);margin:8px 0;white-space:pre-wrap}
+.bub{padding:10px 13px;border-radius:16px;margin:7px 0;max-width:88%;white-space:pre-wrap;font-size:13px;border:.5px solid var(--linha);background:rgba(255,255,255,.05)}.bub.e{background:rgba(255,255,255,.88);color:#111;margin-left:auto;border-color:transparent}.bub small{display:block;opacity:.6;font-size:11px;margin-top:5px}
+.dr{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:rgba(12,14,13,.94);border-left:.5px solid var(--linha);padding:20px;overflow:auto}
+code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
+</style></head><body><div id="fundo"></div><div class="w">
+<div class="row" style="justify-content:space-between"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1><div class="sub">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div></div>
 <div class="row"><span class="sub">Carteira</span><select id="cart" onchange="troca()"></select></div></div>
 <div class="tabs" id="tabs"></div><div id="app"><div class="msg">Carregando…</div></div></div>
 <div class="dr" id="dr" onclick="if(event.target===this)fecha()"><div id="drc"></div></div>
@@ -89,5 +106,6 @@ async function esc1(id,canal,b){b.disabled=true;b.textContent='Escrevendo…';tr
 async function addC(id){await api({acao:'contato',id,nome:$('#cn_').value,email:$('#ce_').value,zap:$('#cz_').value}).catch(e=>alert(e.message));await ficha(id);}
 async function resp(id,b){const t=$('#rp').value.trim();if(!t)return;b.disabled=true;try{const r=(await api({acao:'entrada',id,texto:t,canal:$('#rc').value})).r;$('#dl').textContent='Classifiquei como: '+r.intencao+(r.rascunho?' — rascunho de resposta na Caixa de saída.':'');}catch(e){$('#dl').textContent='⚠️ '+e.message;}b.disabled=false;setTimeout(()=>ficha(id),900);}
 async function ganhou(id){if(!confirm('Marcar como ganho e criar o cliente?'))return;try{await api({acao:'ganhou',id});}catch(e){alert(e.message);}await ficha(id);}
+(function(){var c=['capa-2-jardim-1086.jpg'];fetch('/pd/tour/indice.json').catch(function(){});var f=document.getElementById('fundo');f.style.backgroundImage="url('/pd/escola/"+c[0]+"')";})();
 boot();
 </script></body></html>
