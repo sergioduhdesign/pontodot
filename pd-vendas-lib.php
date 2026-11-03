@@ -523,15 +523,29 @@ function vdCandidatos($cx, $lado) {
 }
 /** Nome do servidor pelo IP (a hospedagem compartilhada costuma ter o certificado no nome dele, não no do domínio). */
 function vdPtr($host) { $ip = @gethostbyname($host); if ($ip === $host) return null; $n = @gethostbyaddr($ip); return ($n && $n !== $ip) ? rtrim($n, '.') : null; }
-/** Conecta com certificado SEMPRE verificado: no nome pedido e, se não bater, no nome real do servidor. */
-function vdTlsConecta($host, $port, $implicito) {
+/** Conecta com certificado verificado (no nome pedido ou no nome real do servidor). Se o admin já confirmou o certificado desse servidor
+ *  (impressão digital guardada), aceita SÓ um certificado idêntico a ele — e confere ANTES de mandar qualquer senha. */
+function vdTlsConecta($host, $port, $implicito, $pin = null) {
     $peers = [null]; $pt = vdPtr($host); if ($pt && $pt !== $host) $peers[] = $pt;
     foreach ($peers as $peer) {
         $o = ['verify_peer' => true, 'verify_peer_name' => true]; if ($peer) $o['peer_name'] = $peer;
         $fp = @stream_socket_client(($implicito ? 'ssl://' : 'tcp://') . $host . ':' . $port, $en, $es, 12, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => $o]));
         if ($fp) return $fp;
     }
+    if ($pin && $implicito) {
+        $fp = @stream_socket_client('ssl://' . $host . ':' . $port, $en, $es, 12, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'capture_peer_cert' => true]]));
+        if ($fp) { $c = stream_context_get_params($fp)['options']['ssl']['peer_certificate'] ?? null;
+            if ($c && hash_equals(strtolower($pin), strtolower((string)openssl_x509_fingerprint($c, 'sha256')))) return $fp;
+            fclose($fp); }
+    }
     return null;
+}
+/** Só LÊ o certificado do servidor (nenhum dado é enviado) pra mostrar ao admin e ele confirmar. */
+function vdTlsLer($host, $port) {
+    $fp = @stream_socket_client('ssl://' . $host . ':' . $port, $en, $es, 12, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'capture_peer_cert' => true]]));
+    if (!$fp) return null; $c = stream_context_get_params($fp)['options']['ssl']['peer_certificate'] ?? null; fclose($fp); if (!$c) return null;
+    $i = openssl_x509_parse($c); $nome = $i['subject']['CN'] ?? ''; if (!$nome && !empty($i['extensions']['subjectAltName'])) $nome = preg_replace('/^DNS:/', '', explode(',', $i['extensions']['subjectAltName'])[0]);
+    return ['fp' => (string)openssl_x509_fingerprint($c, 'sha256'), 'nome' => (string)$nome, 'emissor' => (string)($i['issuer']['O'] ?? $i['issuer']['CN'] ?? '')];
 }
 function vdCaixaLembra($cx, $lado, $h, $p) {
     if (empty($cx['id']) || (($cx[$lado . '_host'] ?? '') === $h && (int)($cx[$lado . '_porta'] ?? 0) === (int)$p)) return;
@@ -539,7 +553,8 @@ function vdCaixaLembra($cx, $lado, $h, $p) {
 }
 function vdImapAbrir($cx) {
     $cand = vdCandidatos($cx, 'imap');
-    foreach ($cand as [$h, $p]) { $fp = vdTlsConecta($h, $p, true); if ($fp) { stream_set_timeout($fp, 25); fgets($fp); vdCaixaLembra($cx, 'imap', $h, $p); return [$fp, null]; } }
+    foreach ($cand as [$h, $p]) { $fp = vdTlsConecta($h, $p, true, $cx['tls_pin_imap'] ?? null); if ($fp) { stream_set_timeout($fp, 25); fgets($fp); vdCaixaLembra($cx, 'imap', $h, $p); return [$fp, null]; } }
+    $GLOBALS['vdPend']['entrada'] = null; foreach ($cand as [$h, $p]) { if (($c = vdTlsLer($h, $p))) { $GLOBALS['vdPend']['entrada'] = $c + ['host' => $h, 'porta' => $p]; break; } }
     return [null, 'não conectei na entrada: ' . vdPorQue($cand[0][0], $cand[0][1]) . (count($cand) > 1 ? ' (tentei ' . implode(', ', array_map(fn($c) => $c[0], $cand)) . ')' : '')];
 }
 /** Descobre o motivo de não conectar, em português claro: endereço, porta ou certificado. */
@@ -553,13 +568,14 @@ function vdSmtpCmd($fp, $c) { fwrite($fp, $c . "\r\n"); return vdSmtpLe($fp); }
 /** Abre o SMTP já autenticado. Devolve [$fp, null] ou [null, 'motivo']. Sempre com o certificado verificado. */
 function vdSmtpAbrir($cx) {
     $cand = vdCandidatos($cx, 'smtp'); $fp = null; $h = $port = null;
-    foreach ($cand as [$h, $port]) { $fp = vdTlsConecta($h, $port, $port === 465); if ($fp) break; }
+    foreach ($cand as [$h, $port]) { $fp = vdTlsConecta($h, $port, $port === 465, $cx['tls_pin_smtp'] ?? null); if ($fp) break; }
+    if (!$fp) { $GLOBALS['vdPend']['saida'] = null; foreach ($cand as [$h, $port]) { if ($port === 465 && ($c = vdTlsLer($h, $port))) { $GLOBALS['vdPend']['saida'] = $c + ['host' => $h, 'porta' => $port]; break; } } }
     if (!$fp) return [null, 'não conectei no envio: ' . vdPorQue($cand[0][0], $cand[0][1]) . (count($cand) > 1 ? ' (tentei ' . implode(', ', array_unique(array_map(fn($c) => $c[0], $cand))) . ')' : '')];
     stream_set_timeout($fp, 25); vdSmtpLe($fp); $eh = 'pontodot.ai';
     vdSmtpCmd($fp, "EHLO $eh");
     if ($port !== 465) { vdSmtpCmd($fp, 'STARTTLS'); if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { fclose($fp); return [null, "o envio ($h:$port) não aceitou conexão segura"]; } vdSmtpCmd($fp, "EHLO $eh"); }
     vdSmtpCmd($fp, 'AUTH LOGIN'); vdSmtpCmd($fp, base64_encode($cx['usuario'])); $a = vdSmtpCmd($fp, base64_encode($cx['senha']));
-    if (strpos($a, '235') !== 0) { fclose($fp); return [null, 'o envio recusou o login (usuário ou senha)']; }
+    if (strpos($a, '235') !== 0) { fclose($fp); return [null, 'o envio recusou o login (usuário ou senha) — resposta do servidor: ' . trim(mb_substr($a, 0, 120))]; }
     vdCaixaLembra($cx, 'smtp', $h, $port);
     return [$fp, null];
 }
@@ -575,12 +591,13 @@ function vdSmtpEnviar($cx, $para, $assunto, $corpo, $nomeDe, $extra = '') {
 }
 /** Testa a caixa sem mandar nada: entrada (IMAP) e saída (SMTP). */
 function vdCaixaTestar($cx) {
-    $r = ['entrada' => null, 'saida' => null];
+    $GLOBALS['vdPend'] = []; $r = ['entrada' => null, 'saida' => null];
     [$fp, $err] = vdImapAbrir($cx);
     if (!$fp) $r['entrada'] = $err;
     else { $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
         $r['entrada'] = stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cx['usuario']) . ' ' . $q($cx['senha'])), 'a1 OK') !== false ? true : 'o e-mail recusou o login (usuário ou senha)'; fclose($fp); }
     [$sp, $err] = vdSmtpAbrir($cx); if ($sp) { vdSmtpCmd($sp, 'QUIT'); fclose($sp); $r['saida'] = true; } else $r['saida'] = $err;
+    $r['pin'] = ['entrada' => $r['entrada'] === true ? null : ($GLOBALS['vdPend']['entrada'] ?? null), 'saida' => $r['saida'] === true ? null : ($GLOBALS['vdPend']['saida'] ?? null)];
     return $r;
 }
 function vdInboxLer($max = 25, $soCarteira = null) {

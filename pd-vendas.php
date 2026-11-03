@@ -38,12 +38,18 @@ switch ($acao) {
     case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
     case 'caixas':   // sem a senha: ela nunca volta pro navegador
         $out(['caixas' => array_map(function ($x) { $x['tem_senha'] = !empty($x['senha_cifrada']); unset($x['senha_cifrada']); return $x; }, vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?select=id,client_id,email,usuario,imap_host,imap_porta,smtp_host,smtp_porta,ativo,ultimo_erro,ultima_leitura,senha_cifrada')))]); break;
-    case 'caixa_salvar': case 'caixa_testar': case 'caixa_remover':
+    case 'caixa_salvar': case 'caixa_testar': case 'caixa_remover': case 'caixa_confiar':
         if (($u['role'] ?? '') !== 'admin') sd_fail('Só o admin mexe no e-mail dos clientes.', 403);
         $cli = vdUuid($b['client_id'] ?? ''); if (!$cli) sd_fail('falta o cliente');
         $at = vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli . '&select=*&limit=1'))[0] ?? null;
         if ($acao === 'caixa_remover') { if ($at) vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'DELETE'); $out(['removida' => true]); break; }
-        if ($acao === 'caixa_testar') { if (!$at) sd_fail('esse cliente ainda não tem e-mail ligado'); $at['senha'] = vdDecifrar($at['senha_cifrada']); $out(['teste' => vdCaixaTestar($at)]); break; }
+        if ($acao === 'caixa_confiar') {   // o admin viu de quem é o certificado e confirmou: guarda a impressão digital desse servidor
+            if (!$at) sd_fail('esse cliente ainda não tem e-mail ligado');
+            $lado = ($b['lado'] ?? '') === 'saida' ? 'smtp' : 'imap'; $h = trim((string)($b['host'] ?? '')); $po = (int)($b['porta'] ?? 0);
+            $c = vdTlsLer($h, $po); if (!$c || !hash_equals($c['fp'], (string)($b['fp'] ?? ''))) sd_fail('o certificado mudou desde que você viu. Teste de novo.');
+            vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'PATCH', ['tls_pin_' . $lado => $c['fp'], $lado . '_host' => $h, $lado . '_porta' => $po]);
+            $cx = vdCaixaDe($cli); $out(['teste' => $cx ? vdCaixaTestar($cx) : null]); break; }
+        if ($acao === 'caixa_testar') { if (!$at) sd_fail('esse cliente ainda não tem e-mail ligado'); $at['senha'] = vdDecifrar($at['senha_cifrada']); unset($at['senha_cifrada']); $out(['teste' => vdCaixaTestar($at)]); break; }
         $em = strtolower(trim((string)($b['email'] ?? ''))); if (!filter_var($em, FILTER_VALIDATE_EMAIL)) sd_fail('e-mail inválido');
         $dom = substr(strrchr($em, '@'), 1); $senha = (string)($b['senha'] ?? '');
         if ($senha === '' && !$at) sd_fail('falta a senha do e-mail');
