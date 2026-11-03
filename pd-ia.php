@@ -141,4 +141,5 @@ for ($volta = 0; $volta < 8; $volta++) {
 try { sd_supabase('/rest/v1/sd_ia_uso', 'POST', ['user_id' => $u['id'], 'canal' => 'chat', 'modelo' => $model, 'entrada' => $usoIn, 'saida' => $usoOut]); } catch (Throwable $e) {}
 $feitosTxt = trim(implode("\n", array_filter($feitos)));
 $temEscrita = $feitosTxt !== "" && preg_match("/✅|🗑️|💬|🧠/u", $feitosTxt);
+if (trim((string)$texto) !== '') pdIaTrabalhoPessoa($u['id'], $temEscrita ? 'executou_tarefa' : 'atendeu', $temEscrita ? 'gestao' : 'atendimento');
 echo json_encode(['reply' => trim($texto), 'feitos' => $feitosTxt, 'lote' => $temEscrita ? $lote : null, 'desfazer' => $temEscrita && iaTemRegistro(), 'ids' => array_values(array_unique($ids)), 'ferramenta' => $houveFerramenta], JSON_UNESCAPED_UNICODE);
