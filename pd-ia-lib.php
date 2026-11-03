@@ -289,30 +289,17 @@ function iaFuncaoChave($txt) {
 }
 function iaUsuarioAcesso($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin liga/desliga acesso', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
-    if ($p['id'] === $u['id']) return ['texto' => '⚠️ você não mexe no próprio acesso', 'ids' => []];
     $ativo = !empty($args['ativo']);
-    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => $ativo]);
-    sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'PUT', ['ban_duration' => $ativo ? 'none' : '876000h']);
-    iaRegistra($lote, $u, 'acesso', $p['id'], ['active' => $p['active'] ?? true], ['active' => $ativo], $p['name']);
-    return ['texto' => ($ativo ? '✅ acesso de ' : '⏸️ acesso de ') . $p['name'] . ($ativo ? ' reativado' : ' pausado'), 'ids' => []];
+    if ($ativo) { $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []]; return iaUsuarioAcessoExec($p, true, $u, $lote); }
+    $cands = iaContasLista((string)($args['pessoa'] ?? '')); $cands = array_values(array_filter($cands, fn($p) => $p['id'] !== ($u['id'] ?? '')));
+    if (!$cands) return ['texto' => '⚠️ não achei nenhuma conta com "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    return ['texto' => iaConfirmaPedir($u, $GLOBALS['PD_IA_CANAL'] ?? 'chat', $GLOBALS['PD_IA_CHAVE'] ?? ($u['id'] ?? ''), 'pausar', $cands, 'Pausar acesso'), 'ids' => [], 'confirmacao' => true];
 }
-// excluir pessoa: mesma rotina do delete-user.php (perfil inativo + sai do Auth), com as tarefas dela indo pra alguém
 function iaUsuarioExcluir($args, $u, $lote) {
     if (!iaEhAdmin($u)) return ['texto' => '⚠️ só admin exclui pessoas', 'ids' => []];
-    $p = iaPessoaPorNome($args['pessoa'] ?? ''); if (!$p) return ['texto' => iaPessoaErro($args['pessoa'] ?? ''), 'ids' => []];
-    if ($p['id'] === $u['id']) return ['texto' => '⚠️ você não exclui a própria conta', 'ids' => []];
-    $para = !empty($args['tarefas_para']) ? iaResp($args['tarefas_para']) : null; $n = 0;
-    if (!empty($p['team_key']) && !in_array($p['team_key'], ['OUTROS', 'CLIENTE'], true)) {
-        $tt = (array)(sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE&select=id')['body'] ?? []); $n = count($tt);
-        if ($n && $para) sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE', 'PATCH', ['resp' => $para]);
-    }
-    $antes = ['active' => $p['active'] ?? true, 'email' => $p['email'] ?? '', 'name' => $p['name'], 'role' => $p['role'] ?? 'team', 'team_key' => $p['team_key'] ?? null];
-    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => false]);
-    $del = sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'DELETE');
-    if (!in_array($del['code'] ?? 0, [200, 204, 404], true)) return ['texto' => '⚠️ ' . $p['name'] . ': o acesso foi pausado, mas não consegui remover a conta (HTTP ' . ($del['code'] ?? '?') . ')', 'ids' => []];
-    iaRegistra($lote, $u, 'usuario_excluir', $p['id'], $antes, null, $p['name']);
-    return ['texto' => '🗑️ ' . $p['name'] . ' removid' . 'o(a) da plataforma' . ($n ? ($para ? " · $n tarefa(s) aberta(s) passaram pra $para" : " · $n tarefa(s) aberta(s) ficaram no nome dela(e); me diga pra quem passar") : ''), 'ids' => []];
+    $cands = iaContasLista((string)($args['pessoa'] ?? '')); $cands = array_values(array_filter($cands, fn($p) => $p['id'] !== ($u['id'] ?? '')));
+    if (!$cands) return ['texto' => '⚠️ não achei nenhuma conta com "' . ($args['pessoa'] ?? '') . '"', 'ids' => []];
+    return ['texto' => iaConfirmaPedir($u, $GLOBALS['PD_IA_CANAL'] ?? 'chat', $GLOBALS['PD_IA_CHAVE'] ?? ($u['id'] ?? ''), 'excluir', $cands, 'Excluir conta da plataforma' . (!empty($args['tarefas_para']) ? ' (tarefas abertas → ' . $args['tarefas_para'] . ')' : '')), 'ids' => [], 'confirmacao' => true];
 }
 function iaFuncoesDefinir($args, $u, $lote) {
     if (!iaEhAdmin($u) && !in_array('gestao_equipe', (array)(sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($u['id']) . '&select=funcoes')['body'][0]['funcoes'] ?? []), true)) return ['texto' => '⚠️ só admin ou gestão de equipe define funções', 'ids' => []];
@@ -435,8 +422,8 @@ function iaCatalogo($u) {
     if (iaEhAdmin($u)) {
         $T[] = ['name' => 'usuarios_criar', 'description' => 'Cadastra pessoas (até 20): manda convite por e-mail. papel: team|admin|client (client exige cliente). funcoes: nomes do catálogo (' . implode(', ', pdFuncoesCatalogo()) . '). perfil_permissoes: Produção|Atendimento|Gestor de mídia. ferramentas: digital|audio|video|grafica|todas.',
             'input_schema' => $S(['pessoas' => ['type' => 'array', 'items' => $S(['nome' => $str, 'email' => $str, 'zap' => $str, 'papel' => $str, 'cliente' => $str, 'funcoes' => $arrS, 'perfil_permissoes' => $str, 'ferramentas' => $arrS], ['nome', 'email'])]], ['pessoas'])];
-        $T[] = ['name' => 'usuario_excluir', 'description' => 'Exclui uma pessoa da plataforma (conta removida; perfil fica inativo no histórico). tarefas_para: nome de quem herda as tarefas abertas dela.', 'input_schema' => $S(['pessoa' => $str, 'tarefas_para' => $str], ['pessoa'])];
-        $T[] = ['name' => 'usuario_acesso', 'description' => 'Pausa (ativo=false) ou reativa (ativo=true) o acesso de uma pessoa.', 'input_schema' => $S(['pessoa' => $str, 'ativo' => $bool], ['pessoa', 'ativo'])];
+        $T[] = ['name' => 'usuario_excluir', 'description' => 'Pede a exclusão de uma pessoa: o SISTEMA lista as contas com e-mail e exige e-mail + senha do admin antes de executar. Você só chama; a confirmação não é sua.', 'input_schema' => $S(['pessoa' => $str, 'tarefas_para' => $str], ['pessoa'])];
+        $T[] = ['name' => 'usuario_acesso', 'description' => 'Reativa (ativo=true) o acesso de uma pessoa, ou pede a pausa (ativo=false; o sistema confirma com e-mail + senha do admin).', 'input_schema' => $S(['pessoa' => $str, 'ativo' => $bool], ['pessoa', 'ativo'])];
         $T[] = ['name' => 'funcoes_definir', 'description' => 'Define as funções de uma pessoa (designer, copy, atendimento...). Quem ganha função ganha chave própria de responsável.', 'input_schema' => $S(['pessoa' => $str, 'funcoes' => $arrS], ['pessoa', 'funcoes'])];
         $T[] = ['name' => 'permissoes_definir', 'description' => 'Permissões da pessoa: perfil pronto (Produção, Atendimento, Gestor de mídia) e/ou chaves (tarefa.criar, tarefa.excluir, social.publicar, social.conectar...).', 'input_schema' => $S(['pessoa' => $str, 'perfil' => $str, 'chaves' => $arrS], ['pessoa'])];
         $T[] = ['name' => 'ferramentas_liberar', 'description' => 'Libera ferramentas pra pessoa: digital (arte), audio (locução), video, grafica, zap (comunicador de WhatsApp: atendimento e vendas), vendas (prospecção/CRM), todas, nenhuma (só Copys).', 'input_schema' => $S(['pessoa' => $str, 'ferramentas' => $arrS], ['pessoa', 'ferramentas'])];
@@ -465,4 +452,67 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'ferramentas_liberar': return iaFerramentasLiberar($args, $u, $lote);
     }
     return ['texto' => "⚠️ ferramenta desconhecida $nome", 'ids' => []];
+}
+
+// =====================================================================================
+// CONFIRMAÇÃO OFICIAL — tirar ou pausar pessoa nunca sai só pelo nome.
+// 1) a casa lista as contas com e-mail; 2) o admin responde com o E-MAIL da conta; 3) e com a SENHA dele (a do zap).
+// Só então executa. Vale pro chat da plataforma e pro zap. Pendência expira em 15 min.
+// =====================================================================================
+function iaContasLista($filtro = '') {
+    $ps = (array)(sd_supabase('/rest/v1/profiles?select=id,name,email,role,active&order=name&limit=300')['body'] ?? []);
+    $q = iaNorm($filtro); $out = [];
+    foreach ($ps as $p) { if ($q !== '' && strpos(iaNorm($p['name']) . ' ' . iaNorm($p['email'] ?? ''), $q) === false && strpos($q, iaNorm($p['name'])) === false) { $pal = array_filter(explode(' ', $q)); $ok = (bool)$pal; foreach ($pal as $w) if (strpos(' ' . iaNorm($p['name']), ' ' . $w) === false) { $ok = false; break; } if (!$ok) continue; } $out[] = $p; }
+    return $out;
+}
+function iaConfirmaPedir($u, $canal, $chave, $acao, array $cands, $rotulo) {
+    $lista = array_map(fn($p) => '• ' . trim($p['name']) . ' — ' . ($p['email'] ?: 'sem e-mail') . ' (' . ($p['role'] === 'admin' ? 'admin' : ($p['role'] === 'client' ? 'cliente' : 'equipe')) . ($p['active'] === false ? ', pausado' : '') . ')', $cands);
+    try { sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . rawurlencode((string)$chave) . '&canal=eq.' . $canal . '&status=eq.confirma_pendente', 'PATCH', ['status' => 'confirma_cancelada']); } catch (Throwable $e) {}
+    sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => $canal, 'para' => (string)$chave, 'quem' => $u['name'] ?? '', 'corpo' => $rotulo, 'status' => 'confirma_pendente', 'origem' => 'sistema', 'direcao' => 'entrada',
+        'ref' => 'confirma:' . json_encode(['acao' => $acao, 'ids' => array_column($cands, 'id')], JSON_UNESCAPED_UNICODE)]);
+    $temSenha = pdPalavraMagica($u['id'] ?? '') !== '';
+    return "🔐 $rotulo\n" . implode("\n", $lista) . "\n\nPra confirmar, responda com o *e-mail da conta* e a *sua senha*, na mesma mensagem (ex.: `fulano@empresa.com abacaxi`)."
+        . ($temSenha ? '' : "\n\n⚠️ Você ainda não tem senha guardada. Antes, me diga: *guarda: minha senha é …*");
+}
+// roda ANTES da IA, em qualquer canal: se há pendência e a mensagem traz e-mail + senha, executa de verdade
+function iaConfirmaProcessar($u, $canal, $chave, $txt) {
+    $pend = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . rawurlencode((string)$chave) . '&canal=eq.' . $canal . '&status=eq.confirma_pendente&criado_em=gte.' . rawurlencode(gmdate('c', time() - 900)) . '&select=id,ref,corpo&order=criado_em.desc&limit=1')['body'][0] ?? null;
+    if (!$pend) return null;
+    $t = trim((string)$txt);
+    if (preg_match('/^(cancela|cancelar|deixa|esquece|n[aã]o)\b/iu', $t)) { sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_cancelada']); return ['texto' => 'Cancelado. Nada foi feito.', 'feito' => false]; }
+    if (!preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $t, $em)) return null;   // sem e-mail: não é a confirmação, segue conversa normal
+    $email = strtolower($em[0]); $senha = trim(str_replace($em[0], '', $t));
+    $d = json_decode(substr((string)$pend['ref'], 9), true) ?: []; $ids = (array)($d['ids'] ?? []); $acao = (string)($d['acao'] ?? '');
+    $alvo = null; foreach ($ids as $id) { $p = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($id) . '&select=id,name,email,role,team_key,active')['body'][0] ?? null; if ($p && strtolower((string)$p['email']) === $email) { $alvo = $p; break; } }
+    if (!$alvo) return ['texto' => '⚠️ Esse e-mail não é de nenhuma das contas listadas. Confere e manda de novo (e-mail + senha).', 'feito' => false];
+    $pal = pdPalavraMagica($u['id'] ?? '');
+    if ($pal === '') return ['texto' => '⚠️ Você ainda não tem senha guardada. Diga *guarda: minha senha é …* e depois confirme de novo.', 'feito' => false];
+    if ($senha === '' || pdSegredoNorm($senha) !== pdSegredoNorm($pal)) return ['texto' => '⚠️ Senha não bate. Manda de novo: e-mail + senha.', 'feito' => false];
+    sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_ok']);
+    $lote = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));
+    if ($acao === 'excluir') $r = iaUsuarioExcluirExec($alvo, $u, $lote, null);
+    elseif ($acao === 'pausar') $r = iaUsuarioAcessoExec($alvo, false, $u, $lote);
+    else return ['texto' => '⚠️ ação desconhecida', 'feito' => false];
+    return ['texto' => "✔ Confirmado.\n" . $r['texto'], 'feito' => true];
+}
+function iaUsuarioAcessoExec($p, $ativo, $u, $lote) {
+    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => $ativo]);
+    sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'PUT', ['ban_duration' => $ativo ? 'none' : '876000h']);
+    iaRegistra($lote, $u, 'acesso', $p['id'], ['active' => $p['active'] ?? true], ['active' => $ativo], $p['name']);
+    return ['texto' => ($ativo ? '✅ acesso de ' : '⏸️ acesso de ') . $p['name'] . ' (' . $p['email'] . ')' . ($ativo ? ' reativado' : ' pausado'), 'ids' => []];
+}
+function iaUsuarioExcluirExec($p, $u, $lote, $para) {
+    $n = 0;
+    if (!empty($p['team_key']) && !in_array($p['team_key'], ['OUTROS', 'CLIENTE'], true)) {
+        $tt = (array)(sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE&select=id')['body'] ?? []); $n = count($tt);
+        if ($n && $para) sd_supabase('/rest/v1/tasks?resp=eq.' . urlencode($p['team_key']) . '&status=neq.ENTREGUE', 'PATCH', ['resp' => $para]);
+    }
+    $antes = ['active' => $p['active'] ?? true, 'email' => $p['email'] ?? '', 'name' => $p['name'], 'role' => $p['role'] ?? 'team', 'team_key' => $p['team_key'] ?? null];
+    sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'PATCH', ['active' => false]);
+    sd_supabase('/rest/v1/profile_permissions?profile_id=eq.' . urlencode($p['id']), 'DELETE');
+    $del = sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'DELETE');
+    if (!in_array($del['code'] ?? 0, [200, 204, 404], true)) { sd_supabase('/auth/v1/admin/users/' . urlencode($p['id']), 'PUT', ['ban_duration' => '876000h']);
+        return ['texto' => '⚠️ ' . $p['name'] . ' (' . $p['email'] . '): acesso bloqueado e perfil inativo, mas a conta não saiu do Auth (HTTP ' . ($del['code'] ?? '?') . ': ' . mb_substr((string)($del['body']['msg'] ?? $del['body']['message'] ?? $del['raw'] ?? ''), 0, 120) . ')', 'ids' => []]; }
+    iaRegistra($lote, $u, 'usuario_excluir', $p['id'], $antes, null, $p['name']);
+    return ['texto' => '🗑️ ' . $p['name'] . ' (' . $p['email'] . ') removid' . 'o(a) da plataforma' . ($n ? ($para ? " · $n tarefa(s) aberta(s) passaram pra $para" : " · $n tarefa(s) aberta(s) ficaram no nome dela(e)") : ''), 'ids' => []];
 }

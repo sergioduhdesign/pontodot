@@ -1281,14 +1281,16 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
         $totalA = count($am[1]); $execA = 0;
         foreach (array_slice($am[1], 0, 30) as $aj) { $ao = json_decode($aj, true); if (is_array($ao)) { $feitos[] = pdZapAcao($ao, $p, $statusValidos); $execA++; } }
         $feitos = array_values(array_filter($feitos, fn($x) => trim((string)$x) !== ''));
+        $pendC = array_values(array_filter($feitos, fn($x) => strpos((string)$x, '🔐') === 0)); $feitos = array_values(array_filter($feitos, fn($x) => strpos((string)$x, '🔐') !== 0));
         $okA = count(array_filter($feitos, fn($x) => strpos((string)$x, '⚠️') === false));
         // só o sistema fala de resultado: a prosa da IA que afirma feito/criado/apagado é descartada
         $perguntas = array_filter(preg_split('/\R/u', $resp), fn($l) => preg_match('/\?\s*$/u', trim($l)) && !$reivindica($l));   // só perguntas da IA sobrevivem
         $resp = $feitos ? "Executei agora:\n" . implode("\n", $feitos) : '';
+        if ($pendC) { $resp = trim($resp . "\n\n" . implode("\n\n", $pendC)); if (!$feitos) { $perguntas = []; $execA = $totalA; } }
         if ($perguntas) $resp .= "\n\n" . implode("\n", $perguntas);
         if ($execA < $totalA) $resp .= "\n\n⚠️ Executei só " . $execA . " de " . $totalA . " ações (limite por mensagem). Me peça as que faltaram.";
         elseif ($okA < count($feitos)) $resp .= "\n\n⚠️ " . (count($feitos) - $okA) . " ação(ões) não passaram: veja os ⚠️ acima.";
-        else $resp .= "\n\n✔ " . $okA . " gravada" . ($okA > 1 ? 's' : '') . " e conferida" . ($okA > 1 ? 's' : '') . " no sistema.";
+        elseif ($feitos) $resp .= "\n\n✔ " . $okA . " gravada" . ($okA > 1 ? 's' : '') . " e conferida" . ($okA > 1 ? 's' : '') . " no sistema.";
     } elseif ($reivindica($resp) && !$pareceOrdem && preg_match_all('/\bSD-\d+/i', $resp . ' ' . $texto, $idm)) {   // "confirma que foi feito?": responde com o que está GRAVADO, não com a palavra da IA
         $ids = array_slice(array_values(array_unique(array_map('strtoupper', $idm[0]))), 0, 15);
         $rr = (array)(sd_supabase('/rest/v1/tasks?id=in.(' . implode(',', array_map('rawurlencode', $ids)) . ')&select=id,action,status,date_int,date_cli,resp')['body'] ?? []);

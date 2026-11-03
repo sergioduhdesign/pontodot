@@ -136,6 +136,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
+        if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { try { require_once __DIR__ . '/pd-ia-lib.php'; $GLOBALS['PD_IA_CANAL'] = 'whatsapp'; $GLOBALS['PD_IA_CHAVE'] = $para; $cf = iaConfirmaProcessar($membro, 'whatsapp', $para, $txt); if ($cf) { pdZapDigitando($id); pdZapEnviar($para, $cf['texto'], true); continue; } } catch (Throwable $e) {} }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapResponder($membro, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t, $mid['path'] ? $mid : null); } catch (Throwable $e) { error_log('ia-zap: ' . $e->getMessage()); } }
     }
     foreach ((array)($c['value']['statuses'] ?? []) as $s) {
