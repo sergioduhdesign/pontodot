@@ -2383,7 +2383,7 @@ pdAbertura(false);
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
-<script src="/js/pd-ajuda.js?v=317"></script>
+<script src="/js/pd-ajuda.js?v=318"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -7019,6 +7019,11 @@ async function carregarJeitoDoServidor(){
     const { data, error } = await sbR.from('pd_jeito').select('*').eq('user_id', perfil.id).maybeSingle();
     if (error) throw error;
     syncJeito.carregado = true;
+    if (jeito.uid && jeito.uid !== perfil.id){   // o que está neste aparelho é de OUTRA pessoa (zap/conta compartilhada): zera, nunca sobe pra esta conta
+      jeito = { respostas:{}, diretas:{}, versao:'', confirmado:false, em:null, uid: perfil.id };
+      try { localStorage.setItem('pd_jeito', JSON.stringify(jeito)); } catch(e){}
+    }
+    jeito.uid = perfil.id;
     const localTem = !!(jeito.personagem || Object.keys(jeito.respostas || {}).length || Object.keys(jeito.diretas || {}).length);
     if (!data){                                   // primeira vez no servidor: leva o que está aqui
       if (localTem) sincronizarJeito(true); else { syncJeito.estado = 'ok'; pintarSync(); }
@@ -7033,6 +7038,7 @@ async function carregarJeitoDoServidor(){
       confirmado: !!data.confirmado_em, confirmado_em: data.confirmado_em || null, em: data.atualizado_em,
       etapa: data.etapa || jeito.etapa || null, matriculado_em: data.matriculado_em || jeito.matriculado_em || null,
       nasceu_em: data.nasceu_em || jeito.nasceu_em || null });
+    jeito.uid = perfil.id;
     try { localStorage.setItem('pd_jeito', JSON.stringify(jeito)); } catch(e){}
     syncJeito.estado = 'ok'; pintarSync(); render();
   } catch(e){

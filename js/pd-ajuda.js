@@ -13,6 +13,7 @@ window.PD_AJUDA = {
   social: { t: 'Social', p: 'O conteúdo aprovado entra na fila de publicação e agenda nas redes do cliente: feed, carrossel, stories e reels. Os comentários chegam aqui também, pra responder sem sair da plataforma.' },
   publicacao: { t: 'Publicação', p: 'A fila do que vai ao ar: o que está agendado, pra quando, em qual rede. Deu problema em alguma publicação, é aqui que aparece.' },
   anuncios: { t: 'Anúncios', p: 'As campanhas de mídia dos clientes: investimento, resultado e alertas. Os números vêm direto das contas conectadas.' },
+  suaia: { t: 'Antes de tudo: crie a sua IA', p: 'Cada pessoa da casa tem uma IA própria — a sua dupla de trabalho, que aprende o seu jeito e responde por você no chat e no WhatsApp. Ela ainda não nasceu: clique no ovo, escolha quem ela é e dê um nome. Tudo o que vem depois neste tour passa por ela.' },
   minhaia: { t: 'Minha IA', p: 'A sua dupla de trabalho. Ela aprende o seu jeito, lembra do que vocês combinaram e resolve pedidos no chat. Quanto mais você usa, melhor ela fica.' },
   cronograma: { t: 'Cronograma', p: 'A linha do tempo dos trabalhos: o que está pra hoje, o que vem depois e o que está atrasado de verdade (briefing não conta como atraso).' },
   zap: { t: 'Zap', p: 'A PD no seu bolso. Pelo WhatsApp dá pra criar tarefa, pedir lembrete (até pros colegas), receber avisos e perguntar qualquer coisa. É a mesma conversa da plataforma — o que vale aqui, vale lá.' },
@@ -46,6 +47,7 @@ window.PD_AJUDA_ALVO = {
   publicacao: ['.gad[data-fk="gad-publicacao"]'],
   anuncios: ['.gad[data-fk="gad-anuncios"]'],
   minhaia: ['.gad[data-fk="gad-minhaia"]'],
+  suaia: ['.gad[data-fk="gad-minhaia"]', '.gad-ico:has(.gad-ovo)', '.gad-ovo'],
   cronograma: ['.gad[data-fk="gad-cronograma"]'],
   zap: ['.gad[data-fk="gad-zap"]'],
   escola: ['.gad[data-fk="gad-escola"]'],
@@ -201,7 +203,7 @@ function abrirAjuda(chave, passo, origem){
       if (cx) cx.innerHTML = corpo;
       setTimeout(() => { if (tok === _ajudaSegue) abreProximo(); }, fechou);
     }, 340);
-    if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
+    if (tour) try { localStorage.setItem(ajudaTourChave(), '1'); } catch(e){}
     return;
   }
   if (_ajudaDesfaz){ try { _ajudaDesfaz(); } catch(e){} _ajudaDesfaz = null; }
@@ -210,7 +212,7 @@ function abrirAjuda(chave, passo, origem){
   ov.innerHTML = `<div class="cxa centro" style="opacity:0" data-espera="1">${corpo}</div>`;
   document.body.appendChild(ov);
   abreProximo();
-  if (tour) try { localStorage.setItem('sd_tour_v1', '1'); } catch(e){}
+  if (tour) try { localStorage.setItem(ajudaTourChave(), '1'); } catch(e){}
 }
 function ajudaMira(chave, origem, deNovo){
   // caixa que abriu VAZIA não fica exposta: fecha de volta e a luz destaca o ícone fechado
@@ -291,7 +293,6 @@ function ajudaMira(chave, origem, deNovo){
   { const w = ajudaAlvoEl(chave, origem); if (w && !w.fr){ try { w.el.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e){} } }
   quadro();
 }
-function tourPlataforma(){ abrirAjuda(window.PD_TOUR[0], 0); }
 function ajudaBotaoCanto(){
   ajudaCss();
   if (document.querySelector('.entenda-pd')) return;
@@ -299,10 +300,18 @@ function ajudaBotaoCanto(){
   b.innerHTML = '<span style="display:inline-grid;place-items:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9.5px;font-weight:600">?</span>Entenda a plataforma';
   document.body.appendChild(b);
 }
+function ajudaTourChave(){ const uid = (window.perfil && window.perfil.id) || ''; return 'sd_tour_v1' + (uid ? ':' + uid : ''); }   // por pessoa, não por aparelho
 function ajudaPrimeiraVez(){
   ajudaBotaoCanto();
-  let visto = null; try { visto = localStorage.getItem('sd_tour_v1'); } catch(e){}
+  let visto = null; try { visto = localStorage.getItem(ajudaTourChave()); } catch(e){}
   if (!visto) setTimeout(tourPlataforma, 1200);
+}
+function tourPlataforma(){
+  // sem IA ainda: o segundo passo do tour é "crie a sua IA" (e some quando ela já nasceu)
+  const semIA = (typeof temIA === 'function') ? !temIA() : false;
+  window.PD_TOUR = (window.PD_TOUR || []).filter(k => k !== 'suaia');
+  if (semIA && window.PD_TOUR[0] === 'plataforma') window.PD_TOUR.splice(1, 0, 'suaia');
+  abrirAjuda(window.PD_TOUR[0], 0);
 }
 
 /* ===== "?" automático: explicação longa (nota/dica) vira uma linha curta + ? ao lado; clicou, a caixinha explica ===== */
