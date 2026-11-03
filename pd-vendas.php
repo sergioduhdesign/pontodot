@@ -16,7 +16,7 @@ $pid = vdUuid($b['id'] ?? ''); $cid = vdUuid($b['conversa'] ?? '');
 
 switch ($acao) {
     case 'funil': $out(['funil' => vdFunil($cart), 'carteiras' => vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color&active=is.true&order=name')),
-        'fila' => count(vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=not.is.null&enriquecido_em=is.null&select=id&limit=1000'))), 'imap' => (bool)vdImapCfg()]); break;
+        'fila' => count(vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=not.is.null&enriquecido_em=is.null&select=id&limit=1000'))), 'imap' => (bool)vdCaixasTodas(), 'caixas' => array_map(fn($x) => $x['client_id'], vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?ativo=is.true&select=client_id')))]); break;
     case 'listar':
         $qs = vdFiltroQs($b, $cart);
         $out(['leads' => vdLinhas(vdSup('/rest/v1/pd_prospects?select=id,nome,site,cidade,uf,segmento,estagio,nota,angulo,ia,proximo_passo,ultimo_contato,carteira_id,zap,instagram,lote_id,enriquecido_em' . $qs . '&order=nota.desc.nullslast,created_at.desc&limit=100&offset=' . max(0, (int)($b['de'] ?? 0)))), 'total' => vdContar($qs)]); break;
@@ -35,7 +35,25 @@ switch ($acao) {
         if (!empty($r['erro'])) sd_fail($r['erro'], 500); $out(['r' => $r]); break;
     case 'descobrir':
         $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
-    case 'inbox': $r = vdInboxLer(25); $out(['r' => $r]); break;
+    case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
+    case 'caixas':   // sem a senha: ela nunca volta pro navegador
+        $out(['caixas' => array_map(function ($x) { $x['tem_senha'] = !empty($x['senha_cifrada']); unset($x['senha_cifrada']); return $x; }, vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?select=id,client_id,email,usuario,imap_host,imap_porta,smtp_host,smtp_porta,ativo,ultimo_erro,ultima_leitura,senha_cifrada')))]); break;
+    case 'caixa_salvar': case 'caixa_testar': case 'caixa_remover':
+        if (($u['role'] ?? '') !== 'admin') sd_fail('Só o admin mexe no e-mail dos clientes.', 403);
+        $cli = vdUuid($b['client_id'] ?? ''); if (!$cli) sd_fail('falta o cliente');
+        $at = vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli . '&select=*&limit=1'))[0] ?? null;
+        if ($acao === 'caixa_remover') { if ($at) vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'DELETE'); $out(['removida' => true]); break; }
+        if ($acao === 'caixa_testar') { if (!$at) sd_fail('esse cliente ainda não tem e-mail ligado'); $at['senha'] = vdDecifrar($at['senha_cifrada']); $out(['teste' => vdCaixaTestar($at)]); break; }
+        $em = strtolower(trim((string)($b['email'] ?? ''))); if (!filter_var($em, FILTER_VALIDATE_EMAIL)) sd_fail('e-mail inválido');
+        $dom = substr(strrchr($em, '@'), 1); $senha = (string)($b['senha'] ?? '');
+        if ($senha === '' && !$at) sd_fail('falta a senha do e-mail');
+        $row = ['client_id' => $cli, 'email' => $em, 'usuario' => trim((string)($b['usuario'] ?? '')) ?: $em,
+            'imap_host' => trim((string)($b['imap_host'] ?? '')) ?: 'mail.' . $dom, 'imap_porta' => (int)($b['imap_porta'] ?? 993) ?: 993,
+            'smtp_host' => trim((string)($b['smtp_host'] ?? '')) ?: 'mail.' . $dom, 'smtp_porta' => (int)($b['smtp_porta'] ?? 465) ?: 465,
+            'ativo' => true, 'ultimo_erro' => null, 'atualizado_em' => gmdate('c')];
+        if ($senha !== '') $row['senha_cifrada'] = vdCifrar($senha);
+        if ($at) { $r = vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'PATCH', $row); } else { $row['ultimo_uid'] = 0; $r = vdSup('/rest/v1/pd_vendas_caixas', 'POST', $row); }
+        $cx = vdCaixaDe($cli); $out(['salva' => true, 'teste' => $cx ? vdCaixaTestar($cx) : null]); break;
     case 'ver':
         if (!$pid) sd_fail('falta o lead');
         $out(['lead' => vdLinhas(vdSup('/rest/v1/pd_prospects?id=eq.' . $pid . '&select=*'))[0] ?? null,

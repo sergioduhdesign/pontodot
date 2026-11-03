@@ -68,7 +68,7 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
+let CX=[],CXED=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
@@ -91,7 +91,7 @@ function faixa(){const f=$('#faixa');if(!f)return;
   f.style.cssText=`display:flex;background:${k.bg};color:${k.fg}`;
   f.innerHTML=`${avDe(c)}<div><div class="nm">${esc(c.name)}</div><div class="nu">${tot.toLocaleString('pt-BR')} leads · ${conv} em conversa · ${CAIXA.length} na caixa de saída</div></div><button class="x" onclick="troca('todas')">ver todos</button>`;}
 async function troca(id){CART=id;EST='';PAG=0;await carrega();}
-async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);try{CX=(await api({acao:'caixas'})).caixas||[];}catch(e){CX=[];}FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 function draw(){
   chips();
   $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';draw()">${n}</button>`).join('');
@@ -112,7 +112,29 @@ function vCaixa(){
     ${x.canal==='email'?`<input style="width:100%;margin:8px 0" value="${esc(x.assunto)}" onchange="ed('${x.id}',{assunto:this.value})">`:''}
     <textarea rows="6" onchange="ed('${x.id}',{corpo:this.value})">${esc(x.corpo)}</textarea>
     <div class="row" style="margin-top:8px"><button class="btn p s" onclick="env('${x.id}',this)">Aprovar e enviar</button><button class="btn s" onclick="rej('${x.id}')">Descartar</button></div></div>`).join('')||'<div class="msg">Nada esperando aprovação.</div>';
-  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios. Respostas por e-mail: ${IMAP?'<b style="color:#7ee2a2">lidas sozinhas</b> a cada 5 min':'<b style="color:#f0b15a">caixa de e-mail ainda não ligada</b>'}.</span><span class="row">${IMAP?'<button class="btn s" onclick="lerInbox(this)">Ler e-mails agora</button>':''}${CAIXA.length>1?`<button class="btn p s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</span></div><span class="log">${esc(LOG)}</span>`+c;}
+  return cxUI()+`<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios. Respostas por e-mail: ${IMAP?'<b style="color:#7ee2a2">lidas sozinhas</b> a cada 5 min':'<b style="color:#f0b15a">nenhum cliente com e-mail ligado</b>'}.</span><span class="row">${IMAP?'<button class="btn s" onclick="lerInbox(this)">Ler e-mails agora</button>':''}${CAIXA.length>1?`<button class="btn p s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</span></div><span class="log">${esc(LOG)}</span>`+c;}
+
+/* ---- e-mail de cada cliente: entra e sai pela caixa DELE ---- */
+function cxDe(id){return CX.find(x=>x.client_id===id);}
+function cxUI(){
+  const alvo=CART==='todas'?CARTS:CARTS.filter(c=>c.id===CART);
+  const lin=alvo.map(c=>{const x=cxDe(c.id);const st=!x?'<span style="color:#f0b15a">sem e-mail ligado</span>':x.ultimo_erro?`<span style="color:#f0b15a">⚠️ ${esc(x.ultimo_erro)}</span>`:'<span style="color:#7ee2a2">ligado</span>';
+    return `<div class="row" style="justify-content:space-between;padding:7px 0;border-top:.5px solid var(--linha,rgba(255,255,255,.12))"><span class="row" style="gap:10px">${avDe(c)}<span><b>${esc(c.name)}</b><br><span class="sub">${x?esc(x.email)+' · ':''}${st}</span></span></span><button class="btn s" onclick="cxAbrir('${c.id}')">${x?'Editar':'Ligar e-mail'}</button></div>`;}).join('');
+  const f=CXED?cxForm():'';
+  return `<div class="card"><b>E-mail dos clientes</b><div class="sub" style="margin:4px 0 6px">Cada cliente manda e recebe pelo e-mail dele. A senha fica guardada cifrada e nunca volta pra tela.</div>${lin||'<div class="sub">Nenhum cliente.</div>'}${f}</div>`;}
+function cxForm(){const c=CARTS.find(x=>x.id===CXED)||{name:''},x=cxDe(CXED)||{};
+  return `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--linha,rgba(255,255,255,.12))"><b>${esc(c.name)}</b>
+  <div class="row" style="margin:8px 0;gap:8px"><input id="cxe" placeholder="e-mail (vendas@cliente.com.br)" value="${esc(x.email||'')}" style="flex:1;min-width:220px"><input id="cxs" type="password" autocomplete="new-password" placeholder="${x.tem_senha?'senha (deixe vazio pra manter)':'senha do e-mail'}" style="flex:1;min-width:180px"></div>
+  <details ${x.imap_host&&x.imap_host!=='mail.'+String(x.email||'').split('@')[1]?'open':''}><summary class="sub" style="cursor:pointer">Servidores (só mude se o teste falhar)</summary>
+  <div class="row" style="margin:8px 0;gap:8px"><input id="cxu" placeholder="usuário (padrão: o e-mail)" value="${esc(x.usuario&&x.usuario!==x.email?x.usuario:'')}" style="flex:1;min-width:180px">
+  <input id="cxih" placeholder="entrada IMAP (padrão mail.dominio)" value="${esc(x.imap_host||'')}" style="flex:1;min-width:180px"><input id="cxip" type="number" value="${x.imap_porta||993}" style="width:80px">
+  <input id="cxsh" placeholder="saída SMTP (padrão mail.dominio)" value="${esc(x.smtp_host||'')}" style="flex:1;min-width:180px"><input id="cxsp" type="number" value="${x.smtp_porta||465}" style="width:80px"></div></details>
+  <div class="row" style="gap:8px"><button class="btn p s" onclick="cxSalvar(this)">Salvar e testar</button>${x.email?'<button class="btn s" onclick="cxTestar(this)">Só testar</button><button class="btn s" onclick="cxRemover(this)">Desligar</button>':''}<button class="btn s" onclick="CXED=null;draw()">Fechar</button></div></div>`;}
+function cxAbrir(id){CXED=id;draw();}
+function cxMsg(t){return t.entrada===true&&t.saida===true?'✅ E-mail ligado: recebe e envia.':`${t.entrada===true?'✅ Recebe':'⚠️ Receber: '+t.entrada} · ${t.saida===true?'✅ Envia':'⚠️ Enviar: '+t.saida}`;}
+function cxSalvar(b){run(b,'Testando…',async()=>{const r=await api({acao:'caixa_salvar',client_id:CXED,email:$('#cxe').value,senha:$('#cxs').value,usuario:$('#cxu').value,imap_host:$('#cxih').value,imap_porta:+$('#cxip').value,smtp_host:$('#cxsh').value,smtp_porta:+$('#cxsp').value});LOG=r.teste?cxMsg(r.teste):'Salvo.';});}
+function cxTestar(b){run(b,'Testando…',async()=>{LOG=cxMsg((await api({acao:'caixa_testar',client_id:CXED})).teste);});}
+function cxRemover(b){if(!confirm('Desligar o e-mail deste cliente?'))return;run(b,'…',async()=>{await api({acao:'caixa_remover',client_id:CXED});CXED=null;LOG='E-mail desligado.';});}
 function lerInbox(b){run(b,'Lendo…',async()=>{const r=(await api({acao:'inbox'})).r;LOG=r.erro?'⚠️ '+r.erro:`📥 ${r.lidas||0} e-mail(s) novos: ${r.respostas||0} resposta(s) de lead, ${r.bounces||0} endereço(s) inválido(s), ${r.ignoradas||0} ignorado(s).`;});}
 function vEntrar(){return `<div class="card"><b>1 · Subir a base inteira</b><div class="sub" style="margin:4px 0 10px">Excel ou CSV, até dezenas de milhares de linhas. Eu reconheço as colunas, tiro duplicados (pelo site ou nome+cidade) e dou uma pré-nota só com o que a planilha já diz. Os sites são lidos depois, só dos lotes que você montar.</div>
   <input type="file" id="arq" accept=".xlsx,.xls,.csv" onchange="lerPlan(this)">${PLAN?planUI():''}</div>

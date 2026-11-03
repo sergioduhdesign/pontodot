@@ -206,10 +206,10 @@ function vdEnviar($convId, $uid) {
     $ok = false; $erro = null; $wamid = null;
     if ($c['canal'] === 'email') {
         $para = $ct['email'] ?? ''; if (!filter_var($para, FILTER_VALIDATE_EMAIL)) return ['erro' => 'contato sem e-mail válido'];
+        $cx = vdCaixaDe($p['carteira_id'] ?? null); if (!$cx) return ['erro' => 'ligue o e-mail de ' . $dono['nome'] . ' antes (Vendas › Caixa de saída › E-mail dos clientes)'];
         $rodape = "\n\n— $ia · IA de vendas de {$dono['nome']}\nSe não quiser receber mais, é só responder SAIR que eu paro por aqui.";
-        $hdr = "From: " . $ia . " · " . preg_replace('/[\r\n<>"]/', '', $dono['nome']) . " <workflow@sergioduh.com>\r\nReply-To: " . (defined('SD_IMAP_USER') && SD_IMAP_USER ? SD_IMAP_USER : 'contato@sergioduh.com') . "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\nX-PD-Prospect: " . $p['id'] . "\r\nList-Unsubscribe: <mailto:contato@sergioduh.com?subject=SAIR>";
-        $ok = (bool)@mail($para, '=?UTF-8?B?' . base64_encode((string)$c['assunto']) . '?=', chunk_split(base64_encode($c['corpo'] . $rodape)), $hdr);
-        if (!$ok) $erro = 'o servidor de e-mail recusou';
+        $res = vdSmtpEnviar($cx, $para, $c['assunto'], $c['corpo'] . $rodape, $ia . ' · ' . preg_replace('/[\r\n<>"]/', '', $dono['nome']), 'X-PD-Prospect: ' . $p['id'] . "\r\n");
+        $ok = $res === true; if (!$ok) $erro = (string)$res;
     } elseif ($c['canal'] === 'zap') {
         $tel = pdZapNormaliza($ct['zap'] ?? ($p['zap'] ?? '')); if (strlen($tel) < 12) return ['erro' => 'contato sem zap válido'];
         [$code, $raw] = pdZapEnviar($tel, $c['corpo'] . "\n\n— $ia · IA de vendas de {$dono['nome']}. Pra parar, responda SAIR.", false);
@@ -455,15 +455,15 @@ function vdSemCitacao($t) {
     foreach (preg_split('/\r?\n/', $t) as $ln) { if (preg_match('/^(Em .{5,120}escreveu:?|On .{5,120}wrote:?|-{2,}\s*(Original|Mensagem original)|De:\s|From:\s|Enviado de meu)/iu', trim($ln)) || (isset($ln[0]) && $ln[0] === '>')) break; $out[] = $ln; }
     return trim(mb_substr(implode("\n", $out), 0, 1500));
 }
-function vdInboxLer($max = 25) {
-    $cfg = vdImapCfg(); if (!$cfg) return ['pulado' => 'IMAP não configurado'];
+function vdInboxCaixa($cx, $max = 25) {
+    $cfg = ['h' => $cx['imap_host'], 'u' => $cx['usuario'], 'p' => $cx['senha'], 'port' => (int)($cx['imap_porta'] ?: 993)];
     $en = 0; $es = '';
     $fp = @stream_socket_client('ssl://' . $cfg['h'] . ':' . $cfg['port'], $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
-    if (!$fp) { $le = error_get_last(); return ['erro' => 'não conectei no e-mail (' . $cfg['h'] . ':' . $cfg['port'] . ') — ' . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe: porta 993 bloqueada ou servidor errado', 0, 300)]; } stream_set_timeout($fp, 25); fgets($fp);
+    if (!$fp) { $le = error_get_last(); $msg0 = 'não conectei no servidor ' . $cfg['h'] . ':' . $cfg['port']; vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => $msg0]); return ['erro' => 'não conectei no e-mail (' . $cfg['h'] . ':' . $cfg['port'] . ') — ' . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe: porta 993 bloqueada ou servidor errado', 0, 300)]; } stream_set_timeout($fp, 25); fgets($fp);
     $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
-    if (stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cfg['u']) . ' ' . $q($cfg['p'])), 'a1 OK') === false) { fclose($fp); return ['erro' => 'e-mail recusou o login (usuário ou senha)']; }
+    if (stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cfg['u']) . ' ' . $q($cfg['p'])), 'a1 OK') === false) { fclose($fp); vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => 'o e-mail recusou o login (usuário ou senha)']); return ['erro' => 'o e-mail de ' . $cx['email'] . ' recusou o login (usuário ou senha)']; }
     vdImapCmd($fp, 'a2', 'SELECT INBOX');
-    $est = vdLinhas(vdSup('/rest/v1/pd_vendas_estado?chave=eq.imap&select=valor'))[0]['valor'] ?? []; $ultimo = (int)($est['ultimo_uid'] ?? 0);
+    $ultimo = (int)($cx['ultimo_uid'] ?? 0);
     $busca = vdImapCmd($fp, 'a3', 'UID SEARCH UNSEEN'); $uids = [];
     if (preg_match('/\* SEARCH([\d ]*)/', $busca, $m)) $uids = array_values(array_filter(array_map('intval', preg_split('/\s+/', trim($m[1]))), fn($u) => $u > $ultimo));
     sort($uids); $uids = array_slice($uids, 0, $max); $r = ['lidas' => 0, 'respostas' => 0, 'bounces' => 0, 'ignoradas' => 0]; $tag = 10; $maxUid = $ultimo;
@@ -487,8 +487,69 @@ function vdInboxLer($max = 25) {
         vdImapCmd($fp, 'c' . $tag, "UID STORE $uid +FLAGS (\\Seen)");
     }
     vdImapCmd($fp, 'z', 'LOGOUT'); fclose($fp);
-    if ($maxUid > $ultimo) sd_supabase('/rest/v1/pd_vendas_estado?on_conflict=chave', 'POST', ['chave' => 'imap', 'valor' => ['ultimo_uid' => $maxUid], 'atualizado_em' => gmdate('c')], ['Prefer: resolution=merge-duplicates,return=minimal']);
+    vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_uid' => max($maxUid, $ultimo), 'ultimo_erro' => null, 'ultima_leitura' => gmdate('c')]);
     return $r;
+}
+
+
+// ------------------------------------------------------------ caixas de e-mail POR CLIENTE (cada carteira fala pelo e-mail dela)
+function vdCaixaChave() { return hash('sha256', (defined('SD_SECRET_KEY') ? SD_SECRET_KEY : 'pd') . '|pd-caixa-v1', true); }
+function vdCifrar($t) { $iv = random_bytes(12); $tag = ''; $ct = openssl_encrypt($t, 'aes-256-gcm', vdCaixaChave(), OPENSSL_RAW_DATA, $iv, $tag); return base64_encode($iv . $tag . $ct); }
+function vdDecifrar($b) { $d = base64_decode((string)$b, true); if ($d === false || strlen($d) < 29) return ''; $r = openssl_decrypt(substr($d, 28), 'aes-256-gcm', vdCaixaChave(), OPENSSL_RAW_DATA, substr($d, 0, 12), substr($d, 12, 16)); return $r === false ? '' : $r; }
+/** A caixa do cliente (com a senha já aberta). Sem carteira = a casa (SD/STRAT). */
+function vdCaixaDe($carteira) {
+    $carteira = $carteira ?: vdCasaId(); if (!$carteira) return null;
+    $r = vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $carteira . '&ativo=is.true&select=*&limit=1'))[0] ?? null;
+    if (!$r || empty($r['senha_cifrada'])) return null; $r['senha'] = vdDecifrar($r['senha_cifrada']); unset($r['senha_cifrada']);
+    return $r['senha'] === '' ? null : $r;
+}
+function vdCaixasTodas() {
+    $o = []; foreach (vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?ativo=is.true&select=*')) as $r) { if (empty($r['senha_cifrada'])) continue; $r['senha'] = vdDecifrar($r['senha_cifrada']); unset($r['senha_cifrada']); if ($r['senha'] !== '') $o[] = $r; }
+    return $o;
+}
+function vdSmtpLe($fp) { $o = ''; while (($l = fgets($fp, 2048)) !== false) { $o .= $l; if (strlen($l) < 4 || $l[3] === ' ') break; } return $o; }
+function vdSmtpCmd($fp, $c) { fwrite($fp, $c . "\r\n"); return vdSmtpLe($fp); }
+/** Abre o SMTP já autenticado. Devolve [$fp, null] ou [null, 'motivo']. Sempre com o certificado verificado. */
+function vdSmtpAbrir($cx) {
+    $h = $cx['smtp_host']; $port = (int)($cx['smtp_porta'] ?: 465); $en = 0; $es = '';
+    $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
+    $fp = @stream_socket_client(($port === 465 ? 'ssl://' : 'tcp://') . $h . ':' . $port, $en, $es, 15, STREAM_CLIENT_CONNECT, $ctx);
+    if (!$fp) { $le = error_get_last(); return [null, "não conectei no envio ($h:$port) — " . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe', 0, 200)]; }
+    stream_set_timeout($fp, 25); vdSmtpLe($fp); $eh = 'pontodot.ai';
+    $r = vdSmtpCmd($fp, "EHLO $eh");
+    if ($port !== 465) { vdSmtpCmd($fp, 'STARTTLS'); if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { fclose($fp); return [null, "o envio ($h:$port) não aceitou conexão segura"]; } $r = vdSmtpCmd($fp, "EHLO $eh"); }
+    $a = vdSmtpCmd($fp, 'AUTH LOGIN'); $a = vdSmtpCmd($fp, base64_encode($cx['usuario'])); $a = vdSmtpCmd($fp, base64_encode($cx['senha']));
+    if (strpos($a, '235') !== 0) { fclose($fp); return [null, 'o envio recusou o login (usuário ou senha)']; }
+    return [$fp, null];
+}
+function vdSmtpEnviar($cx, $para, $assunto, $corpo, $nomeDe, $extra = '') {
+    [$fp, $err] = vdSmtpAbrir($cx); if (!$fp) return $err;
+    $de = $cx['email']; $dom = substr(strrchr($de, '@'), 1) ?: 'pontodot.ai';
+    $m = "From: =?UTF-8?B?" . base64_encode($nomeDe) . "?= <$de>\r\nTo: <$para>\r\nReply-To: $de\r\nSubject: =?UTF-8?B?" . base64_encode((string)$assunto) . "?=\r\nDate: " . date('r') . "\r\nMessage-ID: <" . bin2hex(random_bytes(10)) . "@$dom>\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\nList-Unsubscribe: <mailto:$de?subject=SAIR>\r\n" . $extra . "\r\n" . chunk_split(base64_encode($corpo));
+    $m = preg_replace('/^\./m', '..', $m);
+    $r1 = vdSmtpCmd($fp, "MAIL FROM:<$de>"); $r2 = vdSmtpCmd($fp, "RCPT TO:<$para>"); $r3 = vdSmtpCmd($fp, 'DATA');
+    if (strpos($r1, '250') !== 0 || strpos($r2, '25') !== 0 || strpos($r3, '354') !== 0) { vdSmtpCmd($fp, 'QUIT'); fclose($fp); return 'o servidor recusou o destinatário: ' . trim(mb_substr($r2 . ' ' . $r3, 0, 160)); }
+    fwrite($fp, $m . "\r\n.\r\n"); $f = vdSmtpLe($fp); vdSmtpCmd($fp, 'QUIT'); fclose($fp);
+    return strpos($f, '250') === 0 ? true : 'o servidor recusou a mensagem: ' . trim(mb_substr($f, 0, 160));
+}
+/** Testa a caixa sem mandar nada: entrada (IMAP) e saída (SMTP). */
+function vdCaixaTestar($cx) {
+    $r = ['entrada' => null, 'saida' => null];
+    $fp = @stream_socket_client('ssl://' . $cx['imap_host'] . ':' . ((int)($cx['imap_porta'] ?: 993)), $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
+    if (!$fp) { $le = error_get_last(); $r['entrada'] = 'não conectei (' . $cx['imap_host'] . ') — ' . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe', 0, 160); }
+    else { stream_set_timeout($fp, 20); fgets($fp); $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+        $r['entrada'] = stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cx['usuario']) . ' ' . $q($cx['senha'])), 'a1 OK') !== false ? true : 'o e-mail recusou o login (usuário ou senha)'; fclose($fp); }
+    [$sp, $err] = vdSmtpAbrir($cx); if ($sp) { vdSmtpCmd($sp, 'QUIT'); fclose($sp); $r['saida'] = true; } else $r['saida'] = $err;
+    return $r;
+}
+function vdInboxLer($max = 25, $soCarteira = null) {
+    $cxs = $soCarteira ? array_filter([vdCaixaDe($soCarteira)]) : vdCaixasTodas();
+    if (!$cxs) return ['pulado' => 'nenhum cliente com e-mail ligado'];
+    $t = ['lidas' => 0, 'respostas' => 0, 'bounces' => 0, 'ignoradas' => 0]; $erros = [];
+    foreach ($cxs as $cx) { try { $r = vdInboxCaixa($cx, $max); } catch (Throwable $e) { $r = ['erro' => $e->getMessage()]; }
+        if (!empty($r['erro'])) { $erros[] = $r['erro']; continue; } foreach ($t as $k => $_) $t[$k] += (int)($r[$k] ?? 0); }
+    if ($erros) $t['erro'] = implode(' · ', $erros);
+    return $t;
 }
 
 /** Um tique do relógio da casa: caixa de entrada, fila de sites e (de hora em hora) os follow-ups. */
