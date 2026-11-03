@@ -629,8 +629,9 @@ async function doLogin(){
 async function forgot(){
   const em=$('#lgEmail').value.trim(),err=$('#lgErr');
   if(!em){err.className='err';err.textContent='Type your email above, then tap “Forgot your password?” again.';return}
-  const {error}=await sbc().auth.resetPasswordForEmail(em,{redirectTo:location.origin+'/setup.html'});
-  err.className=error?'err':'err ok';err.textContent=error?('That didn’t work: '+error.message):'Done! We sent an email with a link to create a new password. Check your spam folder too.';
+  let error=null,aviso='';
+  try{const r=await fetch('/pd-senha.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});const j=await r.json().catch(()=>({}));if(!r.ok||j.error)error={message:j.error||('HTTP '+r.status)};aviso=j.aviso||''}catch(e){error=e}
+  err.className=error?'err':'err ok';err.textContent=error?('That didn’t work: '+error.message):(aviso||'Done! We sent an email with a link to create a new password. Check your spam folder too.');
 }
 // /sd (or any workspace path) arrives with the code already filled
 (async()=>{const m=location.search.match(/[?&]espaco=([a-z0-9-]{2,30})/i);if(!m)return;const c=m[1].toLowerCase();
