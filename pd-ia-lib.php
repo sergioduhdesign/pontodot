@@ -163,7 +163,8 @@ function iaLembrar($args, $u, $lote) {
     $ms = array_slice((array)($args['memorias'] ?? []), 0, 10); $out = [];
     foreach ($ms as $m) {
         $m = (array)$m; $esc = in_array($m['escopo'] ?? '', ['agencia', 'cliente', 'pessoa', 'tarefa'], true) ? $m['escopo'] : 'agencia'; $eid = null;
-        if ($esc === 'cliente') { $c = iaCliente($m['alvo'] ?? ''); if (!$c) { $out[] = "⚠️ memória: cliente \"" . ($m['alvo'] ?? '') . "\" não achei"; continue; } $eid = $c['id']; }
+        if (!empty($GLOBALS['PD_IA_CLIENTE'])) { $esc = 'cliente'; $eid = $GLOBALS['PD_IA_CLIENTE']; }   // cliente só ensina sobre a própria empresa
+        elseif ($esc === 'cliente') { $c = iaCliente($m['alvo'] ?? ''); if (!$c) { $out[] = "⚠️ memória: cliente \"" . ($m['alvo'] ?? '') . "\" não achei"; continue; } $eid = $c['id']; }
         elseif ($esc === 'pessoa') $eid = $u['id'] ?? null; elseif ($esc === 'tarefa') $eid = strtoupper(trim((string)($m['alvo'] ?? '')));
         $d = ['escopo' => $esc, 'escopo_id' => $eid, 'assunto' => mb_substr((string)($m['assunto'] ?? 'nota'), 0, 120), 'conteudo' => mb_substr((string)($m['conteudo'] ?? ''), 0, 2000), 'natureza' => $m['natureza'] ?? 'orientacao', 'autor_id' => $u['id'] ?? null, 'origem' => 'chat'];
         $r = sd_supabase('/rest/v1/sd_memoria', 'POST', $d, ['Prefer: return=representation']);
@@ -192,7 +193,8 @@ function iaExecutar($nome, $args, $u, $lote, $podeEscrever) {
         case 'alterar_tarefas': return iaAlterar($args, $u, $lote);
         case 'criar_tarefas':   return iaCriar($args, $u, $lote);
         case 'excluir_tarefas': return iaExcluir($args, $u, $lote);
-        case 'comentar':        return iaComentar($args, $u, $lote);
+        case 'pedir_trabalho':  return iaPedirTrabalho($args, $u, $lote);
+        case 'comentar':        if (!empty($GLOBALS['PD_IA_CLIENTE']) && !iaClienteTarefaDele($args['id'] ?? '')) return ['texto' => '⚠️ essa tarefa não é da sua empresa', 'ids' => []]; return iaComentar($args, $u, $lote);
         case 'novo_produto':    return iaNovoProduto($args, $u, $lote);
         case 'lembrar':         return iaLembrar($args, $u, $lote);
     }
@@ -420,6 +422,32 @@ function iaProducao($args, $u, $lote) {
 }
 
 // ---- catálogo (schema pra IA), filtrado por quem pede ----
+// ferramentas do CLIENTE (Gigi): pedir trabalho, ver tarefa, recado, lembrar — tudo preso ao client_id dele
+function iaCatalogoCliente($u) {
+    $S = fn($props, $req = []) => ['type' => 'object', 'properties' => $props, 'required' => $req];
+    $str = ['type' => 'string'];
+    return [
+        ['name' => 'pedir_trabalho', 'description' => 'Abre um pedido (tarefa) do cliente pra agência. Por item: action (o que ele quer, objetivo), produto (opcional, nome do empreendimento/produto), obs (detalhes, referências), date_cli (prazo desejado AAAA-MM-DD, opcional). O sistema põe o cliente e o responsável certos.',
+            'input_schema' => $S(['pedidos' => ['type' => 'array', 'items' => $S(['action' => $str, 'produto' => $str, 'obs' => $str, 'date_cli' => $str], ['action'])]], ['pedidos'])],
+        ['name' => 'ver_tarefa', 'description' => 'Detalhes de uma tarefa do cliente (comentários, filhas) pelo id SD-####.', 'input_schema' => $S(['id' => $str], ['id'])],
+        ['name' => 'comentar', 'description' => 'Deixa um recado do cliente numa tarefa dele (a equipe recebe).', 'input_schema' => $S(['id' => $str, 'texto' => $str], ['id', 'texto'])],
+        ['name' => 'lembrar', 'description' => 'Guarda algo que o cliente ensinou sobre a empresa dele (escopo cliente).', 'input_schema' => $S(['memorias' => ['type' => 'array', 'items' => $S(['assunto' => $str, 'conteudo' => $str], ['assunto', 'conteudo'])]], ['memorias'])],
+    ];
+}
+function iaClienteTarefaDele($id) {   // a tarefa é do cliente logado?
+    $cid = $GLOBALS['PD_IA_CLIENTE'] ?? null; if (!$cid) return true;
+    $t = sd_supabase('/rest/v1/tasks?id=eq.' . rawurlencode(strtoupper(trim((string)$id))) . '&select=client_id')['body'][0] ?? null;
+    return $t && (string)$t['client_id'] === (string)$cid;
+}
+function iaPedirTrabalho($args, $u, $lote) {
+    $cid = $GLOBALS['PD_IA_CLIENTE'] ?? ($u['client_id'] ?? null); if (!$cid) return ['texto' => '⚠️ conta sem cliente', 'ids' => []];
+    $cl = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid) . '&select=name')['body'][0] ?? null;
+    // responsável: quem tem a função atendimento; senão a primeira chave da equipe
+    $resp = null; try { $at = sd_supabase('/rest/v1/profiles?active=eq.true&role=in.(admin,team)&funcoes=cs.{atendimento}&select=team_key&limit=1')['body'][0] ?? null; $resp = strtoupper(trim((string)($at['team_key'] ?? ''))) ?: null; } catch (Throwable $e) {}
+    $novas = [];
+    foreach (array_slice((array)($args['pedidos'] ?? []), 0, 10) as $p) { $p = (array)$p; $novas[] = ['action' => $p['action'] ?? '', 'cliente' => $cl['name'] ?? '', 'produto' => $p['produto'] ?? '', 'obs' => trim("Pedido do cliente (" . ($u['name'] ?? '') . ") pelo chat.\n" . (string)($p['obs'] ?? '')), 'date_cli' => $p['date_cli'] ?? '', 'status' => 'BRIEFING', 'resp' => $resp]; }
+    return iaCriar(['novas' => $novas], $u, $lote);
+}
 function iaCatalogo($u) {
     $S = fn($props, $req = []) => ['type' => 'object', 'properties' => $props, 'required' => $req];
     $str = ['type' => 'string']; $arrS = ['type' => 'array', 'items' => $str]; $bool = ['type' => 'boolean'];
@@ -462,7 +490,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'comentar':        return iaComentar($args, $u, $lote);
         case 'novo_produto':    return iaNovoProduto($args, $u, $lote);
         case 'lembrar':         return iaLembrar($args, $u, $lote);
-        case 'ver_tarefa':      return iaVerTarefa($args);
+        case 'ver_tarefa':      if (!empty($GLOBALS['PD_IA_CLIENTE']) && !iaClienteTarefaDele($args['id'] ?? '')) return ['texto' => '⚠️ essa tarefa não é da sua empresa', 'ids' => []]; return iaVerTarefa($args);
         case 'lembrete':        return iaLembrete($args, $u, $lote);
         case 'recado':          return iaRecado($args, $u, $lote);
         case 'producao':        return iaProducao($args, $u, $lote);

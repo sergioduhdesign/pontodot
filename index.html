@@ -2390,7 +2390,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v333 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v334 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2702,18 +2702,21 @@ function htmlMinhaIA(){
           <small>Eu sou</small><b class="mia-nome">${esc(nomeDaIA())}</b>
           <small>Curto</small><span class="mia-up">${curto}</span>
           <small>Natureza</small><span class="mia-up">IA agêntica</span>
-          <small>Escola</small><button class="mia-up mia-escola" onclick="irParaEscola()" title="Abrir a Escola Agêntica">pontodot – ${esc(c.school_course || 'formação em curso')} ↗</button>
+          ${ehCliente() ? `<small>Cuida de</small><span class="mia-up">${esc((window.CLIENTE_ROW && CLIENTE_ROW.name) || perfil.name)}</span>` : `<small>Escola</small><button class="mia-up mia-escola" onclick="irParaEscola()" title="Abrir a Escola Agêntica">pontodot – ${esc(c.school_course || 'formação em curso')} ↗</button>`}
         </div>
       </div>
       <div class="mia-tarefas">
         ${ts.length ? `<div class="mia-tt"><span>Tarefas</span><button onclick="verTodasMinhas()">Ver todas tarefas</button></div>
         ${ts.map(t => `<button class="mia-t" onclick="${t.abrir}"><i aria-hidden="true"></i><span>${esc(t.nome)}</span></button>`).join('')}` : ''}
-        <div class="mia-acoes">
+        <div class="mia-acoes">${ehCliente() ? `
+          <button onclick="abrirFicha('${esc(c.id)}','minhaia')">Quem é ${esc(c.name)}</button>
+          <button onclick="abrirMemoria()">O que ela sabe de você</button>
+          <button onclick="abrirAtendimento()">Trocar quem te atende</button>` : `
           <button onclick="abrirHabilidades('jeito')">Habilidades</button>
           <button onclick="abrirMemoria()">O que ela sabe</button>
           <button onclick="avisosSituacao()">Avisos</button>
           <button onclick="abrirBatismo()">Mudar o nome</button>
-          <button onclick="abrirSeletor()">Trocar</button>
+          <button onclick="abrirSeletor()">Trocar</button>`}
         </div>
       </div>
     </div>
@@ -3745,8 +3748,12 @@ function trocarFundo(){
     entra.classList.add('on'); sai.classList.remove('on');
   };
   img.onerror = () => { if (tentativasFundo++ < 3) { if (!urlAlb) fundoN = fundoN % 30 + 1; trocarFundo(); } };
-  img.src = urlAlb || (BASE + 'intro-sd-' + fundoN + '.webp');
+  let src = urlAlb || (BASE + 'intro-sd-' + fundoN + '.webp');
+  if (!urlAlb && ehCliente() && window._capasCatum && _capasCatum.length && (fundoN % 2 === 0)) src = _capasCatum[Math.floor(fundoN / 2) % _capasCatum.length];
+  img.src = src;
 }
+window._capasCatum = [];
+function carregarCapasCatum(){ try { escolaListaDrive().then(l => { window._capasCatum = (l && l.length ? l : ESCOLA_LOCAL.map(escolaLocal)).map(x => x.src).filter(Boolean); }).catch(() => {}); } catch(e){} }
 function trocarFrase(){
   const f = $('#fraseEl'); if (!f) { frase = (frase+1)%FRASES.length; return; }
   f.classList.remove('on');
@@ -3801,7 +3808,7 @@ function abrirMenuCtx(x,y){
   m.innerHTML = `
     <div class="puxador"></div>
     <div class="mini">APARÊNCIA</div>
-    ${ehDesk()?'<button onclick="fecharMenuCtx();abrirPicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>Configurar área de trabalho…</button>':''}
+    ${ehDesk()&&!ehCliente()?'<button onclick="fecharMenuCtx();abrirPicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>Configurar área de trabalho…</button>':''}
     <button onclick="fecharMenuCtx();abrirFundos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>Trocar a imagem de fundo…</button>
     <button onclick="fecharMenuCtx();alternarFotos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${fundoDesligado?'Ligar':'Desligar'} as fotos de fundo</button>
     <button onclick="fecharMenuCtx();alternarTema()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Inverter dia e noite</button>
@@ -3865,6 +3872,30 @@ setInterval(()=>{ if(!telaOcupada()) trocarFrase(); }, 17000);
 function versoLiberado(){ return ehDesk(); }   // no celular o verso não abre, para ninguém
 function ehAdmin(){
   return !!(perfil && (perfil.is_admin || perfil.role === 'admin' || /sergio|sérgio/i.test(perfil.name||'')));
+}
+// CLIENTE: a home dele é só o que ele precisa (aprovar, pedir, falar com a Gigi e com a equipe). Sem ovo, sem escola, sem configurar.
+function ehCliente(){ return !!(window.REAL && perfil && perfil.role === 'client'); }
+const GADGETS_CLIENTE = ['aprovacoes', 'tarefas', 'minhaia', 'equipe'];
+const IAS_ATENDIMENTO = ['gigi', 'raku', 'tumi'];   // as conectoras: quem pode atender um cliente
+function iaDoCliente(){ const v = String((window.CLIENTE_ROW && CLIENTE_ROW.ia_zap) || '').toLowerCase(); return IAS_ATENDIMENTO.includes(v) ? v : 'gigi'; }
+function jeitoDoCliente(){ return { personagem: iaDoCliente(), apelido: null, confirmado: true, respostas: {}, diretas: {}, versao: 'cliente', em: null, uid: perfil && perfil.id }; }
+async function trocarAtendimento(id){
+  if (!ehCliente() || !IAS_ATENDIMENTO.includes(id) || !perfil.client_id) return;
+  try { const { error } = await sbR.from('clients').update({ ia_zap: id }).eq('id', perfil.client_id); if (error) throw error;
+    window.CLIENTE_ROW = Object.assign(window.CLIENTE_ROW || {}, { ia_zap: id }); jeito = jeitoDoCliente(); fecharJanela(); render(); toast('Agora quem te atende é ' + (personagemAtual()?.name || id) + ' — aqui e no WhatsApp.');
+  } catch(e){ toast('Não consegui trocar: ' + (e.message || e)); }
+}
+function abrirAtendimento(){
+  const cs = (UNIVERSO?.characters || []).filter(c => IAS_ATENDIMENTO.includes(c.id)), atual = iaDoCliente();
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 20px 18px;max-width:520px;margin:0 auto">
+    <h3 style="margin:0 0 4px;font-size:20px;font-weight:400">Quem te atende</h3>
+    <div class="nota" style="margin:0 0 14px">A IA que cuida de você aqui e no WhatsApp. Todas conhecem a sua empresa; muda o jeito de conversar.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+      ${cs.map(c => `<button onclick="trocarAtendimento('${c.id}')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px;border-radius:14px;border:1.5px solid ${c.id === atual ? 'currentColor' : 'rgba(127,127,127,.25)'};background:transparent;color:inherit;cursor:pointer">
+        <img src="${fotoDe(c,'avatar')}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:${esc(c.appearance?.avatar_background || '#333')}">
+        <b style="font-size:13px">${esc(c.name)}</b><small style="font-size:10.5px;opacity:.7;text-align:center;line-height:1.3">${esc(c.title || c.role || '')}</small>${c.id === atual ? '<small style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.6">atual</small>' : ''}
+      </button>`).join('')}
+    </div></div>`);
 }
 function avisarVersoMobile(){
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:26px 22px 20px;text-align:center">
@@ -5898,7 +5929,7 @@ try { if (!localStorage.getItem('sd_gad_mig_3')) {
   localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); localStorage.setItem('sd_gad_mig_3','1'); } } catch(e){}
 function salvarGadgets(){ try { localStorage.setItem('sd_gadgets', JSON.stringify(meusGadgets)); } catch(e){} }
 let pickerAberto = false;
-function abrirPicker(){ if (!ehDesk()) return;
+function abrirPicker(){ if (!ehDesk() || ehCliente()) return;
   if (pickerAberto){ const el = document.querySelectorAll('.picker-veu,.picker-pop'); if (el.length){ el.forEach(x => x.classList.add('saindo')); $('#cluster')?.classList.remove('esc'); clearTimeout(window._pkSai); window._pkSai = setTimeout(() => { pickerAberto = false; render(); }, 280); return; } }
   pickerAberto = !pickerAberto; $('#cluster')?.classList.toggle('esc', pickerAberto); render(); }
 function alternarGadget(id){
@@ -6322,7 +6353,7 @@ const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anu
 // o que cada pessoa pode ver: admin tudo; 'admin' só admin; 'libera' = ferramenta liberada no perfil (studio_areas)
 function gadLiberado(g){ if (!g) return false; if (g.admin) return aindaNao(()=>ehAdmin(), false); if (g.libera) return aindaNao(()=>ehAdmin() || ((perfil && perfil.studio_areas) || []).includes(g.libera), false); return true; }
 function zapLiberado(){ return gadLiberado(GADGETS.zap); }
-function gadgetsDaTela(){ return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
+function gadgetsDaTela(){ if (ehCliente()) return GADGETS_CLIENTE.slice(); return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
 
 // setinha à direita: avisa que há mais caixinhas para rolar
 function atualizarSetaBoard(){
@@ -7002,6 +7033,7 @@ function linhaDoJeito(){
   return linha;
 }
 function sincronizarJeito(jaJa){
+  if (ehCliente()) return;   // a IA do cliente é da casa, não sobe nada
   if (!window.REAL || !perfil || !sbR || !syncJeito.carregado) return;
   clearTimeout(syncJeito.timer);
   syncJeito.timer = setTimeout(async () => {
@@ -7024,6 +7056,10 @@ function sincronizarJeito(jaJa){
 }
 async function carregarJeitoDoServidor(){
   if (!window.REAL || !perfil || !sbR) return;
+  if (perfil.role === 'client'){   // cliente não cria IA: quem atende é a conectora escolhida na ficha do cliente (Gigi por padrão)
+    try { const { data } = await sbR.from('clients').select('id,name,ia_zap,color').eq('id', perfil.client_id).maybeSingle(); window.CLIENTE_ROW = data || {}; } catch(e){ window.CLIENTE_ROW = {}; }
+    jeito = jeitoDoCliente(); syncJeito.carregado = true; syncJeito.estado = 'ok'; try { pintarSync(); } catch(e){} render(); return;
+  }
   try {
     const { data, error } = await sbR.from('pd_jeito').select('*').eq('user_id', perfil.id).maybeSingle();
     if (error) throw error;
@@ -8343,6 +8379,7 @@ async function entrarReal(session){
     if (trocou || mudou){ location.reload(); return; }
   } catch(e){}
   prefsVigiar();
+  if (perfil.role === 'client') try { carregarCapasCatum(); } catch(e){}
   // outra aba trocou de conta (ex.: criou senha pra outra pessoa): esta aba acompanha
   window.addEventListener('storage', e => { try { if (!e.key || !/-auth-token$/.test(e.key) || !window.REAL) return; const j = JSON.parse(e.newValue || 'null'); const id = j && j.user && j.user.id; if (id && perfil && id !== perfil.id) location.reload(); } catch(_){} });
   window.REAL = true;
@@ -8353,6 +8390,7 @@ async function entrarReal(session){
     ajudaPrimeiraVez();
   } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');
+  if (perfil.role === 'client'){ const cf = $('#cfgArea'); if (cf) cf.style.display = 'none'; }
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }
   sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile') : r)

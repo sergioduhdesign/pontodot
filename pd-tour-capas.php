@@ -22,7 +22,17 @@ foreach ($pastas as $p) {
         $nm = (string)($f['name'] ?? ''); if (!preg_match('/^([a-z_]+)\.(png|jpg|jpeg|webp)$/i', $nm, $m)) continue;
         if (preg_match('/^previa/i', $nm)) continue;
         try { $d = ponte('baixar', ['fileId' => $f['id']]); $by = base64_decode((string)($d['b64'] ?? '')); if (strlen($by) < 1000) throw new Exception('vazio');
-            file_put_contents($dir . '/' . strtolower($m[1]) . '.' . strtolower($m[2]), $by); $ok[] = strtolower($m[1]) . '.' . strtolower($m[2]); } catch (Throwable $e) { $erros[] = $nm . ': ' . $e->getMessage(); }
+            $base = strtolower($m[1]); $salvo = null;
+            // versão leve: 1200×300 em WebP (qualidade 82). PNG de 2000×500 pesa 10× mais e não acrescenta nada na caixa
+            if (function_exists('imagecreatefromstring')) { $im = @imagecreatefromstring($by);
+                if ($im) { $w = imagesx($im); $h = imagesy($im); $nw = min(1200, $w); $nh = (int)round($nw / 4);
+                    $dst = imagecreatetruecolor($nw, $nh); imagecopyresampled($dst, $im, 0, 0, 0, (int)max(0, ($h - $w / 4) / 2), $nw, $nh, $w, (int)round($w / 4));
+                    if (function_exists('imagewebp') && @imagewebp($dst, "$dir/$base.webp", 82)) $salvo = "$base.webp";
+                    elseif (@imagejpeg($dst, "$dir/$base.jpg", 86)) $salvo = "$base.jpg";
+                    imagedestroy($dst); imagedestroy($im); } }
+            if (!$salvo) { file_put_contents("$dir/$base." . strtolower($m[2]), $by); $salvo = "$base." . strtolower($m[2]); }
+            foreach (glob("$dir/$base.*") as $velho) if (basename($velho) !== $salvo) @unlink($velho);   // só a versão leve fica
+            $ok[] = $salvo; } catch (Throwable $e) { $erros[] = $nm . ': ' . $e->getMessage(); }
     }
 }
 sort($ok);
