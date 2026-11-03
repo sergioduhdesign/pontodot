@@ -603,7 +603,7 @@ function iaUsuarioExcluirExec($p, $u, $lote, $para) {
 
 // ---------------------------------------------------------------- VENDAS (Harvey) pelo chat e pelo zap
 function iaVendasCarteira($txt) {
-    $t = trim((string)$txt); if ($t === '' || preg_match('/^(casa|propria|própria|sd|agencia|agência)$/iu', $t)) return [null, 'a casa'];
+    $t = trim((string)$txt); if ($t === '' || preg_match('/^(casa|propria|própria|sd|agencia|agência|strat|sd\/strat)$/iu', $t)) { $cid = vdCasaId(); return [$cid, 'SD/STRAT']; }
     if (preg_match('/^todas?$/iu', $t)) return ['todas', 'todas as carteiras'];
     $c = iaCliente($t); return $c ? [$c['id'], $c['name']] : [false, $t];
 }

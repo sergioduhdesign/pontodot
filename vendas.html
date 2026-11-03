@@ -45,6 +45,10 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .ct{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:5px 13px 5px 5px;border-radius:999px;border:.5px solid var(--linha);background:rgba(255,255,255,.04);color:var(--branco2);font:inherit;font-size:12.5px;cursor:pointer}
 .ct.on{border-color:var(--branco);color:var(--branco);background:rgba(255,255,255,.12)}
 .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;overflow:hidden;flex:0 0 auto;color:#fff}.av img{width:100%;height:100%;object-fit:cover}
+.cw{position:relative;margin-top:4px}.cw .sc{position:absolute;top:50%;transform:translateY(-35%);width:30px;height:30px;border-radius:50%;border:.5px solid var(--linha);background:rgba(14,16,15,.92);color:var(--branco);cursor:pointer;z-index:2;font:inherit;font-size:15px;line-height:1;padding:0;display:grid;place-items:center}.cw .sc:hover{background:rgba(255,255,255,.16)}.cw .sc.l{left:-6px}.cw .sc.r{right:-6px}
+.cw:before,.cw:after{content:"";position:absolute;top:0;bottom:0;width:34px;z-index:1;pointer-events:none}.cw:before{left:0;background:linear-gradient(90deg,#0e100f,transparent)}.cw:after{right:0;background:linear-gradient(270deg,#0e100f,transparent)}
+.carts{padding:12px 30px 4px!important}
+.faixa{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;margin:8px 0 14px;transition:background .3s}.faixa .nm{font-weight:600;font-size:15px}.faixa .nu{font-size:12px;opacity:.85}.faixa .x{margin-left:auto;font:inherit;font-size:12px;background:rgba(0,0,0,.18);border:0;border-radius:10px;padding:5px 11px;color:inherit;cursor:pointer}.faixa .av{width:34px;height:34px}
 .fil{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.fil input,.fil select{padding:7px 10px;font-size:12.5px}
 .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--verde);width:0;transition:width .25s}
 #app{min-height:52vh}
@@ -54,7 +58,8 @@ code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radi
 <div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
   <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1></div></div>
 </div>
-<div class="carts" id="carts"></div>
+<div class="cw"><button class="sc l" onclick="rola(-1)" aria-label="Anterior">‹</button><div class="carts" id="carts"></div><button class="sc r" onclick="rola(1)" aria-label="Próximo">›</button></div>
+<div class="faixa" id="faixa" style="display:none"></div>
 <div class="sub" style="margin-top:12px">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div>
 <div class="tabs" id="tabs"></div><div id="app"><div class="msg">Carregando…</div></div></div>
 <div class="dr" id="dr" onclick="if(event.target===this)fecha()"><div id="drc"></div></div>
@@ -63,15 +68,28 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let ses,CART=new URLSearchParams(location.search).get('cart')||'',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
+let ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
   try{const f=await api({acao:'funil'});CARTS=f.carteiras;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
   await carrega();}
-function chips(){const av=(c)=>c.logo_url?`<span class="av"><img src="${esc(c.logo_url)}" alt=""></span>`:`<span class="av" style="background:${esc(c.color||'#555')}">${esc((c.name||'?').slice(0,2).toUpperCase())}</span>`;
-  const todos=[{id:'',name:'Casa',logo_url:'/assets/icon-192.png'},...CARTS,{id:'todas',name:'Todas',color:'#444'}];
-  $('#carts').innerHTML=todos.map(c=>`<button class="ct ${CART===c.id?'on':''}" onclick="troca('${c.id}')">${av(c)}${esc(c.name)}</button>`).join('');}
+function corDe(c){const h=String(c||'#444').replace('#','');const v=h.length===3?h.split('').map(x=>x+x).join(''):h.padEnd(6,'0');const r=parseInt(v.slice(0,2),16),g=parseInt(v.slice(2,4),16),b=parseInt(v.slice(4,6),16);return {bg:'#'+v.slice(0,6),fg:(r*299+g*587+b*114)/1000>150?'#111':'#fff'};}
+function avDe(c,big){return c.logo_url?`<span class="av"><img src="${esc(c.logo_url)}" alt=""></span>`:`<span class="av" style="background:${esc(c.color||'#555')}">${esc((c.name||'?').slice(0,2).toUpperCase())}</span>`;}
+function chips(){
+  const todos=[{id:'todas',name:'Todos os clientes',color:'#3a3d3b',logo_url:''},...CARTS];
+  $('#carts').innerHTML=todos.map(c=>`<button class="ct ${CART===c.id?'on':''}" data-id="${c.id}" onclick="troca('${c.id}')">${avDe(c)}${esc(c.name)}</button>`).join('');
+  const el=$('#carts');if(!el._w){el._w=1;el.addEventListener('wheel',e=>{if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){el.scrollLeft+=e.deltaY;e.preventDefault();}},{passive:false});
+    let dn=false,x0=0,s0=0,mv=false;el.addEventListener('mousedown',e=>{dn=true;mv=false;x0=e.pageX;s0=el.scrollLeft;});window.addEventListener('mouseup',()=>{dn=false;});el.addEventListener('mousemove',e=>{if(!dn)return;const d=e.pageX-x0;if(Math.abs(d)>4)mv=true;el.scrollLeft=s0-d;});el.addEventListener('click',e=>{if(mv){e.stopPropagation();e.preventDefault();mv=false;}},true);}
+  const on=el.querySelector('.ct.on');if(on&&!el._ok){el._ok=1;el.scrollLeft=on.offsetLeft-60;}
+  faixa();}
+function rola(d){$('#carts').scrollBy({left:d*260,behavior:'smooth'});}
+function faixa(){const f=$('#faixa');if(!f)return;
+  if(CART==='todas'){f.style.display='none';return;}
+  const c=CARTS.find(x=>x.id===CART)||{name:'Cliente'};const k=corDe(c.color);
+  const tot=Object.values(FUN).reduce((a,b)=>a+b,0),conv=['engajado','qualificando','proposta','negociando'].reduce((a,e)=>a+(FUN[e]||0),0);
+  f.style.cssText=`display:flex;background:${k.bg};color:${k.fg}`;
+  f.innerHTML=`${avDe(c)}<div><div class="nm">${esc(c.name)}</div><div class="nu">${tot.toLocaleString('pt-BR')} leads · ${conv} em conversa · ${CAIXA.length} na caixa de saída</div></div><button class="x" onclick="troca('todas')">ver todos</button>`;}
 async function troca(id){CART=id;EST='';PAG=0;await carrega();}
 async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 function draw(){

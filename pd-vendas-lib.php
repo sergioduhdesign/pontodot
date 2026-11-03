@@ -34,7 +34,14 @@ function vdDominio($site) {
 }
 
 /** Nome do "dono" da carteira (cliente) ou da casa. */
+/** A "casa" não é uma carteira à parte: é o cliente SD/STRAT, que já existe. */
+function vdCasaId() {
+    static $id = false; if ($id !== false) return $id;
+    foreach (['*strat*', 'sd*'] as $pad) { $r = vdLinhas(vdSup('/rest/v1/clients?name=ilike.' . rawurlencode($pad) . '&active=is.true&select=id&order=name&limit=1')); if ($r) return $id = $r[0]['id']; }
+    return $id = null;
+}
 function vdDono($carteira) {
+    if (!$carteira) $carteira = vdCasaId();
     if (!$carteira) return ['nome' => defined('SD_EMPRESA_NOME') ? SD_EMPRESA_NOME : 'SD Studio Design', 'id' => null];
     $c = vdLinhas(vdSup('/rest/v1/clients?id=eq.' . $carteira . '&select=id,name'))[0] ?? null;
     return ['nome' => $c['name'] ?? 'a empresa', 'id' => $carteira];

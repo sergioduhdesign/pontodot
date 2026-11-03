@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 $u = sd_current_user();
 if (!vdPode($u)) sd_fail('Vendas não está liberada pra você. Peça ao admin.', 403);
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'funil');
-$cart = $b['carteira'] ?? ''; $cart = $cart === 'todas' ? 'todas' : (vdUuid($cart) ?: null);
+$cart = $b['carteira'] ?? ''; $cart = $cart === 'todas' ? 'todas' : (vdUuid($cart) ?: vdCasaId());   // sem carteira = SD/STRAT (a casa é um cliente como os outros)
 $out = fn($d) => print(json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE));
 $fCart = $cart === 'todas' ? '' : '&carteira_id=' . ($cart ? 'eq.' . $cart : 'is.null');
 $pid = vdUuid($b['id'] ?? ''); $cid = vdUuid($b['conversa'] ?? '');

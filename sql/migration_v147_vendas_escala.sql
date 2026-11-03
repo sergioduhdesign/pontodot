@@ -39,4 +39,7 @@ $$;
 revoke all on function public.pd_vendas_resumo() from public, anon, authenticated;
 grant execute on function public.pd_vendas_resumo() to service_role;
 
-select 'v147 ok' as resultado;
+-- a "casa" é o cliente SD/STRAT: o que estava sem carteira passa a ser dele
+update public.pd_prospects set carteira_id = (select id from public.clients where name ilike '%strat%' order by active desc, name limit 1) where carteira_id is null and exists (select 1 from public.clients where name ilike '%strat%');
+update public.pd_lotes     set carteira_id = (select id from public.clients where name ilike '%strat%' order by active desc, name limit 1) where carteira_id is null and exists (select 1 from public.clients where name ilike '%strat%');
+select 'v147 ok' as resultado, (select string_agg(name, ' | ') from public.clients where name ilike '%strat%' or name ilike 'sd%') as clientes_da_casa;
