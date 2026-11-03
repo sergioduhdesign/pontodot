@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vendas — Pontodot</title><meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--ok:#1f8a55;--mid:#c8941a;--bad:#c63d32;--bg:#fff}
+@media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 14.5px/1.5 "Inter Tight",system-ui,sans-serif}
+.w{max-width:1040px;margin:0 auto;padding:18px 16px 90px}h1{font-size:26px;letter-spacing:-.03em;margin:0}
+.sub{color:var(--gray);font-size:13px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:500 13px "Inter Tight";padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.s{padding:5px 11px;font-size:12px}.btn:disabled{opacity:.5}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);max-width:100%}textarea{width:100%}
+.tabs{display:flex;gap:4px;margin:14px 0;border-bottom:1px solid var(--line)}.tabs button{font:500 13.5px "Inter Tight";background:none;border:0;color:var(--gray);padding:9px 12px;cursor:pointer;border-bottom:2px solid transparent}.tabs button.on{color:var(--ink);border-color:var(--ink)}
+.fun{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}.fun button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer;font:inherit;text-align:left;min-width:92px}.fun button b{display:block;font-size:20px;letter-spacing:-.02em}.fun button small{color:var(--gray);text-transform:capitalize}.fun button.on{border-color:var(--ink)}
+.lead{display:flex;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft);margin-bottom:8px;cursor:pointer}.lead:hover{border-color:var(--ink)}
+.nota{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--bg);border:2px solid var(--line)}.nota.alta{border-color:var(--ok);color:var(--ok)}.nota.media{border-color:var(--mid);color:var(--mid)}
+.lead .t{flex:1;min-width:0}.lead .t b{display:block}.lead .t small{color:var(--gray);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--gray);margin:2px 3px 0 0}
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--soft);margin-bottom:12px}
+.msg{padding:50px 0;text-align:center;color:var(--gray)}.log{font-size:13px;color:var(--gray);margin:8px 0;white-space:pre-wrap}
+.bub{padding:9px 12px;border-radius:12px;margin:6px 0;max-width:88%;white-space:pre-wrap;font-size:13.5px}.bub.s{background:var(--bg);border:1px solid var(--line)}.bub.e{background:var(--ink);color:var(--bg);margin-left:auto}.bub small{display:block;opacity:.65;font-size:11px;margin-top:4px}
+.dr{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:var(--bg);padding:18px;overflow:auto}
+</style></head><body><div class="w">
+<div class="row" style="justify-content:space-between"><div><h1>Vendas</h1><div class="sub">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div></div>
+<div class="row"><span class="sub">Carteira</span><select id="cart" onchange="troca()"></select></div></div>
+<div class="tabs" id="tabs"></div><div id="app"><div class="msg">Carregando…</div></div></div>
+<div class="dr" id="dr" onclick="if(event.target===this)fecha()"><div id="drc"></div></div>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
+const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
+let ses,CART='',TAB='funil',EST='',FUN={},CARTS=[],LEADS=[],CAIXA=[],HOJE=0,TETO=40,LOG='';
+async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
+async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
+  if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
+  try{const f=await api({acao:'funil'});CARTS=f.carteiras;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
+  $('#cart').innerHTML='<option value="">Casa (a própria agência)</option>'+CARTS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')+'<option value="todas">Todas as carteiras</option>';
+  await carrega();}
+async function troca(){CART=$('#cart').value;EST='';await carrega();}
+async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST}),api({acao:'caixa'})]);FUN=f.funil;LEADS=l.leads;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+function draw(){
+  $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';draw()">${n}</button>`).join('');
+  $('#app').innerHTML=TAB==='funil'?vFunil():TAB==='caixa'?vCaixa():vEntrar();}
+function vFunil(){
+  const f=`<div class="fun"><button class="${EST===''?'on':''}" onclick="EST='';carrega()"><b>${Object.values(FUN).reduce((a,b)=>a+b,0)}</b><small>todos</small></button>${ESTS.map(e=>`<button class="${EST===e?'on':''}" onclick="EST='${e}';carrega()"><b>${FUN[e]||0}</b><small>${e}</small></button>`).join('')}</div>`;
+  const lista=LEADS.map(l=>`<div class="lead" onclick="abre('${l.id}')"><div class="nota ${l.nota>=60?'alta':l.nota>=40?'media':''}">${l.nota??'–'}</div><div class="t"><b>${esc(l.nome)}</b><small>${esc([l.cidade,l.segmento,l.estagio].filter(Boolean).join(' · '))}${l.angulo?' — '+esc(l.angulo):''}</small></div></div>`).join('')||'<div class="msg">Nenhum lead aqui ainda. Vá em “Adicionar leads”.</div>';
+  return f+`<div class="row" style="margin-bottom:10px"><button class="btn s" onclick="cad()">Quem pede follow-up</button><span class="log" id="log">${esc(LOG)}</span></div>`+lista;}
+function vCaixa(){
+  const c=CAIXA.map(x=>`<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(x.pd_prospects?.nome||'')}</b><span class="sub">${x.canal} · msg ${x.sequencia||1} · por ${esc(x.escrito_por||'')}</span></div>
+    ${x.canal==='email'?`<input style="width:100%;margin:8px 0" value="${esc(x.assunto)}" onchange="ed('${x.id}',{assunto:this.value})">`:''}
+    <textarea rows="6" onchange="ed('${x.id}',{corpo:this.value})">${esc(x.corpo)}</textarea>
+    <div class="row" style="margin-top:8px"><button class="btn p s" onclick="env('${x.id}',this)">Aprovar e enviar</button><button class="btn s" onclick="rej('${x.id}')">Descartar</button></div></div>`).join('')||'<div class="msg">Nada esperando aprovação.</div>';
+  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios.</span>${CAIXA.length>1?`<button class="btn s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</div><span class="log">${esc(LOG)}</span>`+c;}
+function vEntrar(){return `<div class="card"><b>1 · Cole a lista</b><div class="sub" style="margin:4px 0 8px">Uma empresa por linha: <code>Empresa; site; cidade; segmento; contato; e-mail; zap</code> — só o nome é obrigatório. Dá pra colar direto de planilha.</div>
+  <textarea id="lin" rows="7" placeholder="Construtora Alfa; alfa.com.br; Goiânia; incorporadora; Maria; maria@alfa.com.br"></textarea>
+  <div class="row" style="margin-top:8px"><input id="lote" placeholder="Nome do lote (opcional)"><button class="btn p" onclick="imp(this)">Importar e ler os sites</button></div></div>
+  <div class="card"><b>2 · A IA escreve as aberturas</b><div class="sub" style="margin:4px 0 8px">Pega os melhores leads novos, escolhe um ângulo de cada (só com sinal verificado) e deixa o rascunho na Caixa de saída.</div>
+  <div class="row"><select id="cn"><option value="email">E-mail</option><option value="zap">WhatsApp</option></select><input id="qt" type="number" min="1" max="10" value="5" style="width:70px"><input id="of" placeholder="O que oferecemos (1 frase)" style="flex:1;min-width:220px"><button class="btn p" onclick="abord(this)">Escrever rascunhos</button></div></div><div class="log">${esc(LOG)}</div>`;}
+async function run(b,msg,fn){const o=b.textContent;b.disabled=true;b.textContent=msg;try{await fn();}catch(e){LOG='⚠️ '+e.message;}b.disabled=false;b.textContent=o;await carrega();}
+function imp(b){run(b,'Lendo…',async()=>{const r=(await api({acao:'importar',linhas:$('#lin').value,lote:$('#lote').value})).r;let n=0;if(r.ids.length){const e=await api({acao:'enriquecer',ids:r.ids.slice(0,12)});n=e.feitos;}
+  LOG=`✅ ${r.novos} novos${r.duplicados?`, ${r.duplicados} já existiam`:''}${r.ignorados?`, ${r.ignorados} ignorados`:''}. Li o site de ${n}.`;TAB='funil';});}
+function abord(b){run(b,'Escrevendo…',async()=>{await api({acao:'enriquecer'});const r=(await api({acao:'escrever_lote',canal:$('#cn').value,quantos:+$('#qt').value,oferta:$('#of').value})).feitos;const ok=r.filter(x=>x.ok).length;
+  LOG=`✍️ ${ok} rascunho(s) na Caixa de saída.`+r.filter(x=>!x.ok).map(x=>`\n• ${x.lead}: ${x.erro}`).join('');TAB='caixa';});}
+function cad(){run($('.row .btn.s'),'Vendo…',async()=>{const r=(await api({acao:'cadencia'})).feitos;LOG=r.length?`${r.filter(x=>x.ok).length} follow-up(s) escritos — veja a Caixa de saída.`:'Ninguém pede follow-up agora.';});}
+async function ed(id,d){try{await api({acao:'editar',conversa:id,...d});}catch(e){alert(e.message);}}
+function env(id,b){run(b,'Enviando…',async()=>{const r=(await api({acao:'enviar',conversa:id})).r[0];LOG=r.ok?'📤 Enviada.':'⚠️ '+r.erro;});}
+function envTodos(b){run(b,'Enviando…',async()=>{const r=(await api({acao:'enviar',ids:CAIXA.map(x=>x.id)})).r;LOG=`📤 ${r.filter(x=>x.ok).length} enviada(s).`+r.filter(x=>!x.ok).map(x=>'\n• '+x.erro).join('');});}
+async function rej(id){await api({acao:'rejeitar',conversa:id});await carrega();}
+// ---- ficha do lead
+async function abre(id){$('#dr').style.display='block';$('#drc').innerHTML='<div class="msg">…</div>';await ficha(id);}
+function fecha(){$('#dr').style.display='none';carrega();}
+async function ficha(id){const d=await api({acao:'ver',id}),l=d.lead,s=l.sinais||{};
+  const tags=Object.entries(s).filter(([k,v])=>v&&SINAL[k]).map(([k])=>`<span class="tag">${SINAL[k]}</span>`).join('')+(s.TECNOLOGIA?`<span class="tag">${esc(s.TECNOLOGIA)}</span>`:'')+(s.INSTAGRAM?`<span class="tag">${esc(s.INSTAGRAM)}</span>`:'')+(s.AGENCIA_ATUAL?`<span class="tag">site por ${esc(s.AGENCIA_ATUAL)}</span>`:'');
+  $('#drc').innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="font-size:21px">${esc(l.nome)}</h1><button class="btn s" onclick="fecha()">Fechar</button></div>
+  <div class="sub">${esc([l.cidade,l.segmento].filter(Boolean).join(' · '))} ${l.site?`· <a href="https://${esc(l.dominio)}" target="_blank" rel="noopener">${esc(l.dominio)}</a>`:''}</div>
+  <div style="margin:10px 0"><span class="tag">nota ${l.nota??'–'}</span><span class="tag">${l.estagio}</span>${tags}</div>
+  ${l.angulo?`<div class="card"><small class="sub">Ângulo</small><br>${esc(l.angulo)}</div>`:''}
+  <div class="row"><select id="mv">${ESTS.map(e=>`<option ${e===l.estagio?'selected':''}>${e}</option>`).join('')}</select><button class="btn s" onclick="mover('${id}')">Mover</button><button class="btn s" onclick="enr('${id}',this)">Reler o site</button><button class="btn s" onclick="esc1('${id}','email',this)">Escrever e-mail</button><button class="btn s" onclick="esc1('${id}','zap',this)">Escrever zap</button><button class="btn s" onclick="ganhou('${id}')">Ganhou → virar cliente</button></div>
+  <div style="margin:14px 0 6px"><b>Contatos</b></div>${d.contatos.map(c=>`<div class="sub">${esc(c.nome)}${c.cargo?' ('+esc(c.cargo)+')':''} · ${esc(c.email||'')} ${esc(c.zap||'')} ${c.opt_out?'· <b style="color:var(--bad)">pediu pra sair</b>':''}</div>`).join('')||'<div class="sub">nenhum</div>'}
+  <div class="row" style="margin-top:6px"><input id="cn_" placeholder="Nome" style="width:120px"><input id="ce_" placeholder="e-mail" style="width:170px"><input id="cz_" placeholder="zap" style="width:120px"><button class="btn s" onclick="addC('${id}')">Adicionar</button></div>
+  <div style="margin:16px 0 6px"><b>Conversa</b></div>${d.conversas.map(c=>`<div class="bub ${c.direcao==='entrada'?'e':'s'}">${c.assunto?'<b>'+esc(c.assunto)+'</b><br>':''}${esc(c.corpo)}<small>${c.canal} · ${c.status}${c.intencao?' · '+c.intencao:''} · ${new Date(c.created_at).toLocaleString('pt-BR')}</small></div>`).join('')||'<div class="sub">sem mensagens</div>'}
+  <div style="margin:14px 0 6px"><b>Ele(a) respondeu?</b> <span class="sub">cole aqui — a IA classifica e prepara a resposta</span></div><textarea id="rp" rows="3"></textarea>
+  <div class="row" style="margin-top:6px"><select id="rc"><option value="email">e-mail</option><option value="zap">zap</option><option value="dm">DM</option></select><button class="btn p s" onclick="resp('${id}',this)">Registrar resposta</button></div><div class="log" id="dl"></div>`;}
+async function mover(id){const e=$('#mv').value;let motivo='';if(e==='perdido')motivo=prompt('Motivo (opcional)')||'';await api({acao:'mover',id,estagio:e,motivo});await ficha(id);}
+async function enr(id,b){b.disabled=true;b.textContent='Lendo…';await api({acao:'enriquecer',id});await ficha(id);}
+async function esc1(id,canal,b){b.disabled=true;b.textContent='Escrevendo…';try{await api({acao:'escrever',id,canal,seq:1+(await api({acao:'ver',id})).conversas.filter(c=>c.direcao==='saida'&&c.status==='enviada').length});$('#dl')&&0;TAB='caixa';alert('Rascunho na Caixa de saída.');}catch(e){alert(e.message);}fecha();}
+async function addC(id){await api({acao:'contato',id,nome:$('#cn_').value,email:$('#ce_').value,zap:$('#cz_').value}).catch(e=>alert(e.message));await ficha(id);}
+async function resp(id,b){const t=$('#rp').value.trim();if(!t)return;b.disabled=true;try{const r=(await api({acao:'entrada',id,texto:t,canal:$('#rc').value})).r;$('#dl').textContent='Classifiquei como: '+r.intencao+(r.rascunho?' — rascunho de resposta na Caixa de saída.':'');}catch(e){$('#dl').textContent='⚠️ '+e.message;}b.disabled=false;setTimeout(()=>ficha(id),900);}
+async function ganhou(id){if(!confirm('Marcar como ganho e criar o cliente?'))return;try{await api({acao:'ganhou',id});}catch(e){alert(e.message);}await ficha(id);}
+boot();
+</script></body></html>

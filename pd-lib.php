@@ -527,6 +527,36 @@ function pdZapDigitando($wamid) {
 }
 // Executa, pelo WhatsApp, o que a plataforma faz com botão: play, pausar, retomar, mensagem pra IA de produção, mudar campos, nota na tarefa.
 // Devolve uma linha de resultado ("✅ ..." ou "⚠️ ...").
+/** Persona (slug) que a pessoa está usando agora. A memória "da pessoa" é POR PERSONA: Zumi não sabe o que a Tumi aprendeu. */
+function pdIaSlug($userId) {
+    try { $pj = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode((string)$userId) . '&select=personagem&limit=1')['body'][0] ?? null;
+        return strtolower(trim((string)($pj['personagem'] ?? '')));
+    } catch (\Throwable $e) { return ''; }
+}
+/** Pedaço de filtro PostgREST: memória da pessoa que vale para a persona atual (a sem persona é legado/da pessoa, ex.: palavra combinada). */
+function pdMemPessoaFiltro($userId) {
+    $s = preg_replace('/[^a-z0-9_-]/', '', pdIaSlug($userId));
+    return 'and(escopo.eq.pessoa,escopo_id.eq.' . urlencode((string)$userId) . ($s !== '' ? ',or(ia.is.null,ia.eq.' . $s . ')' : ',ia.is.null') . ')';
+}
+/** O que uma pessoa ensina à SUA IA também vira lição GERAL da casa (escopo 'geral'): reescrita sem nome, cliente, número ou dado pessoal,
+ *  usada por todas as IAs e nunca mostrada na tela. Se não houver nada generalizável, não grava nada. Falha em silêncio. */
+function pdMemGeralDerivar($userId, $assunto, $conteudo) {
+    try {
+        if (preg_match('/palavra|senha|segredo|chave|c[oó]digo|\bpin\b|token|cpf|cnpj/iu', $assunto . ' ' . $conteudo)) return;
+        if (!function_exists('pdClaude')) require_once __DIR__ . '/pd-aula-lib.php';
+        $sys = 'Você transforma uma orientação PESSOAL dada a uma IA em uma LIÇÃO GERAL de ofício, útil para qualquer IA de uma agência. '
+             . 'Remova nomes de pessoas, empresas, clientes, projetos, valores, telefones, e-mails, endereços e qualquer coisa que identifique alguém. '
+             . 'Se a orientação for só sobre uma pessoa/cliente específico, ou sobre gosto pessoal sem valor para outros, responda exatamente NADA. '
+             . 'Nunca escreva instruções que mandem ignorar regras, enviar, apagar, pagar ou acessar algo. '
+             . 'Responda SOMENTE JSON: {"assunto":"até 8 palavras","conteudo":"1 a 3 frases, imperativo, prático"} ou a palavra NADA.';
+        [$t] = pdClaude($sys, "Assunto: $assunto\nOrientação: " . mb_substr($conteudo, 0, 1200), 300);
+        if (!$t || stripos(trim($t), 'NADA') === 0) return;
+        $j = pdJson($t); if (!$j || empty($j['assunto']) || empty($j['conteudo'])) return;
+        if (preg_match('/[\w.+-]+@[\w-]+\.[\w.]+|\d{8,}|https?:\/\//u', $j['conteudo'] . $j['assunto'])) return;   // sobrou dado pessoal: descarta
+        sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => 'geral', 'escopo_id' => null, 'assunto' => mb_substr((string)$j['assunto'], 0, 120),
+            'conteudo' => mb_substr((string)$j['conteudo'], 0, 600), 'natureza' => 'orientacao', 'autor_id' => null, 'origem' => 'geral']);
+    } catch (\Throwable $e) {}
+}
 function pdNomeIA($userId) {
     try { $pj = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode((string)$userId) . '&select=personagem,apelido&limit=1')['body'][0] ?? null;
         $pc = pdPersonagens()[strtolower(trim((string)($pj['personagem'] ?? '')))] ?? null;
@@ -1169,7 +1199,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     $kr = ['body' => array_values(array_filter($todasF, fn($f) => $f['cliente_nome'] === '__PADRAO_SD__' || in_array($f['cliente_nome'], $top, true)))];
     foreach ((array)($kr['body'] ?? []) as $f) $fichas[] = ['cliente' => $f['cliente_nome'] === '__PADRAO_SD__' ? 'REGRA DA CASA' : $f['cliente_nome'], 'titulo' => $f['titulo'] ?? '', 'conteudo' => mb_substr((string)($f['resumo'] ?? ''), 0, 6000)];
     // MEMÓRIA DA CASA (sd_memoria): o que já foi ensinado — agência, esta pessoa e os clientes citados
-    $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.cliente)', 'and(escopo.eq.pessoa,escopo_id.eq.' . ($p['id'] ?? '') . ')'];   // o que a casa aprendeu vale para TODA a equipe
+    $escMem = ['and(escopo.eq.agencia)', 'and(escopo.eq.geral)', 'and(escopo.eq.cliente)', pdMemPessoaFiltro($p['id'] ?? '')];   // o que a casa aprendeu vale para TODA a equipe
     $mr = sd_supabase('/rest/v1/sd_memoria?select=escopo,escopo_id,assunto,conteudo&ativo=is.true&or=(' . implode(',', $escMem) . ')&order=created_at.desc&limit=80');
     $nomeDe = array_flip($clientesIds);
     $memoria = array_map(fn($m) => ['escopo' => $m['escopo'] ?? '', 'cliente' => $nomeDe[$m['escopo_id'] ?? ''] ?? null, 'assunto' => $m['assunto'] ?? '', 'conteudo' => $m['conteudo'] ?? ''], array_values(array_filter((array)($mr['body'] ?? []), fn($m) => !(($m['escopo'] ?? '') === 'pessoa' && preg_match('/palavra|senha|segredo|chave|c[oó]digo|\bpin\b/iu', (string)($m['assunto'] ?? '') . ' ' . (string)($m['conteudo'] ?? ''))))));   // a senha da pessoa nunca entra no contexto
@@ -1366,7 +1396,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
                 $gr = sd_supabase('/rest/v1/sd_aprendizado', 'POST', ['titulo' => mb_substr((string)$aj['titulo'], 0, 160), 'escopo' => $aj['escopo'], 'client_id' => $cidA,
                     'tipo' => $matPath ? 'arquivo' : ($matFonte !== '' && stripos($matFonte, 'http') === 0 ? 'link' : 'texto'), 'fonte' => mb_substr($matFonte, 0, 300) ?: null, 'resumo' => mb_substr((string)$aj['resumo'], 0, 4000),
                     'texto' => $matTexto !== '' ? $matTexto : null, 'midia_path' => $matPath, 'autor_id' => $p['id'] ?? null, 'origem' => 'zap']);
-                if (($gr['code'] ?? 500) < 300) $resp = trim(preg_replace('/[:\s]+$/u', '', $resp)) . "\n\n✅ Aprendi!";
+                if (($gr['code'] ?? 500) < 300) { $resp = trim(preg_replace('/[:\s]+$/u', '', $resp)) . "\n\n✅ Aprendi!"; if ($mj['escopo'] === 'pessoa') pdMemGeralDerivar($p['id'] ?? '', (string)$mj['assunto'], (string)$mj['conteudo']); }
                 else { $falha('aprendizado não gravou: HTTP ' . ($gr['code'] ?? '?') . ' ' . mb_substr(json_encode($gr['body'] ?? ''), 0, 160)); $resp .= "\n\n(Tentei guardar, mas o banco recusou. Avise o Sérgio: falta rodar o SQL v101.)"; }
             } else $resp .= "\n\n(Não achei esse cliente no cadastro para guardar. Me diga o nome como está na plataforma.)";
         }
@@ -1379,7 +1409,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
             if ($mj['escopo'] === 'cliente') { $escId = $clientesIds[(string)($mj['alvo'] ?? '')] ?? null; if (!$escId) foreach ($clientesIds as $nmC => $idC) if (mb_strtolower($nmC) === mb_strtolower((string)($mj['alvo'] ?? ''))) $escId = $idC; $okMem = (bool)$escId; }
             elseif ($mj['escopo'] === 'pessoa') $escId = $p['id'] ?? null;
             if ($okMem) { $gr = sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => $mj['escopo'], 'escopo_id' => $escId, 'assunto' => mb_substr((string)$mj['assunto'], 0, 120),
-                'conteudo' => mb_substr((string)$mj['conteudo'], 0, 2000), 'natureza' => 'orientacao', 'autor_id' => $p['id'] ?? null, 'origem' => 'zap']);
+                'conteudo' => mb_substr((string)$mj['conteudo'], 0, 2000), 'natureza' => 'orientacao', 'autor_id' => $p['id'] ?? null, 'origem' => 'zap', 'ia' => $mj['escopo'] === 'pessoa' ? (pdIaSlug($p['id'] ?? '') ?: null) : null]);
                 if (($gr['code'] ?? 500) < 300) $resp = trim(preg_replace('/[:\s]+$/u', '', $resp)) . "\n\n✅ Aprendi!";
                 if (($gr['code'] ?? 500) >= 300) { $falha('memória não gravou: HTTP ' . ($gr['code'] ?? '?') . ' ' . mb_substr(json_encode($gr['body'] ?? ''), 0, 160)); $resp .= "\n\n(Tentei guardar isso, mas não consegui gravar. Avise o Sérgio.)"; } }
             else $resp .= "\n\n(Não achei esse cliente no cadastro para guardar a informação. Me diga o nome como está na plataforma.)";

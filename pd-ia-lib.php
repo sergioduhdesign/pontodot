@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/pd-vendas-lib.php';   // vdPode e o motor Harvey (catálogo de ferramentas de vendas)
 // IA da casa no chat da plataforma — as FERRAMENTAS que ela executa sozinha
 // (criar, alterar, excluir, comentar, produto novo, memória) e o DESFAZER.
 // Tudo passa pela chave do servidor; cada ação grava antes/depois em pd_ia_acoes
@@ -166,10 +167,12 @@ function iaLembrar($args, $u, $lote) {
         if (!empty($GLOBALS['PD_IA_CLIENTE'])) { $esc = 'cliente'; $eid = $GLOBALS['PD_IA_CLIENTE']; }   // cliente só ensina sobre a própria empresa
         elseif ($esc === 'cliente') { $c = iaCliente($m['alvo'] ?? ''); if (!$c) { $out[] = "⚠️ memória: cliente \"" . ($m['alvo'] ?? '') . "\" não achei"; continue; } $eid = $c['id']; }
         elseif ($esc === 'pessoa') $eid = $u['id'] ?? null; elseif ($esc === 'tarefa') $eid = strtoupper(trim((string)($m['alvo'] ?? '')));
-        $d = ['escopo' => $esc, 'escopo_id' => $eid, 'assunto' => mb_substr((string)($m['assunto'] ?? 'nota'), 0, 120), 'conteudo' => mb_substr((string)($m['conteudo'] ?? ''), 0, 2000), 'natureza' => $m['natureza'] ?? 'orientacao', 'autor_id' => $u['id'] ?? null, 'origem' => 'chat'];
+        $d = ['escopo' => $esc, 'escopo_id' => $eid, 'assunto' => mb_substr((string)($m['assunto'] ?? 'nota'), 0, 120), 'conteudo' => mb_substr((string)($m['conteudo'] ?? ''), 0, 2000), 'natureza' => $m['natureza'] ?? 'orientacao', 'autor_id' => $u['id'] ?? null, 'origem' => 'chat', 'ia' => $esc === 'pessoa' ? (pdIaSlug($u['id'] ?? '') ?: null) : null];
         $r = sd_supabase('/rest/v1/sd_memoria', 'POST', $d, ['Prefer: return=representation']);
+        if (($r['code'] ?? 500) >= 300 && array_key_exists('ia', $d)) { unset($d['ia']); $r = sd_supabase('/rest/v1/sd_memoria', 'POST', $d, ['Prefer: return=representation']); }   // SQL v146 ainda não rodou
         if (($r['code'] ?? 500) >= 300) { $out[] = '⚠️ não guardei "' . $d['assunto'] . '"'; continue; }
         iaRegistra($lote, $u, 'lembrar', (string)($r['body'][0]['id'] ?? ''), null, $d, $d['assunto']);
+        if ($esc === 'pessoa') pdMemGeralDerivar($u['id'] ?? '', $d['assunto'], $d['conteudo']);
         $out[] = '🧠 guardado: ' . $d['assunto'];
     }
     return ['texto' => implode("\n", $out) ?: '⚠️ nada pra guardar', 'ids' => []];
@@ -480,6 +483,18 @@ function iaCatalogo($u) {
         $T[] = ['name' => 'permissoes_definir', 'description' => 'Permissões da pessoa: perfil pronto (Produção, Atendimento, Gestor de mídia) e/ou chaves (tarefa.criar, tarefa.excluir, social.publicar, social.conectar...).', 'input_schema' => $S(['pessoa' => $str, 'perfil' => $str, 'chaves' => $arrS], ['pessoa'])];
         $T[] = ['name' => 'ferramentas_liberar', 'description' => 'Libera ferramentas pra pessoa: digital (arte), audio (locução), video, grafica, zap (comunicador de WhatsApp: atendimento e vendas), vendas (prospecção/CRM), todas, nenhuma (só Copys).', 'input_schema' => $S(['pessoa' => $str, 'ferramentas' => $arrS], ['pessoa', 'ferramentas'])];
     }
+    if (function_exists('vdPode') && vdPode($u)) {
+        $T[] = ['name' => 'vendas_funil', 'description' => 'CRM de vendas (motor Harvey). Mostra o funil (quantos leads por estágio) da carteira e, com listar=true, os melhores leads. carteira: nome do cliente dono da carteira, ou vazio pra carteira da própria casa, ou "todas".',
+            'input_schema' => $S(['carteira' => $str, 'listar' => $bool])];
+        $T[] = ['name' => 'vendas_importar', 'description' => 'Cadastra leads na carteira. linhas = uma empresa por linha: "Empresa; site; cidade; segmento; contato; e-mail; zap". Depois busca sinais públicos do site (pixel, WhatsApp, lançamento…) e calcula a nota de encaixe.',
+            'input_schema' => $S(['carteira' => $str, 'lote' => $str, 'linhas' => $str], ['linhas'])];
+        $T[] = ['name' => 'vendas_abordar', 'description' => 'Escreve os RASCUNHOS de abordagem (nada é enviado) pros N melhores leads novos da carteira, cada um com um ângulo específico baseado nos sinais verificados. canal: email|zap. Os rascunhos ficam na Caixa de saída esperando aprovação.',
+            'input_schema' => $S(['carteira' => $str, 'canal' => $str, 'quantos' => ['type' => 'integer'], 'oferta' => $str])];
+        $T[] = ['name' => 'vendas_enviar', 'description' => 'Envia os rascunhos aprovados pela pessoa que está pedindo (ela pediu, vale como aprovação). Sem ids, envia todos os rascunhos da carteira. Respeita pedido de sair e o teto diário.',
+            'input_schema' => $S(['carteira' => $str, 'ids' => $arrS])];
+        $T[] = ['name' => 'vendas_resposta', 'description' => 'Registra o que um lead respondeu (colado pela pessoa). O sistema classifica (interessado, pergunta, objeção, não, pedido de sair…), age (sair = nunca mais) e escreve um rascunho de resposta quando cabe.',
+            'input_schema' => $S(['lead' => $str, 'texto' => $str, 'canal' => $str], ['lead', 'texto'])];
+    }
     return $T;
 }
 function iaExecutarTudo($nome, $args, $u, $lote) {
@@ -503,6 +518,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'funcoes_definir': return iaFuncoesDefinir($args, $u, $lote);
         case 'permissoes_definir': return iaPermissoesDefinir($args, $u, $lote);
         case 'ferramentas_liberar': return iaFerramentasLiberar($args, $u, $lote);
+        case 'vendas_funil': case 'vendas_importar': case 'vendas_abordar': case 'vendas_enviar': case 'vendas_resposta': return iaVendas($nome, $args, $u);
     }
     return ['texto' => "⚠️ ferramenta desconhecida $nome", 'ids' => []];
 }
@@ -581,4 +597,64 @@ function iaUsuarioExcluirExec($p, $u, $lote, $para) {
     sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($p['id']), 'DELETE');   // perfil sai junto (se alguma tabela ainda segurar, fica inativo e some do painel)
     iaRegistra($lote, $u, 'usuario_excluir', $p['id'], $antes, null, $p['name']);
     return ['texto' => '🗑️ ' . $p['name'] . ' (' . $p['email'] . ') removid' . 'o(a) da plataforma' . ($n ? ($para ? " · $n tarefa(s) aberta(s) passaram pra $para" : " · $n tarefa(s) aberta(s) ficaram no nome dela(e)") : ''), 'ids' => []];
+}
+
+// ---------------------------------------------------------------- VENDAS (Harvey) pelo chat e pelo zap
+function iaVendasCarteira($txt) {
+    $t = trim((string)$txt); if ($t === '' || preg_match('/^(casa|propria|própria|sd|agencia|agência)$/iu', $t)) return [null, 'a casa'];
+    if (preg_match('/^todas?$/iu', $t)) return ['todas', 'todas as carteiras'];
+    $c = iaCliente($t); return $c ? [$c['id'], $c['name']] : [false, $t];
+}
+function iaVendas($nome, $a, $u) {
+    require_once __DIR__ . '/pd-vendas-lib.php';
+    if (!vdPode($u)) return ['texto' => '⚠️ Vendas não está liberada pra você', 'ids' => []];
+    @set_time_limit(240);
+    if ($nome === 'vendas_resposta') {
+        $t = mb_strtolower(trim((string)($a['lead'] ?? '')));
+        $ls = vdLinhas(vdSup('/rest/v1/pd_prospects?select=id,nome&order=updated_at.desc&limit=400'));
+        $hit = null; foreach ($ls as $l) if (mb_strtolower($l['nome']) === $t) { $hit = $l; break; }
+        if (!$hit) foreach ($ls as $l) if ($t !== '' && mb_strpos(mb_strtolower($l['nome']), $t) !== false) { $hit = $l; break; }
+        if (!$hit) return ['texto' => '⚠️ não achei o lead "' . ($a['lead'] ?? '') . '"', 'ids' => []];
+        $r = vdEntrada($hit['id'], in_array($a['canal'] ?? '', ['zap', 'email', 'dm'], true) ? $a['canal'] : 'email', (string)($a['texto'] ?? ''));
+        if (empty($r['ok'])) return ['texto' => '⚠️ ' . ($r['erro'] ?? 'erro'), 'ids' => []];
+        $x = ['opt_out' => 'pediu pra sair — nunca mais contato', 'juridico' => 'tom jurídico — parei e avisei a equipe', 'nao' => 'recusou', 'interessado' => '🔥 interessado', 'pergunta' => 'fez uma pergunta', 'objecao' => 'trouxe uma objeção', 'pessoa_errada' => 'pessoa errada'][$r['intencao']] ?? $r['intencao'];
+        return ['texto' => '📨 ' . $hit['nome'] . ': ' . $x . (!empty($r['rascunho']) ? ' — deixei um rascunho de resposta na Caixa de saída' : ''), 'ids' => []];
+    }
+    [$cart, $rot] = iaVendasCarteira($a['carteira'] ?? '');
+    if ($cart === false) return ['texto' => '⚠️ não achei a carteira/cliente "' . $rot . '"', 'ids' => []];
+    $f = $cart === 'todas' ? '' : '&carteira_id=' . ($cart ? 'eq.' . $cart : 'is.null');
+    if ($nome === 'vendas_funil') {
+        $fn = vdFunil($cart); $linhas = []; foreach ($fn as $e => $n) if ($n) $linhas[] = "$e: $n";
+        $txt = "📊 Carteira de $rot — " . ($linhas ? implode(' · ', $linhas) : 'vazia');
+        if (!empty($a['listar'])) { foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?select=nome,estagio,nota,angulo&estagio=not.in.(ganho,perdido)' . $f . '&order=nota.desc.nullslast&limit=10')) as $l) $txt .= "
+• " . $l['nome'] . ' (' . $l['estagio'] . ', nota ' . ($l['nota'] ?? '–') . ')' . ($l['angulo'] ? ' — ' . $l['angulo'] : ''); }
+        return ['texto' => $txt, 'ids' => []];
+    }
+    if ($cart === 'todas') return ['texto' => '⚠️ pra isso diga qual carteira (cliente ou "casa")', 'ids' => []];
+    if ($nome === 'vendas_importar') {
+        $r = vdImportar((string)($a['linhas'] ?? ''), $cart, trim((string)($a['lote'] ?? '')) ?: null, $u['id']);
+        $nota = 0; foreach (array_slice($r['ids'], 0, 8) as $pid) { $e = vdEnriquecer($pid); if (!empty($e['ok'])) $nota++; }
+        return ['texto' => "✅ Carteira de $rot: {$r['novos']} lead(s) novo(s)" . ($r['duplicados'] ? ", {$r['duplicados']} já existiam" : '') . ($r['ignorados'] ? ", {$r['ignorados']} linha(s) ignorada(s)" : '') . ($nota ? ". Li o site de $nota deles e já tem nota de encaixe." : '') . (count($r['ids']) > 8 ? ' Os demais eu leio quando você pedir pra abordar.' : ''), 'ids' => []];
+    }
+    if ($nome === 'vendas_abordar') {
+        $canal = ($a['canal'] ?? '') === 'zap' ? 'zap' : 'email'; $n = max(1, min(8, (int)($a['quantos'] ?? 5)));
+        foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?nota=is.null&select=id' . $f . '&limit=5')) as $x) vdEnriquecer($x['id']);
+        $ok = 0; $falhas = [];
+        foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?estagio=eq.novo&select=id,nome' . $f . '&order=nota.desc.nullslast&limit=40')) as $l) {
+            if ($ok >= $n) break;
+            if (vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?prospect_id=eq.' . $l['id'] . '&direcao=eq.saida&select=id&limit=1'))) continue;
+            $r = vdEscrever($l['id'], $canal, 1, null, (string)($a['oferta'] ?? '')); if (!empty($r['ok'])) $ok++; else $falhas[] = $l['nome'] . ' (' . $r['erro'] . ')';
+        }
+        return ['texto' => "✍️ $ok rascunho(s) de $canal na Caixa de saída de $rot — nada foi enviado ainda." . ($falhas ? "
+Sem contato/erro: " . implode('; ', array_slice($falhas, 0, 4)) : ''), 'ids' => []];
+    }
+    if ($nome === 'vendas_enviar') {
+        $ids = array_filter(array_map('vdUuid', (array)($a['ids'] ?? [])));
+        if (!$ids) { $rs = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?status=in.(aguardando,aprovada)&direcao=eq.saida&select=id,pd_prospects!inner(carteira_id)&order=created_at.asc&limit=40'));
+            foreach ($rs as $x) if ($cart === ($x['pd_prospects']['carteira_id'] ?? null)) $ids[] = $x['id']; }
+        $ok = 0; $erros = [];
+        foreach (array_slice($ids, 0, 25) as $i) { $r = vdEnviar($i, $u['id']); if (!empty($r['ok'])) $ok++; else { $erros[] = $r['erro'] ?? 'erro'; if (!empty($r['teto'])) break; } }
+        return ['texto' => "📤 $ok enviada(s) de $rot." . ($erros ? ' Não saíram: ' . implode('; ', array_unique($erros)) : ''), 'ids' => []];
+    }
+    return ['texto' => '⚠️ ação de vendas desconhecida', 'ids' => []];
 }

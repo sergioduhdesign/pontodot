@@ -133,6 +133,15 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, $errou === 'limite' ? 'Três tentativas erradas. Se esqueceu a palavra, entra na plataforma, abre "o que eu sei" na sua IA e apaga ou ensina outra. Depois me diz de novo quem você é.' : ($errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?'), true); } catch (Throwable $e) {} continue; }
         if (count($candidatos) > 1 && !$membro) { try { pdZapDigitando($id); pdZapEnviar($para, (count($achados) > 1 ? "Achei mais de um com esse nome. " : '') . $perguntaQuem, true); } catch (Throwable $e) {} continue; }
         if ($trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, 'Fechado: daqui em diante você é *' . trim($trocaPersona['name']) . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
+        // lead de VENDAS respondendo: registra, classifica (SAIR = nunca mais) e deixa o rascunho de resposta pra gente aprovar
+        if (!$membro && !$cid && trim((string)$txt) !== '') { try {
+            $dg = preg_replace('/\D/', '', (string)$para);
+            $ct = sd_supabase('/rest/v1/pd_prospect_contatos?zap=eq.' . $dg . '&select=id,prospect_id&limit=1')['body'][0] ?? null;
+            $pidL = $ct['prospect_id'] ?? (sd_supabase('/rest/v1/pd_prospects?zap=eq.' . $dg . '&select=id&limit=1')['body'][0]['id'] ?? null);
+            if ($pidL) { require_once __DIR__ . '/pd-vendas-lib.php'; $rv = vdEntrada($pidL, 'zap', (string)$txt, $ct['id'] ?? null);
+                if (($rv['intencao'] ?? '') === 'opt_out') { pdZapDigitando($id); pdZapEnviar($para, 'Combinado, não escrevo mais. Obrigada pelo retorno!', true); }
+                continue; }
+        } catch (Throwable $e) { error_log('wa-webhook vendas: ' . $e->getMessage()); } }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }

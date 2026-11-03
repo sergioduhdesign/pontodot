@@ -2390,7 +2390,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v336 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v337 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5741,6 +5741,7 @@ const GADGETS = {
   tarefas:   { nome:'Tarefas', fixo:true, html:()=>`<div class="caixa cx-tarefas">${htmlTarefas()}</div>` },
   conversas: { nome:'Conversas', oculto:true, html:()=>htmlConversas() },
   zap:       { nome:'Zap', libera:'zap', html:()=>htmlZap() },   // ferramenta de vendas/atendimento: só pra quem o admin libera (admin sempre)
+  vendas:    { nome:'Vendas', libera:'vendas', html:()=>gadCaixa('Vendas', `<div class="nota" style="line-height:1.5;margin:0">Prospecção com a IA: lista de leads, sinais do site, abordagem por e-mail ou zap — você aprova, ela envia. Uma carteira por cliente.</div>`, ['Abrir Vendas', 'abrirVendas()']) },
   minhaia:   { nome:()=>temIA()?'Minha IA':'Sua IA ainda não nasceu', html:()=>htmlMinhaIA() },
   aprovacoes:{ nome:'Aprovações', html:()=>{
     if (window.REAL) return htmlAprovacoes();
@@ -6400,7 +6401,7 @@ function novoChat(){
 }
 function novaTarefa(){ novoChat(); }
 // No app (celular) o conjunto é FIXO: não dá para pôr nem tirar. Só o que importa no dia a dia.
-const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','escola'];
+const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','vendas','escola'];
 // o que cada pessoa pode ver: admin tudo; 'admin' só admin; 'libera' = ferramenta liberada no perfil (studio_areas)
 function gadLiberado(g){ if (!g) return false; if (g.admin) return aindaNao(()=>ehAdmin(), false); if (g.libera) return aindaNao(()=>ehAdmin() || ((perfil && perfil.studio_areas) || []).includes(g.libera), false); return true; }
 function zapLiberado(){ return gadLiberado(GADGETS.zap); }
@@ -6635,6 +6636,16 @@ const MC_ICO = {feed:'<path d="M3 11 12 3l9 8v10H3z"/>',kanban:'<rect x="3" y="3
   clientes:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
   saude:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',intensivo:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'};
 // Sala de aula (admin): abre por cima da tela atual, sem virar nem navegar
+function abrirVendas(){
+  let ov = document.getElementById('vendasOv');
+  if (!ov){
+    ov = document.createElement('div'); ov.id = 'vendasOv'; ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg,#fff);display:none;flex-direction:column';
+    ov.innerHTML = '<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(128,128,128,.25);background:inherit"><button onclick="document.getElementById(\'vendasOv\').style.display=\'none\'" style="font:inherit;background:none;border:0;color:inherit;padding:8px 6px;cursor:pointer">‹ Voltar</button></div><iframe title="Vendas" style="flex:1;border:0;width:100%"></iframe>';
+    document.body.appendChild(ov);
+  }
+  ov.querySelector('iframe').src = 'vendas.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now());
+  ov.style.display = 'flex';
+}
 function abrirSala(){
   let ov = document.getElementById('salaOv');
   if (!ov){
@@ -9749,8 +9760,9 @@ async function gravarMemorias(btn){
       const { error } = await sbR.from('sd_memoria').insert({
         escopo: m.escopo, escopo_id: escopoId, assunto: String(m.assunto).slice(0,120),
         conteudo: String(m.conteudo).slice(0,2000), natureza: m.natureza || 'orientacao',
-        autor_id: perfil.id, origem: 'chat' });
-      if (error) throw error;
+        autor_id: perfil.id, origem: 'chat', ia: m.escopo === 'pessoa' ? ((jeito && jeito.personagem) || null) : null });
+      if (error && /\bia\b/.test(error.message||'')) { const r2 = await sbR.from('sd_memoria').insert({ escopo: m.escopo, escopo_id: escopoId, assunto: String(m.assunto).slice(0,120), conteudo: String(m.conteudo).slice(0,2000), natureza: m.natureza || 'orientacao', autor_id: perfil.id, origem: 'chat' }); if (r2.error) throw r2.error; }
+      else if (error) throw error;
       feitas.push(m.assunto);
     } catch(e){ falhas.push(`${m.assunto}: ${e.message}`); }
   }
@@ -9773,7 +9785,7 @@ async function abrirMemoria(filtro){
   try {
     let q = sbR.from('sd_memoria')
       .select('id,escopo,escopo_id,assunto,conteudo,natureza,origem,created_at,profiles:autor_id(name)')
-      .eq('ativo', true).order('created_at', { ascending:false }).limit(80);
+      .eq('ativo', true).neq('escopo', 'geral').order('created_at', { ascending:false }).limit(80);
     const { data } = await q; linhas = data || [];
   } catch(e){}
   let aprendidos = [];
@@ -10546,6 +10558,13 @@ setTimeout(function(){ try {
     if (!meusGadgets.includes('zap')){ meusGadgets = [...meusGadgets, 'zap']; salvarGadgets(); renderBoard(); } }
   carregarZap(true);
 } catch(e){} }, 3500);
+// a caixinha Vendas se apresenta uma vez pra quem tem a ferramenta liberada (admin sempre)
+setTimeout(function(){ try {
+  if (!gadLiberado(GADGETS.vendas)) return;
+  const visto = JSON.parse(localStorage.getItem('sd_gadgets_vistos')||'[]');
+  if (!visto.includes('vendas')){ visto.push('vendas'); localStorage.setItem('sd_gadgets_vistos', JSON.stringify(visto));
+    if (!meusGadgets.includes('vendas')){ meusGadgets = [...meusGadgets, 'vendas']; salvarGadgets(); renderBoard(); } }
+} catch(e){} }, 4200);
 setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZap(); } catch(e){} }, 8000);
 setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 60000);
 // Saída de materiais: sonda silenciosa (a oficina trabalha com você fora; a bolinha conta o que ficou pronto)

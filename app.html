@@ -9556,7 +9556,19 @@ async function saveProfile(){
   // Próprio perfil
   editingUserId=null;
   let avatar_url=profile.avatar_url;
-  if(profAvBlob){const fname=`avatars/${profile.id}.jpg`;await sb.storage.from('task-covers').remove([fname]);const{error}=await sb.storage.from('task-covers').upload(fname,profAvBlob,{contentType:'image/jpeg',upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);avatar_url=publicUrl;}}
+  if(profAvBlob){
+    let okAv=false;
+    try{const fname=`avatars/${profile.id}.jpg`;await sb.storage.from('task-covers').remove([fname]);const{error}=await sb.storage.from('task-covers').upload(fname,profAvBlob,{contentType:'image/jpeg',upsert:true});if(!error){const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);avatar_url=publicUrl+'?v='+Date.now();okAv=true;}}catch(e){}
+    if(!okAv){ // plano B: sobe pelo servidor (não depende de permissão do storage)
+      try{
+        const dados=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(profAvBlob);});
+        const{data:{session}}=await sb.auth.getSession();
+        const r=await fetch('/avatares.php',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({acao:'subir',nome:'perfil',dados})});
+        const j=await r.json().catch(()=>({}));
+        if(r.ok&&j.ok&&j.url){avatar_url=j.url;okAv=true;}else throw new Error(j.error||j.erro||('servidor '+r.status));
+      }catch(e){showToast('Não consegui subir a foto: '+e.message,'error');}
+    }
+  }
   const updates={name,bio:bio||null,avatar_url,birthday:document.getElementById('prof-birthday').value||null,contact:document.getElementById('prof-contact').value||null,social1:document.getElementById('prof-social1').value||null,social2:document.getElementById('prof-social2').value||null,site:document.getElementById('prof-site').value||null};
   await sb.from('profiles').update(updates).eq('id',profile.id);
   Object.assign(profile,updates);
