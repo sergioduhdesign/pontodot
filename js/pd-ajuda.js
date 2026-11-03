@@ -104,13 +104,14 @@ function ajudaCss(){
   if (document.getElementById('ajudaCss')) return;
   const st = document.createElement('style'); st.id = 'ajudaCss';
   st.textContent = `
-  .ajuda-q{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
+  .ajuda-q{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:17px;height:17px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;opacity:.42;font:600 10.5px/15px inherit;font-family:inherit;letter-spacing:0;text-transform:none;text-indent:0;text-align:center;cursor:pointer;vertical-align:2px;margin-left:5px;padding:0;flex:0 0 auto}
   .ajuda-q:hover{opacity:.95}
   .ajuda-dica{position:fixed;z-index:100003;max-width:min(264px,calc(100vw - 20px));background:rgba(22,23,25,.97);color:#ecebe6;border:.5px solid rgba(255,255,255,.13);border-radius:11px;padding:10px 12px 11px;box-shadow:0 12px 32px rgba(0,0,0,.4);font:12px/1.5 'Helvetica Neue',system-ui,sans-serif;opacity:0;transition:opacity .16s ease;text-align:left}
   .ajuda-dica b{display:block;font-size:12px;font-weight:600;margin-bottom:3px;letter-spacing:-.005em}
   .ajuda-dica span{display:block;opacity:.72}
   label>.ajuda-q,.field-label>.ajuda-q,.lab>.ajuda-q{margin-left:6px}
-  h1>.ajuda-q,h2>.ajuda-q,h3>.ajuda-q,h4>.ajuda-q{float:right;margin-left:8px;text-transform:none;letter-spacing:0;position:relative}
+  h1>.ajuda-q,h2>.ajuda-q,h3>.ajuda-q,h4>.ajuda-q{float:right;margin-left:8px;margin-top:1px;text-transform:none;letter-spacing:0;position:relative;line-height:15px}
+  .ajuda-q>*{line-height:15px}
   .ajuda-q{position:relative}.ajuda-q::after{content:'';position:absolute;inset:-9px}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
   #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:opacity .32s ease;animation:ajBrilho 2.6s ease-in-out infinite}
