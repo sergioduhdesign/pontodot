@@ -2383,7 +2383,7 @@ pdAbertura(false);
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
-<script src="/js/pd-ajuda.js?v=320"></script>
+<script src="/js/pd-ajuda.js?v=321"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -5519,6 +5519,12 @@ window.PD_AJUDA_ABRE.tarefas = () => {
 };
 (window.PD_AJUDA_GRUPO = window.PD_AJUDA_GRUPO || {}).tarefas = 'tarefas'; window.PD_AJUDA_GRUPO.lertarefa = 'tarefas';   // "ler a tarefa" é dentro da mesma caixa: não fecha e reabre
 window.PD_AJUDA_ABRE.lertarefa = window.PD_AJUDA_ABRE.tarefas;
+window.PD_AJUDA_ABRE.cli_plataforma = () => { tourFrente(); return null; };
+window.PD_AJUDA_ABRE.cli_tarefas = window.PD_AJUDA_ABRE.tarefas;
+window.PD_AJUDA_ABRE.cli_aprovacoes = window.PD_AJUDA_ABRE.aprovacoes;
+window.PD_AJUDA_ABRE.cli_social = window.PD_AJUDA_ABRE.social;
+window.PD_AJUDA_ABRE.cli_zap = window.PD_AJUDA_ABRE.zap;
+(window.PD_AJUDA_GRUPO = window.PD_AJUDA_GRUPO || {}).cli_aprovacoes = 'aprovacoes'; window.PD_AJUDA_GRUPO.cli_social = 'social'; window.PD_AJUDA_GRUPO.cli_zap = 'zap'; window.PD_AJUDA_GRUPO.cli_tarefas = 'tarefas';
 function htmlCatum(){
   const D = CAT.d;
   if (!D) return `<h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Hora de Catum</h3><p style="font-size:14px;line-height:1.5">${esc(CAT.erro || 'Carregando…')}</p>`;
@@ -8341,8 +8347,9 @@ async function entrarReal(session){
   window.addEventListener('storage', e => { try { if (!e.key || !/-auth-token$/.test(e.key) || !window.REAL) return; const j = JSON.parse(e.newValue || 'null'); const id = j && j.user && j.user.id; if (id && perfil && id !== perfil.id) location.reload(); } catch(_){} });
   window.REAL = true;
   setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
-  if (perfil.role !== 'client') setTimeout(() => { try {
-    window.PD_TOUR = (window.PD_TOUR || []).filter(k => !['zap','escola'].includes(k));   // Zap e Escola das IAs não entram no tour pra ninguém
+  setTimeout(() => { try {
+    if (perfil.role === 'client') window.PD_TOUR = (window.PD_TOUR_CLI || []).slice();   // o cliente tem o tour dele, com a Gigi
+    else window.PD_TOUR = (window.PD_TOUR || []).filter(k => !['zap','escola'].includes(k));   // Zap e Escola das IAs não entram no tour da equipe
     ajudaPrimeiraVez();
   } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');

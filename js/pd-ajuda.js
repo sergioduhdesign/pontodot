@@ -7,10 +7,10 @@
 window.PD_AJUDA = {
   plataforma: { t: 'Bem-vindo à PD', p: 'Oi! Eu sou a Gigi, recebo quem chega. Aqui você e as IAs da casa trabalham juntos. Tudo que entra vira tarefa, a produção acontece na área de Trabalho, passa pela aprovação e sai publicado. Este tour mostra o caminho inteiro — e, em cada ferramenta, o ? do ladinho explica o resto.' },
   lertarefa: { t: 'Como ler uma tarefa', p: 'Cada linha é uma tarefa: a carinha diz o estado (sorrindo = andando, piscando = pausada, séria = parada), o nome diz o que é, e o chip do lado diz quem cuida — IA ou pessoa. Clique na linha e ela abre inteira: briefing, prazo, cliente, conversa e o play pra ligar o cronômetro. O ponto colorido avisa que tem novidade desde a última vez.' },
-  tarefas: { t: 'Tarefas', p: 'Tudo começa aqui: cada pedido vira uma tarefa com responsável e prazo. Dá pra criar pela plataforma ou mandando mensagem no zap da PD. O play liga o cronômetro; quem é marcado recebe aviso na hora, aqui e no zap.' },
-  trabalho: { t: 'Trabalho', p: 'A área de produção da casa. Por enquanto a ferramenta aberta pra equipe é a de Copys — as outras (arte, locução, vídeo, gráfica) aparecem apagadinhas até serem liberadas pra você, pessoa por pessoa, pelo admin.' },
+  tarefas: { t: 'Tarefas', p: 'Vou começar por onde tudo começa: cada pedido vira uma tarefa com responsável e prazo. Dá pra criar pela plataforma ou mandando mensagem no zap da PD. O play liga o cronômetro; quem é marcado recebe aviso na hora, aqui e no zap.' },
+  trabalho: { t: 'Trabalho', p: 'Aqui é onde a gente põe a mão na massa: a área de produção da casa. Por enquanto a ferramenta aberta pra equipe é a de Copys — as outras (arte, locução, vídeo, gráfica) aparecem apagadinhas até serem liberadas pra você, pessoa por pessoa, pelo admin.' },
   copys: { t: 'Copys', p: 'Preencha o briefing, cole os dados estratégicos, escolha um estilo e peça. A IA escreve as variantes; você lapida direto nos cards. O que estiver bom segue pra revisão interna e, depois, pro cliente — sem redigitar nada.' },
-  aprovacoes: { t: 'Aprovação', p: 'O trabalho pronto entra num lote de aprovação. Primeiro a revisão interna — o "tá bom pra mostrar" da equipe —, depois o cliente. Correção volta pra IA com o apontamento; aprovação segue pro próximo passo sozinha.' },
+  aprovacoes: { t: 'Aprovação', p: 'Essa parte eu gosto: o trabalho pronto entra num lote de aprovação. Primeiro a revisão interna — o "tá bom pra mostrar" da equipe —, depois o cliente. Correção volta pra IA com o apontamento; aprovação segue pro próximo passo sozinha.' },
   social: { t: 'Social', p: 'O conteúdo aprovado entra na fila de publicação e agenda nas redes do cliente: feed, carrossel, stories e reels. Os comentários chegam aqui também, pra responder sem sair da plataforma.' },
   publicacao: { t: 'Publicação', p: 'A fila do que vai ao ar: o que está agendado, pra quando, em qual rede. Deu problema em alguma publicação, é aqui que aparece.' },
   anuncios: { t: 'Anúncios', p: 'As campanhas de mídia dos clientes: investimento, resultado e alertas. Os números vêm direto das contas conectadas.' },
@@ -26,17 +26,28 @@ window.PD_AJUDA = {
   catum: { t: 'Hora de Catum', p: 'O termômetro de confiança: de tantos trabalhos, quantos a IA acertou de primeira — "de primeira" é quando a equipe topa usar sem corrigir. Correção por mudança de direção ou briefing vago não conta contra ela. Quando a leitura firma, você sabe que já dá pra confiar aquela tarefa àquela IA; o valor por trás é tempo humano devolvido.' },
   equipe: { t: 'Equipe e funções', p: 'Marque as funções de cada pessoa (designer, copy, atendimento…): o fluxo encaminha o trabalho por função, com rodízio de carga. O botão verde liga e desliga o acesso sem apagar nada. E as ferramentas de Trabalho são liberadas pessoa por pessoa — Copys é de todos.' },
   aprovacao_interna: { t: 'Revisão interna', p: 'Antes do cliente ver, a equipe confere: aprovou, libera; precisa mexer, o apontamento volta pra IA corrigir. É esse "tá bom pra mostrar" que conta pra Hora de Catum.' },
-  verso: { t: 'O outro lado', p: 'A casa tem dois lados. Girou, apareceu a gestão completa: o funil de trabalho, os quadros, os clientes e o painel de números. Tudo que acontece na frente mora aqui atrás, organizado.' },
+  verso: { t: 'O outro lado', p: 'Vem comigo, a casa tem dois lados. Girou, apareceu a gestão completa: o funil de trabalho, os quadros, os clientes e o painel de números. Tudo que acontece na frente mora aqui atrás, organizado.' },
   escolaag: { t: 'Escola Agêntica', p: 'A primeira aba do verso é a escola das IAs vista por dentro: cursos, aulas e a evolução de cada personagem. Ela ainda está em finalização pra uso — por enquanto você só acompanha; os cursos abrem pra equipe em breve.' },
   lista: { t: 'Lista', p: 'Os mesmos trabalhos do funil, em linhas: dá pra ordenar, filtrar por cliente, responsável ou status e ver prazo de tudo de uma vez. Ideal pra conferir muita coisa rápido.' },
   fluxo: { t: 'Fluxo', p: 'O caminho de cada trabalho em forma de mapa: de onde veio, por quem passou e o que falta pra sair. Mostra gargalos e dependências sem precisar abrir card por card.' },
   mural: { t: 'Mural', p: 'O quadro de avisos da casa: recados, referências e combinados da equipe num lugar só, pra ninguém depender de mensagem perdida.' },
   redes: { t: 'Redes sociais', p: 'A fila de publicação por rede: o que está agendado, o que já saiu e o que espera aprovação. Daqui você acompanha o calendário de postagens de cada cliente.' },
   funil: { t: 'Funil', p: 'Todo trabalho anda por aqui: entra como briefing, vira produção, passa pela aprovação e sai entregue. Os cards andam pelas colunas com prazo e responsável sempre à vista.' },
-  clientes: { t: 'Clientes', p: 'A ficha de cada cliente: marca, acessos, redes conectadas e o zap. É aqui que você liga a Gigi pra atender o cliente no WhatsApp e escolhe quem entra no social.' },
+  clientes: { t: 'Clientes', p: 'Meus favoritos: a ficha de cada cliente — marca, acessos, redes conectadas e o zap. É aqui que você liga a Gigi pra atender o cliente no WhatsApp e escolhe quem entra no social.' },
   painel: { t: 'Painel', p: 'Os números da casa: o que está atrasado de verdade (briefing não conta), a carga de cada pessoa e o ritmo das entregas. O raio-x pra decidir sem achismo.' },
   pronto: { t: 'É isso', p: 'Foi um prazer te mostrar a casa. O S do canto gira entre os dois lados quando você quiser. Qualquer dúvida, procura o ? do ladinho de cada ferramenta — e este tour fica guardado no "Entenda a plataforma".' },
 };
+// ---- tour do CLIENTE: a Gigi recebe quem contrata a casa ----
+window.PD_AJUDA_CLI = {
+  cli_plataforma: { t: 'Que bom ter você aqui', p: 'Oi! Eu sou a Gigi, a anfitriã da casa — e vou ser a sua pessoa aqui dentro. A PD é onde o trabalho que você contratou acontece: você pede, acompanha, aprova e vê sair publicado, tudo num lugar só. Vou te mostrar em cinco passos.' },
+  cli_tarefas: { t: 'Pedir é simples', p: 'Cada pedido seu vira uma tarefa com prazo e responsável. Dá pra pedir aqui, escrevendo o que precisa, ou me mandando mensagem no WhatsApp — eu mesma abro pra você. A carinha de cada linha mostra se está andando, e o ponto colorido avisa quando tem novidade.' },
+  cli_aprovacoes: { t: 'Você aprova em um toque', p: 'Quando a equipe termina, o material chega aqui num lote pra você olhar. Aprovou, segue pra publicação sozinho. Quer mudar algo, escreve o que precisa no próprio card: o apontamento vai direto pra quem faz, sem telefone nem e-mail perdido.' },
+  cli_social: { t: 'As suas redes', p: 'O que você aprovou entra na fila e é publicado nas suas redes no dia e na hora combinados. Daqui você vê o calendário do que vai ao ar e o que já saiu — e os comentários que chegam também aparecem aqui.' },
+  cli_zap: { t: 'Eu no seu WhatsApp', p: 'Tudo isso funciona pelo zap também: pedir, perguntar como está, receber aviso de que tem algo pra aprovar. É a mesma conversa — o que vale aqui, vale lá. Me chama quando precisar.' },
+  cli_pronto: { t: 'É isso', p: 'Foi um prazer. Qualquer dúvida, o ? do ladinho de cada caixa explica — e este tour fica guardado no "Entenda a plataforma". A gente se fala!' },
+};
+window.PD_TOUR_CLI = ['cli_plataforma','cli_tarefas','cli_aprovacoes','cli_social','cli_zap','cli_pronto'];
+Object.assign(window.PD_AJUDA, window.PD_AJUDA_CLI);
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
 window.PD_TOUR = ['plataforma','tarefas','lertarefa','trabalho','copys','aprovacoes','social','zap','escola','verso','escolaag','funil','lista','fluxo','mural','redes','clientes','pronto'];
 window.PD_AJUDA_ALVO = {
@@ -56,7 +67,8 @@ window.PD_AJUDA_ALVO = {
   oficina: ['.gad[data-fk="gad-oficina"]'],
   ias: ['.gad[data-fk="gad-ias"]'],
   catum: ['#catPil'],
-  plataforma: [], verso: [], pronto: [],
+  plataforma: [], verso: [], pronto: [], cli_plataforma: [], cli_pronto: [],
+  cli_tarefas: ['#cxTarefas', '.gad[data-fk="gad-tarefas"]'], cli_aprovacoes: ['.gad[data-fk="gad-aprovacoes"]'], cli_social: ['.gad[data-fk="gad-social"]'], cli_zap: ['.gad[data-fk="gad-zap"]'],
   escolaag: ['app::#view-feed', 'app::#tab-feed'], lista: ['app::#view-lista', 'app::#tab-lista'], fluxo: ['app::#view-gantt', 'app::#tab-gantt'],
   mural: ['app::#view-mural', 'app::#tab-mural'], redes: ['app::#view-fila', 'app::#tab-fila'],
   funil: ['app::#kanban-board > *:first-child', 'app::#view-kanban'], clientes: ['app::#view-clientes .entity-card', 'app::#view-clientes'], painel: ['app::#view-admin'],
@@ -181,7 +193,7 @@ function abrirAjuda(chave, passo, origem){
   const d = window.PD_AJUDA[chave]; if (!d) return;
   const tok = ++_ajudaSegue;
   const cabeca = tour
-    ? `<div class="guia"><img src="/pd/personagens/gigi/avatar.jpg" alt="Gigi"><div><b>Gigi, a anfitriã da casa</b><small>te apresenta a PD · ${i + 1} de ${seq.length}</small></div></div>`
+    ? `<div class="guia"><img src="${(window.PD_TOUR_IMG && window.PD_TOUR_IMG[chave]) || '/pd/personagens/gigi/avatar.jpg'}" alt="Gigi"><div><b>Gigi, a anfitriã da casa</b><small>te apresenta a PD · ${i + 1} de ${seq.length}</small></div></div>`
     : `<div class="kk">Pontodot</div>`;
   const corpo = `${cabeca}<h3>${d.t}</h3><p>${d.p}</p><div class="rodape"><span style="flex:1"></span>${tour
     ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
