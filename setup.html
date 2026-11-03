@@ -249,7 +249,7 @@
   <div id="form-state">
     <div class="card-header" style="margin-bottom:20px">
       <h1>Criar sua senha</h1>
-      <p>Escolha uma senha para acessar a plataforma. Você poderá alterá-la depois no seu perfil.</p>
+      <p id="para-quem">Escolha uma senha para acessar a plataforma. Você poderá alterá-la depois no seu perfil.</p>
     </div>
 
     <div class="fields">
@@ -307,9 +307,13 @@
   const _th = _qs.get('token_hash');
   if (_th) {
     (async () => {
-      const { error } = await sb.auth.verifyOtp({ token_hash: _th, type: _qs.get('type') === 'recovery' ? 'recovery' : 'invite' });
-      if (error) { document.getElementById('form-state').style.display = 'none'; document.getElementById('error-state').style.display = 'flex'; }
-      else window.history.replaceState(null, '', window.location.pathname);
+      // a senha é SEMPRE da pessoa do link: derruba qualquer sessão que já estivesse aberta neste navegador
+      try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
+      const { data, error } = await sb.auth.verifyOtp({ token_hash: _th, type: _qs.get('type') === 'recovery' ? 'recovery' : 'invite' });
+      if (error || !data || !data.session) { document.getElementById('form-state').style.display = 'none'; document.getElementById('error-state').style.display = 'flex'; return; }
+      window.history.replaceState(null, '', window.location.pathname);
+      const em = (data.user && data.user.email) || (data.session.user && data.session.user.email) || '';
+      if (em) document.getElementById('para-quem').innerHTML = 'Senha para <b style="color:#fff">' + em.replace(/</g, '&lt;') + '</b>. Você poderá alterá-la depois no seu perfil.';
     })();
   }
   // Sem token nenhum — redireciona para login
@@ -339,6 +343,8 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Salvando...';
 
+    const { data: { session: sAtual } } = await sb.auth.getSession();
+    if (!sAtual) { err.textContent = 'O link não abriu uma sessão. Peça um link novo (ou use "Esqueci a senha").'; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Criar senha e entrar'; return; }
     const { error } = await sb.auth.updateUser({ password: pw });
 
     if (error) {
