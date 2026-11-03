@@ -37,7 +37,7 @@ switch ($acao) {
         $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
     case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
     case 'caixas':   // sem a senha: ela nunca volta pro navegador
-        $out(['caixas' => array_map(function ($x) { $x['tem_senha'] = !empty($x['senha_cifrada']); unset($x['senha_cifrada']); return $x; }, vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?select=id,client_id,email,usuario,imap_host,imap_porta,smtp_host,smtp_porta,ativo,ultimo_erro,ultima_leitura,senha_cifrada')))]); break;
+        $out(['caixas' => array_map(function ($x) { $x['tem_senha'] = !empty($x['senha_cifrada']); $x['senha_tam'] = $x['tem_senha'] ? mb_strlen(vdDecifrar($x['senha_cifrada'])) : 0; unset($x['senha_cifrada']); return $x; }, vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?select=id,client_id,email,usuario,imap_host,imap_porta,smtp_host,smtp_porta,ativo,ultimo_erro,ultima_leitura,senha_cifrada')))]); break;
     case 'caixa_salvar': case 'caixa_testar': case 'caixa_remover': case 'caixa_confiar':
         if (($u['role'] ?? '') !== 'admin') sd_fail('Só o admin mexe no e-mail dos clientes.', 403);
         $cli = vdUuid($b['client_id'] ?? ''); if (!$cli) sd_fail('falta o cliente');
@@ -59,6 +59,7 @@ switch ($acao) {
             'ativo' => true, 'ultimo_erro' => null, 'atualizado_em' => gmdate('c')];
         if ($senha !== '') $row['senha_cifrada'] = vdCifrar($senha);
         if ($at) { $r = vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'PATCH', $row); } else { $row['ultimo_uid'] = 0; $r = vdSup('/rest/v1/pd_vendas_caixas', 'POST', $row); }
+        if (($r['code'] ?? 500) >= 300) sd_fail('não consegui salvar: ' . mb_substr(json_encode($r['body'] ?? $r['raw'] ?? '', JSON_UNESCAPED_UNICODE), 0, 200), 500);
         $cx = vdCaixaDe($cli); $out(['salva' => true, 'teste' => ($cx && empty($b['sem_teste'])) ? vdCaixaTestar($cx) : null]); break;
     case 'ver':
         if (!$pid) sd_fail('falta o lead');
