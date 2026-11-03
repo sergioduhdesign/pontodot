@@ -117,6 +117,8 @@ function ajudaCss(){
   #pdAjudaOv .cxa.canto{top:auto!important;left:14px!important;bottom:74px;transform:none!important}
   @keyframes ajSurge{from{opacity:0}to{opacity:1}}
   #pdAjudaOv .kk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.45;margin-bottom:7px}
+  #pdAjudaOv .cxa{overflow:hidden}
+  #pdAjudaOv .capa{display:block;width:calc(100% + 36px);aspect-ratio:4/1;object-fit:cover;margin:-18px -18px 12px;border-radius:14px 14px 0 0}
   #pdAjudaOv .guia{display:flex;align-items:center;gap:9px;margin-bottom:10px}
   #pdAjudaOv .guia img{width:34px;height:34px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1.5px rgba(255,255,255,.18)}
   #pdAjudaOv .guia b{display:block;font-size:12.5px;font-weight:600;line-height:1.15}
@@ -193,7 +195,7 @@ function abrirAjuda(chave, passo, origem){
   const d = window.PD_AJUDA[chave]; if (!d) return;
   const tok = ++_ajudaSegue;
   const cabeca = tour
-    ? `<div class="guia"><img src="${(window.PD_TOUR_IMG && window.PD_TOUR_IMG[chave]) || '/pd/personagens/gigi/avatar.jpg'}" alt="Gigi"><div><b>Gigi, a anfitriã da casa</b><small>te apresenta a PD · ${i + 1} de ${seq.length}</small></div></div>`
+    ? `${(window.PD_TOUR_IMG && window.PD_TOUR_IMG[chave]) ? `<img class="capa" src="${window.PD_TOUR_IMG[chave]}" alt="">` : ''}<div class="guia"><img src="/pd/personagens/gigi/avatar.jpg" alt="Gigi"><div><b>Gigi, a anfitriã da casa</b><small>te apresenta a PD · ${i + 1} de ${seq.length}</small></div></div>`
     : `<div class="kk">Pontodot</div>`;
   const corpo = `${cabeca}<h3>${d.t}</h3><p>${d.p}</p><div class="rodape"><span style="flex:1"></span>${tour
     ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
