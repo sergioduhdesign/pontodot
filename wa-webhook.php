@@ -59,7 +59,23 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         $para = ctype_digit($de) ? pdZapNormaliza($de) : $de;
         // quem é? (por número: equipe ou cliente)
         $quem = $nomes[$de] ?? null; $cid = null; $membro = null; $clRow = null;
-        foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) { $quem = $p['name']; $membro = $p; break; }
+        // o MESMO número pode estar em mais de um cadastro (teste, ou gente que divide o zap): quem fala agora é a "persona" escolhida
+        $candidatos = [];
+        foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) $candidatos[] = $p;
+        $trocaPersona = null;
+        if (count($candidatos) > 1) {
+            $nrm = fn($x) => preg_replace('/[^a-z0-9 ]/', '', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$x)));
+            if (preg_match('/^\s*(?:sou (?:o|a)?|falar como|fala como|agora sou (?:o|a)?|persona)\s*:?\s*(.+?)\s*[.!]?\s*$/iu', $txt, $pm)) {
+                $alvoN = $nrm($pm[1]); foreach ($candidatos as $p) { $pn = $nrm($p['name']); if ($pn === $alvoN || strpos($pn, $alvoN) === 0 || explode(' ', $pn)[0] === explode(' ', $alvoN)[0]) { $trocaPersona = $p; break; } }
+            }
+            if ($trocaPersona) { sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $trocaPersona['name'], 'corpo' => 'persona: ' . $trocaPersona['name'], 'status' => 'persona', 'origem' => 'sistema', 'direcao' => 'entrada', 'ref' => 'persona:' . $trocaPersona['id']]); $membro = $trocaPersona; }
+            else {
+                $pr = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona&ref=like.persona:*&criado_em=gte.' . rawurlencode(gmdate('c', time() - 12 * 3600)) . '&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;
+                $pid = $pr ? substr((string)$pr['ref'], 8) : null;
+                foreach ($candidatos as $p) if ($pid && $p['id'] === $pid) $membro = $p;
+            }
+            if ($membro) $quem = $membro['name'];
+        } elseif ($candidatos) { $membro = $candidatos[0]; $quem = $membro['name']; }
         { $cr = sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap,ia_zap'); if (($cr['code'] ?? 500) >= 300) $cr = sd_supabase('/rest/v1/clients?zap=not.is.null&select=id,name,zap'); }
         if (!$cid) foreach ((array)($cr['body'] ?? []) as $cl) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$cl['zap'])) === $para) { $quem = $cl['name']; $cid = $cl['id']; $clRow = $cl; break; }
         $linha = ['canal' => 'whatsapp', 'para' => $para, 'quem' => $quem, 'corpo' => mb_substr($txt, 0, 2000),
@@ -73,6 +89,8 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                 sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'outro', 'user_id' => $ad['id'], 'titulo' => mb_substr('WhatsApp de ' . ($quem ?: '+' . $para), 0, 140),
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
+        if (count($candidatos) > 1 && !$membro) { try { $nomesC = implode(', ', array_map(fn($p) => explode(' ', trim($p['name']))[0], $candidatos)); pdZapEnviar($para, "Esse número está em mais de um cadastro (" . $nomesC . "). Me diz *sou o/a <nome>* que eu falo com você como essa pessoa pelas próximas 12 h.", true); } catch (Throwable $e) {} continue; }
+        if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . explode(' ', trim($trocaPersona['name']))[0] . '* nesse número (vale 12 h, ou até você trocar de novo).', true); } catch (Throwable $e) {} continue; }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
