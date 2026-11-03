@@ -528,6 +528,10 @@ function pdZapDigitando($wamid) {
 // Executa, pelo WhatsApp, o que a plataforma faz com botão: play, pausar, retomar, mensagem pra IA de produção, mudar campos, nota na tarefa.
 // Devolve uma linha de resultado ("✅ ..." ou "⚠️ ...").
 /** Persona (slug) que a pessoa está usando agora. A memória "da pessoa" é POR PERSONA: Zumi não sabe o que a Tumi aprendeu. */
+/** Registra o custo (estimado) de uma chamada ao GPT/OpenAI. Nunca quebra o fluxo se a tabela (SQL v152) ainda não existe. */
+function pdOpenaiLog($servico, $modelo, $usd, $detalhe = '') {
+    try { sd_supabase('/rest/v1/pd_openai_uso', 'POST', ['servico' => $servico, 'modelo' => $modelo, 'custo_usd' => round((float)$usd, 6), 'detalhe' => mb_substr((string)$detalhe, 0, 200)]); } catch (\Throwable $e) {}
+}
 function pdIaSlug($userId) {
     try { $pj = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode((string)$userId) . '&select=personagem&limit=1')['body'][0] ?? null;
         return strtolower(trim((string)($pj['personagem'] ?? '')));

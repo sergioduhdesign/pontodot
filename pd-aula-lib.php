@@ -41,7 +41,8 @@ function pdProfessor($system, $user, $pngB64 = null) {
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     if ($code !== 200) return [null, 0, 'a OpenAI respondeu HTTP ' . $code, 'GPT cru (API)'];
     $j = json_decode((string)$raw, true); $u = $j['usage'] ?? [];
-    return [trim((string)($j['choices'][0]['message']['content'] ?? '')), (($u['prompt_tokens'] ?? 0) * 2 + ($u['completion_tokens'] ?? 0) * 8) / 1e6, null, 'GPT cru (API · piloto)'];
+    $usdP = (($u['prompt_tokens'] ?? 0) * 2 + ($u['completion_tokens'] ?? 0) * 8) / 1e6; if (function_exists('pdOpenaiLog')) pdOpenaiLog('professor', $model, $usdP, 'prova/aula');
+    return [trim((string)($j['choices'][0]['message']['content'] ?? '')), $usdP, null, 'GPT cru (API · piloto)'];
 }
 function pdJson($t) { if (preg_match('/\{.*\}/s', (string)$t, $m)) $t = $m[0]; $j = json_decode((string)$t, true); return is_array($j) ? $j : null; }
 

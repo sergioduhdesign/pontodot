@@ -157,7 +157,11 @@ if ($acao === 'ias_casa') {   // as IAs agênticas já habilitadas (formação a
     foreach ($lista as &$i) $i['relogio'] = pdRelogioCatum($i['id']); unset($i);
     usort($lista, fn($a, $b2) => count($b2['aptas']) <=> count($a['aptas']));
     $fixas = [['id' => 'dot', 'personagem' => 'dot', 'nome' => 'dot', 'titulo' => 'consultor externo', 'dona' => '', 'aptas' => ['transporte e produção externa'], 'fixa' => true], ['id' => 'maestro', 'personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'distribui, cobra e revisa', 'dona' => '', 'aptas' => ['orquestração'], 'fixa' => true]];
-    $out = ['ias' => $lista, 'fixas' => $fixas]; if ($ehAdmin) $out['motores'] = ['dot' => 'GPT (projeto do Sérgio)', 'maestro' => 'Claude', 'personagens' => 'Claude (' . (defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5') . ')'];
+    $out = ['ias' => $lista, 'fixas' => $fixas];
+    if ($ehAdmin) { $ini = gmdate('Y-m-01') . 'T00:00:00Z'; $ur = pdAulaSup('/rest/v1/pd_openai_uso?criado_em=gte.' . $ini . '&select=servico,custo_usd,criado_em&limit=20000'); $uso = ['semTabela' => (($ur['code'] ?? 200) >= 300), 'servicos' => []]; $hoje = gmdate('Y-m-d');
+        foreach ((array)($ur['body'] ?? []) as $x) { $sv = $x['servico'] ?? '?'; $uso['servicos'][$sv] = $uso['servicos'][$sv] ?? ['mes' => 0, 'hoje' => 0, 'n' => 0]; $uso['servicos'][$sv]['mes'] += (float)$x['custo_usd']; $uso['servicos'][$sv]['n']++; if (substr((string)$x['criado_em'], 0, 10) === $hoje) $uso['servicos'][$sv]['hoje'] += (float)$x['custo_usd']; }
+        $out['uso_openai'] = $uso; }
+    if ($ehAdmin) $out['motores'] = ['dot' => 'GPT (projeto do Sérgio)', 'maestro' => 'Claude', 'personagens' => 'Claude (' . (defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5') . ')'];
     echo json_encode($out, JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'resumo_admin') {   // histórico de todas as IAs + média de aproveitamento por curso

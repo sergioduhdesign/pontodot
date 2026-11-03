@@ -23,6 +23,7 @@ function ctWhisper($b64, $ext, $mime, $idioma) {   // áudio → palavras com te
     $out = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch); @unlink($tmp);
     if ($code !== 200) sd_fail('Transcrição respondeu HTTP ' . $code . ($err ? ' · ' . $err : '') . ' · ' . mb_substr((string)$out, 0, 200), 502);
     $j = json_decode((string)$out, true) ?: []; $pal = [];
+    pdOpenaiLog('transcricao', 'whisper-1', ((float)($j['duration'] ?? 0)) / 60 * 0.006, round((float)($j['duration'] ?? 0)) . 's de áudio');
     foreach ((array)($j['words'] ?? []) as $w) { $t = trim((string)($w['word'] ?? '')); if ($t === '') continue; $pal[] = [$t, round((float)$w['start'], 2), round((float)$w['end'], 2)]; }
     return ['palavras' => $pal, 'idioma' => $j['language'] ?? null, 'duracao' => $j['duration'] ?? null];
 }
