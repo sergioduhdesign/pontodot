@@ -1533,6 +1533,11 @@ html.dia .cl-res{background:rgba(244,243,239,.96)}
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(10,12,11,.78);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);border-top:.5px solid var(--linha,rgba(255,255,255,.14))}
 html.dia .faixa-fixa{background:rgba(255,255,255,.8)}
 .faixa-fixa .faixa-msg{flex:1;min-width:0;font-size:12.5px;opacity:.85}
+.faixa-fixa > button:not([class]){background:#15803D;color:#fff;border:0;border-radius:9px;padding:9px 20px;font:inherit;font-weight:600;cursor:pointer}
+.faixa-fixa > button:not([class]):hover{filter:brightness(1.1)}
+.pf .faixa-fixa{background:#fff;color:#111;border-top:1px solid rgba(0,0,0,.14);backdrop-filter:none;-webkit-backdrop-filter:none}
+.pf .faixa-fixa label{color:#111}
+.pf-msg-ok{color:#15803D;font-weight:600}.pf-msg-erro{color:#c2410c;font-weight:600}
 /* ===== caixinhas: abrir e fechar sem pulo nem corte ===== */
 @keyframes gadFade{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);box-shadow:0 0 0 rgba(0,0,0,0);transform:translateY(-5px)}to{opacity:1;transform:none}}
 @keyframes bolPop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
@@ -4197,7 +4202,7 @@ function htmlPerfilPessoa(){
         <label style="display:block;font-size:12px;margin-top:8px">Rede 1<input id="pfSoc1" type="text" value="${esc(p.social1||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Rede 2<input id="pfSoc2" type="text" value="${esc(p.social2||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Site<input id="pfSite" type="text" value="${esc(p.site||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
-        <label style="display:block;font-size:12px;margin-top:8px">WhatsApp que você usa na plataforma <b style="color:#e5484d">*obrigatório</b><input id="pfZap" type="text" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">WhatsApp${ehCliente() ? '' : ' que você usa na plataforma'} ${ehCliente() ? '' : '<b style="color:#e5484d">*obrigatório</b>'}<input id="pfZap" type="text" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <div class="faixa-fixa" style="margin-top:10px">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pfZapAtivo" ${p.zap_ativo?'checked':''}> Receber alertas</label>
           <button onclick="salvarPerfilInline()" style="margin-left:auto">Salvar</button>
@@ -4293,17 +4298,20 @@ function abrirPerfil(){
 }
 async function salvarPerfilInline(){
   const g=id=>(document.getElementById(id).value||'').trim(), m=document.getElementById('pfZapMsg');
+  const bt=document.querySelector('.pf .faixa-fixa button');
+  const avisa=(t,ok)=>{ if(m){ m.textContent=t; m.className=ok?'pf-msg-ok':'pf-msg-erro'; } toast(t); if(bt){ bt.disabled=false; bt.textContent='Salvar'; } };
   const z=g('pfZap'), at=document.getElementById('pfZapAtivo').checked;
-  if(!ehCliente() && z.replace(/\D/g,'').length<10){ m.style.color='#e5484d'; m.textContent='Informe o WhatsApp com DDD. Sem ele a sua configuração fica incompleta (a IA e os alertas não chegam em você).'; document.getElementById('pfZap').focus(); return; }
-  m.style.color='';
+  if(!ehCliente() && z.replace(/\D/g,'').length<10){ avisa('Informe o WhatsApp com DDD: sem ele a sua configuração fica incompleta.'); document.getElementById('pfZap').focus(); return; }
+  if(bt){ bt.disabled=true; bt.textContent='Salvando…'; }
   const base={ name:g('pfNome')||perfil.name, bio:g('pfBio')||null, birthday:g('pfAniv')||null, contact:g('pfContato')||null, social1:g('pfSoc1')||null, social2:g('pfSoc2')||null, site:g('pfSite')||null };
   let r=await sbR.from('profiles').update(base).eq('id',perfil.id);
-  if(r.error){ m.textContent='Erro: '+r.error.message; return; }
+  if(r.error){ avisa('Não salvou: '+r.error.message); return; }
   Object.assign(perfil,base);
   r=await sbR.from('profiles').update({ zap:z||null, zap_ativo:!!(at&&z) }).eq('id',perfil.id).select('zap,zap_ativo');
-  if(r.error){ m.textContent=/zap/i.test(r.error.message||'')?'Perfil salvo. Falta rodar o SQL v97 para o WhatsApp.':'Erro: '+r.error.message; return; }
-  if(!r.data||!r.data.length||(z&&(r.data[0].zap||'')!==z)){ m.textContent='O banco não gravou o telefone (permissão). Avise o Sérgio.'; return; }
-  perfil.zap=z||null; perfil.zap_ativo=!!(at&&z); m.textContent='Salvo ✓';
+  if(r.error){ avisa(/zap/i.test(r.error.message||'')?'Perfil salvo. Falta rodar o SQL v97 para o WhatsApp.':'Não salvou: '+r.error.message); return; }
+  if(!r.data||!r.data.length||(z&&(r.data[0].zap||'')!==z)){ avisa('O banco não gravou o telefone (permissão). Avise o Sérgio.'); return; }
+  perfil.zap=z||null; perfil.zap_ativo=!!(at&&z);
+  toast('Perfil salvo ✓'); try { fecharJanela(); } catch(e){} try { render(); renderBoard(); } catch(e){}
 }
 function editarPerfil(){
   fecharJanela();
@@ -6502,6 +6510,11 @@ document.addEventListener('scroll', e => { if (e.target && e.target.classList &&
 addEventListener('resize', () => setTimeout(atualizarSetaBoard, 60));
 function renderBoard(){
   const grid = $('#boardGrid'); if (!grid) return;
+  // PRIMEIRO ACESSO: todas as caixas que a pessoa pode usar já nascem na área de trabalho (nada escondido). Depois, a escolha é dela.
+  try { if (window.REAL && perfil && !ehCliente() && !localStorage.getItem('sd_gad_primeiro')){
+    localStorage.setItem('sd_gad_primeiro', '1');
+    if (!localStorage.getItem('sd_gadgets')){ meusGadgets = Object.keys(GADGETS).filter(id => !GADGETS[id].oculto && id !== 'banco' && gadLiberado(GADGETS[id])); salvarGadgets(); }
+  } } catch(e){}
   $('#pickerSlot').innerHTML = !pickerAberto ? '' : `
     <div class="picker-veu" onclick="abrirPicker()"></div>
     <div class="picker-pop"><div class="caixa painel invertida" style="margin:0">
