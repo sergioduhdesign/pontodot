@@ -149,6 +149,11 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         if ($cid && $membro && ($membro['role'] ?? '') === 'client') $membro = null;
         elseif ($cid && $membro) { $cid = null; $clRow = null; }
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
+        // ninguém respondeu? deixa o MOTIVO escrito no histórico de avisos (aba Zap do admin), pra não ficar mudo sem explicação
+        elseif ($cid && !$membro && trim((string)$txt) !== '') { try {
+            $mot = 'a Gigi está DESLIGADA para ' . ($clRow['name'] ?? 'este cliente') . ': marque "Gigi (IA) responde no WhatsApp" no cadastro do cliente (e rode o SQL v131 se a caixa não salvar)';
+            pdAvisoLog('whatsapp', $para, $quem ?: ('+' . $para), null, '[a IA do atendimento não respondeu] ' . $mot, 'erro', $mot, 'ia');
+        } catch (Throwable $e) {} }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { try { $ens = pdPalavraEnsinar($membro['id'], $txt); if ($ens) { sd_supabase('/rest/v1/pd_avisos_log?wamid=eq.' . rawurlencode($id), 'PATCH', ['corpo' => '[palavra combinada]']); pdZapDigitando($id); pdZapEnviar($para, $ens, true); continue; } } catch (Throwable $e) {} }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { try { require_once __DIR__ . '/pd-ia-lib.php'; $at = iaAtalhoConvite($membro, $txt); if ($at) { pdZapDigitando($id); pdZapEnviar($para, $at, true); continue; } } catch (Throwable $e) {} }
         if ($membro && !$cid && ($membro['role'] ?? '') !== 'client') { try { require_once __DIR__ . '/pd-ia-lib.php'; $GLOBALS['PD_IA_CANAL'] = 'whatsapp'; $GLOBALS['PD_IA_CHAVE'] = $para; $cf = iaConfirmaProcessar($membro, 'whatsapp', $para, $txt); if ($cf) { pdZapDigitando($id); pdZapEnviar($para, $cf['texto'], true); continue; } } catch (Throwable $e) {} }
