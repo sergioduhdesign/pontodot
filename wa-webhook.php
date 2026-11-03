@@ -97,7 +97,10 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                 $pp = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_pendente&criado_em=gte.' . rawurlencode(gmdate('c', time() - 600)) . '&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;
                 if ($pp) { $pid0 = substr((string)$pp['ref'], 8); foreach ($candidatos as $p) if ($p['id'] === $pid0) $pendente = $p;
                     if ($pendente) { $pal = pdPalavraMagica($pendente['id']); if ($pal !== '' && pdSegredoNorm($txt) === pdSegredoNorm($pal)) { $acertou = true; $trocaPersona = $pendente; } else $errou = true;
-                        sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_pendente', 'PATCH', ['status' => $acertou ? 'persona_ok' : 'persona_erro']); } }
+                        if ($acertou) sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_pendente', 'PATCH', ['status' => 'persona_ok']);
+                        else { $tent = count((array)(sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_erro&criado_em=gte.' . rawurlencode(gmdate('c', time() - 600)) . '&select=id')['body'] ?? []));
+                            sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => 'whatsapp', 'para' => $para, 'quem' => $pendente['name'], 'corpo' => 'palavra errada', 'status' => 'persona_erro', 'origem' => 'sistema', 'direcao' => 'entrada', 'ref' => 'persona:' . $pendente['id']]);
+                            if ($tent >= 2) { sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona_pendente', 'PATCH', ['status' => 'persona_desistiu']); $errou = 'limite'; } } } }
             }
             $pedePalavra = false;
             if ($trocaPersona && !$acertou && pdPalavraMagica($trocaPersona['id']) !== '') {   // essa pessoa tem palavra mágica: pede antes de trocar
@@ -127,7 +130,7 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                 sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'outro', 'user_id' => $ad['id'], 'titulo' => mb_substr('WhatsApp de ' . ($quem ?: '+' . $para), 0, 140),
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
-        if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, $errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?', true); } catch (Throwable $e) {} continue; }
+        if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, $errou === 'limite' ? 'Três tentativas erradas. Se esqueceu a palavra, entra na plataforma, abre "o que eu sei" na sua IA e apaga ou ensina outra. Depois me diz de novo quem você é.' : ($errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?'), true); } catch (Throwable $e) {} continue; }
         if (count($candidatos) > 1 && !$membro) { try { pdZapDigitando($id); pdZapEnviar($para, (count($achados) > 1 ? "Achei mais de um com esse nome. " : '') . $perguntaQuem, true); } catch (Throwable $e) {} continue; }
         if ($trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, 'Fechado: daqui em diante você é *' . trim($trocaPersona['name']) . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
