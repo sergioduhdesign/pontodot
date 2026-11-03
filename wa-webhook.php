@@ -61,13 +61,30 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         $quem = $nomes[$de] ?? null; $cid = null; $membro = null; $clRow = null;
         // o MESMO número pode estar em mais de um cadastro (teste, ou gente que divide o zap): quem fala agora é a "persona" escolhida
         $candidatos = [];
-        foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) $candidatos[] = $p;
+        foreach ((array)(sd_supabase('/rest/v1/profiles?zap=not.is.null&active=eq.true&select=id,name,email,zap,team_key,role')['body'] ?? []) as $p) if (pdZapNormaliza(preg_replace('/\D/', '', (string)$p['zap'])) === $para) $candidatos[] = $p;
         $trocaPersona = null;
         if (count($candidatos) > 1) {
-            $nrm = fn($x) => preg_replace('/[^a-z0-9 ]/', '', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$x)));
-            if (preg_match('/^\s*(?:sou (?:o|a)?|falar como|fala como|agora sou (?:o|a)?|persona)\s*:?\s*(.+?)\s*[.!]?\s*$/iu', $txt, $pm)) {
-                $alvoN = $nrm($pm[1]); foreach ($candidatos as $p) { $pn = $nrm($p['name']); if ($pn === $alvoN || strpos($pn, $alvoN) === 0 || explode(' ', $pn)[0] === explode(' ', $alvoN)[0]) { $trocaPersona = $p; break; } }
+            $nrm = fn($x) => trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9 @.]/', ' ', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$x)))));
+            // quem é? aceita: "sou o X", "aqui é o X", "X aqui", "é o X", só "X", o número da lista (1, 2…), o e-mail, ou "admin"/"equipe" quando só um é
+            $dito = $nrm(preg_replace('/^\s*(?:oi|ola|opa|e ai|bom dia|boa tarde|boa noite)[,!. ]*/iu', '', $txt));
+            $dito = preg_replace('/^(?:sou (?:o|a) |sou |aqui e (?:o|a) |aqui e |e (?:o|a) |falar como |fala como |agora sou (?:o|a) |agora sou |persona |eu sou (?:o|a) |eu sou |aqui )/', '', $dito);
+            $dito = preg_replace('/( aqui| mesmo| falando)$/', '', trim($dito));
+            $achados = [];
+            if ($dito !== '' && mb_strlen($dito) <= 60) {
+                if (ctype_digit($dito)) { $k = (int)$dito - 1; if (isset($candidatos[$k])) $achados = [$candidatos[$k]]; }
+                else {
+                    foreach ($candidatos as $p) { $pn = $nrm($p['name']); $pe = $nrm($p['email'] ?? '');
+                        if ($pn === $dito || ($pe !== '' && ($pe === $dito || explode('@', $pe)[0] === $dito))) { $achados = [$p]; break; } }
+                    if (!$achados) foreach ($candidatos as $p) { $pn = $nrm($p['name']); if (strpos($pn, $dito) === 0 || strpos($dito, $pn) !== false) $achados[] = $p; }
+                    if (!$achados) { $pal = explode(' ', $dito); foreach ($candidatos as $p) { $pn = $nrm($p['name']); $ok = true; foreach ($pal as $w) if ($w !== '' && strpos($pn, $w) === false && !in_array($w, ['adm', 'admin', 'equipe', 'vendas', 'comercial'], true)) { $ok = false; break; } if ($ok && array_filter($pal, fn($w) => strpos($pn, $w) !== false)) $achados[] = $p; } }
+                    if (count($achados) > 1 && preg_match('/\b(adm|admin)\b/', $dito)) { $ad = array_values(array_filter($achados, fn($p) => ($p['role'] ?? '') === 'admin')); if (count($ad) === 1) $achados = $ad; }
+                    if (count($achados) > 1 && preg_match('/\b(equipe|vendas|comercial)\b/', $dito)) { $eq2 = array_values(array_filter($achados, fn($p) => ($p['role'] ?? '') !== 'admin')); if (count($eq2) === 1) $achados = $eq2; }
+                }
             }
+            if (count($achados) === 1) $trocaPersona = $achados[0];
+            // nomes distinguíveis na pergunta: "1) Sérgio Duh (admin) · 2) Sérgio Vendas (equipe)"
+            $listaC = []; foreach ($candidatos as $ix => $p) $listaC[] = ($ix + 1) . ') ' . trim($p['name']) . ' (' . (($p['role'] ?? '') === 'admin' ? 'admin' : 'equipe') . ')';
+            $perguntaQuem = "Esse número está em mais de um cadastro:\n" . implode("\n", $listaC) . "\n\nQuem é você? Responda com o número ou o nome (ex.: *2* ou *sou o " . trim($candidatos[1]['name']) . "*). Vale até você trocar de novo.";
             // resposta à pergunta da palavra mágica (pendência dos últimos 10 min)
             $pendente = null; $acertou = false; $errou = false;
             if (!$trocaPersona) {
@@ -104,8 +121,8 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
         if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapEnviar($para, $errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?', true); } catch (Throwable $e) {} continue; }
-        if (count($candidatos) > 1 && !$membro) { try { $nomesC = implode(', ', array_map(fn($p) => explode(' ', trim($p['name']))[0], $candidatos)); pdZapEnviar($para, "Esse número está em mais de um cadastro (" . $nomesC . "). Me diz *sou o/a <nome>* que eu falo com você como essa pessoa até você trocar.", true); } catch (Throwable $e) {} continue; }
-        if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . explode(' ', trim($trocaPersona['name']))[0] . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
+        if (count($candidatos) > 1 && !$membro) { try { pdZapEnviar($para, (count($achados) > 1 ? "Achei mais de um com esse nome. " : '') . $perguntaQuem, true); } catch (Throwable $e) {} continue; }
+        if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . trim($trocaPersona['name']) . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
