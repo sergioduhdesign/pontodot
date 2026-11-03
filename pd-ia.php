@@ -61,17 +61,18 @@ $anexos = ''; foreach (array_slice((array)($b['anexos'] ?? []), 0, 6) as $a) { $
 if ($ehCliente) {
     // ===== GIGI DO CLIENTE: especialista nesse cliente, vê só o que é dele =====
     $cid = (string)$u['client_id']; $GLOBALS['PD_IA_CLIENTE'] = $cid;
-    $cl = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid) . '&select=id,name,ia_zap,site,obs')['body'][0] ?? ['name' => 'seu cliente'];
+    $cl = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid) . '&select=*')['body'][0] ?? ['name' => 'seu cliente'];
     $pers = strtolower(trim((string)($cl['ia_zap'] ?? ''))) ?: 'gigi'; $pc = pdPersonagens()[$pers] ?? pdPersonagens()['gigi'];
     $prodsC = []; foreach ($prods as $p) if ((string)$p['client_id'] === $cid) $prodsC[] = $p['name'];
     $tarefasC = []; foreach ($tarefas as $t) if (($t['cliente'] ?? '') === ($cl['name'] ?? '')) { unset($t['resp']); $tarefasC[] = $t; }
     $aprov = []; try { $ar = (array)(sd_supabase('/rest/v1/approval_sets?client_id=eq.' . urlencode($cid) . '&select=id,titulo,status,created_at&order=created_at.desc&limit=20')['body'] ?? []); foreach ($ar as $a) $aprov[] = ['id' => $a['id'], 'titulo' => $a['titulo'] ?? '', 'status' => $a['status'] ?? '']; } catch (Throwable $e) {}
-    $memC = []; try { $mr = (array)(sd_supabase('/rest/v1/sd_memoria?select=assunto,conteudo&ativo=is.true&escopo=eq.cliente&escopo_id=eq.' . urlencode($cid) . '&order=created_at.desc&limit=40')['body'] ?? []); foreach ($mr as $m) $memC[] = $m['assunto'] . ': ' . $m['conteudo']; } catch (Throwable $e) {}
+    $memC = []; try { $mr = (array)(sd_supabase('/rest/v1/sd_memoria?select=assunto,conteudo&ativo=is.true&escopo=eq.cliente&escopo_id=eq.' . urlencode($cid) . '&order=created_at.desc&limit=150')['body'] ?? []); foreach ($mr as $m) $memC[] = $m['assunto'] . ': ' . $m['conteudo']; } catch (Throwable $e) {}
+    $entC = []; foreach ($entregues as $e) if (strpos($e, '(' . ($cl['name'] ?? '') . ')') !== false) $entC[] = $e;
     $equipeH = []; foreach (iaEquipe() as $e) $equipeH[] = $e['nome'];
     $quemSou = $pc[0] . ' ' . $pc[1] . ', ' . mb_strtolower($pc[2]) . ', a IA da Pontodot que cuida de ' . $cl['name'] . '. ' . $pc[4] . ' Seu nome aqui é ' . $pc[0] . '.' . pdFichaCatum($pers);
     $contexto = ['agora' => $agora->format('Y-m-d H:i l'), 'calendario' => array_slice($cal, 0, 10), 'quem_pede' => ['nome' => $u['name'], 'papel' => 'cliente', 'empresa' => $cl['name']],
         'cliente' => ['nome' => $cl['name'], 'site' => $cl['site'] ?? '', 'produtos' => $prodsC], 'tarefas_abertas_do_cliente' => $tarefasC, 'aprovacoes_recentes' => $aprov,
-        'o_que_a_casa_sabe_do_cliente' => $memC, 'equipe_humana_da_agencia' => $equipeH];
+        'o_que_a_casa_sabe_do_cliente' => $memC, 'ficha_do_cliente' => array_intersect_key((array)$cl, array_flip(['name', 'site', 'obs', 'instagram', 'segmento', 'nicho', 'publico', 'oferta', 'tom', 'descricao', 'briefing'])), 'entregues_recentes_do_cliente' => $entC, 'equipe_da_casa' => pdElencoCasa()];
     foreach (['comentarios', 'jeito_de_trabalhar'] as $k) if (!empty($b[$k])) $contexto[$k] = json_decode(mb_substr(json_encode($b[$k], JSON_UNESCAPED_UNICODE), 0, 8000), true);
     $sys = 'Você é ' . $quemSou . ' Você conversa com ' . $u['name'] . ', que é CLIENTE da agência (empresa ' . $cl['name'] . '), no chat da plataforma Pontodot. Responda em pt-BR, acolhedora e objetiva, como a pessoa de confiança dele dentro da agência. Curto: 1 a 4 frases, sem markdown pesado.'
         . "
@@ -79,10 +80,13 @@ if ($ehCliente) {
 O QUE VOCÊ FAZ POR ELE: (1) abre pedidos — pedido claro vira tarefa AGORA com pedir_trabalho, sem pedir autorização; (2) diz como estão os trabalhos dele (status, prazo, o que falta); (3) aponta o que está esperando aprovação dele e explica como aprovar (na caixa Aprovações da home ou pelo zap); (4) anota recados pra equipe com comentar; (5) guarda o que ele te ensinar sobre a empresa com lembrar."
         . "
 
-LIMITES: você só vê e só mexe no que é de " . $cl['name'] . ". Nunca cite outros clientes, nunca revele dados internos da agência (chaves, custos, carga da equipe). Não aprova nem reprova por ele: aprovação é um clique dele. Não promete prazo que não está no contexto; se não souber, diga que vai confirmar com a equipe e abra o pedido."
+SOBRE O CLIENTE: você é a especialista nele. Conhece a ficha, os produtos, a história que a casa guardou (o_que_a_casa_sabe_do_cliente), os trabalhos em andamento e entregues, as aprovações. Fale com a segurança de quem acompanha tudo de perto e nunca pergunte o que já está no contexto."
         . "
 
-EQUIPE HUMANA: ele pode falar com a equipe pela caixa Equipe da home; se pedir uma pessoa, diga quem cuida e abra um recado (comentar) na tarefa certa."
+LIMITES: você só vê e só mexe no que é de " . $cl['name'] . ". NUNCA fale de outros clientes, nem para comparar nem como exemplo; se perguntarem, diga que cuida só dele. Nunca revele chaves, custos, valores internos nem prazo interno. Não aprova nem reprova por ele: aprovação é um clique dele. Não promete prazo que não está no contexto; se não souber, diga que vai confirmar com a equipe e abra o pedido."
+        . "
+
+A CASA POR DENTRO: você conhece a equipe inteira (equipe_da_casa): quem é cada pessoa, o que faz, quem é a IA de cada uma e o que essa IA andou fazendo nos últimos dias. Conte isso com naturalidade quando fizer sentido (quem cuida do quê, com quem ele deve falar, que as IAs também trabalham no caso dele), sem citar nenhum outro cliente. Se ele pedir uma pessoa, diga quem cuida e abra um recado (comentar) na tarefa certa. Ele também pode falar com a equipe pela caixa Equipe da home."
         . "
 
 Use SOMENTE os dados do CONTEXTO: não invente tarefa, prazo ou pessoa.
