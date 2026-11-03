@@ -508,16 +508,24 @@ function vdCaixasTodas() {
 }
 /** Descobre sozinho os servidores do e-mail a partir do endereço — o usuário só informa e-mail e senha. */
 function vdProvedor($dom) {
-    $mx = ''; foreach ((array)@dns_get_record($dom, DNS_MX) as $r) $mx .= ' ' . strtolower($r['target'] ?? '');
+    $alvos = []; foreach ((array)@dns_get_record($dom, DNS_MX) as $r) $alvos[] = strtolower(rtrim($r['target'] ?? '', '.'));
+    $mx = ' ' . implode(' ', $alvos);
     if (preg_match('/google\.com|googlemail\.com/', $mx)) return ['imap' => [['imap.gmail.com', 993]], 'smtp' => [['smtp.gmail.com', 465]]];
     if (preg_match('/outlook\.com|protection\.outlook|office365/', $mx)) return ['imap' => [['outlook.office365.com', 993]], 'smtp' => [['smtp.office365.com', 587]]];
+    if (strpos($mx, 'titan.email') !== false) return ['imap' => [['imap.titan.email', 993]], 'smtp' => [['smtp.titan.email', 465]]];
+    if (preg_match('/zoho\.(com|eu|in)/', $mx, $m)) return ['imap' => [['imap.zoho.' . $m[1], 993]], 'smtp' => [['smtp.zoho.' . $m[1], 465]]];
+    if (strpos($mx, 'hostinger.com') !== false) return ['imap' => [['imap.hostinger.com', 993]], 'smtp' => [['smtp.hostinger.com', 465]]];
+    // outros provedores: o e-mail costuma morar no domínio do próprio MX (imap.<provedor> / smtp.<provedor>)
+    foreach ($alvos as $t) { $p = explode('.', $t); $n = count($p); if ($n < 3) continue;
+        $base = implode('.', array_slice($p, ($n >= 3 && in_array($p[$n - 2], ['com', 'net', 'org'], true) && strlen($p[$n - 1]) === 2) ? -3 : -2));
+        if ($base !== $dom && substr($t, -strlen($dom)) !== $dom) return ['imap' => [['imap.' . $base, 993], ['mail.' . $base, 993]], 'smtp' => [['smtp.' . $base, 465], ['smtp.' . $base, 587], ['mail.' . $base, 465]], 'extra' => true]; }
     return null;
 }
 function vdCandidatos($cx, $lado) {
     $dom = strtolower(substr(strrchr($cx['email'], '@'), 1)); $h = trim((string)($cx[$lado . '_host'] ?? '')); $p = (int)($cx[$lado . '_porta'] ?? 0);
     $auto = $h === '' || $h === 'mail.' . $dom;
     if (!$auto) return [[$h, $p ?: ($lado === 'imap' ? 993 : 465)]];
-    if ($pv = vdProvedor($dom)) return $pv[$lado];
+    if ($pv = vdProvedor($dom)) { $l = $pv[$lado]; if (!empty($pv['extra'])) $l = array_merge($l, $lado === 'imap' ? [['mail.' . $dom, 993]] : [['mail.' . $dom, 465]]); return $l; }
     if ($lado === 'imap') return [['mail.' . $dom, 993], ['imap.' . $dom, 993], [$dom, 993]];
     return [['mail.' . $dom, 465], ['mail.' . $dom, 587], ['smtp.' . $dom, 465], ['smtp.' . $dom, 587], [$dom, 465]];
 }
