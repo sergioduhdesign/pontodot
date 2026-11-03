@@ -39,6 +39,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .msg{padding:50px 0;text-align:center;color:var(--branco2)}.log{font-size:12.5px;color:var(--branco2);margin:8px 0;white-space:pre-wrap}
 .bub{padding:10px 13px;border-radius:16px;margin:7px 0;max-width:88%;white-space:pre-wrap;font-size:13px;border:.5px solid var(--linha);background:rgba(255,255,255,.05)}.bub.e{background:rgba(255,255,255,.88);color:#111;margin-left:auto;border-color:transparent}.bub small{display:block;opacity:.6;font-size:11px;margin-top:5px}
 .dr{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:rgba(12,14,13,.94);border-left:.5px solid var(--linha);padding:20px;overflow:auto}
+.tumi{display:inline-grid;place-items:center;border-radius:50%;overflow:hidden;flex:0 0 auto;background:#2a2d2b;color:#fff;font-weight:600;border:.5px solid rgba(255,255,255,.25)}.tumi img{width:100%;height:100%;object-fit:cover;display:block}
 .capa{position:relative;border-radius:var(--r);overflow:hidden;height:clamp(110px,19vw,190px);border:.5px solid var(--linha);background:#161918}
 .capa>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 45%}
 .capa-v{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,9,.88) 0%,rgba(8,10,9,.55) 42%,rgba(8,10,9,0) 75%)}
@@ -58,7 +59,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
 </style></head><body><div class="w">
 <div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
-  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1></div></div>
+  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1></div><span class="row" style="gap:8px;margin-left:6px;opacity:.95"><span class="tumi" style="width:44px;height:44px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></span></div>
 </div>
 <div class="cw"><button class="sc l" onclick="rola(-1)" aria-label="Anterior">‹</button><div class="carts" id="carts"></div><button class="sc r" onclick="rola(1)" aria-label="Próximo">›</button></div>
 <div class="faixa" id="faixa" style="display:none"></div>
@@ -77,6 +78,7 @@ async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(
   try{const f=await api({acao:'funil'});CARTS=f.carteiras;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
   await carrega();}
 function corDe(c){const h=String(c||'#444').replace('#','');const v=h.length===3?h.split('').map(x=>x+x).join(''):h.padEnd(6,'0');const r=parseInt(v.slice(0,2),16),g=parseInt(v.slice(2,4),16),b=parseInt(v.slice(4,6),16);return {bg:'#'+v.slice(0,6),fg:(r*299+g*587+b*114)/1000>150?'#111':'#fff'};}
+function tumiAv(px){px=px||30;return`<span class="tumi" style="width:${px}px;height:${px}px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.replaceWith(document.createTextNode('T'))"></span>`;}
 function avDe(c,big){return c.logo_url?`<span class="av"><img src="${esc(c.logo_url)}" alt=""></span>`:`<span class="av" style="background:${esc(c.color||'#555')}">${esc((c.name||'?').slice(0,2).toUpperCase())}</span>`;}
 function chips(){
   const todos=[{id:'todas',name:'Todos os clientes',color:'#3a3d3b',logo_url:''},...CARTS];
@@ -92,8 +94,19 @@ function faixa(){const f=$('#faixa');if(!f)return;
   const tot=Object.values(FUN).reduce((a,b)=>a+b,0),conv=['engajado','qualificando','proposta','negociando'].reduce((a,e)=>a+(FUN[e]||0),0);
   f.style.cssText=`display:flex;background:${k.bg};color:${k.fg}`;
   f.innerHTML=`${avDe(c)}<div><div class="nm">${esc(c.name)}</div><div class="nu">${tot.toLocaleString('pt-BR')} leads · ${conv} em conversa · ${CAIXA.length} na caixa de saída</div></div><button class="x" onclick="troca('todas')">ver todos</button>`;}
-async function troca(id){CART=id;EST='';PAG=0;await carrega();}
-async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);try{CX=(await api({acao:'caixas'})).caixas||[];}catch(e){CX=[];}try{TERMO=(await api({acao:'termometro'})).t;}catch(e){TERMO=null;}try{const a=await api({acao:'auto_ler'});AUTO=a.auto||[];AUTOHOJE=a.hoje||null;}catch(e){AUTO=[];}FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+async function troca(id){CART=id;EST='';PAG=0;chips();faixa();await carrega();}
+async function carrega(){
+  $('#app')&&($('#app').style.opacity='.55');
+  try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);
+    FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}
+  catch(e){$('#app').style.opacity='';$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
+  $('#app').style.opacity='';draw();extras();}
+let _ex=0;
+async function extras(){const n=++_ex;   // o que só a Caixa de saída usa: carrega em paralelo, sem travar a troca de aba/cliente
+  const [a,b,c]=await Promise.allSettled([api({acao:'caixas'}),api({acao:'termometro'}),api({acao:'auto_ler'})]);if(n!==_ex)return;
+  CX=a.status==='fulfilled'?(a.value.caixas||[]):[];TERMO=b.status==='fulfilled'?b.value.t:null;AUTO=c.status==='fulfilled'?(c.value.auto||[]):[];AUTOHOJE=c.status==='fulfilled'?(c.value.hoje||null):null;
+  const ed=document.activeElement&&/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);   // não apaga o que a pessoa está digitando
+  if(TAB==='caixa'&&!ed)draw();}
 function draw(){
   chips();
   $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';draw()">${n}</button>`).join('');
@@ -110,7 +123,7 @@ function vFunil(){
 function filtra(){FIL={q:$('#fq').value.trim(),uf:$('#fu').value,segmento:$('#fs').value.trim(),nota_min:+$('#fn').value};PAG=0;carrega();}
 function loteCriar(b){run(b,'Criando…',async()=>{const r=(await api({acao:'lote_criar',...FIL,estagio:EST,nome:$('#ln').value,max:+$('#lm').value})).r;LOG=`✅ Lote com ${r.dentro.toLocaleString('pt-BR')} leads. Estou lendo os sites em segundo plano (uns 40 a cada 5 min); os melhores sobem primeiro.`;});}
 function vCaixa(){
-  const c=CAIXA.map(x=>`<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(x.pd_prospects?.nome||'')}</b><span class="sub">${x.canal} · msg ${x.sequencia||1} · por ${esc(x.escrito_por||'')}</span></div>
+  const c=CAIXA.map(x=>`<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(x.pd_prospects?.nome||'')}</b><span class="sub">${x.canal} · msg ${x.sequencia||1} · por ${(x.escrito_por||'').toLowerCase()==='tumi'?tumiAv(18)+' ':''}${esc(x.escrito_por||'')}</span></div>
     ${x.canal==='email'?`<input style="width:100%;margin:8px 0" value="${esc(x.assunto)}" onchange="ed('${x.id}',{assunto:this.value})">`:''}
     <textarea rows="6" onchange="ed('${x.id}',{corpo:this.value})">${esc(x.corpo)}</textarea>
     <div class="row" style="margin-top:8px"><button class="btn p s" onclick="env('${x.id}',this)">Aprovar e enviar</button><button class="btn s" onclick="rej('${x.id}')">Descartar</button></div></div>`).join('')||'<div class="msg">Nada esperando aprovação.</div>';
@@ -118,14 +131,14 @@ function vCaixa(){
 
 function termoUI(){const t=TERMO;if(!t)return'';
   const l=t.estado==='sem_leitura'?'Ainda sem leitura: aprove as primeiras mensagens pra ele começar a aprender.':t.estado==='em_formacao'?`Em formação: ${t.primeira} de ${t.avaliadas} aprovadas de primeira (a leitura fecha com ${t.minimo}).`:`Aprovadas de primeira: <b>${t.primeira} de ${t.avaliadas}</b> (${Math.round(t.taxa*100)}%).`;
-  return`<div class="card"><b>${esc(t.ia)} · captação de clientes</b><div class="sub" style="margin:4px 0 0">${l} ${t.ajustadas?`${t.ajustadas} ajustadas por você, ${t.descartadas} descartadas. `:''}Cada ajuste que você faz vira lição para ele.</div></div>`;}
+  return`<div class="card"><div class="row" style="gap:10px;align-items:center">${tumiAv(34)}<b>${esc(t.ia)} · captação de clientes</b></div><div class="sub" style="margin:4px 0 0">${l} ${t.ajustadas?`${t.ajustadas} ajustadas por você, ${t.descartadas} descartadas. `:''}Cada ajuste que você faz vira lição para ele.</div></div>`;}
 /* ---- Tumi automático: liga/desliga por cliente */
 function autoDe(id){return AUTO.find(x=>x.client_id===id);}
 function autoUI(){
   if(CART==='todas'){const lin=CARTS.map(c=>{const a=autoDe(c.id);const on=a&&a.ativo;return`<div class="row" style="justify-content:space-between;padding:7px 0;border-top:.5px solid var(--linha,rgba(255,255,255,.12))"><span class="row" style="gap:10px">${avDe(c)}<b>${esc(c.name)}</b></span><span class="row" style="gap:10px"><span class="sub" style="color:${on?'#7ee2a2':'var(--branco2)'}">${on?'automático ligado':'desligado'}</span><button class="btn s" onclick="troca('${c.id}')">${on?'Ver':'Configurar'}</button></span></div>`;}).join('');
-    return`<div class="card"><b>Tumi automático</b><div class="sub" style="margin:4px 0 6px">Todo dia útil, em horário comercial, o Tumi acha leads, lê os sites da base, abre conversa e envia até o limite — por cliente, ligado ou desligado aqui.</div>${lin}</div>`;}
+    return`<div class="card"><b class="row" style="gap:10px">${tumiAv(30)}Tumi automático</b><div class="sub" style="margin:6px 0 6px">Todo dia útil, em horário comercial, o Tumi acha leads, lê os sites da base, abre conversa e envia até o limite — por cliente, ligado ou desligado aqui.</div>${lin}</div>`;}
   const a=autoDe(CART)||{},on=!!a.ativo,c=CARTS.find(x=>x.id===CART)||{name:''},casa=/strat|^sd\b/i.test(c.name);
-  return`<div class="card"><div class="row" style="justify-content:space-between"><b>Tumi automático · ${esc(c.name)}</b><span class="row" style="gap:10px"><span class="sub" style="color:${on?'#7ee2a2':'var(--branco2)'}">${on?'LIGADO':'desligado'}${on&&AUTOHOJE?` · hoje ${AUTOHOJE.enviados} enviados`:''}</span><button class="btn ${on?'':'p'} s" onclick="autoSalvar(this,${!on})">${on?'Desligar':'Ligar automático'}</button></span></div>
+  return`<div class="card"><div class="row" style="justify-content:space-between"><b class="row" style="gap:10px">${tumiAv(30)}Tumi automático · ${esc(c.name)}</b><span class="row" style="gap:10px"><span class="sub" style="color:${on?'#7ee2a2':'var(--branco2)'}">${on?'LIGADO':'desligado'}${on&&AUTOHOJE?` · hoje ${AUTOHOJE.enviados} enviados`:''}</span><button class="btn ${on?'':'p'} s" onclick="autoSalvar(this,${!on})">${on?'Desligar':'Ligar automático'}</button></span></div>
   <div class="sub" style="margin:6px 0 8px">Ligado, ele trabalha sozinho nos dias úteis dentro do horário: acha leads novos, lê os sites da sua base, escreve, envia e faz os follow-ups. Respostas de leads continuam com você: ele avisa e sugere o texto.</div>
   <div class="sub" style="margin-bottom:4px"><b>O que o Tumi pode oferecer</b> — ${casa?'produtos de agência, simples e do dia a dia':'o que '+esc(c.name)+' vende: empreendimentos, lotes, serviços, condições'}</div>
   <textarea id="aof" rows="3" placeholder="${casa?'ex.: gestão de redes sociais mensal; identidade visual; landing page de lançamento; material de plantão e stand; tráfego pago':'ex.: lotes a partir de ... no loteamento ...; condições de entrada; visita ao decorado (só o que for verdade e atual)'}">${esc(a.oferta||'')}</textarea>
