@@ -1348,3 +1348,10 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 #view-feed .esc-capa-img,#view-feed #esc-capa-img{border-radius:18px;border:0}
 #view-feed .esc-selo{display:none!important}
 #view-feed .esc-titulo{gap:0}
+
+
+/* ===== REGRA DA CASA: ação importante (salvar, ligar/desligar, sair) e aviso NUNCA ficam no fim da rolagem =====
+   Toda caixa que rola tem uma faixa fixa na base, de ponta a ponta, com o texto e os botões que importam. */
+.modal .modal-foot{position:sticky;bottom:0;z-index:6;background:color-mix(in srgb,var(--surface) 88%,transparent);
+  backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);align-items:center}
+.modal .modal-foot .faixa-msg{flex:1;min-width:0;font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}

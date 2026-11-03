@@ -36,6 +36,9 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .nota{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:300;font-size:15px;border:.5px solid var(--linha);color:var(--branco2)}.nota.alta{border-color:var(--verde);color:#7ee2a2}.nota.media{border-color:var(--laranja);color:#f0b15a}
 .lead .t{flex:1;min-width:0}.lead .t b{display:block;font-weight:500}.lead .t small{color:var(--branco2);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tag{display:inline-block;font-size:11px;padding:2px 9px;border-radius:999px;border:.5px solid var(--linha);color:var(--branco2);margin:2px 4px 0 0}
+.fb{position:fixed;left:0;right:0;bottom:0;z-index:12;display:none;align-items:center;gap:14px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:rgba(12,14,13,.84);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-top:.5px solid var(--linha)}
+.fb.on{display:flex}.fb-msg{flex:1;min-width:0;font-size:12.5px;color:var(--branco2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fb-msg.ok{color:#7ee2a2}.fb-msg.warn{color:#f0b15a}
+.fb-ac{display:flex;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}.w{padding-bottom:84px}#app .log{display:none}
 .msg{padding:50px 0;text-align:center;color:var(--branco2)}.log{font-size:12.5px;color:var(--branco2);margin:8px 0;white-space:pre-wrap}
 .bub{padding:10px 13px;border-radius:16px;margin:7px 0;max-width:88%;white-space:pre-wrap;font-size:13px;border:.5px solid var(--linha);background:rgba(255,255,255,.05)}.bub.e{background:rgba(255,255,255,.88);color:#111;margin-left:auto;border-color:transparent}.bub small{display:block;opacity:.6;font-size:11px;margin-top:5px}
 .dr{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:rgba(12,14,13,.94);border-left:.5px solid var(--linha);padding:20px;overflow:auto}
@@ -115,10 +118,16 @@ async function extras(){const n=++_ex;   // o que só a Caixa de saída usa: car
   CX=a.status==='fulfilled'?(a.value.caixas||[]):[];TERMO=b.status==='fulfilled'?b.value.t:null;AUTO=c.status==='fulfilled'?(c.value.auto||[]):[];AUTOHOJE=c.status==='fulfilled'?(c.value.hoje||null):null;TETOG=c.status==='fulfilled'?{...c.value.teto_geral,hoje:c.value.hoje_geral}:null;
   const ed=document.activeElement&&/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);   // não apaga o que a pessoa está digitando
   if(TAB==='caixa'&&!ed)draw();}
+function barra(){const el=$('#fb');if(!el)return;
+  const m=AUTOMSG||LOG||'';let ac='';
+  if(TAB==='caixa'&&CXED)ac=`<button class="btn s" onclick="CXED=null;CXRES=null;draw()">Fechar</button>${cxDe(CXED)?`<button class="btn s" onclick="cxRemover(this)">Desligar e-mail</button><button class="btn s" onclick="cxTestar(this)">Só testar</button>`:''}<button class="btn s" onclick="cxSalvar(this,false)">Salvar</button><button class="btn p s" onclick="cxSalvar(this,true)">Salvar e testar</button>`;
+  else if(TAB==='caixa'&&CART!=='todas')ac=`<button class="btn p s" onclick="autoSalvar(this,${!!(autoDe(CART)||{}).ativo})">Salvar ajustes</button>`;
+  el.classList.toggle('on',!!(m||ac));const cls=/^✅/.test(m)?'ok':/^⚠️/.test(m)?'warn':'';
+  el.innerHTML=`<div class="fb-msg ${cls}" title="${esc(m)}">${esc(String(m).split('\n')[0])}</div><div class="fb-ac">${ac}</div>`;}
 function draw(){
   chips();
-  $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';draw()">${n}</button>`).join('');
-  $('#app').innerHTML=TAB==='funil'?vFunil():TAB==='caixa'?vCaixa():vEntrar();}
+  $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';LOG='';AUTOMSG='';draw()">${n}</button>`).join('');
+  $('#app').innerHTML=TAB==='funil'?vFunil():TAB==='caixa'?vCaixa():vEntrar();barra();}
 function vFunil(){
   const tot=Object.values(FUN).reduce((a,b)=>a+b,0);
   const f=`<div class="fun"><button class="${EST===''?'on':''}" onclick="EST='';PAG=0;carrega()"><b>${tot.toLocaleString('pt-BR')}</b><small>todos</small></button>${ESTS.map(e=>`<button class="${EST===e?'on':''}" onclick="EST='${e}';PAG=0;carrega()"><b>${(FUN[e]||0).toLocaleString('pt-BR')}</b><small>${e}</small></button>`).join('')}</div>`;
@@ -150,14 +159,14 @@ function autoUI(){
   return`<div class="card"><div class="row" style="justify-content:space-between;align-items:center;gap:12px">
     <span class="row" style="gap:12px;align-items:center">${tumiAv(40)}<span><b>Tumi automático</b><br><span class="auto-st ${on?'on':''}">${on?'Ligado'+(AUTOHOJE?` · hoje ${AUTOHOJE.enviados} de ${a.enviar_dia??20} enviados`:''):'Desligado'} · ${esc(c.name)}</span></span></span>
     <button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Tumi automático" title="${on?'Desligar':'Ligar'} o automático" onclick="autoToggle(this,${!on})"><i></i></button></div>
-  ${AUTOMSG?`<div style="margin:12px 0 0;padding:10px 12px;border-radius:12px;border:.5px solid ${/^✅/.test(AUTOMSG)?'rgba(126,226,162,.45)':'rgba(240,177,90,.5)'};background:${/^✅/.test(AUTOMSG)?'rgba(126,226,162,.08)':'rgba(240,177,90,.08)'};color:${/^✅/.test(AUTOMSG)?'#7ee2a2':'#f0b15a'};font-size:12.5px">${esc(AUTOMSG)}</div>`:''}
+  
   <div class="sub" style="margin:12px 0 10px">Ligado, ele trabalha sozinho nos dias úteis, dentro do horário: acha leads novos, lê os sites da base, escreve, envia e faz os follow-ups. As respostas dos leads continuam com você: ele avisa e sugere o texto.</div>
   <div class="sub" style="margin-bottom:5px"><b>O que ${esc(c.name)} vende</b> — produtos, serviços e condições que o Tumi pode oferecer por eles</div>
   <textarea id="aof" rows="3" placeholder="${casa?'ex.: gestão de redes sociais mensal; identidade visual; landing page de lançamento; material de plantão e stand; tráfego pago':'ex.: lotes a partir de ... no loteamento ...; condições de entrada; visita ao decorado (só o que for verdade e atual)'}">${esc(a.oferta||'')}</textarea>
   <div class="sub" style="margin:12px 0 5px"><b>O que ele procura sozinho todo dia</b></div>
   <input id="aco" style="width:100%" placeholder="${casa?'ex.: incorporadoras com lançamento em Campinas e região':'ex.: imobiliárias e corretores de Campinas; investidores de lotes'}" value="${esc(a.consulta||'')}">
   <div class="cfg"><label>Prospectar por dia (máx. 15)<input id="adi" type="number" min="0" max="15" value="${a.descobrir_dia??10}"></label><label>Enviar por dia (máx. 40)<input id="aen" type="number" min="1" max="40" value="${a.enviar_dia??20}"></label><label>Nota mínima (0 a 100)<input id="ano" type="number" min="0" max="100" value="${a.nota_min??0}"></label><label>Horário (dias úteis)<span class="hh"><input id="ahi" type="number" min="6" max="20" value="${a.hora_ini??9}"><span>às</span><input id="ahf" type="number" min="7" max="22" value="${a.hora_fim??18}"></span></label></div>
-  <div class="row" style="margin-top:14px"><button class="btn s" onclick="autoSalvar(this,${on})">Salvar ajustes</button></div></div>`;}
+</div>`;}
 function tetoSalvar(b){run(b,'Salvando…',async()=>{await api({acao:'teto_salvar',envios:+$('#tge').value,buscas:+$('#tgb').value});LOG='✅ Teto geral salvo.';});}
 function autoToggle(b,ativo){AUTOMSG='';b.disabled=true;(async()=>{try{await api({acao:'auto_salvar',ativo,oferta:$('#aof').value,consulta:$('#aco').value,descobrir_dia:+$('#adi').value,enviar_dia:+$('#aen').value,nota_min:+$('#ano').value,hora_ini:+$('#ahi').value,hora_fim:+$('#ahf').value});AUTOMSG=ativo?'✅ Tumi automático ligado. Ele começa no próximo horário comercial de dia útil.':'Tumi automático desligado.';}catch(e){AUTOMSG='⚠️ '+e.message;}await carrega();})();}
 function autoSalvar(b,ativo){AUTOMSG='';run(b,'Salvando…',async()=>{try{await api({acao:'auto_salvar',ativo,oferta:$('#aof').value,consulta:$('#aco').value,descobrir_dia:+$('#adi').value,enviar_dia:+$('#aen').value,nota_min:+$('#ano').value,hora_ini:+$('#ahi').value,hora_fim:+$('#ahf').value});AUTOMSG='✅ Ajustes salvos.';}catch(e){AUTOMSG='⚠️ '+e.message;}});}
@@ -177,7 +186,7 @@ function cxForm(){const c=CARTS.find(x=>x.id===CXED)||{name:''},x=cxDe(CXED)||{}
   <div class="row" style="margin:8px 0;gap:8px"><input id="cxu" placeholder="usuário (padrão: o e-mail)" value="${esc(x.usuario&&x.usuario!==x.email?x.usuario:'')}" style="flex:1;min-width:180px">
   <input id="cxih" placeholder="entrada IMAP (vazio = automático)" value="${esc(x.imap_host||'')}" style="flex:1;min-width:180px"><input id="cxip" type="number" value="${x.imap_porta||993}" style="width:80px">
   <input id="cxsh" placeholder="saída SMTP (vazio = automático)" value="${esc(x.smtp_host||'')}" style="flex:1;min-width:180px"><input id="cxsp" type="number" value="${x.smtp_porta||465}" style="width:80px"></div></details>
-  <div class="row" style="gap:8px"><button class="btn p s" onclick="cxSalvar(this,false)">Salvar</button><button class="btn s" onclick="cxSalvar(this,true)">Salvar e testar</button>${x.email?'<button class="btn s" onclick="cxTestar(this)">Só testar</button><button class="btn s" onclick="cxRemover(this)">Desligar</button>':''}<button class="btn s" onclick="CXED=null;CXRES=null;draw()">Fechar</button></div>${cxRes(CXRES)}</div>`;}
+  ${cxRes(CXRES)}</div>`;}
 function cxOlho(){const e=$('#cxs');if(!e)return;const ver=e.type==='password';e.type=ver?'text':'password';$('#cxo').style.color=ver?'#7ee2a2':'';$('#cxo').title=ver?'Esconder senha':'Mostrar senha';}
 function cxAbrir(id){CXED=id;CXRES=null;draw();}
 function cxDica(m){m=String(m||'');
@@ -255,4 +264,4 @@ async function addC(id){await api({acao:'contato',id,nome:$('#cn_').value,email:
 async function resp(id,b){const t=$('#rp').value.trim();if(!t)return;b.disabled=true;try{const r=(await api({acao:'entrada',id,texto:t,canal:$('#rc').value})).r;$('#dl').textContent='Classifiquei como: '+r.intencao+(r.rascunho?' — rascunho de resposta na Caixa de saída.':'');}catch(e){$('#dl').textContent='⚠️ '+e.message;}b.disabled=false;setTimeout(()=>ficha(id),900);}
 async function ganhou(id){if(!confirm('Marcar como ganho e criar o cliente?'))return;try{await api({acao:'ganhou',id});}catch(e){alert(e.message);}await ficha(id);}
 boot();
-</script></body></html>
+</script><div class="fb" id="fb"></div></body></html>

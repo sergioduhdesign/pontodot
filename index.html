@@ -1524,6 +1524,12 @@ html.dia .cl-res{background:rgba(244,243,239,.96)}
 }
 
 
+
+/* ===== REGRA DA CASA: ação importante e aviso ficam numa faixa fixa na base da caixa, não no fim da rolagem ===== */
+.faixa-fixa{position:sticky;bottom:0;z-index:7;margin-left:-18px;margin-right:-18px;margin-bottom:-14px;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(10,12,11,.78);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);border-top:.5px solid var(--linha,rgba(255,255,255,.14))}
+html.dia .faixa-fixa{background:rgba(255,255,255,.8)}
+.faixa-fixa .faixa-msg{flex:1;min-width:0;font-size:12.5px;opacity:.85}
 /* ===== caixinhas: abrir e fechar sem pulo nem corte ===== */
 @keyframes gadFade{from{opacity:0;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);box-shadow:0 0 0 rgba(0,0,0,0);transform:translateY(-5px)}to{opacity:1;transform:none}}
 @keyframes bolPop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
@@ -2391,7 +2397,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v360 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v361 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4173,7 +4179,7 @@ function htmlPerfilPessoa(){
         <label style="display:block;font-size:12px;margin-top:8px">Rede 2<input id="pfSoc2" type="text" value="${esc(p.social2||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Site<input id="pfSite" type="text" value="${esc(p.site||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">WhatsApp para alertas<input id="pfZap" type="text" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+        <div class="faixa-fixa" style="margin-top:10px">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pfZapAtivo" ${p.zap_ativo?'checked':''}> Receber alertas</label>
           <button onclick="salvarPerfilInline()" style="margin-left:auto">Salvar</button>
         </div>
@@ -5174,7 +5180,7 @@ function htmlEscola(){
       <div class="ads-sec">O que ela aprendeu a fazer</div>${(R.habilidades || []).map(h => `<div class="nota" style="margin:4px 0"><b>${esc(h.nome)}</b> — ${esc(h.finalidade || '')}</div>`).join('') || '<div class="nota">Nada ainda.</div>'}
       <div class="ads-sec">Lições aprovadas por você</div>${(R.licoes || []).map(l => `<div class="nota" style="margin:4px 0">• ${esc(l.regra)}</div>`).join('') || '<div class="nota">As lições aparecem aqui quando você aprova uma entrega.</div>'}
       <div class="ads-sec">Suas instruções para ela</div><textarea class="esc-ta" id="eshExtra" maxlength="2000" placeholder="Ex.: respostas curtas; sempre me mostre a opção ousada primeiro…">${esc(M.instrucao_extra || '')}</textarea>
-      <div class="esc-bt"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="eshSalvaReceita()">Salvar instruções</button></div>`);
+      <div class="esc-bt faixa-fixa"><button class="btn" style="min-height:36px;padding:6px 12px;font-size:11.5px" onclick="eshSalvaReceita()">Salvar instruções</button></div>`);
   }
   // marcos
   const mk = (M.marcos || []).map(m => `<div class="esc-it"><div class="esc-nm"><span>${esc(m.texto)}</span><small>${new Date(m.quando).toLocaleDateString('pt-BR')}</small></div></div>`).join('') || `<div class="nota">Os marcos aparecem quando a sua IA atinge um resultado.</div>`;
@@ -5354,7 +5360,7 @@ function ofiAdminHtml(){ const D = OFI.d; if (!D || !D.admin) return '<div class
         <textarea id="omDesc" class="esc-ta" style="min-height:54px;margin-bottom:6px" placeholder="O que faz (uma ou duas linhas)">${esc(e.descricao)}</textarea>
         <textarea id="omFicha" class="esc-ta" style="min-height:120px;margin-bottom:6px" placeholder="Ficha: como usar, regras, o que precisa de entrada, o que devolve. A IA da casa lê isto.">${esc(e.ficha)}</textarea>
         <textarea id="omCfg" class="esc-ta" style="min-height:54px;font-family:ui-monospace,monospace;font-size:11px" placeholder='Config (JSON, sem chaves/senhas)'>${esc(JSON.stringify(e.config || {}, null, 1))}</textarea>
-        <div class="esc-bt"><button ${bt} onclick="ofiSalvaModulo()">Salvar</button><button ${bt} onclick="OFI.edit=null;renderBoard()">Cancelar</button></div></div>`; }
+        <div class="esc-bt faixa-fixa"><button ${bt} onclick="ofiSalvaModulo()">Salvar</button><button ${bt} onclick="OFI.edit=null;renderBoard()">Cancelar</button></div></div>`; }
   return admin; }
 function ofiAdminJanela(){ OFI.adminAberto = true; abrirJanela(`<div class="caixa invertida" style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:25px;font-weight:400;letter-spacing:-.01em">Módulos e conectores</h3><button class="acao-cab" style="color:var(--branco)" onclick="OFI.adminAberto=false;fecharComFio('#janela .caixa',fecharJanela)" aria-label="Fechar">✕</button></div><div id="oAdmin" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none">${ofiAdminHtml()}</div></div>`, true); }
 function htmlOficina(){
@@ -7900,7 +7906,7 @@ function abrirBatismo(){
     ${jeito.rebatizado_em ? `<p class="jt-aviso">Hoje ela atende por
       <b>${esc(jeito.apelido||c.name)}</b>. Pode mudar de novo quando quiser.</p>` : ''}
 
-    <div class="jt-pe">
+    <div class="jt-pe faixa-fixa">
       <button class="btn cheio" style="background:var(--verde)" onclick="salvarBatismo()">Salvar o nome</button>
       ${jeito.apelido ? `<button class="btn" onclick="voltarNomeOriginal()">Voltar pra ${esc(c.name)}</button>` : ''}
       <button class="btn" onclick="fecharJanela()">Agora não</button>
