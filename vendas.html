@@ -7,6 +7,8 @@
  --verde:#16A34A;--laranja:#D97706;--roxo:#7C3AED;--bad:#ef6a5f;--r:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
+*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:8px;border:2px solid transparent;background-clip:content-box}*::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.38);background-clip:content-box}.carts::-webkit-scrollbar{display:none}
 html{color-scheme:dark}body{background:#0e100f;color:var(--branco);font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
 #fundo{position:fixed;inset:0;z-index:0;background:#0B0C0B center/cover no-repeat;opacity:.55;transition:opacity 1.6s}
 #fundo:after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(8,10,9,.55),rgba(8,10,9,.78))}
@@ -68,7 +70,7 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let CX=[],CXED=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
+let CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
@@ -125,17 +127,27 @@ function cxUI(){
 function cxForm(){const c=CARTS.find(x=>x.id===CXED)||{name:''},x=cxDe(CXED)||{};
   return `<div style="margin-top:12px;padding-top:12px;border-top:.5px solid var(--linha,rgba(255,255,255,.12))"><b>${esc(c.name)}</b>
   <div class="row" style="margin:8px 0;gap:8px"><input id="cxe" placeholder="e-mail (vendas@cliente.com.br)" value="${esc(x.email||'')}" style="flex:1;min-width:220px"><input id="cxs" type="password" autocomplete="new-password" placeholder="${x.tem_senha?'senha (deixe vazio pra manter)':'senha do e-mail'}" style="flex:1;min-width:180px"></div>
-  <details ${x.imap_host&&x.imap_host!=='mail.'+String(x.email||'').split('@')[1]?'open':''}><summary class="sub" style="cursor:pointer">Servidores (só mude se o teste falhar)</summary>
+  <details ${CXRES&&(CXRES.entrada!==true||CXRES.saida!==true)?'open':''}><summary class="sub" style="cursor:pointer">Servidores (só mude se o teste falhar)</summary>
   <div class="row" style="margin:8px 0;gap:8px"><input id="cxu" placeholder="usuário (padrão: o e-mail)" value="${esc(x.usuario&&x.usuario!==x.email?x.usuario:'')}" style="flex:1;min-width:180px">
   <input id="cxih" placeholder="entrada IMAP (padrão mail.dominio)" value="${esc(x.imap_host||'')}" style="flex:1;min-width:180px"><input id="cxip" type="number" value="${x.imap_porta||993}" style="width:80px">
   <input id="cxsh" placeholder="saída SMTP (padrão mail.dominio)" value="${esc(x.smtp_host||'')}" style="flex:1;min-width:180px"><input id="cxsp" type="number" value="${x.smtp_porta||465}" style="width:80px"></div></details>
-  <div class="row" style="gap:8px"><button class="btn p s" onclick="cxSalvar(this)">Salvar e testar</button>${x.email?'<button class="btn s" onclick="cxTestar(this)">Só testar</button><button class="btn s" onclick="cxRemover(this)">Desligar</button>':''}<button class="btn s" onclick="CXED=null;draw()">Fechar</button></div></div>`;}
-function cxAbrir(id){CXED=id;draw();}
-function cxMsg(t){return t.entrada===true&&t.saida===true?'✅ E-mail ligado: recebe e envia.':`${t.entrada===true?'✅ Recebe':'⚠️ Receber: '+t.entrada} · ${t.saida===true?'✅ Envia':'⚠️ Enviar: '+t.saida}`;}
-function cxSalvar(b){run(b,'Testando…',async()=>{const r=await api({acao:'caixa_salvar',client_id:CXED,email:$('#cxe').value,senha:$('#cxs').value,usuario:$('#cxu').value,imap_host:$('#cxih').value,imap_porta:+$('#cxip').value,smtp_host:$('#cxsh').value,smtp_porta:+$('#cxsp').value});LOG=r.teste?cxMsg(r.teste):'Salvo.';});}
-function cxTestar(b){run(b,'Testando…',async()=>{LOG=cxMsg((await api({acao:'caixa_testar',client_id:CXED})).teste);});}
+  <div class="row" style="gap:8px"><button class="btn p s" onclick="cxSalvar(this)">Salvar e testar</button>${x.email?'<button class="btn s" onclick="cxTestar(this)">Só testar</button><button class="btn s" onclick="cxRemover(this)">Desligar</button>':''}<button class="btn s" onclick="CXED=null;CXRES=null;draw()">Fechar</button></div>${cxRes(CXRES)}</div>`;}
+function cxAbrir(id){CXED=id;CXRES=null;draw();}
+function cxDica(m){m=String(m||'');
+  if(/recusou o login/.test(m))return{t:'Usuário ou senha não conferem.',p:['O usuário é o e-mail completo (ex.: vendas@sergioduh.com).','Confira a senha entrando no webmail da hospedagem com ela.','Não lembra? cPanel › Contas de e-mail › Gerenciar › definir nova senha. Depois cole aqui.']};
+  if(/não existe/.test(m))return{t:'O endereço do servidor está errado.',p:['Onde achar: cPanel › Contas de e-mail › Conectar dispositivos (ou “Configurar dispositivo de e-mail”).','Copie “Servidor de entrada” (IMAP) e “Servidor de saída” (SMTP) da parte SSL/TLS.','Cole em “Servidores” aqui embaixo e salve de novo.']};
+  if(/não atende na porta/.test(m))return{t:'O servidor não respondeu nessa porta.',p:['Confira as portas na mesma tela do cPanel (Conectar dispositivos): em geral IMAP 993 e SMTP 465.','Ajuste em “Servidores” aqui embaixo.','Se já estiverem certas, a hospedagem pode estar bloqueando acesso externo: peça ao suporte para liberar IMAP/SMTP para a plataforma.']};
+  if(/certificado/.test(m))return{t:'O servidor existe, mas o certificado é de outro nome.',p:['Use o nome do servidor da hospedagem, não o do domínio. Ele aparece em cPanel › Conectar dispositivos (tipo br123.hostgator.com.br).','Cole em “Servidores” (entrada e saída) e salve de novo.']};
+  return{t:m,p:['Confira os dados em cPanel › Conectar dispositivos e tente de novo.']};}
+function cxMsg(t){return '';}
+function cxRes(t){if(!t)return'';
+  const lado=(nome,v)=>{if(v===true)return`<div style="color:#7ee2a2;padding:4px 0">✅ ${nome}: funcionando</div>`;const d=cxDica(v);return`<div style="padding:8px 0 4px"><b style="color:#f0b15a">⚠️ ${nome}: ${esc(d.t)}</b><div class="sub" style="margin:2px 0 0">${esc(v)}</div><ol style="margin:6px 0 0 18px;padding:0;color:var(--branco2)">${d.p.map(x=>`<li style="margin:3px 0">${esc(x)}</li>`).join('')}</ol></div>`;};
+  return`<div class="card" style="margin-top:10px;background:rgba(255,255,255,.04)">${lado('Receber e-mails',t.entrada)}${lado('Enviar e-mails',t.saida)}</div>`;}
+function cxMsgOld(t){return t.entrada===true&&t.saida===true?'✅ E-mail ligado: recebe e envia.':`${t.entrada===true?'✅ Recebe':'⚠️ Receber: '+t.entrada} · ${t.saida===true?'✅ Envia':'⚠️ Enviar: '+t.saida}`;}
+function cxSalvar(b){run(b,'Testando…',async()=>{const r=await api({acao:'caixa_salvar',client_id:CXED,email:$('#cxe').value,senha:$('#cxs').value,usuario:$('#cxu').value,imap_host:$('#cxih').value,imap_porta:+$('#cxip').value,smtp_host:$('#cxsh').value,smtp_porta:+$('#cxsp').value});CXRES=r.teste||null;LOG=r.teste&&r.teste.entrada===true&&r.teste.saida===true?'✅ E-mail do cliente ligado.':'';});}
+function cxTestar(b){run(b,'Testando…',async()=>{CXRES=(await api({acao:'caixa_testar',client_id:CXED})).teste;LOG='';});}
 function cxRemover(b){if(!confirm('Desligar o e-mail deste cliente?'))return;run(b,'…',async()=>{await api({acao:'caixa_remover',client_id:CXED});CXED=null;LOG='E-mail desligado.';});}
-function lerInbox(b){run(b,'Lendo…',async()=>{const r=(await api({acao:'inbox'})).r;LOG=r.erro?'⚠️ '+r.erro:`📥 ${r.lidas||0} e-mail(s) novos: ${r.respostas||0} resposta(s) de lead, ${r.bounces||0} endereço(s) inválido(s), ${r.ignoradas||0} ignorado(s).`;});}
+function lerInbox(b){run(b,'Lendo…',async()=>{const r=(await api({acao:'inbox'})).r;LOG=r.erro?'⚠️ '+r.erro+' — abra “E-mail dos clientes” acima, clique em Editar e Salvar e testar: mostro o que corrigir.':`📥 ${r.lidas||0} e-mail(s) novos: ${r.respostas||0} resposta(s) de lead, ${r.bounces||0} endereço(s) inválido(s), ${r.ignoradas||0} ignorado(s).`;});}
 function vEntrar(){return `<div class="card"><b>1 · Subir a base inteira</b><div class="sub" style="margin:4px 0 10px">Excel ou CSV, até dezenas de milhares de linhas. Eu reconheço as colunas, tiro duplicados (pelo site ou nome+cidade) e dou uma pré-nota só com o que a planilha já diz. Os sites são lidos depois, só dos lotes que você montar.</div>
   <input type="file" id="arq" accept=".xlsx,.xls,.csv" onchange="lerPlan(this)">${PLAN?planUI():''}</div>
   <div class="card"><b>2 · Deixar a IA achar leads</b><div class="sub" style="margin:4px 0 10px">Ela pesquisa na web, só traz empresa real com site confirmado e já lê o site. Até 10 buscas por dia.</div>

@@ -459,7 +459,7 @@ function vdInboxCaixa($cx, $max = 25) {
     $cfg = ['h' => $cx['imap_host'], 'u' => $cx['usuario'], 'p' => $cx['senha'], 'port' => (int)($cx['imap_porta'] ?: 993)];
     $en = 0; $es = '';
     $fp = @stream_socket_client('ssl://' . $cfg['h'] . ':' . $cfg['port'], $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
-    if (!$fp) { $le = error_get_last(); $msg0 = 'não conectei no servidor ' . $cfg['h'] . ':' . $cfg['port']; vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => $msg0]); return ['erro' => 'não conectei no e-mail (' . $cfg['h'] . ':' . $cfg['port'] . ') — ' . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe: porta 993 bloqueada ou servidor errado', 0, 300)]; } stream_set_timeout($fp, 25); fgets($fp);
+    if (!$fp) { $msg0 = 'não conectei na entrada de ' . $cx['email'] . ': ' . vdPorQue($cfg['h'], $cfg['port']); vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => $msg0]); return ['erro' => $msg0]; } stream_set_timeout($fp, 25); fgets($fp);
     $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
     if (stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cfg['u']) . ' ' . $q($cfg['p'])), 'a1 OK') === false) { fclose($fp); vdSup('/rest/v1/pd_vendas_caixas?id=eq.' . $cx['id'], 'PATCH', ['ultimo_erro' => 'o e-mail recusou o login (usuário ou senha)']); return ['erro' => 'o e-mail de ' . $cx['email'] . ' recusou o login (usuário ou senha)']; }
     vdImapCmd($fp, 'a2', 'SELECT INBOX');
@@ -507,6 +507,12 @@ function vdCaixasTodas() {
     $o = []; foreach (vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?ativo=is.true&select=*')) as $r) { if (empty($r['senha_cifrada'])) continue; $r['senha'] = vdDecifrar($r['senha_cifrada']); unset($r['senha_cifrada']); if ($r['senha'] !== '') $o[] = $r; }
     return $o;
 }
+/** Descobre o motivo de não conectar, em português claro: endereço, porta ou certificado. */
+function vdPorQue($h, $p) {
+    if (gethostbyname($h) === $h) return "o endereço $h não existe";
+    $t = @fsockopen($h, (int)$p, $en, $es, 8); if (!$t) return "o servidor $h não atende na porta $p";
+    fclose($t); return "o servidor $h atende, mas o certificado de segurança não é desse nome";
+}
 function vdSmtpLe($fp) { $o = ''; while (($l = fgets($fp, 2048)) !== false) { $o .= $l; if (strlen($l) < 4 || $l[3] === ' ') break; } return $o; }
 function vdSmtpCmd($fp, $c) { fwrite($fp, $c . "\r\n"); return vdSmtpLe($fp); }
 /** Abre o SMTP já autenticado. Devolve [$fp, null] ou [null, 'motivo']. Sempre com o certificado verificado. */
@@ -514,7 +520,7 @@ function vdSmtpAbrir($cx) {
     $h = $cx['smtp_host']; $port = (int)($cx['smtp_porta'] ?: 465); $en = 0; $es = '';
     $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
     $fp = @stream_socket_client(($port === 465 ? 'ssl://' : 'tcp://') . $h . ':' . $port, $en, $es, 15, STREAM_CLIENT_CONNECT, $ctx);
-    if (!$fp) { $le = error_get_last(); return [null, "não conectei no envio ($h:$port) — " . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe', 0, 200)]; }
+    if (!$fp) { $le = error_get_last(); return [null, 'não conectei no envio: ' . vdPorQue($h, $port)]; }
     stream_set_timeout($fp, 25); vdSmtpLe($fp); $eh = 'pontodot.ai';
     $r = vdSmtpCmd($fp, "EHLO $eh");
     if ($port !== 465) { vdSmtpCmd($fp, 'STARTTLS'); if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { fclose($fp); return [null, "o envio ($h:$port) não aceitou conexão segura"]; } $r = vdSmtpCmd($fp, "EHLO $eh"); }
@@ -536,7 +542,7 @@ function vdSmtpEnviar($cx, $para, $assunto, $corpo, $nomeDe, $extra = '') {
 function vdCaixaTestar($cx) {
     $r = ['entrada' => null, 'saida' => null];
     $fp = @stream_socket_client('ssl://' . $cx['imap_host'] . ':' . ((int)($cx['imap_porta'] ?: 993)), $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
-    if (!$fp) { $le = error_get_last(); $r['entrada'] = 'não conectei (' . $cx['imap_host'] . ') — ' . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe', 0, 160); }
+    if (!$fp) { $le = error_get_last(); $r['entrada'] = 'não conectei na entrada: ' . vdPorQue($cx['imap_host'], (int)($cx['imap_porta'] ?: 993)); }
     else { stream_set_timeout($fp, 20); fgets($fp); $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
         $r['entrada'] = stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cx['usuario']) . ' ' . $q($cx['senha'])), 'a1 OK') !== false ? true : 'o e-mail recusou o login (usuário ou senha)'; fclose($fp); }
     [$sp, $err] = vdSmtpAbrir($cx); if ($sp) { vdSmtpCmd($sp, 'QUIT'); fclose($sp); $r['saida'] = true; } else $r['saida'] = $err;
