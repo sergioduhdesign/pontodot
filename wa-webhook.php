@@ -66,7 +66,13 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         if (count($candidatos) > 1) {
             $nrm = fn($x) => trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9 @.]/', ' ', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$x)))));
             // quem é? aceita: "sou o X", "aqui é o X", "X aqui", "é o X", só "X", o número da lista (1, 2…), o e-mail, ou "admin"/"equipe" quando só um é
-            $dito = $nrm(preg_replace('/^\s*(?:oi|ola|opa|e ai|bom dia|boa tarde|boa noite)[,!. ]*/iu', '', $txt));
+            // já tem persona? então só troca se a mensagem PARECE identificação ("sou o X", "aqui é o X", só o número/nome/e-mail). Conversa normal passa reto.
+            $prJa = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . $para . '&status=eq.persona&ref=like.persona:*&select=ref&order=criado_em.desc&limit=1')['body'][0] ?? null;
+            $temPersona = (bool)$prJa;
+            $dito0 = $nrm(preg_replace('/^\s*(?:oi|ola|opa|e ai|bom dia|boa tarde|boa noite)[,!. ]*/iu', '', $txt));
+            $pareceIdent = (bool)preg_match('/^(sou |aqui e |e (o|a) |eu sou |falar como |fala como |agora sou |persona )/', $dito0) || ctype_digit($dito0) || str_word_count($dito0) <= 3;
+            $dito = $dito0;
+            if ($temPersona && !$pareceIdent) $dito = '';
             $dito = preg_replace('/^(?:sou (?:o|a) |sou |aqui e (?:o|a) |aqui e |e (?:o|a) |falar como |fala como |agora sou (?:o|a) |agora sou |persona |eu sou (?:o|a) |eu sou |aqui )/', '', $dito);
             $dito = preg_replace('/( aqui| mesmo| falando)$/', '', trim($dito));
             $achados = [];
@@ -121,9 +127,9 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
                 sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'outro', 'user_id' => $ad['id'], 'titulo' => mb_substr('WhatsApp de ' . ($quem ?: '+' . $para), 0, 140),
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
         } catch (Throwable $e) {} }
-        if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapEnviar($para, $errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?', true); } catch (Throwable $e) {} continue; }
-        if (count($candidatos) > 1 && !$membro) { try { pdZapEnviar($para, (count($achados) > 1 ? "Achei mais de um com esse nome. " : '') . $perguntaQuem, true); } catch (Throwable $e) {} continue; }
-        if ($trocaPersona) { try { pdZapEnviar($para, 'Fechado: daqui em diante você é *' . trim($trocaPersona['name']) . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
+        if (count($candidatos) > 1 && ($pedePalavra || $errou) && !$trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, $errou ? 'Não é essa. Tenta de novo (ou me diz quem você é).' : 'E a palavra mágica?', true); } catch (Throwable $e) {} continue; }
+        if (count($candidatos) > 1 && !$membro) { try { pdZapDigitando($id); pdZapEnviar($para, (count($achados) > 1 ? "Achei mais de um com esse nome. " : '') . $perguntaQuem, true); } catch (Throwable $e) {} continue; }
+        if ($trocaPersona) { try { pdZapDigitando($id); pdZapEnviar($para, 'Fechado: daqui em diante você é *' . trim($trocaPersona['name']) . '* nesse número, até você trocar de novo.', true); } catch (Throwable $e) {} continue; }
         // quem é da equipe (número cadastrado, não cliente) conversa com a IA da casa
         // cliente com "IA no WhatsApp" ligada: a Gigi (atendimento) responde, só com os dados dele
         if ($cid && !$membro && !empty($clRow['ia_zap'])) { @set_time_limit(120); try { pdZapDigitando($id); pdIaZapCliente($clRow, $para, $txt, $t === 'text' || $t === 'button' || $t === 'interactive' ? 'text' : $t); } catch (Throwable $e) { error_log('ia-zap-cliente: ' . $e->getMessage()); } }
