@@ -49,7 +49,7 @@ $ultimas = []; try { foreach ((array)(sd_supabase('/rest/v1/pd_ia_acoes?user_id=
 $primeiro = explode(' ', trim((string)($u['name'] ?? 'colega')))[0];
 $quemSou = 'a IA de trabalho da Pontodot';
 try { $pj = sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode($u['id']) . '&select=personagem,apelido&limit=1')['body'][0] ?? null; $pc = pdPersonagens()[strtolower(trim((string)($pj['personagem'] ?? '')))] ?? null;
-    if ($pc) { $nm = trim((string)($pj['apelido'] ?? '')) ?: $pc[0]; $quemSou = $nm . ' ' . $pc[1] . ', ' . mb_strtolower($pc[2]) . ', a IA de ' . $primeiro . ' na Pontodot. ' . $pc[4] . ' Seu nome aqui é ' . $nm . '.'; } } catch (Throwable $e) {}
+    if ($pc) { $nm = trim((string)($pj['apelido'] ?? '')) ?: $pc[0]; $quemSou = $nm . ' ' . $pc[1] . ', ' . mb_strtolower($pc[2]) . ', a IA de ' . $primeiro . ' na Pontodot. ' . $pc[4] . ' Seu nome aqui é ' . $nm . '.' . pdFichaCatum($pj['personagem'] ?? '', $pj['apelido'] ?? ''); } } catch (Throwable $e) {}
 $licoes = ''; try { require_once __DIR__ . '/pd-aula-lib.php'; $licoes = pdLicoesTexto($u['id'], null); } catch (Throwable $e) {}
 
 $contexto = ['agora' => $agora->format('Y-m-d H:i l'), 'calendario' => $cal, 'quem_pede' => ['nome' => $u['name'], 'chave' => $u['team_key'] ?? null, 'papel' => $u['role']],
@@ -68,7 +68,7 @@ if ($ehCliente) {
     $aprov = []; try { $ar = (array)(sd_supabase('/rest/v1/approval_sets?client_id=eq.' . urlencode($cid) . '&select=id,titulo,status,created_at&order=created_at.desc&limit=20')['body'] ?? []); foreach ($ar as $a) $aprov[] = ['id' => $a['id'], 'titulo' => $a['titulo'] ?? '', 'status' => $a['status'] ?? '']; } catch (Throwable $e) {}
     $memC = []; try { $mr = (array)(sd_supabase('/rest/v1/sd_memoria?select=assunto,conteudo&ativo=is.true&escopo=eq.cliente&escopo_id=eq.' . urlencode($cid) . '&order=created_at.desc&limit=40')['body'] ?? []); foreach ($mr as $m) $memC[] = $m['assunto'] . ': ' . $m['conteudo']; } catch (Throwable $e) {}
     $equipeH = []; foreach (iaEquipe() as $e) $equipeH[] = $e['nome'];
-    $quemSou = $pc[0] . ' ' . $pc[1] . ', ' . mb_strtolower($pc[2]) . ', a IA da Pontodot que cuida de ' . $cl['name'] . '. ' . $pc[4] . ' Seu nome aqui é ' . $pc[0] . '.';
+    $quemSou = $pc[0] . ' ' . $pc[1] . ', ' . mb_strtolower($pc[2]) . ', a IA da Pontodot que cuida de ' . $cl['name'] . '. ' . $pc[4] . ' Seu nome aqui é ' . $pc[0] . '.' . pdFichaCatum($pers);
     $contexto = ['agora' => $agora->format('Y-m-d H:i l'), 'calendario' => array_slice($cal, 0, 10), 'quem_pede' => ['nome' => $u['name'], 'papel' => 'cliente', 'empresa' => $cl['name']],
         'cliente' => ['nome' => $cl['name'], 'site' => $cl['site'] ?? '', 'produtos' => $prodsC], 'tarefas_abertas_do_cliente' => $tarefasC, 'aprovacoes_recentes' => $aprov,
         'o_que_a_casa_sabe_do_cliente' => $memC, 'equipe_humana_da_agencia' => $equipeH];
