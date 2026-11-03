@@ -2596,7 +2596,7 @@ function htmlTarefas(){
   const tudo = vTarefas==='tudo';
   const linhas = TAREFAS.map((t,i)=>`
     <button class="t-linha ${i===selecionada?'sel':''}" data-fk="${t.id}" style="${i===selecionada?`background:${COR_SEL[t.cara]}`:''}"
-      onclick="selecionar(${i})">${cara(t.cara,32, i===selecionada ? '#fff' : null)}${temNovo('tarefas', t.id) ? '<i class="nv-dot"></i>' : ''}<span class="nome">${t.nome}</span>${t.ia?'<span class="ia-chip">IA</span>':''}${t.resp?`<span class="t-resp">${t.resp}</span>`:''}<span class="t-play ${t.play?'rodando':''}" role="button" aria-label="${t.play?'Pausar':'Dar play'}" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span></button>`).join('')
+      onclick="selecionar(${i})">${cara(t.cara,32, i===selecionada ? '#fff' : null)}${temNovo('tarefas', t.id) ? '<i class="nv-dot"></i>' : ''}<span class="nome">${t.nome}</span>${t.ia && !ehCliente()?'<span class="ia-chip">IA</span>':''}${ehCliente() ? '' : `${t.resp?`<span class="t-resp">${t.resp}</span>`:''}<span class="t-play ${t.play?'rodando':''}" role="button" aria-label="${t.play?'Pausar':'Dar play'}" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span>`}</button>`).join('')
     + (tudo ? TAREFAS_MAIS.map(t=>`
     <button class="t-linha" data-fk="${t[0]}" onclick="toast('Abre ${t[0]} — mesmo padrão da caixa acima.')">${cara(t[2],32)}<span class="nome">${t[1]}</span></button>`).join('') : '');
   const ferramentas = `<div class="t-ferr">
@@ -2618,10 +2618,10 @@ function filtroRapido(ev){
   const eu = aindaNao(() => chaveDe(perfil), '');
   abrirMenuSel(ev, `<div class="mini">FILTRAR TAREFAS</div>
     <button onclick="fecharMenuCtx();abrirTarefasTodas()">Todas</button>
-    ${window.REAL?`<button onclick="fecharMenuCtx();abrirTodasResp('${eu}')">Só as minhas</button>`:''}
-    <button onclick="fecharMenuCtx();abrirTarefasTodas();fT.atras=true;pintarTodas()">Atrasadas</button>
+    ${window.REAL && !ehCliente()?`<button onclick="fecharMenuCtx();abrirTodasResp('${eu}')">Só as minhas</button>`:''}
+    ${ehCliente() ? '' : `<button onclick="fecharMenuCtx();abrirTarefasTodas();fT.atras=true;pintarTodas()">Atrasadas</button>`}
     <button onclick="fecharMenuCtx();abrirTarefasTodas();fT.st='ATENÇÃO';pintarTodas()">Aprovadas (falta finalizar)</button>
-    <button onclick="fecharMenuCtx();abrirTarefasTodas();fT.ia=true;pintarTodas()">Com a IA</button>`);
+    ${ehCliente() ? '' : `<button onclick="fecharMenuCtx();abrirTarefasTodas();fT.ia=true;pintarTodas()">Com a IA</button>`}`);
 }
 
 function htmlDetalhe(t){
@@ -3344,8 +3344,8 @@ function abrirTarefasTodas(){
         <button class="acao-cab" style="color:var(--branco)" onclick="fecharComFio('#janela .caixa',fecharJanela)" aria-label="Fechar">✕</button>
       </div>
       <div class="f-bar">
-        ${sel('resp','quem: todos',u(t=>t.resp))}
-        ${sel('cli','cliente: todos',u(t=>t.clients?.name||'SD'))}
+        ${ehCliente() ? '' : sel('resp','quem: todos',u(t=>t.resp))}
+        ${ehCliente() ? '' : sel('cli','cliente: todos',u(t=>t.clients?.name||'SD'))}
         ${sel('st','status: todos',u(t=>t.status))}
         <input placeholder="buscar…" value="${esc(fT.q||'')}" oninput="fT.q=this.value;guardarFiltro();pintarTodas()">
         ${filtroLigado()?`<button class="btn f-limpa" onclick="limparFiltro()">✕ limpar filtro</button>`:''}
@@ -3393,7 +3393,7 @@ function pintarTodas(){
   const tot = $('#jTot');
   if (tot) tot.innerHTML = filtroLigado()
     ? `<b>${fil.length}</b> de ${tasksReais.length} abertas · <b style="color:var(--laranja)">filtro preso</b> — fica assim até você limpar`
-    : `${fil.length} de ${tasksReais.length} abertas · toque numa pra abrir · play direto daqui`;
+    : `${fil.length} de ${tasksReais.length} abertas · toque numa pra abrir${ehCliente() ? '' : ' · play direto daqui'}`;
   const ord = [...fil].sort((a,b)=>String(a.date_int||'9999').localeCompare(String(b.date_int||'9999')));
   L.innerHTML = ord.map(t => {
     const ia = driveMap[t.id] && driveMap[t.id].status !== 'pausado';
@@ -3401,11 +3401,11 @@ function pintarTodas(){
     return `<button class="t-linha" onclick="abrirDaLista('${t.id}')">
       ${cara(caraDe(t), 26)}
       <span class="t-data${atras?' atras':''}">${fmtD(t.date_int)}</span>
-      <span class="t-clichip">${t.clients?.name||'SD'}</span>
+      ${ehCliente() ? '' : `<span class="t-clichip">${t.clients?.name||'SD'}</span>`}
       <div class="t-main"><span class="nome" style="flex:none">${t.action}</span><small>${t.project||'GERAL'}</small></div>
-      ${ia?'<span class="ia-chip">IA</span>':''}
-      <span class="t-resp">${t.resp||''}</span>
-      <span class="t-play ${sessAbertas[t.id]?'rodando':''}" role="button" onclick="event.stopPropagation();playDireto('${t.id}')">${icoPlay(!!sessAbertas[t.id])}</span>
+      ${ia && !ehCliente() ?'<span class="ia-chip">IA</span>':''}
+      ${ehCliente() ? '' : `<span class="t-resp">${t.resp||''}</span>
+      <span class="t-play ${sessAbertas[t.id]?'rodando':''}" role="button" onclick="event.stopPropagation();playDireto('${t.id}')">${icoPlay(!!sessAbertas[t.id])}</span>`}
     </button>`; }).join('') || '<div class="nota">Nada com esse filtro.</div>';
 }
 function playDireto(id){
@@ -4696,7 +4696,7 @@ const NOVIDADES = {
   // rodada de derivações que a IA terminou e ninguém olhou (lote em revisão)
   estudio: () => !window.REAL || !OFI.pautas ? [] : OFI.pautas.filter(p => p.status === 'revisao' || p.status === 'erro').map(p => ({ k: p.id + ':' + p.status + ':' + (p.rodada || 0) })),
   // comentários de outras pessoas
-  tarefas: () => !window.REAL ? [] : comentsReais.filter(c => c.quem !== perfil.name).slice(0, 12).map(c => ({ k: c.tarefa + ':' + c.quando })),
+  tarefas: () => !window.REAL ? [] : comentsReais.filter(c => c.quem !== perfil.name && (!ehCliente() || tasksReais.some(t => t.id === c.tarefa))).slice(0, 12).map(c => ({ k: c.tarefa + ':' + c.quando })),
 };
 const temNovo = (g, tid) => { try { return (NOVIDADES[g] ? NOVIDADES[g]() : []).some(x => x.k.startsWith(tid + ':') && eNovo(g, x.k)); } catch(e){ return false; } };
 function visitarTarefa(tid){
