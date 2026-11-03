@@ -457,8 +457,9 @@ function vdSemCitacao($t) {
 }
 function vdInboxLer($max = 25) {
     $cfg = vdImapCfg(); if (!$cfg) return ['pulado' => 'IMAP não configurado'];
+    $en = 0; $es = '';
     $fp = @stream_socket_client('ssl://' . $cfg['h'] . ':' . $cfg['port'], $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
-    if (!$fp) return ['erro' => "não conectei no e-mail ($es)"]; stream_set_timeout($fp, 25); fgets($fp);
+    if (!$fp) { $le = error_get_last(); return ['erro' => 'não conectei no e-mail (' . $cfg['h'] . ':' . $cfg['port'] . ') — ' . mb_substr(trim(($es ?: '') . ' ' . ($le['message'] ?? '')) ?: 'sem detalhe: porta 993 bloqueada ou servidor errado', 0, 300)]; } stream_set_timeout($fp, 25); fgets($fp);
     $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
     if (stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cfg['u']) . ' ' . $q($cfg['p'])), 'a1 OK') === false) { fclose($fp); return ['erro' => 'e-mail recusou o login (usuário ou senha)']; }
     vdImapCmd($fp, 'a2', 'SELECT INBOX');
