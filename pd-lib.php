@@ -818,6 +818,15 @@ function pdTeamMemberGarante($k) {
 // Roda em segundos; chamada ao abrir Equipe e funções, no admin e antes da IA responder. Devolve quantas corrigiu.
 // Palavra mágica do zap: a pessoa ensina à própria IA ("guarda: minha palavra mágica é X"); fica em sd_memoria (escopo pessoa).
 // É segredo: nunca entra no contexto da IA, só serve pra confirmar quem fala num número compartilhado.
+// ensino direto pelo sistema (sem depender da IA): "guarda: minha palavra combinada é X" / "minha senha é X" / "palavra mágica: X"
+function pdPalavraEnsinar($userId, $txt) {
+    $t = trim((string)$txt);
+    if (!preg_match('/^(?:guarda|guarde|salva|salve|lembra|anota)?[:,]?\s*(?:a |minha |nossa )?(?:palavra(?: m[áa]gica| combinada| secreta| chave)?|senha|segredo|chave|c[oó]digo|pin)(?: (?:do|de|pro|para o?) (?:zap|whats\w*|chat|sistema))?\s*(?:é|e|eh|:|=|ser[áa]|vai ser|agora é|agora e)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'\n]{1,40}?)["\x{201D}\x{2019}\']?\s*[.!]?$/iu', $t, $m)) return null;
+    $v = trim($m[1]); if ($v === '' || str_word_count($v) > 3) return null;
+    try { sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&assunto=eq.' . rawurlencode('palavra combinada'), 'PATCH', ['ativo' => false]); } catch (Throwable $e) {}
+    $r = sd_supabase('/rest/v1/sd_memoria', 'POST', ['escopo' => 'pessoa', 'escopo_id' => $userId, 'assunto' => 'palavra combinada', 'conteudo' => 'palavra combinada: ' . $v, 'natureza' => 'orientacao', 'autor_id' => $userId, 'origem' => 'sistema']);
+    return ($r['code'] ?? 500) < 300 ? '🔑 Combinado. Guardei a palavra entre nós (ela não é a sua senha de acesso — é só pra confirmar comigo as ações sensíveis). Pra trocar, é só me ensinar outra.' : '⚠️ Não consegui guardar agora. Tenta de novo?';
+}
 function pdPalavraMagica($userId) {
     // o nome é livre: "palavra mágica", "senha", "segredo", "chave", "código"… vale a ÚLTIMA ensinada
     $ms = (array)(sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&ativo=is.true&select=assunto,conteudo&order=created_at.desc&limit=20')['body'] ?? []);
@@ -1302,10 +1311,10 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     } elseif (preg_match('/✅|\b(exclu[ií]d[oa]s?|removid[oa]s?|pausad[oa]s?|desativad[oa]s?|reativad[oa]s?|cadastrad[oa]s?|convidad[oa]s?|criad[oa]s?)\b/iu', $resp)
               && preg_match('/\b(usu[áa]ri[oa]s?|conta|acesso|colaborador\w*|perfil|cadastro)\b/iu', $resp)) {
         // a IA "disse" que mexeu em usuário/conta sem nenhuma ação executada: isso nunca é verdade
-        $resp = "⚠️ NADA foi executado — eu não acionei nenhuma ação no sistema.\n\nPara excluir ou pausar alguém, me peça de novo (ex.: \"exclui o acesso do Fulano\"): eu listo as contas com e-mail e você confirma respondendo com o e-mail + a senha que me ensinou.";
+        $resp = "⚠️ NADA foi executado — eu não acionei nenhuma ação no sistema.\n\nPara excluir ou pausar alguém, me peça de novo (ex.: \"exclui o acesso do Fulano\"): eu listo as contas com e-mail e você confirma respondendo com o e-mail + a palavra combinada entre nós.";
     }
     // a IA nunca inventa "senha de admin" nem senhas que não existem: a senha é a que a pessoa me ensinou, e quem pede é o sistema na hora da confirmação
-    if (!$ajs && preg_match('/senha (de|do) (admin|administrador|sistema)/iu', $resp)) $resp = "Não existe senha de admin separada — a senha é a que você me ensinou (\"guarda: minha senha é …\"). Me peça a ação de novo que eu listo as contas e peço a confirmação do jeito certo.";
+    if (!$ajs && preg_match('/senha (de|do) (admin|administrador|sistema)/iu', $resp)) $resp = "Não existe senha de admin — o que eu uso é a *palavra combinada* entre nós (me ensine com \"guarda: minha palavra combinada é …\"; não é a sua senha de acesso). Me peça a ação de novo que eu listo as contas e peço a confirmação do jeito certo.";
     if (preg_match('/##SALVAR##\s*(\{.*\})\s*$/su', $resp, $sm)) {
         $resp = trim(preg_replace('/##SALVAR##.*$/su', '', $resp)); $sj = json_decode($sm[1], true); $tid = strtoupper(trim((string)($sj['task_id'] ?? '')));
         $existe = $tid !== '' ? (sd_supabase('/rest/v1/tasks?id=eq.' . rawurlencode($tid) . '&select=id&limit=1')['body'][0]['id'] ?? null) : null;

@@ -24,6 +24,7 @@ if (!(defined('SD_ANTHROPIC_KEY') && SD_ANTHROPIC_KEY)) sd_fail('Falta SD_ANTHRO
 $msg = trim((string)($b['mensagem'] ?? '')); if ($msg === '') sd_fail('Mensagem vazia.');
 $GLOBALS['PD_IA_CANAL'] = 'chat'; $GLOBALS['PD_IA_CHAVE'] = $u['id'];
 // confirmação pendente (excluir/pausar pessoa): e-mail + senha fecham a ação sem passar pela IA
+try { $ens = pdPalavraEnsinar($u['id'], $msg); if ($ens) { echo json_encode(['reply' => $ens, 'feitos' => '', 'lote' => null, 'desfazer' => false, 'ids' => [], 'ferramenta' => true], JSON_UNESCAPED_UNICODE); exit; } } catch (Throwable $e) {}
 try { $cf = iaConfirmaProcessar($u, 'chat', $u['id'], $msg); if ($cf) { echo json_encode(['reply' => $cf['texto'], 'feitos' => $cf['feito'] ? $cf['texto'] : '', 'lote' => null, 'desfazer' => false, 'ids' => [], 'ferramenta' => true], JSON_UNESCAPED_UNICODE); exit; } } catch (Throwable $e) {}
 
 // ---------- CONTEXTO ----------

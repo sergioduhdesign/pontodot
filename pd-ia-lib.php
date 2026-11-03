@@ -471,8 +471,8 @@ function iaConfirmaPedir($u, $canal, $chave, $acao, array $cands, $rotulo) {
     sd_supabase('/rest/v1/pd_avisos_log', 'POST', ['canal' => $canal, 'para' => (string)$chave, 'quem' => $u['name'] ?? '', 'corpo' => $rotulo, 'status' => 'confirma_pendente', 'origem' => 'sistema', 'direcao' => 'entrada',
         'ref' => 'confirma:' . json_encode(['acao' => $acao, 'ids' => array_column($cands, 'id')], JSON_UNESCAPED_UNICODE)]);
     $temSenha = pdPalavraMagica($u['id'] ?? '') !== '';
-    return "🔐 $rotulo\n" . implode("\n", $lista) . "\n\nPra confirmar, responda com o *e-mail da conta* e a *sua senha*, na mesma mensagem (ex.: `fulano@empresa.com abacaxi`)."
-        . ($temSenha ? '' : "\n\n⚠️ Você ainda não tem senha guardada. Antes, me diga: *guarda: minha senha é …*");
+    return "🔐 $rotulo\n" . implode("\n", $lista) . "\n\nPra confirmar, responda com o *e-mail da conta* + a *palavra combinada* entre nós, na mesma mensagem (ex.: `fulano@empresa.com abacaxi`). Não é a sua senha de acesso."
+        . ($temSenha ? '' : "\n\n⚠️ A gente ainda não combinou uma palavra. Antes, me diga: *guarda: minha palavra combinada é …*");
 }
 // roda ANTES da IA, em qualquer canal: se há pendência e a mensagem traz e-mail + senha, executa de verdade
 function iaConfirmaProcessar($u, $canal, $chave, $txt) {
@@ -480,14 +480,16 @@ function iaConfirmaProcessar($u, $canal, $chave, $txt) {
     if (!$pend) return null;
     $t = trim((string)$txt);
     if (preg_match('/^(cancela|cancelar|deixa|esquece|n[aã]o)\b/iu', $t)) { sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_cancelada']); return ['texto' => 'Cancelado. Nada foi feito.', 'feito' => false]; }
-    if (!preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $t, $em)) return null;   // sem e-mail: não é a confirmação, segue conversa normal
-    $email = strtolower($em[0]); $senha = trim(str_replace($em[0], '', $t));
     $d = json_decode(substr((string)$pend['ref'], 9), true) ?: []; $ids = (array)($d['ids'] ?? []); $acao = (string)($d['acao'] ?? '');
-    $alvo = null; foreach ($ids as $id) { $p = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($id) . '&select=id,name,email,role,team_key,active')['body'][0] ?? null; if ($p && strtolower((string)$p['email']) === $email) { $alvo = $p; break; } }
+    $email = ''; $senha = ''; $num = 0;
+    if (preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $t, $em)) { $email = strtolower($em[0]); $senha = trim(str_replace($em[0], '', $t)); }
+    elseif (count($ids) === 1 && preg_match('/^(\S+)$/u', $t)) { $num = 1; $senha = $t; }   // só uma conta na lista: basta a palavra
+    else return null;   // não é a confirmação: segue conversa normal
+    $alvo = null; $k = 0; foreach ($ids as $id) { $k++; $p = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($id) . '&select=id,name,email,role,team_key,active')['body'][0] ?? null; if ($p && (($email !== '' && strtolower((string)$p['email']) === $email) || ($num && $k === $num))) { $alvo = $p; break; } }
     if (!$alvo) return ['texto' => '⚠️ Esse e-mail não é de nenhuma das contas listadas. Confere e manda de novo (e-mail + senha).', 'feito' => false];
     $pal = pdPalavraMagica($u['id'] ?? '');
-    if ($pal === '') return ['texto' => '⚠️ Você ainda não tem senha guardada. Diga *guarda: minha senha é …* e depois confirme de novo.', 'feito' => false];
-    if ($senha === '' || pdSegredoNorm($senha) !== pdSegredoNorm($pal)) return ['texto' => '⚠️ Senha não bate. Manda de novo: e-mail + senha.', 'feito' => false];
+    if ($pal === '') return ['texto' => '⚠️ A gente ainda não combinou uma palavra. Diga *guarda: minha palavra combinada é …* e depois confirme de novo.', 'feito' => false];
+    if ($senha === '' || pdSegredoNorm($senha) !== pdSegredoNorm($pal)) return ['texto' => '⚠️ A palavra combinada não bate. Manda de novo: e-mail + palavra.', 'feito' => false];
     sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_ok']);
     $lote = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));
     if ($acao === 'excluir') $r = iaUsuarioExcluirExec($alvo, $u, $lote, null);
