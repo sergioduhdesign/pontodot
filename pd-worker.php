@@ -658,4 +658,5 @@ $n11 = w_skills();                   echo "Skills anunciadas: $n11\n";
 $n12 = retro_relogio();            echo "Retrospectiva: $n12\n";
 $n13 = pdIncubacaoRelogio();       echo "Sala de aula: $n13\n";
 $n14 = pdLembretesDisparar();        echo "Lembretes: $n14\n";
+try { require_once __DIR__ . '/pd-vendas-lib.php'; $n15 = vdTick(); echo "Vendas: " . json_encode($n15, JSON_UNESCAPED_UNICODE) . "\n"; } catch (Throwable $e) { echo "Vendas: erro " . $e->getMessage() . "\n"; }
 echo "\nConcluido.\n";

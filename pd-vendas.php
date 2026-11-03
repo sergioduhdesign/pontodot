@@ -15,10 +15,27 @@ $fCart = $cart === 'todas' ? '' : '&carteira_id=' . ($cart ? 'eq.' . $cart : 'is
 $pid = vdUuid($b['id'] ?? ''); $cid = vdUuid($b['conversa'] ?? '');
 
 switch ($acao) {
-    case 'funil': $out(['funil' => vdFunil($cart), 'carteiras' => vdLinhas(vdSup('/rest/v1/clients?select=id,name&active=is.true&order=name'))]); break;
+    case 'funil': $out(['funil' => vdFunil($cart), 'carteiras' => vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color&active=is.true&order=name')),
+        'fila' => count(vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=not.is.null&enriquecido_em=is.null&select=id&limit=1000'))), 'imap' => (bool)vdImapCfg()]); break;
     case 'listar':
-        $est = preg_replace('/[^a-z,]/', '', (string)($b['estagio'] ?? ''));
-        $out(['leads' => vdLinhas(vdSup('/rest/v1/pd_prospects?select=id,nome,site,cidade,segmento,estagio,nota,angulo,ia,proximo_passo,ultimo_contato,carteira_id,zap,instagram' . $fCart . ($est ? '&estagio=in.(' . $est . ')' : '') . '&order=nota.desc.nullslast,created_at.desc&limit=200'))]); break;
+        $qs = vdFiltroQs($b, $cart);
+        $out(['leads' => vdLinhas(vdSup('/rest/v1/pd_prospects?select=id,nome,site,cidade,uf,segmento,estagio,nota,angulo,ia,proximo_passo,ultimo_contato,carteira_id,zap,instagram,lote_id,enriquecido_em' . $qs . '&order=nota.desc.nullslast,created_at.desc&limit=100&offset=' . max(0, (int)($b['de'] ?? 0)))), 'total' => vdContar($qs)]); break;
+    case 'resumo':
+        $r = sd_supabase('/rest/v1/rpc/pd_vendas_resumo', 'POST', new stdClass()); $d = (($r['code'] ?? 500) < 300 && is_array($r['body'])) ? $r['body'] : ['total' => 0, 'novos' => 0, 'engajados' => 0, 'ganhos' => 0, 'caixa' => 0, 'respostas' => 0, 'carteiras' => [], 'sem_sql' => true];
+        $cl = []; foreach (vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color')) as $c) $cl[$c['id']] = $c;
+        $d['carteiras'] = array_map(fn($x) => $x + ['nome' => $x['id'] ? ($cl[$x['id']]['name'] ?? 'Cliente') : 'Casa', 'logo' => $x['id'] ? ($cl[$x['id']]['logo_url'] ?? null) : null, 'cor' => $x['id'] ? ($cl[$x['id']]['color'] ?? null) : null], (array)($d['carteiras'] ?? []));
+        $out($d); break;
+    case 'lotes': $out(['lotes' => vdLinhas(vdSup('/rest/v1/pd_lotes?select=id,nome,motivo,created_at' . ($cart === 'todas' ? '' : '&carteira_id=' . ($cart ? 'eq.' . $cart : 'is.null')) . '&order=created_at.desc&limit=30'))]); break;
+    case 'importar_linhas':   // pedaço de planilha grande (o navegador manda de 400 em 400)
+        $rows = array_slice((array)($b['rows'] ?? []), 0, 500); $lote = vdUuid($b['lote_id'] ?? '');
+        if (!$lote && !empty($b['lote'])) { $lr = vdLinhas(vdSup('/rest/v1/pd_lotes', 'POST', ['nome' => mb_substr((string)$b['lote'], 0, 120), 'carteira_id' => $cart === 'todas' ? null : $cart, 'criado_por' => $u['id']])); $lote = $lr[0]['id'] ?? null; }
+        $r = vdImportarLinhas($rows, $cart === 'todas' ? null : $cart, null, $u['id'], 'planilha'); if (!empty($r['erro'])) sd_fail($r['erro'], 500); unset($r['ids']); $out(['r' => $r, 'lote_id' => $lote]); break;
+    case 'lote_criar':
+        $r = vdLoteCriar(vdFiltroQs($b, $cart), trim((string)($b['nome'] ?? '')) ?: 'Lote ' . date('d/m H:i'), (int)($b['max'] ?? 500), $cart, $u['id'], (string)($b['motivo'] ?? '') ?: null);
+        if (!empty($r['erro'])) sd_fail($r['erro'], 500); $out(['r' => $r]); break;
+    case 'descobrir':
+        $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
+    case 'inbox': $r = vdInboxLer(25); $out(['r' => $r]); break;
     case 'ver':
         if (!$pid) sd_fail('falta o lead');
         $out(['lead' => vdLinhas(vdSup('/rest/v1/pd_prospects?id=eq.' . $pid . '&select=*'))[0] ?? null,
@@ -33,7 +50,7 @@ switch ($acao) {
     case 'enriquecer':
         if ($pid) { $out(['r' => vdEnriquecer($pid)]); break; }
         $ids = array_slice(array_filter(array_map('vdUuid', (array)($b['ids'] ?? []))), 0, 12); $rs = [];
-        if (!$ids) $ids = array_column(vdLinhas(vdSup('/rest/v1/pd_prospects?nota=is.null&select=id' . $fCart . '&order=created_at.desc&limit=10')), 'id');
+        if (!$ids) $ids = array_column(vdLinhas(vdSup('/rest/v1/pd_prospects?enriquecido_em=is.null&select=id' . $fCart . '&order=created_at.desc&limit=10')), 'id');
         foreach ($ids as $i) $rs[$i] = vdEnriquecer($i);
         $out(['feitos' => count($rs), 'r' => $rs]); break;
     case 'escrever':

@@ -490,6 +490,8 @@ function iaCatalogo($u) {
             'input_schema' => $S(['carteira' => $str, 'lote' => $str, 'linhas' => $str], ['linhas'])];
         $T[] = ['name' => 'vendas_abordar', 'description' => 'Escreve os RASCUNHOS de abordagem (nada é enviado) pros N melhores leads novos da carteira, cada um com um ângulo específico baseado nos sinais verificados. canal: email|zap. Os rascunhos ficam na Caixa de saída esperando aprovação.',
             'input_schema' => $S(['carteira' => $str, 'canal' => $str, 'quantos' => ['type' => 'integer'], 'oferta' => $str])];
+        $T[] = ['name' => 'vendas_descobrir', 'description' => 'Acha leads NOVOS sozinha, pesquisando na web (empresas reais com site confirmado), e põe na carteira com a leitura do site. consulta = o que procurar, ex.: "incorporadoras com lançamento em Campinas". Gasta busca: no máx. 10 por dia.',
+            'input_schema' => $S(['carteira' => $str, 'consulta' => $str, 'quantos' => ['type' => 'integer']], ['consulta'])];
         $T[] = ['name' => 'vendas_enviar', 'description' => 'Envia os rascunhos aprovados pela pessoa que está pedindo (ela pediu, vale como aprovação). Sem ids, envia todos os rascunhos da carteira. Respeita pedido de sair e o teto diário.',
             'input_schema' => $S(['carteira' => $str, 'ids' => $arrS])];
         $T[] = ['name' => 'vendas_resposta', 'description' => 'Registra o que um lead respondeu (colado pela pessoa). O sistema classifica (interessado, pergunta, objeção, não, pedido de sair…), age (sair = nunca mais) e escreve um rascunho de resposta quando cabe.',
@@ -518,7 +520,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'funcoes_definir': return iaFuncoesDefinir($args, $u, $lote);
         case 'permissoes_definir': return iaPermissoesDefinir($args, $u, $lote);
         case 'ferramentas_liberar': return iaFerramentasLiberar($args, $u, $lote);
-        case 'vendas_funil': case 'vendas_importar': case 'vendas_abordar': case 'vendas_enviar': case 'vendas_resposta': return iaVendas($nome, $args, $u);
+        case 'vendas_funil': case 'vendas_descobrir': case 'vendas_importar': case 'vendas_abordar': case 'vendas_enviar': case 'vendas_resposta': return iaVendas($nome, $args, $u);
     }
     return ['texto' => "⚠️ ferramenta desconhecida $nome", 'ids' => []];
 }
@@ -631,6 +633,10 @@ function iaVendas($nome, $a, $u) {
         return ['texto' => $txt, 'ids' => []];
     }
     if ($cart === 'todas') return ['texto' => '⚠️ pra isso diga qual carteira (cliente ou "casa")', 'ids' => []];
+    if ($nome === 'vendas_descobrir') {
+        $r = vdDescobrir((string)($a['consulta'] ?? ''), (int)($a['quantos'] ?? 10), $cart, $u['id']);
+        return ['texto' => !empty($r['ok']) ? "🔎 Achei {$r['novos']} empresa(s) nova(s) pra carteira de $rot" . ($r['duplicados'] ? " ({$r['duplicados']} já estavam)" : '') . ' e já li os sites. Quer que eu escreva as abordagens?' : '⚠️ ' . ($r['erro'] ?? 'não consegui'), 'ids' => []];
+    }
     if ($nome === 'vendas_importar') {
         $r = vdImportar((string)($a['linhas'] ?? ''), $cart, trim((string)($a['lote'] ?? '')) ?: null, $u['id']);
         $nota = 0; foreach (array_slice($r['ids'], 0, 8) as $pid) { $e = vdEnriquecer($pid); if (!empty($e['ok'])) $nota++; }
@@ -638,7 +644,7 @@ function iaVendas($nome, $a, $u) {
     }
     if ($nome === 'vendas_abordar') {
         $canal = ($a['canal'] ?? '') === 'zap' ? 'zap' : 'email'; $n = max(1, min(8, (int)($a['quantos'] ?? 5)));
-        foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?nota=is.null&select=id' . $f . '&limit=5')) as $x) vdEnriquecer($x['id']);
+        foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?enriquecido_em=is.null&select=id' . $f . '&order=created_at.desc&limit=5')) as $x) vdEnriquecer($x['id']);
         $ok = 0; $falhas = [];
         foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?estagio=eq.novo&select=id,nome' . $f . '&order=nota.desc.nullslast&limit=40')) as $l) {
             if ($ok >= $n) break;

@@ -45,28 +45,20 @@ function vdDono($carteira) {
 function vdImportar($linhas, $carteira, $loteNome, $uid) {
     $lote = null;
     if ($loteNome) { $lr = vdLinhas(vdSup('/rest/v1/pd_lotes', 'POST', ['nome' => $loteNome, 'carteira_id' => $carteira, 'criado_por' => $uid])); $lote = $lr[0]['id'] ?? null; }
-    $novos = 0; $dup = 0; $ignorados = 0; $ids = [];
+    $rows = [];
     foreach (preg_split('/\R/u', (string)$linhas) as $ln) {
         $ln = trim($ln); if ($ln === '') continue;
-        $c = array_map('trim', preg_split('/\t|;|,(?=(?:[^"]*"[^"]*")*[^"]*$)/u', $ln)); $c = array_map(fn($x) => trim($x, "\" "), $c);
-        $nome = $c[0] ?? ''; if ($nome === '' || mb_strlen($nome) < 2 || preg_match('/^(empresa|nome)$/i', $nome)) { $ignorados++; continue; }
-        $site = $c[1] ?? ''; $email = ''; $zap = '';
-        foreach ($c as $i => $x) { if ($i && filter_var($x, FILTER_VALIDATE_EMAIL)) $email = strtolower($x); elseif ($i > 1 && preg_match('/^\+?[\d\s().-]{10,}$/', $x)) $zap = pdZapNormaliza($x); }
-        if ($site !== '' && (filter_var($site, FILTER_VALIDATE_EMAIL) || preg_match('/^\+?[\d\s().-]{10,}$/', $site))) $site = '';
-        $dom = vdDominio($site);
-        if ($dom !== '') {
-            $ex = vdLinhas(vdSup('/rest/v1/pd_prospects?dominio=eq.' . urlencode($dom) . '&carteira_id=' . ($carteira ? 'eq.' . $carteira : 'is.null') . '&select=id'));
-            if ($ex) { $dup++; continue; }
-        }
-        $row = ['nome' => $nome, 'site' => $site ?: null, 'dominio' => $dom ?: null, 'cidade' => ($c[2] ?? '') ?: null, 'segmento' => ($c[3] ?? '') ?: null,
-                'zap' => $zap ?: null, 'origem' => 'planilha', 'lote_id' => $lote, 'carteira_id' => $carteira, 'criado_por' => $uid];
-        $r = vdLinhas(vdSup('/rest/v1/pd_prospects', 'POST', $row)); $pid = $r[0]['id'] ?? null;
-        if (!$pid) { $ignorados++; continue; }
-        $novos++; $ids[] = $pid;
-        $contato = $c[4] ?? ''; if ($contato !== '' && (filter_var($contato, FILTER_VALIDATE_EMAIL) || preg_match('/^\+?[\d\s().-]{10,}$/', $contato))) $contato = '';
-        if ($contato !== '' || $email !== '' || $zap !== '') vdSup('/rest/v1/pd_prospect_contatos', 'POST', ['prospect_id' => $pid, 'nome' => $contato ?: $nome, 'email' => $email ?: null, 'email_status' => $email ? 'palpite' : 'palpite', 'zap' => $zap ?: null, 'principal' => true, 'dono' => $contato !== '']);
+        $c = array_map(fn($x) => trim($x, "\" "), array_map('trim', preg_split('/\t|;/u', $ln)));
+        if (preg_match('/^(empresa|nome)$/i', $c[0] ?? '')) continue;
+        $email = ''; $zap = ''; $site = $c[1] ?? '';
+        foreach ($c as $i => $x) { if ($i && filter_var($x, FILTER_VALIDATE_EMAIL)) $email = $x; elseif ($i > 1 && preg_match('/^\+?[\d\s().-]{10,}$/', $x)) $zap = $x; }
+        if (filter_var($site, FILTER_VALIDATE_EMAIL) || preg_match('/^\+?[\d\s().-]{10,}$/', $site)) $site = '';
+        $ct = $c[4] ?? ''; if (filter_var($ct, FILTER_VALIDATE_EMAIL) || preg_match('/^\+?[\d\s().-]{10,}$/', $ct)) $ct = '';
+        $rows[] = ['nome' => $c[0] ?? '', 'site' => $site, 'cidade' => $c[2] ?? '', 'segmento' => $c[3] ?? '', 'contato' => $ct, 'email' => $email, 'zap' => $zap];
     }
-    return ['novos' => $novos, 'duplicados' => $dup, 'ignorados' => $ignorados, 'ids' => $ids, 'lote' => $lote];
+    $r = vdImportarLinhas($rows, $carteira, $lote, $uid, 'planilha');
+    if (!empty($r['erro'])) return ['novos' => 0, 'duplicados' => 0, 'ignorados' => count($rows), 'ids' => [], 'lote' => $lote];
+    return $r + ['lote' => $lote];
 }
 
 // ------------------------------------------------------------ sinais (público, grátis)
@@ -112,10 +104,10 @@ function vdNota($s, $temContato) {
     if ($temContato) $n += 10;
     return max(1, min(100, $n));
 }
-function vdEnriquecer($pid) {
+function vdEnriquecer($pid, $htmlPre = false) {
     $p = vdLinhas(vdSup('/rest/v1/pd_prospects?id=eq.' . $pid . '&select=*'))[0] ?? null; if (!$p) return ['erro' => 'lead não encontrado'];
-    $sinais = (array)($p['sinais'] ?? []);
-    $html = $p['dominio'] ? vdBuscarSite($p['dominio']) : null;
+    $sinais = (array)($p['sinais'] ?? []); unset($sinais['PRE']);
+    $html = $htmlPre !== false ? $htmlPre : ($p['dominio'] ? vdBuscarSite($p['dominio']) : null);
     $achou = [];
     if ($html) {
         $sinais = array_merge($sinais, vdSinaisDoHtml($html));
@@ -129,7 +121,7 @@ function vdEnriquecer($pid) {
         $sinais['CONTATO_ENCONTRADO'] = true;
     }
     $zap = $achou['zap'] ?? ($p['zap'] ?? null);
-    $upd = ['sinais' => $sinais, 'nota' => vdNota($sinais, !empty($achou['email']) || !empty($cts)), 'zap' => $zap ?: ($p['zap'] ?? null)];
+    $upd = ['enriquecido_em' => gmdate('c'), 'sinais' => $sinais, 'nota' => vdNota($sinais, !empty($achou['email']) || !empty($cts)), 'zap' => $zap ?: ($p['zap'] ?? null)];
     if (!empty($sinais['INSTAGRAM'])) $upd['instagram'] = $sinais['INSTAGRAM'];
     if (!empty($sinais['AGENCIA_ATUAL'])) $upd['agencia_atual'] = $sinais['AGENCIA_ATUAL'];
     if (!empty($sinais['TECNOLOGIA']) && empty($p['porte'])) $upd['porte'] = null;
@@ -208,7 +200,7 @@ function vdEnviar($convId, $uid) {
     if ($c['canal'] === 'email') {
         $para = $ct['email'] ?? ''; if (!filter_var($para, FILTER_VALIDATE_EMAIL)) return ['erro' => 'contato sem e-mail válido'];
         $rodape = "\n\n— $ia · IA de vendas de {$dono['nome']}\nSe não quiser receber mais, é só responder SAIR que eu paro por aqui.";
-        $hdr = "From: " . $ia . " · " . preg_replace('/[\r\n<>"]/', '', $dono['nome']) . " <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\nX-PD-Prospect: " . $p['id'] . "\r\nList-Unsubscribe: <mailto:contato@sergioduh.com?subject=SAIR>";
+        $hdr = "From: " . $ia . " · " . preg_replace('/[\r\n<>"]/', '', $dono['nome']) . " <workflow@sergioduh.com>\r\nReply-To: " . (defined('SD_IMAP_USER') && SD_IMAP_USER ? SD_IMAP_USER : 'contato@sergioduh.com') . "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\nX-PD-Prospect: " . $p['id'] . "\r\nList-Unsubscribe: <mailto:contato@sergioduh.com?subject=SAIR>";
         $ok = (bool)@mail($para, '=?UTF-8?B?' . base64_encode((string)$c['assunto']) . '?=', chunk_split(base64_encode($c['corpo'] . $rodape)), $hdr);
         if (!$ok) $erro = 'o servidor de e-mail recusou';
     } elseif ($c['canal'] === 'zap') {
@@ -277,7 +269,225 @@ function vdCadencia($carteira, $max = 10) {
 }
 
 function vdFunil($carteira) {
-    $f = '/rest/v1/pd_prospects?select=estagio' . ($carteira === 'todas' ? '' : '&carteira_id=' . ($carteira ? 'eq.' . $carteira : 'is.null')) . '&limit=5000';
-    $o = array_fill_keys(VD_ESTAGIOS, 0); foreach (vdLinhas(vdSup($f)) as $x) $o[$x['estagio']] = ($o[$x['estagio']] ?? 0) + 1;
+    $r = sd_supabase('/rest/v1/rpc/pd_vendas_funil', 'POST', ['p_carteira' => $carteira === 'todas' ? '*' : ($carteira ?: null)]);
+    $o = array_fill_keys(VD_ESTAGIOS, 0);
+    if (($r['code'] ?? 500) < 300 && is_array($r['body'])) { foreach ($r['body'] as $e => $n) $o[$e] = (int)$n; return $o; }
+    $f = '/rest/v1/pd_prospects?select=estagio' . ($carteira === 'todas' ? '' : '&carteira_id=' . ($carteira ? 'eq.' . $carteira : 'is.null')) . '&limit=5000';   // SQL v147 ainda não rodou
+    foreach (vdLinhas(vdSup($f)) as $x) $o[$x['estagio']] = ($o[$x['estagio']] ?? 0) + 1;
+    return $o;
+}
+
+// =====================================================================
+// ESCALA — base grande (30 mil), lotes, fila de leitura de sites, descoberta e caixa de entrada
+// =====================================================================
+function vdNorm($s) { $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', (string)$s); $t = strtolower($t !== false ? $t : (string)$s); return trim(preg_replace('/[^a-z0-9]+/', ' ', $t)); }
+function vdMailGenerico($d) { return in_array(strtolower($d), ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'yahoo.com.br', 'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br', 'icloud.com', 'live.com', 'msn.com', 'globo.com', 'r7.com', 'me.com', 'protonmail.com'], true); }
+
+/** Nota de PARTIDA, só com o que a planilha já diz (sem abrir site nenhum). Decide quem a fila lê primeiro. */
+function vdPreNota($r) {
+    $n = 15;
+    if (!empty($r['site'])) $n += 12;
+    if (!empty($r['email'])) $n += 8;
+    if (!empty($r['zap'])) $n += 6;
+    $seg = vdNorm(($r['segmento'] ?? '') . ' ' . ($r['nome'] ?? ''));
+    if (preg_match('/incorporad|construt|imobili|loteador|loteament|urbaniz|empreendiment|arquitet|engenharia|residenc|condomin/', $seg)) $n += 25;
+    if (!empty($r['cidade'])) $n += 3;
+    if (!empty($r['porte']) && preg_match('/medio|grande|demais/', vdNorm($r['porte']))) $n += 6;
+    return min(100, $n);
+}
+
+/** Importa um PEDAÇO de linhas já separadas por coluna (o navegador manda de 400 em 400). Deduplica por carteira+domínio (ou nome+cidade). */
+function vdImportarLinhas(array $rows, $carteira, $lote, $uid, $origem = 'planilha') {
+    $cartK = $carteira ?: 'casa'; $porChave = []; $ignorados = 0;
+    foreach ($rows as $r) {
+        $nome = trim((string)($r['nome'] ?? '')); if (mb_strlen($nome) < 2) { $ignorados++; continue; }
+        $site = trim((string)($r['site'] ?? '')); $email = strtolower(trim((string)($r['email'] ?? ''))); if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) $email = '';
+        $zap = trim((string)($r['zap'] ?? '')) !== '' ? pdZapNormaliza($r['zap']) : ''; if (strlen($zap) < 12) $zap = '';
+        $dom = vdDominio($site); $inferido = false;
+        if ($dom === '' && $email !== '') { $ed = substr(strrchr($email, '@'), 1); if ($ed && !vdMailGenerico($ed)) { $dom = $ed; $inferido = true; } }   // base de CNPJ costuma ter e-mail, não site
+        $chave = $cartK . '|' . ($dom !== '' ? $dom : vdNorm($nome) . '|' . vdNorm($r['cidade'] ?? ''));
+        if (isset($porChave[$chave])) { $ignorados++; continue; }
+        $r2 = ['nome' => $nome, 'site' => $site ?: null, 'email' => $email, 'zap' => $zap, 'cidade' => trim((string)($r['cidade'] ?? '')) ?: null, 'uf' => strtoupper(substr(trim((string)($r['uf'] ?? '')), 0, 2)) ?: null,
+               'segmento' => trim((string)($r['segmento'] ?? '')) ?: null, 'porte' => trim((string)($r['porte'] ?? '')) ?: null, 'contato' => trim((string)($r['contato'] ?? '')), 'cargo' => trim((string)($r['cargo'] ?? ''))];
+        $porChave[$chave] = ['row' => $r2, 'dom' => $dom, 'inf' => $inferido];
+    }
+    if (!$porChave) return ['novos' => 0, 'duplicados' => 0, 'ignorados' => $ignorados, 'ids' => []];
+    $ins = [];
+    foreach ($porChave as $chave => $x) { $r = $x['row'];
+        $ins[] = ['nome' => $r['nome'], 'site' => $r['site'], 'dominio' => $x['dom'] ?: null, 'cidade' => $r['cidade'], 'uf' => $r['uf'], 'segmento' => $r['segmento'], 'porte' => $r['porte'], 'zap' => $r['zap'] ?: null,
+                  'origem' => $origem, 'lote_id' => $lote, 'carteira_id' => $carteira, 'criado_por' => $uid, 'chave' => $chave, 'nota' => vdPreNota($r), 'sinais' => ['PRE' => true] + ($x['inf'] ? ['SITE_INFERIDO' => true] : [])]; }
+    $r = sd_supabase('/rest/v1/pd_prospects?on_conflict=chave', 'POST', $ins, ['Prefer: resolution=ignore-duplicates,return=representation']);
+    if (($r['code'] ?? 500) >= 300) return ['erro' => 'banco recusou: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200)];
+    $novos = (array)$r['body']; $cts = [];
+    foreach ($novos as $n) { $x = $porChave[$n['chave']]['row'] ?? null; if (!$x) continue;
+        if ($x['email'] !== '' || $x['zap'] !== '' || $x['contato'] !== '') $cts[] = ['prospect_id' => $n['id'], 'nome' => $x['contato'] ?: $x['nome'], 'cargo' => $x['cargo'] ?: null, 'email' => $x['email'] ?: null, 'zap' => $x['zap'] ?: null, 'email_status' => 'palpite', 'principal' => true, 'dono' => $x['contato'] !== ''];
+    }
+    if ($cts) sd_supabase('/rest/v1/pd_prospect_contatos', 'POST', $cts, ['Prefer: return=minimal']);
+    return ['novos' => count($novos), 'duplicados' => count($porChave) - count($novos), 'ignorados' => $ignorados, 'ids' => array_column($novos, 'id')];
+}
+
+// ------------------------------------------------------------ filtro, contagem e lote (cohort)
+function vdFiltroQs($b, $carteira) {
+    $f = $carteira === 'todas' ? '' : '&carteira_id=' . ($carteira ? 'eq.' . $carteira : 'is.null');
+    $lim = fn($v) => rawurlencode('*' . str_replace(['*', '%', ',', '(', ')'], ' ', $v) . '*');
+    if (($q = trim((string)($b['q'] ?? ''))) !== '') $f .= '&nome=ilike.' . $lim($q);
+    if (($uf = strtoupper(trim((string)($b['uf'] ?? '')))) !== '' && preg_match('/^[A-Z]{2}$/', $uf)) $f .= '&uf=eq.' . $uf;
+    if (($c = trim((string)($b['cidade'] ?? ''))) !== '') $f .= '&cidade=ilike.' . $lim($c);
+    if (($sg = trim((string)($b['segmento'] ?? ''))) !== '') $f .= '&segmento=ilike.' . $lim($sg);
+    if (($nm = (int)($b['nota_min'] ?? 0)) > 0) $f .= '&nota=gte.' . min(100, $nm);
+    $est = preg_replace('/[^a-z,]/', '', (string)($b['estagio'] ?? '')); if ($est !== '') $f .= '&estagio=in.(' . $est . ')';
+    if (($lt = vdUuid($b['lote'] ?? ''))) $f .= '&lote_id=eq.' . $lt;
+    return $f;
+}
+function vdContar($qs) {
+    $ch = curl_init(SD_SUPABASE_URL . '/rest/v1/pd_prospects?select=id' . $qs);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Prefer: count=exact', 'Range-Unit: items', 'Range: 0-0']]);
+    $raw = (string)curl_exec($ch); curl_close($ch);
+    return preg_match('/content-range:\s*[\d*\-]+\/(\d+)/i', $raw, $m) ? (int)$m[1] : 0;
+}
+/** Transforma o filtro num LOTE (cohort): os $max melhores entram, e a fila lê o site deles em segundo plano. */
+function vdLoteCriar($qs, $nome, $max, $carteira, $uid, $motivo = null) {
+    $max = max(1, min(5000, (int)$max));
+    $lr = vdLinhas(vdSup('/rest/v1/pd_lotes', 'POST', ['nome' => mb_substr($nome, 0, 120), 'motivo' => $motivo, 'carteira_id' => $carteira && $carteira !== 'todas' ? $carteira : null, 'criado_por' => $uid]));
+    $lote = $lr[0]['id'] ?? null; if (!$lote) return ['erro' => 'não consegui criar o lote'];
+    $ids = []; $off = 0;
+    while (count($ids) < $max) {
+        $take = min(1000, $max - count($ids));
+        $pg = vdLinhas(vdSup('/rest/v1/pd_prospects?select=id&order=nota.desc.nullslast,created_at.asc&limit=' . $take . '&offset=' . $off . '&lote_id=is.null' . $qs));
+        if (!$pg) break; foreach ($pg as $x) $ids[] = $x['id']; $off += $take; if (count($pg) < $take) break;
+    }
+    foreach (array_chunk($ids, 150) as $ch) vdSup('/rest/v1/pd_prospects?id=in.(' . implode(',', $ch) . ')', 'PATCH', ['lote_id' => $lote]);
+    return ['lote' => $lote, 'dentro' => count($ids)];
+}
+
+// ------------------------------------------------------------ fila: lê muitos sites em paralelo (cron de 5 em 5 min)
+function vdBuscarVarios(array $doms, $timeout = 8) {
+    $mh = curl_multi_init(); $hs = []; $out = [];
+    foreach ($doms as $d) { $out[$d] = null; if (!pdHostSeguro($d)) continue;
+        $ch = curl_init('https://' . $d . '/');
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; PontodotBot/1.0; +https://pontodot.ai)', CURLOPT_RANGE => '0-450000', CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS]);
+        curl_multi_add_handle($mh, $ch); $hs[$d] = $ch; }
+    do { curl_multi_exec($mh, $run); if ($run) curl_multi_select($mh, 1.0); } while ($run > 0);
+    foreach ($hs as $d => $ch) { $h = curl_multi_getcontent($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $fh = parse_url((string)curl_getinfo($ch, CURLINFO_EFFECTIVE_URL), PHP_URL_HOST);
+        if ($h && $code >= 200 && $code < 400 && strlen($h) > 200 && (!$fh || pdHostSeguro($fh))) $out[$d] = $h; curl_multi_remove_handle($mh, $ch); curl_close($ch); }
+    curl_multi_close($mh); return $out;
+}
+function vdFilaEnriquecer($n = 40) {
+    $ps = vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=not.is.null&enriquecido_em=is.null&select=id,dominio&order=nota.desc.nullslast&limit=' . (int)$n));
+    if (!$ps) return 0;
+    $doms = array_values(array_unique(array_filter(array_column($ps, 'dominio')))); $htmls = $doms ? vdBuscarVarios($doms) : [];
+    foreach ($ps as $p) vdEnriquecer($p['id'], $p['dominio'] ? ($htmls[$p['dominio']] ?? null) : null);
+    return count($ps);
+}
+
+// ------------------------------------------------------------ descobrir leads sozinho (Claude + busca na web)
+function vdDescobrir($consulta, $quantos, $carteira, $uid) {
+    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return ['erro' => 'falta SD_ANTHROPIC_KEY'];
+    $hoje = count(vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . gmdate('Y-m-d\T00:00:00\Z', strtotime('today')) . '&select=id&limit=50')));
+    if ($hoje >= 10) return ['erro' => 'teto de 10 descobertas por dia atingido (cada uma gasta busca na web)'];
+    $quantos = max(3, min(15, (int)$quantos)); $cart = $carteira && $carteira !== 'todas' ? $carteira : null;
+    $sys = "Você acha EMPRESAS REAIS para prospecção comercial usando a busca na web. Regras: só inclua empresa cujo site apareceu nos resultados que você leu; nunca invente site, nome ou cidade; prefira as que mostram sinais de momento (lançamento, obras, anúncios). "
+         . "Responda SOMENTE um JSON array de até $quantos itens: [{\"nome\":\"\",\"site\":\"\",\"cidade\":\"\",\"uf\":\"\",\"segmento\":\"\",\"instagram\":\"\",\"motivo\":\"1 frase do porquê é um bom lead\"}]. Sem texto fora do JSON.";
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $ch = curl_init($base . '/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 150,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 3000, 'system' => $sys,
+            'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 6]], 'messages' => [['role' => 'user', 'content' => 'Achar leads: ' . mb_substr($consulta, 0, 400)]]])]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code !== 200) { $m = json_decode((string)$raw, true); return ['erro' => 'a busca na web não respondeu (HTTP ' . $code . ')' . (!empty($m['error']['message']) ? ': ' . mb_substr($m['error']['message'], 0, 160) : '') . ($code === 400 ? ' — confira se a busca na web está habilitada na sua conta da Anthropic' : '')]; }
+    $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $bl) if (($bl['type'] ?? '') === 'text') $t .= $bl['text'];
+    if (!preg_match('/\[.*\]/s', $t, $m)) return ['erro' => 'a IA não devolveu uma lista'];
+    $lista = json_decode($m[0], true); if (!is_array($lista) || !$lista) return ['erro' => 'não achei empresas com site confirmado'];
+    $lr = vdLinhas(vdSup('/rest/v1/pd_lotes', 'POST', ['nome' => 'Descoberta ' . date('d/m H:i') . ' · ' . mb_substr($consulta, 0, 60), 'motivo' => $consulta, 'carteira_id' => $cart, 'criado_por' => $uid]));
+    $lote = $lr[0]['id'] ?? null; $rows = [];
+    foreach ($lista as $x) { if (!is_array($x) || empty($x['nome']) || empty($x['site'])) continue; $rows[] = ['nome' => $x['nome'], 'site' => $x['site'], 'cidade' => $x['cidade'] ?? '', 'uf' => $x['uf'] ?? '', 'segmento' => $x['segmento'] ?? '']; }
+    $r = vdImportarLinhas($rows, $cart, $lote, $uid, 'descoberta');
+    if (empty($r['ids'])) return ['erro' => 'tudo que achei já estava na carteira', 'duplicados' => $r['duplicados'] ?? 0];
+    foreach (array_slice($r['ids'], 0, 15) as $id) vdEnriquecer($id);   // já lê os sites
+    foreach ($lista as $x) if (!empty($x['motivo']) && !empty($x['site'])) { $d = vdDominio($x['site']); if ($d) vdSup('/rest/v1/pd_prospects?dominio=eq.' . urlencode($d) . '&angulo=is.null' . ($cart ? '&carteira_id=eq.' . $cart : '&carteira_id=is.null'), 'PATCH', ['angulo' => mb_substr((string)$x['motivo'], 0, 300)]); }
+    return ['ok' => true, 'novos' => $r['novos'], 'duplicados' => $r['duplicados'], 'lote' => $lote];
+}
+
+// ------------------------------------------------------------ caixa de entrada (IMAP): a resposta do lead entra sozinha
+function vdImapCfg() { return (defined('SD_IMAP_HOST') && defined('SD_IMAP_USER') && defined('SD_IMAP_PASS') && SD_IMAP_PASS) ? ['h' => SD_IMAP_HOST, 'u' => SD_IMAP_USER, 'p' => SD_IMAP_PASS, 'port' => defined('SD_IMAP_PORT') ? SD_IMAP_PORT : 993] : null; }
+function vdImapCmd($fp, $tag, $cmd) {
+    fwrite($fp, "$tag $cmd\r\n"); $out = '';
+    while (($l = fgets($fp, 16384)) !== false) {
+        $out .= $l;
+        if (preg_match('/\{(\d+)\}\r\n$/', $l, $m)) { $n = (int)$m[1]; $buf = ''; while (strlen($buf) < $n) { $c = fread($fp, $n - strlen($buf)); if ($c === '' || $c === false) break; $buf .= $c; } $out .= $buf; continue; }
+        if (strpos($l, "$tag ") === 0) break;
+    }
+    return $out;
+}
+function vdMimeCabecalhos($raw) {
+    $p = preg_split('/\r?\n\r?\n/', $raw, 2); $h = []; $cur = null;
+    foreach (preg_split('/\r?\n/', $p[0]) as $ln) { if ($ln !== '' && ($ln[0] === ' ' || $ln[0] === "\t") && $cur) { $h[$cur] .= ' ' . trim($ln); continue; } if (strpos($ln, ':') !== false) { [$k, $v] = explode(':', $ln, 2); $cur = strtolower(trim($k)); $h[$cur] = trim($v); } }
+    return [$h, $p[1] ?? ''];
+}
+function vdMimeTexto($raw, $nivel = 0) {
+    [$h, $corpo] = vdMimeCabecalhos($raw); $ct = $h['content-type'] ?? 'text/plain';
+    if ($nivel < 4 && preg_match('/multipart\/\w+;.*boundary="?([^";\s]+)"?/is', $ct, $m)) {
+        $melhor = ''; $html = '';
+        foreach (preg_split('/\r?\n--' . preg_quote($m[1], '/') . '(?:--)?/', "\n" . $corpo) as $parte) { $parte = ltrim($parte, "\r\n"); if (trim($parte) === '' || $parte === '--') continue;
+            $t = vdMimeTexto($parte, $nivel + 1); [$ph] = vdMimeCabecalhos($parte); $pct = strtolower($ph['content-type'] ?? 'text/plain');
+            if (strpos($pct, 'text/plain') !== false && $melhor === '') $melhor = $t; elseif (strpos($pct, 'text/html') !== false && $html === '') $html = $t; elseif (strpos($pct, 'multipart') !== false && $melhor === '') $melhor = $t; }
+        return $melhor !== '' ? $melhor : $html;
+    }
+    if (!preg_match('/^text\//i', $ct) && $ct !== '') return '';
+    $cte = strtolower($h['content-transfer-encoding'] ?? '7bit');
+    $b = $cte === 'base64' ? base64_decode($corpo) : ($cte === 'quoted-printable' ? quoted_printable_decode($corpo) : $corpo);
+    if (preg_match('/charset="?([\w-]+)/i', $ct, $cm) && !preg_match('/utf-?8/i', $cm[1])) { $c = @mb_convert_encoding($b, 'UTF-8', $cm[1]); if ($c !== false) $b = $c; }
+    if (stripos($ct, 'text/html') !== false) { $b = preg_replace('/<(br|\/p|\/div|\/tr)\s*\/?>/i', "\n", preg_replace('/<(style|script)[^>]*>.*?<\/\1>/is', '', $b)); $b = html_entity_decode(strip_tags($b), ENT_QUOTES, 'UTF-8'); }
+    return trim($b);
+}
+/** Só o que a pessoa escreveu de novo: corta a citação da mensagem anterior. */
+function vdSemCitacao($t) {
+    $out = [];
+    foreach (preg_split('/\r?\n/', $t) as $ln) { if (preg_match('/^(Em .{5,120}escreveu:?|On .{5,120}wrote:?|-{2,}\s*(Original|Mensagem original)|De:\s|From:\s|Enviado de meu)/iu', trim($ln)) || (isset($ln[0]) && $ln[0] === '>')) break; $out[] = $ln; }
+    return trim(mb_substr(implode("\n", $out), 0, 1500));
+}
+function vdInboxLer($max = 25) {
+    $cfg = vdImapCfg(); if (!$cfg) return ['pulado' => 'IMAP não configurado'];
+    $fp = @stream_socket_client('ssl://' . $cfg['h'] . ':' . $cfg['port'], $en, $es, 15, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]));
+    if (!$fp) return ['erro' => "não conectei no e-mail ($es)"]; stream_set_timeout($fp, 25); fgets($fp);
+    $q = fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+    if (stripos(vdImapCmd($fp, 'a1', 'LOGIN ' . $q($cfg['u']) . ' ' . $q($cfg['p'])), 'a1 OK') === false) { fclose($fp); return ['erro' => 'e-mail recusou o login (usuário ou senha)']; }
+    vdImapCmd($fp, 'a2', 'SELECT INBOX');
+    $est = vdLinhas(vdSup('/rest/v1/pd_vendas_estado?chave=eq.imap&select=valor'))[0]['valor'] ?? []; $ultimo = (int)($est['ultimo_uid'] ?? 0);
+    $busca = vdImapCmd($fp, 'a3', 'UID SEARCH UNSEEN'); $uids = [];
+    if (preg_match('/\* SEARCH([\d ]*)/', $busca, $m)) $uids = array_values(array_filter(array_map('intval', preg_split('/\s+/', trim($m[1]))), fn($u) => $u > $ultimo));
+    sort($uids); $uids = array_slice($uids, 0, $max); $r = ['lidas' => 0, 'respostas' => 0, 'bounces' => 0, 'ignoradas' => 0]; $tag = 10; $maxUid = $ultimo;
+    foreach ($uids as $uid) {
+        $tag++; $resp = vdImapCmd($fp, 'b' . $tag, "UID FETCH $uid (BODY.PEEK[])"); $maxUid = max($maxUid, $uid);
+        if (!preg_match('/\{(\d+)\}\r\n/', $resp, $m, PREG_OFFSET_CAPTURE)) continue; $raw = substr($resp, $m[0][1] + strlen($m[0][0]), (int)$m[1][0]); $r['lidas']++;
+        [$h] = vdMimeCabecalhos($raw); $de = strtolower((string)(preg_match('/[\w.+\-]+@[\w\-]+\.[\w.\-]+/', $h['from'] ?? '', $mm) ? $mm[0] : '')); $assunto = (string)@iconv_mime_decode($h['subject'] ?? '', 0, 'UTF-8');
+        $texto = vdMimeTexto($raw);
+        if ($de === '') { $r['ignoradas']++; continue; }
+        if (preg_match('/mailer-daemon|postmaster/i', $de) || preg_match('/undeliver|delivery status|falha na entrega|returned mail|n[ãa]o foi entregue/i', $assunto)) {   // e-mail que não existe: marca e segue
+            if (preg_match_all('/[\w.+\-]+@[\w\-]+\.[\w.\-]+/', $texto, $ems)) foreach (array_unique($ems[0]) as $e) { $e = strtolower($e); if (strpos($e, 'sergioduh') !== false || preg_match('/mailer-daemon|postmaster/', $e)) continue;
+                vdSup('/rest/v1/pd_prospect_contatos?email=eq.' . urlencode($e), 'PATCH', ['email_status' => 'invalido']); }
+            $r['bounces']++; vdImapCmd($fp, 'c' . $tag, "UID STORE $uid +FLAGS (\\Seen)"); continue; }
+        $auto = (isset($h['auto-submitted']) && !preg_match('/^no/i', $h['auto-submitted'])) || preg_match('/resposta autom|out of office|fora do escrit[óo]rio|ausente/i', $assunto);
+        if ($auto) { $r['ignoradas']++; continue; }
+        $ct = vdLinhas(vdSup('/rest/v1/pd_prospect_contatos?email=eq.' . urlencode($de) . '&select=id,prospect_id&limit=1'))[0] ?? null; $pid = $ct['prospect_id'] ?? null;
+        if (!$pid) { $dd = substr(strrchr($de, '@'), 1); if ($dd && !vdMailGenerico($dd)) $pid = vdLinhas(vdSup('/rest/v1/pd_prospects?dominio=eq.' . urlencode($dd) . '&select=id&order=ultimo_contato.desc.nullslast&limit=1'))[0]['id'] ?? null; }
+        if (!$pid) { $r['ignoradas']++; continue; }   // não é de nenhum lead: deixa pra um humano
+        $novo = vdSemCitacao($texto); if ($novo === '') $novo = mb_substr($texto, 0, 800);
+        vdEntrada($pid, 'email', $novo, $ct['id'] ?? null); $r['respostas']++;
+        vdImapCmd($fp, 'c' . $tag, "UID STORE $uid +FLAGS (\\Seen)");
+    }
+    vdImapCmd($fp, 'z', 'LOGOUT'); fclose($fp);
+    if ($maxUid > $ultimo) sd_supabase('/rest/v1/pd_vendas_estado?on_conflict=chave', 'POST', ['chave' => 'imap', 'valor' => ['ultimo_uid' => $maxUid], 'atualizado_em' => gmdate('c')], ['Prefer: resolution=merge-duplicates,return=minimal']);
+    return $r;
+}
+
+/** Um tique do relógio da casa: caixa de entrada, fila de sites e (de hora em hora) os follow-ups. */
+function vdTick() {
+    $o = [];
+    try { $o['inbox'] = vdInboxLer(25); } catch (Throwable $e) { $o['inbox'] = ['erro' => $e->getMessage()]; }
+    try { $o['sites'] = vdFilaEnriquecer(40); } catch (Throwable $e) { $o['sites'] = 'erro ' . $e->getMessage(); }
+    try { if ((int)date('i') < 5) $o['follow'] = count(vdCadencia('todas', 4)); } catch (Throwable $e) {}
     return $o;
 }

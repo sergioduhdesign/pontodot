@@ -7,7 +7,7 @@
  --verde:#16A34A;--laranja:#D97706;--roxo:#7C3AED;--bad:#ef6a5f;--r:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
-body{background:transparent;color:var(--branco);font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
+html{color-scheme:dark}body{background:#0e100f;color:var(--branco);font:13.5px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
 #fundo{position:fixed;inset:0;z-index:0;background:#0B0C0B center/cover no-repeat;opacity:.55;transition:opacity 1.6s}
 #fundo:after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(8,10,9,.55),rgba(8,10,9,.78))}
 .w{position:relative;max-width:980px;margin:0 auto;padding:6px 6px 70px}
@@ -37,16 +37,24 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .msg{padding:50px 0;text-align:center;color:var(--branco2)}.log{font-size:12.5px;color:var(--branco2);margin:8px 0;white-space:pre-wrap}
 .bub{padding:10px 13px;border-radius:16px;margin:7px 0;max-width:88%;white-space:pre-wrap;font-size:13px;border:.5px solid var(--linha);background:rgba(255,255,255,.05)}.bub.e{background:rgba(255,255,255,.88);color:#111;margin-left:auto;border-color:transparent}.bub small{display:block;opacity:.6;font-size:11px;margin-top:5px}
 .dr{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}.dr>div{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:rgba(12,14,13,.94);border-left:.5px solid var(--linha);padding:20px;overflow:auto}
-.capa{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/1;min-height:120px;border:.5px solid var(--linha)}
+.capa{position:relative;border-radius:var(--r);overflow:hidden;height:clamp(110px,19vw,190px);border:.5px solid var(--linha);background:#161918}
 .capa>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 45%}
 .capa-v{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,9,.88) 0%,rgba(8,10,9,.55) 42%,rgba(8,10,9,0) 75%)}
 .capa-t{position:absolute;left:18px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:14px}.capa-t .lg{height:34px;width:auto}
-.capa-c{position:absolute;right:12px;bottom:10px;background:rgba(8,10,9,.55);padding:5px 8px;border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}.capa-c select{padding:5px 8px}
+.carts{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:none}.carts::-webkit-scrollbar{display:none}
+.ct{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:5px 13px 5px 5px;border-radius:999px;border:.5px solid var(--linha);background:rgba(255,255,255,.04);color:var(--branco2);font:inherit;font-size:12.5px;cursor:pointer}
+.ct.on{border-color:var(--branco);color:var(--branco);background:rgba(255,255,255,.12)}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;overflow:hidden;flex:0 0 auto;color:#fff}.av img{width:100%;height:100%;object-fit:cover}
+.fil{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.fil input,.fil select{padding:7px 10px;font-size:12.5px}
+.bar{height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--verde);width:0;transition:width .25s}
+#app{min-height:52vh}
+.map{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;align-items:center;margin:10px 0}.map label{color:var(--branco2);font-size:12.5px}
 code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
 </style></head><body><div class="w">
-<div class="capa"><img src="/pd/tour/clientes.webp" alt=""><div class="capa-v"></div>
+<div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
   <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · Studio</div><h1>Vendas</h1></div></div>
-  <div class="capa-c row"><span class="sub">Carteira</span><select id="cart" onchange="troca()"></select></div></div>
+</div>
+<div class="carts" id="carts"></div>
 <div class="sub" style="margin-top:12px">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div>
 <div class="tabs" id="tabs"></div><div id="app"><div class="msg">Carregando…</div></div></div>
 <div class="dr" id="dr" onclick="if(event.target===this)fecha()"><div id="drc"></div></div>
@@ -55,36 +63,68 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let ses,CART='',TAB='funil',EST='',FUN={},CARTS=[],LEADS=[],CAIXA=[],HOJE=0,TETO=40,LOG='';
+let ses,CART=new URLSearchParams(location.search).get('cart')||'',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir Vendas.</div>';return;}
   try{const f=await api({acao:'funil'});CARTS=f.carteiras;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
-  $('#cart').innerHTML='<option value="">Casa (a própria agência)</option>'+CARTS.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')+'<option value="todas">Todas as carteiras</option>';
   await carrega();}
-async function troca(){CART=$('#cart').value;EST='';await carrega();}
-async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST}),api({acao:'caixa'})]);FUN=f.funil;LEADS=l.leads;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+function chips(){const av=(c)=>c.logo_url?`<span class="av"><img src="${esc(c.logo_url)}" alt=""></span>`:`<span class="av" style="background:${esc(c.color||'#555')}">${esc((c.name||'?').slice(0,2).toUpperCase())}</span>`;
+  const todos=[{id:'',name:'Casa',logo_url:'/assets/icon-192.png'},...CARTS,{id:'todas',name:'Todas',color:'#444'}];
+  $('#carts').innerHTML=todos.map(c=>`<button class="ct ${CART===c.id?'on':''}" onclick="troca('${c.id}')">${av(c)}${esc(c.name)}</button>`).join('');}
+async function troca(id){CART=id;EST='';PAG=0;await carrega();}
+async function carrega(){try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}catch(e){$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 function draw(){
+  chips();
   $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';draw()">${n}</button>`).join('');
   $('#app').innerHTML=TAB==='funil'?vFunil():TAB==='caixa'?vCaixa():vEntrar();}
 function vFunil(){
-  const f=`<div class="fun"><button class="${EST===''?'on':''}" onclick="EST='';carrega()"><b>${Object.values(FUN).reduce((a,b)=>a+b,0)}</b><small>todos</small></button>${ESTS.map(e=>`<button class="${EST===e?'on':''}" onclick="EST='${e}';carrega()"><b>${FUN[e]||0}</b><small>${e}</small></button>`).join('')}</div>`;
-  const lista=LEADS.map(l=>`<div class="lead" onclick="abre('${l.id}')"><div class="nota ${l.nota>=60?'alta':l.nota>=40?'media':''}">${l.nota??'–'}</div><div class="t"><b>${esc(l.nome)}</b><small>${esc([l.cidade,l.segmento,l.estagio].filter(Boolean).join(' · '))}${l.angulo?' — '+esc(l.angulo):''}</small></div></div>`).join('')||'<div class="msg">Nenhum lead aqui ainda. Vá em “Adicionar leads”.</div>';
-  return f+`<div class="row" style="margin-bottom:10px"><button class="btn s" onclick="cad()">Quem pede follow-up</button><span class="log" id="log">${esc(LOG)}</span></div>`+lista;}
+  const tot=Object.values(FUN).reduce((a,b)=>a+b,0);
+  const f=`<div class="fun"><button class="${EST===''?'on':''}" onclick="EST='';PAG=0;carrega()"><b>${tot.toLocaleString('pt-BR')}</b><small>todos</small></button>${ESTS.map(e=>`<button class="${EST===e?'on':''}" onclick="EST='${e}';PAG=0;carrega()"><b>${(FUN[e]||0).toLocaleString('pt-BR')}</b><small>${e}</small></button>`).join('')}</div>`;
+  const UFS='AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
+  const fil=`<div class="fil"><input id="fq" placeholder="Buscar empresa" value="${esc(FIL.q)}" style="flex:1;min-width:150px" onkeydown="if(event.key==='Enter')filtra()"><select id="fu"><option value="">UF</option>${UFS.map(u=>`<option ${FIL.uf===u?'selected':''}>${u}</option>`).join('')}</select><input id="fs" placeholder="Segmento" value="${esc(FIL.segmento)}" style="width:130px" onkeydown="if(event.key==='Enter')filtra()"><select id="fn"><option value="0">Nota</option><option value="40" ${FIL.nota_min==40?'selected':''}>40+</option><option value="60" ${FIL.nota_min==60?'selected':''}>60+</option><option value="75" ${FIL.nota_min==75?'selected':''}>75+</option></select><button class="btn s" onclick="filtra()">Filtrar</button></div>`;
+  const lote=TOTAL?`<div class="card" style="padding:12px 14px"><div class="sub" style="margin-bottom:8px"><b>${TOTAL.toLocaleString('pt-BR')}</b> leads neste filtro. Transforme em <b>lote</b>: os melhores entram na fila e eu leio o site de cada um em segundo plano (${FILA?FILA.toLocaleString('pt-BR')+' na fila agora':'fila vazia'}).</div><div class="row"><input id="ln" placeholder="Nome do lote" style="flex:1;min-width:150px"><input id="lm" type="number" value="500" min="1" max="5000" style="width:90px"><button class="btn ia s" onclick="loteCriar(this)">Criar lote e ler os sites</button></div></div>`:'';
+  const lista=LEADS.map(l=>`<div class="lead" onclick="abre('${l.id}')"><div class="nota ${l.nota>=60?'alta':l.nota>=40?'media':''}">${l.nota??'–'}</div><div class="t"><b>${esc(l.nome)}</b><small>${esc([l.cidade&&(l.cidade+(l.uf?'/'+l.uf:'')),l.segmento,l.estagio].filter(Boolean).join(' · '))}${l.angulo?' — '+esc(l.angulo):''}</small></div>${l.enriquecido_em?'':'<span class="tag" title="site ainda não lido">pré-nota</span>'}</div>`).join('')||'<div class="msg">Nenhum lead aqui. Vá em “Adicionar leads”.</div>';
+  const pg=TOTAL>100?`<div class="row" style="justify-content:center;margin-top:10px"><button class="btn s" ${PAG?'':'disabled'} onclick="PAG--;carrega()">‹</button><span class="sub">${PAG*100+1}–${Math.min(TOTAL,PAG*100+100)} de ${TOTAL.toLocaleString('pt-BR')}</span><button class="btn s" ${(PAG+1)*100>=TOTAL?'disabled':''} onclick="PAG++;carrega()">›</button></div>`:'';
+  return f+fil+lote+`<div class="row" style="margin-bottom:10px"><button class="btn s" onclick="cad()">Quem pede follow-up</button><span class="log">${esc(LOG)}</span></div>`+lista+pg;}
+function filtra(){FIL={q:$('#fq').value.trim(),uf:$('#fu').value,segmento:$('#fs').value.trim(),nota_min:+$('#fn').value};PAG=0;carrega();}
+function loteCriar(b){run(b,'Criando…',async()=>{const r=(await api({acao:'lote_criar',...FIL,estagio:EST,nome:$('#ln').value,max:+$('#lm').value})).r;LOG=`✅ Lote com ${r.dentro.toLocaleString('pt-BR')} leads. Estou lendo os sites em segundo plano (uns 40 a cada 5 min); os melhores sobem primeiro.`;});}
 function vCaixa(){
   const c=CAIXA.map(x=>`<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(x.pd_prospects?.nome||'')}</b><span class="sub">${x.canal} · msg ${x.sequencia||1} · por ${esc(x.escrito_por||'')}</span></div>
     ${x.canal==='email'?`<input style="width:100%;margin:8px 0" value="${esc(x.assunto)}" onchange="ed('${x.id}',{assunto:this.value})">`:''}
     <textarea rows="6" onchange="ed('${x.id}',{corpo:this.value})">${esc(x.corpo)}</textarea>
     <div class="row" style="margin-top:8px"><button class="btn p s" onclick="env('${x.id}',this)">Aprovar e enviar</button><button class="btn s" onclick="rej('${x.id}')">Descartar</button></div></div>`).join('')||'<div class="msg">Nada esperando aprovação.</div>';
-  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios.</span>${CAIXA.length>1?`<button class="btn s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</div><span class="log">${esc(LOG)}</span>`+c;}
-function vEntrar(){return `<div class="card"><b>1 · Cole a lista</b><div class="sub" style="margin:4px 0 8px">Uma empresa por linha: <code>Empresa; site; cidade; segmento; contato; e-mail; zap</code> — só o nome é obrigatório. Dá pra colar direto de planilha.</div>
-  <textarea id="lin" rows="7" placeholder="Construtora Alfa; alfa.com.br; Goiânia; incorporadora; Maria; maria@alfa.com.br"></textarea>
-  <div class="row" style="margin-top:8px"><input id="lote" placeholder="Nome do lote (opcional)"><button class="btn p" onclick="imp(this)">Importar e ler os sites</button></div></div>
-  <div class="card"><b>2 · A IA escreve as aberturas</b><div class="sub" style="margin:4px 0 8px">Pega os melhores leads novos, escolhe um ângulo de cada (só com sinal verificado) e deixa o rascunho na Caixa de saída.</div>
-  <div class="row"><select id="cn"><option value="email">E-mail</option><option value="zap">WhatsApp</option></select><input id="qt" type="number" min="1" max="10" value="5" style="width:70px"><input id="of" placeholder="O que oferecemos (1 frase)" style="flex:1;min-width:220px"><button class="btn p" onclick="abord(this)">Escrever rascunhos</button></div></div><div class="log">${esc(LOG)}</div>`;}
+  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="sub">Nada sai sem você clicar. Hoje: ${HOJE} de ${TETO} envios. Respostas por e-mail: ${IMAP?'<b style="color:#7ee2a2">lidas sozinhas</b> a cada 5 min':'<b style="color:#f0b15a">caixa de e-mail ainda não ligada</b>'}.</span><span class="row">${IMAP?'<button class="btn s" onclick="lerInbox(this)">Ler e-mails agora</button>':''}${CAIXA.length>1?`<button class="btn p s" onclick="envTodos(this)">Aprovar e enviar todas (${CAIXA.length})</button>`:''}</span></div><span class="log">${esc(LOG)}</span>`+c;}
+function lerInbox(b){run(b,'Lendo…',async()=>{const r=(await api({acao:'inbox'})).r;LOG=r.erro?'⚠️ '+r.erro:`📥 ${r.lidas||0} e-mail(s) novos: ${r.respostas||0} resposta(s) de lead, ${r.bounces||0} endereço(s) inválido(s), ${r.ignoradas||0} ignorado(s).`;});}
+function vEntrar(){return `<div class="card"><b>1 · Subir a base inteira</b><div class="sub" style="margin:4px 0 10px">Excel ou CSV, até dezenas de milhares de linhas. Eu reconheço as colunas, tiro duplicados (pelo site ou nome+cidade) e dou uma pré-nota só com o que a planilha já diz. Os sites são lidos depois, só dos lotes que você montar.</div>
+  <input type="file" id="arq" accept=".xlsx,.xls,.csv" onchange="lerPlan(this)">${PLAN?planUI():''}</div>
+  <div class="card"><b>2 · Deixar a IA achar leads</b><div class="sub" style="margin:4px 0 10px">Ela pesquisa na web, só traz empresa real com site confirmado e já lê o site. Até 10 buscas por dia.</div>
+  <div class="row"><input id="dq" placeholder="ex.: incorporadoras com lançamento em Campinas" style="flex:1;min-width:240px"><input id="dn" type="number" min="3" max="15" value="10" style="width:70px"><button class="btn ia" onclick="desc(this)">Descobrir</button></div></div>
+  <div class="card"><b>3 · Colar uma lista pequena</b><div class="sub" style="margin:4px 0 8px"><code>Empresa; site; cidade; segmento; contato; e-mail; zap</code></div>
+  <textarea id="lin" rows="4"></textarea><div class="row" style="margin-top:8px"><button class="btn p" onclick="imp(this)">Importar e ler os sites</button></div></div>
+  <div class="card"><b>4 · A IA escreve as aberturas</b><div class="sub" style="margin:4px 0 8px">Pega os melhores leads novos, um ângulo por lead (só com sinal verificado) e deixa na Caixa de saída.</div>
+  <div class="row"><select id="cn"><option value="email">E-mail</option><option value="zap">WhatsApp</option></select><input id="qt" type="number" min="1" max="10" value="5" style="width:70px"><input id="of" placeholder="O que oferecemos (1 frase)" style="flex:1;min-width:220px"><button class="btn ia" onclick="abord(this)">Escrever rascunhos</button></div></div><div class="log">${esc(LOG)}</div>`;}
 async function run(b,msg,fn){const o=b.textContent;b.disabled=true;b.textContent=msg;try{await fn();}catch(e){LOG='⚠️ '+e.message;}b.disabled=false;b.textContent=o;await carrega();}
-function imp(b){run(b,'Lendo…',async()=>{const r=(await api({acao:'importar',linhas:$('#lin').value,lote:$('#lote').value})).r;let n=0;if(r.ids.length){const e=await api({acao:'enriquecer',ids:r.ids.slice(0,12)});n=e.feitos;}
-  LOG=`✅ ${r.novos} novos${r.duplicados?`, ${r.duplicados} já existiam`:''}${r.ignorados?`, ${r.ignorados} ignorados`:''}. Li o site de ${n}.`;TAB='funil';});}
+// ---- planilha grande
+const CAMPOS=[['nome','Empresa',/fantasia|razao|empresa|nome/],['site','Site',/site|web|url|dominio/],['email','E-mail',/e-?mail/],['zap','Telefone/Zap',/whats|celular|zap|telefone|fone|tel/],['cidade','Cidade',/cidade|municipio/],['uf','UF',/^uf$|estado/],['segmento','Segmento',/cnae|segmento|atividade|ramo/],['porte','Porte',/porte/],['contato','Contato',/contato|socio|responsavel|decisor/],['cargo','Cargo',/cargo|qualificacao/]];
+const nrm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+async function lerPlan(inp){const f=inp.files[0];if(!f)return;LOG='Lendo '+f.name+'…';PLAN={nome:f.name,carregando:true};draw();
+  try{if(!window.XLSX)await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>no(new Error('não consegui carregar o leitor de Excel'));document.head.appendChild(s);});
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',dense:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+    const cab=(rows[0]||[]).map(x=>String(x));const map={};CAMPOS.forEach(([k,,re])=>{let i=cab.findIndex(h=>re.test(nrm(h)));if(k==='nome'){const j=cab.findIndex(h=>/fantasia/.test(nrm(h)));if(j>=0)i=j;}map[k]=i;});
+    PLAN={nome:f.name,cab,rows:rows.slice(1).filter(r=>r.some(c=>String(c).trim())),map};LOG='';}catch(e){PLAN=null;LOG='⚠️ '+e.message;}draw();}
+function planUI(){if(PLAN.carregando)return '<div class="sub" style="margin-top:10px">Lendo a planilha…</div>';
+  return `<div class="sub" style="margin-top:12px"><b>${PLAN.rows.length.toLocaleString('pt-BR')}</b> linhas em “${esc(PLAN.nome)}”. Confira as colunas:</div><div class="map">${CAMPOS.map(([k,n])=>`<label>${n}</label><select onchange="PLAN.map.${k}=+this.value"><option value="-1">— não tem —</option>${PLAN.cab.map((h,i)=>`<option value="${i}" ${PLAN.map[k]===i?'selected':''}>${esc(h)}</option>`).join('')}</select>`).join('')}</div>
+  <div class="sub">Exemplo: ${esc(PLAN.rows.slice(0,2).map(r=>(r[PLAN.map.nome]||'')+' · '+(r[PLAN.map.cidade]||'')).join('  |  '))}</div>
+  <div class="row" style="margin-top:10px"><button class="btn p" id="bimp" onclick="impPlan(this)">Importar ${PLAN.rows.length.toLocaleString('pt-BR')} linhas</button><span class="sub" id="pg"></span></div><div class="bar"><i id="pgb"></i></div>`;}
+async function impPlan(b){if(PLAN.map.nome<0){alert('Escolha a coluna da empresa.');return;}b.disabled=true;const T=PLAN.rows.length,tam=400;let novos=0,dup=0,ign=0;
+  try{for(let i=0;i<T;i+=tam){const rows=PLAN.rows.slice(i,i+tam).map(r=>{const o={};CAMPOS.forEach(([k])=>{const j=PLAN.map[k];o[k]=j>=0?String(r[j]??'').trim():'';});return o;});
+    const r=(await api({acao:'importar_linhas',rows})).r;novos+=r.novos;dup+=r.duplicados;ign+=r.ignorados;$('#pg').textContent=Math.min(T,i+tam).toLocaleString('pt-BR')+' de '+T.toLocaleString('pt-BR');$('#pgb').style.width=(Math.min(T,i+tam)/T*100)+'%';}
+    LOG=`✅ ${novos.toLocaleString('pt-BR')} novos, ${dup.toLocaleString('pt-BR')} repetidos, ${ign.toLocaleString('pt-BR')} ignorados. Agora filtre em “Leads” (UF, segmento, nota) e crie um lote.`;PLAN=null;TAB='funil';}
+  catch(e){LOG='⚠️ parou no meio: '+e.message+' (o que já entrou fica; pode subir de novo, os repetidos são ignorados)';}await carrega();}
+function desc(b){run(b,'Pesquisando…',async()=>{const r=(await api({acao:'descobrir',consulta:$('#dq').value,quantos:+$('#dn').value})).r;LOG=`🔎 ${r.novos} empresa(s) nova(s)${r.duplicados?`, ${r.duplicados} já existiam`:''}. Sites lidos — veja em Leads.`;TAB='funil';});}
+function imp(b){run(b,'Lendo…',async()=>{const linhas=$('#lin').value.split(/\n/).map(l=>l.split(/;|\t/).map(x=>x.trim()));const rows=linhas.filter(c=>c[0]).map(c=>({nome:c[0],site:c[1]||'',cidade:c[2]||'',segmento:c[3]||'',contato:c[4]||'',email:(c.find(x=>/@/.test(x))||''),zap:(c.slice(2).find(x=>/^\+?[\d\s().-]{10,}$/.test(x))||'')}));
+  const r=(await api({acao:'importar_linhas',rows})).r;const e=await api({acao:'enriquecer'});LOG=`✅ ${r.novos} novos${r.duplicados?`, ${r.duplicados} já existiam`:''}. Li o site de ${e.feitos}.`;TAB='funil';});}
 function abord(b){run(b,'Escrevendo…',async()=>{await api({acao:'enriquecer'});const r=(await api({acao:'escrever_lote',canal:$('#cn').value,quantos:+$('#qt').value,oferta:$('#of').value})).feitos;const ok=r.filter(x=>x.ok).length;
   LOG=`✍️ ${ok} rascunho(s) na Caixa de saída.`+r.filter(x=>!x.ok).map(x=>`\n• ${x.lead}: ${x.erro}`).join('');TAB='caixa';});}
 function cad(){run($('.row .btn.s'),'Vendo…',async()=>{const r=(await api({acao:'cadencia'})).feitos;LOG=r.length?`${r.filter(x=>x.ok).length} follow-up(s) escritos — veja a Caixa de saída.`:'Ninguém pede follow-up agora.';});}
