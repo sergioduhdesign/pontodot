@@ -6,6 +6,7 @@
 // ============================================================================
 window.PD_AJUDA = {
   plataforma: { t: 'Bem-vindo à PD', p: 'Oi! Eu sou a Gigi, recebo quem chega. Aqui você e as IAs da casa trabalham juntos. Tudo que entra vira tarefa, a produção acontece na área de Trabalho, passa pela aprovação e sai publicado. Este tour mostra o caminho inteiro — e, em cada ferramenta, o ? do ladinho explica o resto.' },
+  lertarefa: { t: 'Como ler uma tarefa', p: 'Cada linha é uma tarefa: a carinha diz o estado (sorrindo = andando, piscando = pausada, séria = parada), o nome diz o que é, e o chip do lado diz quem cuida — IA ou pessoa. Clique na linha e ela abre inteira: briefing, prazo, cliente, conversa e o play pra ligar o cronômetro. O ponto colorido avisa que tem novidade desde a última vez.' },
   tarefas: { t: 'Tarefas', p: 'Tudo começa aqui: cada pedido vira uma tarefa com responsável e prazo. Dá pra criar pela plataforma ou mandando mensagem no zap da PD. O play liga o cronômetro; quem é marcado recebe aviso na hora, aqui e no zap.' },
   trabalho: { t: 'Trabalho', p: 'A área de produção da casa. Por enquanto a ferramenta aberta pra equipe é a de Copys — as outras (arte, locução, vídeo, gráfica) aparecem apagadinhas até serem liberadas pra você, pessoa por pessoa, pelo admin.' },
   copys: { t: 'Copys', p: 'Preencha o briefing, cole os dados estratégicos, escolha um estilo e peça. A IA escreve as variantes; você lapida direto nos cards. O que estiver bom segue pra revisão interna e, depois, pro cliente — sem redigitar nada.' },
@@ -37,9 +38,10 @@ window.PD_AJUDA = {
   pronto: { t: 'É isso', p: 'Foi um prazer te mostrar a casa. O S do canto gira entre os dois lados quando você quiser. Qualquer dúvida, procura o ? do ladinho de cada ferramenta — e este tour fica guardado no "Entenda a plataforma".' },
 };
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
-window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola','verso','escolaag','funil','lista','fluxo','mural','redes','clientes','painel','pronto'];
+window.PD_TOUR = ['plataforma','tarefas','lertarefa','trabalho','copys','aprovacoes','social','zap','escola','verso','escolaag','funil','lista','fluxo','mural','redes','clientes','pronto'];
 window.PD_AJUDA_ALVO = {
   tarefas: ['#cxTarefas', '.gad[data-fk="gad-tarefas"]'],
+  lertarefa: ['#cxTarefas .t-linha', '#cxTarefas'],
   trabalho: ['.gad[data-fk="gad-estudio"]', '#estBarra'],
   copys: ['.gad[data-fk="gad-estudio"] [title^="Copys"]', '.gad[data-fk="gad-estudio"]', '#ajudaCopys', '.top'],
   aprovacoes: ['.gad[data-fk="gad-aprovacoes"]'],

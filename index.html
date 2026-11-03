@@ -2383,7 +2383,7 @@ pdAbertura(false);
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
-<script src="/js/pd-ajuda.js?v=319"></script>
+<script src="/js/pd-ajuda.js?v=320"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -5510,13 +5510,15 @@ window.PD_AJUDA_ABRE.redes = tourView('fila');
 window.PD_AJUDA_ABRE.clientes = tourView('clientes');
 window.PD_AJUDA_ABRE.painel = tourView('admin');
 window.PD_AJUDA_ABRE.pronto = () => { tourVira(); return null; };
-if (!ehDesk()) window.PD_TOUR = window.PD_TOUR.filter(k => !['verso','escolaag','funil','lista','fluxo','mural','redes','clientes','painel'].includes(k));   // no celular o verso não gira: tour fica na frente
+if (!ehDesk()) window.PD_TOUR = window.PD_TOUR.filter(k => !['verso','escolaag','funil','lista','fluxo','mural','redes','clientes'].includes(k));   // no celular o verso não gira: tour fica na frente
 window.PD_AJUDA_ABRE.tarefas = () => {
   tourFrente();
   if (typeof vTarefas === 'undefined' || vTarefas !== 'fechada') return null;
   vTarefas = 'aberta'; selecionada = -1; renderFlip();
   return () => { vTarefas = 'fechada'; selecionada = -1; renderFlip(); };
 };
+(window.PD_AJUDA_GRUPO = window.PD_AJUDA_GRUPO || {}).tarefas = 'tarefas'; window.PD_AJUDA_GRUPO.lertarefa = 'tarefas';   // "ler a tarefa" é dentro da mesma caixa: não fecha e reabre
+window.PD_AJUDA_ABRE.lertarefa = window.PD_AJUDA_ABRE.tarefas;
 function htmlCatum(){
   const D = CAT.d;
   if (!D) return `<h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Hora de Catum</h3><p style="font-size:14px;line-height:1.5">${esc(CAT.erro || 'Carregando…')}</p>`;
@@ -8341,7 +8343,6 @@ async function entrarReal(session){
   setTimeout(() => { try { catIniciar(); } catch(e){} }, 2500);
   if (perfil.role !== 'client') setTimeout(() => { try {
     window.PD_TOUR = (window.PD_TOUR || []).filter(k => !['zap','escola'].includes(k));   // Zap e Escola das IAs não entram no tour pra ninguém
-    if (!ehAdmin()) window.PD_TOUR = window.PD_TOUR.filter(k => k !== 'painel');   // Painel é só do admin
     ajudaPrimeiraVez();
   } catch(e){} }, 1800);
   $('#cluster')?.classList.add('on');
