@@ -337,8 +337,8 @@ function iaPermissoesDefinir($args, $u, $lote) {
     return ['texto' => $p['name'] . ': ' . $t, 'ids' => []];
 }
 function iaFerramentasAplicar($uid, $areas) {
-    $map = ['digital' => 'digital', 'arte' => 'digital', 'arte digital' => 'digital', 'audio' => 'audio', 'locucao' => 'audio', 'som' => 'audio', 'video' => 'video', 'videos' => 'video', 'grafica' => 'grafica', 'edicao grafica' => 'grafica', 'impresso' => 'grafica', 'todas' => 'todas', 'tudo' => 'todas', 'nenhuma' => 'nenhuma'];
-    $sel = []; foreach ($areas as $a) { $k = $map[iaNorm($a)] ?? null; if ($k === 'todas') $sel = ['digital', 'audio', 'video', 'grafica']; elseif ($k === 'nenhuma') $sel = []; elseif ($k) $sel[] = $k; }
+    $map = ['digital' => 'digital', 'arte' => 'digital', 'arte digital' => 'digital', 'audio' => 'audio', 'locucao' => 'audio', 'som' => 'audio', 'video' => 'video', 'videos' => 'video', 'grafica' => 'grafica', 'edicao grafica' => 'grafica', 'impresso' => 'grafica', 'zap' => 'zap', 'whatsapp' => 'zap', 'comunicador' => 'zap', 'atendimento' => 'zap', 'vendas' => 'vendas', 'comercial' => 'vendas', 'prospeccao' => 'vendas', 'todas' => 'todas', 'tudo' => 'todas', 'nenhuma' => 'nenhuma'];
+    $sel = []; foreach ($areas as $a) { $k = $map[iaNorm($a)] ?? null; if ($k === 'todas') $sel = ['digital', 'audio', 'video', 'grafica', 'zap', 'vendas']; elseif ($k === 'nenhuma') $sel = []; elseif ($k) $sel[] = $k; }
     $sel = array_values(array_unique($sel));
     $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', ['studio_areas' => '{' . implode(',', $sel) . '}']);
     if (($r['code'] ?? 500) >= 300) return '⚠️ ferramentas não gravadas (rode o SQL v133)';
@@ -432,7 +432,7 @@ function iaCatalogo($u) {
         $T[] = ['name' => 'usuario_acesso', 'description' => 'Pausa (ativo=false) ou reativa (ativo=true) o acesso de uma pessoa.', 'input_schema' => $S(['pessoa' => $str, 'ativo' => $bool], ['pessoa', 'ativo'])];
         $T[] = ['name' => 'funcoes_definir', 'description' => 'Define as funções de uma pessoa (designer, copy, atendimento...). Quem ganha função ganha chave própria de responsável.', 'input_schema' => $S(['pessoa' => $str, 'funcoes' => $arrS], ['pessoa', 'funcoes'])];
         $T[] = ['name' => 'permissoes_definir', 'description' => 'Permissões da pessoa: perfil pronto (Produção, Atendimento, Gestor de mídia) e/ou chaves (tarefa.criar, tarefa.excluir, social.publicar, social.conectar...).', 'input_schema' => $S(['pessoa' => $str, 'perfil' => $str, 'chaves' => $arrS], ['pessoa'])];
-        $T[] = ['name' => 'ferramentas_liberar', 'description' => 'Libera ferramentas do Studio pra pessoa: digital (arte), audio (locução), video, grafica, todas, nenhuma (só Copys).', 'input_schema' => $S(['pessoa' => $str, 'ferramentas' => $arrS], ['pessoa', 'ferramentas'])];
+        $T[] = ['name' => 'ferramentas_liberar', 'description' => 'Libera ferramentas pra pessoa: digital (arte), audio (locução), video, grafica, zap (comunicador de WhatsApp: atendimento e vendas), vendas (prospecção/CRM), todas, nenhuma (só Copys).', 'input_schema' => $S(['pessoa' => $str, 'ferramentas' => $arrS], ['pessoa', 'ferramentas'])];
     }
     return $T;
 }

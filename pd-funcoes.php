@@ -31,7 +31,7 @@ if ($acao === 'salvar') {
 if ($acao === 'ferramentas') {
     // libera/retira as ferramentas do Studio de uma pessoa (Copys é de todos). Só o admin.
     if ($me['role'] !== 'admin') sd_fail('Só o admin libera ferramentas.', 403);
-    $ok = ['digital', 'audio', 'video', 'grafica'];
+    $ok = ['digital', 'audio', 'video', 'grafica', 'zap', 'vendas'];
     $a = array_values(array_unique(array_filter(array_map('strval', (array)($b['areas'] ?? [])), fn($x) => in_array($x, $ok, true))));
     $r = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid), 'PATCH', ['studio_areas' => '{' . implode(',', $a) . '}']);
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v133 no Supabase.', 500);

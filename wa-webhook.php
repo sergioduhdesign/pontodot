@@ -115,7 +115,8 @@ foreach ((array)($j['entry'] ?? []) as $e) foreach ((array)($e['changes'] ?? [])
         $ins = sd_supabase('/rest/v1/pd_avisos_log', 'POST', $linha);
         if (($ins['code'] ?? 500) >= 300) { unset($linha['midia_path'], $linha['midia_tipo'], $linha['midia_nome']); sd_supabase('/rest/v1/pd_avisos_log', 'POST', $linha); }   // SQL v99 ainda não rodou: guarda o texto mesmo assim
         // alarme só quando NÃO é a equipe falando com a IA (a IA já responde) e só pros admins
-        if (!($membro && !$cid && ($membro['role'] ?? '') !== 'client')) { try {
+        $primeiraVez = empty((array)(sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . $para . '&wamid=neq.' . rawurlencode($id) . '&select=id&limit=1')['body'] ?? []));
+        if ($primeiraVez && !($membro && !$cid && ($membro['role'] ?? '') !== 'client')) { try {   // toca só quando uma pessoa ENTRA; as mensagens seguintes ficam na caixinha sem alarme
             foreach ((array)(sd_supabase('/rest/v1/profiles?role=eq.admin&active=eq.true&select=id')['body'] ?? []) as $ad)
                 sd_supabase('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'outro', 'user_id' => $ad['id'], 'titulo' => mb_substr('WhatsApp de ' . ($quem ?: '+' . $para), 0, 140),
                     'corpo' => mb_substr($txt, 0, 300), 'link' => 'avisos:' . preg_replace('/\D/', '', $para)]);
