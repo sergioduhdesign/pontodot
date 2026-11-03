@@ -5,7 +5,7 @@
 // a jornada completa, passo a passo, no botão "Entenda a plataforma".
 // ============================================================================
 window.PD_AJUDA = {
-  plataforma: { t: 'Bem-vindo à PD', p: 'Aqui você e as IAs da casa trabalham juntos. Tudo que entra vira tarefa, a produção acontece na área de Trabalho, passa pela aprovação e sai publicado. Este tour mostra o caminho inteiro — e, em cada ferramenta, o ? do ladinho explica o resto.' },
+  plataforma: { t: 'Bem-vindo à PD', p: 'Oi! Eu sou a Gigi, recebo quem chega. Aqui você e as IAs da casa trabalham juntos. Tudo que entra vira tarefa, a produção acontece na área de Trabalho, passa pela aprovação e sai publicado. Este tour mostra o caminho inteiro — e, em cada ferramenta, o ? do ladinho explica o resto.' },
   tarefas: { t: 'Tarefas', p: 'Tudo começa aqui: cada pedido vira uma tarefa com responsável e prazo. Dá pra criar pela plataforma ou mandando mensagem no zap da PD. O play liga o cronômetro; quem é marcado recebe aviso na hora, aqui e no zap.' },
   trabalho: { t: 'Trabalho', p: 'A área de produção da casa. Por enquanto a ferramenta aberta pra equipe é a de Copys — as outras (arte, locução, vídeo, gráfica) aparecem apagadinhas até serem liberadas pra você, pessoa por pessoa, pelo admin.' },
   copys: { t: 'Copys', p: 'Preencha o briefing, cole os dados estratégicos, escolha um estilo e peça. A IA escreve as variantes; você lapida direto nos cards. O que estiver bom segue pra revisão interna e, depois, pro cliente — sem redigitar nada.' },
@@ -34,7 +34,7 @@ window.PD_AJUDA = {
   funil: { t: 'Funil', p: 'Todo trabalho anda por aqui: entra como briefing, vira produção, passa pela aprovação e sai entregue. Os cards andam pelas colunas com prazo e responsável sempre à vista.' },
   clientes: { t: 'Clientes', p: 'A ficha de cada cliente: marca, acessos, redes conectadas e o zap. É aqui que você liga a Gigi pra atender o cliente no WhatsApp e escolhe quem entra no social.' },
   painel: { t: 'Painel', p: 'Os números da casa: o que está atrasado de verdade (briefing não conta), a carga de cada pessoa e o ritmo das entregas. O raio-x pra decidir sem achismo.' },
-  pronto: { t: 'É isso', p: 'O S do canto gira entre os dois lados quando você quiser. Qualquer dúvida, procura o ? do ladinho de cada ferramenta — e este tour fica guardado no "Entenda a plataforma".' },
+  pronto: { t: 'É isso', p: 'Foi um prazer te mostrar a casa. O S do canto gira entre os dois lados quando você quiser. Qualquer dúvida, procura o ? do ladinho de cada ferramenta — e este tour fica guardado no "Entenda a plataforma".' },
 };
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
 window.PD_TOUR = ['plataforma','tarefas','trabalho','copys','aprovacoes','social','zap','escola','verso','escolaag','funil','lista','fluxo','mural','redes','clientes','painel','pronto'];
@@ -103,6 +103,10 @@ function ajudaCss(){
   #pdAjudaOv .cxa.canto{top:auto!important;left:14px!important;bottom:74px;transform:none!important}
   @keyframes ajSurge{from{opacity:0}to{opacity:1}}
   #pdAjudaOv .kk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.45;margin-bottom:7px}
+  #pdAjudaOv .guia{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  #pdAjudaOv .guia img{width:34px;height:34px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 1.5px rgba(255,255,255,.18)}
+  #pdAjudaOv .guia b{display:block;font-size:12.5px;font-weight:600;line-height:1.15}
+  #pdAjudaOv .guia small{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.5;margin-top:2px}
   #pdAjudaOv h3{margin:0 0 7px;font-size:16.5px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
   #pdAjudaOv p{margin:0 0 14px;font-size:13px;line-height:1.55;opacity:.8}
   #pdAjudaOv .rodape{display:flex;align-items:center;gap:8px}
@@ -174,7 +178,10 @@ function abrirAjuda(chave, passo, origem){
   const tour = typeof passo === 'number', seq = window.PD_TOUR, i = tour ? passo : -1;
   const d = window.PD_AJUDA[chave]; if (!d) return;
   const tok = ++_ajudaSegue;
-  const corpo = `<div class="kk">${tour ? 'Entenda a plataforma · ' + (i + 1) + ' de ' + seq.length : 'Pontodot'}</div><h3>${d.t}</h3><p>${d.p}</p><div class="rodape"><span style="flex:1"></span>${tour
+  const cabeca = tour
+    ? `<div class="guia"><img src="/pd/personagens/gigi/avatar.jpg" alt="Gigi"><div><b>Gigi, a anfitriã da casa</b><small>te apresenta a PD · ${i + 1} de ${seq.length}</small></div></div>`
+    : `<div class="kk">Pontodot</div>`;
+  const corpo = `${cabeca}<h3>${d.t}</h3><p>${d.p}</p><div class="rodape"><span style="flex:1"></span>${tour
     ? `${i > 0 ? `<button class="bt" onclick="abrirAjuda('${seq[i-1]}',${i-1})">Voltar</button>` : `<button class="bt" onclick="fecharAjuda()">Sair</button>`}
        ${i < seq.length - 1 ? `<button class="bt p" onclick="abrirAjuda('${seq[i+1]}',${i+1})">Próximo</button>` : `<button class="bt p" onclick="fecharAjuda()">Bora trabalhar</button>`}`
     : `<button class="bt p" onclick="fecharAjuda()">Entendi</button>`}</div>`;

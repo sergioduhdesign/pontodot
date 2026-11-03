@@ -209,4 +209,4 @@ async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoR
   const q=new URLSearchParams(location.search);if(q.get('cliente'))$('#cli').value=q.get('cliente');if(q.get('tarefa'))TASK=q.get('tarefa');CID=$('#cli').value||null;tarefaUI();opcoesUI();lgUI();
   pdStudio.iniciar('video',{getClientId:()=>CID,getNome:()=>$('#nome').value},ses);nomeAba();if(q.get('projeto'))abre(q.get('projeto'));else recentes();}
 boot();
-</script><script src="/js/pd-ajuda.js?v=318"></script></body></html>
+</script><script src="/js/pd-ajuda.js?v=319"></script></body></html>
