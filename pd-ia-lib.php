@@ -475,15 +475,17 @@ function iaConfirmaPedir($u, $canal, $chave, $acao, array $cands, $rotulo) {
         . ($temSenha ? '' : "\n\n⚠️ A gente ainda não combinou uma palavra. Antes, me diga: *guarda: minha palavra combinada é …*");
 }
 // roda ANTES da IA, em qualquer canal: se há pendência e a mensagem traz e-mail + senha, executa de verdade
+function iaPalavras($s) { return trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9]+/', ' ', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', (string)$s))))); }
 function iaConfirmaProcessar($u, $canal, $chave, $txt) {
     $pend = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . rawurlencode((string)$chave) . '&canal=eq.' . $canal . '&status=eq.confirma_pendente&criado_em=gte.' . rawurlencode(gmdate('c', time() - 900)) . '&select=id,ref,corpo&order=criado_em.desc&limit=1')['body'][0] ?? null;
     if (!$pend) return null;
     $t = trim((string)$txt);
-    if (preg_match('/^(cancela|cancelar|deixa|esquece|n[aã]o)\b/iu', $t)) { sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_cancelada']); return ['texto' => 'Cancelado. Nada foi feito.', 'feito' => false]; }
+    if (preg_match('/^(cancela\w*|deixa pra l[áa]|esquece)\b/iu', $t) || preg_match('/^n[aã]o[.!, ]*$/iu', $t)) { /* só "cancela" / "não" seco cancelam; "não, ..." em prosa segue */ sd_supabase('/rest/v1/pd_avisos_log?id=eq.' . (int)$pend['id'], 'PATCH', ['status' => 'confirma_cancelada']); return ['texto' => 'Cancelado. Nada foi feito.', 'feito' => false]; }
     $d = json_decode(substr((string)$pend['ref'], 9), true) ?: []; $ids = (array)($d['ids'] ?? []); $acao = (string)($d['acao'] ?? '');
     $email = ''; $senha = ''; $num = 0;
     if (preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $t, $em)) { $email = strtolower($em[0]); $senha = trim(str_replace($em[0], '', $t)); }
     elseif (count($ids) === 1 && preg_match('/^(\S+)$/u', $t)) { $num = 1; $senha = $t; }   // só uma conta na lista: basta a palavra
+    elseif (count($ids) === 1 && ($pw = pdPalavraMagica($u['id'] ?? '')) !== '' && strpos(' ' . iaPalavras($t) . ' ', ' ' . iaPalavras($pw) . ' ') !== false) { $num = 1; $senha = $pw; }   // a palavra veio no meio da frase ("a nossa palavra é X")
     else return null;   // não é a confirmação: segue conversa normal
     $alvo = null; $k = 0; foreach ($ids as $id) { $k++; $p = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($id) . '&select=id,name,email,role,team_key,active')['body'][0] ?? null; if ($p && (($email !== '' && strtolower((string)$p['email']) === $email) || ($num && $k === $num))) { $alvo = $p; break; } }
     if (!$alvo) return ['texto' => '⚠️ Esse e-mail não é de nenhuma das contas listadas. Confere e manda de novo (e-mail + senha).', 'feito' => false];
