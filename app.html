@@ -891,6 +891,15 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 <button class="btn btn-primary btn-sm" onclick="salvarHorarioAtendimento()">Salvar</button>
               </div>
 
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
+                <div>
+                  <div class="entity-card-name">Capas do tour</div>
+                  <div class="entity-card-meta">Puxa as imagens 4:1 da Gigi de uma pasta do Drive (equipe/ e cliente/).</div>
+                </div>
+                <input class="field-input" id="tour-pasta" placeholder="ID ou link da pasta no Drive" value="1NByG1v_qoNbiR5Xo_CMq3th1iGQu8zy7" style="font-size:12px;padding:6px 8px">
+                <div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary btn-sm" onclick="puxarCapasTour(this)">Puxar do Drive</button><span id="tour-capas-st" style="font-size:10.5px;color:var(--text3)"></span></div>
+              </div>
+
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px;grid-column:span 2">
                 <div class="entity-card-name">E-mail de convite</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1739,7 +1748,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="/js/pd-ajuda.js?v=322"></script>
+<script src="/js/pd-ajuda.js?v=323"></script>
 <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://js.pusher.com/beams/2.1.0/push-notifications-cdn.js"></script>
@@ -2686,6 +2695,12 @@ async function carregarConvite(){
     if(data){document.getElementById('cv-empresa').value=data.empresa_nome||'';document.getElementById('cv-site').value=data.empresa_site||'';document.getElementById('cv-texto').value=data.convite_texto||'';cvCapa=data.convite_capa||cvCapa;}
   }catch(e){}
   box.innerHTML=CV_CAPAS.map(c=>`<img src="pd/escola/${c}" data-capa="${c}" onclick="cvCapa='${c}';carregarConvite()" title="${c}" style="width:33%;aspect-ratio:16/7;object-fit:cover;border-radius:8px;cursor:pointer;opacity:${c===cvCapa?1:.45};outline:${c===cvCapa?'2px solid var(--accent)':'none'};outline-offset:2px">`).join('');
+}
+async function puxarCapasTour(btn){
+  const v=(document.getElementById('tour-pasta').value||'').trim(); const m=v.match(/folders\/([\w-]+)/); const id=m?m[1]:v;
+  const st=document.getElementById('tour-capas-st'); btn.disabled=true; st.textContent='Puxando…';
+  try{const r=await sdFetch('/pd-tour-capas.php',{folder_id:id}); st.textContent=(r.salvas||[]).length+' capa(s) salva(s)'+((r.erros||[]).length?' · '+r.erros.length+' erro(s): '+r.erros.slice(0,2).join('; '):''); showToast('Capas do tour atualizadas.','success');}
+  catch(e){st.textContent='';showToast('Não deu: '+e.message,'error');} finally{btn.disabled=false;}
 }
 async function salvarConvite(){
   const up={convite_texto:document.getElementById('cv-texto').value.trim()||null,convite_capa:cvCapa,empresa_nome:document.getElementById('cv-empresa').value.trim()||null,empresa_site:document.getElementById('cv-site').value.trim()||null};

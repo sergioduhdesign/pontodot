@@ -47,6 +47,9 @@ window.PD_AJUDA_CLI = {
   cli_pronto: { t: 'É isso', p: 'Foi um prazer. Qualquer dúvida, o ? do ladinho de cada caixa explica — e este tour fica guardado no "Entenda a plataforma". A gente se fala!' },
 };
 window.PD_TOUR_CLI = ['cli_plataforma','cli_tarefas','cli_aprovacoes','cli_social','cli_zap','cli_pronto'];
+// capas 4:1 da Gigi, uma por caixa, em /pd/tour/<chave>.png (o admin puxa do Drive em Painel → Configurações → Capas do tour)
+window.PD_TOUR_IMG = window.PD_TOUR_IMG || {};
+try { fetch('/pd/tour/indice.json?v=' + Math.floor(Date.now() / 3600000), { cache: 'no-cache' }).then(r => r.ok ? r.json() : []).then(ls => { (ls || []).forEach(f => { const k = String(f).replace(/\.[a-z]+$/i, ''); window.PD_TOUR_IMG[k] = '/pd/tour/' + f; }); }).catch(() => {}); } catch(e){}
 Object.assign(window.PD_AJUDA, window.PD_AJUDA_CLI);
 window.PD_AJUDA_TIT = { 'Trabalho':'trabalho', 'Escola das IAs':'escola', 'Saída de materiais':'oficina', 'Inteligências da casa':'ias', 'Publicação':'publicacao', 'Anúncios':'anuncios', 'Social':'social', 'Minha IA':'minhaia', 'Cronograma':'cronograma', 'Zap':'zap', 'Lembretes':'lembretes' };
 window.PD_TOUR = ['plataforma','tarefas','lertarefa','trabalho','copys','aprovacoes','social','zap','escola','verso','escolaag','funil','lista','fluxo','mural','redes','clientes','pronto'];
