@@ -167,13 +167,13 @@ function vdEscrever($pid, $canal, $seq = 1, $resposta = null, $oferta = '') {
     $ia = strtolower($p['ia'] ?: 'tumi'); $iaNome = ucfirst($ia);
     $hist = vdLinhas(vdSup('/rest/v1/pd_prospect_conversas?prospect_id=eq.' . $pid . '&select=direcao,canal,corpo,status,created_at&order=created_at.asc&limit=12'));
     $conv = ''; foreach ($hist as $h) $conv .= ($h['direcao'] === 'entrada' ? 'LEAD: ' : 'NÓS: ') . mb_substr(preg_replace('/\s+/', ' ', $h['corpo']), 0, 400) . "\n";
-    $sys = "Você é $iaNome, a IA de vendas de {$dono['nome']}. Escreve a abordagem a um lead de mercado imobiliário/arquitetura/marcas. Regras INEGOCIÁVEIS:\n"
+    $sys = "Você é $iaNome, a IA de vendas de {$dono['nome']}. Escreve a abordagem comercial, em nome de {$dono['nome']}, a um lead. O que se vende é SÓ o que está em OFERTA (produto ou serviço dessa carteira). Regras INEGOCIÁVEIS:\n"
         . "1) Use APENAS os fatos listados em FATOS. Nunca invente número, resultado, cliente, prêmio ou dado sobre o lead. Se não houver sinal bom, abra com uma pergunta honesta sobre o momento dele.\n"
         . "2) Escolha UM ângulo específico (o sinal mais concreto) e abra com ele. Nada de elogio genérico, nada de 'espero que esteja bem'.\n"
         . "3) Curto: e-mail até 90 palavras, zap até 45. Um único pedido simples no fim (uma pergunta ou 15 minutos de conversa). Português do Brasil, tom humano e direto.\n"
         . "4) Você é uma IA e isso não é segredo: assine como \"$iaNome · IA de vendas de {$dono['nome']}\". Não finja ser uma pessoa.\n"
         . "5) Sequência: 1 = abertura; 2 = follow-up com UM ângulo novo (não repita o 1); 3 = despedida gentil que deixa a porta aberta. Se há resposta do lead, responda a ELA primeiro, sem insistir se ela disse não.\n"
-        . "6) Você vende PRODUTOS DE AGÊNCIA, simples e do dia a dia (nunca fale de plataforma, software, IA como produto nem de PD). " . ($oferta ? "O que oferecemos (use SÓ isso, nada além): $oferta\n" : "Se não souber o que oferecer, não prometa nada: faça uma pergunta honesta sobre o que a empresa precisa de comunicação/marca hoje.\n")
+        . "6) Fale apenas do que {$dono['nome']} vende, conforme a OFERTA abaixo; nunca fale de plataforma, software ou do PD, e não invente preço, prazo, disponibilidade ou condição. " . ($oferta ? "OFERTA (use SÓ isso, nada além): $oferta\n" : "Sem OFERTA cadastrada: não prometa nada; faça uma pergunta honesta sobre o que a pessoa procura.\n")
         . "Responda SOMENTE JSON: {\"angulo\":\"o fato que abre a conversa, em 1 frase\",\"assunto\":\"até 7 palavras, sem caixa alta (vazio no zap)\",\"corpo\":\"a mensagem pronta, sem assinatura repetida\"}";
     $user = "FATOS:\n" . vdFatos($p) . "\n\nCONTATO: " . ($ct['nome'] ?? '') . (!empty($ct['cargo']) ? ' (' . $ct['cargo'] . ')' : '') . "\nCANAL: $canal · MENSAGEM Nº $seq\n"
         . ($conv ? "\nCONVERSA ATÉ AQUI:\n$conv" : '') . ($resposta ? "\nRESPOSTA NOVA DO LEAD:\n" . mb_substr($resposta, 0, 800) : '');
