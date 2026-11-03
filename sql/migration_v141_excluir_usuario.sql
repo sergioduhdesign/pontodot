@@ -20,6 +20,7 @@ begin
       join pg_namespace rn on rn.oid = rcl.relnamespace
       join pg_attribute a on a.attrelid = con.conrelid and a.attnum = con.conkey[1]
      where con.contype = 'f'
+       and n.nspname = 'public'                      -- só as nossas tabelas (as do schema auth são do Supabase)
        and array_length(con.conkey, 1) = 1
        and ((rn.nspname = 'auth' and rcl.relname = 'users') or (rn.nspname = 'public' and rcl.relname = 'profiles'))
        and not (n.nspname = 'public' and cl.relname = 'profiles' and rn.nspname = 'auth')   -- profiles → auth.users: cascade sempre
@@ -54,5 +55,5 @@ select n.nspname || '.' || cl.relname as tabela, a.attname as coluna,
   join pg_class cl on cl.oid = con.conrelid join pg_namespace n on n.oid = cl.relnamespace
   join pg_class rcl on rcl.oid = con.confrelid join pg_namespace rn on rn.oid = rcl.relnamespace
   join pg_attribute a on a.attrelid = con.conrelid and a.attnum = con.conkey[1]
- where con.contype = 'f' and ((rn.nspname = 'auth' and rcl.relname = 'users') or (rn.nspname = 'public' and rcl.relname = 'profiles'))
+ where con.contype = 'f' and n.nspname = 'public' and ((rn.nspname = 'auth' and rcl.relname = 'users') or (rn.nspname = 'public' and rcl.relname = 'profiles'))
  order by 1, 2;
