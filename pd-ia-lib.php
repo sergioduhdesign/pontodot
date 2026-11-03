@@ -502,6 +502,7 @@ function iaCatalogo($u) {
 function iaExecutarTudo($nome, $args, $u, $lote) {
     switch ($nome) {
         case 'alterar_tarefas': return iaAlterar($args, $u, $lote);
+        case 'pedir_trabalho':  return iaPedirTrabalho($args, $u, $lote);
         case 'criar_tarefas':   return iaCriar($args, $u, $lote);
         case 'excluir_tarefas': if (!iaEhAdmin($u) && !iaPode($u, 'tarefa.excluir') && iaPermissoes($u)) return ['texto' => '⚠️ você não tem permissão pra excluir tarefa', 'ids' => []]; return iaExcluir($args, $u, $lote);
         case 'comentar':        return iaComentar($args, $u, $lote);
