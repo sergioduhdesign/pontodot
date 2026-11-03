@@ -175,7 +175,7 @@ PD.vigiarAlarmes = function(sb, perfil, opts){
     } catch(e){}
   };
   puxar();
-  setInterval(puxar, 15000);
+  setInterval(puxar, 60000);   // o canal em tempo real já avisa na hora; isto é só rede de segurança
   try {
     sb.channel('pd-alarmes').on('postgres_changes', { event: '*', schema: 'public', table: 'pd_alarmes' }, puxar).subscribe();
   } catch(e){}

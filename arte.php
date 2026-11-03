@@ -64,6 +64,13 @@ if (!$temCache) {
         if (is_file($arquivo)) { $temCache = true; }        // serve a cópia velha a sair sem nada
         else arte_morre(502, 'não consegui buscar a arte');
     } else {
+        // miniaturas e fundos (até 1200 px): PNG/WebP do Drive vira JPEG q82 — 1,8 MB → ~250 KB, sem diferença visível em foto
+        if ($w <= 1200 && function_exists('imagecreatefromstring') && function_exists('imagejpeg') && (stripos($mime, 'png') !== false || stripos($mime, 'webp') !== false) && strlen($bytes) > 150000) {
+            $im = @imagecreatefromstring($bytes);
+            if ($im) { $bg = imagecreatetruecolor(imagesx($im), imagesy($im)); imagefill($bg, 0, 0, imagecolorallocate($bg, 255, 255, 255)); imagecopy($bg, $im, 0, 0, 0, 0, imagesx($im), imagesy($im));
+                ob_start(); imagejpeg($bg, null, 82); $jpg = ob_get_clean(); imagedestroy($im); imagedestroy($bg);
+                if ($jpg && strlen($jpg) < strlen($bytes)) { $bytes = $jpg; $mime = 'image/jpeg'; } }
+        }
         @file_put_contents($arquivo, $bytes);
         @file_put_contents($tipo, $mime);
     }

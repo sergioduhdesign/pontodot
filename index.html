@@ -3746,6 +3746,21 @@ function trocarFundo(){
   const urlAlb = proximaUrlFundo();
   if (urlAlb && urlAlb === _fundoAtual && fundoCfg.modo === 'fixo') return;
   if (!urlAlb) fundoN = fundoN % 30 + 1;
+  // sonda a orientação pela MINIATURA (w=300, ~15 KB) antes de baixar a foto grande (1–2 MB): sem isso, até 14 fotos grandes por troca
+  if (urlAlb && tentativasFundo < 14 && /\/arte\.php\?/.test(urlAlb)){
+    const sonda = new Image();
+    sonda.onload = () => {
+      const errada = (ehDesk() && sonda.naturalHeight > sonda.naturalWidth * 1.1) || (!ehDesk() && sonda.naturalWidth > sonda.naturalHeight * 1.1);
+      if (errada){ tentativasFundo++; _fundoAtual = urlAlb; trocarFundo(); } else carregarFundoGrande(urlAlb);
+    };
+    sonda.onerror = () => carregarFundoGrande(urlAlb);
+    sonda.src = urlAlb.replace(/([?&])w=\d+/, '$1w=300');
+    return;
+  }
+  carregarFundoGrande(urlAlb);
+}
+function carregarFundoGrande(urlAlb){
+  const A = $('#bgA'), B = $('#bgB');
   const img = new Image();
   img.onload = () => {
     if (urlAlb && tentativasFundo < 14 && ((ehDesk() && img.naturalHeight > img.naturalWidth * 1.1) || (!ehDesk() && img.naturalWidth > img.naturalHeight * 1.1))){ tentativasFundo++; _fundoAtual = urlAlb; trocarFundo(); return; }   // formato errado pro aparelho: pula
@@ -4433,7 +4448,7 @@ async function carregarZap(forcar){
         .eq('canal','whatsapp').order('criado_em',{ascending:false}).limit(500); } else ZAP.novo = true;
     const bruto = rr.data;
     if (!bruto) return;
-    if (ZAP.novo){ try { const { data: cv } = await sbR.from('pd_zap_conv').select('*'); ZAP.conv = {}; (cv||[]).forEach(c => { ZAP.conv[c.chave] = c; }); } catch(e){} }
+    if (ZAP.novo && (forcar || Date.now() - (ZAP.convEm || 0) > 60000)){ ZAP.convEm = Date.now(); try { const { data: cv } = await sbR.from('pd_zap_conv').select('*'); ZAP.conv = {}; (cv||[]).forEach(c => { ZAP.conv[c.chave] = c; }); } catch(e){} }
     if (!ZAP.avOk){
       try {
         const [{data:pp},{data:cc}] = await Promise.all([sbR.from('profiles').select('zap,avatar_url,name').not('zap','is',null), sbR.from('clients').select('zap,logo_url,name').not('zap','is',null)]);
@@ -10656,7 +10671,7 @@ setTimeout(function(){ try {
   if (!visto.includes('vendas')){ visto.push('vendas'); localStorage.setItem('sd_gadgets_vistos', JSON.stringify(visto));
     if (!meusGadgets.includes('vendas')){ meusGadgets = [...meusGadgets, 'vendas']; salvarGadgets(); renderBoard(); } }
 } catch(e){} }, 4200);
-setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZap(); } catch(e){} }, 8000);
+setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZap(); } catch(e){} }, 20000);
 setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 60000);
 // Saída de materiais: sonda silenciosa (a oficina trabalha com você fora; a bolinha conta o que ficou pronto)
 async function ofiSonda(){ try { if (!sbR || !perfil || !['admin', 'team'].includes(perfil.role)) return; ofiPautas(); const d = await ofiFala({ acao:'inicio' }); const antes = JSON.stringify((OFI.d && OFI.d.trabalhos || []).map(t => t.id + t.status)); OFI.d = d; const depois = JSON.stringify(d.trabalhos.map(t => t.id + t.status)); pintarBolinhas(); if (antes !== depois) renderBoard(); } catch(e){} }
