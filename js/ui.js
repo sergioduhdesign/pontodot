@@ -406,6 +406,8 @@ function buildRespCfg(teamMembers) {
     // Tira acento antes de comparar — "Sérgio" precisa virar "SERGIO" pra bater
     // com a chave do RESP_CFG (sem isso o dono da conta nunca tinha avatar).
     const stripAccents = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    // OUTROS/CLIENTE não são pessoas: quem ainda está assim fica fora até ganhar a própria chave (o servidor dá sozinho)
+    if (m.team_key === 'OUTROS' || m.team_key === 'CLIENTE') return;
     const key = m.team_key || stripAccents(m.name.split(' ')[0]).toUpperCase();
     if (!RESP_CFG[key] && m.team_key && m.role !== 'client') {   // pessoa nova: ganha o próprio responsável (cor estável pelo nome)
       const cores = ['#0891b2','#be185d','#15803d','#b45309','#4338ca','#0f766e','#a21caf','#c2410c'];

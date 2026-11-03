@@ -9,8 +9,8 @@ $eu = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($me['id']) . '&select=f
 $gestor = $me['role'] === 'admin' || in_array('gestao_equipe', (array)$eu, true);
 if (!$gestor) sd_fail('Só admin ou gestão de equipe.', 403);
 $cat = pdFuncoesCatalogo();
-try { pdEquipeChavesGarante(); } catch (Throwable $e) {}
-if ($acao === 'catalogo') { echo json_encode(['ok' => true, 'catalogo' => $cat, 'eu_admin' => $me['role'] === 'admin'], JSON_UNESCAPED_UNICODE); exit; }
+$corrigidas = 0; try { $corrigidas = pdEquipeChavesGarante(); } catch (Throwable $e) {}
+if ($acao === 'catalogo') { echo json_encode(['ok' => true, 'catalogo' => $cat, 'eu_admin' => $me['role'] === 'admin', 'corrigidas' => $corrigidas], JSON_UNESCAPED_UNICODE); exit; }
 $uid = (string)($b['user_id'] ?? ''); if ($uid === '') sd_fail('user_id obrigatório.');
 $alvo = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($uid) . '&select=id,name,role,team_key,funcoes')['body'][0] ?? null;
 if (!$alvo) sd_fail('Pessoa não encontrada.', 404);

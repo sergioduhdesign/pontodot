@@ -1731,7 +1731,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 <script src="https://js.pusher.com/beams/2.1.0/push-notifications-cdn.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/supabase.js?v=20261014v20"></script>
-<script src="js/ui.js?v=20261102v20"></script>
+<script src="js/ui.js?v=20261102v21"></script>
 <script src="js/auth.js?v=20260901v19"></script>
 <script src="js/import.js?v=20260902v29"></script>
 <script src="js/quotes.js?v=20260901v19"></script>
@@ -2252,7 +2252,10 @@ function checkBirthdays(){
   if(bday){const[,bm,bd]=bday.split('-');if(bm===mm&&bd===dd){setTimeout(()=>{showToast(`🎂 Feliz aniversário, ${profile.name.split(' ')[0]}! 🎉`,'success');localStorage.setItem(key,'1');},2000);}}
 }
 
-async function loadData(){await Promise.all([loadTeamMembers(),loadTasks(),loadClients(),loadPosts(),loadClientUsersMap()]);}
+async function loadData(){
+  // toda pessoa da equipe tem chave própria: o servidor confere e corrige quem ficou como OUTROS (uma chamada leve, só admin/gestão)
+  try { if (profile && (profile.role==='admin' || (profile.funcoes||[]).includes('gestao_equipe'))) { const r = await sdFetch('/pd-funcoes.php',{acao:'catalogo'}); if (r && r.corrigidas) console.log('chaves de equipe corrigidas:', r.corrigidas); } } catch(e){}
+  await Promise.all([loadTeamMembers(),loadTasks(),loadClients(),loadPosts(),loadClientUsersMap()]);}
 
 // ================================================================
 // CLIENTE REAL — quando resp='CLIENTE' (ou status vai pra "Com o cliente"),
