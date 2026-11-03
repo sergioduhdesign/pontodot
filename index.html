@@ -8181,9 +8181,11 @@ async function lgEsqueci(){
   const em = ($('#lgEmail').value || '').trim(), err = $('#lgErr');
   if (!em){ err.textContent = 'Escreve o seu e-mail aí em cima e clica de novo em "Esqueci a senha".'; return; }
   err.textContent = '';
-  const { error } = await sbR.auth.resetPasswordForEmail(em, { redirectTo: location.origin + '/setup.html' });
+  let error = null, aviso = '';
+  try { const r = await fetch('/pd-senha.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: em }) }); const j = await r.json().catch(() => ({}));
+    if (!r.ok || j.error) error = { message: j.error || ('HTTP ' + r.status) }; aviso = j.aviso || ''; } catch(e){ error = e; }
   err.style.color = error ? '' : '#2e7d32';
-  err.textContent = error ? ('Não rolou: ' + error.message) : 'Pronto! Te mandei um e-mail com o link pra criar uma senha nova. Olha também o spam.';
+  err.textContent = error ? ('Não rolou: ' + error.message) : (aviso || 'Pronto! Te mandei um e-mail com o link pra criar uma senha nova. Olha também o spam.');
 }
 async function fazerLogin(){
   $('#lgErr').textContent = '';

@@ -102,10 +102,11 @@ function pdConviteConfig() {
     $texto   = trim((string)($st['convite_texto'] ?? '')) ?: "Você foi convidado(a) para a PD, a plataforma de trabalho da Pontodot.ai Escola Agêntica.\n\nA {empresa} gerencia os trabalhos da equipe por aqui — por isso você recebeu este link. Para começar, falta só criar o seu acesso no link abaixo.";
     return ['empresa' => $empresa, 'site' => $site, 'capa' => $capa, 'texto' => $texto];
 }
-function pdConviteEmail($email, $name, $link) {
+function pdConviteEmail($email, $name, $link, $modo = 'convite') {
     $primeiro = explode(' ', $name)[0];
     $cfg = pdConviteConfig();
-    $subject = $primeiro . ', seu acesso à PD está pronto';
+    if ($modo === 'senha') $cfg['texto'] = "Você pediu uma senha nova pra entrar na PD. É só clicar no botão abaixo e escolher a nova senha.\n\nSe não foi você, ignore este e-mail: nada muda.";
+    $subject = $modo === 'senha' ? $primeiro . ', sua senha nova na PD' : $primeiro . ', seu acesso à PD está pronto';
     $h = fn($t) => htmlspecialchars((string)$t, ENT_QUOTES, 'UTF-8');
     $txt = str_replace(['{nome}', '{empresa}', '{site}'], [$primeiro, $cfg['empresa'], $cfg['site']], $cfg['texto']);
     $paras = array_values(array_filter(array_map('trim', preg_split('/\n\s*\n/u', $txt))));
@@ -120,7 +121,7 @@ function pdConviteEmail($email, $name, $link) {
       . '<img src="' . $h(sd_base()) . '/assets/email-logo-pontodot.png" alt="pontodot" width="44" height="44" style="display:block;width:44px;height:44px;margin-bottom:20px">'
       . '<h1 style="font-size:24px;font-weight:500;margin:0 0 14px;letter-spacing:-.01em">Oi, ' . $h($primeiro) . '! 👋</h1>'
       . $pHtml
-      . '<a href="' . $h($link) . '" style="display:inline-block;background:#fff;color:#0b0b0d;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px;margin-top:6px">Criar meu acesso</a>'
+      . '<a href="' . $h($link) . '" style="display:inline-block;background:#fff;color:#0b0b0d;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px;margin-top:6px">' . ($modo === 'senha' ? 'Criar senha nova' : 'Criar meu acesso') . '</a>'
       . '<p style="font-size:12.5px;line-height:1.6;color:#8a8a8a;margin:26px 0 0">O link vale por 24 horas e é só seu. Se o botão não abrir, copie e cole no navegador:<br><span style="word-break:break-all;color:#9a9a9a">' . $h($link) . '</span></p>'
       . '<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:30px;border-top:1px solid #222"><tr>'
       . '<td style="padding-top:16px;font-size:12px;color:#6b6b6b">Pontodot · a escola das IAs agênticas<br><a href="' . $h(sd_base()) . '" style="color:#8a8a8a;text-decoration:none">' . $h(preg_replace('#^https?://#', '', sd_base())) . '</a></td>'
@@ -141,11 +142,11 @@ function pdConviteEmail($email, $name, $link) {
     return $emailOk;
 }
 // Novo link de acesso pra quem JÁ existe (e-mail não chegou, link venceu): recovery abre a mesma tela de criar senha.
-function pdConviteLink($email, $name) {
+function pdConviteLink($email, $name, $modo = 'convite') {
     $gen = sd_supabase('/auth/v1/admin/generate_link', 'POST', ['type' => 'recovery', 'email' => $email, 'options' => ['redirectTo' => sd_base() . '/setup.html']]);
     if (($gen['code'] ?? 500) !== 200 || isset($gen['body']['error'])) return ['erro' => (string)($gen['body']['msg'] ?? $gen['body']['message'] ?? $gen['body']['error'] ?? 'HTTP ' . ($gen['code'] ?? '?'))];
     $d = $gen['body']; $hashed = $d['hashed_token'] ?? ($d['properties']['hashed_token'] ?? null);
     $link = $hashed ? sd_base() . '/setup.html?token_hash=' . rawurlencode($hashed) . '&type=recovery' : ($d['action_link'] ?? ($d['properties']['action_link'] ?? null));
     if (!$link) return ['erro' => 'sem link'];
-    return ['link' => $link, 'email_enviado' => pdConviteEmail($email, $name, $link)];
+    return ['link' => $link, 'email_enviado' => pdConviteEmail($email, $name, $link, $modo)];
 }
