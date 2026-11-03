@@ -829,7 +829,8 @@ function pdPalavraEnsinar($userId, $txt) {
 }
 function pdPalavraMagica($userId) {
     // o nome é livre: "palavra mágica", "senha", "segredo", "chave", "código"… vale a ÚLTIMA ensinada
-    $ms = (array)(sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&ativo=is.true&select=assunto,conteudo&order=created_at.desc&limit=20')['body'] ?? []);
+    // vale o que foi guardado pra pessoa (escopo pessoa) OU o que ela mesma ensinou em qualquer escopo (a IA às vezes guarda como "agência")
+    $ms = (array)(sd_supabase('/rest/v1/sd_memoria?or=(and(escopo.eq.pessoa,escopo_id.eq.' . urlencode((string)$userId) . '),autor_id.eq.' . urlencode((string)$userId) . ')&ativo=is.true&select=assunto,conteudo&order=created_at.desc&limit=40')['body'] ?? []);
     foreach ($ms as $m) {
         $as = (string)($m['assunto'] ?? ''); $co = trim((string)($m['conteudo'] ?? ''));
         $temaAs = (bool)preg_match('/palavra|senha|segredo|chave|c[oó]digo|\bpin\b/iu', $as); $temaCo = (bool)preg_match('/palavra|senha|segredo|chave|c[oó]digo/iu', $co);
