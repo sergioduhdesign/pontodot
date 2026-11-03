@@ -822,7 +822,9 @@ function pdPalavraMagica($userId) {
     $r = sd_supabase('/rest/v1/sd_memoria?escopo=eq.pessoa&escopo_id=eq.' . urlencode((string)$userId) . '&ativo=is.true&assunto=ilike.' . rawurlencode('*palavra*m*gica*') . '&select=conteudo&order=created_at.desc&limit=1')['body'][0]['conteudo'] ?? '';
     $r = trim((string)$r); if ($r === '') return '';
     if (preg_match('/(?::|\b(?:\x{00E9}|e|eh)\b)\s*["\x{201C}\x{2018}\']?([^"\x{201D}\x{2019}\'.\n]{2,40}?)["\x{201D}\x{2019}\']?\s*\.?$/u', $r, $m)) $r = $m[1];   // "minha palavra mágica é abacaxi" → abacaxi
-    return trim($r);
+    $r = trim($r);
+    if (mb_strlen($r) > 30 || str_word_count($r) > 3) return '';   // isso não é uma senha, é um texto: ignora (nunca trava a pessoa por uma memória solta)
+    return $r;
 }
 function pdSegredoNorm($s) { return preg_replace('/[^a-z0-9]/', '', strtolower((string)@iconv('UTF-8', 'ASCII//TRANSLIT', trim((string)$s)))); }
 // Permissões pelo servidor (zap, cadastro sem sessão): mesma regra de set_user_permissions, gravando em profile_permissions.
