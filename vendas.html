@@ -150,7 +150,7 @@ function autoUI(){
     <span class="row" style="gap:12px;align-items:center">${tumiAv(40)}<span><b>Tumi automático</b><br><span class="auto-st ${on?'on':''}">${on?'Ligado'+(AUTOHOJE?` · hoje ${AUTOHOJE.enviados} enviados`:''):'Desligado'} · ${esc(c.name)}</span></span></span>
     <button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Tumi automático" title="${on?'Desligar':'Ligar'} o automático" onclick="autoToggle(this,${!on})"><i></i></button></div>
   <div class="sub" style="margin:12px 0 10px">Ligado, ele trabalha sozinho nos dias úteis, dentro do horário: acha leads novos, lê os sites da base, escreve, envia e faz os follow-ups. As respostas dos leads continuam com você: ele avisa e sugere o texto.</div>
-  <div class="sub" style="margin-bottom:5px"><b>O que o Tumi pode oferecer</b> — ${casa?'produtos de agência, simples e do dia a dia':'o que '+esc(c.name)+' vende: empreendimentos, lotes, serviços, condições'}</div>
+  <div class="sub" style="margin-bottom:5px"><b>O que ${esc(c.name)} vende</b> — produtos, serviços e condições que o Tumi pode oferecer por eles</div>
   <textarea id="aof" rows="3" placeholder="${casa?'ex.: gestão de redes sociais mensal; identidade visual; landing page de lançamento; material de plantão e stand; tráfego pago':'ex.: lotes a partir de ... no loteamento ...; condições de entrada; visita ao decorado (só o que for verdade e atual)'}">${esc(a.oferta||'')}</textarea>
   <div class="sub" style="margin:12px 0 5px"><b>O que ele procura sozinho todo dia</b></div>
   <input id="aco" style="width:100%" placeholder="${casa?'ex.: incorporadoras com lançamento em Campinas e região':'ex.: imobiliárias e corretores de Campinas; investidores de lotes'}" value="${esc(a.consulta||'')}">
