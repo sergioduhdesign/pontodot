@@ -4178,7 +4178,7 @@ function htmlPerfilPessoa(){
         <label style="display:block;font-size:12px;margin-top:8px">Rede 1<input id="pfSoc1" type="text" value="${esc(p.social1||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Rede 2<input id="pfSoc2" type="text" value="${esc(p.social2||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Site<input id="pfSite" type="text" value="${esc(p.site||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
-        <label style="display:block;font-size:12px;margin-top:8px">WhatsApp para alertas<input id="pfZap" type="text" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
+        <label style="display:block;font-size:12px;margin-top:8px">WhatsApp que você usa na plataforma <b style="color:#e5484d">*obrigatório</b><input id="pfZap" type="text" value="${esc(p.zap||'')}" placeholder="+55 19 99999-0000" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <div class="faixa-fixa" style="margin-top:10px">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="pfZapAtivo" ${p.zap_ativo?'checked':''}> Receber alertas</label>
           <button onclick="salvarPerfilInline()" style="margin-left:auto">Salvar</button>
@@ -4253,6 +4253,8 @@ function abrirPerfil(){
 async function salvarPerfilInline(){
   const g=id=>(document.getElementById(id).value||'').trim(), m=document.getElementById('pfZapMsg');
   const z=g('pfZap'), at=document.getElementById('pfZapAtivo').checked;
+  if(!ehCliente() && z.replace(/\D/g,'').length<10){ m.style.color='#e5484d'; m.textContent='Informe o WhatsApp com DDD. Sem ele a sua configuração fica incompleta (a IA e os alertas não chegam em você).'; document.getElementById('pfZap').focus(); return; }
+  m.style.color='';
   const base={ name:g('pfNome')||perfil.name, bio:g('pfBio')||null, birthday:g('pfAniv')||null, contact:g('pfContato')||null, social1:g('pfSoc1')||null, social2:g('pfSoc2')||null, site:g('pfSite')||null };
   let r=await sbR.from('profiles').update(base).eq('id',perfil.id);
   if(r.error){ m.textContent='Erro: '+r.error.message; return; }
@@ -8578,6 +8580,7 @@ async function entrarReal(session){
   carregarThreadsSalvas();
   saudacaoDaSD();
   setTimeout(recomendacaoSemanal, 9000);
+  setTimeout(() => { try { if (window.REAL && perfil && !ehCliente() && String(perfil.zap||'').replace(/\D/g,'').length < 10){ toast('Cadastro incompleto: falta o seu WhatsApp. Informe agora.'); abrirPerfil(); } } catch(e){} }, 4000);
   // a Escola das IAs entra na área de trabalho do admin (uma vez; depois é escolha dele)
   try { if (ehAdmin() && !localStorage.getItem('sd_escola_add')){ localStorage.setItem('sd_escola_add','1'); if (!meusGadgets.includes('escola')){ meusGadgets = [...meusGadgets, 'escola']; salvarGadgets(); renderBoard(); } } } catch(e){}
   // voltou da Meta: abre os Anúncios já atualizados
