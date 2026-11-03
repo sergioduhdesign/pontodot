@@ -1323,6 +1323,16 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
         // a IA "disse" que mexeu em usuário/conta sem nenhuma ação executada: isso nunca é verdade
         $resp = "⚠️ NADA foi executado — eu não acionei nenhuma ação no sistema.\n\nPara excluir ou pausar alguém, me peça de novo (ex.: \"exclui o acesso do Fulano\"): eu listo as contas com e-mail e você confirma respondendo com o e-mail + a palavra combinada entre nós.";
     }
+    // a IA não tem acesso à palavra combinada: se ela falar dela ("não bate", "registrada", etc.), o sistema responde no lugar, com o que está gravado
+    if (!$ajs && preg_match('/palavra (combinada|m[áa]gica)|senha/iu', $resp)) {
+        $ult = sd_supabase('/rest/v1/pd_avisos_log?para=eq.' . rawurlencode((string)$tel) . '&canal=eq.whatsapp&status=in.(confirma_ok,confirma_pendente,confirma_cancelada)&criado_em=gte.' . rawurlencode(gmdate('c', time() - 1800)) . '&select=status,ref,corpo&order=criado_em.desc&limit=1')['body'][0] ?? null;
+        $linhaC = '';
+        if ($ult && ($ult['status'] ?? '') === 'confirma_ok') { $d = json_decode(substr((string)$ult['ref'], 9), true) ?: []; $ls = [];
+            foreach ((array)($d['ids'] ?? []) as $id) { $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode($id) . '&select=name,email,active')['body'][0] ?? null; $ls[] = $pf ? '• ' . $pf['name'] . ' (' . $pf['email'] . ') — ' . (($pf['active'] ?? true) ? 'ativa' : 'pausada') : '• conta removida: não existe mais no sistema'; }
+            $linhaC = "📋 Conferi agora no sistema (" . mb_substr((string)$ult['corpo'], 0, 60) . "):\n" . implode("\n", $ls); }
+        elseif ($ult && ($ult['status'] ?? '') === 'confirma_pendente') $linhaC = '🔐 Tem uma confirmação pendente: responda só com a palavra combinada (ou e-mail + palavra).';
+        $resp = trim(($linhaC ?: 'Sobre a palavra combinada: quem guarda e confere é o sistema, eu não tenho acesso a ela — e não há nada pendente agora.'));
+    }
     // a IA nunca inventa "senha de admin" nem senhas que não existem: a senha é a que a pessoa me ensinou, e quem pede é o sistema na hora da confirmação
     if (!$ajs && preg_match('/senha (de|do) (admin|administrador|sistema)/iu', $resp)) $resp = "Não existe senha de admin — o que eu uso é a *palavra combinada* entre nós (me ensine com \"guarda: minha palavra combinada é …\"; não é a sua senha de acesso). Me peça a ação de novo que eu listo as contas e peço a confirmação do jeito certo.";
     if (preg_match('/##SALVAR##\s*(\{.*\})\s*$/su', $resp, $sm)) {
