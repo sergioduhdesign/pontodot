@@ -3907,6 +3907,12 @@ function ehAdmin(){
 // CLIENTE: a home dele é só o que ele precisa (aprovar, pedir, falar com a Gigi e com a equipe). Sem ovo, sem escola, sem configurar.
 function ehCliente(){ return !!(window.REAL && perfil && perfil.role === 'client'); }
 const GADGETS_CLIENTE = ['aprovacoes', 'tarefas', 'minhaia', 'equipe'];
+// QUEM O CLIENTE VÊ: por padrão ninguém da equipe. Só as outras pessoas do PRÓPRIO cliente e quem o admin liberou marcando a função Atendimento.
+function equipeParaMim(){
+  if (!ehCliente()) return PERFIS.filter(p => p.name && !p.client_id);
+  const cid = perfil && perfil.client_id;
+  return PERFIS.filter(p => p.name && perfil && p.id !== perfil.id && ((p.client_id && p.client_id === cid) || (!p.client_id && (p.funcoes || []).includes('atendimento'))));
+}
 const IAS_ATENDIMENTO = ['gigi', 'raku', 'tumi'];   // as conectoras: quem pode atender um cliente
 function iaDoCliente(){ const v = String((window.CLIENTE_ROW && CLIENTE_ROW.ia_zap) || '').toLowerCase(); return IAS_ATENDIMENTO.includes(v) ? v : 'gigi'; }
 function jeitoDoCliente(){ return { personagem: iaDoCliente(), apelido: null, confirmado: true, respostas: {}, diretas: {}, versao: 'cliente', em: null, uid: perfil && perfil.id }; }
@@ -5866,10 +5872,10 @@ const GADGETS = {
   equipe:    { nome:'Equipe', html:()=>{
       if (window.REAL){
         iaGarante();
-        return gadCaixa('Equipe', (PERFIS.filter(p=>p.name && !p.client_id).map(p=>{
+        return gadCaixa('Equipe', (equipeParaMim().map(p=>{
           const pn = p.name.split(' ')[0];
           const n = tasksReais.filter(t=>ehDe(t,p)).length;
-          return `<button class="gente" style="width:100%" onclick="abrirChatCom('${p.name.replace(/'/g,'’')}')">${avatarImg(p.name,p.avatar_url,30)}<div class="c"><div style="font-size:12px">${pn}</div><div class="d" style="font-size:10px;color:var(--branco2)">${n} tarefa${n===1?'':'s'} aberta${n===1?'':'s'} · <b>falar</b></div>${iaDe(p) ? `<div style="font-size:10px;color:var(--branco2);margin-top:1px">${iaChip(p, 14)}</div>` : ''}</div></button>`;
+          return `<button class="gente" style="width:100%" onclick="abrirChatCom('${p.name.replace(/'/g,'’')}')">${avatarImg(p.name,p.avatar_url,30)}<div class="c"><div style="font-size:12px">${pn}</div><div class="d" style="font-size:10px;color:var(--branco2)">${ehCliente() ? '<b>falar</b>' : `${n} tarefa${n===1?'':'s'} aberta${n===1?'':'s'} · <b>falar</b>`}</div>${iaDe(p) && !ehCliente() ? `<div style="font-size:10px;color:var(--branco2);margin-top:1px">${iaChip(p, 14)}</div>` : ''}</div></button>`;
         }).join('') || '<div class="nota">Equipe ainda carregando…</div>'),
         ['Ver a equipe', `abrirEquipe()`]);
       }
@@ -6018,7 +6024,7 @@ function abrirEquipe(){
     </div>
     <div class="nota" style="margin:2px 0 10px">toque em falar e a mensagem fica registrada na tarefa da pessoa</div>
     <div style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none">
-      ${PERFIS.filter(p=>p.name && !p.client_id).map(p=>{
+      ${equipeParaMim().map(p=>{
         const pn = p.name.split(' ')[0];
         const minhas = tasksReais.filter(t=>ehDe(t,p));
         const atr = minhas.filter(ehAtrasada).length;
@@ -6026,9 +6032,9 @@ function abrirEquipe(){
         return `<div class="t-linha" style="cursor:default">
           ${avatarImg(p.name, p.avatar_url, 32)}
           <div class="t-main"><span class="nome" style="flex:none">${p.name}${p.name===meu?' <small style="opacity:.5">(você)</small>':''}</span>
-            <small>${minhas.length} tarefa${minhas.length===1?'':'s'} aberta${minhas.length===1?'':'s'}${atr?` · ${atr} atrasada${atr===1?'':'s'}`:''}</small>
-            ${iaChip(p, 15) ? `<small style="opacity:.8">${iaChip(p, 15)}</small>` : ''}</div>
-          <button class="btn" style="min-height:34px" onclick="fecharJanela();abrirTodasResp('${esc(chaveDe(p))}')">tarefas</button>
+            ${ehCliente() ? '' : `<small>${minhas.length} tarefa${minhas.length===1?'':'s'} aberta${minhas.length===1?'':'s'}${atr?` · ${atr} atrasada${atr===1?'':'s'}`:''}</small>
+            ${iaChip(p, 15) ? `<small style="opacity:.8">${iaChip(p, 15)}</small>` : ''}`}</div>
+          ${ehCliente() ? '' : `<button class="btn" style="min-height:34px" onclick="fecharJanela();abrirTodasResp('${esc(chaveDe(p))}')">tarefas</button>`}
           ${p.name===meu?'':`<button class="btn" style="min-height:34px" title="Conversar com ${pn}" onclick="fecharJanela();abrirChatCom('${nome}')">${icoMini('balao',14)} conversar</button>`}
         </div>`;
       }).join('') || '<div class="nota">Equipe ainda carregando…</div>'}
@@ -6499,7 +6505,7 @@ const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anu
 // o que cada pessoa pode ver: admin tudo; 'admin' só admin; 'libera' = ferramenta liberada no perfil (studio_areas)
 function gadLiberado(g){ if (!g) return false; if (g.admin) return aindaNao(()=>ehAdmin(), false); if (g.libera) return aindaNao(()=>ehAdmin() || ((perfil && perfil.studio_areas) || []).includes(g.libera), false); return true; }
 function zapLiberado(){ return gadLiberado(GADGETS.zap); }
-function gadgetsDaTela(){ if (ehCliente()) return GADGETS_CLIENTE.slice(); return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
+function gadgetsDaTela(){ if (ehCliente()) return GADGETS_CLIENTE.filter(id => id !== 'equipe' || equipeParaMim().length); return ehDesk() ? meusGadgets : GADGETS_APP.filter(id => GADGETS[id]); }
 
 // setinha à direita: avisa que há mais caixinhas para rolar
 function atualizarSetaBoard(){
@@ -8607,7 +8613,8 @@ async function entrarReal(session){
   $('#cluster')?.classList.add('on');
   if (perfil.role === 'client'){ const cf = $('#cfgArea'); if (cf) cf.style.display = 'none'; }
   { const ad = $('#clAdmin'); if (ad && (perfil.role === 'admin' || perfil.is_admin || (!ehDesk() && perfil.verso_mobile))) ad.style.display = ''; }
-  sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at')
+  sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at,funcoes')
+    .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile,presence_status,presence_at') : r)
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id,team_key,verso_mobile') : r)
     .then(r => r.error ? sbR.from('profiles').select('id,name,avatar_url,client_id') : r)
     .then(({data}) => {
