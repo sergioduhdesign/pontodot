@@ -804,7 +804,8 @@ function pdIaZapCliente($cl, $tel, $texto, $tipo = 'text') {
 function pdFuncoesCatalogo() { return [
   'direcao' => 'Direção criativa', 'estrategia' => 'Estratégia / planejamento', 'atendimento' => 'Atendimento', 'producao' => 'Gestão de projetos / produção',
   'copy' => 'Copywriter', 'designer' => 'Designer', 'video' => 'Motion / editor de vídeo', 'som' => 'Sound designer / locução', 'foto3d' => 'Fotografia / 3D',
-  'social' => 'Social media', 'trafego' => 'Tráfego pago', 'webdev' => 'Web dev', 'gestao_equipe' => 'Gestão de equipe']; }
+  'social' => 'Social media', 'trafego' => 'Tráfego pago', 'webdev' => 'Web dev', 'gestao_equipe' => 'Gestão de equipe',
+  'comercial' => 'Comercial / vendas', 'prospeccao' => 'Prospecção de clientes']; }
 // Chave de responsável (tasks.resp) para quem não tem uma: primeiro nome sem acento, em caixa alta, única.
 // Garante que a chave existe no enum team_member (SQL v136): pessoa nova entra pelo sistema, sem SQL por pessoa.
 function pdTeamMemberGarante($k) {
