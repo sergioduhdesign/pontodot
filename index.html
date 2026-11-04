@@ -768,6 +768,14 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .ads-linha .v{text-align:right;font-size:13px;white-space:nowrap}
 .ads-linha .v small{display:block;font-size:11px;opacity:.7}
 
+.cp-abas{display:flex;gap:4px;border-bottom:.5px solid var(--linha);margin:12px 0 4px;overflow-x:auto;scrollbar-width:none}
+.cp-abas button{display:flex;align-items:center;gap:7px;padding:9px 15px 10px;border-radius:12px 12px 0 0;border:.5px solid transparent;border-bottom:0;background:none;color:inherit;font:inherit;font-size:13px;opacity:.5;cursor:pointer;margin-bottom:-.5px;white-space:nowrap}
+.cp-abas button.on{opacity:1;border-color:var(--linha);background:rgba(127,127,127,.13)}
+.cp-kpis .entra{animation:kpiIn .3s cubic-bezier(.2,.8,.2,1) both}
+.cp-kpis .sai{animation:kpiOut .25s ease both;pointer-events:none}
+@keyframes kpiIn{from{opacity:0;transform:scale(.82) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kpiOut{to{opacity:0;transform:scale(.82) translateY(-6px)}}
+.cp-chip{transition:background .2s,color .2s,opacity .2s,transform .15s}button.cp-chip:active{transform:scale(.94)}
 .cp-top{display:flex;align-items:center;gap:10px}
 .cp .cp-b{min-height:36px;padding:7px 14px;font-size:12.5px}
 .cp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin:12px 0 8px}
@@ -4856,6 +4864,7 @@ function gadSeguro(id){
 // mas ainda fora da fila. E os relatórios diários de campanha, abertos.
 // =====================================================================
 let PUB = { em:0, dados:null, erro:'' };
+let SOC = { aba:'fila', periodo:'last_7d', contas:null, dados:{}, erro:'', carregando:false, em:0 };
 async function carregarPub(forcar){
   if (!window.REAL) return;
   if (!forcar && PUB.em && Date.now() - PUB.em < 3 * 60e3) return;
@@ -4905,6 +4914,7 @@ async function carregarPub(forcar){
   render();
 }
 function htmlPublicacao(){
+  if (SOC.aba === 'desemp') return htmlSocialDesemp();
   if (!window.REAL) return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver a fila de publicação.</div>`);
   if (!PUB.dados) { carregarPub(); return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">olhando a fila…</div>`); }
   if (PUB.erro) return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">${esc(PUB.erro)}</div>`);
@@ -4915,9 +4925,10 @@ function htmlPublicacao(){
     ✗ ${a.platform==='instagram'?'Instagram':'Facebook'} · ${esc(String(a.error_message||'erro').slice(0,110))}</div>`).join('');
   const rel = (d.relatorios||[]).slice(0,2).map(r => `<div style="margin:5px 0;padding:8px 11px;background:rgba(127,127,127,.09);border-radius:10px;font-size:11.5px;line-height:1.5">
     📊 <b>${esc(r.clients?.name||'Cliente')}</b> · ${fmtD(r.dia)}${r.analise?`<br><span style="opacity:.8">${esc(String(r.analise).slice(0,180))}${String(r.analise).length>180?'…':''}</span>`:''}</div>`).join('');
-  return gadCaixa('Social', `
+  return gadCaixa('Social', socBarra() + `
     <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px"><span class="nota" style="margin:0;flex:1">${d.fila ? 'Quer ter certeza de que vai sair?' : ''}</span>
-      <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="conferirFila()">Conferir fila</button></div>
+      <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="conferirFila()">Conferir fila</button>
+      <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirListaPub('fila')">Ver todos</button></div>
     <div style="display:flex;gap:8px;margin:4px 0 8px;flex-wrap:wrap">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar','fora'):''}${d.antigos ? num(d.antigos,'antigos · não entram','antigos') : ''}</div>
     ${erros}${rel}
     ${!d.fila && !d.nErros && !rel ? '<div class="nota" style="padding:2px">Fila vazia — aprove um lote e agende, ou ligue o "agendar sozinho".</div>' : ''}`);
@@ -4952,7 +4963,7 @@ function abrirListaPub(tipo){
   else corpo = L.map(linha).join('');
   abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">${tit}</h3>
-      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>${socAbas('fila')}
     <div style="margin-top:10px">${corpo || `<div class="nota">${vazio}</div>`}</div>
     <div style="margin-top:12px"><button class="btn" onclick="fecharJanela();abrirNoVerso('fila')">Abrir o Social completo</button></div></div>`, true);
 }
@@ -5000,9 +5011,10 @@ function htmlSocial(){
 let ADS = { periodo:'last_7d', dados:null, erro:'', carregando:false, em:0, leads:null, aba:'leads', avs:null };
 const ADS_PERIODOS = [['last_7d','7 dias'],['last_30d','30 dias'],['this_month','Este mês']];
 const brl = (v, moeda) => { try { return Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency: moeda || 'BRL', maximumFractionDigits: 2 }); } catch(e){ return 'R$ ' + Number(v||0).toFixed(2); } };
-async function adsFala(dados){
+const socFala = dados => adsFala(dados, '/social-desempenho.php');
+async function adsFala(dados, url){
   const { data:{ session } } = await sbR.auth.getSession();
-  const r = await fetch('/meta-ads.php', { method:'POST',
+  const r = await fetch(url || '/meta-ads.php', { method:'POST',
     headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
     body: JSON.stringify(dados) });
   const j = await r.json().catch(() => ({}));
@@ -5036,7 +5048,7 @@ async function adsAvatares(){
     ADS.avs = {}; (data || []).forEach(a => { if (a.external_account_id && a.account_avatar_url) ADS.avs[a.external_account_id] = a.account_avatar_url; });
   } catch(e){ ADS.avs = {}; }
 }
-const ICO_MEGA = '<path d="M5 14.2l3 3.6"/><path d="M5 14.2 3.6 15.6l3.4 4"/><path d="M5 14.2 14 5.3l5.2 6.6-11.2 5.9z"/><path d="M14 5.3c3.4.2 5.2 3.2 5.2 6.6"/><path d="M9.2 17.1 8 21h2.8l1-3.6"/><path d="M16.4 2.6l.8 2M20 4.4l-1.4 1.3M22 8.3l-2 .4"/>';
+const ICO_MEGA = '<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M22.5 11.4 22.3 11.3 21.4 11.3 21.2 11.4 19.9 11.5 19.6 11.7 19.6 12.1 19.9 12.3 20.1 12.3 20.2 12.2 21.1 12.2 21.2 12.1 22.0 12.1 22.1 12.0 22.3 12.0 22.5 11.8zM20.8 9.0 20.5 8.7 20.1 8.7 19.5 9.1 19.3 9.1 19.0 9.4 19.0 9.7 19.1 9.9 19.5 9.9 19.6 9.8 19.9 9.8 20.4 9.5 20.8 9.1zM20.3 5.9 20.0 5.6 19.8 5.6 19.4 6.0 19.3 6.0 19.0 6.2 18.5 6.5 18.2 6.9 18.0 6.9 17.6 7.3 17.7 7.6 18.1 7.8 18.5 7.5 18.9 7.2 19.0 7.2 19.3 6.9 19.8 6.7 20.3 6.2zM17.4 4.3 17.0 4.3 16.0 5.3 16.0 5.5 16.3 5.8 16.6 5.8 17.6 4.8 17.6 4.4zM10.5 3.2 10.3 3.3 10.0 3.3 9.6 3.9 9.6 4.4 9.5 4.6 9.5 4.9 9.4 5.0 9.4 5.3 9.3 5.4 9.3 5.7 9.1 5.8 9.1 6.0 9.0 6.2 8.9 6.8 8.6 7.1 8.6 7.4 7.5 9.6 7.3 9.8 7.3 10.0 7.0 10.2 7.0 10.3 6.8 10.6 6.5 11.1 6.1 11.6 6.1 11.7 4.2 13.5 4.2 13.8 4.3 14.0 4.6 14.3 4.8 14.8 5.2 15.1 5.4 15.6 5.8 16.0 5.8 16.1 6.1 16.4 6.3 16.9 6.7 17.2 6.7 17.4 6.9 17.6 6.9 17.8 5.5 18.9 5.2 19.0 5.0 19.0 4.9 19.2 4.2 19.2 4.1 19.0 3.8 19.0 3.5 18.9 2.7 18.1 2.3 17.4 2.3 16.4 2.4 16.2 2.4 16.0 2.6 15.8 3.3 15.1 3.4 15.1 3.8 14.7 3.9 14.4 3.7 14.1 3.4 14.1 3.1 14.2 2.2 14.9 1.9 15.4 1.6 15.9 1.6 16.2 1.5 16.4 1.5 17.4 1.6 17.5 1.6 17.7 1.9 18.2 2.1 18.5 2.4 19.0 2.8 19.4 2.9 19.4 3.4 19.7 3.6 19.7 3.8 19.9 4.2 19.9 4.4 20.0 4.6 20.0 4.7 19.9 5.2 19.9 5.4 19.7 5.6 19.7 5.8 19.6 7.3 18.5 7.6 18.5 9.9 20.8 9.9 20.9 9.4 21.2 9.0 21.4 8.8 21.1 8.7 21.1 7.0 19.9 6.6 19.9 6.4 20.1 6.4 20.4 6.8 20.8 7.0 20.8 7.2 21.1 7.3 21.1 9.0 22.3 9.4 22.2 10.2 21.6 10.6 21.3 10.9 21.0 10.9 20.7 8.3 18.1 8.4 17.9 9.2 17.5 9.4 17.5 9.8 17.3 10.0 17.3 10.2 17.1 10.4 17.1 10.5 17.0 10.8 17.0 11.3 16.8 12.1 16.7 12.2 16.5 12.9 16.5 13.0 16.4 13.7 16.4 13.8 16.3 15.4 16.3 15.5 16.2 15.7 16.3 17.9 16.3 18.0 16.4 18.9 16.4 19.1 16.3 19.4 15.9 19.4 15.4 19.3 15.1 19.1 14.9 18.8 14.4 18.4 14.0 18.2 13.5 17.8 13.2 17.8 13.0 17.6 12.8 17.3 12.3 16.7 11.6 17.1 10.8 17.1 9.5 17.0 9.4 17.0 9.1 16.8 8.9 16.6 8.6 16.3 8.1 15.4 7.3 15.2 7.3 15.1 7.2 14.7 7.2 14.6 7.1 14.1 7.1 14.0 7.2 13.7 7.2 13.1 6.5 12.9 6.0 12.5 5.7 12.5 5.5 12.3 5.3 12.0 4.8 11.7 4.4 11.7 4.3 11.4 4.1 11.2 3.6 10.9 3.3 10.6 3.3zM5.4 13.6 5.5 13.6 5.8 13.9 5.8 14.0 6.1 14.3 6.3 14.8 6.7 15.1 6.9 15.6 7.3 16.0 7.3 16.1 8.0 17.1 7.9 17.3 7.7 17.3 7.5 17.1 7.5 17.0 7.1 16.6 6.9 16.1 6.5 15.8 6.5 15.6 6.3 15.4 6.0 14.9 5.6 14.5 5.6 14.4 5.2 13.8zM14.4 7.9 14.7 7.9 15.2 8.2 16.0 9.0 16.3 9.5 16.3 9.7 16.4 9.8 16.4 10.5 16.2 10.6 15.9 10.3 15.9 10.2 15.5 9.8 15.5 9.7 15.2 9.5 15.0 9.0 14.6 8.6 14.6 8.5 14.3 8.0zM10.5 4.1 10.7 4.3 10.7 4.4 11.3 5.2 11.3 5.3 11.6 5.5 11.8 6.0 12.2 6.4 12.2 6.5 12.8 7.3 12.8 7.4 13.1 7.6 13.3 8.1 13.7 8.5 13.7 8.6 14.3 9.4 14.3 9.5 14.5 9.7 14.8 10.2 15.2 10.6 15.2 10.7 15.4 11.0 15.7 11.4 16.0 11.8 16.0 11.9 16.6 12.7 16.6 12.8 16.9 13.0 17.1 13.5 17.5 13.9 17.7 14.4 18.1 14.8 18.1 14.9 18.6 15.5 18.5 15.6 17.8 15.6 17.7 15.5 14.2 15.5 14.1 15.6 13.2 15.6 13.1 15.7 12.5 15.7 12.4 15.8 11.3 16.0 11.1 16.1 10.9 16.1 10.8 16.2 10.5 16.2 10.4 16.3 10.2 16.3 10.0 16.5 9.8 16.5 9.7 16.6 9.4 16.6 9.3 16.7 9.0 16.7 8.8 16.8 8.5 16.5 8.5 16.4 8.2 16.1 8.0 15.6 7.6 15.3 7.6 15.1 7.4 14.9 7.1 14.4 6.8 14.0 6.5 13.5 6.1 13.2 6.0 12.8 6.8 12.1 6.8 11.9 7.1 11.6 7.1 11.4 7.4 11.1 7.6 11.1 8.0 11.6 8.0 11.7 8.3 11.9 8.5 12.4 8.9 12.8 8.9 12.9 9.5 13.7 9.5 13.8 9.7 14.0 10.0 14.5 10.4 14.9 10.4 15.0 10.8 15.4 11.0 15.4 11.3 15.1 11.1 14.5 10.7 14.2 10.4 13.7 10.1 13.3 10.1 13.2 9.8 12.9 9.6 12.4 9.2 12.1 9.2 11.9 8.6 11.2 8.6 11.1 8.3 10.8 8.3 10.7 8.0 10.3 9.3 7.8 9.3 7.5 9.6 7.1 9.6 6.9 9.7 6.8 9.7 6.5 9.8 6.4 9.8 6.2 9.9 6.0 9.9 5.8 10.2 5.3 10.2 4.9 10.3 4.8 10.3 4.3zM15.6 1.7 15.2 1.7 15.0 1.8 14.7 2.7 14.4 3.0 14.0 4.0 14.1 4.4 14.3 4.4 14.6 4.4 14.7 4.2 15.0 3.6 15.2 3.3 15.7 2.3 15.7 1.8z"/>';
 const ICO_CIFRA = '<path d="M12 2.5v19"/><path d="M16.8 7.3c0-2.1-2.1-3.3-4.8-3.3S7.2 5.2 7.2 7.5c0 4.5 9.6 2.2 9.6 7 0 2.2-2.1 3.5-4.8 3.5s-4.8-1.3-4.8-3.3"/>';
 const ICO_FUNIL = '<path d="M3.5 4.5h17l-6.5 8v6.5l-4 1.8v-8.3z"/>';
 const adsSvg = (d, t = 22) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -5049,6 +5061,11 @@ function adsLinhaLead(l){
       <div class="d">${esc(cli || 'Sem cliente')}${prN ? ' › ' + esc(prN) : ''}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${quando(l.recebido_em)}</div></div>
     <div class="v">${esc(l.status)}</div></button>`;
 }
+const ICO_CIFRA_ABA = ICO_CIFRA;
+function abasHtml(lista, ativa){
+  return `<div class="cp-abas" role="tablist">${lista.map(([id, ico, rot, fn]) => `<button role="tab" aria-selected="${id===ativa}" class="${id===ativa?'on':''}" onclick="${fn}">${adsSvg(ico, 18)}<span>${rot}</span></button>`).join('')}</div>`;
+}
+const abasAds = ativa => abasHtml([['leads', ICO_FUNIL, 'Leads', 'abrirLeads()'], ['campanhas', ICO_CIFRA, 'Campanhas', 'abrirTodasCampanhas()']], ativa);
 function adsAba(a){ ADS.aba = a; try { render(); } catch(e){} }
 function adsBarra(){
   const b = (id, ico, tit) => { const on = ADS.aba === id;
@@ -5162,7 +5179,7 @@ async function adsDestinoSalvar(conta, campId){
 const nf = v => Number(v||0).toLocaleString('pt-BR');
 const pct = v => (Math.round(v * 100) / 100).toLocaleString('pt-BR') + '%';
 const STAN = st => st==='ACTIVE' ? ['ativa','on'] : st==='PAUSED' ? ['pausada',''] : [String(st||'').toLowerCase().replace(/_/g,' '),''];
-const MET = [
+const MET_CAMP = [
   ['gasto','Investido',o=>brl(o.gasto,o.moeda)], ['leads','Leads',o=>nf(o.leads)], ['cpl','CPL',o=>o.cpl!=null?brl(o.cpl,o.moeda):'—'],
   ['alcance','Alcance',o=>nf(o.alcance)], ['impressoes','Impressões',o=>o.impressoes!=null?nf(o.impressoes):'—'], ['cliques','Cliques',o=>nf(o.cliques)],
   ['ctr','CTR',o=>o.impressoes?pct(o.cliques/o.impressoes*100):(o.ctr!=null?String(o.ctr).replace('.',',')+'%':'—')],
@@ -5172,25 +5189,36 @@ const MET = [
   ['orc','Orçamento/dia',o=>o.orcamento_dia?brl(o.orcamento_dia,o.moeda):'—'],
   ['obj','Objetivo',o=>o.objetivo?String(o.objetivo).replace(/^OUTCOME_/,'').toLowerCase():'—'],
 ];
-const MET_PAD = ['gasto','leads','cpl','alcance','impressoes','cliques'];
-function metSel(){ try { const v = JSON.parse(localStorage.getItem('pd_met_sel') || 'null'); if (Array.isArray(v) && v.length) return v; } catch(e){} return MET_PAD.slice(); }
-function metSalva(v){ try { localStorage.setItem('pd_met_sel', JSON.stringify(v)); } catch(e){} }
-const metCards = o => MET.filter(m => metSel().includes(m[0])).map(m => `<div><small>${m[1]}</small><b>${esc(m[2](o))}</b></div>`).join('');
-let MET_RASC = null;
-const metAtual = () => MET_RASC || metSel();
-function metChips(){ const s = metAtual();
-  return MET.map(m => `<button class="cp-chip ${s.includes(m[0])?'on':''}" onclick="metToggle('${m[0]}')">${m[1]}</button>`).join('')
-    + `<div style="flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn cheio cp-b" onclick="metAplicar()">Aplicar</button><button class="btn cp-b" onclick="metTodas()">Marcar todas</button><button class="btn cp-b" onclick="metPadrao()">Padrão</button><button class="btn cp-b" onclick="metCancela()">Cancelar</button></div>`; }
-function metPinta(){ const k = document.getElementById('cpKpis'), c = document.getElementById('cpSel');
-  if (k && CP.camp) k.innerHTML = metCards(CP.camp); if (c) c.innerHTML = metChips();
-  const k2 = document.getElementById('cpKpisConta'); if (k2 && CP.tot) k2.innerHTML = metCards(CP.tot);
-  const k3 = document.getElementById('cpKpisTodas'); if (k3 && CP.todas) k3.innerHTML = metCards(CP.todas); }
-function metToggle(id){ let s = metAtual().slice(); s = s.includes(id) ? s.filter(x => x !== id) : [...s, id]; if (!s.length) s = ['gasto']; MET_RASC = MET.map(m => m[0]).filter(x => s.includes(x)); const c = document.getElementById('cpSel'); if (c) c.innerHTML = metChips(); }
-function metTodas(){ MET_RASC = MET.map(m => m[0]); const c = document.getElementById('cpSel'); if (c) c.innerHTML = metChips(); }
-function metPadrao(){ MET_RASC = MET_PAD.slice(); const c = document.getElementById('cpSel'); if (c) c.innerHTML = metChips(); }
-function metAplicar(){ if (MET_RASC) metSalva(MET_RASC); MET_RASC = null; const c = document.getElementById('cpSel'); if (c) c.style.display = 'none'; metPinta(); toast('Informações aplicadas.'); }
-function metCancela(){ MET_RASC = null; const c = document.getElementById('cpSel'); if (c) c.style.display = 'none'; }
-function cpAbreSel(){ const c = document.getElementById('cpSel'); if (!c) return; MET_RASC = null; c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; c.innerHTML = metChips(); }
+const MET_SOC = [
+  ['seguidores','Seguidores',o=>o.seguidores!=null?nf(o.seguidores):'—'], ['alcance','Alcance',o=>o.alcance!=null?nf(o.alcance):'—'],
+  ['visualizacoes','Visualizações',o=>o.visualizacoes!=null?nf(o.visualizacoes):'—'], ['interacoes','Interações',o=>o.interacoes!=null?nf(o.interacoes):'—'],
+  ['posts','Posts no período',o=>nf(o.posts)], ['curtidas','Curtidas',o=>nf(o.curtidas)], ['comentarios','Comentários',o=>nf(o.comentarios)],
+  ['engaj','Engajamento',o=>o.alcance&&o.interacoes!=null?pct(o.interacoes/o.alcance*100):'—'],
+  ['porpost','Interações por post',o=>o.posts&&o.interacoes!=null?nf(Math.round(o.interacoes/o.posts)):'—'],
+];
+const PAD_KIT = { camp:['gasto','leads','cpl','alcance','impressoes','cliques'], soc:['seguidores','alcance','interacoes','posts','engaj'] };
+let KIT = 'camp', MET = MET_CAMP;
+const setKit = k => { KIT = k; MET = k === 'soc' ? MET_SOC : MET_CAMP; };
+function metSel(){ try { const v = JSON.parse(localStorage.getItem('pd_met_sel' + (KIT === 'camp' ? '' : '_' + KIT)) || 'null'); if (Array.isArray(v) && v.length) { const ok = v.filter(x => MET.some(m => m[0] === x)); if (ok.length) return ok; } } catch(e){} return PAD_KIT[KIT].slice(); }
+function metSalva(v){ try { localStorage.setItem('pd_met_sel' + (KIT === 'camp' ? '' : '_' + KIT), JSON.stringify(v)); } catch(e){} }
+const metCard = (m, o) => `<div data-m="${m[0]}"><small>${m[1]}</small><b>${esc(m[2](o))}</b></div>`;
+const metCards = o => MET.filter(m => metSel().includes(m[0])).map(m => metCard(m, o)).join('');
+function metChips(){ const s = metSel();
+  return MET.map(m => `<button class="cp-chip ${s.includes(m[0])?'on':''}" data-c="${m[0]}" onclick="metToggle('${m[0]}')">${m[1]}</button>`).join(''); }
+// sincroniza os quadradinhos: o que foi marcado entra com animação, o que foi desmarcado sai
+function metSync(el, o){
+  if (!el || !o) return; const sel = metSel(), ordem = MET.map(m => m[0]);
+  [...el.children].forEach(c => { if (!sel.includes(c.dataset.m) && !c.classList.contains('sai')){ c.classList.add('sai'); setTimeout(() => c.remove(), 260); } });
+  sel.forEach(id => { if (el.querySelector(`[data-m="${id}"]:not(.sai)`)) return;
+    const m = MET.find(x => x[0] === id), t = document.createElement('div'); t.innerHTML = metCard(m, o); const n = t.firstChild; n.classList.add('entra');
+    const dep = ordem.slice(ordem.indexOf(id) + 1).map(x => el.querySelector(`[data-m="${x}"]:not(.sai)`)).find(Boolean);
+    el.insertBefore(n, dep || null); });
+}
+function metPinta(){ metSync(document.getElementById('cpKpis'), CP.camp); metSync(document.getElementById('cpKpisConta'), CP.tot); metSync(document.getElementById('cpKpisTodas'), CP.todas); }
+function metToggle(id){ let s = metSel().slice(); s = s.includes(id) ? s.filter(x => x !== id) : [...s, id]; if (!s.length) s = ['gasto'];
+  metSalva(MET.map(m => m[0]).filter(x => s.includes(x)));
+  document.querySelectorAll('#cpSel .cp-chip').forEach(c => c.classList.toggle('on', metSel().includes(c.dataset.c))); metPinta(); }
+function cpAbreSel(){ const c = document.getElementById('cpSel'); if (!c) return; c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; c.innerHTML = metChips(); }
 const CP = { todas:null, conta:null, id:null, camp:null, tot:null, ads:[], perfil:null };
 
 function cpCard(x, conta){
@@ -5207,13 +5235,13 @@ function cpPeriodoTodas(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; carre
 const somaO = (arr) => { const o = { gasto:0, leads:0, alcance:0, impressoes:0, cliques:0, moeda: (arr[0]||{}).moeda || 'BRL' }; arr.forEach(x => { o.gasto += x.gasto||0; o.leads += x.leads||0; o.alcance += x.alcance||0; o.impressoes += x.impressoes||0; o.cliques += x.cliques||0; }); o.cpl = o.leads ? o.gasto/o.leads : null; return o; };
 
 async function abrirCampanhas(conta){
-  CP.conta = conta;
+  setKit('camp'); CP.conta = conta;
   const c = (ADS.dados?.contas || []).find(x => x.conta === conta) || {};
   abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px" id="cxCamp">
     <div class="cp-top">${logoCliente(c.cliente || '', 36)}<h3 style="margin:0;flex:1;font-size:22px;font-weight:400;line-height:1.15">${esc(c.cliente || c.nome || conta)}</h3>
       <button class="btn cheio cp-b" onclick="pdfConta('${esc(conta)}')">Gerar PDF</button><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','')">Perguntar ao Sumi</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoConta')}</div>
+    ${abasAds('campanhas')}<div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoConta')}</div>
     <div id="campCorpo" class="nota">Buscando na Meta…</div></div>`, true);
   try {
     const [j] = await Promise.all([ adsFala({ acao:'campanhas', conta, periodo: ADS.periodo }), adsCarregaProdutos() ]);
@@ -5234,11 +5262,12 @@ async function abrirCampanhas(conta){
   } catch(e){ const C = document.getElementById('campCorpo'); if (C) C.textContent = e.message; }
 }
 async function abrirTodasCampanhas(){
+  setKit('camp');
   const contas = (ADS.dados?.contas || []).filter(c => !c.erro);
   abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
     <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Todas as campanhas</h3><button class="btn cheio cp-b" onclick="pdfTodas()">Gerar PDF</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoTodas')}</div><div id="todasCorpo" class="nota">Buscando as campanhas de ${contas.length} conta${contas.length===1?'':'s'}…</div></div>`, true);
+    ${abasAds('campanhas')}<div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoTodas')}</div><div id="todasCorpo" class="nota">Buscando as campanhas de ${contas.length} conta${contas.length===1?'':'s'}…</div></div>`, true);
   try {
     await adsCarregaProdutos();
     const res = await Promise.all(contas.map(c => adsFala({ acao:'campanhas', conta:c.conta, periodo:ADS.periodo }).then(j => ({ c, j })).catch(e => ({ c, erro:e.message }))));
@@ -5257,6 +5286,7 @@ async function abrirTodasCampanhas(){
 
 // ---- a campanha por dentro ----
 async function abrirCampanhaDetalhe(conta, id){
+  setKit('camp');
   const conta0 = (ADS.dados?.contas||[]).find(x=>x.conta===conta) || {};
   const camp = ((ADS.camps||{})[conta]||[]).find(x=>x.id===id) || {};
   Object.assign(CP, { conta, id, camp, ads:[], perfil:null });
@@ -5338,35 +5368,53 @@ async function cpPublico(conta, campId){
 }
 
 // ---- IA de Campanhas: painel no canto direito ----
-const sumiAv = (t=40) => `<img src="${fotoDe('sumi','avatar')}" alt="Sumi Sulo" style="width:${t}px;height:${t}px;border-radius:50%;object-fit:cover;flex:0 0 ${t}px;background:#18155F" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'S',style:'width:${t}px;height:${t}px;border-radius:50%;display:grid;place-items:center;background:#18155F;color:#fff;flex:0 0 ${t}px'}))">`;
-const IAC = { conta:null, camp:'', hist:[], seg:0, custo:0, ocupada:false };
-function iaCampAbrir(conta, campId){
-  if (IAC.conta !== conta || IAC.camp !== (campId||'')) Object.assign(IAC, { conta, camp: campId || '', hist:[], seg:0, custo:0 });
-  let d = document.getElementById('iaCamp');
-  if (!d){ d = document.createElement('div'); d.id = 'iaCamp'; document.body.appendChild(d); }
-  const c = (ADS.dados?.contas||[]).find(x => x.conta === conta) || {}, camp = ((ADS.camps||{})[conta]||[]).find(x => x.id === campId) || {};
-  d.innerHTML = `<div class="ia-h">${sumiAv(44)}<div style="flex:1;min-width:0"><b>Sumi Sulo</b><small>IA de Campanhas · ${esc(camp.nome || c.cliente || c.nome || 'conta')}</small></div>
+// ---- IAs de área: Sumi Sulo (Campanhas) e Muru Mara (Social) — mesmo painel, canto direito ----
+const IA_PERS = {
+  sumi: { nome:'Sumi Sulo', cor:'#18155F', ini:'S', papel:'IA de Campanhas', placeholder:'Pergunte ao Sumi…', lendo:'Sumi está lendo os dados…',
+    boas:'Oi! Sou o Sumi Sulo, a lula-coruja que cuida dos resultados dos anúncios aqui da casa. Gosto de desenhar o que parece confuso em diagrama simples. Me pergunta de números, público, horários, comparações ou concorrentes: eu leio os dados reais desta conta e saio pra pesquisar o mercado.' },
+  muru: { nome:'Muru Mara', cor:'#145DEC', ini:'M', papel:'IA de Social', placeholder:'Pergunte à Muru…', lendo:'Muru está olhando as redes…',
+    boas:'Oi, eu sou a Muru Mara, a beluga-coelho que acompanha o ritmo das redes por aqui. Faço uma volta calma pelos números antes de responder. Pode perguntar o que rendeu, o que repetir, o que parar, ou como os concorrentes estão postando.' },
+};
+const iaAv = (id, t=40) => { const p = IA_PERS[id]; return `<img src="${fotoDe(id,'avatar')}" alt="${esc(p.nome)}" style="width:${t}px;height:${t}px;border-radius:50%;object-fit:cover;flex:0 0 ${t}px;background:${p.cor}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${p.ini}',style:'width:${t}px;height:${t}px;border-radius:50%;display:grid;place-items:center;background:${p.cor};color:#fff;flex:0 0 ${t}px'}))">`; };
+const IAC = { chave:null, cfg:null, hist:[], seg:0, custo:0, ocupada:false };
+function iaAbrir(cfg){
+  if (IAC.chave !== cfg.chave) Object.assign(IAC, { chave:cfg.chave, hist:[], seg:0, custo:0 });
+  IAC.cfg = cfg; const P = IA_PERS[cfg.pers];
+  let d = document.getElementById('iaCamp'); if (!d){ d = document.createElement('div'); d.id = 'iaCamp'; document.body.appendChild(d); }
+  d.innerHTML = `<div class="ia-h">${iaAv(cfg.pers, 44)}<div style="flex:1;min-width:0"><b>${esc(P.nome)}</b><small>${esc(P.papel)} · ${esc(cfg.sub || '')}</small></div>
       <span class="ia-rel" id="iaRel" title="Tempo e custo desta conversa">⏱ 0s · US$ 0,00</span><button class="acao-cab" style="color:inherit" onclick="iaCampFecha()" aria-label="Fechar">✕</button></div>
     <div class="ia-m" id="iaMsgs"></div>
-    <div class="ia-s" id="iaSug">${['Quantos leads chegaram depois da meia-noite?','Qual faixa de idade e gênero custa menos por lead?','Quais regiões trazem mais leads?','Qual o melhor dia e horário?','Quem são os concorrentes mais próximos e o que eles estão fazendo?'].map(t => `<button onclick="iaCampEnviar(this.textContent)">${esc(t)}</button>`).join('')}</div>
-    <form class="ia-f" onsubmit="event.preventDefault();iaCampEnviar()"><input id="iaIn" placeholder="Pergunte ao Sumi…" autocomplete="off"><button class="btn cheio" type="submit">Enviar</button></form>`;
+    <div class="ia-s" id="iaSug">${(cfg.sug || []).map(t => `<button onclick="iaCampEnviar(this.textContent)">${esc(t)}</button>`).join('')}</div>
+    <form class="ia-f" onsubmit="event.preventDefault();iaCampEnviar()"><input id="iaIn" placeholder="${esc(P.placeholder)}" autocomplete="off"><button class="btn cheio" type="submit">Enviar</button></form>`;
   d.classList.add('aberto'); iaCampPinta(); setTimeout(() => document.getElementById('iaIn')?.focus(), 50);
+}
+const SUG_CAMP = ['Quantos leads chegaram depois da meia-noite?','Qual faixa de idade e gênero custa menos por lead?','Quais regiões trazem mais leads?','Qual o melhor dia e horário?','Quem são os concorrentes mais próximos e o que eles estão fazendo?'];
+const SUG_SOC = ['Qual post rendeu mais e por quê?','Que tipo de conteúdo devo repetir?','Estamos postando com constância?','Qual o melhor dia para postar?','Como os concorrentes estão postando?'];
+function iaCampAbrir(conta, campId){
+  const c = (ADS.dados?.contas||[]).find(x => x.conta === conta) || {}, camp = ((ADS.camps||{})[conta]||[]).find(x => x.id === campId) || {};
+  iaAbrir({ chave:'c|' + conta + '|' + (campId||''), pers:'sumi', sub: camp.nome || c.cliente || c.nome || 'conta', sug: SUG_CAMP,
+    fala:(q, historico) => adsFala({ acao:'perguntar', conta, campanha:campId || undefined, periodo:ADS.periodo, pergunta:q, historico }) });
+}
+function iaSocAbrir(id){
+  const c = (SOC.dados || {})[id] || {};
+  iaAbrir({ chave:'s|' + id, pers:'muru', sub: c.nome || 'conta', sug: SUG_SOC,
+    fala:(q, historico) => socFala({ acao:'perguntar', id, periodo:SOC.periodo, pergunta:q, historico }) });
 }
 function iaCampFecha(){ document.getElementById('iaCamp')?.remove(); }
 const iaFmt = t => esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 function iaCampPinta(){
-  const M = document.getElementById('iaMsgs'); if (!M) return;
-  M.innerHTML = (IAC.hist.length ? '' : '<div class="ia-b">Oi! Sou o Sumi Sulo, a lula-coruja que cuida dos resultados dos anúncios aqui da casa. Gosto de desenhar o que parece confuso em diagrama simples. Me pergunta de números, público, horários, comparações ou concorrentes: eu leio os dados reais desta conta e saio pra pesquisar o mercado.</div>')
-    + IAC.hist.map(m => `<div class="ia-b ${m.r==='user'?'eu':''}">${iaFmt(m.t)}</div>`).join('') + (IAC.ocupada ? '<div class="ia-b">Sumi está lendo os dados…</div>' : '');
+  const M = document.getElementById('iaMsgs'); if (!M || !IAC.cfg) return; const P = IA_PERS[IAC.cfg.pers];
+  M.innerHTML = (IAC.hist.length ? '' : `<div class="ia-b">${esc(P.boas)}</div>`)
+    + IAC.hist.map(m => `<div class="ia-b ${m.r==='user'?'eu':''}">${iaFmt(m.t)}</div>`).join('') + (IAC.ocupada ? `<div class="ia-b">${esc(P.lendo)}</div>` : '');
   M.scrollTop = M.scrollHeight;
   const r = document.getElementById('iaRel'); if (r) r.textContent = `⏱ ${Math.round(IAC.seg)}s · US$ ${IAC.custo.toFixed(2).replace('.',',')}`;
   const s = document.getElementById('iaSug'); if (s) s.style.display = IAC.hist.length ? 'none' : '';
 }
 async function iaCampEnviar(txt){
-  const inp = document.getElementById('iaIn'); const q = String(txt || (inp && inp.value) || '').trim(); if (!q || IAC.ocupada) return;
+  const inp = document.getElementById('iaIn'); const q = String(txt || (inp && inp.value) || '').trim(); if (!q || IAC.ocupada || !IAC.cfg) return;
   if (inp) inp.value = '';
   const historico = IAC.hist.map(m => ({ r:m.r, t:m.t })); IAC.hist.push({ r:'user', t:q }); IAC.ocupada = true; iaCampPinta();
-  try { const j = await adsFala({ acao:'perguntar', conta:IAC.conta, campanha:IAC.camp || undefined, periodo:ADS.periodo, pergunta:q, historico });
+  try { const j = await IAC.cfg.fala(q, historico);
     IAC.hist.push({ r:'assistant', t:j.resposta || '(sem resposta)' }); IAC.seg += j.segundos || 0; IAC.custo += j.custo_usd || 0; }
   catch(e){ IAC.hist.push({ r:'assistant', t:'Não consegui responder agora: ' + e.message }); }
   IAC.ocupada = false; iaCampPinta();
@@ -5421,6 +5469,131 @@ function pdfTodas(){
   const por = {}; todas.forEach(t => { const k = t.c.cliente || t.c.nome || t.c.conta; (por[k] = por[k] || []).push(t); });
   pdfDoc('Todas as campanhas', `${todas.length} campanhas · ${pdfPer()}`, '',
     `<h2>Resultado geral</h2>${pdfKpis(somaO(todas.map(t => t.x)))}` + Object.keys(por).map(k => `<h2>${esc(k)} · ${brl(somaO(por[k].map(t => t.x)).gasto, 'BRL')}</h2>${por[k].map(t => pdfLinhaCamp(t.x, t.c)).join('')}`).join(''));
+}
+// =====================================================================
+// SOCIAL — mesma estrutura de Campanhas: abas (Fila | Desempenho), período, destaques, "Ver todas",
+// conta por dentro (destaques à escolha, melhores posts, PDF) e a IA Muru Mara.
+// =====================================================================
+const ICO_FILA = '<path d="M21 3 10.5 13.5"/><path d="M21 3l-6.5 18-4-7.5L3 9.5z"/>';
+const ICO_BARRAS = '<path d="M5 20V11M12 20V4M19 20v-6"/>';
+const socAbas = ativa => abasHtml([['fila', ICO_FILA, 'Fila', "abrirListaPub('fila')"], ['desemp', ICO_BARRAS, 'Desempenho', 'abrirSocialTodas()']], ativa);
+function socBarra(){
+  const b = (id, ico, tit) => { const on = SOC.aba === id;
+    return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="socAba('${id}')" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px">${b('fila', ICO_FILA, 'Fila')}${b('desemp', ICO_BARRAS, 'Desempenho')}</div>`;
+}
+function socAba(a){ SOC.aba = a; if (a === 'desemp') carregarSoc(); try { render(); } catch(e){} }
+function socPeriodo(p){ SOC.periodo = p; SOC.dados = {}; carregarSoc(true); try { render(); } catch(e){} }
+async function carregarSoc(forcar){
+  if (!window.REAL || SOC.carregando) return;
+  if (!forcar && SOC.contas && Date.now() - SOC.em < 120e3) return;
+  SOC.carregando = true;
+  try {
+    const { data, error } = await sbR.from('social_accounts').select('id,platform,account_name,account_avatar_url,client_id,status').order('account_name');
+    if (error) throw error;
+    SOC.contas = (data || []).filter(c => c.status !== 'desconectada' && c.status !== 'inativa'); SOC.erro = '';
+    SOC.em = Date.now(); try { render(); } catch(e){}
+    await Promise.all(SOC.contas.slice(0, 24).map(async c => {
+      if ((SOC.dados || {})[c.id]) return;
+      try { const j = await socFala({ acao:'conta', id:c.id, periodo:SOC.periodo }); (SOC.dados = SOC.dados || {})[c.id] = j.conta; }
+      catch(e){ (SOC.dados = SOC.dados || {})[c.id] = { id:c.id, nome:c.account_name, plataforma:c.platform, avatar:c.account_avatar_url, client_id:c.client_id, erro:e.message, avisos:[], top:[] }; }
+      try { render(); } catch(e){}
+    }));
+  } catch(e){ SOC.erro = e.message || String(e); }
+  SOC.carregando = false; try { render(); } catch(e){}
+}
+const socLista = () => (SOC.contas || []).map(c => (SOC.dados || {})[c.id]).filter(Boolean);
+const socNomeRede = p => p === 'instagram' ? 'Instagram' : p === 'facebook' ? 'Facebook' : p;
+const socCli = c => (clientesReais.find(x => x.id === c.client_id) || {}).name || c.cliente || '';
+function socAvatar(c, t = 34){
+  const cli = socCli(c);
+  return `<span style="position:relative;display:block;width:${t}px;height:${t}px;flex:0 0 ${t}px">${logoCliente(cli, t)}${c.avatar ? `<img src="${esc(c.avatar)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:${t}px;height:${t}px;border-radius:50%;object-fit:cover">` : ''}</span>`;
+}
+const somaSoc = arr => { const o = { seguidores:0, alcance:0, visualizacoes:0, interacoes:0, posts:0, curtidas:0, comentarios:0 };
+  arr.filter(c => !c.erro).forEach(c => Object.keys(o).forEach(k => { o[k] += c[k] || 0; })); return o; };
+function htmlSocialDesemp(){
+  const per = `<div class="ads-per">${ADS_PERIODOS.map(([k,n]) => `<button class="${SOC.periodo===k?'on':''}" onclick="socPeriodo('${k}')">${n}</button>`).join('')}</div>`;
+  const bar = socBarra();
+  if (!SOC.contas) { if (!SOC.carregando) setTimeout(() => carregarSoc(), 0); return gadCaixa('Social', bar + per + `<div class="nota">${esc(SOC.erro) || 'Buscando as redes…'}</div>`); }
+  const ls = socLista(); if (!SOC.contas.length) return gadCaixa('Social', bar + `<div class="nota">Nenhuma rede conectada ainda. Conecte em Redes sociais.</div>`);
+  const tot = somaSoc(ls);
+  const linhas = ls.slice(0, 8).map(c => `<button class="ads-linha" style="gap:9px" onclick="abrirSocialConta('${esc(c.id)}')">${socAvatar(c)}
+      <div class="c"><div class="n">${esc(c.nome || '')}</div><div class="d">${c.erro ? esc(c.erro) : esc(socNomeRede(c.plataforma)) + (socCli(c) ? ' · ' + esc(socCli(c)) : '') + (c.alcance != null ? ' · ' + nf(c.alcance) + ' alcance' : '')}</div></div>
+      ${c.erro ? '' : `<div class="v">${nf(c.interacoes || 0)}<small>interações</small></div>`}</button>`).join('');
+  return gadCaixa('Social', bar + per + `
+    <div class="ads-tot"><div><small>Alcance</small><b>${nf(tot.alcance)}</b></div><div><small>Interações</small><b>${nf(tot.interacoes)}</b></div><div><small>Posts</small><b>${nf(tot.posts)}</b></div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px"><span class="nota" style="margin:0;flex:1">${SOC.contas.length} conta${SOC.contas.length===1?'':'s'} conectada${SOC.contas.length===1?'':'s'}${ls.length < SOC.contas.length ? ' · lendo…' : ''}</span>
+      <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirSocialTodas()">Ver todas</button></div>${linhas}`);
+}
+function socCard(c){
+  return `<button class="cp-card" onclick="abrirSocialConta('${esc(c.id)}')"><div class="t">${socAvatar(c, 38)}<div class="n">${esc(c.nome || '')}</div><span class="cp-chip">${esc(socNomeRede(c.plataforma))}</span></div>
+    ${c.erro ? `<div class="s" style="opacity:.8">${esc(c.erro)}</div>` : `<div class="m"><div><small>Seguidores</small><b>${c.seguidores != null ? nf(c.seguidores) : '—'}</b></div><div><small>Alcance</small><b>${c.alcance != null ? nf(c.alcance) : '—'}</b></div><div><small>Interações</small><b>${c.interacoes != null ? nf(c.interacoes) : '—'}</b></div></div>
+    <div class="s">${nf(c.posts)} post${c.posts===1?'':'s'} no período · ${nf(c.curtidas)} curtidas · ${nf(c.comentarios)} comentários</div>`}</button>`;
+}
+function cpPeriodoSoc(p){ SOC.periodo = p; SOC.dados = {}; carregarSoc(true); abrirSocialTodas(); }
+async function abrirSocialTodas(){
+  setKit('soc');
+  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
+    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Social</h3><button class="btn cheio cp-b" onclick="pdfSocialTodas()">Gerar PDF</button>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    ${socAbas('desemp')}<div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoSoc')}</div><div id="todasCorpo" class="nota">Buscando as redes…</div></div>`, true);
+  await carregarSoc();
+  const T = document.getElementById('todasCorpo'); if (!T) return; T.className = '';
+  const pintar = () => { const T2 = document.getElementById('todasCorpo'); if (!T2) return; const ls = socLista(), tot = CP.todas = somaSoc(ls);
+    const por = {}; ls.forEach(c => { const k = socCli(c) || 'Sem cliente'; (por[k] = por[k] || []).push(c); });
+    T2.innerHTML = `<div class="cp-kpis" id="cpKpisTodas">${metCards(tot)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button></div><div id="cpSel" class="cp-sel"></div>
+      ${Object.keys(por).sort().map(k => `<div class="ads-sec">${esc(k)}</div>${por[k].map(socCard).join('')}`).join('') || '<div class="nota">Nenhuma conta.</div>'}
+      ${ls.length < (SOC.contas || []).length ? '<div class="nota" style="margin-top:8px">Ainda lendo algumas contas na Meta…</div>' : ''}`; };
+  pintar(); let n = 0; const iv = setInterval(() => { if (!document.getElementById('todasCorpo') || ++n > 40 || socLista().length >= (SOC.contas || []).length){ clearInterval(iv); if (document.getElementById('todasCorpo') && !document.getElementById('cpSel')?.style.display) pintar(); } }, 1500);
+}
+function abrirSocialConta(id){
+  setKit('soc'); const c = (SOC.dados || {})[id]; if (!c) return;
+  Object.assign(CP, { camp:c, id, conta:id, ads:c.top || [] });
+  const per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1];
+  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
+    <div class="cp-top">${socAvatar(c, 40)}<h3 style="margin:0;flex:1;font-size:20px;font-weight:400;line-height:1.2">${esc(c.nome || '')}</h3>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div class="nota" style="margin:4px 0 10px">${esc(socNomeRede(c.plataforma))}${socCli(c) ? ' · ' + esc(socCli(c)) : ''} · ${esc(per)}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:-1px;z-index:3;padding:2px 0 8px">
+      <button class="btn cheio cp-b" onclick="pdfSocialConta('${esc(id)}')">Gerar PDF</button>
+      <button class="btn cp-b" onclick="iaSocAbrir('${esc(id)}')">${iaAv('muru', 20)}<span style="margin-left:6px">Perguntar à Muru</span></button>
+      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button>
+      <button class="btn cp-b" onclick="abrirSocialTodas()">← Contas</button></div>
+    <div id="cpSel" class="cp-sel"></div>
+    ${c.erro ? `<div class="nota">${esc(c.erro)}</div>` : ''}
+    <div class="cp-kpis" id="cpKpis">${metCards(c)}</div>
+    ${(c.avisos || []).length ? `<div class="nota" style="margin:0 0 6px">A Meta não entregou: ${esc(c.avisos.join(' · '))}</div>` : ''}
+    <div id="anunVer"></div>
+    <div class="ads-sec">Melhores posts do período</div>
+    ${(c.top || []).map((a, i) => `<button class="cp-anun" id="an${i}" onclick="socPostAbrir(${i})"><div class="th">${a.imagem ? `<img src="${esc(a.imagem)}" referrerpolicy="no-referrer" alt="" loading="lazy">` : ''}${/video|reel/.test(a.tipo||'') ? '<span class="vd">▶</span>' : ''}</div>
+      <div class="tx"><div class="n">${esc(new Date(a.quando).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }))} · ${esc(a.tipo || 'post')}</div>${a.texto ? `<div class="d">${esc(String(a.texto).slice(0, 110))}</div>` : ''}
+        <div class="mm"><span><b>${nf(a.curtidas)}</b> curtidas</span><span><b>${nf(a.comentarios)}</b> comentários</span>${a.compart ? `<span><b>${nf(a.compart)}</b> compart.</span>` : ''}</div></div></button>`).join('')
+      || '<div class="nota">Nenhum post nesse período.</div>'}
+  </div>`, true);
+}
+function socPostAbrir(i){
+  const a = (CP.ads || [])[i], V = document.getElementById('anunVer'); if (!a || !V) return;
+  document.querySelectorAll('.cp-anun').forEach(x => x.classList.remove('on')); document.getElementById('an' + i)?.classList.add('on');
+  V.innerHTML = `<div class="cp-ver"><button class="acao-cab cp-x" style="color:var(--branco)" onclick="anunFecha()" aria-label="Fechar">✕</button>
+    <div class="vimg">${a.imagem ? `<img src="${esc(a.imagem)}" referrerpolicy="no-referrer" alt="">` : '<div class="nota">Sem imagem disponível.</div>'}</div>
+    <div class="n" style="font-size:15px;margin:10px 0 4px">${esc(new Date(a.quando).toLocaleDateString('pt-BR'))} · ${esc(a.tipo || 'post')}</div>
+    ${a.texto ? `<div class="d" style="white-space:pre-wrap;line-height:1.5;margin:0 0 8px">${esc(a.texto)}</div>` : ''}
+    <div class="cp-kpis" style="margin:8px 0 6px"><div><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div><small>Comentários</small><b>${nf(a.comentarios)}</b></div>${a.compart ? `<div><small>Compart.</small><b>${nf(a.compart)}</b></div>` : ''}</div>
+    ${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir o post</a>` : ''}</div>`;
+  V.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function pdfSocialConta(id){
+  setKit('soc'); const c = (SOC.dados || {})[id] || {}, per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1];
+  pdfDoc(c.nome || 'Conta', `${esc(socNomeRede(c.plataforma))} · ${esc(socCli(c))} · ${esc(per)}`, socCli(c),
+    `<h2>Resultado</h2>${pdfKpis(c)}<h2>Melhores posts</h2>` + ((c.top || []).map(a => `<div class="row">${a.imagem ? `<img class="th" src="${esc(a.imagem)}" alt="">` : '<div style="width:84px;flex:0 0 84px"></div>'}<div class="c"><b class="n">${esc(new Date(a.quando).toLocaleDateString('pt-BR'))} · ${esc(a.tipo || 'post')}</b><p>${esc(String(a.texto || '').slice(0, 220))}</p>
+      <div class="kk"><div class="k"><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div class="k"><small>Comentários</small><b>${nf(a.comentarios)}</b></div></div></div></div>`).join('') || '<p>Sem posts no período.</p>'));
+}
+function pdfSocialTodas(){
+  setKit('soc'); const ls = socLista(), per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1], por = {};
+  ls.forEach(c => { const k = socCli(c) || 'Sem cliente'; (por[k] = por[k] || []).push(c); });
+  pdfDoc('Social · desempenho', `${ls.length} contas · ${esc(per)}`, '', `<h2>Resultado geral</h2>${pdfKpis(somaSoc(ls))}` +
+    Object.keys(por).sort().map(k => `<h2>${esc(k)}</h2>` + por[k].map(c => `<div class="row"><div class="c"><b class="n">${esc(c.nome)}</b><span class="cp p">${esc(socNomeRede(c.plataforma))}</span>${c.erro ? `<p>${esc(c.erro)}</p>` : pdfKpis(c)}</div></div>`).join('')).join(''));
 }
 // PAINEL DE LEADS: todos os leads que chegaram pelos formulários da Meta, com filtro (cliente, status, datas, busca) e download em planilha
 const LP = { rows:null, prods:[], carregando:false, cli:'', prod:'', st:'', de:'', ate:'', q:'', vista:'grupo' };
@@ -5522,7 +5695,7 @@ function abrirLeads(){
   abrirJanela(`<div class="caixa invertida" style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Leads</h3>
       <button class="btn" style="min-height:34px" onclick="leadsBaixar()">⬇ baixar planilha</button>
-      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>${abasAds('leads')}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px">
       <select id="lpCli" style="${campo}" onchange="lpMudaCli(this.value)"><option value="">todos os clientes</option></select>
       <select id="lpProd" style="${campo};display:none" onchange="LP.prod=this.value;leadsPintar()"><option value="">todos os produtos</option></select>
@@ -6699,7 +6872,7 @@ const ICONE_GAD = {
   oficina:'<path d="M20.5 3.5c-4.5.3-8 2.2-10.3 5.3L7 12l5 5 3.2-3.2c3.1-2.3 5-5.8 5.3-10.3z"/><circle cx="14.5" cy="9.5" r="1.4"/><path d="M7 12 4.5 11.5l2-2.5M12 17l.5 2.5 2.5-2"/><path d="M5.5 18.5c-.8.8-1.2 2-1 3 1-.2 2.2-.6 3-1.4"/>',
   estudio:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-.8-.5-1.2-1-1.7-.5-.6-.6-1.5.5-1.5h1.8A4.7 4.7 0 0 0 20 11.3C20 6.7 16.4 3 12 3z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/><circle cx="8" cy="15" r="1.2"/>',
   ias:'<text x="12" y="16.6" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor" stroke="none" font-family="-apple-system,Helvetica,Arial,sans-serif" letter-spacing="-.3">IA</text>',
-  anuncios:'<path d="M5 14.2l3 3.6"/><path d="M5 14.2 3.6 15.6l3.4 4"/><path d="M5 14.2 14 5.3l5.2 6.6-11.2 5.9z"/><path d="M14 5.3c3.4.2 5.2 3.2 5.2 6.6"/><path d="M9.2 17.1 8 21h2.8l1-3.6"/><path d="M16.4 2.6l.8 2M20 4.4l-1.4 1.3M22 8.3l-2 .4"/>',
+  anuncios:'<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M22.5 11.4 22.3 11.3 21.4 11.3 21.2 11.4 19.9 11.5 19.6 11.7 19.6 12.1 19.9 12.3 20.1 12.3 20.2 12.2 21.1 12.2 21.2 12.1 22.0 12.1 22.1 12.0 22.3 12.0 22.5 11.8zM20.8 9.0 20.5 8.7 20.1 8.7 19.5 9.1 19.3 9.1 19.0 9.4 19.0 9.7 19.1 9.9 19.5 9.9 19.6 9.8 19.9 9.8 20.4 9.5 20.8 9.1zM20.3 5.9 20.0 5.6 19.8 5.6 19.4 6.0 19.3 6.0 19.0 6.2 18.5 6.5 18.2 6.9 18.0 6.9 17.6 7.3 17.7 7.6 18.1 7.8 18.5 7.5 18.9 7.2 19.0 7.2 19.3 6.9 19.8 6.7 20.3 6.2zM17.4 4.3 17.0 4.3 16.0 5.3 16.0 5.5 16.3 5.8 16.6 5.8 17.6 4.8 17.6 4.4zM10.5 3.2 10.3 3.3 10.0 3.3 9.6 3.9 9.6 4.4 9.5 4.6 9.5 4.9 9.4 5.0 9.4 5.3 9.3 5.4 9.3 5.7 9.1 5.8 9.1 6.0 9.0 6.2 8.9 6.8 8.6 7.1 8.6 7.4 7.5 9.6 7.3 9.8 7.3 10.0 7.0 10.2 7.0 10.3 6.8 10.6 6.5 11.1 6.1 11.6 6.1 11.7 4.2 13.5 4.2 13.8 4.3 14.0 4.6 14.3 4.8 14.8 5.2 15.1 5.4 15.6 5.8 16.0 5.8 16.1 6.1 16.4 6.3 16.9 6.7 17.2 6.7 17.4 6.9 17.6 6.9 17.8 5.5 18.9 5.2 19.0 5.0 19.0 4.9 19.2 4.2 19.2 4.1 19.0 3.8 19.0 3.5 18.9 2.7 18.1 2.3 17.4 2.3 16.4 2.4 16.2 2.4 16.0 2.6 15.8 3.3 15.1 3.4 15.1 3.8 14.7 3.9 14.4 3.7 14.1 3.4 14.1 3.1 14.2 2.2 14.9 1.9 15.4 1.6 15.9 1.6 16.2 1.5 16.4 1.5 17.4 1.6 17.5 1.6 17.7 1.9 18.2 2.1 18.5 2.4 19.0 2.8 19.4 2.9 19.4 3.4 19.7 3.6 19.7 3.8 19.9 4.2 19.9 4.4 20.0 4.6 20.0 4.7 19.9 5.2 19.9 5.4 19.7 5.6 19.7 5.8 19.6 7.3 18.5 7.6 18.5 9.9 20.8 9.9 20.9 9.4 21.2 9.0 21.4 8.8 21.1 8.7 21.1 7.0 19.9 6.6 19.9 6.4 20.1 6.4 20.4 6.8 20.8 7.0 20.8 7.2 21.1 7.3 21.1 9.0 22.3 9.4 22.2 10.2 21.6 10.6 21.3 10.9 21.0 10.9 20.7 8.3 18.1 8.4 17.9 9.2 17.5 9.4 17.5 9.8 17.3 10.0 17.3 10.2 17.1 10.4 17.1 10.5 17.0 10.8 17.0 11.3 16.8 12.1 16.7 12.2 16.5 12.9 16.5 13.0 16.4 13.7 16.4 13.8 16.3 15.4 16.3 15.5 16.2 15.7 16.3 17.9 16.3 18.0 16.4 18.9 16.4 19.1 16.3 19.4 15.9 19.4 15.4 19.3 15.1 19.1 14.9 18.8 14.4 18.4 14.0 18.2 13.5 17.8 13.2 17.8 13.0 17.6 12.8 17.3 12.3 16.7 11.6 17.1 10.8 17.1 9.5 17.0 9.4 17.0 9.1 16.8 8.9 16.6 8.6 16.3 8.1 15.4 7.3 15.2 7.3 15.1 7.2 14.7 7.2 14.6 7.1 14.1 7.1 14.0 7.2 13.7 7.2 13.1 6.5 12.9 6.0 12.5 5.7 12.5 5.5 12.3 5.3 12.0 4.8 11.7 4.4 11.7 4.3 11.4 4.1 11.2 3.6 10.9 3.3 10.6 3.3zM5.4 13.6 5.5 13.6 5.8 13.9 5.8 14.0 6.1 14.3 6.3 14.8 6.7 15.1 6.9 15.6 7.3 16.0 7.3 16.1 8.0 17.1 7.9 17.3 7.7 17.3 7.5 17.1 7.5 17.0 7.1 16.6 6.9 16.1 6.5 15.8 6.5 15.6 6.3 15.4 6.0 14.9 5.6 14.5 5.6 14.4 5.2 13.8zM14.4 7.9 14.7 7.9 15.2 8.2 16.0 9.0 16.3 9.5 16.3 9.7 16.4 9.8 16.4 10.5 16.2 10.6 15.9 10.3 15.9 10.2 15.5 9.8 15.5 9.7 15.2 9.5 15.0 9.0 14.6 8.6 14.6 8.5 14.3 8.0zM10.5 4.1 10.7 4.3 10.7 4.4 11.3 5.2 11.3 5.3 11.6 5.5 11.8 6.0 12.2 6.4 12.2 6.5 12.8 7.3 12.8 7.4 13.1 7.6 13.3 8.1 13.7 8.5 13.7 8.6 14.3 9.4 14.3 9.5 14.5 9.7 14.8 10.2 15.2 10.6 15.2 10.7 15.4 11.0 15.7 11.4 16.0 11.8 16.0 11.9 16.6 12.7 16.6 12.8 16.9 13.0 17.1 13.5 17.5 13.9 17.7 14.4 18.1 14.8 18.1 14.9 18.6 15.5 18.5 15.6 17.8 15.6 17.7 15.5 14.2 15.5 14.1 15.6 13.2 15.6 13.1 15.7 12.5 15.7 12.4 15.8 11.3 16.0 11.1 16.1 10.9 16.1 10.8 16.2 10.5 16.2 10.4 16.3 10.2 16.3 10.0 16.5 9.8 16.5 9.7 16.6 9.4 16.6 9.3 16.7 9.0 16.7 8.8 16.8 8.5 16.5 8.5 16.4 8.2 16.1 8.0 15.6 7.6 15.3 7.6 15.1 7.4 14.9 7.1 14.4 6.8 14.0 6.5 13.5 6.1 13.2 6.0 12.8 6.8 12.1 6.8 11.9 7.1 11.6 7.1 11.4 7.4 11.1 7.6 11.1 8.0 11.6 8.0 11.7 8.3 11.9 8.5 12.4 8.9 12.8 8.9 12.9 9.5 13.7 9.5 13.8 9.7 14.0 10.0 14.5 10.4 14.9 10.4 15.0 10.8 15.4 11.0 15.4 11.3 15.1 11.1 14.5 10.7 14.2 10.4 13.7 10.1 13.3 10.1 13.2 9.8 12.9 9.6 12.4 9.2 12.1 9.2 11.9 8.6 11.2 8.6 11.1 8.3 10.8 8.3 10.7 8.0 10.3 9.3 7.8 9.3 7.5 9.6 7.1 9.6 6.9 9.7 6.8 9.7 6.5 9.8 6.4 9.8 6.2 9.9 6.0 9.9 5.8 10.2 5.3 10.2 4.9 10.3 4.8 10.3 4.3zM15.6 1.7 15.2 1.7 15.0 1.8 14.7 2.7 14.4 3.0 14.0 4.0 14.1 4.4 14.3 4.4 14.6 4.4 14.7 4.2 15.0 3.6 15.2 3.3 15.7 2.3 15.7 1.8z"/>',
   publicacao:'<path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/>',
   financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
 };
