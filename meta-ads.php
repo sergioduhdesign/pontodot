@@ -84,7 +84,8 @@ function pd_leads_horario($clientId, $periodo, $campNome = null) {
 function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
     $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . "\n\n" . pdElencoTexto(false),
-        'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]], 'messages' => $msgs];
+        'messages' => $msgs];
+    if ($usos > 0) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
@@ -312,6 +313,23 @@ if ($acao === 'referencia') {   // referência informada à mão: site ou @perfi
     $pg = $site ? (pd_ler_paginas([$site])[0] ?? null) : null;
     if ($pg && !$ig && !empty($pg['instagram'])) $ig = $pg['instagram'];
     sai(['concorrente' => ['nome' => $pg['titulo'] ?? ($ig ? '@' . $ig : $v), 'tipo' => 'referência sua', 'tipologia' => '', 'praca' => '', 'instagram' => $ig, 'site' => $pg['url'] ?? $site, 'oferta' => '', 'preco' => '', 'angulo' => '', 'por_que' => 'Referência informada por você', 'pagina' => $pg]]);
+}
+if ($acao === 'tarefas_doc') {   // do documento da Sumi/Muru → tarefas sugeridas, com responsável pela função
+    @set_time_limit(120); $doc = mb_substr(trim((string)($b['texto'] ?? '')), 0, 12000); if ($doc === '') sd_fail('Sem documento para transformar em tarefas.', 400);
+    $cli = mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $eq = [];
+    foreach (array_slice((array)($b['equipe'] ?? []), 0, 30) as $e) if (is_array($e) && !empty($e['key'])) $eq[] = ['key' => mb_substr((string)$e['key'], 0, 30), 'nome' => mb_substr((string)($e['nome'] ?? ''), 0, 60), 'funcoes' => array_slice((array)($e['funcoes'] ?? []), 0, 6)];
+    $sys = 'Você é a coordenação de produção de uma agência de branding do mercado imobiliário. Recebe um DOCUMENTO de estratégia/ideias (feito por uma IA da casa) e o ELENCO da equipe com as funções de cada pessoa. '
+         . 'Transforme o documento em TAREFAS de trabalho, no mínimo 3 e no máximo 6, sempre incluindo: (1) AVALIAR A ESTRATÉGIA SUGERIDA (quem cuida de performance/campanha: funcao trafego ou estrategia); (2) AVALIAR AS COPYS para a campanha de <produto/cliente> (funcao copy), citando os títulos/textos do documento; (3) PRODUÇÃO DE CRIATIVOS com direção toda detalhada (funcao designer ou direcao): por criativo, formato e medida, conceito visual, o que aparece na imagem, texto na peça, CTA, referências do documento e o que evitar. Se o documento trouxer vários formatos ou ângulos, divida os criativos em mais de uma tarefa. '
+         . 'Escolha o responsável (resp) SOMENTE entre as chaves do elenco, pela função; se ninguém tiver a função, use a chave de quem mais se aproxima. Nunca invente número nem dado que não esteja no documento. '
+         . 'Responda SOMENTE um JSON: {"tarefas":[{"titulo":"curto, no imperativo, até 90 caracteres","funcao":"trafego|estrategia|copy|designer|direcao|...","resp":"CHAVE","obs":"o briefing completo da tarefa, em texto corrido com tópicos simples, até 3000 caracteres","project":"GERAL"}]}';
+    [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nELENCO: " . json_encode($eq, JSON_UNESCAPED_UNICODE) . "\n\nDOCUMENTO:\n$doc"]], 5000, 0);
+    if ($erro) sd_fail($erro, 502);
+    $j = null; if (preg_match('/\{.*\}/s', (string)$txt, $mm)) $j = json_decode($mm[0], true);
+    $chaves = array_column($eq, 'key'); $out = [];
+    foreach ((array)($j['tarefas'] ?? []) as $t) { if (!is_array($t) || trim((string)($t['titulo'] ?? '')) === '') continue;
+        $r = strtoupper(trim((string)($t['resp'] ?? ''))); if (!in_array($r, $chaves, true)) $r = '';
+        $out[] = ['titulo' => mb_substr(trim((string)$t['titulo']), 0, 160), 'funcao' => (string)($t['funcao'] ?? ''), 'resp' => $r, 'obs' => mb_substr((string)($t['obs'] ?? ''), 0, 3500), 'project' => mb_substr((string)($t['project'] ?? 'GERAL'), 0, 40) ?: 'GERAL']; }
+    sai(['tarefas' => $out, 'bruto' => $out ? null : $txt, 'custo_usd' => $custo]);
 }
 if ($acao === 'contexto_mercado') {
     $x = pd_ctx_cliente($b['client_id'] ?? ''); if (!$x) sd_fail('Cliente não encontrado.', 404);

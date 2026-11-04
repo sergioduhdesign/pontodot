@@ -788,7 +788,7 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .cmp-slots{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}.cmp-slot{display:inline-flex;align-items:center;gap:7px;padding:6px 8px 6px 10px;border:1.5px solid;border-radius:999px;font-size:13px}.cmp-slot i{width:9px;height:9px;border-radius:50%}.cmp-slot small{opacity:.55;font-size:10.5px}.cmp-slot button{border:0;background:none;color:inherit;cursor:pointer;opacity:.6;padding:0 2px}
 .cmp-add{display:grid;gap:8px;margin:0 0 4px}.cmp-add form{display:flex;gap:8px}.cmp-add form input{flex:1;min-width:0}
 .cmp-pl{display:grid;gap:7px;margin:8px 0}.cmp-p{display:flex;gap:10px;align-items:center;padding:9px 11px;border:.5px solid var(--linha);border-radius:12px}
-.ccth{display:flex;gap:4px;margin:4px 0 6px;overflow-x:auto;scrollbar-width:thin}.ccth img{width:54px;height:54px;border-radius:8px;object-fit:cover;flex:0 0 54px;cursor:zoom-in}.ccimg{cursor:zoom-in}.ccul{margin:3px 0 0;padding-left:16px;font-size:12px;line-height:1.45;font-weight:400}.vt-x{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:13px;padding:2px 4px}#ccZoom{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:grid;place-items:center;cursor:zoom-out}#ccZoom img{max-width:94vw;max-height:92vh;object-fit:contain;border-radius:10px}#ccZoom button{position:fixed;top:14px;right:16px;color:#fff}
+.dt-c{width:min(760px,94vw);max-height:90vh;overflow-y:auto;padding:16px 18px 20px}#dtOv{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);display:grid;place-items:center}.ccth{display:flex;gap:4px;margin:4px 0 6px;overflow-x:auto;scrollbar-width:thin}.ccth img{width:54px;height:54px;border-radius:8px;object-fit:cover;flex:0 0 54px;cursor:zoom-in}.ccimg{cursor:zoom-in}.ccul{margin:3px 0 0;padding-left:16px;font-size:12px;line-height:1.45;font-weight:400}.vt-x{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:13px;padding:2px 4px}#ccZoom{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:grid;place-items:center;cursor:zoom-out}#ccZoom img{max-width:94vw;max-height:92vh;object-fit:contain;border-radius:10px}#ccZoom button{position:fixed;top:14px;right:16px;color:#fff}
 .cmp-cols{display:grid;gap:10px;overflow-x:auto;padding:2px 0 6px;margin:10px 0 0;scrollbar-width:none}.cmp-col{border:.5px solid var(--linha);border-radius:14px;padding:12px;min-width:0;background:rgba(127,127,127,.06)}
 .cmp-col .h{display:flex;align-items:center;gap:9px;margin-bottom:8px}.cmp-col .h img,.cmp-col .h .ini{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:0 0 34px;display:grid;place-items:center;background:rgba(127,127,127,.3);font-size:11px}.cmp-col .h b{display:block;font-size:13px;overflow-wrap:anywhere}.cmp-col .h small{opacity:.6;font-size:10.5px}
 .cmp-col .kv{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-top:.5px solid var(--sep);font-size:12px}.cmp-col .kv small{opacity:.6}.cmp-col .kv b{font-weight:500;font-size:14px}
@@ -5477,7 +5477,7 @@ function ccmpPinta(){
       <button class="btn cp-b" onclick="pdfCompararCamp()" ${vis.length || CCMP.resp ? '' : 'disabled'} title="Imprimir o que está na tela">PDF</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CCMP.pensa ? progHtml('A Sumi está avaliando o discurso comercial dos concorrentes…', '#18155F') : ''}
-    ${CCMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CCMP.resp)}</div></div>` : ''}
+    ${CCMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('camp')">Criar tarefas</button></div><div class="md">${mdHtml(CCMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar cliente</h3>
     <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
     ${alvoCard('alvoSet(null);ccmpPinta()')}
@@ -5554,6 +5554,47 @@ async function ccmpAdd(){
   try { const j = await adsFala({ acao:'referencia', valor:v }), c = j.concorrente; c.manual = true; CCMP.players = (CCMP.players || []).filter(x => x.nome !== c.nome).concat([c]); }
   catch(e){ CCMP.msg = e.message; }
   progFim(); CCMP.add = false; ccmpPinta(); ccmpLer();
+}
+// DOCUMENTO → TAREFAS: pega o que a Sumi/Muru escreveu, sugere 3+ tarefas (avaliar estratégia, avaliar copy, criativos detalhados) com responsável pela função
+const DT = { itens:[], cliente:'', clientId:'', carregando:false, criando:false, msg:'' };
+function dtEquipe(){ return (PERFIS || []).filter(x => x.name && !x.client_id).map(x => ({ key: chaveDe(x), nome: x.name, funcoes: x.funcoes || [] })).filter(x => x.key); }
+async function docTarefas(origem){
+  const resp = origem === 'soc' ? CMP.resp : CCMP.resp; if (!resp) return;
+  DT.cliente = origem === 'soc' ? ((ALVO && ALVO.client_id && (clientesReais.find(c => c.id === ALVO.client_id) || {}).name) || '') : ccmpCliente();
+  DT.clientId = origem === 'soc' ? (ALVO && ALVO.client_id) || '' : CCMP.sel[0] || ''; DT.itens = []; DT.msg = ''; DT.carregando = true; dtPinta(); progIni();
+  try { const j = await adsFala({ acao:'tarefas_doc', texto: resp, cliente: DT.cliente, equipe: dtEquipe() });
+    DT.itens = (j.tarefas || []).map(t => ({ ...t, on:true, prazo:'' })); if (!DT.itens.length) DT.msg = 'Não consegui separar tarefas desse documento. ' + String(j.bruto || '').slice(0, 200); }
+  catch(e){ DT.msg = e.message; }
+  progFim(); DT.carregando = false; dtPinta();
+}
+function dtPinta(){
+  let o = document.getElementById('dtOv'); if (!o){ o = document.createElement('div'); o.id = 'dtOv'; document.body.appendChild(o); }
+  const eq = dtEquipe(), esc2 = esc;
+  o.innerHTML = `<div class="caixa invertida cp dt-c"><div class="cp-top"><h3 style="margin:0;font-size:20px;font-weight:400">Criar tarefas a partir do documento</h3><span style="flex:1"></span>
+    <button class="btn cheio cp-b" onclick="dtCriar()" ${DT.carregando || DT.criando || !DT.itens.some(t => t.on) ? 'disabled' : ''}>Criar ${DT.itens.filter(t => t.on).length || ''} tarefa${DT.itens.filter(t => t.on).length === 1 ? '' : 's'}</button>
+    <button class="acao-cab" style="color:var(--branco)" onclick="document.getElementById('dtOv').remove()" aria-label="Fechar">✕</button></div>
+    <div class="nota" style="margin:6px 0 10px">${esc2(DT.cliente || 'Sem cliente')} · o responsável sugerido vem da função de cada pessoa. Ajuste o que quiser antes de criar.</div>
+    ${DT.carregando ? progHtml('Separando o documento em tarefas e escolhendo quem cuida de cada uma…', '#18155F') : ''}
+    ${DT.msg ? `<div class="nota" style="color:var(--rosa);margin:8px 0">${esc2(DT.msg)}</div>` : ''}
+    ${DT.itens.map((t, i) => `<div class="cmp-prog" style="border-style:solid;${t.on ? '' : 'opacity:.5'}"><div style="display:flex;gap:8px;align-items:center"><input type="checkbox" ${t.on ? 'checked' : ''} onchange="DT.itens[${i}].on=this.checked;dtPinta()" aria-label="Incluir">
+      <input class="cp-sel1" style="flex:1" value="${esc2(t.titulo)}" onchange="DT.itens[${i}].titulo=this.value"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><select class="cp-sel1" onchange="DT.itens[${i}].resp=this.value"><option value="">Sem responsável</option>${eq.map(e => `<option value="${esc2(e.key)}" ${e.key === t.resp ? 'selected' : ''}>${esc2(e.nome.split(' ')[0])}${(e.funcoes || []).length ? ' · ' + esc2(e.funcoes.slice(0, 2).join('/')) : ''}</option>`).join('')}</select>
+      <label class="nota" style="display:flex;align-items:center;gap:6px">Prazo <input type="date" class="cp-sel1" value="${esc2(t.prazo || '')}" onchange="DT.itens[${i}].prazo=this.value"></label>${t.funcao ? `<span class="cp-chip">${esc2(t.funcao)}</span>` : ''}</div>
+      <textarea class="cp-sel1" rows="6" style="width:100%" onchange="DT.itens[${i}].obs=this.value">${esc2(t.obs || '')}</textarea></div>`).join('')}</div>`;
+}
+async function dtCriar(){
+  if (DT.criando) return; const lista = DT.itens.filter(t => t.on && t.titulo.trim()); if (!lista.length) return; DT.criando = true; DT.msg = ''; dtPinta();
+  const feitas = [], falhas = [];
+  for (const t of lista){
+    try { const { data: nid, error: eid } = await sbR.rpc('next_task_id'); if (eid || !nid) throw new Error(eid?.message || 'sem id novo');
+      const nova = { id: nid, action: t.titulo.slice(0, 160), status: 'BRIEFING', resp: (t.resp || chaveDe(perfil) || 'SD').toUpperCase(), project: t.project || 'GERAL', week: 'ESTA SEMANA', created_by: perfil.id, obs: t.obs ? String(t.obs).slice(0, 4000) : null };
+      if (DT.clientId) nova.client_id = DT.clientId; if (t.prazo) nova.date_int = t.prazo;
+      const { data, error } = await sbR.from('tasks').insert(nova).select('id,action').single(); if (error) throw error; feitas.push(data);
+    } catch(e){ falhas.push(t.titulo.slice(0, 30) + ': ' + e.message); }
+  }
+  DT.criando = false;
+  if (feitas.length){ try { await carregarReal(); atualizarVersoApp(); } catch(e){} document.getElementById('dtOv')?.remove(); toast(feitas.length + ' tarefa' + (feitas.length > 1 ? 's criadas' : ' criada') + ': ' + feitas.map(f => f.id).join(', ') + (falhas.length ? ' · falhou: ' + falhas.join(' | ') : '')); }
+  else { DT.msg = 'Nada foi criado. ' + falhas.join(' | '); dtPinta(); }
 }
 function pdfCompararCamp(){
   const vis = ccmpVisiveis().filter(p => !(CCMP.fora || {})[ccmpVk(p.nome)]).slice(0, 5), cn = ccmpCliente(); if (!vis.length && !CCMP.resp) return;
@@ -6011,7 +6052,7 @@ function cmpPinta(){
       return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="heat" style="grid-template-columns:repeat(${n},1fr)">${a.map((v, h) => `<i title="${rot(h)} · ${v} post${v === 1 ? '' : 's'}" style="background:${CMP_COR[x.i]};opacity:${v ? .15 + .85 * v / mx : .06}"></i>`).join('')}</div></div>`; }).join('')}</div>` : '';
   pdMantemRolagem(X, () => { X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa || ok.length < 2 ? 'disabled' : ''} title="${ok.length < 2 ? 'Escolha pelo menos 2 perfis' : ''}">${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button><button class="btn cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
-    ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}
+    ${CMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('soc')">Criar tarefas</button></div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
     ${alvoCard('alvoSet(null);cmpPinta();cmpLer()')}
     ${ok.length < 2 ? '<div class="nota" style="margin:0 0 8px">A Muru libera a direção e a copy quando houver 2 perfis lidos.</div>' : ''}
