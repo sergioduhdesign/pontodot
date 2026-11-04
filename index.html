@@ -5499,6 +5499,7 @@ function ccmpPinta(){
     ${CCMP.prep ? progHtml('O Tumi está olhando a ficha e os produtos do cliente…', '#11BA98') : ''}
     ${CCMP.tumi ? progHtml('O Tumi está pesquisando concorrentes na web…', '#11BA98') : ''}
     ${CCMP.msg ? `<div class="nota" style="margin:8px 0;color:var(--rosa)">${esc(CCMP.msg)}</div>` : ''}
+    ${CCMP.obs && CCMP.players ? `<div class="cmp-prog" style="border-style:solid;display:flex;gap:10px" data-ajuda="ia_tumi">${iaAv('tumi', 26)}<div class="nota" style="line-height:1.5;margin:0"><b>Leitura do Tumi:</b> ${esc(CCMP.obs)}</div></div>` : ''}
     ${tem && (CCMP.players || ALVO) ? ccmpGrade() : ''}`; });
 }
 const CCMP_SALVA = () => { CCMP.notas = (document.getElementById('ccmpNotas') || {}).value ?? CCMP.notas; CCMP.foco = (document.getElementById('ccmpFoco') || {}).value ?? CCMP.foco; };
@@ -5512,7 +5513,7 @@ function ccmpPosts(p){ const d = CCMP.dados[p.instagram]; if (!d || d.erro) retu
   const ps = d.parecidos && d.parecidos.length ? d.parecidos : (d.top || []);
   return `<div class="kv"><small>Instagram @${esc(d.usuario || p.instagram)}</small><b>${nf(d.seguidores)} seguidores · ${String(d.por_semana).replace('.', ',')} posts/sem${d.engajamento != null ? ' · ' + String(d.engajamento).replace('.', ',') + '% eng.' : ''}</b></div>
     <div class="nota" style="margin:8px 0 0">${d.parecidos && d.parecidos.length ? 'Posts mais parecidos com o seu:' : 'Posts que mais engajaram:'}</div>
-    ${ps.map(t => `<div class="ccr" onclick="this.classList.toggle('open')">${t.imagem ? `<img src="${esc(t.imagem)}" referrerpolicy="no-referrer" alt="" title="Clique para ampliar" onclick="event.stopPropagation();ccZoom(this.src)" onerror="this.remove()">` : ''}<div class="tx">${esc(t.texto || '(sem legenda)')}</div><div class="nm">${t.curtidas != null ? '♥ ' + nf(t.curtidas) : ''} · 💬 ${nf(t.comentarios)} · ${esc(t.tipo)}</div></div>`).join('')}`; }
+    ${ps.map(t => `<div class="ccr open">${t.imagem ? `<img src="${esc(t.imagem)}" referrerpolicy="no-referrer" alt="" title="Clique para ampliar" onclick="event.stopPropagation();ccZoom(this.src)" onerror="this.remove()">` : ''}<div class="tx">${esc(t.texto || '(sem legenda)')}</div><div class="nm">${t.curtidas != null ? '♥ ' + nf(t.curtidas) : ''} · 💬 ${nf(t.comentarios)} · ${esc(t.tipo)}</div></div>`).join('')}`; }
 function ccZoom(src){ if (!src) return; document.getElementById('ccZoom')?.remove(); const z = document.createElement('div'); z.id = 'ccZoom'; z.onclick = () => z.remove();
   z.innerHTML = `<img src="${esc(src)}" referrerpolicy="no-referrer" alt=""><button class="acao-cab" aria-label="Fechar" onclick="document.getElementById('ccZoom').remove()">✕</button>`; document.body.appendChild(z); }
 function ccmpCorpo(p){   // tudo o que a pesquisa trouxe sobre UM concorrente
@@ -5526,7 +5527,7 @@ function ccmpCorpo(p){   // tudo o que a pesquisa trouxe sobre UM concorrente
       ${chips.length ? `<div class="tg">${chips.map(c => `<span class="cp-chip">${esc(c)}</span>`).join('')}</div>` : ''}
       ${(pg.condicoes || []).length ? `<div class="kv" style="display:block"><small>Condições</small><ul class="ccul">${pg.condicoes.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
       ${(pg.diferenciais || []).length ? `<div class="kv" style="display:block"><small>Diferenciais</small><ul class="ccul">${pg.diferenciais.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
-      ${pg.texto ? `<div class="ccr" style="border:0" onclick="this.classList.toggle('open')"><div class="tx" style="padding:0">${esc(pg.texto)}</div></div>` : ''}` : '<div class="nota">Não consegui ler a página deles.</div>'}
+      ${pg.texto ? `<div class="ccr open" style="border:0;cursor:default"><div class="tx" style="padding:0">${esc(pg.texto)}</div></div>` : ''}` : '<div class="nota">Não consegui ler a página deles.</div>'}
     ${tumi.map(([k, v]) => `<div class="kv"><small>${k}</small><b style="font-weight:400">${esc(v)}</b></div>`).join('')}
     ${ccmpPosts(p)}
     ${pg && pg.whatsapp ? `<div class="nota" style="margin:6px 0 0">WhatsApp comercial público: ${esc(pg.whatsapp)}</div>` : ''}
@@ -5538,7 +5539,7 @@ function ccmpGrade(){   // até 5 referências lado a lado + o seu
   const cor = ['#2f9e6b','#11BA98','#4c7dff','#e59a2f','#e0526b'], cn = ccmpCliente(), prods = (ADS.prods || []).filter(x => x.client_id === CCMP.sel[0]).map(x => x.name);
   const seu = `<div class="cmp-col" style="border-top:3px solid #fff"><div class="h">${logoCliente(cn, 30)}<div style="min-width:0"><b>${esc(cn)}</b><small>o seu${ALVO ? ' · ' + esc(ALVO.tipo) : ''}</small></div></div>
     ${ALVO && ALVO.imagem ? `<img class="ccimg" src="${esc(ALVO.imagem)}" referrerpolicy="no-referrer" alt="" title="Clique para ampliar" onclick="ccZoom(this.src)" onerror="this.remove()">` : ''}
-    ${ALVO ? `<div class="kv"><small>${esc(ALVO.tipo)}</small><b>${esc(ALVO.titulo || '')}</b></div>${ALVO.texto ? `<div class="ccr" style="border:0" onclick="this.classList.toggle('open')"><div class="tx" style="padding:0">${esc(ALVO.texto)}</div></div>` : ''}${ALVO.metricas ? `<div class="nota">${Object.entries(ALVO.metricas).filter(([, v]) => v != null && v !== '').map(([k, v]) => esc(k) + ': ' + esc(String(v))).join(' · ')}</div>` : ''}` : ''}
+    ${ALVO ? `<div class="kv"><small>${esc(ALVO.tipo)}</small><b>${esc(ALVO.titulo || '')}</b></div>${ALVO.texto ? `<div class="ccr open" style="border:0;cursor:default"><div class="tx" style="padding:0">${esc(ALVO.texto)}</div></div>` : ''}${ALVO.metricas ? `<div class="nota">${Object.entries(ALVO.metricas).filter(([, v]) => v != null && v !== '').map(([k, v]) => esc(k) + ': ' + esc(String(v))).join(' · ')}</div>` : ''}` : ''}
     ${prods.length && !ALVO ? `<div class="kv"><small>Produtos</small><b style="font-weight:400">${esc(prods.join(', '))}</b></div>` : ''}</div>`;
   const cols = dentro.map((x, n) => `<div class="cmp-col" style="border-top:3px solid ${cor[n % 5]}"><div class="h"><div style="min-width:0;flex:1"><b>${esc(x.p.nome)}</b><small>${esc([x.p.tipo, x.p.tipologia].filter(Boolean).join(' · '))}</small></div>${ccmpVotoBtns(x.p, x.i)}<button class="vt-x" title="Tirar da grade" aria-label="Tirar da grade" onclick="ccmpFora(${x.i})">✕</button></div>${ccmpCorpo(x.p)}</div>`).join('');
   const nc = dentro.length + 1, rej = (CCMP.players || []).length - vis.length;
@@ -5639,7 +5640,7 @@ function ccmpVoto(i, v){
 }
 async function ccmpLer(){
   const hs = ccmpVisiveis().map(p => p.instagram).filter(h => h && !CCMP.dados[h]).slice(0, 5); if (!hs.length) return;
-  CCMP.lendo = true; ccmpPinta();
+  CCMP.lendo = true;
   try { const j = await socFala({ acao:'comparar', handles:hs, foco_texto: ALVO ? ALVO.texto : '' }); (j.perfis || []).forEach(d => { CCMP.dados[d.handle] = d; }); }
   catch(e){ CCMP.msg = e.message; }
   CCMP.lendo = false; ccmpPinta();
