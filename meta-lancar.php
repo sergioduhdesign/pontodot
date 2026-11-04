@@ -127,7 +127,7 @@ if ($acao === 'plano') {
          . 'Responda SOMENTE JSON: {"campanha":{"nome":"...","objetivo":"OUTCOME_LEADS|OUTCOME_TRAFFIC|OUTCOME_ENGAGEMENT|OUTCOME_AWARENESS|OUTCOME_SALES","inicio":"AAAA-MM-DD","fim":"AAAA-MM-DD ou vazio","obs":"..."},'
          . '"conjuntos":[{"nome":"...","orcamento_diario":120,"otimizacao":"LEAD_GENERATION|LINK_CLICKS|REACH|LANDING_PAGE_VIEWS|CONVERSATIONS","publico":{"cidades":["Campinas, SP"],"raio_km":25,"regioes":[],"idade_min":28,"idade_max":55,"generos":[],"interesses":["Imóveis","Financiamento imobiliário"],"advantage_publico":false,"posicionamentos_manuais":[]},"horarios":[{"dias":[1,2,3,4,5],"de":"08:00","ate":"22:00"}],"por_que":"1 frase"}],'
          . '"anuncios":[{"nome":"...","titulo":"...","texto":"...","descricao":"...","cta":"SIGN_UP|LEARN_MORE|WHATSAPP_MESSAGE|GET_QUOTE|CONTACT_US","formato":"imagem|video|carrossel","conjunto":0,"direcao_criativo":"o que a peça precisa mostrar"}]}';
-    [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nPRODUTO: $prod\n\nDOCUMENTO FINAL:\n$doc"]], 6000, 0);
+    [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "HOJE: " . date('Y-m-d') . " (datas de início nunca no passado)\nCLIENTE: $cli\nPRODUTO: $prod\n\nDOCUMENTO FINAL:\n$doc"]], 6000, 0);
     if ($erro) sd_fail($erro, 502);
     $j = null; if (preg_match('/\{.*\}/s', (string)$txt, $mm)) $j = json_decode($mm[0], true);
     if (!is_array($j) || empty($j['campanha'])) sd_fail('A Sumi não devolveu um plano legível. ' . mb_substr((string)$txt, 0, 200), 502);

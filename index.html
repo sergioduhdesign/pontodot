@@ -5680,6 +5680,7 @@ async function lcPlano(){
   const cn = (clientesReais.find(c => c.id === LC.cid) || {}).name || '', pn = adsNomeProd(LC.pid);
   LC.carreg = 'A Sumi está montando campanha, públicos, horários e anúncios…'; LC.msg = ''; lcPinta(); progIni();
   try { const j = await lcFala({ acao:'plano', texto: LC.doc, cliente: cn, produto: pn, moeda: LC.opc ? LC.opc.conta.moeda : 'BRL' }); LC.plano = j.plano; LC.plano.conjuntos = LC.plano.conjuntos || []; LC.plano.anuncios = LC.plano.anuncios || [];
+    const hoje = new Date().toISOString().slice(0, 10); if (!LC.plano.campanha.inicio || LC.plano.campanha.inicio < hoje) LC.plano.campanha.inicio = hoje; if (LC.plano.campanha.fim && LC.plano.campanha.fim < hoje) LC.plano.campanha.fim = '';
     LC.plano.conjuntos.forEach(cj => { const pb = cj.publico = cj.publico || {}; pb.cidades = (pb.cidades || []).map(x => typeof x === 'string' ? { nome:x } : x); pb.interesses = (pb.interesses || []).map(x => typeof x === 'string' ? { nome:x } : x); });
     lcResolver(); }
   catch(e){ LC.msg = e.message; }
@@ -5688,7 +5689,7 @@ async function lcPlano(){
 async function lcResolver(){   // os nomes que a Sumi deu viram chaves reais da Meta (cidade e interesse), em silêncio
   for (const [i, cj] of (LC.plano.conjuntos || []).entries()){ const pb = cj.publico;
     for (const c of pb.cidades) if (!c.key && c.nome){ try { const j = await lcFala({ acao:'buscar', tipo:'lugar', q: c.nome.split(',')[0], conta: LC.conta }); const m = (j.itens || []).find(x => x.tipo === 'city') || (j.itens || [])[0]; if (m){ c.key = m.key; c.nome = m.nome; c.tipo = m.tipo; } } catch(e){} }
-    for (const c of pb.interesses) if (!c.id && c.nome){ try { const j = await lcFala({ acao:'buscar', tipo:'interesse', q: c.nome, conta: LC.conta }); const m = (j.itens || [])[0]; if (m){ c.id = m.id; c.nome = m.nome; } } catch(e){} }
+    for (const c of pb.interesses) if (!c.id && c.nome){ try { const j = await lcFala({ acao:'buscar', tipo:'interesse', q: c.nome, conta: LC.conta }); const q = semAcento(c.nome).toLowerCase(), m = (j.itens || []).find(x => { const n = semAcento(x.nome).toLowerCase(); return n.includes(q) || q.includes(n.replace(/\s*\(.*\)$/, '')); }); if (m){ c.id = m.id; c.nome = m.nome; } } catch(e){} }
     pb.cidades = pb.cidades.filter(c => c.key); lcPinta(); }
 }
 let lcBT = null;
