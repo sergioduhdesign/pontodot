@@ -28,6 +28,76 @@ $CAMPOS = 'spend,reach,impressions,clicks,actions';
 function sai($d) { echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE); exit; }
 function idConta($v) { $v = (string)$v; return preg_match('/^act_\d{3,25}$/', $v) ? $v : null; }
 
+
+// -------------------------------------------------------------- perfil do público + IA de Campanhas
+function pd_periodo_datas($periodo) {
+    $tz = new DateTimeZone('America/Sao_Paulo'); $h = new DateTime('today', $tz);
+    switch ($periodo) {
+        case 'today': return [$h->format('Y-m-d'), $h->format('Y-m-d')];
+        case 'yesterday': $y = (clone $h)->modify('-1 day')->format('Y-m-d'); return [$y, $y];
+        case 'last_30d': return [(clone $h)->modify('-30 day')->format('Y-m-d'), $h->format('Y-m-d')];
+        case 'this_month': return [$h->format('Y-m-01'), $h->format('Y-m-d')];
+        case 'last_month': $a = (clone $h)->modify('first day of last month'); return [$a->format('Y-m-01'), $a->format('Y-m-t')];
+        default: return [(clone $h)->modify('-7 day')->format('Y-m-d'), $h->format('Y-m-d')];
+    }
+}
+function pd_perfil_dados($objId, $tok, $periodo, $moeda) {
+    $cortes = ['idade_genero' => 'age,gender', 'regiao' => 'region', 'hora' => 'hourly_stats_aggregated_by_advertiser_time_zone',
+               'posicionamento' => 'publisher_platform,platform_position', 'aparelho' => 'device_platform'];
+    $out = [];
+    foreach ($cortes as $nome => $bk) {
+        $r = pd_meta('GET', "/$objId/insights", ['date_preset' => $periodo, 'breakdowns' => $bk,
+            'fields' => 'spend,reach,impressions,clicks,actions', 'limit' => 200], $tok, 25);
+        if ($r['code'] !== 200) { $out[$nome] = ['erro' => pd_meta_erro($r)]; continue; }
+        $linhas = [];
+        foreach ((array)($r['body']['data'] ?? []) as $l) {
+            if (!is_array($l)) continue;
+            $rot = [];
+            foreach (explode(',', $bk) as $k) $rot[] = (string)($l[$k] ?? '');
+            $n = pd_numeros($l, $moeda);
+            $linhas[] = ['rotulo' => implode(' · ', $rot)] + $n;
+        }
+        usort($linhas, fn($a, $b) => $b['gasto'] <=> $a['gasto']);
+        $out[$nome] = array_slice($linhas, 0, $nome === 'regiao' ? 15 : 40);
+    }
+    return $out;
+}
+function pd_leads_horario($clientId, $periodo, $campNome = null) {
+    if (!$clientId) return null;
+    [$de, $ate] = pd_periodo_datas($periodo);
+    $q = '/rest/v1/meta_leads?client_id=eq.' . urlencode($clientId) . '&recebido_em=gte.' . $de . 'T00:00:00-03:00&recebido_em=lte.' . $ate . 'T23:59:59-03:00'
+       . '&select=recebido_em,campanha_nome,status&order=recebido_em.desc&limit=1500';
+    if ($campNome) $q .= '&campanha_nome=eq.' . urlencode($campNome);
+    $r = pd_supa($q); if ($r['code'] >= 300) return null;
+    $h = array_fill(0, 24, 0); $dow = array_fill(0, 7, 0); $total = 0; $st = [];
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    foreach ((array)$r['body'] as $l) {
+        if (!is_array($l) || empty($l['recebido_em'])) continue;
+        $d = (new DateTime($l['recebido_em']))->setTimezone($tz);
+        $h[(int)$d->format('G')]++; $dow[(int)$d->format('w')]++; $total++;
+        $k = $l['status'] ?? '?'; $st[$k] = ($st[$k] ?? 0) + 1;
+    }
+    $ap = 0; for ($i = 0; $i < 6; $i++) $ap += $h[$i];
+    return ['total' => $total, 'por_hora_sp' => $h, 'por_dia_semana_dom_a_sab' => $dow, 'entre_meia_noite_e_6h' => $ap, 'por_status' => $st];
+}
+function pd_ia_campanhas($system, $msgs) {
+    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 1800, 'system' => $system,
+        'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 4]], 'messages' => $msgs];
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $ch = curl_init($base . '/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE)]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code !== 200) return [null, 0, 'A IA não respondeu (HTTP ' . $code . ').'];
+    $j = json_decode((string)$raw, true); $t = '';
+    foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $t .= $x['text'];
+    $u = $j['usage'] ?? [];
+    $custo = (($u['input_tokens'] ?? 0) * 3 + ($u['output_tokens'] ?? 0) * 15) / 1e6 + (($u['server_tool_use']['web_search_requests'] ?? 0) * 0.01);
+    return [trim($t), round($custo, 4), null];
+}
+
 // -------------------------------------------------------------- destino do anúncio (fila única)
 //   conjuntos {conta, campanha}      -> conjuntos de anúncio da campanha
 //   formularios {client_id}          -> formulários de lead da Página do cliente
@@ -141,6 +211,51 @@ if ($acao === 'anuncios') {
 }
 
 // ------------------------------------------------------------- campanhas
+
+// -------------------------------------------------------------- perfil {conta, campanha?, periodo}
+if ($acao === 'perfil' || $acao === 'perguntar') {
+    $id = idConta($b['conta'] ?? ''); if (!$id) sd_fail('Conta inválida.', 400);
+    $c = null; foreach ($contas as $x) if ($x['id'] === $id) $c = $x;
+    if (!$c) sd_fail('Essa conta não está conectada na plataforma.', 404);
+    $camp = (string)($b['campanha'] ?? ''); if ($camp !== '' && !preg_match('/^\d{5,25}$/', $camp)) sd_fail('Campanha inválida.', 400);
+    $obj = $camp !== '' ? $camp : $id;
+    $chave = "perfil|$obj|$periodo";
+    $dados = pd_cache_ler($chave, 900);
+    if (!$dados) {
+        $tok = pd_token_para($c['conectada_por'] ?? null);
+        if (!$tok) sd_fail('Ninguém com acesso válido à Meta. Reconecte a Meta.', 409);
+        $tot = pd_meta('GET', "/$obj/insights", ['date_preset' => $periodo, 'fields' => $CAMPOS . ',campaign_name'], $tok, 25);
+        $dados = ['totais' => $tot['code'] === 200 ? pd_numeros($tot['body']['data'][0] ?? [], $c['moeda'] ?? 'BRL') + ['campanha' => $tot['body']['data'][0]['campaign_name'] ?? null] : ['erro' => pd_meta_erro($tot)],
+                  'publico' => pd_perfil_dados($obj, $tok, $periodo, $c['moeda'] ?? 'BRL')];
+        pd_cache_gravar($chave, $dados);
+    }
+    $campNome = $dados['totais']['campanha'] ?? null;
+    $dados['leads_horario'] = pd_leads_horario($c['client_id'] ?? null, $periodo, $camp !== '' ? $campNome : null);
+    if ($acao === 'perfil') sai(['perfil' => $dados, 'periodo' => $periodo]);
+
+    $perg = trim((string)($b['pergunta'] ?? '')); if ($perg === '') sd_fail('Escreva a pergunta.', 400);
+    $msgs = [];
+    foreach (array_slice((array)($b['historico'] ?? []), -6) as $m)
+        if (is_array($m) && in_array($m['r'] ?? '', ['user', 'assistant'], true) && trim((string)($m['t'] ?? '')) !== '')
+            $msgs[] = ['role' => $m['r'], 'content' => mb_substr((string)$m['t'], 0, 3000)];
+    $ctx = "CLIENTE: " . ($c['clients']['name'] ?? $c['nome']) . "\nCONTA DE ANÚNCIO: " . ($c['nome'] ?? $id)
+         . ($camp !== '' ? "\nCAMPANHA EM FOCO: " . ($campNome ?: $camp) : "\nESCOPO: conta inteira")
+         . "\nPERÍODO: $periodo\n\nDADOS (Meta Ads + leads recebidos, horário de Brasília):\n" . json_encode($dados, JSON_UNESCAPED_UNICODE);
+    $msgs[] = ['role' => 'user', 'content' => $ctx . "\n\nPERGUNTA: " . mb_substr($perg, 0, 1500)];
+    while (count($msgs) > 1 && $msgs[0]['role'] !== 'user') array_shift($msgs);
+    $sys = 'Você é a IA de Campanhas de uma agência de branding do mercado imobiliário brasileiro (lançamentos e incorporadoras). '
+         . 'Responde ao gestor com base nos DADOS enviados (nunca invente número; se o dado não existe, diga qual dado falta). '
+         . 'Calcule o que for pedido (ex.: leads depois da meia-noite, idade/gênero que mais converte, melhor horário, custo por faixa). '
+         . 'Para concorrentes e referências de mercado use a busca na web: concorrentes diretos do empreendimento/cliente, posicionamento, '
+         . 'oferta, criativos públicos; deixe claro o que veio da web e que a Biblioteca de Anúncios da Meta (facebook.com/ads/library) '
+         . 'é onde se vê os anúncios ativos deles. Português do Brasil, direto, curto, números com unidade, sem enrolação. '
+         . 'No fim, quando fizer sentido, uma linha "Próximo passo:" com a ação mais útil.';
+    $t0 = microtime(true);
+    [$txt, $custo, $erro] = pd_ia_campanhas($sys, $msgs);
+    if ($erro) sd_fail($erro, 502);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
+}
+
 if ($acao === 'campanhas') {
     $id = idConta($b['conta'] ?? ''); if (!$id) sd_fail('Conta inválida.', 400);
     $c = null; foreach ($contas as $x) if ($x['id'] === $id) $c = $x;
