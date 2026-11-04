@@ -4825,7 +4825,9 @@ async function carregarPub(forcar){
       sbR.from('pd_relatorios').select('client_id,dia,analise,clients(name)').order('dia',{ascending:false}).limit(6).then(r=>r,()=>({data:null})),
     ]);
     const agora = Date.now(), fimHoje = new Date(); fimHoje.setHours(23,59,59,999);
-    const q = (alvos.data||[]).map(a => ({ ...a, quando: new Date(a.scheduled_at_override || a.scheduled_posts?.scheduled_at || 0).getTime() }));
+    const todosAlvos = (alvos.data||[]).map(a => ({ ...a, quando: new Date(a.scheduled_at_override || a.scheduled_posts?.scheduled_at || 0).getTime() }));
+    const velhoDemais = a => a.status==='erro' && /^Passou da hora/.test(a.error_message||'');   // o publicador tirou da fila: era velho demais pra sair
+    const q = todosAlvos.filter(a => !velhoDemais(a)), velhosAlvos = todosAlvos.filter(velhoDemais);
     const nomeDe = a => (clientesReais.find(c => c.id === a.scheduled_posts?.client_id) || {}).name || 'SD';
     q.forEach(a => { a.cliente = nomeDe(a); });
     const ok = q.filter(a => a.status!=='erro').sort((x,y)=>x.quando-y.quando);
@@ -4835,20 +4837,27 @@ async function carregarPub(forcar){
       erros: q.filter(a => a.status==='erro').slice(0,4),
       nErros: q.filter(a => a.status==='erro').length,
       relatorios: (rel && rel.data) || [],
-      todos: q,
+      todos: q, velhos: velhosAlvos,
       prox: ok.slice(0,5),
       // passou da hora e continua "agendado": o publicador não pegou
       atrasados: ok.filter(a => a.status==='agendado' && a.quando < agora - 15*60e3),
     };
-    // aprovadas que ainda não entraram na fila
+    // aprovadas que ainda não entraram na fila — sem teto de 60: as velhas ficam separadas das que falta agendar
     try {
-      const { data: aps } = await sbR.from('approval_items').select('id,title,kind,set_id').eq('status','aprovado')
-        .in('kind',['feed','carrossel','stories','reels']).order('created_at',{ascending:false}).limit(60);
+      const { data: aps } = await sbR.from('approval_items').select('id,title,kind,set_id,publish_at').eq('status','aprovado')
+        .in('kind',['feed','carrossel','stories','reels']).order('publish_at',{ascending:true,nullsFirst:false}).limit(800);
+      const tem = new Set();
       const ids = (aps||[]).map(x=>'ap:'+x.id);
-      const { data: ja } = ids.length ? await sbR.from('scheduled_posts').select('batch_name').in('batch_name', ids) : { data: [] };
-      const tem = new Set((ja||[]).map(x=>x.batch_name));
-      PUB.dados.foraLista = (aps||[]).filter(x=>!tem.has('ap:'+x.id));
+      for (let i = 0; i < ids.length; i += 60){
+        const { data: ja } = await sbR.from('scheduled_posts').select('batch_name').in('batch_name', ids.slice(i, i+60));
+        (ja||[]).forEach(x => tem.add(x.batch_name));
+      }
+      const corte = Date.now() - 30*60e3;
+      const fora = (aps||[]).filter(x=>!tem.has('ap:'+x.id)).map(x => ({ ...x, em: x.publish_at ? new Date(x.publish_at).getTime() : null }));
+      PUB.dados.antigosLista = fora.filter(x => x.em != null && x.em < corte);          // data já passou: NÃO entram
+      PUB.dados.foraLista = fora.filter(x => x.em == null || x.em >= corte);            // ainda dá tempo (ou sem data): falta agendar
       PUB.dados.foraDaFila = PUB.dados.foraLista.length;
+      PUB.dados.antigos = PUB.dados.antigosLista.length + velhosAlvos.length;
     } catch(e){ PUB.dados.foraDaFila = null; }
     PUB.erro = '';
   } catch(e){ PUB.erro = e.message; }
@@ -4866,7 +4875,9 @@ function htmlPublicacao(){
   const rel = (d.relatorios||[]).slice(0,2).map(r => `<div style="margin:5px 0;padding:8px 11px;background:rgba(127,127,127,.09);border-radius:10px;font-size:11.5px;line-height:1.5">
     📊 <b>${esc(r.clients?.name||'Cliente')}</b> · ${fmtD(r.dia)}${r.analise?`<br><span style="opacity:.8">${esc(String(r.analise).slice(0,180))}${String(r.analise).length>180?'…':''}</span>`:''}</div>`).join('');
   return gadCaixa('Social', `
-    <div style="display:flex;gap:8px;margin:4px 0 8px">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar','fora'):''}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px"><span class="nota" style="margin:0;flex:1">${d.fila ? 'Quer ter certeza de que vai sair?' : ''}</span>
+      <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="conferirFila()">Conferir fila</button></div>
+    <div style="display:flex;gap:8px;margin:4px 0 8px;flex-wrap:wrap">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar','fora'):''}${d.antigos ? num(d.antigos,'antigos · não entram','antigos') : ''}</div>
     ${erros}${rel}
     ${!d.fila && !d.nErros && !rel ? '<div class="nota" style="padding:2px">Fila vazia — aprove um lote e agende, ou ligue o "agendar sozinho".</div>' : ''}`);
 }
@@ -4889,14 +4900,40 @@ function abrirListaPub(tipo){
       ${logoCliente(a.cliente,30)}<div class="c"><div class="n">${esc(a.cliente)} · ${PLAT(a)}</div>
       <div class="d">${a.status==='erro' ? '<span style="color:var(--rosa)">✗ '+esc(String(a.error_message||'erro').slice(0,120))+'</span>' : quandoPost(a.quando) + (a.status==='publicando'?' · publicando agora':'')}</div></div></div></div>`;
   let corpo;
+  const dt = ms => ms ? new Date(ms).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + new Date(ms).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : 'sem data';
+  const linhaF = (x, velho) => `<div class="ads-linha" style="cursor:default${velho?';opacity:.6':''}"><div class="c"><div class="n">${esc(x.title||'Sem título')}</div><div class="d">${esc(x.kind)} · ${velho ? 'era para ' + dt(x.em) + ' · não entra' : (x.em ? 'sai ' + dt(x.em) : 'sem data de publicação')}</div></div></div>`;
   if (tipo==='fora'){ tit='Aprovadas, falta agendar'; vazio='Tudo que foi aprovado já está na fila.';
-    corpo = (d.foraLista||[]).map(x=>`<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(x.title||'Sem título')}</div><div class="d">${esc(x.kind)} · aprovada, ainda fora da fila</div></div></div>`).join(''); }
+    corpo = (d.foraLista||[]).map(x=>linhaF(x,false)).join(''); }
+  else if (tipo==='antigos'){ tit='Antigos · não entram'; vazio='Nada antigo.';
+    corpo = `<div class="nota" style="margin:0 0 8px;line-height:1.5">A data deles já passou. O publicador não posta nada velho: assim o planejamento não sai bagunçado. Para algum entrar, mude a data de publicação da peça para uma data futura.</div>`
+      + (d.antigosLista||[]).map(x=>linhaF(x,true)).join('')
+      + (d.velhos||[]).map(a=>`<div class="ads-linha" style="cursor:default;opacity:.6"><div class="c"><div class="n">${esc(a.cliente)} · ${PLAT(a)}</div><div class="d">estava agendado para ${dt(a.quando)} · tirado da fila sem publicar</div></div></div>`).join(''); }
   else corpo = L.map(linha).join('');
   abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">${tit}</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div style="margin-top:10px">${corpo || `<div class="nota">${vazio}</div>`}</div>
     <div style="margin-top:12px"><button class="btn" onclick="fecharJanela();abrirNoVerso('fila')">Abrir o Social completo</button></div></div>`, true);
+}
+// ---- Conferir a fila: olha cada post dos próximos 7 dias e diz se vai sair (só lê, não publica nada) ----
+async function conferirFila(){
+  abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Conferir fila</h3>
+    <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div id="confCorpo" class="nota" style="margin-top:10px">Conferindo contas, chaves e peças dos próximos 7 dias…</div></div>`, true);
+  try {
+    const { data:{ session } } = await sbR.auth.getSession();
+    const r = await fetch('/social-conferir.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body:'{}' });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+    const C = document.getElementById('confCorpo'); if (!C) return; C.className = '';
+    const ct = (j.contas||[]).map(c => `<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(c.nome)} · ${c.plataforma==='instagram'?'Instagram':'Facebook'}</div>
+      <div class="d" style="${c.problema?'color:var(--rosa)':''}">${c.problema ? '✗ ' + esc(c.problema) : '✓ conectada, com permissão de publicar'}</div></div></div>`).join('');
+    const pr = (j.itens||[]).map(i => `<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(i.conta)} · ${esc(i.lugar||'feed')} · ${new Date(i.quando).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+      <div class="d" style="color:var(--rosa)">${i.problemas.map(x => '✗ ' + esc(x)).join('<br>')}</div></div></div>`).join('');
+    C.innerHTML = `<div style="padding:10px 12px;border-radius:12px;border:.5px solid ${j.problemas?'var(--rosa)':'var(--verde,#1f8a55)'};margin-bottom:10px;font-size:13px;line-height:1.5">
+        ${j.total ? `<b>${j.ok} de ${j.total}</b> posts dos próximos 7 dias estão prontos para sair.${j.problemas ? ` <b style="color:var(--rosa)">${j.problemas} com problema.</b>` : ' Tudo certo.'}` : 'Nada agendado nos próximos 7 dias.'}</div>
+      ${pr ? `<div class="ads-sec">O que vai impedir</div>${pr}` : ''}
+      ${ct ? `<div class="ads-sec">Contas</div>${ct}` : ''}`;
+  } catch(e){ const C = document.getElementById('confCorpo'); if (C) C.textContent = 'Não consegui conferir: ' + e.message; }
 }
 // ---- Social: os próximos 5, com o rosto do cliente, e o aviso se algo caiu ----
 function htmlSocial(){

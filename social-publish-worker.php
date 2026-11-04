@@ -58,7 +58,16 @@ $devidos = array_filter($todos, function($t) use ($agora) {
     return $quandoTs !== false && $quandoTs <= $agora;
 });
 
-echo count($todos) . " alvo(s) agendado(s) no total, " . count($devidos) . " vencido(s) agora.\n\n";
+// Passou da hora demais (story: 2 h · resto: 12 h)? Não publica: sai da fila sem barulho.
+$expirados = 0;
+foreach ($devidos as $k => $t) {
+    $q = strtotime($t['scheduled_at_override'] ?? ($t['scheduled_posts']['scheduled_at'] ?? ''));
+    if ($q !== false && $agora - $q > pd_tolerancia_seg($t['placement'] ?? 'feed')) {
+        pd_expirar_alvo($t, $q); unset($devidos[$k]); $expirados++;
+    }
+}
+echo count($todos) . " alvo(s) agendado(s) no total, " . count($devidos) . " vencido(s) agora"
+   . ($expirados ? ", $expirados velho(s) demais — tirados da fila sem publicar" : '') . ".\n\n";
 
 if (!count($devidos)) { echo "Nada a fazer.\n"; exit; }
 

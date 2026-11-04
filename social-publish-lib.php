@@ -475,6 +475,22 @@ function pd_agendar_sozinho() {
 // =========================================================================
 // Publica UM alvo — usado pelo relógio e pelo botão manual.
 // =========================================================================
+/** Quanto atraso ainda vale a pena publicar. Story é do momento (2 h); o resto aguenta meio dia.
+ *  Passou disso, NÃO publica: peça velha saindo fora de hora desorganiza o planejamento do cliente. */
+function pd_tolerancia_seg($placement) { return ($placement === 'stories') ? 2 * 3600 : 12 * 3600; }
+
+/** Tira da fila um alvo que passou da hora demais — sem publicar, sem alarme. */
+function pd_expirar_alvo($t, $quandoTs) {
+    $msg = 'Passou da hora (era ' . date('d/m H:i', $quandoTs) . '): não publiquei para não sair fora de hora. Reagende se ainda vale.';
+    $u = supa('/rest/v1/scheduled_post_targets?id=eq.' . urlencode($t['id']) . '&status=eq.agendado', 'PATCH',
+              ['status' => 'cancelado', 'error_message' => $msg]);
+    if ($u['code'] >= 300) {   // o banco não conhece "cancelado": usa "erro", mas com a marca que a tela reconhece como "antigo"
+        supa('/rest/v1/scheduled_post_targets?id=eq.' . urlencode($t['id']) . '&status=eq.agendado', 'PATCH',
+             ['status' => 'erro', 'error_message' => $msg]);
+    }
+    error_log('Pontodot publish - alvo ' . $t['id'] . ' expirou sem publicar: ' . $msg);
+}
+
 function publicarAlvo($t) {
     $targetId = $t['id'];
     $post = $t['scheduled_posts'] ?? [];
