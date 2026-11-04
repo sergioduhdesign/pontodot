@@ -805,6 +805,10 @@ html.dia .frente .tarefa-cheia{background:rgba(244,243,239,.3)}
 .gad-cara{width:100%;height:100%;object-fit:cover;border-radius:13px;display:block}
 .gad-cara-s{display:grid;place-items:center;width:100%;height:100%;font-size:19px;font-weight:400;opacity:.85}
 .gad-ico:has(.gad-cara){padding:0;overflow:hidden}
+.gad-mini-ico{flex:0 0 auto;display:grid;grid-auto-flow:column;gap:3px;place-items:center;width:38px;height:38px;border-radius:11px;border:.5px solid var(--linha);background:rgba(127,127,127,.10);color:var(--branco);position:relative;z-index:1;overflow:hidden}
+.gad-mini-ico svg{width:21px;height:21px}
+.gad-mini-ico.larga{width:auto;padding:0 8px}
+.gad-mini-ico:has(.gad-cara){padding:0}
 /* a ficha dela */
 .mi-topo{display:flex;align-items:center;gap:14px;margin:6px 0 4px}
 .mi-cara{position:relative;width:64px;height:64px;flex:none;border-radius:18px;overflow:hidden;
@@ -4851,9 +4855,9 @@ async function carregarPub(forcar){
   render();
 }
 function htmlPublicacao(){
-  if (!window.REAL) return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver a fila de publicação.</div>`);
-  if (!PUB.dados) { carregarPub(); return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">olhando a fila…</div>`); }
-  if (PUB.erro) return gadCaixa('Publicação', `<div class="nota" style="padding:6px 2px 2px">${esc(PUB.erro)}</div>`);
+  if (!window.REAL) return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver a fila de publicação.</div>`);
+  if (!PUB.dados) { carregarPub(); return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">olhando a fila…</div>`); }
+  if (PUB.erro) return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">${esc(PUB.erro)}</div>`);
   const d = PUB.dados;
   const num = (v,r,tipo) => `<button onclick="abrirListaPub('${tipo}')" style="flex:1;min-width:72px;text-align:center;padding:9px 4px;border:.5px solid var(--linha);border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer">
     <div style="font-size:21px;font-weight:600;line-height:1">${v}</div><div class="nota" style="margin-top:4px">${r}</div></button>`;
@@ -4861,7 +4865,7 @@ function htmlPublicacao(){
     ✗ ${a.platform==='instagram'?'Instagram':'Facebook'} · ${esc(String(a.error_message||'erro').slice(0,110))}</div>`).join('');
   const rel = (d.relatorios||[]).slice(0,2).map(r => `<div style="margin:5px 0;padding:8px 11px;background:rgba(127,127,127,.09);border-radius:10px;font-size:11.5px;line-height:1.5">
     📊 <b>${esc(r.clients?.name||'Cliente')}</b> · ${fmtD(r.dia)}${r.analise?`<br><span style="opacity:.8">${esc(String(r.analise).slice(0,180))}${String(r.analise).length>180?'…':''}</span>`:''}</div>`).join('');
-  return gadCaixa('Publicação', `
+  return gadCaixa('Social', `
     <div style="display:flex;gap:8px;margin:4px 0 8px">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar','fora'):''}</div>
     ${erros}${rel}
     ${!d.fila && !d.nErros && !rel ? '<div class="nota" style="padding:2px">Fila vazia — aprove um lote e agende, ou ligue o "agendar sozinho".</div>' : ''}`);
@@ -5940,7 +5944,7 @@ const GADGETS = {
       <div class="mini-sem">${['S','T','Q','Q','S','S','D'].map((d,i)=>`<div class="dia"><div class="bar" style="height:${6+ns[i]/mx*40}px"></div>${d}</div>`).join('')}</div>
       <div class="nota" style="margin:8px 0 0">${nota}</div>`,
       ['Ver as tarefas',`${window.REAL?'abrirTarefasTodas()':`toast('Abre o cronograma.')`}`]); } },
-  social:    { nome:'Social', html:()=> window.REAL ? htmlSocial()
+  social:    { nome:'Social', oculto:true, html:()=> window.REAL ? htmlSocial()
     : gadCaixa('Social',`
       <div class="ia-linha"><div class="c"><div class="n">Hoje 18h · VF feed</div><div class="d">Lançamento Prima Vera · agendado</div></div></div>
       <div class="ia-linha"><div class="c"><div class="n">Amanhã 11h · Geoville stories</div><div class="d">Tour da obra · 3 peças</div></div></div>
@@ -6008,7 +6012,7 @@ const GADGETS = {
   oficina:   { nome:'Saída de materiais', html:()=>htmlOficina() },
   estudio:   { nome:'Trabalho', html:()=>htmlEstudio() },
   ias:       { nome:'Inteligências da casa', html:()=>htmlIAs() },
-  publicacao:{ nome:'Publicação', html:()=>htmlPublicacao() },
+  publicacao:{ nome:'Social', html:()=>htmlPublicacao() },
 };
 // o admin de clientes do SD, na roupa nova
 async function abrirClientesAdmin(){
@@ -6312,7 +6316,7 @@ const ICONE_GAD = {
   ia:'<rect x="5" y="7" width="14" height="11" rx="2.5"/><path d="M12 4v3M9 12h.01M15 12h.01M9.5 15h5"/>',
   aprovacoes:'<path d="M7 11.5l3.2 3.2L17.5 7"/><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/>',
   cronograma:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
-  social:'<path d="M20 4L10.5 13.5M20 4l-6 16-3.5-6.5L4 10z"/>',
+  social:'<path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/>',
   clientes:'<path d="M4 20.5V5.5A1.5 1.5 0 0 1 5.5 4h7A1.5 1.5 0 0 1 14 5.5v15M14 9.5h4.5A1.5 1.5 0 0 1 20 11v9.5M4 20.5h16"/><path d="M7 8h2M7 11.5h2M7 15h2M16.5 13h1M16.5 16h1"/>',
   equipe:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20c.6-4 3.4-6.2 7-6.2s6.4 2.2 7 6.2"/>',
   relatorios:'<path d="M4.5 19.5v-6M10 19.5V9M15.5 19.5v-9.5M21 19.5V5"/>',
@@ -6320,9 +6324,9 @@ const ICONE_GAD = {
   banco:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5L20 17"/>',
   oficina:'<path d="M20.5 3.5c-4.5.3-8 2.2-10.3 5.3L7 12l5 5 3.2-3.2c3.1-2.3 5-5.8 5.3-10.3z"/><circle cx="14.5" cy="9.5" r="1.4"/><path d="M7 12 4.5 11.5l2-2.5M12 17l.5 2.5 2.5-2"/><path d="M5.5 18.5c-.8.8-1.2 2-1 3 1-.2 2.2-.6 3-1.4"/>',
   estudio:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-.8-.5-1.2-1-1.7-.5-.6-.6-1.5.5-1.5h1.8A4.7 4.7 0 0 0 20 11.3C20 6.7 16.4 3 12 3z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/><circle cx="8" cy="15" r="1.2"/>',
-  ias:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M18 4l1 1.5L21 4"/>',
-  anuncios:'<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 7a7 7 0 0 1 0 10"/>',
-  publicacao:'<path d="M12 19V5M5 12l7-7 7 7"/><path d="M5 21h14"/>',
+  ias:'<text x="12" y="16.6" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor" stroke="none" font-family="-apple-system,Helvetica,Arial,sans-serif" letter-spacing="-.3">IA</text>',
+  anuncios:'<path d="M12 2.8v18.4"/><path d="M16.6 7.2c0-2-2-3.2-4.6-3.2s-4.6 1.2-4.6 3.4c0 4.4 9.2 2.2 9.2 6.8 0 2.1-2 3.4-4.6 3.4s-4.6-1.2-4.6-3.2"/>',
+  publicacao:'<path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/>',
   financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
 };
 const icoGad = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${ICONE_GAD[id]||ICONE_GAD.tarefas}</svg>`;
@@ -6629,6 +6633,7 @@ function renderBoard(){
           : id==='minhaia' ? caraDaIA() : icoGad(id)}
       </button>
       <div class="gad-aba" onpointerdown="abaDown(event,'${id}',false)" title="${nomeGad(id)}">
+        <span class="gad-mini-ico ${id==='tarefas'?'larga':''}">${id==='tarefas' ? TAREFAS.slice(0,3).map(t=>cara(t.cara,24)).join('') : id==='minhaia' ? caraDaIA() : icoGad(id)}</span>
         <h3 class="gad-tit">${nomeGad(id)}</h3>
         <span class="aba-acoes">
           <button title="Arrastar" aria-label="Arrastar" onpointerdown="event.stopPropagation();abaDown(event,'${id}',true)">⠿</button>
