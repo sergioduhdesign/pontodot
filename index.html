@@ -5067,20 +5067,72 @@ function pdfCampanha(conta, id){
   <script>window.onload=function(){setTimeout(function(){window.print()},500)}<\/script></html>`);
   w.document.close();
 }
+// PAINEL DE LEADS: todos os leads que chegaram pelos formulários da Meta, com filtro (cliente, status, datas, busca) e download em planilha
+const LP = { rows:null, carregando:false, cli:'', st:'', de:'', ate:'', q:'' };
+async function leadsCarregar(){
+  if (LP.carregando) return; LP.carregando = true; const todos = [];
+  try {
+    for (let ini = 0; ini < 10000; ini += 1000){
+      const { data, error } = await sbR.from('meta_leads')
+        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,clients(name)')
+        .order('recebido_em', { ascending:false }).range(ini, ini + 999);
+      if (error || !data) break; todos.push(...data); if (data.length < 1000) break;
+    }
+  } catch(e){}
+  LP.rows = todos; LP.carregando = false; leadsPintar();
+}
+function leadsFiltrados(){
+  const q = semAcento(LP.q || '');
+  return (LP.rows || []).filter(l =>
+    (!LP.cli || (l.clients?.name || 'Sem cliente') === LP.cli) && (!LP.st || l.status === LP.st) &&
+    (!LP.de  || String(l.recebido_em || '').slice(0, 10) >= LP.de) && (!LP.ate || String(l.recebido_em || '').slice(0, 10) <= LP.ate) &&
+    (!q || semAcento([l.nome, l.email, l.telefone, l.campanha_nome, l.ad_nome].join(' ')).includes(q)));
+}
+function leadsPintar(){
+  const C = document.getElementById('lpCorpo'); if (!C) return;
+  const todos = LP.rows || [], fil = leadsFiltrados();
+  const por = {}; todos.forEach(l => { const k = l.clients?.name || 'Sem cliente'; por[k] = (por[k] || 0) + 1; });
+  const selC = document.getElementById('lpCli'); if (selC && !selC.dataset.ok){ selC.innerHTML = '<option value="">todos os clientes</option>' + Object.keys(por).sort().map(k => `<option value="${esc(k)}">${esc(k)} (${por[k]})</option>`).join(''); selC.dataset.ok = '1'; selC.value = LP.cli; }
+  const tot = document.getElementById('lpTot'); if (tot) tot.innerHTML = `<b>${fil.length}</b> de ${todos.length} leads`;
+  C.innerHTML = fil.slice(0, 300).map(l => `<button class="ads-linha" onclick="abrirLead('${esc(l.id)}')">
+      <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div><div class="d">${esc(l.clients?.name || 'Sem cliente')}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${new Date(l.recebido_em).toLocaleDateString('pt-BR')} ${quando(l.recebido_em)}</div></div>
+      <div class="v">${esc(l.status)}</div></button>`).join('') + (fil.length > 300 ? `<div class="nota">Mostrando 300 de ${fil.length}. A planilha leva todos.</div>` : '') || '<div class="nota">Nenhum lead com esse filtro.</div>';
+}
+function leadsBaixar(){
+  const fil = leadsFiltrados(); if (!fil.length){ toast('Nenhum lead para baixar.'); return; }
+  const cel = v => '"' + String(v == null ? '' : v).replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
+  const extras = [...new Set(fil.flatMap(l => Object.keys(l.campos || {}).filter(k => !/^(full_name|email|phone_number|nome|telefone|e-mail)$/i.test(k))))];
+  const cab = ['Data', 'Hora', 'Cliente', 'Campanha', 'Anúncio', 'Nome', 'Telefone', 'E-mail', 'Status', ...extras.map(k => k.replace(/_/g, ' '))];
+  const linhas = fil.map(l => { const d = new Date(l.recebido_em);
+    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }), l.clients?.name || '', l.campanha_nome || '', l.ad_nome || '', l.nome || '', l.telefone || '', l.email || '', l.status || '',
+      ...extras.map(k => (l.campos || {})[k] ?? '')].map(cel).join(';'); });
+  const csv = '﻿' + cab.map(cel).join(';') + '\r\n' + linhas.join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  a.download = 'leads-' + (LP.cli ? LP.cli.replace(/[^\w]+/g, '-').toLowerCase() + '-' : '') + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast(fil.length + ' leads baixados.');
+}
 function abrirLeads(){
-  const L = ADS.leads || [];
-  L.forEach(l => { (VISTOS.anuncios = VISTOS.anuncios || {})[String(l.id)] = Date.now(); }); _salvarVistos(); pintarBolinhas();
-  abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
+  (ADS.leads || []).forEach(l => { (VISTOS.anuncios = VISTOS.anuncios || {})[String(l.id)] = Date.now(); }); _salvarVistos(); pintarBolinhas();
+  const campo = 'padding:8px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font-size:12px;min-width:0';
+  abrirJanela(`<div class="caixa invertida" style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Leads</h3>
+      <button class="btn" style="min-height:34px" onclick="leadsBaixar()">⬇ baixar planilha</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div class="nota" style="margin:4px 0 8px">Os mais recentes primeiro · chegam na hora pelos formulários dos anúncios</div>
-    ${L.map(l => `<button class="ads-linha" onclick="abrirLead('${esc(l.id)}')">
-      <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div><div class="d">${esc(l.clients?.name || '')}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${quando(l.recebido_em)}</div></div>
-      <div class="v">${esc(l.status)}</div></button>`).join('') || '<div class="nota">Nenhum lead ainda.</div>'}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px">
+      <select id="lpCli" style="${campo}" onchange="LP.cli=this.value;leadsPintar()"><option value="">todos os clientes</option></select>
+      <select style="${campo}" onchange="LP.st=this.value;leadsPintar()"><option value="">todos os status</option>${['novo','em contato','convertido','descartado'].map(st => `<option${LP.st===st?' selected':''}>${st}</option>`).join('')}</select>
+      <input type="date" style="${campo}" value="${LP.de}" onchange="LP.de=this.value;leadsPintar()" aria-label="De">
+      <input type="date" style="${campo}" value="${LP.ate}" onchange="LP.ate=this.value;leadsPintar()" aria-label="Até">
+      <input placeholder="buscar nome, telefone, campanha…" style="${campo};flex:1;min-width:140px" value="${esc(LP.q)}" oninput="LP.q=this.value;leadsPintar()">
+    </div>
+    <div class="nota" id="lpTot" style="margin:0 0 8px">Buscando…</div>
+    <div id="lpCorpo" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none"><div class="nota">Buscando leads…</div></div>
   </div>`, true);
+  if (LP.rows) leadsPintar(); leadsCarregar();
 }
 function abrirLead(id){
-  const l = (ADS.leads || []).find(x => x.id === id); if (!l) return;
+  const l = (ADS.leads || []).find(x => x.id === id) || (LP.rows || []).find(x => x.id === id); if (!l) return;
   marcarVisto('anuncios', String(l.id));
   const fone = String(l.telefone || '').replace(/\D/g, '');
   const extras = Object.entries(l.campos || {}).filter(([k]) => !/^(full_name|email|phone_number|nome|telefone|e-mail)$/i.test(k));
@@ -5102,6 +5154,7 @@ async function mudarStatusLead(id, status){
   const { error } = await sbR.from('meta_leads').update({ status }).eq('id', id);
   if (error){ toast('Não salvou: ' + error.message); return; }
   const l = (ADS.leads || []).find(x => x.id === id); if (l) l.status = status;
+  const l2 = (LP.rows || []).find(x => x.id === id); if (l2) l2.status = status;
   toast('Lead: ' + status + '.'); render();
 }
 function abrirVinculoAds(){
