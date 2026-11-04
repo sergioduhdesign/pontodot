@@ -4984,6 +4984,25 @@ function htmlAnuncios(){
     ${ultimos || '<div class="nota" style="margin:6px 0 0">Nenhum lead ainda. Eles chegam aqui na hora em que alguém preenche o formulário.</div>'}`,
     ['Ver todos os leads', 'abrirLeads()']);
 }
+// PRODUTO da campanha: cada campanha pode ser de um produto do cliente (ex.: Nova Oliveira). Os leads dela herdam o produto.
+async function adsCarregaProdutos(){
+  try {
+    const [m, p] = await Promise.all([ sbR.from('meta_campaign_products').select('campaign_id,product_id'), sbR.from('products').select('id,name,client_id').order('name') ]);
+    ADS.prodMap = {}; (m.data || []).forEach(x => { ADS.prodMap[x.campaign_id] = x.product_id; });
+    ADS.prods = p.data || []; ADS.prodOk = !m.error;
+  } catch(e){ ADS.prodMap = {}; ADS.prods = []; ADS.prodOk = false; }
+}
+const adsNomeProd = id => ((ADS.prods || []).find(x => x.id === id) || {}).name || '';
+async function adsSetProduto(conta, campId, productId){
+  const camp = ((ADS.camps || {})[conta] || []).find(x => x.id === campId) || {};
+  const c0 = (ADS.dados?.contas || []).find(x => x.conta === conta) || {};
+  const { error } = await sbR.from('meta_campaign_products').upsert({ campaign_id: campId, conta, campaign_name: camp.nome || null,
+    client_id: c0.client_id || null, product_id: productId || null, atualizado_em: new Date().toISOString() }, { onConflict: 'campaign_id' });
+  if (error){ toast(/meta_campaign_products|relation|schema/i.test(error.message) ? 'Falta rodar a migration v156 (produto na campanha) no Supabase.' : 'Não salvou: ' + error.message); return; }
+  (ADS.prodMap = ADS.prodMap || {})[campId] = productId || null;
+  toast(productId ? 'Campanha ligada ao produto. Os leads dela seguem esse produto.' : 'Campanha sem produto.');
+  ADS.leads = null; ADS.em = 0;
+}
 async function abrirCampanhas(conta){
   const c = (ADS.dados?.contas || []).find(x => x.conta === conta) || {};
   abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px" id="cxCamp">
@@ -4992,13 +5011,18 @@ async function abrirCampanhas(conta){
     <div class="nota" style="margin:4px 0 8px">${esc((ADS_PERIODOS.find(p => p[0] === ADS.periodo) || [,''])[1])} · campanhas por investimento</div>
     <div id="campCorpo" class="nota">Buscando na Meta…</div></div>`, true);
   try {
-    const j = await adsFala({ acao:'campanhas', conta, periodo: ADS.periodo });
+    const [j] = await Promise.all([ adsFala({ acao:'campanhas', conta, periodo: ADS.periodo }), adsCarregaProdutos() ]);
     const C = document.getElementById('campCorpo'); if (!C) return;
     C.className = '';
     ADS.camps = ADS.camps || {}; ADS.camps[conta] = j.campanhas || [];
-    C.innerHTML = (j.campanhas || []).map(x => `<button class="ads-linha" onclick="abrirCampanhaDetalhe('${esc(conta)}','${esc(x.id)}')">
+    const pm = ADS.prodMap || {}, grupos = {};
+    (j.campanhas || []).forEach(x => { const k = pm[x.id] ? adsNomeProd(pm[x.id]) : ''; const g = grupos[k] = grupos[k] || { gasto:0, leads:0, n:0, moeda:x.moeda }; g.gasto += x.gasto || 0; g.leads += x.leads || 0; g.n++; });
+    const nomesG = Object.keys(grupos).filter(k => k);
+    const resumoProd = nomesG.length ? `<div class="ads-sec" style="margin-top:2px">Por produto</div>` + nomesG.concat(grupos[''] ? [''] : []).map(k => { const g = grupos[k];
+      return `<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(k || 'Sem produto')}</div><div class="d">${g.n} campanha${g.n===1?'':'s'} · ${g.leads} lead${g.leads===1?'':'s'}${g.leads ? ' · CPL ' + brl(g.gasto / g.leads, g.moeda) : ''}</div></div><div class="v">${brl(g.gasto, g.moeda)}</div></div>`; }).join('') + `<div class="ads-sec">Campanhas</div>` : '';
+    C.innerHTML = resumoProd + (j.campanhas || []).map(x => `<button class="ads-linha" onclick="abrirCampanhaDetalhe('${esc(conta)}','${esc(x.id)}')">
         <div class="c"><div class="n">${esc(x.nome)}<span class="ads-st ${x.status==='ACTIVE'?'on':''}">${x.status==='ACTIVE'?'ativa':x.status==='PAUSED'?'pausada':esc((x.status||'').toLowerCase())}</span></div>
-          <div class="d">${x.leads} lead${x.leads===1?'':'s'}${x.cpl!=null?' · CPL '+brl(x.cpl, x.moeda):''} · ${x.cliques} cliques · alcance ${Number(x.alcance).toLocaleString('pt-BR')}</div></div>
+          <div class="d">${(ADS.prodMap||{})[x.id] ? '<b>' + esc(adsNomeProd(ADS.prodMap[x.id])) + '</b> · ' : ''}${x.leads} lead${x.leads===1?'':'s'}${x.cpl!=null?' · CPL '+brl(x.cpl, x.moeda):''} · ${x.cliques} cliques · alcance ${Number(x.alcance).toLocaleString('pt-BR')}</div></div>
         <div class="v">${brl(x.gasto, x.moeda)}${x.orcamento_dia?`<small>${brl(x.orcamento_dia, x.moeda)}/dia</small>`:''}</div></button>`).join('')
       || '<div class="nota">Nenhuma campanha com entrega nesse período.</div>';
   } catch(e){ const C = document.getElementById('campCorpo'); if (C) C.textContent = e.message; }
@@ -5018,6 +5042,11 @@ async function abrirCampanhaDetalhe(conta, id){
       <div><small>CPL</small><b>${camp.cpl!=null?brl(camp.cpl,camp.moeda):'—'}</b></div></div>
     <div class="ads-tot" style="margin-top:6px"><div><small>Alcance</small><b>${nf(camp.alcance)}</b></div><div><small>Impressões</small><b>${nf(camp.impressoes)}</b></div>
       <div><small>Cliques</small><b>${nf(camp.cliques)}</b></div></div>
+    ${(() => { const pr = (ADS.prods || []).filter(x => x.client_id === conta0.client_id);
+      if (!ADS.prodOk || !(perfil?.role === 'admin' || perfil?.role === 'team')) return '';
+      if (!conta0.client_id) return `<div class="nota" style="margin-top:10px">Vincule esta conta de anúncio a um cliente para ligar a campanha a um produto.</div>`;
+      return `<div class="ads-sec">Produto</div><select style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font-size:13px" onchange="adsSetProduto('${esc(conta)}','${esc(id)}',this.value)">
+        <option value="">Sem produto (cliente todo)</option>${pr.map(x => `<option value="${esc(x.id)}"${(ADS.prodMap||{})[id]===x.id?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`; })()}
     <div class="ads-sec">Criativos</div>
     <div id="anunCorpo" class="nota">Buscando os anúncios na Meta…</div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">

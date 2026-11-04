@@ -89,8 +89,13 @@ foreach ((array)($corpo['entry'] ?? []) as $ent) {
             'criado_na_meta' => isset($L['created_time']) ? gmdate('c', strtotime($L['created_time'])) : null,
         ];
         $pref = ['Prefer: resolution=ignore-duplicates,return=representation'];
+        $prodLead = $conta['product_id'] ?? null;
+        if (!empty($L['campaign_name'])) {   // o produto da CAMPANHA vale mais que o da Página
+            $mc = pd_supa('/rest/v1/meta_campaign_products?campaign_name=eq.' . urlencode((string)$L['campaign_name']) . '&product_id=not.is.null&select=product_id&limit=1');
+            if ($mc['code'] < 300 && !empty($mc['body'][0]['product_id'])) $prodLead = $mc['body'][0]['product_id'];
+        }
         // o lead já nasce com o PRODUTO da Página (quando a Página é de um produto)
-        $ins = !empty($conta['product_id']) ? pd_supa('/rest/v1/meta_leads', 'POST', $linha + ['product_id' => $conta['product_id']], $pref) : ['code' => 999];
+        $ins = $prodLead ? pd_supa('/rest/v1/meta_leads', 'POST', $linha + ['product_id' => $prodLead], $pref) : ['code' => 999];
         if ($ins['code'] >= 300) $ins = pd_supa('/rest/v1/meta_leads', 'POST', $linha, $pref);
         // devolveu linha = é novo (duplicado volta vazio e não avisa de novo)
         if ($ins['code'] < 300 && !empty($ins['body'][0]['id'])) $novos[] = ['nome' => $nome, 'pagina' => $conta['account_name'] ?? 'Página'];
