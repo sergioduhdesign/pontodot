@@ -804,6 +804,7 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .cmp-prog-t{font-size:12px;margin-bottom:8px;opacity:.85}
 .cmp-prog-b{height:6px;border-radius:6px;background:rgba(127,127,127,.22);overflow:hidden}
 .cmp-prog-b i{display:block;height:100%;width:3%;border-radius:6px;transition:width .35s ease}
+.ccimg{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:12px;margin:0 0 10px;background:rgba(127,127,127,.15)}
 .vt{display:inline-flex;gap:4px;flex:0 0 auto}.vt button{border:.5px solid var(--linha);background:none;border-radius:99px;padding:4px 8px;cursor:pointer;font-size:13px;line-height:1;opacity:.6}.vt button:hover,.vt button.on{opacity:1}.vt button.on{background:rgba(47,158,107,.18);border-color:#2f9e6b}
 .ccr{margin-top:9px;border:.5px solid var(--linha);border-radius:12px;overflow:hidden;cursor:pointer}.ccr img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:rgba(127,127,127,.15)}.ccr .tx{padding:8px 10px 2px;font-size:12px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.ccr.open .tx{-webkit-line-clamp:unset;display:block}.ccr .nm{padding:2px 10px 9px;font-size:10.5px;opacity:.6}
 .cp-top{display:flex;align-items:center;gap:10px}
@@ -5458,6 +5459,7 @@ async function alvoPost(i){
   const h = cmpH(c.nome); if (h && !CMP.slots.some(x => x.handle === h)){ CMP.slots.unshift({ handle:h, nome:c.nome, tipo:'cliente', avatar:c.avatar || null }); cmpLer(); }
 }
 const CCMP = { sel:[], notas:'', foco:'', players:null, resp:null, msg:'', custo:0, seg:0, dados:{}, lendo:false, votos:(() => { try { return JSON.parse(localStorage.getItem('pd_votos_conc') || '{}'); } catch(e){ return {}; } })() };
+CCMP.aberto = {};
 const ccmpVk = n => (CCMP.sel[0] || '') + '|' + String(n || '').toLowerCase();
 function abrirCompararCampanhas(){
   if (!document.getElementById('cxCcmp')) abrirJanela('<div class="caixa invertida cp" style="padding:16px 18px 20px" id="cxCcmp"></div>', true);
@@ -5503,31 +5505,61 @@ const CCMP_SALVA = () => { CCMP.notas = (document.getElementById('ccmpNotas') ||
 function ccmpCliente(){ const c = (ADS.dados?.contas || []).find(x => x.client_id === CCMP.sel[0]); return c ? (c.cliente || c.nome) : ''; }
 
 function ccmpVisiveis(){ return (CCMP.players || []).filter(p => CCMP.votos[ccmpVk(p.nome)] !== -1); }
+function ccmpImg(p){ const d = CCMP.dados[p.instagram]; return (p.pagina && p.pagina.imagem) || (d && !d.erro && ((d.top || [])[0] || {}).imagem) || (d && d.avatar) || ''; }
+function ccmpVotoBtns(p, i){ const v = CCMP.votos[ccmpVk(p.nome)];
+  return `<span class="vt"><button class="${v === 1 ? 'on' : ''}" title="Acertou: busque mais assim" aria-label="Joinha para cima" onclick="event.stopPropagation();ccmpVoto(${i},1)">👍</button><button title="Não tem a ver: tira da lista e o Tumi aprende" aria-label="Joinha para baixo" onclick="event.stopPropagation();ccmpVoto(${i},-1)">👎</button></span>`; }
+function ccmpPosts(p){ const d = CCMP.dados[p.instagram]; if (!d || d.erro) return '';
+  const ps = d.parecidos && d.parecidos.length ? d.parecidos : (d.top || []);
+  return `<div class="kv"><small>Instagram @${esc(d.usuario || p.instagram)}</small><b>${nf(d.seguidores)} seguidores · ${String(d.por_semana).replace('.', ',')} posts/sem${d.engajamento != null ? ' · ' + String(d.engajamento).replace('.', ',') + '% eng.' : ''}</b></div>
+    ${d.parecidos && d.parecidos.length ? '<div class="nota" style="margin:8px 0 0">Posts mais parecidos com o seu:</div>' : '<div class="nota" style="margin:8px 0 0">Posts que mais engajaram:</div>'}
+    ${ps.map(t => `<div class="ccr" onclick="this.classList.toggle('open')">${t.imagem ? `<img src="${esc(t.imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}<div class="tx">${esc(t.texto || '(sem legenda)')}</div><div class="nm">${t.curtidas != null ? '♥ ' + nf(t.curtidas) : ''} · 💬 ${nf(t.comentarios)} · ${esc(t.tipo)}</div></div>`).join('')}`; }
+function ccmpCorpo(p){   // tudo o que a pesquisa trouxe sobre UM concorrente (usado na linha aberta e na tela lado a lado)
+  const pg = p.pagina, tumi = [p.oferta && ['Oferta', p.oferta], p.preco && ['Ticket', p.preco], p.angulo && ['Ângulo', p.angulo], p.praca && ['Praça', p.praca], p.por_que && ['Por que é concorrente', p.por_que]].filter(Boolean);
+  return `${pg && pg.imagem ? `<img class="ccimg" src="${esc(pg.imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}
+    ${pg ? `<div class="kv"><small>O que a página deles diz</small><b>${esc(pg.titulo || p.nome)}</b></div>${pg.descricao ? `<div class="nota" style="margin:2px 0 6px;line-height:1.5">${esc(pg.descricao)}</div>` : ''}
+      ${(pg.chamadas || []).length ? `<div class="nota" style="margin:2px 0 6px;line-height:1.5">${pg.chamadas.map(c => '“' + esc(c) + '”').join('<br>')}</div>` : ''}
+      ${pg.texto ? `<div class="ccr" style="border:0" onclick="this.classList.toggle('open')"><div class="tx" style="padding:0">${esc(pg.texto)}</div></div>` : ''}` : '<div class="nota">Não consegui abrir a página deles para ler o texto.</div>'}
+    ${tumi.map(([k, v]) => `<div class="kv"><small>${k}</small><b style="font-weight:400">${esc(v)}</b></div>`).join('')}
+    ${ccmpPosts(p)}
+    ${pg && pg.whatsapp ? `<div class="nota" style="margin:6px 0 0">WhatsApp comercial público: ${esc(pg.whatsapp)}</div>` : ''}
+    ${p.site ? `<div class="nota" style="margin:6px 0 0"><a href="${esc(p.site)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.site.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60))}</a></div>` : ''}`;
+}
+function ccmpAbre(i){ const p = ccmpVisiveis()[i]; if (!p) return; const k = ccmpVk(p.nome); CCMP.aberto = CCMP.aberto || {}; CCMP.aberto[k] = !CCMP.aberto[k]; ccmpPinta(); }
 function ccmpLista(){
   const vis = ccmpVisiveis(), rej = (CCMP.players || []).length - vis.length;
-  const voto = (p, i) => { const v = CCMP.votos[ccmpVk(p.nome)];
-    return `<span class="vt"><button class="${v === 1 ? 'on' : ''}" title="Acertou: busque mais assim" aria-label="Joinha para cima" onclick="ccmpVoto(${i},1)">${'👍'}</button><button title="Não tem a ver: tira da lista e o Tumi aprende" aria-label="Joinha para baixo" onclick="ccmpVoto(${i},-1)">${'👎'}</button></span>`; };
-  const semDados = vis.map((p, i) => ({ p, i })).filter(x => !CCMP.dados[x.p.instagram] || CCMP.dados[x.p.instagram].erro);
-  const comDados = vis.map((p, i) => ({ p, i })).filter(x => CCMP.dados[x.p.instagram] && !CCMP.dados[x.p.instagram].erro);
-  const cor = ['#11BA98','#4c7dff','#e59a2f','#e0526b','#9a6bdb'];
-  const cols = comDados.length ? `<div class="cmp-cols" style="grid-template-columns:repeat(${comDados.length},minmax(210px,1fr))">${comDados.map((x, k) => { const p = x.p, d = CCMP.dados[p.instagram];
-    return `<div class="cmp-col" style="border-top:3px solid ${cor[k % 5]}"><div class="h">${d.avatar ? `<img src="${esc(d.avatar)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : `<span class="ini">${esc(p.nome.slice(0, 2).toUpperCase())}</span>`}<div style="min-width:0"><b>${esc(p.nome)}</b><small>@${esc(d.usuario || p.instagram)}</small></div>${voto(p, x.i)}</div>
-      <div class="nota" style="margin:2px 0 8px">${esc([p.tipologia, p.praca].filter(Boolean).join(' · '))}</div>
-      <div class="kv"><small>Seguidores</small><b>${nf(d.seguidores)}</b></div><div class="kv"><small>Posts/semana</small><b>${String(d.por_semana).replace('.', ',')}</b></div><div class="kv"><small>Engajamento</small><b>${d.engajamento != null ? String(d.engajamento).replace('.', ',') + '%' : '—'}</b></div>
-      ${d.parecidos && d.parecidos.length ? '<div class="nota" style="margin:10px 0 0">Posts mais parecidos com o seu:</div>' : ''}${(d.parecidos && d.parecidos.length ? d.parecidos : (d.top || [])).map((t, q) => `<div class="ccr" onclick="this.classList.toggle('open')">${t.imagem ? `<img src="${esc(t.imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}<div class="tx">${esc(t.texto || '(sem legenda)')}</div><div class="nm">${t.curtidas != null ? '♥ ' + nf(t.curtidas) : ''} · 💬 ${nf(t.comentarios)} · ${esc(t.tipo)}</div></div>`).join('')}
-      ${p.oferta || p.preco ? `<div class="nota" style="margin:8px 0 0">${esc([p.oferta, p.preco && 'Ticket: ' + p.preco].filter(Boolean).join(' · '))}</div>` : ''}</div>`; }).join('')}</div>` : '';
-  const linhas = semDados.length ? `<div class="cmp-pl">${semDados.map(x => { const p = x.p;
-    return `<div class="cmp-p"><div style="flex:1;min-width:0"><b>${esc(p.nome)}</b> <span class="cp-chip">${esc(p.tipo || 'concorrente')}</span>${p.tipologia ? ` <span class="cp-chip">${esc(p.tipologia)}</span>` : ''} <small class="nota">${esc(p.praca || '')}</small>
-      <div class="nota" style="margin:2px 0 0">${esc([p.oferta, p.preco && 'Ticket: ' + p.preco, p.angulo && 'Ângulo: ' + p.angulo].filter(Boolean).join(' · ') || p.por_que || '')}</div>
-      <div class="nota" style="margin:2px 0 0;opacity:.6">${p.instagram ? (CCMP.dados[p.instagram] && CCMP.dados[p.instagram].erro ? 'Instagram @' + esc(p.instagram) + ' não abre dados (precisa ser perfil profissional e público).' : (CCMP.lendo ? 'Lendo o Instagram @' + esc(p.instagram) + '…' : '')) : 'Sem Instagram público encontrado: só os dados da web.'}</div></div>${voto(p, x.i)}</div>`; }).join('')}</div>` : '';
-  return `${cols}${linhas}${rej ? `<div class="nota" style="margin:4px 0">${rej} tirado${rej > 1 ? 's' : ''} por você. O Tumi não traz de novo.</div>` : ''}${vis.length ? '<div class="nota" data-pdq="1" style="margin:6px 0 0">Anúncio pago de concorrente a Meta não libera pela API no Brasil. Aqui entram os posts públicos do Instagram deles: imagem e legenda reais, com curtidas e comentários.</div>' : '<div class="nota">O Tumi não achou concorrentes confiáveis. ' + esc(CCMP.obs || '') + '</div>'}`;
+  const linhas = vis.map((p, i) => { const k = ccmpVk(p.nome), aberto = (CCMP.aberto || {})[k], img = ccmpImg(p), pg = p.pagina || {};
+    return `<div class="cmp-p" style="flex-direction:column;align-items:stretch;cursor:pointer" onclick="ccmpAbre(${i})"><div style="display:flex;gap:10px;align-items:center">
+      ${img ? `<img src="${esc(img)}" referrerpolicy="no-referrer" alt="" style="width:54px;height:54px;border-radius:12px;object-fit:cover;flex:0 0 54px;background:rgba(127,127,127,.15)" onerror="this.remove()">` : ''}
+      <div style="flex:1;min-width:0"><b>${esc(p.nome)}</b> <span class="cp-chip">${esc(p.tipo || 'concorrente')}</span>${p.tipologia ? ` <span class="cp-chip">${esc(p.tipologia)}</span>` : ''} <small class="nota">${esc(p.praca || '')}</small>
+        <div class="nota" style="margin:2px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(pg.descricao || pg.titulo || [p.oferta, p.preco && 'Ticket: ' + p.preco].filter(Boolean).join(' · ') || p.por_que || 'Sem texto lido ainda')}</div>
+        <div class="nota" style="margin:2px 0 0;opacity:.6">${p.instagram ? (CCMP.dados[p.instagram] && CCMP.dados[p.instagram].erro ? 'Instagram @' + esc(p.instagram) + ': não abre dados (precisa ser perfil profissional e público)' : (CCMP.dados[p.instagram] ? 'Instagram @' + esc(p.instagram) + ' lido' : (CCMP.lendo ? 'Lendo o Instagram @' + esc(p.instagram) + '…' : 'Instagram @' + esc(p.instagram)))) : 'Sem Instagram público encontrado'}${pg.imagem || pg.texto ? ' · página lida' : ''}</div></div>
+      <span class="nota" style="flex:0 0 auto">${aberto ? '▴' : '▾'}</span>${ccmpVotoBtns(p, i)}</div>
+      ${aberto ? `<div style="padding:10px 2px 2px" onclick="event.stopPropagation()">${ccmpCorpo(p)}</div>` : ''}</div>`; }).join('');
+  return `${vis.length ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0"><button class="btn cheio cp-b" onclick="ccmpTela()">Abrir comparação lado a lado</button><span class="nota">Toque numa linha para ver tudo o que o Tumi achou.</span></div>` : ''}
+    <div class="cmp-pl">${linhas}</div>${rej ? `<div class="nota" style="margin:4px 0">${rej} tirado${rej > 1 ? 's' : ''} por você. O Tumi não traz de novo.</div>` : ''}${vis.length ? '<div class="nota" data-pdq="1" style="margin:6px 0 0">Anúncio pago de concorrente a Meta não libera pela API no Brasil. O que entra aqui é público: a página do empreendimento (imagem e texto) e os posts do Instagram, com curtidas e comentários.</div>' : '<div class="nota">O Tumi não achou concorrentes confiáveis. ' + esc(CCMP.obs || '') + '</div>'}`;
+}
+function ccmpTela(){
+  const vis = ccmpVisiveis(); if (!vis.length) return;
+  const cor = ['#2f9e6b','#11BA98','#4c7dff','#e59a2f','#e0526b','#9a6bdb','#cf7b3c','#5b8bd6'];
+  const cn = ccmpCliente(), c0 = (ADS.dados?.contas || []).filter(x => x.client_id === CCMP.sel[0] && !x.erro), gasto = c0.reduce((a, x) => a + (x.gasto || 0), 0), leads = c0.reduce((a, x) => a + (x.leads || 0), 0), prods = (ADS.prods || []).filter(x => x.client_id === CCMP.sel[0]).map(x => x.name);
+  const seu = `<div class="cmp-col" style="border-top:3px solid #fff"><div class="h">${logoCliente(cn, 30)}<div style="min-width:0"><b>${esc(cn)}</b><small>o seu${ALVO ? ' · ' + esc(ALVO.tipo) : ''}</small></div></div>
+    ${ALVO && ALVO.imagem ? `<img class="ccimg" src="${esc(ALVO.imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}
+    ${ALVO ? `<div class="kv"><small>${esc(ALVO.tipo)}</small><b>${esc(ALVO.titulo || '')}</b></div>${ALVO.texto ? `<div class="ccr" style="border:0" onclick="this.classList.toggle('open')"><div class="tx" style="padding:0">${esc(ALVO.texto)}</div></div>` : ''}${ALVO.metricas ? `<div class="nota">${Object.entries(ALVO.metricas).filter(([, v]) => v != null && v !== '').map(([k, v]) => esc(k) + ': ' + esc(String(v))).join(' · ')}</div>` : ''}` : ''}
+    ${prods.length ? `<div class="kv"><small>Produtos</small><b style="font-weight:400">${esc(prods.join(', '))}</b></div>` : ''}
+    <div class="kv"><small>Investido</small><b>${brl(gasto, 'BRL')}</b></div><div class="kv"><small>Leads</small><b>${nf(leads)}</b></div><div class="kv"><small>CPL</small><b>${leads ? brl(gasto / leads, 'BRL') : '—'}</b></div></div>`;
+  const cols = vis.map((p, i) => `<div class="cmp-col" style="border-top:3px solid ${cor[i % 8]}"><div class="h"><div style="min-width:0;flex:1"><b>${esc(p.nome)}</b><small>${esc([p.tipo, p.tipologia].filter(Boolean).join(' · '))}</small></div>${ccmpVotoBtns(p, i)}</div>${ccmpCorpo(p)}</div>`).join('');
+  const html = `<div class="cp-top">${voltaBtn('Comparar clientes', 'abrirCompararCampanhas()')}<span style="flex:1"></span><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 4px;font-size:22px;font-weight:400">Lado a lado</h3><div class="nota" style="margin:0 0 8px">O seu à esquerda e os concorrentes que o Tumi achou. Toque num texto ou post para abrir inteiro.</div>
+    <div class="cmp-cols" style="grid-template-columns:repeat(${vis.length + 1},minmax(250px,1fr))">${seu}${cols}</div>`;
+  const X = document.getElementById('cxCcmpT');
+  if (X) pdMantemRolagem(X, () => { X.innerHTML = html; }); else abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 20px" id="cxCcmpT">${html}</div>`, true);
 }
 function ccmpVoto(i, v){
   const p = ccmpVisiveis()[i]; if (!p) return; const k = ccmpVk(p.nome);
   CCMP.votos[k] = CCMP.votos[k] === v && v === 1 ? 0 : v;
   try { localStorage.setItem('pd_votos_conc', JSON.stringify(CCMP.votos)); } catch(e){}
   if (CCMP.votos[k] !== 0) adsFala({ acao:'voto_gravar', client_id: CCMP.sel[0], item: p.nome, voto: CCMP.votos[k] }).catch(() => {});
-  ccmpPinta();
+  ccmpPinta(); if (document.getElementById('cxCcmpT')) ccmpTela();
 }
 async function ccmpLer(){
   const hs = ccmpVisiveis().map(p => p.instagram).filter(h => h && !CCMP.dados[h]).slice(0, 5); if (!hs.length) return;

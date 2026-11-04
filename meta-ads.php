@@ -222,6 +222,45 @@ function pd_alvo_txt($a) {
     return 'FOCO ESPECÍFICO DA COMPARAÇÃO (' . mb_substr((string)$a['tipo'], 0, 20) . '): ' . mb_substr((string)($a['titulo'] ?? ''), 0, 200) . (!empty($a['texto']) ? ' · TEXTO: ' . mb_substr((string)$a['texto'], 0, 700) : '')
          . (!empty($a['metricas']) ? ' · NÚMEROS: ' . json_encode($a['metricas'], JSON_UNESCAPED_UNICODE) : '') . '. Procure e compare o que é comparável a ESSE item (se for produto: mesma tipologia, metragem, ticket e praça; se for anúncio: mesmo ângulo, oferta e formato), não ao cliente em geral.' . "\n";
 }
+
+// lê a página pública de cada concorrente (em paralelo): imagem de destaque, título, texto e o Instagram citado. Só http(s) e só hosts públicos.
+function pd_host_publico($url) {
+    $h = parse_url($url, PHP_URL_HOST); if (!$h || !preg_match('#^https?://#i', $url)) return false;
+    $ip = gethostbyname($h); if ($ip === $h && !filter_var($h, FILTER_VALIDATE_IP)) return false;
+    return (bool)filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+}
+function pd_abs_url($u, $base) {
+    if (!$u) return ''; if (preg_match('#^https?://#i', $u)) return $u; if (strpos($u, '//') === 0) return 'https:' . $u;
+    $p = parse_url($base); if (!$p || empty($p['host'])) return ''; $root = $p['scheme'] . '://' . $p['host'] . (!empty($p['port']) ? ':' . $p['port'] : '');
+    return $u[0] === '/' ? $root . $u : $root . rtrim(dirname($p['path'] ?? '/'), '/') . '/' . $u;
+}
+function pd_ler_paginas(array $urls) {
+    $mh = curl_multi_init(); $hs = []; $out = [];
+    foreach ($urls as $k => $u) {
+        $u = trim((string)$u); if ($u !== '' && !preg_match('#^https?://#i', $u)) $u = 'https://' . $u;
+        if ($u === '' || !pd_host_publico($u)) { $out[$k] = null; continue; }
+        $ch = curl_init($u); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 4, CURLOPT_TIMEOUT => 9, CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; PontodotBot/1.0)', CURLOPT_ENCODING => '', CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS]);
+        curl_multi_add_handle($mh, $ch); $hs[$k] = [$ch, $u];
+    }
+    do { $st = curl_multi_exec($mh, $run); if ($run) curl_multi_select($mh, 1.0); } while ($run && $st === CURLM_OK);
+    foreach ($hs as $k => [$ch, $u]) {
+        $html = (string)curl_multi_getcontent($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $fin = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL) ?: $u;
+        curl_multi_remove_handle($mh, $ch); curl_close($ch);
+        if ($code >= 400 || $html === '') { $out[$k] = null; continue; }
+        $html = substr($html, 0, 600000);
+        $meta = function ($n) use ($html) { foreach (['property', 'name'] as $a) if (preg_match('/<meta[^>]+' . $a . '=["\']' . preg_quote($n, '/') . '["\'][^>]*content=["\']([^"\']*)["\']/i', $html, $m) || preg_match('/<meta[^>]+content=["\']([^"\']*)["\'][^>]+' . $a . '=["\']' . preg_quote($n, '/') . '["\']/i', $html, $m)) return html_entity_decode(trim($m[1]), ENT_QUOTES, 'UTF-8'); return ''; };
+        $titulo = $meta('og:title') ?: (preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $m) ? html_entity_decode(trim(strip_tags($m[1])), ENT_QUOTES, 'UTF-8') : '');
+        $limpo = preg_replace(['#<script\b.*?</script>#is', '#<style\b.*?</style>#is', '#<noscript\b.*?</noscript>#is', '#<(nav|footer|header|svg)\b.*?</\1>#is'], ' ', $html);
+        $hs2 = []; if (preg_match_all('/<h[12][^>]*>(.*?)<\/h[12]>/is', $limpo, $mm)) foreach ($mm[1] as $t) { $t = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($t), ENT_QUOTES, 'UTF-8'))); if (mb_strlen($t) > 3 && !in_array($t, $hs2, true)) $hs2[] = mb_substr($t, 0, 140); }
+        $txt = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace('<', ' <', $limpo)), ENT_QUOTES, 'UTF-8')));
+        $ig = ''; if (preg_match_all('#instagram\.com/([A-Za-z0-9._]{2,30})#i', $html, $im)) foreach ($im[1] as $c) { $c = strtolower($c); if (!in_array($c, ['p', 'reel', 'reels', 'explore', 'accounts', 'tv', 'stories', 'sharer', 'share'], true)) { $ig = $c; break; } }
+        $zap = preg_match('#(?:wa\.me/|api\.whatsapp\.com/send\?phone=)(\d{10,15})#', $html, $zm) ? $zm[1] : '';
+        $out[$k] = ['url' => $fin, 'imagem' => pd_abs_url($meta('og:image') ?: $meta('twitter:image'), $fin), 'titulo' => mb_substr($titulo, 0, 160), 'descricao' => mb_substr($meta('og:description') ?: $meta('description'), 0, 320),
+            'chamadas' => array_slice($hs2, 0, 6), 'texto' => mb_substr($txt, 0, 900), 'instagram' => $ig, 'whatsapp' => $zap];
+    }
+    curl_multi_close($mh); return $out;
+}
 function pd_ctx_cliente($cid) {
     if (!preg_match('/^[0-9a-f-]{36}$/i', (string)$cid)) return null;
     $c = pd_supa('/rest/v1/clients?id=eq.' . $cid . '&select=id,name&limit=1'); $nome = $c['body'][0]['name'] ?? null; if (!$nome) return null;
@@ -267,7 +306,7 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
         $sys = 'Você é Tumi Tua, da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: percorre mercados e entrevista quem cozinha para os outros, tem um bico curioso e um corpo que ocupa dois bancos. '
              . 'Seu ofício é rede e conexões: achar, na web aberta, quem são os players reais de um negócio. Você ACREDITA que é o Tumi. '
              . 'TAREFA: pesquise na web e devolva de 5 a 8 CONCORRENTES REAIS do cliente em lançamentos. REGRA DE OURO: o TIPO DE PRODUTO tem de ser o mesmo. Descubra pela ficha/produtos/notas o tipo do que o cliente vende (loteamento/lote, apartamento, casa em condomínio, comercial…) e traga só quem vende o MESMO tipo, na mesma região e faixa de preço. Apartamento NÃO é concorrente de loteamento, e vice-versa. As 1 ou 2 referências de fora da praça também têm de ser do mesmo tipo. Se não tiver certeza do tipo, diga em "obs" e traga menos itens. '
-             . 'Para cada um traga só o que viu em página real; nunca invente dado, nome nem @. O Instagram só entra se você viu o @ em uma página real. '
+             . 'Para cada um traga só o que viu em página real; nunca invente dado, nome nem @. O SITE (ou a página do empreendimento) é obrigatório: só traga concorrente cuja URL você viu nos resultados. O Instagram só entra se você viu o @ em uma página real. '
              . 'A equipe já avaliou antes: ' . ($bons ? 'APROVADOS (acertou, busque mais assim): ' . implode(' | ', array_slice($bons, 0, 20)) . '. ' : '') . ($ruins ? 'REJEITADOS (não traga de novo e evite o mesmo tipo de erro): ' . implode(' | ', array_slice($ruins, 0, 30)) . '. ' : '') . ($votos ? '' : 'Sem avaliações ainda. ')
              . 'Responda SOMENTE um JSON: {"concorrentes":[{"nome":"...","tipo":"concorrente direto|referencia","tipologia":"loteamento|apartamento|casa|comercial|...","praca":"...","instagram":"usuario ou vazio","site":"url ou vazio","oferta":"1 frase","preco":"...","angulo":"1 frase","por_que":"1 frase"}],"obs":"1 frase"}.';
         [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO:\n$nota"]], 2600, 4);
@@ -281,6 +320,8 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
             $lista[] = ['nome' => $nome, 'tipo' => (string)($p['tipo'] ?? 'concorrente direto'), 'tipologia' => (string)($p['tipologia'] ?? ''), 'praca' => (string)($p['praca'] ?? ''), 'instagram' => $ig, 'site' => (string)($p['site'] ?? ''),
                 'oferta' => (string)($p['oferta'] ?? ''), 'preco' => (string)($p['preco'] ?? ''), 'angulo' => (string)($p['angulo'] ?? ''), 'por_que' => (string)($p['por_que'] ?? '')];
         }
+        $pg = pd_ler_paginas(array_map(fn($x) => $x['site'], $lista));
+        foreach ($lista as $i => &$x) { $pp = $pg[$i] ?? null; $x['pagina'] = $pp; if ($pp && $x['instagram'] === '' && !empty($pp['instagram']) && preg_match('/^[a-z0-9._]{2,30}$/', $pp['instagram'])) $x['instagram'] = $pp['instagram']; } unset($x);
         sai(['concorrentes' => $lista, 'obs' => (string)($j['obs'] ?? ''), 'bruto' => $lista ? null : $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
     }
     $sys = 'Você é Sumi Sulo, a IA de Campanhas da casa (agência de branding do mercado imobiliário brasileiro: lançamentos e incorporadoras). '
