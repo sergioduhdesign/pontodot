@@ -776,6 +776,26 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 @keyframes kpiIn{from{opacity:0;transform:scale(.82) translateY(8px)}to{opacity:1;transform:none}}
 @keyframes kpiOut{to{opacity:0;transform:scale(.82) translateY(-6px)}}
 .cp-chip{transition:background .2s,color .2s,opacity .2s,transform .15s}button.cp-chip:active{transform:scale(.94)}
+.cp-voltar{display:inline-flex;align-items:center;gap:4px;padding:6px 12px 6px 8px;border-radius:999px;border:.5px solid var(--linha);background:none;color:inherit;font:inherit;font-size:13px;cursor:pointer;max-width:70%}
+.cp-voltar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cp-voltar:active{transform:scale(.96)}
+.rds{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:3px}.rd{display:inline-flex;align-items:center;gap:5px;font-size:12px;opacity:.85}.rd b{font-weight:500}.rd i{font-style:normal;opacity:.55;font-size:10.5px}
+.fc{display:flex;gap:12px;padding:11px;margin:0 0 8px;border:.5px solid var(--linha);border-radius:16px;background:rgba(127,127,127,.06);cursor:pointer}.fc.ruim{border-color:var(--rosa)}
+.fc .th{width:64px;height:64px;flex:0 0 64px;border-radius:12px;overflow:hidden;background:rgba(127,127,127,.18);display:grid;place-items:center;font-size:11px;opacity:.9}.fc .th img{width:100%;height:100%;object-fit:cover}
+.fc .tx{flex:1;min-width:0}.fc .t{display:flex;align-items:center;gap:7px;font-size:13px}.fc .t b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+.fc .d{font-size:12.5px;opacity:.75;margin:4px 0 6px;line-height:1.4}.fc .d.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fc.aberto .d.clamp{display:none}.fc .full{display:none;font-size:12.5px;line-height:1.5}.fc.aberto .full{display:block}
+.fc .f{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;opacity:.85}
+.cmp-slots{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}.cmp-slot{display:inline-flex;align-items:center;gap:7px;padding:6px 8px 6px 10px;border:1.5px solid;border-radius:999px;font-size:13px}.cmp-slot i{width:9px;height:9px;border-radius:50%}.cmp-slot small{opacity:.55;font-size:10.5px}.cmp-slot button{border:0;background:none;color:inherit;cursor:pointer;opacity:.6;padding:0 2px}
+.cmp-add{display:grid;gap:8px;margin:0 0 4px}.cmp-add form{display:flex;gap:8px}.cmp-add form input{flex:1;min-width:0}
+.cmp-pl{display:grid;gap:7px;margin:8px 0}.cmp-p{display:flex;gap:10px;align-items:center;padding:9px 11px;border:.5px solid var(--linha);border-radius:12px}
+.cmp-cols{display:grid;gap:10px;overflow-x:auto;padding:2px 0 6px;margin:10px 0 0;scrollbar-width:none}.cmp-col{border:.5px solid var(--linha);border-radius:14px;padding:12px;min-width:0;background:rgba(127,127,127,.06)}
+.cmp-col .h{display:flex;align-items:center;gap:9px;margin-bottom:8px}.cmp-col .h img,.cmp-col .h .ini{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:0 0 34px;display:grid;place-items:center;background:rgba(127,127,127,.3);font-size:11px}.cmp-col .h b{display:block;font-size:13px;overflow-wrap:anywhere}.cmp-col .h small{opacity:.6;font-size:10.5px}
+.cmp-col .kv{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-top:.5px solid var(--sep);font-size:12px}.cmp-col .kv small{opacity:.6}.cmp-col .kv b{font-weight:500;font-size:14px}
+.cmp-col .tg{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}.cmp-col .top{display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit;font-size:11px;opacity:.85;margin-top:6px}.cmp-col .top img{width:46px;height:46px;border-radius:8px;object-fit:cover}
+.cmp-b{display:grid;grid-template-columns:minmax(80px,120px) 1fr auto;gap:10px;align-items:center;margin:5px 0;font-size:12.5px}.cmp-b .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cmp-b .bar{height:9px;border-radius:6px;background:rgba(127,127,127,.18);overflow:hidden;display:flex}.cmp-b .bar i{display:block;height:100%}.cmp-b b{font-weight:500;min-width:44px;text-align:right}
+.cmp-b .heat{display:grid;gap:2px;grid-column:2/4}.cmp-b .heat i{display:block;height:16px;border-radius:3px}
+.cmp-resp{margin:14px 0 4px;padding:16px;border:.5px solid var(--linha);border-radius:16px;background:rgba(127,127,127,.07)}.md h4{margin:16px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;font-weight:600}.md p{margin:6px 0;line-height:1.55;font-size:13.5px}.md ul{margin:6px 0 6px 18px;padding:0}.md li{margin:4px 0;line-height:1.5;font-size:13.5px}
+@media(max-width:700px){.cmp-b{grid-template-columns:90px 1fr auto}.fc .th{width:54px;height:54px;flex-basis:54px}}
 .cp-top{display:flex;align-items:center;gap:10px}
 .cp .cp-b{min-height:36px;padding:7px 14px;font-size:12.5px}
 .cp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin:12px 0 8px}
@@ -4871,7 +4891,7 @@ async function carregarPub(forcar){
   PUB.em = Date.now();
   try {
     const [alvos, rel] = await Promise.all([
-      sbR.from('scheduled_post_targets').select('id,status,platform,placement,error_message,scheduled_at_override,post_id,scheduled_posts(scheduled_at,caption,client_id,batch_name)')
+      sbR.from('scheduled_post_targets').select('id,status,platform,placement,error_message,scheduled_at_override,post_id,scheduled_posts(scheduled_at,caption,client_id,batch_name,media_urls)')
         .in('status',['agendado','publicando','erro']).limit(200),
       sbR.from('pd_relatorios').select('client_id,dia,analise,clients(name)').order('dia',{ascending:false}).limit(6).then(r=>r,()=>({data:null})),
     ]);
@@ -4892,6 +4912,10 @@ async function carregarPub(forcar){
       // passou da hora e continua "agendado": o publicador não pegou
       atrasados: ok.filter(a => a.status==='agendado' && a.quando < agora - 15*60e3),
     };
+    try {
+      const pb = await sbR.from('scheduled_post_targets').select('id,status,platform,placement,scheduled_at_override,scheduled_posts(scheduled_at,caption,client_id,media_urls)').eq('status','publicado').limit(150);
+      PUB.dados.publicados = (pb.data||[]).map(a => ({ ...a, quando: new Date(a.scheduled_at_override || a.scheduled_posts?.scheduled_at || 0).getTime(), cliente: nomeDe(a) })).sort((x,y)=>y.quando-x.quando).slice(0,80);
+    } catch(e){ PUB.dados.publicados = []; }
     // aprovadas que ainda não entraram na fila — sem teto de 60: as velhas ficam separadas das que falta agendar
     try {
       const { data: aps } = await sbR.from('approval_items').select('id,title,kind,set_id,publish_at').eq('status','aprovado')
@@ -4926,10 +4950,10 @@ function htmlPublicacao(){
   const rel = (d.relatorios||[]).slice(0,2).map(r => `<div style="margin:5px 0;padding:8px 11px;background:rgba(127,127,127,.09);border-radius:10px;font-size:11.5px;line-height:1.5">
     📊 <b>${esc(r.clients?.name||'Cliente')}</b> · ${fmtD(r.dia)}${r.analise?`<br><span style="opacity:.8">${esc(String(r.analise).slice(0,180))}${String(r.analise).length>180?'…':''}</span>`:''}</div>`).join('');
   return gadCaixa('Social', socBarra() + `
-    <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px"><span class="nota" style="margin:0;flex:1">${d.fila ? 'Quer ter certeza de que vai sair?' : ''}</span>
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px"><span class="nota" style="margin:0;flex:1"></span>
       <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="conferirFila()">Conferir fila</button>
       <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirListaPub('fila')">Ver todos</button></div>
-    <div style="display:flex;gap:8px;margin:4px 0 8px;flex-wrap:wrap">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'falta agendar','fora'):''}${d.antigos ? num(d.antigos,'antigos · não entram','antigos') : ''}</div>
+    <div style="display:flex;gap:8px;margin:4px 0 8px;flex-wrap:wrap">${num(d.hoje,'sai hoje','hoje')}${num(d.fila,'na fila','fila')}${num((d.publicados||[]).length,'publicados','publicados')}${num(d.nErros,'com erro','erro')}${d.foraDaFila!=null?num(d.foraDaFila,'sem data','fora'):''}${d.antigos ? num(d.antigos,'perdidas','antigos') : ''}</div>
     ${erros}${rel}
     ${!d.fila && !d.nErros && !rel ? '<div class="nota" style="padding:2px">Fila vazia — aprove um lote e agende, ou ligue o "agendar sozinho".</div>' : ''}`);
 }
@@ -4940,53 +4964,6 @@ const quandoPost = ms => { const d = new Date(ms); const h = d.toLocaleTimeStrin
   const hoje = new Date(); const amanha = new Date(Date.now()+864e5);
   const dia = d.toDateString()===hoje.toDateString() ? 'Hoje' : d.toDateString()===amanha.toDateString() ? 'Amanhã' : d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
   return dia + ' ' + h; };
-function abrirListaPub(tipo){
-  const d = PUB.dados; if (!d) return;
-  if (tipo==='erro' || tipo==='fila'){ ['social','publicacao'].forEach(g => NOVIDADES[g]().forEach(x => (VISTOS[g] = VISTOS[g] || {})[x.k] = Date.now())); _salvarVistos(); pintarBolinhas(); }
-  const fim = new Date(); fim.setHours(23,59,59,999);
-  let L = [], tit = '', vazio = 'Nada aqui.';
-  if (tipo==='hoje'){ tit='Sai hoje'; L = d.todos.filter(a=>a.status!=='erro' && a.quando<=fim.getTime()).sort((x,y)=>x.quando-y.quando); }
-  else if (tipo==='fila'){ tit='Na fila'; L = d.todos.filter(a=>a.status!=='erro').sort((x,y)=>x.quando-y.quando); }
-  else if (tipo==='erro'){ tit='Com erro'; L = d.todos.filter(a=>a.status==='erro'); vazio='Nenhum erro. Tudo saiu como devia.'; }
-  const linha = a => `<div class="ads-linha" style="cursor:default"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-      ${logoCliente(a.cliente,30)}<div class="c"><div class="n">${esc(a.cliente)} · ${PLAT(a)}</div>
-      <div class="d">${a.status==='erro' ? '<span style="color:var(--rosa)">✗ '+esc(String(a.error_message||'erro').slice(0,120))+'</span>' : quandoPost(a.quando) + (a.status==='publicando'?' · publicando agora':'')}</div></div></div></div>`;
-  let corpo;
-  const dt = ms => ms ? new Date(ms).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + new Date(ms).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : 'sem data';
-  const linhaF = (x, velho) => `<div class="ads-linha" style="cursor:default${velho?';opacity:.6':''}"><div class="c"><div class="n">${esc(x.title||'Sem título')}</div><div class="d">${esc(x.kind)} · ${velho ? 'era para ' + dt(x.em) + ' · não entra' : (x.em ? 'sai ' + dt(x.em) : 'sem data de publicação')}</div></div></div>`;
-  if (tipo==='fora'){ tit='Aprovadas, falta agendar'; vazio='Tudo que foi aprovado já está na fila.';
-    corpo = (d.foraLista||[]).map(x=>linhaF(x,false)).join(''); }
-  else if (tipo==='antigos'){ tit='Antigos · não entram'; vazio='Nada antigo.';
-    corpo = `<div class="nota" style="margin:0 0 8px;line-height:1.5">A data deles já passou. O publicador não posta nada velho: assim o planejamento não sai bagunçado. Para algum entrar, mude a data de publicação da peça para uma data futura.</div>`
-      + (d.antigosLista||[]).map(x=>linhaF(x,true)).join('')
-      + (d.velhos||[]).map(a=>`<div class="ads-linha" style="cursor:default;opacity:.6"><div class="c"><div class="n">${esc(a.cliente)} · ${PLAT(a)}</div><div class="d">estava agendado para ${dt(a.quando)} · tirado da fila sem publicar</div></div></div>`).join(''); }
-  else corpo = L.map(linha).join('');
-  abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
-    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">${tit}</h3>
-      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>${socAbas('fila')}
-    <div style="margin-top:10px">${corpo || `<div class="nota">${vazio}</div>`}</div>
-    <div style="margin-top:12px"><button class="btn" onclick="fecharJanela();abrirNoVerso('fila')">Abrir o Social completo</button></div></div>`, true);
-}
-// ---- Conferir a fila: olha cada post dos próximos 7 dias e diz se vai sair (só lê, não publica nada) ----
-async function conferirFila(){
-  abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Conferir fila</h3>
-    <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div id="confCorpo" class="nota" style="margin-top:10px">Conferindo contas, chaves e peças dos próximos 7 dias…</div></div>`, true);
-  try {
-    const { data:{ session } } = await sbR.auth.getSession();
-    const r = await fetch('/social-conferir.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body:'{}' });
-    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
-    const C = document.getElementById('confCorpo'); if (!C) return; C.className = '';
-    const ct = (j.contas||[]).map(c => `<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(c.nome)} · ${c.plataforma==='instagram'?'Instagram':'Facebook'}</div>
-      <div class="d" style="${c.problema?'color:var(--rosa)':''}">${c.problema ? '✗ ' + esc(c.problema) : '✓ conectada, com permissão de publicar'}</div></div></div>`).join('');
-    const pr = (j.itens||[]).map(i => `<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(i.conta)} · ${esc(i.lugar||'feed')} · ${new Date(i.quando).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-      <div class="d" style="color:var(--rosa)">${i.problemas.map(x => '✗ ' + esc(x)).join('<br>')}</div></div></div>`).join('');
-    C.innerHTML = `<div style="padding:10px 12px;border-radius:12px;border:.5px solid ${j.problemas?'var(--rosa)':'var(--verde,#1f8a55)'};margin-bottom:10px;font-size:13px;line-height:1.5">
-        ${j.total ? `<b>${j.ok} de ${j.total}</b> posts dos próximos 7 dias estão prontos para sair.${j.problemas ? ` <b style="color:var(--rosa)">${j.problemas} com problema.</b>` : ' Tudo certo.'}` : 'Nada agendado nos próximos 7 dias.'}</div>
-      ${pr ? `<div class="ads-sec">O que vai impedir</div>${pr}` : ''}
-      ${ct ? `<div class="ads-sec">Contas</div>${ct}` : ''}`;
-  } catch(e){ const C = document.getElementById('confCorpo'); if (C) C.textContent = 'Não consegui conferir: ' + e.message; }
-}
 // ---- Social: os próximos 5, com o rosto do cliente, e o aviso se algo caiu ----
 function htmlSocial(){
   if (!window.REAL) return gadCaixa('Social', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver o que sai nas redes.</div>`);
@@ -5070,7 +5047,7 @@ function adsAba(a){ ADS.aba = a; try { render(); } catch(e){} }
 function adsBarra(){
   const b = (id, ico, tit) => { const on = ADS.aba === id;
     return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="adsAba('${id}')" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_CIFRA, 'Campanhas')}</div>`;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_CIFRA, 'Campanhas')}<button class="btn" title="Comparar clientes" aria-label="Comparar clientes" onclick="abrirCompararCampanhas()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.7">${adsSvg('<rect x="3" y="4" width="7.5" height="16" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.6"/>', 24)}</button></div>`;
 }
 function adsPeriodo(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; render(); carregarAds(true); }
 async function conectarMeta(){
@@ -5229,7 +5206,7 @@ function cpCard(x, conta){
     <div class="m"><div><small>Investido</small><b>${brl(x.gasto,x.moeda)}</b></div><div><small>Leads</small><b>${nf(x.leads)}</b></div><div><small>CPL</small><b>${x.cpl!=null?brl(x.cpl,x.moeda):'—'}</b></div></div>
     <div class="s">${nf(x.alcance)} alcance · ${nf(x.cliques)} cliques${x.orcamento_dia?' · '+brl(x.orcamento_dia,x.moeda)+'/dia':''}</div></button>`;
 }
-function cpPeriodoPills(fn){ return `<div class="ads-per" style="margin:0 0 6px">${ADS_PERIODOS.map(([k,n]) => `<button class="${ADS.periodo===k?'on':''}" onclick="${fn}('${k}')">${n}</button>`).join('')}</div>`; }
+function cpPeriodoPills(fn, atual){ atual = atual || ADS.periodo; return `<div class="ads-per" style="margin:0 0 6px">${ADS_PERIODOS.map(([k,n]) => `<button class="${atual===k?'on':''}" onclick="${fn}('${k}')">${n}</button>`).join('')}</div>`; }
 function cpPeriodoConta(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; carregarAds(true); abrirCampanhas(CP.conta); }
 function cpPeriodoTodas(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; carregarAds(true); abrirTodasCampanhas(); }
 const somaO = (arr) => { const o = { gasto:0, leads:0, alcance:0, impressoes:0, cliques:0, moeda: (arr[0]||{}).moeda || 'BRL' }; arr.forEach(x => { o.gasto += x.gasto||0; o.leads += x.leads||0; o.alcance += x.alcance||0; o.impressoes += x.impressoes||0; o.cliques += x.cliques||0; }); o.cpl = o.leads ? o.gasto/o.leads : null; return o; };
@@ -5237,10 +5214,10 @@ const somaO = (arr) => { const o = { gasto:0, leads:0, alcance:0, impressoes:0, 
 async function abrirCampanhas(conta){
   setKit('camp'); CP.conta = conta;
   const c = (ADS.dados?.contas || []).find(x => x.conta === conta) || {};
-  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px" id="cxCamp">
-    <div class="cp-top">${logoCliente(c.cliente || '', 36)}<h3 style="margin:0;flex:1;font-size:22px;font-weight:400;line-height:1.15">${esc(c.cliente || c.nome || conta)}</h3>
-      <button class="btn cheio cp-b" onclick="pdfConta('${esc(conta)}')">Gerar PDF</button><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','')">Perguntar ao Sumi</button>
-      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+  abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 18px" id="cxCamp">
+    <div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div class="cp-top" style="margin-top:10px">${logoCliente(c.cliente || '', 36)}<h3 style="margin:0;flex:1;font-size:22px;font-weight:400;line-height:1.15">${esc(c.cliente || c.nome || conta)}</h3>
+      <button class="btn cheio cp-b" onclick="pdfConta('${esc(conta)}')">Gerar PDF</button><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','')">${iaAv('sumi', 20)}<span style="margin-left:6px">Perguntar ao Sumi</span></button></div>
     ${abasAds('campanhas')}<div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoConta')}</div>
     <div id="campCorpo" class="nota">Buscando na Meta…</div></div>`, true);
   try {
@@ -5265,7 +5242,7 @@ async function abrirTodasCampanhas(){
   setKit('camp');
   const contas = (ADS.dados?.contas || []).filter(c => !c.erro);
   abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
-    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Todas as campanhas</h3><button class="btn cheio cp-b" onclick="pdfTodas()">Gerar PDF</button>
+    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Todas as campanhas</h3><button class="btn cp-b" onclick="abrirCompararCampanhas()">Comparar</button><button class="btn cheio cp-b" onclick="pdfTodas()">Gerar PDF</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${abasAds('campanhas')}<div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoTodas')}</div><div id="todasCorpo" class="nota">Buscando as campanhas de ${contas.length} conta${contas.length===1?'':'s'}…</div></div>`, true);
   try {
@@ -5291,15 +5268,15 @@ async function abrirCampanhaDetalhe(conta, id){
   const camp = ((ADS.camps||{})[conta]||[]).find(x=>x.id===id) || {};
   Object.assign(CP, { conta, id, camp, ads:[], perfil:null });
   const per = (ADS_PERIODOS.find(p=>p[0]===ADS.periodo)||[,''])[1], eq = perfil?.role === 'admin' || perfil?.role === 'team';
-  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px" id="cxCampDet">
-    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:20px;font-weight:400;line-height:1.2">${esc(camp.nome||'Campanha')}</h3>
-      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div class="nota" style="margin:4px 0 10px">${esc(conta0.cliente||conta0.nome||'')} · ${esc(per)}${(ADS.prodMap||{})[id] ? ' · ' + esc(adsNomeProd(ADS.prodMap[id])) : ''}</div>
+  abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 18px" id="cxCampDet">
+    <div class="cp-top">${voltaBtn(conta0.cliente || conta0.nome || 'Campanhas', `abrirCampanhas('${esc(conta)}')`)}<span style="flex:1"></span><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 0;font-size:20px;font-weight:400;line-height:1.2">${esc(camp.nome||'Campanha')}</h3>
+    <div class="nota" style="margin:4px 0 8px">${esc(conta0.cliente||conta0.nome||'')}${(ADS.prodMap||{})[id] ? ' · ' + esc(adsNomeProd(ADS.prodMap[id])) : ''}</div>
+    ${cpPeriodoPills('cpDetPeriodo').replace(/cpDetPeriodo\('/g, `cpDetPeriodo('${esc(conta)}','${esc(id)}','`)}
     <div style="display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:-1px;z-index:3;padding:2px 0 8px">
       <button class="btn cheio cp-b" id="btPdfCamp" onclick="pdfCampanha('${esc(conta)}','${esc(id)}')" disabled>Gerar PDF</button>
-      <button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(id)}')">Perguntar ao Sumi</button>
-      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button>
-      <button class="btn cp-b" onclick="abrirCampanhas('${esc(conta)}')">← Campanhas</button></div>
+      <button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(id)}')">${iaAv('sumi', 20)}<span style="margin-left:6px">Perguntar ao Sumi</span></button>
+      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button></div>
     <div id="cpSel" class="cp-sel"></div>
     <div class="cp-kpis" id="cpKpis">${metCards(camp)}</div>
     <div id="anunVer"></div>
@@ -5330,6 +5307,13 @@ async function abrirCampanhaDetalhe(conta, id){
   } catch(e){ const C = document.getElementById('anunCorpo'); if (C) C.textContent = e.message;
     const bt = document.getElementById('btPdfCamp'); if (bt) bt.disabled = false; }
 }
+async function cpDetPeriodo(conta, id, p){
+  ADS.periodo = p; ADS.dados = null; ADS.em = 0; carregarAds(true);
+  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px"><div class="nota">Lendo a campanha na Meta…</div></div>`, true);
+  try { const j = await adsFala({ acao:'campanhas', conta, periodo:p }); (ADS.camps = ADS.camps || {})[conta] = j.campanhas || []; } catch(e){}
+  if (!ADS.dados) try { ADS.dados = await adsFala({ acao:'resumo', periodo:p }); } catch(e){}
+  abrirCampanhaDetalhe(conta, id);
+}
 function anunAbrir(i){
   const a = CP.ads[i], V = document.getElementById('anunVer'); if (!a || !V) return;
   document.querySelectorAll('.cp-anun').forEach(x => x.classList.remove('on')); document.getElementById('an' + i)?.classList.add('on');
@@ -5339,7 +5323,7 @@ function anunAbrir(i){
     <div class="n" style="font-size:15px;margin:10px 0 2px">${esc(a.nome)} <span class="cp-chip">${esc(st)}</span></div>
     ${a.titulo ? `<div style="font-weight:500;margin:4px 0">${esc(a.titulo)}</div>` : ''}${a.texto ? `<div class="d" style="white-space:pre-wrap;line-height:1.5;margin:0 0 8px">${esc(a.texto)}</div>` : ''}
     <div class="cp-kpis" style="margin:8px 0 6px">${metCards(a)}</div>
-    ${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir a prévia na Meta</a>` : ''}</div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cheio cp-b" onclick="pdfAnuncio(${i})">PDF deste anúncio</button>${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir a prévia na Meta</a>` : ''}</div></div>`;
   V.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 function anunFecha(){ const V = document.getElementById('anunVer'); if (V) V.innerHTML = ''; document.querySelectorAll('.cp-anun').forEach(x => x.classList.remove('on')); }
@@ -5372,6 +5356,7 @@ async function cpPublico(conta, campId){
 const IA_PERS = {
   sumi: { nome:'Sumi Sulo', cor:'#18155F', ini:'S', papel:'IA de Campanhas', placeholder:'Pergunte ao Sumi…', lendo:'Sumi está lendo os dados…',
     boas:'Oi! Sou o Sumi Sulo, a lula-coruja que cuida dos resultados dos anúncios aqui da casa. Gosto de desenhar o que parece confuso em diagrama simples. Me pergunta de números, público, horários, comparações ou concorrentes: eu leio os dados reais desta conta e saio pra pesquisar o mercado.' },
+  tumi: { nome:'Tumi Tua', cor:'#11BA98', ini:'T', papel:'Rede e conexões', placeholder:'', lendo:'', boas:'' },
   muru: { nome:'Muru Mara', cor:'#145DEC', ini:'M', papel:'IA de Social', placeholder:'Pergunte à Muru…', lendo:'Muru está olhando as redes…',
     boas:'Oi, eu sou a Muru Mara, a beluga-coelho que acompanha o ritmo das redes por aqui. Faço uma volta calma pelos números antes de responder. Pode perguntar o que rendeu, o que repetir, o que parar, ou como os concorrentes estão postando.' },
 };
@@ -5420,6 +5405,25 @@ async function iaCampEnviar(txt){
   IAC.ocupada = false; iaCampPinta();
 }
 
+// COMPARAR CAMPANHAS: até 5 clientes lado a lado (investido, leads, CPL, cliques, alcance)
+const CCMP = { sel:[] };
+function abrirCompararCampanhas(){
+  const contas = (ADS.dados?.contas || []).filter(c => !c.erro && c.client_id), por = {};
+  contas.forEach(c => { const o = por[c.client_id] = por[c.client_id] || { id:c.client_id, nome:c.cliente || c.nome, gasto:0, leads:0, moeda:c.moeda, n:0 }; o.gasto += c.gasto || 0; o.leads += c.leads || 0; o.n++; });
+  Object.values(por).forEach(o => { o.cpl = o.leads ? o.gasto / o.leads : null; });
+  const todos = Object.values(por).sort((a, b) => b.gasto - a.gasto); if (!CCMP.sel.length) CCMP.sel = todos.slice(0, 2).map(o => o.id);
+  const sel = CCMP.sel.map(id => por[id]).filter(Boolean), cor = ['#2f9e6b','#4c7dff','#e59a2f','#e0526b','#9a6bdb'];
+  const barras = (tit, fn, fmt) => { const vs = sel.map(fn), mx = Math.max(...vs.map(v => v || 0), 0.0001);
+    return `<div class="ads-sec" style="margin:14px 0 6px">${tit}</div>` + sel.map((o, i) => `<div class="cmp-b"><span class="who" style="color:${cor[i]}">${esc(o.nome)}</span><div class="bar"><i style="width:${Math.max(2, (vs[i] || 0) / mx * 100)}%;background:${cor[i]}"></i></div><b>${vs[i] == null ? '—' : fmt(vs[i])}</b></div>`).join(''); };
+  abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 20px"><div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar clientes</h3>
+    <div class="nota" style="margin:0 0 8px">Escolha até 5 clientes. Período: ${pdfPer()}. Concorrentes não aparecem aqui: a Meta não abre os números de anúncio de terceiros.</div>
+    <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
+    ${sel.length ? `<div class="cmp-cols" style="grid-template-columns:repeat(${sel.length},minmax(150px,1fr))">${sel.map((o, i) => `<div class="cmp-col" style="border-top:3px solid ${cor[i]}"><div class="h">${logoCliente(o.nome, 30)}<div><b>${esc(o.nome)}</b><small>${o.n} conta${o.n === 1 ? '' : 's'}</small></div></div>
+      <div class="kv"><small>Investido</small><b>${brl(o.gasto, o.moeda)}</b></div><div class="kv"><small>Leads</small><b>${nf(o.leads)}</b></div><div class="kv"><small>CPL</small><b>${o.cpl != null ? brl(o.cpl, o.moeda) : '—'}</b></div></div>`).join('')}</div>
+    ${barras('Investido', o => o.gasto, v => brl(v, 'BRL'))}${barras('Leads', o => o.leads, v => nf(v))}${barras('Custo por lead (menor é melhor)', o => o.cpl, v => brl(v, 'BRL'))}` : '<div class="nota">Escolha pelo menos um cliente.</div>'}</div>`, true);
+}
+function ccmpToggle(id){ let s = CCMP.sel.slice(); if (s.includes(id)) s = s.filter(x => x !== id); else if (s.length < 5) s.push(id); else toast('No máximo 5 clientes.'); CCMP.sel = s; abrirCompararCampanhas(); }
 // PDF: relatório limpo (logo do cliente + ícone da PD) → imprimir / Salvar como PDF. Usa as informações escolhidas.
 function pdfDoc(titulo, sub, clienteNome, corpo){
   document.getElementById('pdfFrame')?.remove();
@@ -5479,95 +5483,123 @@ function pdfTodas(){
     `<h2>Resultado geral</h2>${pdfKpis(somaO(todas.map(t => t.x)))}` + Object.keys(por).map(k => `<h2>${esc(k)} · ${brl(somaO(por[k].map(t => t.x)).gasto, 'BRL')}</h2>${por[k].map(t => pdfLinhaCamp(t.x, t.c)).join('')}`).join(''));
 }
 // =====================================================================
-// SOCIAL — mesma estrutura de Campanhas: abas (Fila | Desempenho), período, destaques, "Ver todas",
-// conta por dentro (destaques à escolha, melhores posts, PDF) e a IA Muru Mara.
+// SOCIAL — mesma estrutura de Campanhas: abas (Fila | Desempenho), seletor de cliente, período, destaques,
+// conta por dentro (voltar no topo, período, PDF em qualquer nível), Comparar (até 5 perfis) e as IAs Muru e Tumi.
 // =====================================================================
 const ICO_FILA = '<path d="M21 3 10.5 13.5"/><path d="M21 3l-6.5 18-4-7.5L3 9.5z"/>';
 const ICO_BARRAS = '<path d="M5 20V11M12 20V4M19 20v-6"/>';
+const ICO_COMPARA = '<rect x="3" y="4" width="7.5" height="16" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.6"/>';
+const netIco = (p, s = 15) => p === 'instagram'
+  ? `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-label="Instagram" style="flex:0 0 ${s}px"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9" fill="currentColor" stroke="none"/></svg>`
+  : p === 'facebook' ? `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-label="Facebook" style="flex:0 0 ${s}px"><circle cx="12" cy="12" r="9"/><path d="M13.2 20.5v-7.3h2.4l.4-2.8h-2.8V8.7c0-.8.3-1.3 1.4-1.3H16V5a17 17 0 0 0-2-.1c-2.1 0-3.5 1.3-3.5 3.6v1.9H8.2v2.8h2.3v7.3"/></svg>`
+  : `<span style="font-size:10px">${esc(p || '')}</span>`;
+const voltaBtn = (rot, fn) => `<button class="cp-voltar" onclick="${fn}" aria-label="Voltar para ${esc(rot)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg><span>${esc(rot)}</span></button>`;
 const socAbas = ativa => abasHtml([['fila', ICO_FILA, 'Fila', "abrirListaPub('fila')"], ['desemp', ICO_BARRAS, 'Desempenho', 'abrirSocialTodas()']], ativa);
 function socBarra(){
-  const b = (id, ico, tit) => { const on = SOC.aba === id;
-    return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="socAba('${id}')" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px">${b('fila', ICO_FILA, 'Fila')}${b('desemp', ICO_BARRAS, 'Desempenho')}</div>`;
+  const b = (id, ico, tit, fn) => { const on = SOC.aba === id;
+    return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="${fn}" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
+  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('fila', ICO_FILA, 'Fila', "socAba('fila')")}${b('desemp', ICO_BARRAS, 'Desempenho', "socAba('desemp')")}${b('comp', ICO_COMPARA, 'Comparar', 'abrirComparar()')}</div>`;
 }
 function socAba(a){ SOC.aba = a; if (a === 'desemp') carregarSoc(); try { render(); } catch(e){} }
-function socPeriodo(p){ SOC.periodo = p; SOC.dados = {}; carregarSoc(true); try { render(); } catch(e){} }
 async function carregarSoc(forcar){
   if (!window.REAL || SOC.carregando) return;
-  if (!forcar && SOC.contas && Date.now() - SOC.em < 120e3) return;
+  if (!forcar && SOC.contas && Date.now() - SOC.em < 120e3 && socLista().length >= SOC.contas.length) return;
   SOC.carregando = true;
   try {
-    const { data, error } = await sbR.from('social_accounts').select('id,platform,account_name,account_avatar_url,client_id,status').order('account_name');
-    if (error) throw error;
-    SOC.contas = (data || []).filter(c => c.status !== 'desconectada' && c.status !== 'inativa'); SOC.erro = '';
+    let q = await sbR.from('social_accounts').select('id,platform,account_name,account_avatar_url,client_id,product_id,status').order('account_name');
+    if (q.error) q = await sbR.from('social_accounts').select('id,platform,account_name,account_avatar_url,client_id,status').order('account_name');
+    if (q.error) throw q.error;
+    SOC.contas = (q.data || []).filter(c => c.status !== 'desconectada' && c.status !== 'inativa'); SOC.erro = '';
+    if (!SOC.prods) { try { const p = await sbR.from('products').select('id,name,client_id'); SOC.prods = p.data || []; } catch(e){ SOC.prods = []; } }
     SOC.em = Date.now(); try { render(); } catch(e){}
-    await Promise.all(SOC.contas.slice(0, 24).map(async c => {
-      if ((SOC.dados || {})[c.id]) return;
+    const fila = SOC.contas.slice(0, 30).filter(c => !(SOC.dados || {})[c.id]); let i = 0;
+    const worker = async () => { while (i < fila.length){ const c = fila[i++];
       try { const j = await socFala({ acao:'conta', id:c.id, periodo:SOC.periodo }); (SOC.dados = SOC.dados || {})[c.id] = j.conta; }
       catch(e){ (SOC.dados = SOC.dados || {})[c.id] = { id:c.id, nome:c.account_name, plataforma:c.platform, avatar:c.account_avatar_url, client_id:c.client_id, erro:e.message, avisos:[], top:[] }; }
-      try { render(); } catch(e){}
-    }));
+      try { render(); socRepinta(); } catch(e){} } };
+    await Promise.all([worker(), worker(), worker(), worker()]);
   } catch(e){ SOC.erro = e.message || String(e); }
-  SOC.carregando = false; try { render(); } catch(e){}
+  SOC.carregando = false; try { render(); socRepinta(); } catch(e){}
 }
-const socLista = () => (SOC.contas || []).map(c => (SOC.dados || {})[c.id]).filter(Boolean);
+const socLista = () => (SOC.contas || []).map(c => (SOC.dados || {})[c.id]).filter(Boolean).map(d => ({ ...d, product_id: ((SOC.contas || []).find(c => c.id === d.id) || {}).product_id || null }));
 const socNomeRede = p => p === 'instagram' ? 'Instagram' : p === 'facebook' ? 'Facebook' : p;
+const socCliId = c => c.client_id || null;
 const socCli = c => (clientesReais.find(x => x.id === c.client_id) || {}).name || c.cliente || '';
+const socProd = c => c.product_id ? ((SOC.prods || []).find(p => p.id === c.product_id) || {}).name || '' : '';
+const socFiltro = () => socLista().filter(c => !SOC.cli || c.client_id === SOC.cli);
+function socSeletorCliente(fn){
+  const ids = [...new Set((SOC.contas || []).map(c => c.client_id).filter(Boolean))];
+  const ops = ids.map(id => ({ id, nome: (clientesReais.find(x => x.id === id) || {}).name || 'Cliente' })).sort((a, b) => a.nome.localeCompare(b.nome));
+  return `<select class="cp-sel1" style="margin:10px 0 0" aria-label="Cliente" onchange="${fn}(this.value)"><option value="">Todos os clientes (geral)</option>${ops.map(o => `<option value="${esc(o.id)}"${SOC.cli === o.id ? ' selected' : ''}>${esc(o.nome)}</option>`).join('')}</select>`;
+}
+function socMudaCli(v){ SOC.cli = v; try { render(); } catch(e){} }
+function socPeriodo(p){ SOC.periodo = p; SOC.dados = {}; carregarSoc(true); try { render(); } catch(e){} }
+function cpPeriodoSoc(p){ SOC.periodo = p; SOC.dados = {}; abrirSocialTodas(); }
+function socMudaCliJ(v){ SOC.cli = v; abrirSocialTodas(true); }
 function socAvatar(c, t = 34){
   const cli = socCli(c);
   return `<span style="position:relative;display:block;width:${t}px;height:${t}px;flex:0 0 ${t}px">${logoCliente(cli, t)}${c.avatar ? `<img src="${esc(c.avatar)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:${t}px;height:${t}px;border-radius:50%;object-fit:cover">` : ''}</span>`;
 }
 const somaSoc = arr => { const o = { seguidores:0, alcance:0, visualizacoes:0, interacoes:0, posts:0, curtidas:0, comentarios:0 };
   arr.filter(c => !c.erro).forEach(c => Object.keys(o).forEach(k => { o[k] += c[k] || 0; })); return o; };
+const mini = (c) => c.erro ? `<span class="rd" title="${esc(c.erro)}">${netIco(c.plataforma)}<i>sem dados</i></span>`
+  : `<span class="rd">${netIco(c.plataforma)}<b>${c.alcance != null ? nf(c.alcance) : '—'}</b><i>alc.</i><b>${c.interacoes != null ? nf(c.interacoes) : '—'}</b><i>int.</i></span>`;
 function htmlSocialDesemp(){
   const per = `<div class="ads-per">${ADS_PERIODOS.map(([k,n]) => `<button class="${SOC.periodo===k?'on':''}" onclick="socPeriodo('${k}')">${n}</button>`).join('')}</div>`;
   const bar = socBarra();
-  if (!SOC.contas) { if (!SOC.carregando) setTimeout(() => carregarSoc(), 0); return gadCaixa('Social', bar + per + `<div class="nota">${esc(SOC.erro) || 'Buscando as redes…'}</div>`); }
-  const ls = socLista(); if (!SOC.contas.length) return gadCaixa('Social', bar + `<div class="nota">Nenhuma rede conectada ainda. Conecte em Redes sociais.</div>`);
-  const tot = somaSoc(ls);
-  const linhas = ls.slice(0, 8).map(c => `<button class="ads-linha" style="gap:9px" onclick="abrirSocialConta('${esc(c.id)}')">${socAvatar(c)}
-      <div class="c"><div class="n">${esc(c.nome || '')}</div><div class="d">${c.erro ? esc(c.erro) : esc(socNomeRede(c.plataforma)) + (socCli(c) ? ' · ' + esc(socCli(c)) : '') + (c.alcance != null ? ' · ' + nf(c.alcance) + ' alcance' : '')}</div></div>
-      ${c.erro ? '' : `<div class="v">${nf(c.interacoes || 0)}<small>interações</small></div>`}</button>`).join('');
-  return gadCaixa('Social', bar + per + `
+  if (!SOC.contas) { if (!SOC.carregando) setTimeout(() => carregarSoc(), 0); return gadCaixa('Social', bar + `<div class="nota">${esc(SOC.erro) || 'Buscando as redes…'}</div>`); }
+  if (!SOC.contas.length) return gadCaixa('Social', bar + `<div class="nota">Nenhuma rede conectada ainda. Conecte em Redes sociais.</div>`);
+  const ls = socFiltro(), tot = somaSoc(ls), todas = (SOC.contas || []).filter(c => !SOC.cli || c.client_id === SOC.cli);
+  const porCli = {}; ls.forEach(c => { (porCli[c.client_id || '-'] = porCli[c.client_id || '-'] || []).push(c); });
+  const linhas = Object.keys(porCli).slice(0, 6).map(k => { const cs = porCli[k], nome = socCli(cs[0]) || 'Sem cliente';
+    return `<button class="ads-linha" style="gap:9px;align-items:flex-start" onclick="socAbreCliente('${esc(k === '-' ? '' : k)}')">${logoCliente(nome, 34)}
+      <div class="c"><div class="n">${esc(nome)}</div><div class="rds">${cs.map(mini).join('')}</div></div></button>`; }).join('');
+  return gadCaixa('Social', bar + socSeletorCliente('socMudaCli') + `<div style="height:8px"></div>` + per + `
     <div class="ads-tot"><div><small>Alcance</small><b>${nf(tot.alcance)}</b></div><div><small>Interações</small><b>${nf(tot.interacoes)}</b></div><div><small>Posts</small><b>${nf(tot.posts)}</b></div></div>
-    <div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px"><span class="nota" style="margin:0;flex:1">${SOC.contas.length} conta${SOC.contas.length===1?'':'s'} conectada${SOC.contas.length===1?'':'s'}${ls.length < SOC.contas.length ? ' · lendo…' : ''}</span>
+    <div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px"><span class="nota" style="margin:0;flex:1">${SOC.cli ? '' : 'Geral · '}${todas.length} conta${todas.length===1?'':'s'}${ls.length < todas.length ? ' · lendo ' + (todas.length - ls.length) + '…' : ''}</span>
       <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirSocialTodas()">Ver todas</button></div>${linhas}`);
 }
+function socAbreCliente(id){ SOC.cli = id || ''; abrirSocialTodas(); }
+const rdLinha = c => `<div class="ads-linha" style="cursor:pointer;gap:9px" onclick="abrirSocialConta('${esc(c.id)}')">${socAvatar(c, 30)}<div class="c"><div class="n">${esc(c.nome || '')}</div>
+  <div class="d">${esc(socProd(c) || 'Empresa toda')}${c.erro ? ' · ' + esc(c.erro) : ''}</div></div><div class="v" style="display:flex;gap:10px;align-items:center">${netIco(c.plataforma, 17)}${c.erro ? '' : `<span>${nf(c.interacoes || 0)}<small>interações</small></span>`}</div></div>`;
 function socCard(c){
-  return `<button class="cp-card" onclick="abrirSocialConta('${esc(c.id)}')"><div class="t">${socAvatar(c, 38)}<div class="n">${esc(c.nome || '')}</div><span class="cp-chip">${esc(socNomeRede(c.plataforma))}</span></div>
+  return `<button class="cp-card" onclick="abrirSocialConta('${esc(c.id)}')"><div class="t">${socAvatar(c, 38)}<div class="n">${esc(c.nome || '')}${socProd(c) ? `<span class="cp-chip" style="margin-left:6px">${esc(socProd(c))}</span>` : ''}</div>${netIco(c.plataforma, 20)}</div>
     ${c.erro ? `<div class="s" style="opacity:.8">${esc(c.erro)}</div>` : `<div class="m"><div><small>Seguidores</small><b>${c.seguidores != null ? nf(c.seguidores) : '—'}</b></div><div><small>Alcance</small><b>${c.alcance != null ? nf(c.alcance) : '—'}</b></div><div><small>Interações</small><b>${c.interacoes != null ? nf(c.interacoes) : '—'}</b></div></div>
     <div class="s">${nf(c.posts)} post${c.posts===1?'':'s'} no período · ${nf(c.curtidas)} curtidas · ${nf(c.comentarios)} comentários</div>`}</button>`;
 }
-function cpPeriodoSoc(p){ SOC.periodo = p; SOC.dados = {}; carregarSoc(true); abrirSocialTodas(); }
-async function abrirSocialTodas(){
-  setKit('soc');
+function socRepinta(){ const T = document.getElementById('todasCorpo'); if (T && T.dataset.soc) socPinta(); }
+function socPinta(){
+  const T = document.getElementById('todasCorpo'); if (!T) return; const ls = socFiltro(), tot = CP.todas = somaSoc(ls), todas = (SOC.contas || []).filter(c => !SOC.cli || c.client_id === SOC.cli);
+  const sel = document.getElementById('cpSel'), aberto = sel && sel.style.display === 'flex';
+  const por = {}; ls.forEach(c => { const k = socCli(c) || 'Sem cliente'; (por[k] = por[k] || []).push(c); });
+  T.className = ''; T.dataset.soc = '1';
+  T.innerHTML = `<div class="cp-kpis" id="cpKpisTodas">${metCards(tot)}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button></div><div id="cpSel" class="cp-sel" ${aberto ? 'style="display:flex"' : ''}>${aberto ? metChips() : ''}</div>
+    ${Object.keys(por).sort().map(k => { const cs = por[k], prods = [...new Set(cs.map(socProd))].sort();
+      return `<div class="ads-sec">${esc(k)}</div>` + prods.map(pn => `${pn || prods.length > 1 ? `<div class="nota" style="margin:6px 0 4px">${esc(pn || 'Empresa toda')}</div>` : ''}${cs.filter(c => socProd(c) === pn).map(socCard).join('')}`).join(''); }).join('') || '<div class="nota">Nenhuma conta.</div>'}
+    ${ls.length < todas.length ? `<div class="nota" style="margin-top:8px">Lendo ${todas.length - ls.length} conta${todas.length - ls.length===1?'':'s'} na Meta… (períodos longos demoram mais)</div>` : ''}`;
+}
+async function abrirSocialTodas(keep){
+  setKit('soc'); SOC.aba = 'desemp';
   abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
-    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Social</h3><button class="btn cheio cp-b" onclick="pdfSocialTodas()">Gerar PDF</button>
+    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Social</h3><button class="btn cp-b" onclick="abrirComparar()">Comparar</button><button class="btn cheio cp-b" onclick="pdfSocialTodas()">Gerar PDF</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    ${socAbas('desemp')}<div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoSoc')}</div><div id="todasCorpo" class="nota">Buscando as redes…</div></div>`, true);
-  await carregarSoc();
-  const T = document.getElementById('todasCorpo'); if (!T) return; T.className = '';
-  const pintar = () => { const T2 = document.getElementById('todasCorpo'); if (!T2) return; const ls = socLista(), tot = CP.todas = somaSoc(ls);
-    const por = {}; ls.forEach(c => { const k = socCli(c) || 'Sem cliente'; (por[k] = por[k] || []).push(c); });
-    T2.innerHTML = `<div class="cp-kpis" id="cpKpisTodas">${metCards(tot)}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button></div><div id="cpSel" class="cp-sel"></div>
-      ${Object.keys(por).sort().map(k => `<div class="ads-sec">${esc(k)}</div>${por[k].map(socCard).join('')}`).join('') || '<div class="nota">Nenhuma conta.</div>'}
-      ${ls.length < (SOC.contas || []).length ? '<div class="nota" style="margin-top:8px">Ainda lendo algumas contas na Meta…</div>' : ''}`; };
-  pintar(); let n = 0; const iv = setInterval(() => { if (!document.getElementById('todasCorpo') || ++n > 40 || socLista().length >= (SOC.contas || []).length){ clearInterval(iv); if (document.getElementById('todasCorpo') && !document.getElementById('cpSel')?.style.display) pintar(); } }, 1500);
+    ${socAbas('desemp')}${socSeletorCliente('socMudaCliJ')}<div style="margin:10px 0 0">${cpPeriodoPills('cpPeriodoSoc', SOC.periodo)}</div><div id="todasCorpo" class="nota">Buscando as redes…</div></div>`, true);
+  if (SOC.contas) socPinta();
+  await carregarSoc(); socPinta();
 }
 function abrirSocialConta(id){
   setKit('soc'); const c = (SOC.dados || {})[id]; if (!c) return;
   Object.assign(CP, { camp:c, id, conta:id, ads:c.top || [] });
-  const per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1];
-  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
-    <div class="cp-top">${socAvatar(c, 40)}<h3 style="margin:0;flex:1;font-size:20px;font-weight:400;line-height:1.2">${esc(c.nome || '')}</h3>
-      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div class="nota" style="margin:4px 0 10px">${esc(socNomeRede(c.plataforma))}${socCli(c) ? ' · ' + esc(socCli(c)) : ''} · ${esc(per)}</div>
+  abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 18px">
+    <div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <div class="cp-top" style="margin-top:10px">${socAvatar(c, 42)}<div style="flex:1;min-width:0"><h3 style="margin:0;font-size:20px;font-weight:400;line-height:1.2">${esc(c.nome || '')}</h3>
+      <div class="nota" style="margin:2px 0 0;display:flex;gap:6px;align-items:center">${netIco(c.plataforma, 14)}${socCli(c) ? esc(socCli(c)) : ''}${socProd(c) ? ' › ' + esc(socProd(c)) : ''}</div></div></div>
+    <div style="margin:12px 0 0">${cpPeriodoPills('socDetPeriodo', SOC.periodo).replace(/socDetPeriodo\('/g, `socDetPeriodo('${esc(id)}','`)}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:-1px;z-index:3;padding:2px 0 8px">
       <button class="btn cheio cp-b" onclick="pdfSocialConta('${esc(id)}')">Gerar PDF</button>
       <button class="btn cp-b" onclick="iaSocAbrir('${esc(id)}')">${iaAv('muru', 20)}<span style="margin-left:6px">Perguntar à Muru</span></button>
-      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button>
-      <button class="btn cp-b" onclick="abrirSocialTodas()">← Contas</button></div>
+      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button></div>
     <div id="cpSel" class="cp-sel"></div>
     ${c.erro ? `<div class="nota">${esc(c.erro)}</div>` : ''}
     <div class="cp-kpis" id="cpKpis">${metCards(c)}</div>
@@ -5580,16 +5612,33 @@ function abrirSocialConta(id){
       || '<div class="nota">Nenhum post nesse período.</div>'}
   </div>`, true);
 }
+async function socDetPeriodo(id, p){
+  SOC.periodo = p; const antigo = SOC.dados || {}; SOC.dados = {};
+  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px"><div class="nota">Lendo ${esc(((antigo[id] || {}).nome) || 'a conta')} na Meta…</div></div>`, true);
+  try { const j = await socFala({ acao:'conta', id, periodo:p }); SOC.dados[id] = j.conta; } catch(e){ SOC.dados[id] = { ...(antigo[id] || {}), erro:e.message }; }
+  abrirSocialConta(id);
+}
 function socPostAbrir(i){
   const a = (CP.ads || [])[i], V = document.getElementById('anunVer'); if (!a || !V) return;
   document.querySelectorAll('.cp-anun').forEach(x => x.classList.remove('on')); document.getElementById('an' + i)?.classList.add('on');
-  V.innerHTML = `<div class="cp-ver"><button class="acao-cab cp-x" style="color:var(--branco)" onclick="anunFecha()" aria-label="Fechar">✕</button>
+  V.innerHTML = `<div class="cp-ver"><button class="acao-cab cp-x" style="color:var(--branco)" onclick="anunFecha()" aria-label="Fechar post">✕</button>
     <div class="vimg">${a.imagem ? `<img src="${esc(a.imagem)}" referrerpolicy="no-referrer" alt="">` : '<div class="nota">Sem imagem disponível.</div>'}</div>
     <div class="n" style="font-size:15px;margin:10px 0 4px">${esc(new Date(a.quando).toLocaleDateString('pt-BR'))} · ${esc(a.tipo || 'post')}</div>
     ${a.texto ? `<div class="d" style="white-space:pre-wrap;line-height:1.5;margin:0 0 8px">${esc(a.texto)}</div>` : ''}
     <div class="cp-kpis" style="margin:8px 0 6px"><div><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div><small>Comentários</small><b>${nf(a.comentarios)}</b></div>${a.compart ? `<div><small>Compart.</small><b>${nf(a.compart)}</b></div>` : ''}</div>
-    ${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir o post</a>` : ''}</div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cheio cp-b" onclick="pdfPost(${i})">PDF deste post</button>${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir o post</a>` : ''}</div></div>`;
   V.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function pdfPost(i){
+  const a = (CP.ads || [])[i], c = (SOC.dados || {})[CP.id] || {}; if (!a) return;
+  pdfDoc('Post · ' + (c.nome || ''), `${esc(socNomeRede(c.plataforma))} · ${esc(new Date(a.quando).toLocaleDateString('pt-BR'))} · ${esc(a.tipo || 'post')}`, socCli(c),
+    `<div class="row" style="border-top:0">${a.imagem ? `<img class="th" style="border-radius:14px;width:220px;height:220px;flex:0 0 220px" src="${esc(a.imagem)}" alt="">` : ''}<div class="c"><p style="white-space:pre-wrap;color:#15161A">${esc(a.texto || '')}</p>
+    <div class="kk"><div class="k"><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div class="k"><small>Comentários</small><b>${nf(a.comentarios)}</b></div>${a.compart ? `<div class="k"><small>Compartilhamentos</small><b>${nf(a.compart)}</b></div>` : ''}</div></div></div>`);
+}
+function pdfAnuncio(i){
+  const a = (CP.ads || [])[i], c0 = (ADS.dados?.contas || []).find(x => x.conta === CP.conta) || {}; if (!a) return;
+  pdfDoc(a.nome || 'Anúncio', `${esc(c0.cliente || c0.nome || '')} · ${pdfPer()}`, c0.cliente || '',
+    `<div class="row" style="border-top:0">${a.imagem || a.miniatura ? `<img class="th" style="border-radius:14px;width:220px;height:220px;flex:0 0 220px" src="${esc(a.imagem || a.miniatura)}" alt="">` : ''}<div class="c"><b class="n">${esc(a.titulo || '')}</b><p style="white-space:pre-wrap;color:#15161A">${esc(a.texto || '')}</p>${pdfKpis(a)}</div></div>`);
 }
 function pdfSocialConta(id){
   setKit('soc'); const c = (SOC.dados || {})[id] || {}, per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1];
@@ -5598,11 +5647,186 @@ function pdfSocialConta(id){
       <div class="kk"><div class="k"><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div class="k"><small>Comentários</small><b>${nf(a.comentarios)}</b></div></div></div></div>`).join('') || '<p>Sem posts no período.</p>'));
 }
 function pdfSocialTodas(){
-  setKit('soc'); const ls = socLista(), per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1], por = {};
+  setKit('soc'); const ls = socFiltro(), per = (ADS_PERIODOS.find(p => p[0] === SOC.periodo) || [,''])[1], por = {};
   ls.forEach(c => { const k = socCli(c) || 'Sem cliente'; (por[k] = por[k] || []).push(c); });
-  pdfDoc('Social · desempenho', `${ls.length} contas · ${esc(per)}`, '', `<h2>Resultado geral</h2>${pdfKpis(somaSoc(ls))}` +
-    Object.keys(por).sort().map(k => `<h2>${esc(k)}</h2>` + por[k].map(c => `<div class="row"><div class="c"><b class="n">${esc(c.nome)}</b><span class="cp p">${esc(socNomeRede(c.plataforma))}</span>${c.erro ? `<p>${esc(c.erro)}</p>` : pdfKpis(c)}</div></div>`).join('')).join(''));
+  const um = SOC.cli ? (clientesReais.find(x => x.id === SOC.cli) || {}).name : '';
+  pdfDoc('Social · desempenho', `${ls.length} contas · ${esc(per)}`, um || '', `<h2>Resultado ${um ? 'do cliente' : 'geral'}</h2>${pdfKpis(somaSoc(ls))}` +
+    Object.keys(por).sort().map(k => `<h2>${esc(k)}</h2>` + por[k].map(c => `<div class="row"><div class="c"><b class="n">${esc(c.nome)}</b><span class="cp p">${esc(socNomeRede(c.plataforma))}</span>${socProd(c) ? `<span class="cp p">${esc(socProd(c))}</span>` : ''}${c.erro ? `<p>${esc(c.erro)}</p>` : pdfKpis(c)}</div></div>`).join('')).join(''));
 }
+
+// ---------------------------------------------------------------- FILA (o que vai sair, o que saiu, o que falhou)
+const FILA_SUBS = [['fila','Na fila'],['hoje','Hoje'],['publicados','Publicados'],['erro','Com erro'],['fora','Sem data'],['antigos','Perdidas']];
+const FILA_NOTA = {
+  fora: 'Peças já aprovadas que ainda não têm data de publicação, por isso não entraram na fila. Defina a data no aprovador e elas entram sozinhas.',
+  antigos: 'Peças aprovadas cuja data de publicação já passou sem terem sido postadas. O publicador nunca posta nada velho, para não bagunçar o planejamento. Dê uma data nova no aprovador para ela voltar à fila.',
+  erro: 'Posts que o publicador tentou e a Meta recusou, ou que passaram da hora. O motivo aparece em cada um.',
+  publicados: 'O que já saiu nas redes pelo publicador.',
+};
+function filaItens(tipo){
+  const d = PUB.dados || {}, fim = new Date(); fim.setHours(23,59,59,999);
+  const alvo = a => ({ k:'alvo', cliente:a.cliente, plat:a.platform, lugar:a.placement, quando:a.quando, status:a.status, texto:a.scheduled_posts?.caption || '', arte:(a.scheduled_posts?.media_urls || [])[0] || null, erro:a.error_message });
+  const peca = (x, velho) => ({ k:'peca', cliente:'', plat:null, lugar:x.kind, quando:x.em, status:velho ? 'perdida' : 'sem data', texto:x.title || 'Sem título', arte:null });
+  let L = [];
+  if (tipo === 'fila') L = (d.todos || []).filter(a => a.status !== 'erro').sort((x, y) => x.quando - y.quando).map(alvo);
+  else if (tipo === 'hoje') L = (d.todos || []).filter(a => a.status !== 'erro' && a.quando <= fim.getTime()).sort((x, y) => x.quando - y.quando).map(alvo);
+  else if (tipo === 'publicados') L = (d.publicados || []).map(alvo);
+  else if (tipo === 'erro') L = (d.todos || []).filter(a => a.status === 'erro').map(alvo);
+  else if (tipo === 'fora') L = (d.foraLista || []).map(x => peca(x, false));
+  else if (tipo === 'antigos') L = (d.antigosLista || []).map(x => peca(x, true)).concat((d.velhos || []).map(alvo));
+  return L;
+}
+const filaQt = t => filaItens(t).length;
+const dtc = ms => ms ? new Date(ms).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' · ' + new Date(ms).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) : 'sem data';
+function filaCard(x){
+  const st = { agendado:'agendado', publicando:'publicando', publicado:'publicado', erro:'erro' }[x.status] || x.status;
+  const cor = x.status === 'erro' ? 'var(--rosa)' : x.status === 'publicado' ? 'var(--verde,#1f8a55)' : 'inherit';
+  return `<div class="fc" onclick="this.classList.toggle('aberto')">
+    <div class="th">${x.arte ? `<img src="${esc(x.arte)}" referrerpolicy="no-referrer" alt="" loading="lazy" onerror="this.remove()">` : `<span>${x.k === 'peca' ? esc(String(x.lugar || '').slice(0, 4)) : netIco(x.plat, 22)}</span>`}</div>
+    <div class="tx"><div class="t">${x.cliente ? logoCliente(x.cliente, 20) : ''}<b>${esc(x.cliente || 'Peça aprovada')}</b>${x.plat ? netIco(x.plat, 15) : ''}${x.lugar ? `<span class="cp-chip">${esc(x.lugar)}</span>` : ''}</div>
+      <div class="d clamp">${esc(x.texto || '(sem legenda)')}</div>
+      <div class="f"><span>${x.k === 'peca' && !x.quando ? 'sem data de publicação' : (x.status === 'publicado' ? 'saiu ' : x.status === 'perdida' ? 'era para ' : '') + dtc(x.quando)}</span><span class="cp-chip" style="color:${cor}">${esc(st)}</span></div>
+      <div class="full">${x.texto ? `<div style="white-space:pre-wrap;margin:6px 0 0">${esc(x.texto)}</div>` : ''}${x.erro ? `<div style="color:var(--rosa);margin-top:6px">✗ ${esc(x.erro)}</div>` : ''}</div></div></div>`;
+}
+function abrirListaPub(tipo){
+  const d = PUB.dados; if (!d) return; tipo = tipo || 'fila'; SOC.aba = 'fila';
+  if (tipo === 'erro' || tipo === 'fila'){ ['social','publicacao'].forEach(g => NOVIDADES[g]().forEach(x => (VISTOS[g] = VISTOS[g] || {})[x.k] = Date.now())); _salvarVistos(); pintarBolinhas(); }
+  let L = filaItens(tipo); if (SOC.cliF) L = L.filter(x => !x.cliente || x.cliente === SOC.cliF);
+  const clis = [...new Set(filaItens(tipo).map(x => x.cliente).filter(Boolean))].sort();
+  abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px">
+    <div class="cp-top"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Social</h3><button class="btn cp-b" onclick="conferirFila()">Conferir fila</button>
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>${socAbas('fila')}
+    <div class="ads-per" style="margin:12px 0 6px">${FILA_SUBS.map(([k, n]) => `<button class="${tipo === k ? 'on' : ''}" onclick="abrirListaPub('${k}')">${n} · ${filaQt(k)}</button>`).join('')}</div>
+    ${clis.length > 1 ? `<select class="cp-sel1" style="margin:0 0 8px" aria-label="Cliente" onchange="SOC.cliF=this.value;abrirListaPub('${tipo}')"><option value="">Todos os clientes</option>${clis.map(c => `<option${SOC.cliF === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}
+    ${FILA_NOTA[tipo] ? `<div class="nota" data-pdq="1" style="margin:0 0 10px;line-height:1.5">${FILA_NOTA[tipo]}</div>` : ''}
+    ${L.map(filaCard).join('') || `<div class="nota">${tipo === 'erro' ? 'Nenhum erro. Tudo saiu como devia.' : 'Nada aqui.'}</div>`}</div>`, true);
+}
+async function conferirFila(filtro){
+  abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 18px"><div class="cp-top">${voltaBtn('Fila', "abrirListaPub('fila')")}<span style="flex:1"></span>
+    <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 0;font-size:22px;font-weight:400">Conferir fila</h3><div id="confCorpo" class="nota" style="margin-top:10px">Conferindo contas, chaves e peças dos próximos 7 dias…</div></div>`, true);
+  try {
+    const { data:{ session } } = await sbR.auth.getSession();
+    const r = await fetch('/social-conferir.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body:'{}' });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || ('servidor respondeu ' + r.status));
+    const C = document.getElementById('confCorpo'); if (!C) return; C.className = '';
+    const cliNome = id => (clientesReais.find(c => c.id === id) || {}).name || '';
+    const todos = (j.todos || []).map(i => ({ ...i, cliente: cliNome(i.client_id) }));
+    const ct = (j.contas || []).map(c => `<div class="ads-linha" style="cursor:default;gap:9px">${netIco(c.plataforma, 20)}<div class="c"><div class="n">${esc(c.nome)}</div>
+      <div class="d" style="${c.problema ? 'color:var(--rosa)' : ''}">${c.problema ? '✗ ' + esc(c.problema) : '✓ conectada, com permissão de publicar'}</div></div></div>`).join('');
+    const card = i => `<div class="fc ${i.ok ? '' : 'ruim'}" onclick="this.classList.toggle('aberto')"><div class="th">${i.arte ? `<img src="${esc(i.arte)}" referrerpolicy="no-referrer" alt="" loading="lazy" onerror="this.remove()">` : `<span>${netIco(i.plataforma, 22)}</span>`}</div>
+      <div class="tx"><div class="t">${i.cliente ? logoCliente(i.cliente, 20) : ''}<b>${esc(i.cliente || i.conta)}</b>${netIco(i.plataforma, 15)}<span class="cp-chip">${esc(i.lugar || 'feed')}</span></div>
+      <div class="d clamp">${esc(i.legenda || '(sem legenda)')}</div>
+      <div class="f"><span>${dtc(new Date(i.quando).getTime())}</span><span class="cp-chip" style="color:${i.ok ? 'var(--verde,#1f8a55)' : 'var(--rosa)'}">${i.ok ? '✓ pronto' : '✗ ' + i.problemas.length + ' problema' + (i.problemas.length > 1 ? 's' : '')}</span></div>
+      ${i.ok ? '' : `<div style="color:var(--rosa);margin-top:6px;font-size:12px">${i.problemas.map(x => '✗ ' + esc(x)).join('<br>')}</div>`}</div></div>`;
+    const L = filtro === 'ruim' ? todos.filter(i => !i.ok) : todos;
+    C.innerHTML = `<div style="padding:12px 14px;border-radius:14px;border:.5px solid ${j.problemas?'var(--rosa)':'var(--verde,#1f8a55)'};margin-bottom:10px;font-size:13px;line-height:1.5">
+        ${j.total ? `<b>${j.ok} de ${j.total}</b> posts dos próximos 7 dias estão prontos para sair.${j.problemas ? ` <b style="color:var(--rosa)">${j.problemas} com problema.</b>` : ' Tudo certo.'}` : 'Nada agendado nos próximos 7 dias.'}</div>
+      <div class="ads-per" style="margin:0 0 8px"><button class="${filtro === 'ruim' ? '' : 'on'}" onclick="conferirFila()">Todos · ${todos.length}</button><button class="${filtro === 'ruim' ? 'on' : ''}" onclick="conferirFila('ruim')">Com problema · ${j.problemas || 0}</button></div>
+      ${L.map(card).join('') || '<div class="nota">Nada aqui.</div>'}
+      ${ct ? `<div class="ads-sec">Contas que vão publicar</div>${ct}` : ''}`;
+  } catch(e){ const C = document.getElementById('confCorpo'); if (C) C.textContent = 'Não consegui conferir: ' + e.message; }
+}
+
+// ---------------------------------------------------------------- COMPARAR (até 5 perfis, dados abertos reais) + Tumi (players) + Muru (direção e copy)
+const CMP = { slots:[], dados:{}, notas:'', foco:'', players:null, resp:null, lendo:false, msg:'', contas:null, custo:0, seg:0 };
+const CMP_COR = ['#2f9e6b','#4c7dff','#e59a2f','#e0526b','#9a6bdb'];
+const mdHtml = t => esc(t).split('\n').map(l => /^##\s/.test(l) ? `<h4>${l.slice(3)}</h4>` : /^\s*[-*]\s/.test(l) ? `<li>${l.replace(/^\s*[-*]\s/, '')}</li>` : /^\s*\d+[.)]\s/.test(l) ? `<li>${l.replace(/^\s*\d+[.)]\s/, '')}</li>` : l.trim() ? `<p>${l}</p>` : '').join('').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(<li>.*?<\/li>)+/g, m => `<ul>${m}</ul>`);
+const cmpH = h => (String(h || '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').split('?')[0].replace(/^[@\/\s]+|[\/\s]+$/g, '').split('/')[0] || '').toLowerCase();
+async function cmpContas(){
+  if (CMP.contas) return CMP.contas;
+  try { const { data } = await sbR.from('social_accounts').select('id,account_name,account_avatar_url,client_id,platform').eq('platform', 'instagram').order('account_name'); CMP.contas = data || []; } catch(e){ CMP.contas = []; }
+  return CMP.contas;
+}
+async function abrirComparar(){
+  await cmpContas(); setKit('soc');
+  abrirJanela(`<div class="caixa invertida cp" id="cxCmp" style="padding:16px 18px 20px"></div>`, true); cmpPinta();
+}
+function cmpAdd(handle, nome, tipo, avatar){
+  const h = cmpH(handle); if (!h){ CMP.msg = 'Informe um @usuario ou o link do perfil no Instagram.'; return cmpPinta(); }
+  if (CMP.slots.some(s => s.handle === h)){ CMP.msg = '@' + h + ' já está na comparação.'; return cmpPinta(); }
+  if (CMP.slots.length >= 5){ CMP.msg = 'No máximo 5 perfis por comparação.'; return cmpPinta(); }
+  CMP.slots.push({ handle:h, nome:nome || h, tipo:tipo || 'player', avatar:avatar || null }); CMP.msg = ''; CMP.resp = null; cmpLer();
+}
+function cmpTira(h){ CMP.slots = CMP.slots.filter(s => s.handle !== h); CMP.resp = null; cmpPinta(); }
+async function cmpLer(){
+  const falta = CMP.slots.map(s => s.handle).filter(h => !CMP.dados[h]); cmpPinta(); if (!falta.length) return;
+  CMP.lendo = true; cmpPinta();
+  try { const j = await socFala({ acao:'comparar', handles:falta }); (j.perfis || []).forEach(p => { CMP.dados[p.handle] = p; }); }
+  catch(e){ CMP.msg = e.message; }
+  CMP.lendo = false; cmpPinta();
+}
+async function cmpTumi(){
+  if (!CMP.slots.length){ CMP.msg = 'Escolha primeiro o perfil do cliente.'; return cmpPinta(); }
+  CMP.msg = 'O Tumi está pesquisando players parecidos na web…'; CMP.tumi = true; cmpPinta();
+  try { const j = await socFala({ acao:'players', cliente: CMP.slots[0].nome, notas: CMP.notas, perfil_base: CMP.slots.slice(0, 1).map(s => CMP.dados[s.handle] || { handle:s.handle }) });
+    CMP.players = j.players || []; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = j.players && j.players.length ? '' : 'O Tumi não achou perfis confiáveis. ' + (j.obs || ''); }
+  catch(e){ CMP.msg = e.message; }
+  CMP.tumi = false; cmpPinta();
+}
+async function cmpDirecao(){
+  const ok = CMP.slots.map(s => CMP.dados[s.handle]).filter(p => p && !p.erro);
+  if (ok.length < 2){ CMP.msg = 'Preciso de pelo menos 2 perfis lidos com sucesso para comparar.'; return cmpPinta(); }
+  CMP.notas = (document.getElementById('cmpNotas') || {}).value ?? CMP.notas; CMP.foco = (document.getElementById('cmpFoco') || {}).value ?? CMP.foco;
+  CMP.msg = 'A Muru está cruzando os dados e escrevendo a direção…'; CMP.pensa = true; cmpPinta();
+  try { const j = await socFala({ acao:'direcao', cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
+    CMP.resp = j.resposta; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
+  catch(e){ CMP.msg = e.message; }
+  CMP.pensa = false; cmpPinta();
+}
+function cmpBarras(titulo, fn, fmt){
+  const ps = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })).filter(x => x.p && !x.p.erro), vs = ps.map(x => fn(x.p)), mx = Math.max(...vs.map(v => v || 0), 0.0001);
+  if (!ps.length) return '';
+  return `<div class="cmp-bl"><div class="ads-sec" style="margin:14px 0 6px">${titulo}</div>${ps.map((x, k) => `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="bar"><i style="width:${Math.max(2, (vs[k] || 0) / mx * 100)}%;background:${CMP_COR[x.i]}"></i></div><b>${vs[k] == null ? '—' : fmt(vs[k])}</b></div>`).join('')}</div>`;
+}
+function cmpPinta(){
+  const X = document.getElementById('cxCmp'); if (!X) return;
+  const ps = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })), ok = ps.filter(x => x.p && !x.p.erro);
+  const contas = (CMP.contas || []).filter(c => !CMP.slots.some(s => s.handle === cmpH(c.account_name)));
+  const clienteDe = c => (clientesReais.find(x => x.id === c.client_id) || {}).name || '';
+  const colunas = ok.length ? `<div class="cmp-cols" style="grid-template-columns:repeat(${ok.length},minmax(168px,1fr))">${ok.map(x => { const p = x.p; return `<div class="cmp-col" style="border-top:3px solid ${CMP_COR[x.i]}">
+      <div class="h">${p.avatar ? `<img src="${esc(p.avatar)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : `<span class="ini">${esc((p.usuario || '?').slice(0, 2).toUpperCase())}</span>`}<div><b>@${esc(p.usuario)}</b><small>${x.i === 0 ? 'seu cliente' : 'player'}</small></div></div>
+      <div class="kv"><small>Seguidores</small><b>${nf(p.seguidores)}</b></div><div class="kv"><small>Posts/semana</small><b>${String(p.por_semana).replace('.', ',')}</b></div>
+      <div class="kv"><small>Média de curtidas</small><b>${p.media_curtidas != null ? nf(Math.round(p.media_curtidas)) : 'oculto'}</b></div><div class="kv"><small>Engajamento</small><b>${p.engajamento != null ? String(p.engajamento).replace('.', ',') + '%' : '—'}</b></div>
+      ${(p.hashtags || []).length ? `<div class="tg">${p.hashtags.slice(0, 5).map(h => `<span class="cp-chip">#${esc(h)}</span>`).join('')}</div>` : ''}
+      ${(p.top || [])[0] ? `<a class="top" href="${esc(p.top[0].link || '#')}" target="_blank" rel="noopener">${p.top[0].imagem ? `<img src="${esc(p.top[0].imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}<span>melhor post · ${p.top[0].curtidas != null ? nf(p.top[0].curtidas) + ' curtidas' : ''} ${nf(p.top[0].comentarios)} coment.</span></a>` : ''}</div>`; }).join('')}</div>` : '';
+  const erros = ps.filter(x => x.p && x.p.erro).map(x => `<div class="nota" style="color:var(--rosa);margin:6px 0">✗ ${esc(x.p.erro)} <button class="cp-chip" onclick="cmpTira('${esc(x.s.handle)}')">tirar</button></div>`).join('');
+  const mixB = ok.length ? `<div class="cmp-bl"><div class="ads-sec" style="margin:14px 0 6px">Formatos nos últimos 30 dias</div>${ok.map(x => { const m = x.p.mix_30d || {}, t = (m.reels || 0) + (m.carrossel || 0) + (m.imagem || 0) || 1;
+      return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="bar stack"><i style="width:${(m.reels || 0) / t * 100}%;background:#e0526b"></i><i style="width:${(m.carrossel || 0) / t * 100}%;background:#4c7dff"></i><i style="width:${(m.imagem || 0) / t * 100}%;background:#8a8c94"></i></div><b>${m.reels || 0}/${m.carrossel || 0}/${m.imagem || 0}</b></div>`; }).join('')}
+      <div class="nota" style="margin:4px 0 0"><span style="color:#e0526b">■</span> reels/vídeo · <span style="color:#4c7dff">■</span> carrossel · <span style="color:#8a8c94">■</span> imagem</div></div>` : '';
+  const heat = (titulo, key, n, rot) => ok.length ? `<div class="cmp-bl"><div class="ads-sec" style="margin:14px 0 6px">${titulo}</div>${ok.map(x => { const a = x.p[key] || [], mx = Math.max(...a, 1);
+      return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="heat" style="grid-template-columns:repeat(${n},1fr)">${a.map((v, h) => `<i title="${rot(h)} · ${v} post${v === 1 ? '' : 's'}" style="background:${CMP_COR[x.i]};opacity:${v ? .15 + .85 * v / mx : .06}"></i>`).join('')}</div></div>`; }).join('')}</div>` : '';
+  X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
+    <div class="nota" data-pdq="1" style="margin:0 0 10px;line-height:1.5">Escolha até 5 perfis de Instagram: o do cliente primeiro e os players. Os números vêm do Instagram aberto, pela API oficial da Meta (só perfis profissionais e públicos). Alcance, idade e gênero só existem para as contas que são nossas.</div>
+    <div class="cmp-slots">${CMP.slots.map((s, i) => `<span class="cmp-slot" style="border-color:${CMP_COR[i]}"><i style="background:${CMP_COR[i]}"></i>@${esc(s.handle)}<small>${i === 0 ? 'cliente' : 'player'}</small><button onclick="cmpTira('${esc(s.handle)}')" aria-label="Tirar">✕</button></span>`).join('') || '<span class="nota">Nenhum perfil escolhido ainda.</span>'}</div>
+    ${CMP.slots.length < 5 ? `<div class="cmp-add"><select class="cp-sel1" onchange="if(this.value){const c=(CMP.contas||[]).find(x=>x.id===this.value);cmpAdd(c.account_name,c.account_name,'cliente',c.account_avatar_url)}"><option value="">+ perfil de um cliente nosso…</option>${contas.map(c => `<option value="${esc(c.id)}">@${esc(c.account_name)}${clienteDe(c) ? ' · ' + esc(clienteDe(c)) : ''}</option>`).join('')}</select>
+      <form onsubmit="event.preventDefault();cmpAdd(this.u.value);this.u.value=''"><input name="u" class="cp-sel1" placeholder="+ @usuario ou link do Instagram de outro perfil" autocomplete="off"><button class="btn cp-b" type="submit">Adicionar</button></form></div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px"><button class="btn cp-b" onclick="cmpTumi()" ${CMP.tumi || !CMP.slots.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi players parecidos</span></button></div>
+    ${CMP.players ? `<div class="cmp-pl">${CMP.players.map(p => `<div class="cmp-p"><div style="flex:1;min-width:0"><b>@${esc(p.handle)}</b> <span class="cp-chip">${esc(p.tipo || 'player')}</span><div class="nota" style="margin:2px 0 0">${esc(p.por_que || '')}</div></div><button class="btn cp-b" ${CMP.slots.some(s => s.handle === p.handle) || CMP.slots.length >= 5 ? 'disabled' : ''} onclick="cmpAdd('${esc(p.handle)}','${esc(p.nome)}','player')">+ adicionar</button></div>`).join('')}</div>` : ''}
+    ${CMP.msg ? `<div class="nota" style="margin:8px 0;${/não|Não|erro|Preciso|Informe|No máximo/.test(CMP.msg) ? 'color:var(--rosa)' : ''}">${esc(CMP.msg)}</div>` : ''}
+    ${CMP.lendo ? '<div class="nota" style="margin:8px 0">Lendo os perfis no Instagram…</div>' : ''}${erros}
+    ${colunas}
+    ${cmpBarras('Seguidores', p => p.seguidores, v => nf(v))}${cmpBarras('Engajamento por post (% dos seguidores)', p => p.engajamento, v => String(v).replace('.', ',') + '%')}
+    ${cmpBarras('Posts por semana', p => p.por_semana, v => String(v).replace('.', ','))}${cmpBarras('Média de curtidas', p => p.media_curtidas, v => nf(Math.round(v)))}${cmpBarras('Média de comentários', p => p.media_comentarios, v => String(v).replace('.', ','))}
+    ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}
+    ${ok.length >= 2 ? `<div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">O que o cliente já sabe e quer que entre na análise: ticket, público, diferenciais, praça, metas, o que já tentou.</div>
+      <textarea id="cmpNotas" class="cp-sel1" rows="4" placeholder="Ex.: lançamento de lotes em Joanópolis, ticket médio R$ 180 mil, público 35–55 de Campinas e SP, diferencial: natureza + água…">${esc(CMP.notas)}</textarea>
+      <input id="cmpFoco" class="cp-sel1" style="margin-top:8px" placeholder="Foco da análise (opcional): ex. gerar lead qualificado, ganhar autoridade…" value="${esc(CMP.foco)}">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa ? 'disabled' : ''}>${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy derivada</span></button></div>` : ''}
+    ${CMP.pensa ? '<div class="nota">A Muru está lendo os números e escrevendo…</div>' : ''}
+    ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}`;
+}
+function pdfComparar(){
+  const ok = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })).filter(x => x.p && !x.p.erro); if (!ok.length) return;
+  const linha = (rot, fn) => `<tr><td>${rot}</td>${ok.map(x => `<td>${fn(x.p)}</td>`).join('')}</tr>`;
+  pdfDoc('Comparativo de perfis', `${ok.length} perfis · Instagram aberto · ${new Date().toLocaleDateString('pt-BR')}`, '',
+    `<h2>Números reais</h2><table><tr><td></td>${ok.map(x => `<td><b>@${esc(x.p.usuario)}</b></td>`).join('')}</tr>
+    ${linha('Seguidores', p => nf(p.seguidores))}${linha('Posts por semana', p => String(p.por_semana).replace('.', ','))}${linha('Média de curtidas', p => p.media_curtidas != null ? nf(Math.round(p.media_curtidas)) : 'oculto')}
+    ${linha('Média de comentários', p => String(p.media_comentarios).replace('.', ','))}${linha('Engajamento', p => p.engajamento != null ? String(p.engajamento).replace('.', ',') + '%' : '—')}
+    ${linha('Reels / carrossel / imagem (30d)', p => `${(p.mix_30d || {}).reels || 0} / ${(p.mix_30d || {}).carrossel || 0} / ${(p.mix_30d || {}).imagem || 0}`)}</table>
+    ${CMP.resp ? `<h2>Direção e copy derivada · Muru Mara</h2><div style="line-height:1.55">${mdHtml(CMP.resp)}</div>` : ''}`);
+}
+
 // PAINEL DE LEADS: todos os leads que chegaram pelos formulários da Meta, com filtro (cliente, status, datas, busca) e download em planilha
 const LP = { rows:null, prods:[], carregando:false, cli:'', prod:'', st:'', de:'', ate:'', q:'', vista:'grupo' };
 // PRODUTO do lead: o que está salvo; senão, a etiqueta da campanha — "[LEADS] [SANTA MARIA] [SET 2026]" → Santa Maria — casada com os produtos dos clientes

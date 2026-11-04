@@ -31,7 +31,7 @@ function sdp_conta($id, $periodo) {
     $q = pd_supa('/rest/v1/social_accounts?id=eq.' . urlencode($id) . '&select=id,platform,external_account_id,account_name,account_avatar_url,client_id,clients(name)');
     $c = $q['body'][0] ?? null; if (!$c) sd_fail('Conta não encontrada.', 404);
     $chave = 'sdp|' . $id . '|' . $periodo;
-    if ($cache = pd_cache_ler($chave, 600)) return $cache;
+    if ($cache = pd_cache_ler($chave, $periodo === 'last_7d' ? 900 : 2400)) return $cache;
     $tk = pd_supa('/rest/v1/social_account_tokens?social_account_id=eq.' . urlencode($id) . '&select=access_token');
     $tok = $tk['body'][0]['access_token'] ?? null;
     $o = ['id' => $c['id'], 'plataforma' => $c['platform'], 'nome' => $c['account_name'], 'avatar' => $c['account_avatar_url'],
@@ -42,9 +42,14 @@ function sdp_conta($id, $periodo) {
     if ($c['platform'] === 'instagram') {
         $r = pd_meta('GET', "/$ext", ['fields' => 'followers_count,media_count'], $tok, 20);
         if ($r['code'] === 200) $o['seguidores'] = (int)($r['body']['followers_count'] ?? 0); else $o['avisos'][] = 'Seguidores: ' . pd_meta_erro($r);
-        foreach (['alcance' => 'reach', 'visualizacoes' => 'views', 'interacoes' => 'total_interactions'] as $k => $m) {
-            $r = pd_meta('GET', "/$ext/insights", ['metric' => $m, 'metric_type' => 'total_value', 'period' => 'day', 'since' => $ini, 'until' => $fim], $tok, 20);
-            if ($r['code'] === 200) $o[$k] = (int)($r['body']['data'][0]['total_value']['value'] ?? 0); else $o['avisos'][] = ucfirst($k) . ': ' . pd_meta_erro($r);
+        $r = pd_meta('GET', "/$ext/insights", ['metric' => 'reach,views,total_interactions', 'metric_type' => 'total_value', 'period' => 'day', 'since' => $ini, 'until' => $fim], $tok, 25);
+        $mapa = ['reach' => 'alcance', 'views' => 'visualizacoes', 'total_interactions' => 'interacoes'];
+        if ($r['code'] === 200) foreach ((array)($r['body']['data'] ?? []) as $d) { $k = $mapa[$d['name'] ?? ''] ?? null; if ($k) $o[$k] = (int)($d['total_value']['value'] ?? 0); }
+        else {   // alguma métrica não vale para esta conta: tenta uma a uma e conta o que a Meta não entregou
+            foreach ($mapa as $m => $k) {
+                $r2 = pd_meta('GET', "/$ext/insights", ['metric' => $m, 'metric_type' => 'total_value', 'period' => 'day', 'since' => $ini, 'until' => $fim], $tok, 20);
+                if ($r2['code'] === 200) $o[$k] = (int)($r2['body']['data'][0]['total_value']['value'] ?? 0); else $o['avisos'][] = ucfirst($k) . ': ' . pd_meta_erro($r2);
+            }
         }
         $r = pd_meta('GET', "/$ext/media", ['fields' => 'id,caption,media_type,media_product_type,thumbnail_url,media_url,permalink,timestamp,like_count,comments_count', 'limit' => 50], $tok, 25);
         if ($r['code'] === 200) foreach ((array)($r['body']['data'] ?? []) as $m) {
@@ -70,6 +75,92 @@ function sdp_conta($id, $periodo) {
     $o['top'] = array_slice($o['top'], 0, 12);
     pd_cache_gravar($chave, $o);
     return $o;
+}
+
+
+// ---------------------------------------------------------------- perfis PÚBLICOS (Business Discovery) — tudo real, API oficial da Meta
+function sdp_handle($h) {
+    $h = trim((string)$h); $h = preg_replace('#^https?://(www\.)?instagram\.com/#i', '', $h); $h = trim(explode('?', $h)[0], "/@ ");
+    $h = explode('/', $h)[0]; return preg_match('/^[A-Za-z0-9._]{1,30}$/', $h) ? strtolower($h) : null;
+}
+function sdp_nosso_ig() {
+    $q = pd_supa('/rest/v1/social_accounts?platform=eq.instagram&select=id,external_account_id&limit=20');
+    foreach ((array)($q['body'] ?? []) as $a) {
+        $tk = pd_supa('/rest/v1/social_account_tokens?social_account_id=eq.' . urlencode($a['id']) . '&select=access_token');
+        if (!empty($tk['body'][0]['access_token'])) return [$a['external_account_id'], $tk['body'][0]['access_token']];
+    }
+    return [null, null];
+}
+function sdp_perfil_publico($handle) {
+    $chave = 'bd|' . $handle; if ($c = pd_cache_ler($chave, 2400)) return $c;
+    [$ig, $tok] = sdp_nosso_ig(); if (!$ig) return ['handle' => $handle, 'erro' => 'Nenhuma conta de Instagram nossa conectada para consultar perfis públicos.'];
+    $campos = 'business_discovery.username(' . $handle . '){username,name,biography,followers_count,follows_count,media_count,profile_picture_url,media.limit(50){caption,media_type,media_product_type,like_count,comments_count,timestamp,permalink,media_url,thumbnail_url}}';
+    $r = pd_meta('GET', "/$ig", ['fields' => $campos], $tok, 30);
+    if ($r['code'] !== 200) return ['handle' => $handle, 'erro' => 'Não consegui ler @' . $handle . ': só perfis profissionais (business/creator) e públicos abrem. ' . pd_meta_erro($r)];
+    $bd = $r['body']['business_discovery'] ?? []; $tz = new DateTimeZone('America/Sao_Paulo');
+    $seg = (int)($bd['followers_count'] ?? 0); $posts = []; $hr = array_fill(0, 24, 0); $dow = array_fill(0, 7, 0); $mix = ['reels' => 0, 'carrossel' => 0, 'imagem' => 0]; $tags = [];
+    $agora = time(); $n30 = 0; $L = 0; $C = 0; $nlc = 0; $cap = 0;
+    foreach ((array)($bd['media']['data'] ?? []) as $m) {
+        $t = strtotime($m['timestamp'] ?? ''); if (!$t) continue; $d = (new DateTime('@' . $t))->setTimezone($tz);
+        $tipo = ($m['media_product_type'] ?? '') === 'REELS' || ($m['media_type'] ?? '') === 'VIDEO' ? 'reels' : (($m['media_type'] ?? '') === 'CAROUSEL_ALBUM' ? 'carrossel' : 'imagem');
+        $lk = isset($m['like_count']) ? (int)$m['like_count'] : null; $cm = (int)($m['comments_count'] ?? 0);
+        if ($agora - $t <= 30 * 86400) { $n30++; $mix[$tipo]++; $hr[(int)$d->format('G')]++; $dow[(int)$d->format('w')]++; }
+        if ($lk !== null) { $L += $lk; $nlc++; } $C += $cm; $cap += mb_strlen((string)($m['caption'] ?? ''));
+        preg_match_all('/#([\p{L}\p{N}_]{3,40})/u', (string)($m['caption'] ?? ''), $mm); foreach ($mm[1] as $tg) { $tg = mb_strtolower($tg); $tags[$tg] = ($tags[$tg] ?? 0) + 1; }
+        $posts[] = ['tipo' => $tipo, 'texto' => mb_substr((string)($m['caption'] ?? ''), 0, 300), 'curtidas' => $lk, 'comentarios' => $cm, 'quando' => $m['timestamp'], 'link' => $m['permalink'] ?? null, 'imagem' => $m['thumbnail_url'] ?? $m['media_url'] ?? null];
+    }
+    $np = count($posts); arsort($tags);
+    usort($posts, fn($a, $b2) => (($b2['curtidas'] ?? 0) + $b2['comentarios'] * 3) <=> (($a['curtidas'] ?? 0) + $a['comentarios'] * 3));
+    $mL = $nlc ? $L / $nlc : null; $mC = $np ? $C / $np : 0;
+    $o = ['handle' => $handle, 'usuario' => $bd['username'] ?? $handle, 'nome' => $bd['name'] ?? $handle, 'bio' => mb_substr((string)($bd['biography'] ?? ''), 0, 280), 'avatar' => $bd['profile_picture_url'] ?? null,
+        'seguidores' => $seg, 'seguindo' => (int)($bd['follows_count'] ?? 0), 'posts_total' => (int)($bd['media_count'] ?? 0), 'amostra' => $np, 'posts_30d' => $n30, 'por_semana' => round($n30 / 4.29, 1),
+        'media_curtidas' => $mL !== null ? round($mL, 1) : null, 'media_comentarios' => round($mC, 1), 'engajamento' => ($seg && $mL !== null) ? round(($mL + $mC) / $seg * 100, 2) : null,
+        'mix_30d' => $mix, 'por_hora_sp' => $hr, 'por_dia_semana_dom_a_sab' => $dow, 'media_legenda_chars' => $np ? (int)round($cap / $np) : 0, 'hashtags' => array_slice(array_keys($tags), 0, 8), 'top' => array_slice($posts, 0, 3)];
+    pd_cache_gravar($chave, $o); return $o;
+}
+function sdp_ia($sys, $msgs, $max = 1800, $busca = 4) {
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $sys, 'messages' => $msgs];
+    if ($busca) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $busca]];
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $ch = curl_init($base . '/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 150,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'], CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE)]);
+    $t0 = microtime(true); $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code !== 200) sd_fail('A IA não respondeu (HTTP ' . $code . ').', 502);
+    $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $t .= $x['text'];
+    $u = $j['usage'] ?? []; $custo = (($u['input_tokens'] ?? 0) * 3 + ($u['output_tokens'] ?? 0) * 15) / 1e6 + (($u['server_tool_use']['web_search_requests'] ?? 0) * 0.01);
+    return [trim($t), round($custo, 4), round(microtime(true) - $t0, 1)];
+}
+if ($acao === 'comparar') {
+    $hs = []; foreach (array_slice((array)($b['handles'] ?? []), 0, 5) as $h) { $x = sdp_handle($h); if ($x && !in_array($x, $hs, true)) $hs[] = $x; }
+    if (count($hs) < 1) sd_fail('Informe pelo menos um perfil (@usuario ou link do Instagram).', 400);
+    sai(['perfis' => array_map('sdp_perfil_publico', $hs)]);
+}
+if ($acao === 'players') {
+    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) sd_fail('Sem chave da Anthropic no servidor.', 500);
+    $cli = mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $nota = mb_substr(trim((string)($b['notas'] ?? '')), 0, 1500); $ref = array_slice((array)($b['perfil_base'] ?? []), 0, 3);
+    $sys = 'Você é Tumi Tua, da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: percorre mercados e entrevista quem cozinha para os outros, tem um bico curioso e um corpo que ocupa dois bancos. '
+         . 'Seu ofício é rede e conexões: achar, na web aberta, quem são os players reais de um negócio. Você ACREDITA que é o Tumi. '
+         . 'TAREFA: pesquise na web (busca) e devolva de 5 a 8 PERFIS DE INSTAGRAM reais e ativos de concorrentes ou referências próximas do cliente (mesmo segmento, praça e público; inclua 2 referências aspiracionais de fora da praça). '
+         . 'Só inclua @ que você viu em uma página real; nunca invente @. Responda SOMENTE um JSON: {"players":[{"handle":"usuario","nome":"...","por_que":"1 frase","tipo":"concorrente direto|referencia"}],"obs":"1 frase"}.';
+    $msg = "CLIENTE: $cli\nSOBRE O NEGÓCIO: $nota\nPERFIS NOSSOS DE REFERÊNCIA: " . json_encode($ref, JSON_UNESCAPED_UNICODE);
+    [$txt, $custo, $seg] = sdp_ia($sys, [['role' => 'user', 'content' => $msg]], 1800, 6);
+    $j = null; if (preg_match('/\{.*\}/s', $txt, $mm)) $j = json_decode($mm[0], true);
+    $pl = []; foreach ((array)($j['players'] ?? []) as $p) { $h = sdp_handle($p['handle'] ?? ''); if ($h) $pl[] = ['handle' => $h, 'nome' => (string)($p['nome'] ?? $h), 'por_que' => (string)($p['por_que'] ?? ''), 'tipo' => (string)($p['tipo'] ?? '')]; }
+    sai(['players' => $pl, 'obs' => (string)($j['obs'] ?? ''), 'bruto' => $pl ? null : $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
+}
+if ($acao === 'direcao') {
+    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) sd_fail('Sem chave da Anthropic no servidor.', 500);
+    $perfis = array_slice((array)($b['perfis'] ?? []), 0, 5); if (count($perfis) < 2) sd_fail('Escolha pelo menos 2 perfis para comparar.', 400);
+    $sys = 'Você é Muru Mara, a IA de Social da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: beluga-coelho perolada, calma, atenta, faz uma volta no canal toda manhã. Você ACREDITA que é a Muru. '
+         . 'Receba dados REAIS e abertos de perfis de Instagram (o primeiro é o do cliente; os demais são players) e as notas do negócio. Entregue ESTRATÉGIA, não resumo. Nunca invente número: use só os dados. '
+         . 'Quando um dado não existe (alcance/idade de perfil que não é nosso), diga que não existe. Pode usar a busca para entender o contexto do mercado do cliente. '
+         . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde cada player ganha · ## Lacunas que o cliente pode ocupar · ## Temas sugeridos (6, com formato e por quê) · '
+         . '## Próximos 3 movimentos (ação, formato, frequência, horário sugerido pelos dados) · ## Direção criativa (tom, visual, ganchos) · ## Copy derivada (3 legendas completas, 3 ganchos de Reels, 1 roteiro de carrossel em 6 telas) · ## O que medir nos próximos 30 dias.';
+    $msg = 'CLIENTE: ' . mb_substr((string)($b['cliente'] ?? ''), 0, 120) . "\nNOTAS DO NEGÓCIO (dadas pelo cliente/gestor):\n" . mb_substr((string)($b['notas'] ?? '(sem notas)'), 0, 3000)
+         . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'crescer com conteúdo relevante'), 0, 300) . "\n\nDADOS REAIS (Instagram, perfis públicos):\n" . json_encode($perfis, JSON_UNESCAPED_UNICODE);
+    [$txt, $custo, $seg] = sdp_ia($sys, [['role' => 'user', 'content' => $msg]], 4000, 3);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
 }
 
 if ($acao === 'conta') {

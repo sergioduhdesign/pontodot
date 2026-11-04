@@ -19,7 +19,7 @@ if (!in_array($me['role'] ?? '', ['admin', 'team'], true)) sd_fail('Só a equipe
 $agora = time();
 $r = supa('/rest/v1/scheduled_post_targets?status=eq.agendado'
     . '&select=id,post_id,social_account_id,platform,placement,scheduled_at_override,'
-    . 'scheduled_posts(id,client_id,batch_name,scheduled_at,media_urls)&limit=400', 'GET');
+    . 'scheduled_posts(id,client_id,batch_name,scheduled_at,media_urls,caption)&limit=400', 'GET');
 if ($r['code'] !== 200) sd_fail('Não consegui ler a fila: HTTP ' . $r['code'], 500);
 
 $ate = $agora + 7 * 86400;
@@ -35,7 +35,7 @@ usort($alvos, fn($a, $b) => $a['_q'] <=> $b['_q']);
 $ids = array_values(array_unique(array_column($alvos, 'social_account_id')));
 $contas = [];
 if ($ids) {
-    $ac = supa('/rest/v1/social_accounts?id=in.(' . implode(',', array_map('rawurlencode', $ids)) . ')&select=id,platform,account_name,external_account_id,status', 'GET');
+    $ac = supa('/rest/v1/social_accounts?id=in.(' . implode(',', array_map('rawurlencode', $ids)) . ')&select=id,platform,account_name,external_account_id,status,account_avatar_url,client_id', 'GET');
     foreach ((array)($ac['body'] ?? []) as $a) $contas[$a['id']] = $a;
 }
 $estadoConta = [];
@@ -60,7 +60,7 @@ foreach ($contas as $cid => $c) {
     $estadoConta[$cid] = $prob;
 }
 
-$saida = ['ok' => 0, 'problemas' => 0, 'itens' => []];
+$saida = ['ok' => 0, 'problemas' => 0, 'itens' => [], 'todos' => []];
 foreach ($alvos as $t) {
     $p = $t['scheduled_posts'] ?? [];
     $c = $contas[$t['social_account_id']] ?? null;
@@ -78,6 +78,9 @@ foreach ($alvos as $t) {
         if ($st && $st !== 'aprovado') $probs[] = 'a peça não está mais aprovada (' . $st . ')';
     }
     $saida[$probs ? 'problemas' : 'ok']++;
+    $saida['todos'][] = ['alvo' => $t['id'], 'quando' => gmdate('c', $t['_q']), 'conta' => $c['account_name'] ?? '?', 'avatar' => $c['account_avatar_url'] ?? null,
+        'client_id' => $p['client_id'] ?? ($c['client_id'] ?? null), 'plataforma' => $t['platform'], 'lugar' => $t['placement'], 'legenda' => mb_substr((string)($p['caption'] ?? ''), 0, 220),
+        'arte' => $midias[0] ?? null, 'ok' => !$probs, 'problemas' => $probs];
     if ($probs) $saida['itens'][] = ['alvo' => $t['id'], 'quando' => gmdate('c', $t['_q']), 'conta' => $c['account_name'] ?? '?',
         'plataforma' => $t['platform'], 'lugar' => $t['placement'], 'problemas' => $probs];
 }
