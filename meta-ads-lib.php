@@ -44,7 +44,8 @@ function pd_meta_erro($r) {
     if (in_array($cod, [4, 17, 32, 613, 80000, 80004], true))
         return 'A Meta pediu um tempo (limite de consultas). Tente de novo em alguns minutos.';
     if ($r['code'] === 0) return 'A Meta não respondeu agora. Tente de novo.';
-    return 'A Meta recusou: ' . mb_substr((string)($e['message'] ?? ('HTTP ' . $r['code'])), 0, 160);
+    $det = trim((string)($e['error_user_msg'] ?? '')); if ($det === '' && !empty($e['error_data'])) $det = mb_substr(json_encode($e['error_data'], JSON_UNESCAPED_UNICODE), 0, 200);
+    return 'A Meta recusou: ' . mb_substr((string)($e['message'] ?? ('HTTP ' . $r['code'])), 0, 160) . ($det !== '' ? ' — ' . mb_substr($det, 0, 260) : '') . ($sub ? ' (sub ' . $sub . ')' : '');
 }
 
 /** Supabase com a chave do servidor (ignora RLS — use com cuidado). */
