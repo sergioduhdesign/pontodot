@@ -76,6 +76,15 @@ if (in_array($acao, ['conjuntos', 'formularios', 'destino_ler', 'destino_gravar'
     sai(['pagina' => $pag['account_name'], 'formularios' => array_map(fn($x) => ['id' => $x['id'], 'nome' => $x['name'] ?? $x['id'], 'status' => $x['status'] ?? ''], array_values(array_filter((array)($r['body']['data'] ?? []), fn($x) => ($x['status'] ?? 'ACTIVE') !== 'ARCHIVED')))]);
 }
 
+// -------------------------------------------------------------- esquecer
+if ($acao === 'esquecer') {
+    if (($me['role'] ?? '') !== 'admin') sd_fail('Só admin esquece conta de anúncio.', 403);
+    $conta = idConta($b['conta'] ?? ''); if (!$conta) sd_fail('Conta inválida.', 400);
+    $r = pd_supa('/rest/v1/meta_ad_accounts?id=eq.' . urlencode($conta), 'DELETE');
+    if ($r['code'] >= 300) sd_fail('Não consegui esquecer a conta.', 500);
+    sai(['conta' => $conta, 'esquecida' => true]);
+}
+
 // -------------------------------------------------------------- vincular
 if ($acao === 'vincular') {
     if (($me['role'] ?? '') !== 'admin') sd_fail('Só admin vincula conta de anúncio a cliente.', 403);

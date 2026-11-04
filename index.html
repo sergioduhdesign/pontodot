@@ -5057,7 +5057,7 @@ function htmlAnuncios(){
     <div class="ads-tot"><div><small>Investido</small><b>${brl(gasto, moeda)}</b></div>
       <div><small>Leads</small><b>${leads}</b></div>
       <div><small>CPL médio</small><b>${leads ? brl(gasto / leads, moeda) : '—'}</b></div></div>
-    ${semCliente && perfil?.role === 'admin' ? `<button class="ads-linha" onclick="abrirVinculoAds()"><div class="c"><div class="d">${semCliente} conta${semCliente>1?'s':''} sem cliente — vincular</div></div></button>` : ''}
+    ${perfil?.role === 'admin' ? `<button class="ads-linha" onclick="abrirVinculoAds()"><div class="c"><div class="d">${semCliente ? semCliente + ' conta' + (semCliente>1?'s':'') + ' sem cliente · ' : ''}Gerenciar contas de anúncio</div></div></button>` : ''}
     ${linhas}`);
 }
 // PRODUTO da campanha: cada campanha pode ser de um produto do cliente (ex.: Nova Oliveira). Os leads dela herdam o produto.
@@ -5354,10 +5354,21 @@ function abrirVinculoAds(){
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">De quem é cada conta</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div class="nota" style="margin:4px 0 8px">Ligue cada conta de anúncio ao cliente. Os números passam a aparecer com o nome dele.</div>
-    ${contas.map(c => `<div class="ads-linha" style="cursor:default"><div class="c"><div class="n">${esc(c.nome || c.conta)}</div><div class="d">${esc(c.empresa || c.conta)}</div></div>
+    ${contas.map(c => `<div class="ads-linha" id="adsc-${esc(c.conta)}" style="cursor:default"><div class="c"><div class="n">${esc(c.nome || c.conta)}</div><div class="d">${esc(c.empresa || c.conta)}</div></div>
       <select class="btn" onchange="vincularAds('${esc(c.conta)}', this.value)" aria-label="Cliente da conta">
-        <option value="">— sem cliente —</option>${ops.map(o => `<option value="${esc(o.id)}" ${c.client_id===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></div>`).join('')}
+        <option value="">— sem cliente —</option>${ops.map(o => `<option value="${esc(o.id)}" ${c.client_id===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select>
+      <button class="acao-cab" style="color:var(--branco);opacity:.7" title="Esquecer esta conta" aria-label="Esquecer esta conta" onclick="adsEsquecerPerg('${esc(c.conta)}')">✕</button></div>`).join('')}
   </div>`, true);
+}
+function adsEsquecerPerg(conta){
+  const el = document.getElementById('adsc-' + conta); if (!el) return;
+  el.innerHTML = `<div class="c"><div class="d" data-pdq="1">Deseja realmente esquecer essa conta agora? Ela some daqui, mas continua possível de conectar de novo pelo login da Meta.</div></div>
+    <button class="btn" onclick="abrirVinculoAds()">Cancelar</button>
+    <button class="btn" style="font-weight:700" onclick="adsEsquecer('${conta}')">Esquecer</button>`;
+}
+async function adsEsquecer(conta){
+  try { await adsFala({ acao:'esquecer', conta }); toast('Conta esquecida.'); ADS.em = 0; await carregarAds(true); abrirVinculoAds(); }
+  catch(e){ toast('Não consegui: ' + e.message); }
 }
 async function vincularAds(conta, clientId){
   try { await adsFala({ acao:'vincular', conta, client_id: clientId || null }); toast('Vinculado.'); ADS.em = 0; carregarAds(true); }
