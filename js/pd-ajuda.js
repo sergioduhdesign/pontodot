@@ -347,7 +347,7 @@ function tourPlataforma(){
 (function(){
   const SEL = '.nota,.vazio,.esc-lead2,.esc-nota,.hint,.dica,.ip-leg,.ip-sub,.esc-al-nota,.esc-ficcao,.esc-sub,.page-subtitle,.modal-subtitle,.field-hint,.form-hint,.jt-rodape,.jt-intro,.av-legenda,.help-text,.legenda';
   const MUDO = /\b(erro|falhou|falha|n[ãa]o foi poss[ií]vel|rode o sql|expir|sem permiss|tente de novo|n[ãa]o consegui|servidor)\b/i;
-  const NAO = '.comment,.comments-list,.cmt,.msg,.bolha,.conversa,.t-linha,.det-pop,textarea,input,pre,code,td,th,.cxa,#pdAjudaOv,[contenteditable],.balao,#toast,.toast,.ajuda-ok,.entity-card,#admin-users-active,#admin-users-paused,.gente,.user-card,.perfil-card';
+  const NAO = '.sem-ajuda,.comment,.comments-list,.cmt,.msg,.bolha,.conversa,.t-linha,.det-pop,textarea,input,pre,code,td,th,.cxa,#pdAjudaOv,[contenteditable],.balao,#toast,.toast,.ajuda-ok,.entity-card,#admin-users-active,#admin-users-paused,.gente,.user-card,.perfil-card';
   const ESTILO = '[style*="color:var(--text3)"],[style*="color:var(--branco2)"],[style*="color: var(--text3)"],[style*="color:var(--text2)"],[style*="opacity:.5"],[style*="opacity:.6"],[style*="opacity:.55"],[style*="opacity:.65"],[style*="opacity:.7"]';
   let n = 0, agenda = 0;
   function limpo(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }

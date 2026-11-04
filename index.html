@@ -2487,7 +2487,7 @@ pdAbertura(false);
 <script src="/js/pd-leve.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
-<script src="/js/pd-ajuda.js?v=326"></script>
+<script src="/js/pd-ajuda.js?v=327"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -5575,7 +5575,7 @@ const lcFala = d => adsFala(d, '/meta-lancar.php');
 function abrirSubirCampanha(cid, doc, docId, pid){
   if (cid) LC.cid = cid; if (doc) { LC.doc = doc; LC.docId = docId || null; LC.plano = null; } if (pid) LC.pid = pid;
   if (!LC.conta){ const c = (ADS.dados?.contas || []).find(x => !x.erro && x.client_id === LC.cid); if (c) LC.conta = c.conta; }
-  if (!document.getElementById('cxLc')) abrirJanela('<div class="caixa invertida cp" style="padding:16px 18px 20px" id="cxLc"></div>', true);
+  if (!document.getElementById('cxLc')) abrirJanela('<div class="caixa invertida cp sem-ajuda" style="padding:16px 18px 20px" id="cxLc"></div>', true);
   LC.feito = null; LC.msg = ''; lcPinta(); if (LC.conta && !LC.opc) lcOpcoes(); lcLista();
 }
 function lcPinta(){
@@ -5762,7 +5762,7 @@ async function docTarefas(origem){
 function dtPinta(){
   let o = document.getElementById('dtOv'); if (!o){ o = document.createElement('div'); o.id = 'dtOv'; document.body.appendChild(o); }
   const eq = dtEquipe(), esc2 = esc;
-  o.innerHTML = `<div class="caixa invertida cp dt-c"><div class="cp-top"><h3 style="margin:0;font-size:20px;font-weight:400">Criar tarefas a partir do documento</h3><span style="flex:1"></span>
+  o.innerHTML = `<div class="caixa invertida cp dt-c sem-ajuda"><div class="cp-top"><h3 style="margin:0;font-size:20px;font-weight:400">Criar tarefas a partir do documento</h3><span style="flex:1"></span>
     <button class="btn cheio cp-b" onclick="dtCriar()" ${DT.carregando || DT.criando || !DT.itens.some(t => t.on) ? 'disabled' : ''}>Criar ${DT.itens.filter(t => t.on).length || ''} tarefa${DT.itens.filter(t => t.on).length === 1 ? '' : 's'}</button>
     <button class="acao-cab" style="color:var(--branco)" onclick="document.getElementById('dtOv').remove()" aria-label="Fechar">✕</button></div>
     <div class="nota" style="margin:6px 0 10px">${esc2(DT.cliente || 'Sem cliente')} · o responsável sugerido vem da função de cada pessoa. Ajuste o que quiser antes de criar.</div>
