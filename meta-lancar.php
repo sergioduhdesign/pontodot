@@ -243,7 +243,7 @@ if ($acao === 'play' || $acao === 'pausar') {
 
 if ($acao === 'lista') {
     $cid = uuidOk($b['client_id'] ?? '');
-    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?select=id,client_id,product_id,conta,campanha_meta_id,nome,objetivo,estado,criado_em,ligada_em,clients(name),products(name)' . ($cid ? '&client_id=eq.' . $cid : '') . '&order=criado_em.desc&limit=60');
+    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?select=id,client_id,product_id,conta,campanha_meta_id,nome,objetivo,estado,criado_em,ligada_em,clients(name)' . ($cid ? '&client_id=eq.' . $cid : '') . '&order=criado_em.desc&limit=60');
     sai(['campanhas' => array_values(array_filter((array)($q['body'] ?? []), 'is_array'))]);
 }
 sd_fail('Ação desconhecida.', 400);
