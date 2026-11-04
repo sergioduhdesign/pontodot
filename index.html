@@ -5070,14 +5070,17 @@ function pdfCampanha(conta, id){
   w.document.close();
 }
 // PAINEL DE LEADS: todos os leads que chegaram pelos formulários da Meta, com filtro (cliente, status, datas, busca) e download em planilha
-const LP = { rows:null, carregando:false, cli:'', st:'', de:'', ate:'', q:'' };
+const LP = { rows:null, carregando:false, cli:'', prod:'', st:'', de:'', ate:'', q:'' };
 async function leadsCarregar(){
   if (LP.carregando) return; LP.carregando = true; const todos = [];
   try {
     for (let ini = 0; ini < 10000; ini += 1000){
-      const { data, error } = await sbR.from('meta_leads')
-        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,clients(name)')
+      let { data, error } = await sbR.from('meta_leads')
+        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,product_id,clients(name),products(name)')
         .order('recebido_em', { ascending:false }).range(ini, ini + 999);
+      if (error) ({ data, error } = await sbR.from('meta_leads')      // banco ainda sem produto (migration v155)
+        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,clients(name)')
+        .order('recebido_em', { ascending:false }).range(ini, ini + 999));
       if (error || !data) break; todos.push(...data); if (data.length < 1000) break;
     }
   } catch(e){}
@@ -5086,27 +5089,30 @@ async function leadsCarregar(){
 function leadsFiltrados(){
   const q = semAcento(LP.q || '');
   return (LP.rows || []).filter(l =>
-    (!LP.cli || (l.clients?.name || 'Sem cliente') === LP.cli) && (!LP.st || l.status === LP.st) &&
+    (!LP.cli || (l.clients?.name || 'Sem cliente') === LP.cli) && (!LP.prod || (l.products?.name || 'Sem produto') === LP.prod) && (!LP.st || l.status === LP.st) &&
     (!LP.de  || String(l.recebido_em || '').slice(0, 10) >= LP.de) && (!LP.ate || String(l.recebido_em || '').slice(0, 10) <= LP.ate) &&
-    (!q || semAcento([l.nome, l.email, l.telefone, l.campanha_nome, l.ad_nome].join(' ')).includes(q)));
+    (!q || semAcento([l.nome, l.email, l.telefone, l.campanha_nome, l.ad_nome, l.products?.name].join(' ')).includes(q)));
 }
 function leadsPintar(){
   const C = document.getElementById('lpCorpo'); if (!C) return;
   const todos = LP.rows || [], fil = leadsFiltrados();
   const por = {}; todos.forEach(l => { const k = l.clients?.name || 'Sem cliente'; por[k] = (por[k] || 0) + 1; });
   const selC = document.getElementById('lpCli'); if (selC && !selC.dataset.ok){ selC.innerHTML = '<option value="">todos os clientes</option>' + Object.keys(por).sort().map(k => `<option value="${esc(k)}">${esc(k)} (${por[k]})</option>`).join(''); selC.dataset.ok = '1'; selC.value = LP.cli; }
+  const selP = document.getElementById('lpProd'), pp = {}; todos.forEach(l => { if (l.products?.name) pp[l.products.name] = (pp[l.products.name] || 0) + 1; });
+  if (selP){ const ks = Object.keys(pp).sort(); selP.style.display = ks.length ? '' : 'none';
+    if (selP.dataset.ok !== ks.join('|')){ selP.innerHTML = '<option value="">todos os produtos</option>' + ks.map(k => `<option value="${esc(k)}">${esc(k)} (${pp[k]})</option>`).join(''); selP.dataset.ok = ks.join('|'); selP.value = LP.prod; } }
   const tot = document.getElementById('lpTot'); if (tot) tot.innerHTML = `<b>${fil.length}</b> de ${todos.length} leads`;
   C.innerHTML = fil.slice(0, 300).map(l => `<button class="ads-linha" onclick="abrirLead('${esc(l.id)}')">
-      <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div><div class="d">${esc(l.clients?.name || 'Sem cliente')}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${new Date(l.recebido_em).toLocaleDateString('pt-BR')} ${quando(l.recebido_em)}</div></div>
+      <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div><div class="d">${esc(l.clients?.name || 'Sem cliente')}${l.products?.name ? ' › ' + esc(l.products.name) : ''}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${new Date(l.recebido_em).toLocaleDateString('pt-BR')} ${quando(l.recebido_em)}</div></div>
       <div class="v">${esc(l.status)}</div></button>`).join('') + (fil.length > 300 ? `<div class="nota">Mostrando 300 de ${fil.length}. A planilha leva todos.</div>` : '') || '<div class="nota">Nenhum lead com esse filtro.</div>';
 }
 function leadsBaixar(){
   const fil = leadsFiltrados(); if (!fil.length){ toast('Nenhum lead para baixar.'); return; }
   const cel = v => '"' + String(v == null ? '' : v).replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
   const extras = [...new Set(fil.flatMap(l => Object.keys(l.campos || {}).filter(k => !/^(full_name|email|phone_number|nome|telefone|e-mail)$/i.test(k))))];
-  const cab = ['Data', 'Hora', 'Cliente', 'Campanha', 'Anúncio', 'Nome', 'Telefone', 'E-mail', 'Status', ...extras.map(k => k.replace(/_/g, ' '))];
+  const cab = ['Data', 'Hora', 'Cliente', 'Produto', 'Campanha', 'Anúncio', 'Nome', 'Telefone', 'E-mail', 'Status', ...extras.map(k => k.replace(/_/g, ' '))];
   const linhas = fil.map(l => { const d = new Date(l.recebido_em);
-    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }), l.clients?.name || '', l.campanha_nome || '', l.ad_nome || '', l.nome || '', l.telefone || '', l.email || '', l.status || '',
+    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }), l.clients?.name || '', l.products?.name || '', l.campanha_nome || '', l.ad_nome || '', l.nome || '', l.telefone || '', l.email || '', l.status || '',
       ...extras.map(k => (l.campos || {})[k] ?? '')].map(cel).join(';'); });
   const csv = '﻿' + cab.map(cel).join(';') + '\r\n' + linhas.join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
@@ -5123,6 +5129,7 @@ function abrirLeads(){
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px">
       <select id="lpCli" style="${campo}" onchange="LP.cli=this.value;leadsPintar()"><option value="">todos os clientes</option></select>
+      <select id="lpProd" style="${campo};display:none" onchange="LP.prod=this.value;leadsPintar()"><option value="">todos os produtos</option></select>
       <select style="${campo}" onchange="LP.st=this.value;leadsPintar()"><option value="">todos os status</option>${['novo','em contato','convertido','descartado'].map(st => `<option${LP.st===st?' selected':''}>${st}</option>`).join('')}</select>
       <input type="date" style="${campo}" value="${LP.de}" onchange="LP.de=this.value;leadsPintar()" aria-label="De">
       <input type="date" style="${campo}" value="${LP.ate}" onchange="LP.ate=this.value;leadsPintar()" aria-label="Até">

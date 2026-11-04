@@ -6855,8 +6855,12 @@ async function abrirDetalheRedeSocial(plataforma){
 }
 async function pintarDetalheRede(){
   const plataforma = _redeAberta, painel = document.getElementById('dr-painel'); if (!plataforma || !painel) return;
-  const { data: todas } = await sb.from('social_accounts')
-    .select('id,platform,external_account_id,account_name,account_avatar_url,status,client_id').order('account_name');
+  let { data: todas, error: e0 } = await sb.from('social_accounts')
+    .select('id,platform,external_account_id,account_name,account_avatar_url,status,client_id,product_id').order('account_name');
+  const temProd = !e0;   // sem a coluna (migration v155 ainda não rodou) a tela funciona como antes, sem o campo Produto
+  if (e0) ({ data: todas } = await sb.from('social_accounts')
+    .select('id,platform,external_account_id,account_name,account_avatar_url,status,client_id').order('account_name'));
+  window._redeContas = todas || [];
   const redes = [...new Set(['instagram','facebook', ...(todas||[]).map(c => c.platform)])];   // as redes novas (LinkedIn, TikTok…) entram sozinhas quando houver conta
   const nomeRede = r => ({ instagram:'Instagram', facebook:'Facebook', linkedin:'LinkedIn', tiktok:'TikTok', youtube:'YouTube' })[r] || r;
   const contas = (todas||[]).filter(c => c.platform === plataforma);
@@ -6879,16 +6883,20 @@ async function pintarDetalheRede(){
         </div>
       </div>
       ${lig ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#16a34a;font-weight:700">● Vinculada a</span><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nomeCli(c.client_id)}</b></div>
+        ${temProd ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--text3);white-space:nowrap">Produto</span>
+          <select class="field-select" style="flex:1;min-width:0;font-size:12px" onchange="mudarProdutoConta('${c.id}',this.value)" title="Se a conta é de um empreendimento, escolha qual. Os leads dela herdam o produto.">${opcoesProdutosConta(c.client_id, c.product_id)}</select></div>` : ''}
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" style="${btn}" onclick="reconectarContaSocial()" title="Renova a autorização — use quando uma permissão nova foi ligada depois da última conexão">Reconectar</button>
           <button class="btn btn-secondary btn-sm" style="${btn}" onclick="desvincularContaSocial('${c.id}')" title="Remove o vínculo, sem apagar a conexão">Desvincular</button></div>`
       : `<div style="font-size:12px;color:var(--text3)">Sem cliente · esperando vínculo</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select id="sel-conta-${c.id}" class="field-select" style="flex:1;min-width:0;font-size:12px">
+          <select id="sel-conta-${c.id}" class="field-select" style="flex:1;min-width:0;font-size:12px" onchange="trocaClienteConta('${c.id}',this.value)">
             <option value="">Escolher cliente…</option>
             ${clients.filter(cl=>cl.active!==false).map(cl => `<option value="${cl.id}" ${sugestao && sugestao.id===cl.id ? 'selected':''}>${cl.name}</option>`).join('')}
           </select>
-          <button class="btn btn-primary btn-sm" style="${btn}" onclick="vincularContaSocial('${c.id}')">Vincular</button></div>`}
+          <button class="btn btn-primary btn-sm" style="${btn}" onclick="vincularContaSocial('${c.id}')">Vincular</button></div>
+        ${temProd ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--text3);white-space:nowrap">Produto</span>
+          <select id="sel-prod-${c.id}" class="field-select" style="flex:1;min-width:0;font-size:12px" onchange="if(this.value==='__novo')novoProdutoNaConta('${c.id}')">${opcoesProdutosConta(sugestao ? sugestao.id : '', null)}</select></div>` : ''}`}
     </div>`;
   };
   const grade = lista => `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px">${lista.join('')}</div>`;
@@ -6915,15 +6923,54 @@ async function pintarDetalheRede(){
   aplicarPermissoesUI();
 }
 
+// Produtos do cliente para o seletor da conta ("Toda a empresa" = conta institucional)
+function opcoesProdutosConta(cid, sel){
+  const lista = (products || []).filter(p => p.client_id === cid);
+  return '<option value="">Toda a empresa</option>'
+    + lista.map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${p.name}</option>`).join('')
+    + (cid ? '<option value="__novo">＋ Novo produto…</option>' : '');
+}
+function trocaClienteConta(contaId, cid){
+  const s = document.getElementById('sel-prod-' + contaId); if (s) s.innerHTML = opcoesProdutosConta(cid, null);
+}
+async function criarProdutoDoCliente(cid){
+  const name = (prompt('Nome do produto / empreendimento:') || '').trim(); if (!name) return null;
+  const { data, error } = await sb.from('products').insert({ client_id: cid, name }).select().single();
+  if (error || !data) { showToast('Erro ao criar produto: ' + (error?.message || ''), 'error'); return null; }
+  products.push(data); return data;
+}
+async function novoProdutoNaConta(contaId){           // "＋ Novo produto" escolhido antes de vincular
+  const cid = document.getElementById('sel-conta-' + contaId)?.value, s = document.getElementById('sel-prod-' + contaId);
+  const p = cid ? await criarProdutoDoCliente(cid) : null;
+  if (s) { s.innerHTML = opcoesProdutosConta(cid, p ? p.id : null); }
+}
+async function gravarContaSocial(contaId, campos){
+  let { error } = await sb.from('social_accounts').update(campos).eq('id', contaId);
+  if (error && 'product_id' in campos && /product_id/.test(error.message || '')) {   // banco sem a v155
+    const { product_id, ...resto } = campos;
+    if (Object.keys(resto).length) ({ error } = await sb.from('social_accounts').update(resto).eq('id', contaId));
+    else error = { message: 'Falta rodar a migration v155 (produto nas contas) no Supabase.' };
+  }
+  return error;
+}
+async function mudarProdutoConta(contaId, val){
+  const conta = (window._redeContas || []).find(c => c.id === contaId); if (!conta) return;
+  if (val === '__novo') { const p = await criarProdutoDoCliente(conta.client_id); val = p ? p.id : (conta.product_id || ''); }
+  const error = await gravarContaSocial(contaId, { product_id: val || null });
+  if (error) showToast('Erro: ' + error.message, 'error'); else showToast(val ? 'Produto da conta salvo — os leads dela já seguem esse produto.' : 'Conta de volta para a empresa toda.', 'success');
+  if (document.getElementById('modal-detalhe-rede')) pintarDetalheRede();
+}
 async function vincularContaSocial(contaId){
   const sel = document.getElementById('sel-conta-' + contaId);
   const clientId = sel?.value;
   if (!clientId) { showToast('Escolha um cliente antes de vincular.', 'warn'); return; }
+  let prod = document.getElementById('sel-prod-' + contaId)?.value || null;
+  if (prod === '__novo') { const p = await criarProdutoDoCliente(clientId); prod = p ? p.id : null; }
 
-  const { error } = await sb.from('social_accounts').update({ client_id: clientId }).eq('id', contaId);
+  const error = await gravarContaSocial(contaId, { client_id: clientId, product_id: prod });
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
 
-  showToast('Conta vinculada.', 'success');
+  showToast(prod ? 'Conta vinculada ao produto.' : 'Conta vinculada.', 'success');
   if (document.getElementById('modal-detalhe-rede')) pintarDetalheRede();
   renderRedesSociais();
 }
@@ -6931,7 +6978,7 @@ async function vincularContaSocial(contaId){
 // Só remove a etiqueta de cliente — a conta continua conectada na Meta,
 // com o token intacto. Vincula de novo quando quiser, sem refazer login.
 async function desvincularContaSocial(contaId){
-  const { error } = await sb.from('social_accounts').update({ client_id: null }).eq('id', contaId);
+  const error = await gravarContaSocial(contaId, { client_id: null, product_id: null });
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
 
   showToast('Vínculo removido.', 'success');

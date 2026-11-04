@@ -53,7 +53,9 @@ foreach ((array)($corpo['entry'] ?? []) as $ent) {
 
         // a Página precisa estar conectada: é dela a chave e o cliente
         $c = pd_supa('/rest/v1/social_accounts?platform=eq.facebook&external_account_id=eq.' . urlencode($pageId)
-            . '&select=id,client_id,account_name');
+            . '&select=id,client_id,product_id,account_name');
+        if ($c['code'] >= 300) $c = pd_supa('/rest/v1/social_accounts?platform=eq.facebook&external_account_id=eq.' . urlencode($pageId)
+            . '&select=id,client_id,account_name');   // banco ainda sem a coluna de produto (v155)
         $conta = $c['body'][0] ?? null;
         $tok = null;
         if ($conta) {
@@ -78,14 +80,18 @@ foreach ((array)($corpo['entry'] ?? []) as $ent) {
         $nome = $acha(['full_name', 'nome_completo', 'nome', 'name'])
             ?: trim(($acha(['first_name', 'primeiro_nome']) ?? '') . ' ' . ($acha(['last_name', 'sobrenome']) ?? '')) ?: null;
 
-        $ins = pd_supa('/rest/v1/meta_leads', 'POST', [
+        $linha = [
             'id' => $leadId, 'page_id' => $pageId, 'form_id' => (string)($L['form_id'] ?? ($v['form_id'] ?? '')),
             'ad_id' => (string)($L['ad_id'] ?? ($v['ad_id'] ?? '')), 'ad_nome' => $L['ad_name'] ?? null,
             'campanha_nome' => $L['campaign_name'] ?? null, 'nome' => $nome,
             'email' => $acha(['email', 'e-mail']), 'telefone' => $acha(['phone_number', 'telefone', 'phone', 'celular', 'whatsapp']),
             'campos' => $campos, 'client_id' => $conta['client_id'] ?? null,
             'criado_na_meta' => isset($L['created_time']) ? gmdate('c', strtotime($L['created_time'])) : null,
-        ], ['Prefer: resolution=ignore-duplicates,return=representation']);
+        ];
+        $pref = ['Prefer: resolution=ignore-duplicates,return=representation'];
+        // o lead já nasce com o PRODUTO da Página (quando a Página é de um produto)
+        $ins = !empty($conta['product_id']) ? pd_supa('/rest/v1/meta_leads', 'POST', $linha + ['product_id' => $conta['product_id']], $pref) : ['code' => 999];
+        if ($ins['code'] >= 300) $ins = pd_supa('/rest/v1/meta_leads', 'POST', $linha, $pref);
         // devolveu linha = é novo (duplicado volta vazio e não avisa de novo)
         if ($ins['code'] < 300 && !empty($ins['body'][0]['id'])) $novos[] = ['nome' => $nome, 'pagina' => $conta['account_name'] ?? 'Página'];
         elseif ($ins['code'] >= 300) error_log("Pontodot leads - gravar $leadId: HTTP " . $ins['code']);
