@@ -14,6 +14,7 @@
 
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/meta-ads-lib.php';
+require_once __DIR__ . '/pd-elenco-lib.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') sd_fail('Método não permitido', 405);
 $me = sd_current_user();
@@ -82,7 +83,7 @@ function pd_leads_horario($clientId, $periodo, $campNome = null) {
 }
 function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system,
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . "\n\n" . pdElencoTexto(false),
         'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]], 'messages' => $msgs];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');

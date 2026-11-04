@@ -126,6 +126,7 @@ $chamar = function ($corpo) use ($base) {
 $lote = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));
 $podeEscrever = true; $feitos = []; $ids = []; $texto = ''; $usoIn = 0; $usoOut = 0; $houveFerramenta = false;
 for ($volta = 0; $volta < 8; $volta++) {
+    $sys .= "\n\n" . pdElencoTexto(!$ehCliente);
     [$code, $j, $raw] = $chamar(['model' => $model, 'max_tokens' => 4000, 'system' => $sys, 'tools' => $tools, 'messages' => $msgs]);
     if ($code !== 200) { $err = (string)($j['error']['message'] ?? mb_substr((string)$raw, 0, 200)); sd_fail('A IA não respondeu (HTTP ' . $code . '): ' . $err, 502); }
     $usoIn += (int)($j['usage']['input_tokens'] ?? 0); $usoOut += (int)($j['usage']['output_tokens'] ?? 0);
