@@ -5533,9 +5533,13 @@ function ccmpCorpo(p){   // tudo o que a pesquisa trouxe sobre UM concorrente
     ${pg && pg.whatsapp ? `<div class="nota" style="margin:6px 0 0">WhatsApp comercial público: ${esc(pg.whatsapp)}</div>` : ''}
     ${p.site ? `<div class="nota" style="margin:6px 0 0"><a href="${esc(p.site)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.site.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60))}</a></div>` : ''}`;
 }
-function ccmpFora(i){ const p = ccmpVisiveis()[i]; if (!p) return; CCMP.fora = CCMP.fora || {}; const k = ccmpVk(p.nome); CCMP.fora[k] = !CCMP.fora[k]; ccmpPinta(); }
-function ccmpGrade(){   // até 5 referências lado a lado + o seu
-  const vis = ccmpVisiveis().map((p, i) => ({ p, i })), fora = CCMP.fora || {}, dentro = vis.filter(x => !fora[ccmpVk(x.p.nome)]).slice(0, 5), resto = vis.filter(x => !dentro.includes(x));
+function ccmpDentro(){ const f = CCMP.fora || {}; return ccmpVisiveis().map((p, i) => ({ p, i })).filter(x => !f[ccmpVk(x.p.nome)]).slice(0, 5); }
+function ccmpFora(i){ const p = ccmpVisiveis()[i]; if (!p) return; CCMP.fora = CCMP.fora || {}; const k = ccmpVk(p.nome), dentro = ccmpDentro().some(x => x.i === i);
+  if (!dentro && ccmpDentro().length >= 5){ toast('A montagem comporta 5 referências. Tire uma para colocar esta.'); return; } CCMP.fora[k] = dentro; ccmpPinta(); }
+function ccmpAbre(i){ const p = ccmpVisiveis()[i]; if (!p) return; const k = ccmpVk(p.nome); CCMP.aberto = CCMP.aberto || {}; CCMP.aberto[k] = !CCMP.aberto[k]; ccmpPinta(); }
+function ccmpAjustaFora(){ CCMP.fora = CCMP.fora || {}; ccmpVisiveis().forEach((p, i) => { if (i >= 5) CCMP.fora[ccmpVk(p.nome)] = true; }); }
+function ccmpGrade(){   // escolher quem entra (vendo o detalhe) + até 5 referências lado a lado + o seu
+  const vis = ccmpVisiveis().map((p, i) => ({ p, i })), dentro = ccmpDentro(), resto = [];
   const cor = ['#2f9e6b','#11BA98','#4c7dff','#e59a2f','#e0526b'], cn = ccmpCliente(), prods = (ADS.prods || []).filter(x => x.client_id === CCMP.sel[0]).map(x => x.name);
   const seu = `<div class="cmp-col" style="border-top:3px solid #fff"><div class="h">${logoCliente(cn, 30)}<div style="min-width:0"><b>${esc(cn)}</b><small>o seu${ALVO ? ' · ' + esc(ALVO.tipo) : ''}</small></div></div>
     ${ALVO && ALVO.imagem ? `<img class="ccimg" src="${esc(ALVO.imagem)}" referrerpolicy="no-referrer" alt="" title="Clique para ampliar" onclick="ccZoom(this.src)" onerror="this.remove()">` : ''}
@@ -5543,16 +5547,24 @@ function ccmpGrade(){   // até 5 referências lado a lado + o seu
     ${prods.length && !ALVO ? `<div class="kv"><small>Produtos</small><b style="font-weight:400">${esc(prods.join(', '))}</b></div>` : ''}</div>`;
   const cols = dentro.map((x, n) => `<div class="cmp-col" style="border-top:3px solid ${cor[n % 5]}"><div class="h"><div style="min-width:0;flex:1"><b>${esc(x.p.nome)}</b><small>${esc([x.p.tipo, x.p.tipologia].filter(Boolean).join(' · '))}</small></div>${ccmpVotoBtns(x.p, x.i)}<button class="vt-x" title="Tirar da grade" aria-label="Tirar da grade" onclick="ccmpFora(${x.i})">✕</button></div>${ccmpCorpo(x.p)}</div>`).join('');
   const nc = dentro.length + 1, rej = (CCMP.players || []).length - vis.length;
-  return `<div class="ads-sec">Lado a lado</div>
+  const escolha = vis.length ? `<div class="ads-sec">Quem entra na comparação (${dentro.length}/5)</div><div class="nota" style="margin:0 0 6px">Abra o detalhe de cada um para decidir. Coloque e tire à vontade antes de fechar a montagem.</div>
+    <div class="cmp-pl">${vis.map(x => { const k = ccmpVk(x.p.nome), aberto = (CCMP.aberto || {})[k], dentroX = dentro.some(d => d.i === x.i), img = ccmpImg(x.p), pg = x.p.pagina || {};
+      return `<div class="cmp-p" style="flex-direction:column;align-items:stretch"><div style="display:flex;gap:10px;align-items:center">
+        ${img ? `<img src="${esc(img)}" referrerpolicy="no-referrer" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:0 0 48px;cursor:zoom-in" onclick="ccZoom(this.src)" onerror="this.remove()">` : ''}
+        <div style="flex:1;min-width:0"><b>${esc(x.p.nome)}</b> <span class="cp-chip">${esc(x.p.tipologia || x.p.tipo || 'concorrente')}</span> <small class="nota">${esc(x.p.praca || '')}</small>
+          <div class="nota" style="margin:2px 0 0">${esc(pg.descricao || x.p.oferta || x.p.por_que || '')}</div></div>
+        ${ccmpVotoBtns(x.p, x.i)}<button class="btn cp-b" onclick="ccmpAbre(${x.i})">${aberto ? 'Fechar detalhe' : 'Ver detalhe'}</button><button class="btn ${dentroX ? 'cheio ' : ''}cp-b" onclick="ccmpFora(${x.i})">${dentroX ? '✓ Na montagem' : '+ Colocar'}</button></div>
+        ${aberto ? `<div style="padding:10px 2px 2px">${ccmpCorpo(x.p)}</div>` : ''}</div>`; }).join('')}</div>` : '';
+  return `${escolha}<div class="ads-sec">Lado a lado</div>
     <div class="nota" style="margin:0 0 4px">Clique numa imagem para ampliar. Toque num texto para abrir inteiro.</div>
     <div class="cmp-cols" style="grid-template-columns:repeat(${nc},minmax(${nc > 3 ? 230 : 260}px,1fr));overflow-x:auto;scrollbar-width:thin">${seu}${cols}</div>
-    ${resto.length ? `<div class="nota" style="margin:10px 0 4px">Outras referências:</div><div class="ads-per" style="flex-wrap:wrap">${resto.map(x => `<button onclick="ccmpFora(${x.i})">+ ${esc(x.p.nome)}</button>`).join('')}</div>` : ''}
+    
     ${rej ? `<div class="nota" style="margin:6px 0">${rej} tirado${rej > 1 ? 's' : ''} por você. O Tumi não traz de novo.</div>` : ''}
     ${vis.length ? '<div class="nota" style="margin:6px 0 0">Anúncio pago de concorrente a Meta não libera pela API no Brasil. O que entra aqui é público: página do empreendimento (imagem, texto, preço, condições) e posts do Instagram.</div>' : ''}`;
 }
 async function ccmpAdd(){
   const el = document.getElementById('ccmpRef'), v = (el && el.value || '').trim(); if (!v || CCMP.add) return; CCMP_SALVA(); CCMP.add = true; CCMP.msg = ''; ccmpPinta(); progIni();
-  try { const j = await adsFala({ acao:'referencia', valor:v }), c = j.concorrente; c.manual = true; CCMP.players = (CCMP.players || []).filter(x => x.nome !== c.nome).concat([c]); }
+  try { const j = await adsFala({ acao:'referencia', valor:v }), c = j.concorrente; c.manual = true; CCMP.players = (CCMP.players || []).filter(x => x.nome !== c.nome).concat([c]); ccmpAjustaFora(); }
   catch(e){ CCMP.msg = e.message; }
   progFim(); CCMP.add = false; ccmpPinta(); ccmpLer();
 }
@@ -5657,7 +5669,7 @@ async function ccmpTumi(){
   CCMP.ctx = null; CCMP.msg = ''; CCMP.tumi = true; ccmpPinta(); progIni();
   try { const pre = (CCMP.sel[0] || '') + '|', votos = Object.keys(CCMP.votos).filter(k => k.startsWith(pre) && CCMP.votos[k]).map(k => ({ item:k.slice(pre.length), voto:CCMP.votos[k] }));
     const j = await adsFala({ acao:'concorrentes', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, votos, alvo: alvoOut() });
-    CCMP.players = (j.concorrentes || []).concat((CCMP.players || []).filter(x => x.manual)); CCMP.obs = j.obs || ''; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0;
+    CCMP.fora = {}; CCMP.players = (j.concorrentes || []).concat((CCMP.players || []).filter(x => x.manual)); ccmpAjustaFora(); CCMP.obs = j.obs || ''; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0;
     if (!(j.concorrentes || []).length) CCMP.msg = 'O Tumi não achou concorrentes confiáveis. ' + (j.obs || '') + (j.bruto ? ' Resposta dele: ' + String(j.bruto).slice(0, 300) : ''); }
   catch(e){ CCMP.msg = 'A busca não terminou: ' + e.message + '. Tente de novo; se repetir, é tempo limite do servidor.'; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.tumi = false; ccmpPinta(); ccmpLer();
