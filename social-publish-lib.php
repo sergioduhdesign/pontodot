@@ -415,7 +415,7 @@ function pd_reconciliar() {
 // data ainda por vir, num lote que o cliente vê, entra na fila nas contas
 // escolhidas. Peça sem data, ou com a data já passada, espera alguém.
 // =========================================================================
-const PD_KIND_PLACEMENT = ['feed' => 'feed', 'carrossel' => 'feed', 'stories' => 'stories', 'reels' => 'reels'];
+const PD_KIND_PLACEMENT = ['feed' => 'feed', 'carrossel' => 'feed', 'stories' => 'stories', 'reels' => 'reels', 'anuncio' => 'anuncio'];
 
 function pd_agendar_sozinho() {
     $cfg = supa('/rest/v1/pd_publicacao?agendar_sozinho=eq.true&select=client_id,contas', 'GET');
@@ -437,7 +437,7 @@ function pd_agendar_sozinho() {
         $sets = array_values(array_filter(array_map(fn($x) => $x['id'] ?? null, (array)($ss['body'] ?? []))));
         if (!$sets) continue;
 
-        $it = supa('/rest/v1/approval_items?set_id=in.(' . implode(',', $sets) . ')&status=eq.aprovado&kind=in.(feed,carrossel,stories,reels)'
+        $it = supa('/rest/v1/approval_items?set_id=in.(' . implode(',', $sets) . ')&status=eq.aprovado&kind=in.(feed,carrossel,stories,reels,anuncio)'
             . '&publish_at=gte.' . rawurlencode($desde) . '&select=id,kind,caption,headline,hashtags,media,publish_at', 'GET');
         $itens = array_values(array_filter((array)($it['body'] ?? []), fn($i) => !empty($i['id']) && pd_instante($i['publish_at'] ?? '') >= time() - 1800));
         if (!$itens) continue;
@@ -456,9 +456,12 @@ function pd_agendar_sozinho() {
             $pid = $p['body'][0]['id'] ?? null;
             if ($p['code'] >= 300 || !$pid) { error_log('Pontodot agendar sozinho - post ' . $i['id'] . ': HTTP ' . $p['code']); continue; }
             $place = PD_KIND_PLACEMENT[$i['kind']] ?? 'feed';
+            // ANÚNCIO entra na MESMA fila: um alvo só, pela Página do Facebook do cliente (de onde sai o anúncio)
+            $alvosItem = $place === 'anuncio' ? array_slice(array_values(array_filter($alvos, fn($a) => $a['platform'] === 'facebook')), 0, 1) : $alvos;
+            if (!$alvosItem) { supa('/rest/v1/scheduled_posts?id=eq.' . urlencode($pid), 'DELETE'); continue; }
             $t = supa('/rest/v1/scheduled_post_targets', 'POST', array_map(fn($a) => [
                 'post_id' => $pid, 'social_account_id' => $a['id'], 'platform' => $a['platform'], 'placement' => $place,
-            ], $alvos));
+            ], $alvosItem));
             if ($t['code'] >= 300) { supa('/rest/v1/scheduled_posts?id=eq.' . urlencode($pid), 'DELETE'); continue; }
             $total++; $porCliente[$cid] = ($porCliente[$cid] ?? 0) + 1;
         }
@@ -479,16 +482,51 @@ function pd_agendar_sozinho() {
  *  Passou disso, NÃO publica: peça velha saindo fora de hora desorganiza o planejamento do cliente. */
 function pd_tolerancia_seg($placement) { return ($placement === 'stories') ? 2 * 3600 : 12 * 3600; }
 
-/** Tira da fila um alvo que passou da hora demais — sem publicar, sem alarme. */
+/** Tira da fila um alvo que passou da hora demais — NÃO publica, mas fica como ERRO visível (sem silêncio).
+ *  O aviso (push + sino + alarme) sai UMA vez por rodada, resumido, pra não encher o celular. */
 function pd_expirar_alvo($t, $quandoTs) {
-    $msg = 'Passou da hora (era ' . date('d/m H:i', $quandoTs) . '): não publiquei para não sair fora de hora. Reagende se ainda vale.';
-    $u = supa('/rest/v1/scheduled_post_targets?id=eq.' . urlencode($t['id']) . '&status=eq.agendado', 'PATCH',
-              ['status' => 'cancelado', 'error_message' => $msg]);
-    if ($u['code'] >= 300) {   // o banco não conhece "cancelado": usa "erro", mas com a marca que a tela reconhece como "antigo"
-        supa('/rest/v1/scheduled_post_targets?id=eq.' . urlencode($t['id']) . '&status=eq.agendado', 'PATCH',
-             ['status' => 'erro', 'error_message' => $msg]);
+    $msg = 'Passou da hora (era ' . date('d/m H:i', $quandoTs) . '): não publiquei para não sair fora de hora. Reagende ou publique agora se ainda vale.';
+    marcarErro($t['id'], $msg, $t['attempts'] ?? 0, false);   // fica na lista "com erro"; o aviso vai no resumo abaixo
+}
+
+/** Peça APROVADA, com data nas últimas 24 h, de cliente com "agendar sozinho", que NÃO entrou na fila: avisa (uma vez por peça). */
+function pd_avisar_perdidos() {
+    $cfg = supa('/rest/v1/pd_publicacao?agendar_sozinho=eq.true&select=client_id', 'GET');
+    if ($cfg['code'] !== 200) return 0;
+    $de = gmdate('c', time() - 86400); $ate = gmdate('c', time() - 1800); $novos = [];
+    foreach ((array)$cfg['body'] as $c) {
+        $cid = $c['client_id'] ?? ''; if (!$cid) continue;
+        $ss = supa('/rest/v1/approval_sets?client_id=eq.' . urlencode($cid) . '&interno=not.is.true&select=id&order=created_at.desc&limit=80', 'GET');
+        $sets = array_values(array_filter(array_map(fn($x) => $x['id'] ?? null, (array)($ss['body'] ?? []))));
+        if (!$sets) continue;
+        $it = supa('/rest/v1/approval_items?set_id=in.(' . implode(',', $sets) . ')&status=eq.aprovado&kind=in.(feed,carrossel,stories,reels,anuncio)'
+            . '&publish_at=gte.' . rawurlencode($de) . '&publish_at=lte.' . rawurlencode($ate) . '&select=id,title,kind,publish_at', 'GET');
+        foreach ((array)($it['body'] ?? []) as $i) {
+            if (empty($i['id'])) continue;
+            $ja = supa('/rest/v1/scheduled_posts?batch_name=eq.' . urlencode('ap:' . $i['id']) . '&select=id&limit=1', 'GET');
+            if (!empty($ja['body'][0])) continue;
+            $al = supa('/rest/v1/pd_alarmes?tipo=eq.perdido_publicacao&corpo=like.' . rawurlencode('*ap:' . $i['id'] . '*') . '&select=id&limit=1', 'GET');
+            if (!empty($al['body'][0])) continue;
+            $novos[] = $i;
+        }
     }
-    error_log('Pontodot publish - alvo ' . $t['id'] . ' expirou sem publicar: ' . $msg);
+    if (!$novos) return 0;
+    $lista = implode('; ', array_map(fn($i) => ($i['title'] ?: $i['kind']) . ' (' . $i['kind'] . ')', array_slice($novos, 0, 4)));
+    $marca = implode(' ', array_map(fn($i) => 'ap:' . $i['id'], $novos));
+    $corpo = count($novos) . ' peça(s) aprovada(s) tinham data de publicação e NÃO entraram na fila: ' . $lista . '. Confira as contas do cliente em Social e a data da peça. [' . $marca . ']';
+    pub_avisar_equipe(count($novos) === 1 ? 'Peça aprovada não entrou na fila' : count($novos) . ' peças aprovadas não entraram na fila', $corpo, 'publicacao_erro');
+    supa('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'perdido_publicacao', 'titulo' => 'Aprovada e fora da fila', 'corpo' => mb_substr($corpo, 0, 900), 'link' => '/index.html#publicacao']);
+    return count($novos);
+}
+
+/** Um aviso só, com o resumo dos que passaram da hora nesta rodada. */
+function pd_avisar_expirados($itens) {
+    if (!$itens) return;
+    $n = count($itens);
+    $ex = array_slice(array_map(fn($i) => $i['quando'], $itens), 0, 3);
+    $corpo = $n . ' publicação(ões) passaram da hora e NÃO saíram (ex.: ' . implode(', ', $ex) . '). Abra o Social > com erro para reagendar ou publicar agora.';
+    pub_avisar_equipe($n === 1 ? 'Uma publicação não saiu' : $n . ' publicações não saíram', $corpo, 'publicacao_erro');
+    supa('/rest/v1/pd_alarmes', 'POST', ['tipo' => 'erro_publicacao', 'titulo' => 'Passou da hora e não saiu', 'corpo' => mb_substr($corpo, 0, 400), 'link' => '/index.html#publicacao']);
 }
 
 function publicarAlvo($t) {
@@ -505,12 +543,13 @@ function publicarAlvo($t) {
         $batch = $b['body'][0]['batch_name'] ?? '';
     }
     $itemId = pd_item_do_lote($batch);
+    $tituloPeca = '';
     if ($itemId) {
         $it = supa('/rest/v1/approval_items?id=eq.' . urlencode($itemId) . '&select=status,title,caption,headline,hashtags,media', 'GET');
         $stIt = $it['body'][0]['status'] ?? null;
         // o que sai é a versão ATUAL da peça (correção aplicada depois do agendamento vale)
         if (!empty($it['body'][0])) {
-            $peca = $it['body'][0];
+            $peca = $it['body'][0]; $tituloPeca = (string)($peca['title'] ?? '');
             if (empty($t['caption_override'])) $legenda = (string)pd_legenda_da_peca($peca);
             $mp = is_array($peca['media'] ?? null) ? $peca['media'] : json_decode((string)($peca['media'] ?? ''), true);
             if ($mp) $post['media_urls'] = $mp;
@@ -536,7 +575,9 @@ function publicarAlvo($t) {
     try {
         $midias = pd_midias_publicas($post['media_urls'] ?? []);
         $placement = $t['placement'] ?: 'feed';
-        if ($t['platform'] === 'instagram') {
+        if ($placement === 'anuncio') {
+            [$pid, $permalink] = publicarAnuncio($idMeta, $post, $legenda, $tituloPeca, $midias, $nomeConta);
+        } elseif ($t['platform'] === 'instagram') {
             [$pid, $permalink] = publicarInstagram($idMeta, $midias, $legenda, $placement, $token);
         } else {
             [$pid, $permalink] = publicarFacebook($idMeta, $midias, $legenda, $placement, $token);
@@ -548,6 +589,64 @@ function publicarAlvo($t) {
         marcarErro($targetId, $plat . ' · ' . $nomeConta . ': ' . $e->getMessage(), $tent);
         return false;
     }
+}
+
+// =========================================================================
+// ANÚNCIO — a peça aprovada vira anúncio ATIVO no conjunto escolhido para o cliente/produto
+// (o destino é configurado em Anúncios › campanha › "Receber anúncios novos aqui")
+// =========================================================================
+function pd_sem_acento($t) { return strtolower(preg_replace('/[^a-z0-9 ]/', '', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', (string)$t)))); }
+
+function pd_destino_anuncio($clientId, $titulo, $legenda) {
+    $r = supa('/rest/v1/pd_anuncio_destino?client_id=eq.' . urlencode($clientId) . '&select=*,products(name)', 'GET');
+    if ($r['code'] !== 200) throw new Exception('A tabela de destino de anúncio ainda não existe (rode o migration v157).');
+    $lista = array_values(array_filter((array)$r['body'], 'is_array'));
+    if (!$lista) throw new Exception('Este cliente ainda não tem destino de anúncio. Abra Anúncios › uma campanha dele › "Receber anúncios novos aqui".');
+    $txt = pd_sem_acento($titulo . ' ' . $legenda);
+    foreach ($lista as $d) { $n = pd_sem_acento($d['products']['name'] ?? ''); if ($n !== '' && strpos($txt, $n) !== false) return $d; }   // o produto citado na peça
+    foreach ($lista as $d) if (empty($d['product_id'])) return $d;                                                                       // o destino do cliente todo
+    if (count($lista) === 1) return $lista[0];
+    throw new Exception('O cliente tem vários destinos de anúncio e a peça não diz de qual produto é. Ponha o nome do produto no título da peça.');
+}
+
+function publicarAnuncio($pageId, $post, $legenda, $titulo, $midias, $nomeConta) {
+    $d = pd_destino_anuncio($post['client_id'] ?? '', $titulo, $legenda);
+    $act = $d['conta'];
+    // a chave de anúncio é a da PESSOA que conectou a Meta (não a da Página)
+    $ac = supa('/rest/v1/meta_ad_accounts?id=eq.' . urlencode($act) . '&select=conectada_por', 'GET');
+    $por = $ac['body'][0]['conectada_por'] ?? null;
+    $tk = $por ? supa('/rest/v1/meta_user_tokens?user_id=eq.' . urlencode($por) . '&select=access_token,expira_em', 'GET') : ['body' => []];
+    $token = $tk['body'][0]['access_token'] ?? null;
+    if (!$token) { $q = supa('/rest/v1/meta_user_tokens?select=access_token&order=atualizado_em.desc&limit=1', 'GET'); $token = $q['body'][0]['access_token'] ?? null; }
+    if (!$token) throw new Exception('Sem acesso de anúncios válido. Reconecte a Meta em Redes sociais.');
+
+    $link = trim((string)($d['link'] ?? '')) ?: ('https://www.facebook.com/' . $pageId);
+    $cta = ['type' => ($d['cta'] ?: 'LEARN_MORE'), 'value' => !empty($d['lead_form_id']) ? ['lead_gen_form_id' => $d['lead_form_id']] : ['link' => $link]];
+    $titulo = mb_substr(trim($titulo) ?: 'Anúncio', 0, 100);
+    $nome = mb_substr('PD · ' . $titulo . ' · ' . date('d/m H:i'), 0, 200);
+    $c = function ($path, $p) use ($token) {
+        $r = meta_call('POST', $path, $p + ['access_token' => $token], 120);
+        if (empty($r['body']['id'])) throw new Exception(meta_motivo($r)); return $r['body']['id'];
+    };
+
+    if (count($midias) === 1 && $midias[0]['video']) {
+        $vid = $c("/$act/advideos", ['file_url' => $midias[0]['url'], 'name' => $nome]);
+        for ($i = 0; $i < 40; $i++) {      // espera a Meta processar o vídeo (até ~3 min)
+            $st = meta_call('GET', "/$vid", ['fields' => 'status,picture', 'access_token' => $token], 30);
+            $ok = $st['body']['status']['video_status'] ?? '';
+            if ($ok === 'ready') break; if ($ok === 'error') throw new Exception('a Meta recusou o vídeo do anúncio'); sleep(5);
+        }
+        $thumb = $st['body']['picture'] ?? null;
+        $spec = ['page_id' => $pageId, 'video_data' => array_filter(['video_id' => $vid, 'message' => $legenda, 'title' => $titulo, 'image_url' => $thumb, 'call_to_action' => $cta])];
+    } elseif (count($midias) > 1) {
+        $filhos = array_map(fn($m) => ['link' => $link, 'picture' => $m['url'], 'name' => $titulo, 'call_to_action' => $cta], $midias);
+        $spec = ['page_id' => $pageId, 'link_data' => ['message' => $legenda, 'link' => $link, 'child_attachments' => $filhos, 'multi_share_optimized' => true]];
+    } else {
+        $spec = ['page_id' => $pageId, 'link_data' => ['message' => $legenda, 'link' => $link, 'picture' => $midias[0]['url'], 'name' => $titulo, 'call_to_action' => $cta]];
+    }
+    $cre = $c("/$act/adcreatives", ['name' => $nome, 'object_story_spec' => json_encode($spec, JSON_UNESCAPED_UNICODE)]);
+    $ad = $c("/$act/ads", ['name' => $nome, 'adset_id' => $d['adset_id'], 'creative' => json_encode(['creative_id' => $cre]), 'status' => 'ACTIVE']);
+    return [$ad, 'https://adsmanager.facebook.com/adsmanager/manage/ads?act=' . preg_replace('/^act_/', '', $act) . '&selected_ad_ids=' . $ad];
 }
 
 // =========================================================================

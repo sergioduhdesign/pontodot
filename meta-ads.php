@@ -7,7 +7,7 @@
 //   POST {acao:"anuncios",  conta, campanha, periodo} -> os anúncios (criativos + números) de UMA campanha
 //   POST {acao:"vincular",  conta, client_id}   -> (admin) de qual cliente é a conta
 //
-// Só LÊ da Meta. Não cria, não liga, não gasta. Só a equipe (admin/team).
+// Lê da Meta e guarda o DESTINO dos anúncios novos (a criação do anúncio em si é do publicador, na fila do aprovador). Só a equipe (admin/team).
 // Guarda 10 minutos em disco: a Meta limita consultas no nível de acesso
 // inicial, e a plataforma não pode queimar esse limite à toa.
 // =====================================================================
@@ -27,6 +27,54 @@ $CAMPOS = 'spend,reach,impressions,clicks,actions';
 
 function sai($d) { echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE); exit; }
 function idConta($v) { $v = (string)$v; return preg_match('/^act_\d{3,25}$/', $v) ? $v : null; }
+
+// -------------------------------------------------------------- destino do anúncio (fila única)
+//   conjuntos {conta, campanha}      -> conjuntos de anúncio da campanha
+//   formularios {client_id}          -> formulários de lead da Página do cliente
+//   destino_ler {client_id}          -> onde as peças aprovadas de anúncio entram
+//   destino_gravar {client_id, product_id?, conta, campaign_id, adset_id, link?, cta?, lead_form_id?}
+if (in_array($acao, ['conjuntos', 'formularios', 'destino_ler', 'destino_gravar'], true)) {
+    $uuid = fn($v) => preg_match('/^[0-9a-f-]{36}$/i', (string)$v) ? (string)$v : null;
+    if ($acao === 'destino_ler') {
+        $cli = $uuid($b['client_id'] ?? ''); if (!$cli) sd_fail('Cliente inválido.', 400);
+        $q = pd_supa('/rest/v1/pd_anuncio_destino?client_id=eq.' . $cli . '&select=*,products(name)');
+        if ($q['code'] >= 300) sd_fail('Falta rodar o migration v157 no Supabase.', 500);
+        sai(['destinos' => array_values(array_filter((array)$q['body'], 'is_array'))]);
+    }
+    if ($acao === 'destino_gravar') {
+        $cli = $uuid($b['client_id'] ?? ''); $prod = $uuid($b['product_id'] ?? '');
+        $conta = idConta($b['conta'] ?? ''); $adset = preg_replace('/\D/', '', (string)($b['adset_id'] ?? ''));
+        if (!$cli || !$conta || !$adset) sd_fail('Faltou cliente, conta ou conjunto de anúncios.', 400);
+        $link = trim((string)($b['link'] ?? '')); if ($link !== '' && !preg_match('#^https?://#i', $link)) sd_fail('O link precisa começar com http:// ou https://', 400);
+        $cta = preg_match('/^[A-Z_]{3,30}$/', (string)($b['cta'] ?? '')) ? $b['cta'] : 'LEARN_MORE';
+        $form = preg_replace('/\D/', '', (string)($b['lead_form_id'] ?? ''));
+        $del = '/rest/v1/pd_anuncio_destino?client_id=eq.' . $cli . ($prod ? '&product_id=eq.' . $prod : '&product_id=is.null');
+        pd_supa($del, 'DELETE');
+        $r = pd_supa('/rest/v1/pd_anuncio_destino', 'POST', ['client_id' => $cli, 'product_id' => $prod, 'conta' => $conta,
+            'campaign_id' => preg_replace('/\D/', '', (string)($b['campaign_id'] ?? '')) ?: null, 'adset_id' => $adset,
+            'link' => $link ?: null, 'cta' => $cta, 'lead_form_id' => $form ?: null, 'atualizado_em' => gmdate('c')]);
+        if ($r['code'] >= 300) sd_fail('Não consegui salvar o destino (rodou o migration v157?).', 500);
+        sai(['salvo' => true]);
+    }
+    if ($acao === 'conjuntos') {
+        $id = idConta($b['conta'] ?? ''); $camp = preg_replace('/\D/', '', (string)($b['campanha'] ?? ''));
+        if (!$id || !$camp) sd_fail('Conta ou campanha inválida.', 400);
+        $qc = pd_supa('/rest/v1/meta_ad_accounts?id=eq.' . urlencode($id) . '&select=conectada_por');
+        $tok = pd_token_para($qc['body'][0]['conectada_por'] ?? null); if (!$tok) sd_fail('Ninguém com acesso válido à Meta. Reconecte a Meta.', 409);
+        $r = pd_meta('GET', "/$camp/adsets", ['fields' => 'id,name,effective_status', 'limit' => 100], $tok);
+        if ($r['code'] !== 200) sd_fail(pd_meta_erro($r), 502);
+        sai(['conjuntos' => array_map(fn($x) => ['id' => $x['id'], 'nome' => $x['name'] ?? $x['id'], 'status' => $x['effective_status'] ?? ''], (array)($r['body']['data'] ?? []))]);
+    }
+    // formularios: usa a chave da PÁGINA do cliente
+    $cli = $uuid($b['client_id'] ?? ''); if (!$cli) sd_fail('Cliente inválido.', 400);
+    $pg = pd_supa('/rest/v1/social_accounts?platform=eq.facebook&client_id=eq.' . $cli . '&select=id,external_account_id,account_name&limit=1');
+    $pag = $pg['body'][0] ?? null; if (!$pag) sd_fail('Este cliente não tem Página do Facebook vinculada (Redes sociais).', 404);
+    $tk = pd_supa('/rest/v1/social_account_tokens?social_account_id=eq.' . urlencode($pag['id']) . '&select=access_token');
+    $tp = $tk['body'][0]['access_token'] ?? null; if (!$tp) sd_fail('Sem chave da Página. Reconecte a Meta.', 409);
+    $r = pd_meta('GET', '/' . $pag['external_account_id'] . '/leadgen_forms', ['fields' => 'id,name,status', 'limit' => 100], $tp);
+    if ($r['code'] !== 200) sd_fail(pd_meta_erro($r), 502);
+    sai(['pagina' => $pag['account_name'], 'formularios' => array_map(fn($x) => ['id' => $x['id'], 'nome' => $x['name'] ?? $x['id'], 'status' => $x['status'] ?? ''], array_values(array_filter((array)($r['body']['data'] ?? []), fn($x) => ($x['status'] ?? 'ACTIVE') !== 'ARCHIVED')))]);
+}
 
 // -------------------------------------------------------------- vincular
 if ($acao === 'vincular') {

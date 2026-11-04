@@ -35,6 +35,7 @@ echo str_repeat('-', 60) . "\n";
 $limpas = pd_limpar_publicas();
 $auto = pd_agendar_sozinho();
 echo "Agendadas sozinhas: " . ($auto['agendadas'] ?? 0) . (!empty($auto['sem_tabela']) ? " (tabela pd_publicacao ainda não existe)" : '') . "\n";
+$perd = pd_avisar_perdidos();
 $rec = pd_reconciliar();
 echo "Acertados pela peça aprovada: " . ($rec['acertados'] ?? 0) . " · voltaram pra fila: " . ($rec['voltaram'] ?? 0)
    . (isset($rec['erro']) ? " · erro: {$rec['erro']}" : '') . " · arquivos velhos apagados: $limpas\n\n";
@@ -58,16 +59,18 @@ $devidos = array_filter($todos, function($t) use ($agora) {
     return $quandoTs !== false && $quandoTs <= $agora;
 });
 
-// Passou da hora demais (story: 2 h · resto: 12 h)? Não publica: sai da fila sem barulho.
-$expirados = 0;
+// Passou da hora demais (story: 2 h · resto: 12 h)? NÃO publica (peça velha fora de hora bagunça o planejamento) — vira erro visível e avisa a equipe.
+$expirados = 0; $resumoExp = [];
 foreach ($devidos as $k => $t) {
     $q = strtotime($t['scheduled_at_override'] ?? ($t['scheduled_posts']['scheduled_at'] ?? ''));
     if ($q !== false && $agora - $q > pd_tolerancia_seg($t['placement'] ?? 'feed')) {
         pd_expirar_alvo($t, $q); unset($devidos[$k]); $expirados++;
+        $resumoExp[] = ['quando' => date('d/m H:i', $q)];
     }
 }
+pd_avisar_expirados($resumoExp);
 echo count($todos) . " alvo(s) agendado(s) no total, " . count($devidos) . " vencido(s) agora"
-   . ($expirados ? ", $expirados velho(s) demais — tirados da fila sem publicar" : '') . ".\n\n";
+   . ($expirados ? ", $expirados velho(s) demais — NÃO publicados, marcados com erro e avisados" : '') . ".\n\n";
 
 if (!count($devidos)) { echo "Nada a fazer.\n"; exit; }
 

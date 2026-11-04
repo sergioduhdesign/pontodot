@@ -538,7 +538,7 @@ function tipoDeTodas(k){
 }
 
 function renderZipPecas(){
-  const KINDS = { feed:'Post', carrossel:'Carrossel', stories:'Stories', reels:'Reels', material:'Material' };
+  const KINDS = { feed:'Post', carrossel:'Carrossel', stories:'Stories', reels:'Reels', anuncio:'Anúncio', material:'Material' };
   const contagem = {};
   zipPecas.forEach(p => contagem[p.kind] = (contagem[p.kind] || 0) + 1);
   const topo = zipPecas.length > 1 ? `

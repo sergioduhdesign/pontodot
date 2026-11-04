@@ -492,7 +492,7 @@ const esc = s => String(s ?? '')
 
 const KIND_LABEL = {
   feed:'Feed', carrossel:'Carrossel', stories:'Stories',
-  reels:'Reels', generico:'Material'
+  reels:'Reels', anuncio:'Anúncio', generico:'Material'
 };
 
 // ==================================================================
@@ -703,7 +703,7 @@ function render(){
   const ba = document.getElementById('btnAgendar');
   if (ba) {
     const temSocial = items.some(i => i.status === 'aprovado' &&
-      ['feed','carrossel','stories','reels'].includes(i.kind));
+      ['feed','carrossel','stories','reels','anuncio'].includes(i.kind));
     ba.style.display = (profile.role !== 'client' && temSocial) ? 'block' : 'none';
     if (ba.style.display === 'block') atualizarBotaoAgendar();
   }
@@ -1286,7 +1286,7 @@ async function atualizarBotaoAgendar(){
   if (!ba || ba.style.display === 'none') return;
 
   const elegiveis = items.filter(i => i.status === 'aprovado' &&
-    ['feed','carrossel','stories','reels'].includes(i.kind));
+    ['feed','carrossel','stories','reels','anuncio'].includes(i.kind));
   const idsElegiveis = elegiveis.map(i => i.id);
   if (!idsElegiveis.length) return;
 
@@ -1340,7 +1340,7 @@ setInterval(atualizarBotaoAgendar, 30000);
 
 // Entrada única da etapa PUBLICAR: agenda o que falta; se já está tudo na fila, mostra o andamento.
 async function abrirPublicacao(){
-  const el = items.filter(i => i.status === 'aprovado' && ['feed','carrossel','stories','reels'].includes(i.kind));
+  const el = items.filter(i => i.status === 'aprovado' && ['feed','carrossel','stories','reels','anuncio'].includes(i.kind));
   if (!el.length) { showToast('Ainda não há peça aprovada pra publicar.', 'warn'); return; }
   const { data: ja } = await sb.from('scheduled_posts').select('batch_name').in('batch_name', el.map(i => 'ap:' + i.id));
   if ((ja||[]).length >= el.length) abrirStatusPublicacao(); else abrirAgendamento();
@@ -1411,7 +1411,7 @@ async function abrirStatusPublicacao(){
 
 async function abrirAgendamento(){
   const elegiveis = items.filter(i => i.status === 'aprovado' &&
-    ['feed','carrossel','stories','reels'].includes(i.kind));
+    ['feed','carrossel','stories','reels','anuncio'].includes(i.kind));
 
   if (!elegiveis.length) { showToast('Nada aprovado ainda para agendar.', 'warn'); return; }
 
@@ -1519,7 +1519,7 @@ async function confirmarAgendamento(pendentes, clienteId, ov){
 
     if (e1 || !post) { falhas++; console.log('agendar post:', e1?.message); continue; }
 
-    const placement = { feed:'feed', carrossel:'feed', stories:'stories', reels:'reels' }[item.kind] || 'feed';
+    const placement = { feed:'feed', carrossel:'feed', stories:'stories', reels:'reels', anuncio:'anuncio' }[item.kind] || 'feed';
 
     const alvos = marcadas.map(c => ({
       post_id: post.id, social_account_id: c.id, platform: c.platform, placement,
@@ -1548,7 +1548,7 @@ async function confirmarAgendamento(pendentes, clienteId, ov){
 // ==================================================================
 function pastaTipo(kind){
   return { feed:'feed', carrossel:'carrossel', stories:'stories',
-           reels:'reels', material:'material', generico:'material' }[kind] || 'outros';
+           reels:'reels', anuncio:'anuncio', material:'material', generico:'material' }[kind] || 'outros';
 }
 
 function semanaDe(items, it){

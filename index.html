@@ -4826,8 +4826,7 @@ async function carregarPub(forcar){
     ]);
     const agora = Date.now(), fimHoje = new Date(); fimHoje.setHours(23,59,59,999);
     const todosAlvos = (alvos.data||[]).map(a => ({ ...a, quando: new Date(a.scheduled_at_override || a.scheduled_posts?.scheduled_at || 0).getTime() }));
-    const velhoDemais = a => a.status==='erro' && /^Passou da hora/.test(a.error_message||'');   // o publicador tirou da fila: era velho demais pra sair
-    const q = todosAlvos.filter(a => !velhoDemais(a)), velhosAlvos = todosAlvos.filter(velhoDemais);
+    const q = todosAlvos, velhosAlvos = [];   // "passou da hora" aparece como ERRO, com aviso: nada acontece em silêncio
     const nomeDe = a => (clientesReais.find(c => c.id === a.scheduled_posts?.client_id) || {}).name || 'SD';
     q.forEach(a => { a.cliente = nomeDe(a); });
     const ok = q.filter(a => a.status!=='erro').sort((x,y)=>x.quando-y.quando);
@@ -4845,7 +4844,7 @@ async function carregarPub(forcar){
     // aprovadas que ainda não entraram na fila — sem teto de 60: as velhas ficam separadas das que falta agendar
     try {
       const { data: aps } = await sbR.from('approval_items').select('id,title,kind,set_id,publish_at').eq('status','aprovado')
-        .in('kind',['feed','carrossel','stories','reels']).order('publish_at',{ascending:true,nullsFirst:false}).limit(800);
+        .in('kind',['feed','carrossel','stories','reels','anuncio']).order('publish_at',{ascending:true,nullsFirst:false}).limit(800);
       const tem = new Set();
       const ids = (aps||[]).map(x=>'ap:'+x.id);
       for (let i = 0; i < ids.length; i += 60){
@@ -5080,6 +5079,38 @@ async function adsSetProduto(conta, campId, productId){
   toast(productId ? 'Campanha ligada ao produto. Os leads dela seguem esse produto.' : 'Campanha sem produto.');
   ADS.leads = null; ADS.em = 0;
 }
+// DESTINO DO ANÚNCIO (fila única): peça aprovada do tipo Anúncio entra no conjunto escolhido, ATIVA, na data da peça
+async function adsDestinoAbrir(conta, campId){
+  const box = document.getElementById('destBox'); if (!box) return;
+  const c0 = (ADS.dados?.contas || []).find(x => x.conta === conta) || {}, cli = c0.client_id, prodId = (ADS.prodMap || {})[campId] || null;
+  if (!cli){ box.innerHTML = '<div class="nota">Vincule esta conta de anúncio a um cliente primeiro.</div>'; return; }
+  box.innerHTML = '<div class="nota">Buscando conjuntos, formulários e o destino atual…</div>';
+  try {
+    const [cj, fm, dl] = await Promise.all([ adsFala({ acao:'conjuntos', conta, campanha:campId }), adsFala({ acao:'formularios', client_id:cli }).catch(e => ({ formularios:[], erro:e.message })), adsFala({ acao:'destino_ler', client_id:cli }) ]);
+    const at = (dl.destinos || []).find(d => (d.product_id || null) === prodId) || {};
+    const campo = 'width:100%;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font-size:13px;margin:4px 0 8px';
+    const opt = (v, t, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(t)}</option>`;
+    box.innerHTML = `<div class="nota" style="margin:0 0 4px">As peças aprovadas do tipo <b>Anúncio</b> de ${esc(c0.cliente || 'este cliente')}${prodId ? ' › ' + esc(adsNomeProd(prodId)) : ''} entram neste conjunto, <b>ativas</b>, na data da peça.</div>
+      <select id="dsConj" style="${campo}">${(cj.conjuntos || []).map(x => opt(x.id, x.nome + (x.status ? ' · ' + String(x.status).toLowerCase() : ''), x.id === at.adset_id)).join('') || opt('', 'Nenhum conjunto nesta campanha')}</select>
+      <select id="dsForm" style="${campo}">${opt('', 'Sem formulário (o clique leva ao link)', !at.lead_form_id)}${(fm.formularios || []).map(x => opt(x.id, 'Formulário: ' + x.nome, x.id === at.lead_form_id)).join('')}</select>
+      ${fm.erro ? `<div class="nota" style="margin:-4px 0 6px">Formulários: ${esc(fm.erro)}</div>` : ''}
+      <input id="dsLink" placeholder="Link de destino (site, landing page)" value="${esc(at.link || '')}" style="${campo}">
+      <select id="dsCta" style="${campo}">${[['LEARN_MORE','Saiba mais'],['SIGN_UP','Cadastre-se'],['CONTACT_US','Fale conosco'],['GET_QUOTE','Solicitar orçamento']].map(([v,t]) => opt(v, 'Botão: ' + t, (at.cta || 'LEARN_MORE') === v)).join('')}</select>
+      <button class="btn cheio" onclick="adsDestinoSalvar('${esc(conta)}','${esc(campId)}')">Salvar destino</button>
+      ${at.adset_id ? '<div class="nota" style="margin:6px 0 0">✓ Destino já configurado.</div>' : ''}`;
+  } catch(e){ box.innerHTML = `<div class="nota">${esc(e.message)}</div>`; }
+}
+async function adsDestinoSalvar(conta, campId){
+  const c0 = (ADS.dados?.contas || []).find(x => x.conta === conta) || {}, v = id => (document.getElementById(id) || {}).value || '';
+  if (!v('dsConj')){ toast('Escolha o conjunto de anúncios.'); return; }
+  if (!v('dsForm') && !v('dsLink').trim()){ toast('Sem formulário, o anúncio precisa de um link de destino.'); return; }
+  try {
+    await adsFala({ acao:'destino_gravar', client_id:c0.client_id, product_id:(ADS.prodMap || {})[campId] || null, conta, campaign_id:campId,
+      adset_id:v('dsConj'), lead_form_id:v('dsForm') || null, link:v('dsLink').trim(), cta:v('dsCta') });
+    toast('Destino salvo. Anúncio aprovado entra sozinho, ativo, na data dele.');
+    adsDestinoAbrir(conta, campId);
+  } catch(e){ toast('Não salvou: ' + e.message); }
+}
 async function abrirCampanhas(conta){
   const c = (ADS.dados?.contas || []).find(x => x.conta === conta) || {};
   abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px" id="cxCamp">
@@ -5124,6 +5155,7 @@ async function abrirCampanhaDetalhe(conta, id){
       if (!conta0.client_id) return `<div class="nota" style="margin-top:10px">Vincule esta conta de anúncio a um cliente para ligar a campanha a um produto.</div>`;
       return `<div class="ads-sec">Produto</div><select style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font-size:13px" onchange="adsSetProduto('${esc(conta)}','${esc(id)}',this.value)">
         <option value="">Sem produto (cliente todo)</option>${pr.map(x => `<option value="${esc(x.id)}"${(ADS.prodMap||{})[id]===x.id?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`; })()}
+    ${(perfil?.role === 'admin' || perfil?.role === 'team') && conta0.client_id ? `<div class="ads-sec">Anúncios novos</div><div id="destBox"><button class="btn" onclick="adsDestinoAbrir('${esc(conta)}','${esc(id)}')">Receber anúncios novos aqui</button></div>` : ''}
     <div class="ads-sec">Criativos</div>
     <div id="anunCorpo" class="nota">Buscando os anúncios na Meta…</div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">

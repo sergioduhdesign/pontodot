@@ -228,6 +228,7 @@ AP.lerPlanilha = function(u8){
 const RE_MATERIAL = /\b(press|imprensa|an[uú]ncio|anuncio|jornal|revista|folder|folheto|flyer|panfleto|outdoor|busdoor|front ?light|backlight|banner|faixa|totem|placa|empena|tapume|mupi|mobili[aá]rio|book|apresenta[cç][aã]o|catalogo|cat[aá]logo|manual|papelaria|cart[aã]o|convite|e-?mail ?mkt|email marketing|newsletter|r[aá]dio|spot|impresso|m[ií]dia off|off-?line|plotagem|adesivo|sinaliza[cç][aã]o|stand|lona|material)\b/i;
 const RE_STORIES  = /stor(y|ies)/i;
 const RE_REELS    = /\breels?\b/i;
+const RE_ANUNCIO  = /\b(an[uú]ncios?|ads?|tr[áa]fego pago)\b/i;
 const RE_CARROSSEL = /carross|carousel/i;
 const RE_SOCIAL   = /\b(post|posts|feed|social|redes|insta|instagram|facebook|linkedin|tiktok|carross|carousel|stor(y|ies)|reels?)\b/i;
 
@@ -235,6 +236,7 @@ AP.deduzirTipo = function(nome, contexto, nArtes, temVideo){
   const n = norm(nome) + ' ' + String(nome || '').toLowerCase();
   const c = String(contexto || '').toLowerCase();
   // 1) o nome do arquivo/pasta
+  if (RE_ANUNCIO.test(n)) return 'anuncio';
   if (RE_STORIES.test(n)) return 'stories';
   if (RE_REELS.test(n)) return 'reels';
   if (RE_CARROSSEL.test(n)) return 'carrossel';
@@ -248,7 +250,7 @@ AP.deduzirTipo = function(nome, contexto, nArtes, temVideo){
   return nArtes >= 2 ? 'carrossel' : 'feed';
 };
 
-const KIND_XLS = { FEED:'feed', CARROSSEL:'carrossel', STORIES:'stories', REELS:'reels', MATERIAL:'material' };
+const KIND_XLS = { FEED:'feed', CARROSSEL:'carrossel', STORIES:'stories', REELS:'reels', ANUNCIO:'anuncio', MATERIAL:'material' };
 
 // opts: { doc:true|false, onStatus:fn }
 // Retorna { pecas:[...], linhas:[...] }
