@@ -800,6 +800,10 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 #janela .j-caixa::-webkit-scrollbar,#janela #lpCorpo::-webkit-scrollbar,#janela .caixa::-webkit-scrollbar{display:block;width:8px}
 #janela .j-caixa::-webkit-scrollbar-thumb,#janela #lpCorpo::-webkit-scrollbar-thumb,#janela .caixa::-webkit-scrollbar-thumb{background:rgba(127,127,127,.5);border-radius:8px}
 #janela .j-caixa::-webkit-scrollbar-track,#janela #lpCorpo::-webkit-scrollbar-track,#janela .caixa::-webkit-scrollbar-track{background:transparent}
+.cmp-prog{margin:10px 0;padding:10px 12px;border:.5px solid var(--linha);border-radius:12px}
+.cmp-prog-t{font-size:12px;margin-bottom:8px;opacity:.85}
+.cmp-prog-b{height:6px;border-radius:6px;background:rgba(127,127,127,.22);overflow:hidden}
+.cmp-prog-b i{display:block;height:100%;width:3%;border-radius:6px;transition:width .35s ease}
 .cp-top{display:flex;align-items:center;gap:10px}
 .cp .cp-b{min-height:36px;padding:7px 14px;font-size:12.5px}
 .cp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin:12px 0 8px}
@@ -5760,23 +5764,27 @@ async function cmpLer(){
   catch(e){ CMP.msg = e.message; }
   CMP.lendo = false; cmpPinta();
 }
+let PROG_T = null;
+function progIni(cor){ progFim(true); const t0 = Date.now(); PROG_T = setInterval(() => { const el = document.getElementById('cmpProgF'); if (!el) return; const x = (Date.now() - t0) / 1000; el.style.width = (92 * (1 - Math.exp(-x / 14))).toFixed(1) + '%'; }, 250); }
+function progFim(quieto){ if (PROG_T){ clearInterval(PROG_T); PROG_T = null; } const el = document.getElementById('cmpProgF'); if (el && !quieto) el.style.width = '100%'; }
+function progHtml(txt, cor){ return `<div class="cmp-prog"><div class="cmp-prog-t">${txt}</div><div class="cmp-prog-b"><i id="cmpProgF" style="background:${cor}"></i></div></div>`; }
 async function cmpTumi(){
   if (!CMP.slots.length){ CMP.msg = 'Escolha primeiro o perfil do cliente.'; return cmpPinta(); }
-  CMP.msg = 'O Tumi está pesquisando players parecidos na web…'; CMP.tumi = true; cmpPinta();
+  CMP.msg = ''; CMP.tumi = true; cmpPinta(); progIni();
   try { const j = await socFala({ acao:'players', cliente: CMP.slots[0].nome, notas: CMP.notas, perfil_base: CMP.slots.slice(0, 1).map(s => CMP.dados[s.handle] || { handle:s.handle }) });
     CMP.players = j.players || []; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = j.players && j.players.length ? '' : 'O Tumi não achou perfis confiáveis. ' + (j.obs || ''); }
   catch(e){ CMP.msg = e.message; }
-  CMP.tumi = false; cmpPinta();
+  progFim(); await new Promise(r => setTimeout(r, 350)); CMP.tumi = false; cmpPinta();
 }
 async function cmpDirecao(){
   const ok = CMP.slots.map(s => CMP.dados[s.handle]).filter(p => p && !p.erro);
   if (ok.length < 2){ CMP.msg = 'Preciso de pelo menos 2 perfis lidos com sucesso para comparar.'; return cmpPinta(); }
   CMP.notas = (document.getElementById('cmpNotas') || {}).value ?? CMP.notas; CMP.foco = (document.getElementById('cmpFoco') || {}).value ?? CMP.foco;
-  CMP.msg = 'A Muru está cruzando os dados e escrevendo a direção…'; CMP.pensa = true; cmpPinta();
+  CMP.msg = ''; CMP.pensa = true; cmpPinta(); progIni();
   try { const j = await socFala({ acao:'direcao', cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
     CMP.resp = j.resposta; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
   catch(e){ CMP.msg = e.message; }
-  CMP.pensa = false; cmpPinta();
+  progFim(); await new Promise(r => setTimeout(r, 350)); CMP.pensa = false; cmpPinta();
 }
 function cmpBarras(titulo, fn, fmt){
   const ps = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })).filter(x => x.p && !x.p.erro), vs = ps.map(x => fn(x.p)), mx = Math.max(...vs.map(v => v || 0), 0.0001);
@@ -5808,6 +5816,7 @@ function cmpPinta(){
       <form onsubmit="event.preventDefault();cmpAdd(this.u.value);this.u.value=''"><input name="u" class="cp-sel1" placeholder="+ @usuario ou link do Instagram de outro perfil" autocomplete="off"><button class="btn cp-b" type="submit">Adicionar</button></form></div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px"><button class="btn cp-b" onclick="cmpTumi()" ${CMP.tumi || !CMP.slots.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi players parecidos</span></button></div>
     ${CMP.players ? `<div class="cmp-pl">${CMP.players.map(p => `<div class="cmp-p"><div style="flex:1;min-width:0"><b>@${esc(p.handle)}</b> <span class="cp-chip">${esc(p.tipo || 'player')}</span><div class="nota" style="margin:2px 0 0">${esc(p.por_que || '')}</div></div><button class="btn cp-b" ${CMP.slots.some(s => s.handle === p.handle) || CMP.slots.length >= 5 ? 'disabled' : ''} onclick="cmpAdd('${esc(p.handle)}','${esc(p.nome)}','player')">+ adicionar</button></div>`).join('')}</div>` : ''}
+    ${CMP.tumi ? progHtml('O Tumi está pesquisando players parecidos na web…', '#11BA98') : ''}
     ${CMP.msg ? `<div class="nota" style="margin:8px 0;${/não|Não|erro|Preciso|Informe|No máximo/.test(CMP.msg) ? 'color:var(--rosa)' : ''}">${esc(CMP.msg)}</div>` : ''}
     ${CMP.lendo ? '<div class="nota" style="margin:8px 0">Lendo os perfis no Instagram…</div>' : ''}${erros}
     ${ok.length >= 2 ? `<div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">O que o cliente já sabe e quer que entre na análise: ticket, público, diferenciais, praça, metas, o que já tentou.</div>
@@ -5817,7 +5826,7 @@ function cmpPinta(){
     ${cmpBarras('Seguidores', p => p.seguidores, v => nf(v))}${cmpBarras('Engajamento por post (% dos seguidores)', p => p.engajamento, v => String(v).replace('.', ',') + '%')}
     ${cmpBarras('Posts por semana', p => p.por_semana, v => String(v).replace('.', ','))}${cmpBarras('Média de curtidas', p => p.media_curtidas, v => nf(Math.round(v)))}${cmpBarras('Média de comentários', p => p.media_comentarios, v => String(v).replace('.', ','))}
     ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}
-    ${CMP.pensa ? '<div class="nota">A Muru está lendo os números e escrevendo…</div>' : ''}
+    ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
     ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}`;
 }
 function pdfComparar(){
