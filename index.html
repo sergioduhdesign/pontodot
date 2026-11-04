@@ -5206,7 +5206,7 @@ async function abrirCampanhas(conta){
   const c = (ADS.dados?.contas || []).find(x => x.conta === conta) || {};
   abrirJanela(`<div class="caixa invertida cp" style="padding:20px 18px 18px" id="cxCamp">
     <div class="cp-top">${logoCliente(c.cliente || '', 36)}<h3 style="margin:0;flex:1;font-size:22px;font-weight:400;line-height:1.15">${esc(c.cliente || c.nome || conta)}</h3>
-      <button class="btn cheio cp-b" onclick="pdfConta('${esc(conta)}')">Gerar PDF</button><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','')">Perguntar à IA</button>
+      <button class="btn cheio cp-b" onclick="pdfConta('${esc(conta)}')">Gerar PDF</button><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','')">Perguntar ao Sumi</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div style="margin:12px 0 0">${cpPeriodoPills('cpPeriodoConta')}</div>
     <div id="campCorpo" class="nota">Buscando na Meta…</div></div>`, true);
@@ -5262,7 +5262,7 @@ async function abrirCampanhaDetalhe(conta, id){
     <div class="nota" style="margin:4px 0 10px">${esc(conta0.cliente||conta0.nome||'')} · ${esc(per)}${(ADS.prodMap||{})[id] ? ' · ' + esc(adsNomeProd(ADS.prodMap[id])) : ''}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:-1px;z-index:3;padding:2px 0 8px">
       <button class="btn cheio cp-b" id="btPdfCamp" onclick="pdfCampanha('${esc(conta)}','${esc(id)}')" disabled>Gerar PDF</button>
-      <button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(id)}')">Perguntar à IA</button>
+      <button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(id)}')">Perguntar ao Sumi</button>
       <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button>
       <button class="btn cp-b" onclick="abrirCampanhas('${esc(conta)}')">← Campanhas</button></div>
     <div id="cpSel" class="cp-sel"></div>
@@ -5328,30 +5328,31 @@ async function cpPublico(conta, campId){
       <div class="nota" style="margin:0 0 6px"><b>${lh.total}</b> lead${lh.total===1?'':'s'} no período · <b>${lh.entre_meia_noite_e_6h}</b> entre meia-noite e 6h (Brasília)</div>
       <div class="cp-hrs">${horas.map((n,h) => `<div title="${h}h · ${n}"><i style="height:${Math.max(2, n/mxh*100)}%"></i><span>${h%6===0?h:''}</span></div>`).join('')}</div>` : '')
       + cpBarras('Idade e gênero', p.publico.idade_genero) + cpBarras('Regiões', p.publico.regiao) + cpBarras('Posicionamento', p.publico.posicionamento) + cpBarras('Aparelho', p.publico.aparelho)
-      + `<div style="margin-top:10px"><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(campId||'')}')">Perguntar à IA sobre este público</button></div>`;
+      + `<div style="margin-top:10px"><button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(campId||'')}')">Perguntar ao Sumi sobre este público</button></div>`;
   } catch(e){ box.innerHTML = `<div class="nota">${esc(e.message)}</div>`; }
 }
 
 // ---- IA de Campanhas: painel no canto direito ----
+const sumiAv = (t=40) => `<img src="${fotoDe('sumi','avatar')}" alt="Sumi Sulo" style="width:${t}px;height:${t}px;border-radius:50%;object-fit:cover;flex:0 0 ${t}px;background:#18155F" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'S',style:'width:${t}px;height:${t}px;border-radius:50%;display:grid;place-items:center;background:#18155F;color:#fff;flex:0 0 ${t}px'}))">`;
 const IAC = { conta:null, camp:'', hist:[], seg:0, custo:0, ocupada:false };
 function iaCampAbrir(conta, campId){
   if (IAC.conta !== conta || IAC.camp !== (campId||'')) Object.assign(IAC, { conta, camp: campId || '', hist:[], seg:0, custo:0 });
   let d = document.getElementById('iaCamp');
   if (!d){ d = document.createElement('div'); d.id = 'iaCamp'; document.body.appendChild(d); }
   const c = (ADS.dados?.contas||[]).find(x => x.conta === conta) || {}, camp = ((ADS.camps||{})[conta]||[]).find(x => x.id === campId) || {};
-  d.innerHTML = `<div class="ia-h"><div style="flex:1;min-width:0"><b>IA de Campanhas</b><small>${esc(camp.nome || c.cliente || c.nome || 'conta')}</small></div>
+  d.innerHTML = `<div class="ia-h">${sumiAv(44)}<div style="flex:1;min-width:0"><b>Sumi Sulo</b><small>IA de Campanhas · ${esc(camp.nome || c.cliente || c.nome || 'conta')}</small></div>
       <span class="ia-rel" id="iaRel" title="Tempo e custo desta conversa">⏱ 0s · US$ 0,00</span><button class="acao-cab" style="color:inherit" onclick="iaCampFecha()" aria-label="Fechar">✕</button></div>
     <div class="ia-m" id="iaMsgs"></div>
     <div class="ia-s" id="iaSug">${['Quantos leads chegaram depois da meia-noite?','Qual faixa de idade e gênero custa menos por lead?','Quais regiões trazem mais leads?','Qual o melhor dia e horário?','Quem são os concorrentes mais próximos e o que eles estão fazendo?'].map(t => `<button onclick="iaCampEnviar(this.textContent)">${esc(t)}</button>`).join('')}</div>
-    <form class="ia-f" onsubmit="event.preventDefault();iaCampEnviar()"><input id="iaIn" placeholder="Pergunte qualquer coisa sobre esta campanha…" autocomplete="off"><button class="btn cheio" type="submit">Enviar</button></form>`;
+    <form class="ia-f" onsubmit="event.preventDefault();iaCampEnviar()"><input id="iaIn" placeholder="Pergunte ao Sumi…" autocomplete="off"><button class="btn cheio" type="submit">Enviar</button></form>`;
   d.classList.add('aberto'); iaCampPinta(); setTimeout(() => document.getElementById('iaIn')?.focus(), 50);
 }
 function iaCampFecha(){ document.getElementById('iaCamp')?.remove(); }
 const iaFmt = t => esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 function iaCampPinta(){
   const M = document.getElementById('iaMsgs'); if (!M) return;
-  M.innerHTML = (IAC.hist.length ? '' : '<div class="nota">Pergunte sobre números, público, horários, comparações e concorrentes. Eu leio os dados reais desta conta e pesquiso o mercado.</div>')
-    + IAC.hist.map(m => `<div class="ia-b ${m.r==='user'?'eu':''}">${iaFmt(m.t)}</div>`).join('') + (IAC.ocupada ? '<div class="ia-b">Lendo os dados e pensando…</div>' : '');
+  M.innerHTML = (IAC.hist.length ? '' : '<div class="ia-b">Oi! Sou o Sumi Sulo, a lula-coruja que cuida dos resultados dos anúncios aqui da casa. Gosto de desenhar o que parece confuso em diagrama simples. Me pergunta de números, público, horários, comparações ou concorrentes: eu leio os dados reais desta conta e saio pra pesquisar o mercado.</div>')
+    + IAC.hist.map(m => `<div class="ia-b ${m.r==='user'?'eu':''}">${iaFmt(m.t)}</div>`).join('') + (IAC.ocupada ? '<div class="ia-b">Sumi está lendo os dados…</div>' : '');
   M.scrollTop = M.scrollHeight;
   const r = document.getElementById('iaRel'); if (r) r.textContent = `⏱ ${Math.round(IAC.seg)}s · US$ ${IAC.custo.toFixed(2).replace('.',',')}`;
   const s = document.getElementById('iaSug'); if (s) s.style.display = IAC.hist.length ? 'none' : '';
