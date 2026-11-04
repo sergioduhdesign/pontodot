@@ -5752,7 +5752,7 @@ const DT = { itens:[], cliente:'', clientId:'', carregando:false, criando:false,
 function dtEquipe(){ return (PERFIS || []).filter(x => x.name && !x.client_id).map(x => ({ key: chaveDe(x), nome: x.name, funcoes: x.funcoes || [] })).filter(x => x.key); }
 async function docTarefas(origem){
   const resp = origem === 'soc' ? CMP.resp : CCMP.resp; if (!resp) return;
-  DT.cliente = origem === 'soc' ? ((ALVO && ALVO.client_id && (clientesReais.find(c => c.id === ALVO.client_id) || {}).name) || '') : ccmpCliente();
+  DT.cliente = origem === 'soc' ? ((ALVO && ALVO.client_id && (clientesReais.find(c => c.id === ALVO.client_id) || {}).name) || '') : (ccmpCliente() || (clientesReais.find(c => c.id === CCMP.sel[0]) || {}).name || '');
   DT.clientId = origem === 'soc' ? (ALVO && ALVO.client_id) || '' : CCMP.sel[0] || ''; DT.itens = []; DT.msg = ''; DT.carregando = true; dtPinta(); progIni();
   try { const j = await adsFala({ acao:'tarefas_doc', texto: resp, cliente: DT.cliente, equipe: dtEquipe() });
     DT.itens = (j.tarefas || []).map(t => ({ ...t, on:true, prazo:'' })); if (!DT.itens.length) DT.msg = 'Não consegui separar tarefas desse documento. ' + String(j.bruto || '').slice(0, 200); }
