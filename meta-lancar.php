@@ -168,7 +168,7 @@ if ($acao === 'subir') {
     $criados = ['campanha' => null, 'conjuntos' => [], 'anuncios' => []]; $t0 = microtime(true);
     try {
         $nomeC = mb_substr('PD · ' . ($camp['nome'] ?: 'Campanha') . ' · ' . date('d/m/Y'), 0, 200);
-        $criados['campanha'] = $post("/$act/campaigns", ['name' => $nomeC, 'objective' => $obj, 'status' => 'PAUSED', 'special_ad_categories' => json_encode(['HOUSING']), 'buying_type' => 'AUCTION'], 'Campanha');
+        $criados['campanha'] = $post("/$act/campaigns", ['name' => $nomeC, 'objective' => $obj, 'status' => 'PAUSED', 'special_ad_categories' => json_encode(['HOUSING']), 'buying_type' => 'AUCTION', 'is_adset_budget_sharing_enabled' => 'false'], 'Campanha');
         // IMÓVEL = categoria especial HOUSING: a Meta não aceita gênero nem idade fechada (18–65+), nem raio pequeno. Normalizamos sem avisar errado.
         $ini = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($camp['inicio'] ?? '')) ? $camp['inicio'] . 'T08:00:00-03:00' : null;
         $fim = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($camp['fim'] ?? '')) ? $camp['fim'] . 'T23:59:00-03:00' : null;
