@@ -796,6 +796,10 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .cmp-b .heat{display:grid;gap:2px;grid-column:2/4}.cmp-b .heat i{display:block;height:16px;border-radius:3px}
 .cmp-resp{margin:14px 0 4px;padding:16px;border:.5px solid var(--linha);border-radius:16px;background:rgba(127,127,127,.07)}.md h4{margin:16px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;font-weight:600}.md p{margin:6px 0;line-height:1.55;font-size:13.5px}.md ul{margin:6px 0 6px 18px;padding:0}.md li{margin:4px 0;line-height:1.5;font-size:13.5px}
 @media(max-width:700px){.cmp-b{grid-template-columns:90px 1fr auto}.fc .th{width:54px;height:54px;flex-basis:54px}}
+#janela .j-caixa,#janela #lpCorpo,#janela .caixa{scrollbar-width:thin;scrollbar-color:rgba(127,127,127,.55) transparent}
+#janela .j-caixa::-webkit-scrollbar,#janela #lpCorpo::-webkit-scrollbar,#janela .caixa::-webkit-scrollbar{display:block;width:8px}
+#janela .j-caixa::-webkit-scrollbar-thumb,#janela #lpCorpo::-webkit-scrollbar-thumb,#janela .caixa::-webkit-scrollbar-thumb{background:rgba(127,127,127,.5);border-radius:8px}
+#janela .j-caixa::-webkit-scrollbar-track,#janela #lpCorpo::-webkit-scrollbar-track,#janela .caixa::-webkit-scrollbar-track{background:transparent}
 .cp-top{display:flex;align-items:center;gap:10px}
 .cp .cp-b{min-height:36px;padding:7px 14px;font-size:12.5px}
 .cp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin:12px 0 8px}
@@ -2482,7 +2486,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v363 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v400 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5276,19 +5280,20 @@ async function abrirCampanhaDetalhe(conta, id){
     <div style="display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:-1px;z-index:3;padding:2px 0 8px">
       <button class="btn cheio cp-b" id="btPdfCamp" onclick="pdfCampanha('${esc(conta)}','${esc(id)}')" disabled>Gerar PDF</button>
       <button class="btn cp-b" onclick="iaCampAbrir('${esc(conta)}','${esc(id)}')">${iaAv('sumi', 20)}<span style="margin-left:6px">Perguntar ao Sumi</span></button>
-      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button></div>
+      <button class="btn cp-b" onclick="cpAbreSel()">Escolher informações</button>
+      ${eq && conta0.client_id ? `<button class="btn cp-b" onclick="const c=document.getElementById('cpCfg');c.style.display=c.style.display==='flex'?'none':'flex'">Configuração</button>` : ''}</div>
     <div id="cpSel" class="cp-sel"></div>
+    ${eq && conta0.client_id ? `<div id="cpCfg" class="cp-sel" style="display:none;flex-direction:column;align-items:stretch;padding:12px;border:.5px solid var(--linha);border-radius:14px">
+      ${ADS.prodOk ? (() => { const pr = (ADS.prods || []).filter(x => x.client_id === conta0.client_id);
+        return `<div class="nota" style="margin:0 0 4px">Produto desta campanha</div><select class="cp-sel1" onchange="adsSetProduto('${esc(conta)}','${esc(id)}',this.value)">
+          <option value="">Sem produto (cliente todo)</option>${pr.map(x => `<option value="${esc(x.id)}"${(ADS.prodMap||{})[id]===x.id?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`; })() : ''}
+      <div id="destBox" style="margin-top:10px"><button class="btn cp-b" onclick="adsDestinoAbrir('${esc(conta)}','${esc(id)}')">Onde os anúncios aprovados entram</button></div></div>` : ''}
     <div class="cp-kpis" id="cpKpis">${metCards(camp)}</div>
     <div id="anunVer"></div>
     <div class="ads-sec">Criativos</div>
     <div id="anunCorpo" class="nota">Buscando os anúncios na Meta…</div>
     <div class="ads-sec">Público</div>
     <div id="cpPub"><button class="btn cp-b" onclick="cpPublico('${esc(conta)}','${esc(id)}')">Ver o público desta campanha</button></div>
-    ${eq && conta0.client_id ? `<div class="ads-sec">Configuração</div>
-      ${ADS.prodOk ? (() => { const pr = (ADS.prods || []).filter(x => x.client_id === conta0.client_id);
-        return `<div class="nota" style="margin:0 0 4px">Produto desta campanha</div><select class="cp-sel1" onchange="adsSetProduto('${esc(conta)}','${esc(id)}',this.value)">
-          <option value="">Sem produto (cliente todo)</option>${pr.map(x => `<option value="${esc(x.id)}"${(ADS.prodMap||{})[id]===x.id?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`; })() : ''}
-      <div id="destBox" style="margin-top:10px"><button class="btn cp-b" onclick="adsDestinoAbrir('${esc(conta)}','${esc(id)}')">Onde os anúncios aprovados entram</button></div>` : ''}
   </div>`, true);
   try {
     const j = await adsFala({ acao:'anuncios', conta, campanha:id, periodo:ADS.periodo });
@@ -5795,7 +5800,7 @@ function cmpPinta(){
       <div class="nota" style="margin:4px 0 0"><span style="color:#e0526b">■</span> reels/vídeo · <span style="color:#4c7dff">■</span> carrossel · <span style="color:#8a8c94">■</span> imagem</div></div>` : '';
   const heat = (titulo, key, n, rot) => ok.length ? `<div class="cmp-bl"><div class="ads-sec" style="margin:14px 0 6px">${titulo}</div>${ok.map(x => { const a = x.p[key] || [], mx = Math.max(...a, 1);
       return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="heat" style="grid-template-columns:repeat(${n},1fr)">${a.map((v, h) => `<i title="${rot(h)} · ${v} post${v === 1 ? '' : 's'}" style="background:${CMP_COR[x.i]};opacity:${v ? .15 + .85 * v / mx : .06}"></i>`).join('')}</div></div>`; }).join('')}</div>` : '';
-  X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+  X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span>${ok.length >= 2 ? `<button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa ? 'disabled' : ''}>${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button>` : ''}<button class="btn cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
     <div class="nota" data-pdq="1" style="margin:0 0 10px;line-height:1.5">Escolha até 5 perfis de Instagram: o do cliente primeiro e os players. Os números vêm do Instagram aberto, pela API oficial da Meta (só perfis profissionais e públicos). Alcance, idade e gênero só existem para as contas que são nossas.</div>
     <div class="cmp-slots">${CMP.slots.map((s, i) => `<span class="cmp-slot" style="border-color:${CMP_COR[i]}"><i style="background:${CMP_COR[i]}"></i>@${esc(s.handle)}<small>${i === 0 ? 'cliente' : 'player'}</small><button onclick="cmpTira('${esc(s.handle)}')" aria-label="Tirar">✕</button></span>`).join('') || '<span class="nota">Nenhum perfil escolhido ainda.</span>'}</div>
@@ -5805,14 +5810,13 @@ function cmpPinta(){
     ${CMP.players ? `<div class="cmp-pl">${CMP.players.map(p => `<div class="cmp-p"><div style="flex:1;min-width:0"><b>@${esc(p.handle)}</b> <span class="cp-chip">${esc(p.tipo || 'player')}</span><div class="nota" style="margin:2px 0 0">${esc(p.por_que || '')}</div></div><button class="btn cp-b" ${CMP.slots.some(s => s.handle === p.handle) || CMP.slots.length >= 5 ? 'disabled' : ''} onclick="cmpAdd('${esc(p.handle)}','${esc(p.nome)}','player')">+ adicionar</button></div>`).join('')}</div>` : ''}
     ${CMP.msg ? `<div class="nota" style="margin:8px 0;${/não|Não|erro|Preciso|Informe|No máximo/.test(CMP.msg) ? 'color:var(--rosa)' : ''}">${esc(CMP.msg)}</div>` : ''}
     ${CMP.lendo ? '<div class="nota" style="margin:8px 0">Lendo os perfis no Instagram…</div>' : ''}${erros}
+    ${ok.length >= 2 ? `<div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">O que o cliente já sabe e quer que entre na análise: ticket, público, diferenciais, praça, metas, o que já tentou.</div>
+      <textarea id="cmpNotas" class="cp-sel1" rows="4" placeholder="Ex.: lançamento de lotes em Joanópolis, ticket médio R$ 180 mil, público 35–55 de Campinas e SP, diferencial: natureza + água…">${esc(CMP.notas)}</textarea>
+      <input id="cmpFoco" class="cp-sel1" style="margin-top:8px" placeholder="Foco da análise (opcional): ex. gerar lead qualificado, ganhar autoridade…" value="${esc(CMP.foco)}">` : ''}
     ${colunas}
     ${cmpBarras('Seguidores', p => p.seguidores, v => nf(v))}${cmpBarras('Engajamento por post (% dos seguidores)', p => p.engajamento, v => String(v).replace('.', ',') + '%')}
     ${cmpBarras('Posts por semana', p => p.por_semana, v => String(v).replace('.', ','))}${cmpBarras('Média de curtidas', p => p.media_curtidas, v => nf(Math.round(v)))}${cmpBarras('Média de comentários', p => p.media_comentarios, v => String(v).replace('.', ','))}
     ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}
-    ${ok.length >= 2 ? `<div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">O que o cliente já sabe e quer que entre na análise: ticket, público, diferenciais, praça, metas, o que já tentou.</div>
-      <textarea id="cmpNotas" class="cp-sel1" rows="4" placeholder="Ex.: lançamento de lotes em Joanópolis, ticket médio R$ 180 mil, público 35–55 de Campinas e SP, diferencial: natureza + água…">${esc(CMP.notas)}</textarea>
-      <input id="cmpFoco" class="cp-sel1" style="margin-top:8px" placeholder="Foco da análise (opcional): ex. gerar lead qualificado, ganhar autoridade…" value="${esc(CMP.foco)}">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa ? 'disabled' : ''}>${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy derivada</span></button></div>` : ''}
     ${CMP.pensa ? '<div class="nota">A Muru está lendo os números e escrevendo…</div>' : ''}
     ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}`;
 }
@@ -5937,7 +5941,7 @@ function abrirLeads(){
       <input placeholder="buscar nome, telefone, campanha…" style="${campo};flex:1;min-width:140px" value="${esc(LP.q)}" oninput="LP.q=this.value;leadsPintar()">
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin:0 0 6px;flex-wrap:wrap"><div id="lpVista" style="display:flex;gap:6px"></div><div class="nota" id="lpTot" style="margin:0;flex:1;min-width:140px">Buscando…</div></div>
-    <div id="lpCorpo" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none"><div class="nota">Buscando leads…</div></div>
+    <div id="lpCorpo" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain"><div class="nota">Buscando leads…</div></div>
   </div>`, true);
   if (LP.rows) leadsPintar(); leadsCarregar();
 }
@@ -5950,15 +5954,16 @@ function abrirLead(id){
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">${esc(l.nome || 'Sem nome')}</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div class="nota" style="margin:4px 0 10px">${esc(l.clients?.name || '')}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${quando(l.recebido_em)}</div>
-    ${l.telefone ? `<div class="lead-campo"><span>Telefone</span><b>${esc(l.telefone)}</b></div>` : ''}
-    ${l.email ? `<div class="lead-campo"><span>E-mail</span><b>${esc(l.email)}</b></div>` : ''}
-    ${extras.map(([k, v]) => `<div class="lead-campo"><span>${esc(k.replace(/_/g, ' '))}</span><b>${esc(v)}</b></div>`).join('')}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px">
       ${fone ? `<a class="btn cheio" style="background:var(--verde);text-decoration:none" href="https://wa.me/${fone}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
       ${l.email ? `<a class="btn" style="text-decoration:none" href="mailto:${esc(l.email)}">E-mail</a>` : ''}
       <select class="btn" onchange="mudarStatusLead('${esc(l.id)}', this.value)" aria-label="Status do lead">
         ${['novo','em contato','convertido','descartado'].map(st => `<option ${l.status===st?'selected':''}>${st}</option>`).join('')}</select>
-    </div></div>`, false);
+    </div>
+    ${l.telefone ? `<div class="lead-campo"><span>Telefone</span><b>${esc(l.telefone)}</b></div>` : ''}
+    ${l.email ? `<div class="lead-campo"><span>E-mail</span><b>${esc(l.email)}</b></div>` : ''}
+    ${extras.map(([k, v]) => `<div class="lead-campo"><span>${esc(k.replace(/_/g, ' '))}</span><b>${esc(v)}</b></div>`).join('')}
+</div>`, false);
 }
 async function mudarStatusLead(id, status){
   const { error } = await sbR.from('meta_leads').update({ status }).eq('id', id);
