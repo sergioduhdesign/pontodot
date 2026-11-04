@@ -5176,17 +5176,22 @@ const MET_PAD = ['gasto','leads','cpl','alcance','impressoes','cliques'];
 function metSel(){ try { const v = JSON.parse(localStorage.getItem('pd_met_sel') || 'null'); if (Array.isArray(v) && v.length) return v; } catch(e){} return MET_PAD.slice(); }
 function metSalva(v){ try { localStorage.setItem('pd_met_sel', JSON.stringify(v)); } catch(e){} }
 const metCards = o => MET.filter(m => metSel().includes(m[0])).map(m => `<div><small>${m[1]}</small><b>${esc(m[2](o))}</b></div>`).join('');
-function metChips(){ const s = metSel();
+let MET_RASC = null;
+const metAtual = () => MET_RASC || metSel();
+function metChips(){ const s = metAtual();
   return MET.map(m => `<button class="cp-chip ${s.includes(m[0])?'on':''}" onclick="metToggle('${m[0]}')">${m[1]}</button>`).join('')
-    + `<button class="cp-chip" onclick="metTodas()">Marcar todas</button><button class="cp-chip" onclick="metPadrao()">Padrão</button>`; }
+    + `<div style="flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn cheio cp-b" onclick="metAplicar()">Aplicar</button><button class="btn cp-b" onclick="metTodas()">Marcar todas</button><button class="btn cp-b" onclick="metPadrao()">Padrão</button><button class="btn cp-b" onclick="metCancela()">Cancelar</button></div>`; }
 function metPinta(){ const k = document.getElementById('cpKpis'), c = document.getElementById('cpSel');
   if (k && CP.camp) k.innerHTML = metCards(CP.camp); if (c) c.innerHTML = metChips();
-  const k2 = document.getElementById('cpKpisConta'); if (k2 && CP.tot) k2.innerHTML = metCards(CP.tot); }
-function metToggle(id){ let s = metSel(); s = s.includes(id) ? s.filter(x => x !== id) : [...s, id]; if (!s.length) s = ['gasto']; metSalva(MET.map(m => m[0]).filter(x => s.includes(x))); metPinta(); }
-function metTodas(){ metSalva(MET.map(m => m[0])); metPinta(); }
-function metPadrao(){ metSalva(MET_PAD.slice()); metPinta(); }
-function cpAbreSel(){ const c = document.getElementById('cpSel'); if (!c) return; c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; c.innerHTML = metChips(); }
-const CP = { conta:null, id:null, camp:null, tot:null, ads:[], perfil:null };
+  const k2 = document.getElementById('cpKpisConta'); if (k2 && CP.tot) k2.innerHTML = metCards(CP.tot);
+  const k3 = document.getElementById('cpKpisTodas'); if (k3 && CP.todas) k3.innerHTML = metCards(CP.todas); }
+function metToggle(id){ let s = metAtual().slice(); s = s.includes(id) ? s.filter(x => x !== id) : [...s, id]; if (!s.length) s = ['gasto']; MET_RASC = MET.map(m => m[0]).filter(x => s.includes(x)); const c = document.getElementById('cpSel'); if (c) c.innerHTML = metChips(); }
+function metTodas(){ MET_RASC = MET.map(m => m[0]); const c = document.getElementById('cpSel'); if (c) c.innerHTML = metChips(); }
+function metPadrao(){ MET_RASC = MET_PAD.slice(); const c = document.getElementById('cpSel'); if (c) c.innerHTML = metChips(); }
+function metAplicar(){ if (MET_RASC) metSalva(MET_RASC); MET_RASC = null; const c = document.getElementById('cpSel'); if (c) c.style.display = 'none'; metPinta(); toast('Informações aplicadas.'); }
+function metCancela(){ MET_RASC = null; const c = document.getElementById('cpSel'); if (c) c.style.display = 'none'; }
+function cpAbreSel(){ const c = document.getElementById('cpSel'); if (!c) return; MET_RASC = null; c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; c.innerHTML = metChips(); }
+const CP = { todas:null, conta:null, id:null, camp:null, tot:null, ads:[], perfil:null };
 
 function cpCard(x, conta){
   const [st, on] = STAN(x.status), pn = (ADS.prodMap||{})[x.id] ? adsNomeProd(ADS.prodMap[x.id]) : '';
@@ -5240,10 +5245,10 @@ async function abrirTodasCampanhas(){
     const T = document.getElementById('todasCorpo'); if (!T) return; T.className = '';
     ADS.camps = ADS.camps || {}; const todas = [];
     res.forEach(r => { if (r.j){ ADS.camps[r.c.conta] = r.j.campanhas || []; (r.j.campanhas||[]).forEach(x => todas.push({ x, c:r.c })); } });
-    const tot = somaO(todas.map(t => t.x));
+    const tot = CP.todas = somaO(todas.map(t => t.x));
     const porCli = {}; todas.forEach(t => { const k = t.c.cliente || t.c.nome || t.c.conta; (porCli[k] = porCli[k] || []).push(t); });
     const falhas = res.filter(r => r.erro);
-    T.innerHTML = `<div class="cp-kpis">${metCards(tot)}</div>
+    T.innerHTML = `<div class="cp-kpis" id="cpKpisTodas">${metCards(tot)}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cp-b" onclick="cpAbreSel();">Escolher informações</button></div><div id="cpSel" class="cp-sel"></div>
       ${Object.keys(porCli).sort((a,b) => somaO(porCli[b].map(t=>t.x)).gasto - somaO(porCli[a].map(t=>t.x)).gasto).map(k => `<div class="ads-sec">${esc(k)} · ${brl(somaO(porCli[k].map(t=>t.x)).gasto, tot.moeda)}</div>${porCli[k].map(t => cpCard(t.x, t.c.conta)).join('')}`).join('') || '<div class="nota">Nenhuma campanha com entrega nesse período.</div>'}
       ${falhas.length ? `<div class="nota" style="margin-top:10px">${falhas.length} conta${falhas.length>1?'s':''} não respond${falhas.length>1?'eram':'eu'}: ${esc(falhas.map(f => (f.c.nome||f.c.conta) + ' (' + f.erro + ')').join(' · '))}</div>` : ''}`;
