@@ -147,11 +147,11 @@ function ajudaDicaFecha(rapido){
   d.style.opacity = '0'; setTimeout(() => d.remove(), rapido ? 0 : 180);
 }
 function ajudaDica(chave, dono, clique){
-  const d0 = window.PD_AJUDA[chave]; if (!d0 || !dono) return;
+  const d0 = (window.PD_AJUDA_DIN && window.PD_AJUDA_DIN[chave] && window.PD_AJUDA_DIN[chave]()) || window.PD_AJUDA[chave]; if (!d0 || !dono) return;
   if (_dicaDono === dono){ if (clique && !(window.matchMedia && window.matchMedia('(hover:hover)').matches)) ajudaDicaFecha(); return; }
   ajudaDicaFecha(true); ajudaCss();
   const d = document.createElement('div'); d.className = 'ajuda-dica';
-  d.innerHTML = `<b>${d0.t}</b><span>${d0.p}</span>`;
+  d.innerHTML = (d0.img ? `<span style="display:flex;align-items:center;gap:9px;margin-bottom:7px"><img src="${d0.img}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 36px"><b style="margin:0">${d0.t}</b></span>` : `<b>${d0.t}</b>`) + `<span>${d0.p}</span>`;
   d.addEventListener('mouseenter', () => clearTimeout(_dicaT));
   d.addEventListener('mouseleave', () => { _dicaT = setTimeout(() => ajudaDicaFecha(), 200); });
   document.body.appendChild(d); _dicaEl = d; _dicaDono = dono;
@@ -162,17 +162,19 @@ function ajudaDica(chave, dono, clique){
   d.style.top = top + 'px'; d.style.left = left + 'px';
   requestAnimationFrame(() => { d.style.opacity = '1'; });
 }
+const ajudaAlvo = e => e.target && e.target.closest && e.target.closest('.ajuda-q,[data-ajuda]');
+const ajudaChave = q => q.getAttribute('data-ajuda') || ((q.getAttribute('onclick') || '').match(/abrirAjuda\('([^']+)'/) || [])[1];
 document.addEventListener('mouseover', e => {
-  const q = e.target && e.target.closest && e.target.closest('.ajuda-q'); if (!q || q === _dicaDono) { if (q) clearTimeout(_dicaT); return; }
+  const q = ajudaAlvo(e); if (!q || q === _dicaDono) { if (q) clearTimeout(_dicaT); return; }
   if (window.matchMedia && !window.matchMedia('(hover:hover)').matches) return;
-  const m = (q.getAttribute('onclick') || '').match(/abrirAjuda\('([^']+)'/); if (!m) return;
-  clearTimeout(_dicaT); _dicaT = setTimeout(() => ajudaDica(m[1], q, false), 140);
+  const k = ajudaChave(q); if (!k) return;
+  clearTimeout(_dicaT); _dicaT = setTimeout(() => ajudaDica(k, q, false), 140);
 });
 document.addEventListener('mouseout', e => {
-  const q = e.target && e.target.closest && e.target.closest('.ajuda-q'); if (!q) return;
+  const q = ajudaAlvo(e); if (!q) return;
   clearTimeout(_dicaT); _dicaT = setTimeout(() => { if (_dicaDono === q || !_dicaEl) ajudaDicaFecha(); }, 220);
 });
-document.addEventListener('pointerdown', e => { if (_dicaEl && !(e.target.closest && (e.target.closest('.ajuda-dica') || e.target.closest('.ajuda-q')))) ajudaDicaFecha(); }, true);
+document.addEventListener('pointerdown', e => { if (_dicaEl && !(e.target.closest && (e.target.closest('.ajuda-dica') || e.target.closest('.ajuda-q') || e.target.closest('[data-ajuda]')))) ajudaDicaFecha(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') ajudaDicaFecha(); });
 addEventListener('scroll', () => ajudaDicaFecha(true), true);
 let _ajudaDesfaz = null, _ajudaSegue = 0, _ajudaGrupo = null;

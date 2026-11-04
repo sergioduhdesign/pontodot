@@ -2483,7 +2483,7 @@ pdAbertura(false);
 <script src="/js/pd-leve.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
-<script src="/js/pd-ajuda.js?v=325"></script>
+<script src="/js/pd-ajuda.js?v=326"></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -5055,7 +5055,7 @@ function adsAba(a){ ADS.aba = a; try { render(); } catch(e){} }
 function adsBarra(){
   const b = (id, ico, tit) => { const on = ADS.aba === id;
     return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="adsAba('${id}')" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
-  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_CIFRA, 'Campanhas')}<button class="btn" title="Comparar clientes" aria-label="Comparar clientes" onclick="abrirCompararCampanhas()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.7">${adsSvg('<rect x="3" y="4" width="7.5" height="16" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.6"/>', 24)}</button></div>`;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_CIFRA, 'Campanhas')}<button class="btn" data-ajuda="ia_sumi" aria-label="Comparar clientes com a Sumi" onclick="abrirCompararCampanhas()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.9">${iaAv('sumi', 30)}</button></div>`;
 }
 function adsPeriodo(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; render(); carregarAds(true); }
 async function conectarMeta(){
@@ -5362,6 +5362,14 @@ async function cpPublico(conta, campId){
 
 // ---- IA de Campanhas: painel no canto direito ----
 // ---- IAs de área: Sumi Sulo (Campanhas) e Muru Mara (Social) — mesmo painel, canto direito ----
+window.PD_AJUDA_DIN = Object.assign(window.PD_AJUDA_DIN || {}, (() => {
+  const hora = id => { const l = ((typeof CAT !== 'undefined' && CAT.d && CAT.d.leituras) || []).find(x => String(x.personagem || '').toLowerCase() === id);
+    return !l || l.estado === 'sem_leitura' ? 'Hora de Catum: ainda sem trabalhos medidos. Quando ela entregar e a equipe aprovar de primeira, o termômetro começa a andar.' : 'Hora de Catum: acertou ' + l.primeira + ' de ' + l.avaliadas + ' trabalhos de primeira' + (l.tendencia === 'sobe' ? ' (subindo)' : l.tendencia === 'cai' ? ' (caindo)' : '') + '.'; };
+  return {
+    ia_muru: () => ({ t:'Muru Mara · IA de Social', img:fotoDe('muru','avatar'), p:'Beluga-coelho de Catum, calma e atenta. Lê os números reais das redes, compara até 5 perfis, descobre onde cada player ganha e entrega a direção criativa e a copy derivada. Pode ser chamada em qualquer conta. ' + hora('muru') }),
+    ia_sumi: () => ({ t:'Sumi Sulo · IA de Campanhas', img:fotoDe('sumi','avatar'), p:'Lula-coruja de Catum que desenha diagramas para explicar o que parece confuso. Cruza investido, leads e custo por lead dos seus clientes, aponta o que escalar ou pausar e escreve a copy dos anúncios. Pesquisa de concorrentes vem do Tumi. ' + hora('sumi') })
+  };
+})());
 const IA_PERS = {
   sumi: { nome:'Sumi Sulo', cor:'#18155F', ini:'S', papel:'IA de Campanhas', placeholder:'Pergunte ao Sumi…', lendo:'Sumi está lendo os dados…',
     boas:'Oi! Sou o Sumi Sulo, a lula-coruja que cuida dos resultados dos anúncios aqui da casa. Gosto de desenhar o que parece confuso em diagrama simples. Me pergunta de números, público, horários, comparações ou concorrentes: eu leio os dados reais desta conta e saio pra pesquisar o mercado.' },
@@ -5559,7 +5567,7 @@ const socAbas = ativa => abasHtml([['fila', ICO_FILA, 'Fila', "abrirListaPub('fi
 function socBarra(){
   const b = (id, ico, tit, fn) => { const on = SOC.aba === id;
     return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="${fn}" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
-  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('fila', ICO_FILA, 'Fila', "socAba('fila')")}${b('desemp', ICO_BARRAS, 'Desempenho', "socAba('desemp')")}${b('comp', ICO_COMPARA, 'Comparar', 'abrirComparar()')}</div>`;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('fila', ICO_FILA, 'Fila', "socAba('fila')")}${b('desemp', ICO_BARRAS, 'Desempenho', "socAba('desemp')")}<button class="btn" data-ajuda="ia_muru" aria-label="Comparar com a Muru" onclick="abrirComparar()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.9">${iaAv('muru', 30)}</button></div>`;
 }
 function socAba(a){ SOC.aba = a; if (a === 'desemp') carregarSoc(); try { render(); } catch(e){} }
 async function carregarSoc(forcar){
