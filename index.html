@@ -5422,7 +5422,10 @@ async function iaCampEnviar(txt){
 
 // PDF: relatório limpo (logo do cliente + ícone da PD) → imprimir / Salvar como PDF. Usa as informações escolhidas.
 function pdfDoc(titulo, sub, clienteNome, corpo){
-  const w = window.open('', '_blank'); if (!w){ toast('O navegador bloqueou a janela do PDF. Libere pop-ups e tente de novo.'); return; }
+  document.getElementById('pdfFrame')?.remove();
+  const fr = document.createElement('iframe'); fr.id = 'pdfFrame'; fr.setAttribute('aria-hidden', 'true');
+  fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none'; document.body.appendChild(fr);
+  const w = fr.contentWindow; toast('Preparando o PDF… escolha "Salvar como PDF" na janela de impressão.');
   const cli = clientesReais.find(x => x.name === clienteNome);
   const agNome = (typeof AGENCIA_NOME !== 'undefined' && AGENCIA_NOME) || 'SD Studio Design', clienteNome0 = clienteNome;
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
@@ -5443,8 +5446,11 @@ function pdfDoc(titulo, sub, clienteNome, corpo){
   <div class="cab"><div class="t"><h1>${esc(titulo)}</h1><div class="sub">${sub}</div></div><div class="bol">${logo}<img class="pd" src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt="pontodot"></div></div>
   ${corpo}
   <div class="rod"><img src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt=""><div><b>Gerado pela pontodot para a ${esc(agNome)}${clienteNome ? ' · Cliente ' + esc(clienteNome) : ''}</b><br>${esc(dataLonga)}<br><span class="leg">Dados obtidos da Meta (Facebook, Instagram e Meta Ads) por conexão autorizada pelo titular das contas, por meio das APIs oficiais da Meta, apenas para leitura e somente para as contas vinculadas a este cliente. Informações confidenciais, de uso restrito à agência e ao cliente indicados; a plataforma não publica, altera nem compartilha esses dados com terceiros. Números sujeitos à atualização e à apuração da própria Meta.</span></div></div>
-  <script>window.onload=function(){setTimeout(function(){window.print()},700)}<\/script></html>`);
+  </html>`);
   w.document.close();
+  const imprime = () => { try { w.focus(); w.print(); } catch(e){ toast('Não consegui abrir a impressão: ' + e.message); } setTimeout(() => fr.remove(), 60000); };
+  let feito = false; const go = () => { if (feito) return; feito = true; setTimeout(imprime, 400); };
+  w.addEventListener('load', go); setTimeout(go, 3500);
 }
 const pdfSel = () => MET.filter(m => metSel().includes(m[0]));
 const pdfKpis = o => `<div class="kk">${pdfSel().map(m => `<div class="k"><small>${m[1]}</small><b>${esc(m[2](o))}</b></div>`).join('')}</div>`;
