@@ -619,14 +619,17 @@ function w_sites() {
                 'resumo' => mb_substr(trim((string)($i['caption'] ?? '')), 0, 180),
                 'imagem_url' => $img, 'agendar_para' => null,
             ]);
-            sd_supabase('/rest/v1/pd_site_posts', 'POST', ['item_id' => $i['id'], 'client_id' => $set['client_id'],
-                'destino' => 'wp', 'external_id' => $r['id'], 'url' => $r['url'], 'status' => 'publicado']);
+            // upsert na chave natural (item_id é a PK): a linha 'erro' de uma rodada anterior vira 'publicado' em vez de barrar o insert
+            sd_supabase('/rest/v1/pd_site_posts?on_conflict=item_id', 'POST', ['item_id' => $i['id'], 'client_id' => $set['client_id'],
+                'destino' => 'wp', 'external_id' => $r['id'], 'url' => $r['url'], 'status' => 'publicado', 'erro' => null,
+                'publicado_em' => gmdate('c')], ['Prefer: resolution=merge-duplicates']);
             if (!empty($set['task_id'])) pdEvento($set['task_id'], 'site', 'Post publicado no site do cliente',
                 ($i['title'] ?: '') . ' → ' . $r['url'], 'Robô', 'robo');
             $n++;
         } catch (Exception $e) {
-            sd_supabase('/rest/v1/pd_site_posts', 'POST', ['item_id' => $i['id'], 'client_id' => $set['client_id'],
-                'destino' => 'wp', 'status' => 'erro', 'erro' => mb_substr($e->getMessage(), 0, 300)]);
+            sd_supabase('/rest/v1/pd_site_posts?on_conflict=item_id', 'POST', ['item_id' => $i['id'], 'client_id' => $set['client_id'],
+                'destino' => 'wp', 'status' => 'erro', 'erro' => mb_substr($e->getMessage(), 0, 300), 'publicado_em' => gmdate('c')],
+                ['Prefer: resolution=merge-duplicates']);
             pdAlarme('erro_publicacao', 'Site do cliente recusou o post', ($i['title'] ?: '') . ' — ' . $e->getMessage(),
                 $set['task_id'] ?? null, null);
             $n++;

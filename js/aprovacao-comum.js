@@ -196,6 +196,8 @@ AP.lerPlanilha = function(u8){
 
     let tipo = g('TIPO').toUpperCase();
     if (tipo === 'POST') tipo = 'FEED';
+    if (tipo === 'POST DE BLOG') tipo = 'BLOG';
+    if (tipo === 'CAPA' || tipo === 'CAPA DO SITE') tipo = 'CAPA_SITE';
 
     const roteiro = novo ? [] : g('ROTEIRO').split('\n').map(x=>x.trim()).filter(Boolean)
       .map(l2 => { const p = l2.split('|').map(x => x.trim());
@@ -206,7 +208,7 @@ AP.lerPlanilha = function(u8){
       dia: g('DIA') || '—',
       data: g('DATA'), hora: g('HORA'),
       tema: temaAtual,
-      tipo: ['FEED','CARROSSEL','STORIES','REELS','MATERIAL'].includes(tipo) ? tipo : (novo ? '' : 'FEED'),
+      tipo: ['FEED','CARROSSEL','STORIES','REELS','MATERIAL','BLOG','CAPA_SITE'].includes(tipo) ? tipo : (novo ? '' : 'FEED'),
       titulo: g('TITULO'),
       headline: novo ? '' : g('HEADLINE'),
       arte: novo ? '' : g('DIRECAO_ARTE'),
@@ -250,7 +252,9 @@ AP.deduzirTipo = function(nome, contexto, nArtes, temVideo){
   return nArtes >= 2 ? 'carrossel' : 'feed';
 };
 
-const KIND_XLS = { FEED:'feed', CARROSSEL:'carrossel', STORIES:'stories', REELS:'reels', ANUNCIO:'anuncio', MATERIAL:'material' };
+// BLOG / CAPA_SITE: peças que vão pro site do cliente (cron w_sites publica no WP quando aprovadas)
+const KIND_XLS = { FEED:'feed', CARROSSEL:'carrossel', STORIES:'stories', REELS:'reels', ANUNCIO:'anuncio', MATERIAL:'material',
+  BLOG:'blog', 'POST DE BLOG':'blog', CAPA_SITE:'capa_site', 'CAPA DO SITE':'capa_site', CAPA:'capa_site' };
 
 // opts: { doc:true|false, onStatus:fn }
 // Retorna { pecas:[...], linhas:[...] }

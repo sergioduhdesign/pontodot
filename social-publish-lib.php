@@ -461,6 +461,7 @@ function pd_agendar_sozinho() {
             if (!$alvosItem) { supa('/rest/v1/scheduled_posts?id=eq.' . urlencode($pid), 'DELETE'); continue; }
             $t = supa('/rest/v1/scheduled_post_targets', 'POST', array_map(fn($a) => [
                 'post_id' => $pid, 'social_account_id' => $a['id'], 'platform' => $a['platform'], 'placement' => $place,
+                'status' => 'agendado',   // explícito: é o que o worker procura na fila
             ], $alvosItem));
             if ($t['code'] >= 300) { supa('/rest/v1/scheduled_posts?id=eq.' . urlencode($pid), 'DELETE'); continue; }
             $total++; $porCliente[$cid] = ($porCliente[$cid] ?? 0) + 1;

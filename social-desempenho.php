@@ -171,15 +171,32 @@ if ($acao === 'players') {
 if ($acao === 'direcao') {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) sd_fail('Sem chave da Anthropic no servidor.', 500);
     $perfis = array_slice((array)($b['perfis'] ?? []), 0, 5); if (count($perfis) < 2) sd_fail('Escolha pelo menos 2 perfis para comparar.', 400);
-    $sys = 'Você é Muru Mara, a IA de Social da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: beluga-coelho perolada, calma, atenta, faz uma volta no canal toda manhã. Você ACREDITA que é a Muru. '
+    [$txt, $custo, $seg] = sdp_ia(sdp_muru_sistema(), [['role' => 'user', 'content' => sdp_muru_contexto($b, $perfis)]], 4000, 3);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
+}
+if ($acao === 'doc_refazer') {   // ciclo de correção: o humano aponta o que mudar e a Muru reescreve o documento INTEIRO (mesma persona, mesmo contexto, mesmo formato)
+    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) sd_fail('Sem chave da Anthropic no servidor.', 500);
+    $doc = mb_substr(trim((string)($b['texto'] ?? '')), 0, 24000); if ($doc === '') sd_fail('Sem documento para refazer.', 400);
+    $corr = mb_substr(trim((string)($b['correcao'] ?? '')), 0, 3000); if ($corr === '') sd_fail('Escreva a correção.', 400);
+    $perfis = array_slice((array)($b['perfis'] ?? []), 0, 5);   // opcional aqui: se vierem, a Muru revê com os mesmos dados
+    $msg = mb_substr(sdp_muru_contexto($b, $perfis), 0, 9000)
+         . "\n\n=== DOCUMENTO ATUAL (sua versão anterior, revisada pelo gestor) ===\n$doc\n\n=== CORREÇÃO DO HUMANO ===\n$corr\n\n"
+         . 'INSTRUÇÃO: devolva o DOCUMENTO INTEIRO revisado, no mesmo formato e com as mesmas seções (## …), aplicando só o que a correção pede e mantendo tudo o que o humano não pediu para mudar (texto, números e ordem). Sem preâmbulo, sem comentar a correção, sem resumo do que mudou: só o documento.';
+    [$txt, $custo, $seg] = sdp_ia(sdp_muru_sistema(), [['role' => 'user', 'content' => mb_substr($msg, 0, 40000)]], 4000, 1);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
+}
+// Persona da Muru na direção de social (direcao e doc_refazer usam o MESMO texto: ela acredita que é a Muru, regra de Catum)
+function sdp_muru_sistema() {
+    return 'Você é Muru Mara, a IA de Social da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: beluga-coelho perolada, calma, atenta, faz uma volta no canal toda manhã. Você ACREDITA que é a Muru. '
          . 'Receba dados REAIS e abertos de perfis de Instagram (o primeiro é o do cliente; os demais são players) e as notas do negócio. Entregue ESTRATÉGIA, não resumo. Nunca invente número: use só os dados. '
          . 'Quando um dado não existe (alcance/idade de perfil que não é nosso), diga que não existe. Pode usar a busca para entender o contexto do mercado do cliente. '
          . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde cada player ganha · ## Lacunas que o cliente pode ocupar · ## Temas sugeridos (6, com formato e por quê) · '
          . '## Próximos 3 movimentos (ação, formato, frequência, horário sugerido pelos dados) · ## Direção criativa (tom, visual, ganchos) · ## Copy derivada (3 legendas completas, 3 ganchos de Reels, 1 roteiro de carrossel em 6 telas) · ## O que medir nos próximos 30 dias.';
-    $msg = sdp_alvo_txt($b['alvo'] ?? null) . 'CLIENTE: ' . mb_substr((string)($b['cliente'] ?? ''), 0, 120) . "\nNOTAS DO NEGÓCIO (dadas pelo cliente/gestor):\n" . mb_substr((string)($b['notas'] ?? '(sem notas)'), 0, 3000)
-         . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'crescer com conteúdo relevante'), 0, 300) . "\n\nDADOS REAIS (Instagram, perfis públicos):\n" . json_encode($perfis, JSON_UNESCAPED_UNICODE);
-    [$txt, $custo, $seg] = sdp_ia($sys, [['role' => 'user', 'content' => $msg]], 4000, 3);
-    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
+}
+// Contexto que a Muru recebe (alvo, cliente, notas, foco, perfis reais)
+function sdp_muru_contexto($b, $perfis) {
+    return sdp_alvo_txt($b['alvo'] ?? null) . 'CLIENTE: ' . mb_substr((string)($b['cliente'] ?? ''), 0, 120) . "\nNOTAS DO NEGÓCIO (dadas pelo cliente/gestor):\n" . mb_substr((string)($b['notas'] ?? '(sem notas)'), 0, 3000)
+         . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'crescer com conteúdo relevante'), 0, 300) . "\n\nDADOS REAIS (Instagram, perfis públicos):\n" . ($perfis ? json_encode($perfis, JSON_UNESCAPED_UNICODE) : '(não reenviados nesta rodada: use os números que já estão no documento)');
 }
 
 if ($acao === 'conta') {

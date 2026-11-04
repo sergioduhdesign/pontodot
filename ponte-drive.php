@@ -88,6 +88,61 @@ if (isset($d['key'])) {
 // mexe na tarefa daquele lote. O Excel vai pra ENTRADA, o status vira
 // CORRIGIR, o cronômetro liga e o gestor é avisado.
 // =====================================================================
+// ---------------------------------------------------------------------
+// Decisão do cliente → quem CUIDA da tarefa (tasks.resp) fica sabendo
+// também no zap (sino + push + zap, se ligou "Receber alertas").
+// O avisarGestor continua igual (painel + push pra resp e admins).
+// ---------------------------------------------------------------------
+function pdClienteNome($t, $set) {
+    $n = trim((string)($t['clients']['name'] ?? ''));
+    if ($n === '' && !empty($set['client_id'])) {
+        $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($set['client_id']) . '&select=name&limit=1');
+        $n = trim((string)($c['body'][0]['name'] ?? ''));
+    }
+    return $n !== '' ? $n : 'Cliente';
+}
+function pdAvisarRespDecisao($t, $set, $titulo, $tipo) {
+    if (empty($t['resp']) || empty($t['id'])) return;
+    $link = sd_base() . '/app.html?task=' . rawurlencode($t['id']);
+    try { pdNotificarResp($t['resp'], $tipo, $titulo, 'Abrir: ' . $link, 'task:' . $t['id'], null, $t['id']); } catch (Throwable $e) {}
+}
+// A tarefa é da IA (tem chamado, prompt ou batata de IA) ou de um humano?
+// Tarefa humana não recebe chamado por e-mail: a correção vai pro designer.
+function pdTarefaEhIA($taskId, $td) {
+    $r = sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($taskId) . '&select=batata,prompt_ia&limit=1');
+    $t = is_array($r['body'][0] ?? null) ? $r['body'][0] : [];
+    if (in_array((string)($t['batata'] ?? ''), ['gpt', 'maestro', 'robo'], true)) return true;
+    if (!empty($t['prompt_ia'])) return true;
+    if ($td && (!empty($td['ultimo_chamado']) || !empty($td['instrucoes_ia']) || in_array((string)($td['status'] ?? ''), ['produzir', 'corrigir'], true))) return true;
+    return false;
+}
+// Correções do cliente (peças em "ajustar") viram comentário na tarefa,
+// pro designer ver no painel — um comentário por peça, assinado pelo cliente.
+function pdCorrecaoComoComentario($taskId, $set, $clienteNome) {
+    $it = sd_supabase('/rest/v1/approval_items?set_id=eq.' . urlencode($set['id']) . '&status=eq.ajustar&select=id,kind,title,headline,position&order=position');
+    $itens = is_array($it['body'] ?? null) ? $it['body'] : [];
+    if (!$itens) return 0;
+    $ids = array_map(fn($i) => $i['id'], $itens);
+    $cm = sd_supabase('/rest/v1/approval_comments?item_id=in.(' . implode(',', array_map('rawurlencode', $ids)) . ')&is_client=eq.true&select=item_id,body,created_at&order=created_at');
+    $falas = []; foreach ((array)($cm['body'] ?? []) as $c) $falas[$c['item_id'] ?? ''][] = trim((string)($c['body'] ?? ''));
+    // Autor: o login do cliente (se tiver); sem login, o comentário sai sem user_id e assinado no meta.
+    $pc = sd_supabase('/rest/v1/profiles?client_id=eq.' . urlencode((string)($set['client_id'] ?? '')) . '&role=eq.client&active=eq.true&select=id&limit=1');
+    $uid = $pc['body'][0]['id'] ?? null;
+    $n = 0;
+    foreach ($itens as $i) {
+        $tit = trim((string)($i['title'] ?? '')) ?: (trim((string)($i['headline'] ?? '')) ?: ('peça ' . ((int)($i['position'] ?? 0) + 1)));
+        $txt = implode("\n", array_filter($falas[$i['id']] ?? [])) ?: 'Pediu ajuste nesta peça (sem comentário).';
+        $body = '↺ ' . $clienteNome . ' pediu ajuste em "' . $tit . '" (' . ($i['kind'] ?? 'peça') . "):\n" . mb_substr($txt, 0, 1800);
+        $linha = ['task_id' => $taskId, 'user_id' => $uid, 'body' => $body,
+            'meta' => ['decision' => 'ajustar', 'author' => $clienteNome, 'item' => $i['id'], 'item_titulo' => $tit, 'kind' => $i['kind'] ?? null, 'set_id' => $set['id']]];
+        $r = sd_supabase('/rest/v1/comments', 'POST', $linha);
+        // Banco sem a coluna meta (migration atrasada): grava sem ela
+        if (($r['code'] ?? 500) >= 300) { unset($linha['meta']); $r = sd_supabase('/rest/v1/comments', 'POST', $linha); }
+        if (($r['code'] ?? 500) < 300) $n++;
+    }
+    return $n;
+}
+
 // Cliente decidiu pelo link público (aprovou / pediu ajuste): avisa o
 // gestor com alerta + som + push. A tela do cliente junta os cliques e
 // manda UM aviso por rodada de decisões.
@@ -110,6 +165,8 @@ if ($acao === 'cliente_decidiu') {
         avisarGestor($t, '✓ Cliente aprovou ' . $ok . ' peça(s)', '"' . $set['title'] . '"'
             . ($aj ? ' · ' . $aj . ' com ajuste (já foi pra IA)' : ''), 'aprovacao_ok');
     }
+    // Zap pra quem cuida da tarefa (só a aprovação: o ajuste avisa no correcao_cliente, que sempre roda junto)
+    if ($ok) pdAvisarRespDecisao($t, $set, '✓ ' . pdClienteNome($t, $set) . ' aprovou ' . $ok . ' peça(s) em ' . $set['title'], 'aprovacao_ok');
     if (!empty($set['task_id']) && $ok) pdEvento($set['task_id'], 'aprovacao', 'Cliente aprovou ' . $ok . ' peça(s)',
         $aj ? $aj . ' com pedido de ajuste' : null, 'Cliente', 'cliente', ['set_id' => $set['id']]);
     echo json_encode(['ok' => true]);
@@ -119,13 +176,40 @@ if ($acao === 'cliente_decidiu') {
 if ($acao === 'correcao_cliente') {
     $tok = (string)($d['token'] ?? '');
     if (!preg_match('/^[0-9a-fA-F-]{36}$/', $tok)) sd_fail('Link inválido.', 400);
-    $r = sd_supabase('/rest/v1/approval_sets?share_token=eq.' . urlencode($tok) . '&select=id,task_id,title');
+    $r = sd_supabase('/rest/v1/approval_sets?share_token=eq.' . urlencode($tok) . '&select=id,task_id,title,client_id');
     $set = $r['body'][0] ?? null;
     if (!$set || empty($set['task_id'])) { echo json_encode(['ok' => true, 'sem_drive' => true]); exit; }
     $td = td_get($set['task_id']);
-    if (!$td) { echo json_encode(['ok' => true, 'sem_drive' => true]); exit; }
     $b64 = (string)($d['b64'] ?? '');
     if (!$b64 || strlen($b64) > 4 * 1024 * 1024) sd_fail('Excel inválido.', 400);
+
+    // TAREFA HUMANA (sem chamado de IA): nada de e-mail pra IA. A correção
+    // vira comentário na tarefa + zap pro designer responsável. Se a tarefa
+    // tem pasta no Drive, o correcoes.xlsx ainda vai pra ENTRADA (registro).
+    if (!pdTarefaEhIA($set['task_id'], $td)) {
+        $n = (int)($d['n'] ?? 0);
+        $t = tarefa($set['task_id']);
+        if (!$t) $t = ['id' => $set['task_id'], 'resp' => null, 'action' => $set['title'], 'clients' => ['name' => '']];
+        $cli = pdClienteNome($t, $set);
+        if ($td && !empty($td['entrada_id'])) {
+            try { ponte('gravar', ['folderId' => $td['entrada_id'], 'nome' => 'correcoes.xlsx', 'b64' => $b64,
+                'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']); } catch (Throwable $e) {}
+        }
+        $coms = 0;
+        try { $coms = pdCorrecaoComoComentario($set['task_id'], $set, $cli); } catch (Throwable $e) {}
+        pdEvento($set['task_id'], 'ajuste', 'Cliente pediu ajuste', $n . ' peça(s) — correção anotada na tarefa pro designer', 'Cliente', 'cliente', ['set_id' => $set['id']]);
+        pdBatata($set['task_id'], 'humano');
+        pdAvisarRespDecisao($t, $set, '↺ ' . $cli . ' pediu ajuste em ' . $n . ' peça(s) de ' . $set['title'], 'cliente_ajuste');
+        // Tarefa com Drive: o cliente_decidiu pula o aviso de ajuste (acha que foi pra IA) — avisa o gestor aqui
+        if ($td) avisarGestor($t, '↺ Cliente pediu ajuste em ' . $n . ' peça(s)', '"' . $set['title'] . '" — correção anotada na tarefa.', 'cliente_ajuste');
+        echo json_encode(['ok' => true, 'humano' => true, 'comentarios' => $coms]);
+        exit;
+    }
+    if (!$td) {   // IA sem pasta no Drive: não tem pra onde mandar o Excel — só o zap pra quem cuida
+        $t = tarefa($set['task_id']);
+        if ($t) pdAvisarRespDecisao($t, $set, '↺ ' . pdClienteNome($t, $set) . ' pediu ajuste em ' . (int)($d['n'] ?? 0) . ' peça(s) de ' . $set['title'], 'cliente_ajuste');
+        echo json_encode(['ok' => true, 'sem_drive' => true]); exit;
+    }
     try {
         ponte('gravar', ['folderId' => $td['entrada_id'], 'nome' => 'correcoes.xlsx', 'b64' => $b64,
             'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
@@ -149,6 +233,8 @@ if ($acao === 'correcao_cliente') {
         pdEvento($set['task_id'], 'ajuste', 'Cliente pediu ajuste', $n . ' peça(s) — a correção já foi pro GPT', 'Cliente', 'cliente', ['set_id' => $set['id']]);
         pdBatata($set['task_id'], 'gpt');
         $t = tarefa($set['task_id']);
+        // Zap pra quem cuida da tarefa (a IA já recebeu o chamado por e-mail)
+        if ($t) pdAvisarRespDecisao($t, $set, '↺ ' . pdClienteNome($t, $set) . ' pediu ajuste em ' . $n . ' peça(s) de ' . $set['title'] . ' (já foi pra IA)', 'cliente_ajuste');
         if ($t && !$nova) {
             avisarGestor($t, '↺ Cliente completou o pedido de ajuste', ($t['clients']['name'] ?? '') . ' · ' . $t['action']
                 . ' — agora ' . $n . ' peça(s). A IA recebeu o chamado atualizado.', 'cliente_ajuste');

@@ -5723,7 +5723,17 @@ async function lcLista(){ try { const j = await lcFala({ acao:'lista', client_id
 // DOCUMENTO EDITÁVEL da Sumi/Muru: clique no texto, edite; a versão final (com a mão humana) fica salva e é a que vai para tarefas e PDF
 function docObj(o){ return o === 'soc' ? CMP : CCMP; }
 function docEd(o){ const d = docObj(o); return `<div class="md ed" id="docEd_${o}" onclick="docEditar('${o}')" title="Clique para editar">${mdHtml(d.resp)}</div>
-  <div class="nota" style="margin-top:6px">✎ Clique no texto para editar. ${d.docEstado === 'salvo' ? '✓ Versão final salva.' : d.docEstado === 'salvando' ? 'Salvando…' : d.docEstado === 'erro' ? '<span style="color:var(--rosa)">Não salvou (a tabela v160 já foi criada?). O texto continua aqui.</span>' : 'A sua edição vira a versão final.'}</div>`; }
+  <div class="nota" style="margin-top:6px">✎ Clique no texto para editar. ${d.docEstado === 'salvo' ? '✓ Versão final salva.' : d.docEstado === 'salvando' ? 'Salvando…' : d.docEstado === 'erro' ? '<span style="color:var(--rosa)">Não salvou (a tabela v160 já foi criada?). O texto continua aqui.</span>' : 'A sua edição vira a versão final.'}</div>
+  <div style="display:flex;gap:8px;margin-top:8px"><input class="cp-sel1" id="docCor_${o}" style="flex:1" placeholder="Corrigir com ${o === 'soc' ? 'a Muru' : 'a Sumi'}: diga o que mudar e ela refaz o documento inteiro" onkeydown="if(event.key==='Enter')docRefazer('${o}')"><button class="btn cheio cp-b" onclick="docRefazer('${o}')" ${d.refazendo ? 'disabled' : ''}>${iaAv(o === 'soc' ? 'muru' : 'sumi', 18)}<span style="margin-left:6px">Refazer</span></button></div>
+  ${d.refazendo ? progHtml((o === 'soc' ? 'A Muru' : 'A Sumi') + ' está refazendo o documento com a sua correção…', o === 'soc' ? '#145DEC' : '#18155F') : ''}`; }
+async function docRefazer(o){
+  const d = docObj(o), el = document.getElementById('docCor_' + o), cor = (el && el.value || '').trim(); if (!cor || d.refazendo) return;
+  const ctx = d.ctxDoc || {}; d.refazendo = true; (o === 'soc' ? cmpPinta : ccmpPinta)(); progIni();
+  try { const j = await (o === 'soc' ? socFala : adsFala)({ ...ctx, acao:'doc_refazer', texto: d.resp, correcao: cor });
+    d.resp = j.resposta; d.custo += j.custo_usd || 0; d.seg += j.segundos || 0; d.docEstado = ''; docSalva(o); }
+  catch(e){ d.msg = e.message; }
+  progFim(); d.refazendo = false; (o === 'soc' ? cmpPinta : ccmpPinta)();
+}
 function docEditar(o){ const el = document.getElementById('docEd_' + o), d = docObj(o); if (!el || el.tagName === 'TEXTAREA') return;
   const t = document.createElement('textarea'); t.id = 'docEd_' + o; t.className = 'cp-sel1'; t.style.cssText = 'width:100%;min-height:320px;font:13.5px/1.55 inherit;resize:vertical'; t.value = d.resp;
   t.onblur = () => { const novo = t.value; if (novo !== d.resp){ d.resp = novo; docSalva(o); } if (o === 'soc') cmpPinta(); else ccmpPinta(); };
@@ -5771,6 +5781,8 @@ async function dtCriar(){
       const nova = { id: nid, action: t.titulo.slice(0, 160), status: 'BRIEFING', resp: (t.resp || chaveDe(perfil) || 'SD').toUpperCase(), project: t.project || 'GERAL', week: 'ESTA SEMANA', created_by: perfil.id, obs: t.obs ? String(t.obs).slice(0, 4000) : null };
       if (DT.clientId) nova.client_id = DT.clientId; if (t.prazo) nova.date_int = t.prazo;
       const { data, error } = await sbR.from('tasks').insert(nova).select('id,action').single(); if (error) throw error; feitas.push(data);
+      // copy: a IA já monta os cards no Studio › Copys a partir do briefing (vira amostra para o cliente, sem subir arquivo); aprovada, gera sozinha a tarefa de criativo
+      if (DT.clientId && (t.funcao === 'copy' || /copy|legenda|texto/i.test(t.titulo))) adsFala({ acao:'executar_tarefa', task_id: data.id }, '/pd-copy.php').then(j => toast('Copy da ' + data.id + ' montada no Studio › Copys (' + (j.n || 0) + ' itens).')).catch(() => {});
     } catch(e){ falhas.push(t.titulo.slice(0, 30) + ': ' + e.message); }
   }
   DT.criando = false;
@@ -5847,7 +5859,7 @@ async function ccmpDirecao(){
   const por = {}; (ADS.dados?.contas || []).filter(c => !c.erro && c.client_id && CCMP.sel.includes(c.client_id)).forEach(c => { const o = por[c.client_id] = por[c.client_id] || { cliente:c.cliente || c.nome, periodo:pdfPer(), investido:0, leads:0 }; o.investido += c.gasto || 0; o.leads += c.leads || 0; });
   const numeros = Object.values(por).map(o => ({ ...o, cpl: o.leads ? +(o.investido / o.leads).toFixed(2) : null }));
   CCMP.msg = ''; CCMP.pensa = true; ccmpPinta(); progIni(); cmpTopo();
-  try { const j = await adsFala({ acao:'direcao_camp', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, alvo: alvoOut(), numeros, concorrentes: ccmpVisiveis().map(p => ({ ...p, instagram_dados: (CCMP.dados[p.instagram] && !CCMP.dados[p.instagram].erro) ? (d => ({ seguidores:d.seguidores, posts_por_semana:d.por_semana, engajamento_pct:d.engajamento, mix_30d:d.mix_30d, melhores_posts:(d.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) }))(CCMP.dados[p.instagram]) : null })) });
+  try { const j = await adsFala(CCMP.ctxDoc = { acao:'direcao_camp', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, alvo: alvoOut(), numeros, concorrentes: ccmpVisiveis().map(p => ({ ...p, instagram_dados: (CCMP.dados[p.instagram] && !CCMP.dados[p.instagram].erro) ? (d => ({ seguidores:d.seguidores, posts_por_semana:d.por_semana, engajamento_pct:d.engajamento, mix_30d:d.mix_30d, melhores_posts:(d.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) }))(CCMP.dados[p.instagram]) : null })) });
     CCMP.resp = j.resposta; CCMP.respIa = j.resposta; CCMP.docId = null; CCMP.docEstado = ''; docSalva('camp', true); CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
   catch(e){ CCMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.pensa = false; ccmpPinta(); cmpTopo();
@@ -6204,7 +6216,7 @@ async function cmpDirecao(){
   if (ok.length < 2){ CMP.msg = 'Preciso de pelo menos 2 perfis lidos com sucesso para comparar.'; return cmpPinta(); }
   CMP.notas = (document.getElementById('cmpNotas') || {}).value ?? CMP.notas; CMP.foco = (document.getElementById('cmpFoco') || {}).value ?? CMP.foco;
   CMP.msg = ''; CMP.pensa = true; cmpPinta(); progIni(); cmpTopo();
-  try { const j = await socFala({ acao:'direcao', alvo: alvoOut(), cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
+  try { const j = await socFala(CMP.ctxDoc = { acao:'direcao', alvo: alvoOut(), cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
     CMP.resp = j.resposta; CMP.respIa = j.resposta; CMP.docId = null; CMP.docEstado = ''; docSalva('soc', true); CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
   catch(e){ CMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CMP.pensa = false; cmpPinta(); cmpTopo();

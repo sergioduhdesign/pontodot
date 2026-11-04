@@ -492,7 +492,7 @@ const esc = s => String(s ?? '')
 
 const KIND_LABEL = {
   feed:'Feed', carrossel:'Carrossel', stories:'Stories',
-  reels:'Reels', anuncio:'Anúncio', generico:'Material'
+  reels:'Reels', anuncio:'Anúncio', generico:'Material', blog:'Post de blog', capa_site:'Capa do site'
 };
 
 // ==================================================================
@@ -1410,10 +1410,16 @@ async function abrirStatusPublicacao(){
 }
 
 async function abrirAgendamento(){
-  const elegiveis = items.filter(i => i.status === 'aprovado' &&
+  const aprovadas = items.filter(i => i.status === 'aprovado' &&
     ['feed','carrossel','stories','reels','anuncio'].includes(i.kind));
+  // Só peça COM ARTE entra na fila: o worker publica mídia, e um card só
+  // de texto (media vazia) ia pra fila pra falhar lá na frente.
+  const temArte = i => Array.isArray(i.media) ? i.media.length > 0 : !!i.media;
+  const elegiveis = aprovadas.filter(temArte);
+  const semArte = aprovadas.length - elegiveis.length;
 
-  if (!elegiveis.length) { showToast('Nada aprovado ainda para agendar.', 'warn'); return; }
+  if (!aprovadas.length) { showToast('Nada aprovado ainda para agendar.', 'warn'); return; }
+  if (!elegiveis.length) { showToast(`${semArte} peça(s) aprovada(s) sem arte — nada pra publicar.`, 'warn'); return; }
 
   // "piece_id" em scheduled_posts aponta pra tabela antiga de design
   // (pieces), não pra approval_items — são conceitos parecidos, mas
@@ -1455,6 +1461,8 @@ async function abrirAgendamento(){
       <div style="font-size:15px;font-weight:700;margin-bottom:6px">${pendentes.length ? `Agendar ${pendentes.length} peça(s)` : 'Tudo aprovado já está na fila'}</div>
       <div style="font-size:12.5px;color:var(--text3);line-height:1.5;margin-bottom:16px">
         Cada peça publica na data que veio da planilha. Escolha em quais contas.</div>
+      ${semArte ? `<div style="font-size:12px;color:var(--text3);margin:-8px 0 14px;padding:8px 10px;border-radius:8px;
+                    background:var(--surface2,rgba(127,127,127,.08))">⚠️ ${semArte} peça(s) sem arte ficaram de fora — só texto não publica.</div>` : ''}
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
         ${contas.map(c => `
           <label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--border);
@@ -1521,12 +1529,21 @@ async function confirmarAgendamento(pendentes, clienteId, ov){
 
     const placement = { feed:'feed', carrossel:'feed', stories:'stories', reels:'reels', anuncio:'anuncio' }[item.kind] || 'feed';
 
-    const alvos = marcadas.map(c => ({
-      post_id: post.id, social_account_id: c.id, platform: c.platform, placement,
+    // ANÚNCIO entra na mesma fila com UM alvo só: a Página do Facebook do
+    // cliente (de onde sai o anúncio) — igual ao agendar sozinho do servidor.
+    const contasItem = placement === 'anuncio' ? marcadas.filter(c => c.platform === 'facebook').slice(0, 1) : marcadas;
+    if (!contasItem.length) {
+      await sb.from('scheduled_posts').delete().eq('id', post.id);
+      falhas++; console.log('agendar alvo: anúncio precisa de uma Página do Facebook marcada'); continue;
+    }
+    // status 'agendado' explícito: é o que o worker (social-publish-worker.php)
+    // procura na fila — sem ele a peça fica parada pra sempre.
+    const alvos = contasItem.map(c => ({
+      post_id: post.id, social_account_id: c.id, platform: c.platform, placement, status: 'agendado',
     }));
     const { error: e2 } = await sb.from('scheduled_post_targets').insert(alvos);
 
-    if (e2) { falhas++; console.log('agendar alvo:', e2.message); } else { ok++; }
+    if (e2) { falhas++; console.log('agendar alvo:', e2.message); await sb.from('scheduled_posts').delete().eq('id', post.id); } else { ok++; }
   }
 
   ov.remove();
