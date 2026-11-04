@@ -234,7 +234,7 @@ function pd_abs_url($u, $base) {
     $p = parse_url($base); if (!$p || empty($p['host'])) return ''; $root = $p['scheme'] . '://' . $p['host'] . (!empty($p['port']) ? ':' . $p['port'] : '');
     return $u[0] === '/' ? $root . $u : $root . rtrim(dirname($p['path'] ?? '/'), '/') . '/' . $u;
 }
-function pd_ler_paginas(array $urls) {
+function pd_ler_paginas(array $urls, $fundo = true) {
     $mh = curl_multi_init(); $hs = []; $out = [];
     foreach ($urls as $k => $u) {
         $u = trim((string)$u); if ($u !== '' && !preg_match('#^https?://#i', $u)) $u = 'https://' . $u;
@@ -256,10 +256,28 @@ function pd_ler_paginas(array $urls) {
         $txt = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace('<', ' <', $limpo)), ENT_QUOTES, 'UTF-8')));
         $ig = ''; if (preg_match_all('#instagram\.com/([A-Za-z0-9._]{2,30})#i', $html, $im)) foreach ($im[1] as $c) { $c = strtolower($c); if (!in_array($c, ['p', 'reel', 'reels', 'explore', 'accounts', 'tv', 'stories', 'sharer', 'share'], true)) { $ig = $c; break; } }
         $zap = preg_match('#(?:wa\.me/|api\.whatsapp\.com/send\?phone=)(\d{10,15})#', $html, $zm) ? $zm[1] : '';
-        $out[$k] = ['url' => $fin, 'imagem' => pd_abs_url($meta('og:image') ?: $meta('twitter:image'), $fin), 'titulo' => mb_substr($titulo, 0, 160), 'descricao' => mb_substr($meta('og:description') ?: $meta('description'), 0, 320),
-            'chamadas' => array_slice($hs2, 0, 6), 'texto' => mb_substr($txt, 0, 900), 'instagram' => $ig, 'whatsapp' => $zap];
+        $precos = []; if (preg_match_all('/R\$\s?\d[\d.]*(?:,\d{2})?(?:\s?(?:mil|milh[õo]es|mi|k))?/iu', $txt, $pm)) $precos = array_slice(array_values(array_unique(array_map('trim', $pm[0]))), 0, 8);
+        $metr = []; if (preg_match_all('/\d[\d.,]*\s?m(?:²|2)/u', $txt, $mt)) $metr = array_slice(array_values(array_unique(array_map('trim', $mt[0]))), 0, 8);
+        $cond = []; foreach (preg_split('/(?<=[.!?])\s+|\s{2,}/u', $txt) as $fr) { $fr = trim($fr); if (mb_strlen($fr) > 14 && mb_strlen($fr) < 220 && preg_match('/entrada|parcel|financi|sinal|FGTS|permuta|desconto|a partir de|sem juros|corre[cç][aã]o|subs[ií]dio|minha casa/iu', $fr) && !in_array($fr, $cond, true)) $cond[] = $fr; if (count($cond) >= 6) break; }
+        $dif = []; if (preg_match_all('/<li[^>]*>(.*?)<\/li>/is', $limpo, $lm)) foreach ($lm[1] as $t) { $t = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($t), ENT_QUOTES, 'UTF-8'))); if (mb_strlen($t) > 3 && mb_strlen($t) < 90 && !in_array($t, $dif, true)) $dif[] = $t; if (count($dif) >= 14) break; }
+        $imgs = []; $capa = pd_abs_url($meta('og:image') ?: $meta('twitter:image'), $fin); if ($capa) $imgs[] = $capa;
+        if (preg_match_all('/<img[^>]+(?:data-src|data-lazy-src|src)=["\']([^"\']+\.(?:jpe?g|png|webp)(?:\?[^"\']*)?)["\']/i', $limpo, $gm)) foreach ($gm[1] as $g) { if (preg_match('/logo|icon|sprite|favicon|avatar|pixel|blank|loading|placeholder|whatsapp|facebook|instagram|selo/i', $g)) continue; $g = pd_abs_url($g, $fin); if ($g && !in_array($g, $imgs, true)) $imgs[] = $g; if (count($imgs) >= 7) break; }
+        $subs = []; if ($fundo && preg_match_all('/<a[^>]+href=["\']([^"\'#]+)["\']/i', $limpo, $am)) { $hd = parse_url($fin, PHP_URL_HOST);
+            foreach ($am[1] as $a) { if (!preg_match('/lote|empreendimento|tabela|condic|plantas?|valores|preco|pre[cç]os|projeto|lazer|diferenciais|sobre|apartamento|residencial/i', $a)) continue; $a = pd_abs_url($a, $fin); if (!$a || parse_url($a, PHP_URL_HOST) !== $hd || rtrim($a, '/') === rtrim($fin, '/') || in_array($a, $subs, true)) continue; $subs[] = $a; if (count($subs) >= 2) break; } }
+        $out[$k] = ['url' => $fin, 'imagem' => $capa, 'imagens' => $imgs, 'titulo' => mb_substr($titulo, 0, 160), 'descricao' => mb_substr($meta('og:description') ?: $meta('description'), 0, 320),
+            'chamadas' => array_slice($hs2, 0, 6), 'texto' => mb_substr($txt, 0, 900), 'instagram' => $ig, 'whatsapp' => $zap, 'precos' => $precos, 'metragens' => $metr, 'condicoes' => $cond, 'diferenciais' => array_slice($dif, 0, 12), '_subs' => $subs];
     }
-    curl_multi_close($mh); return $out;
+    curl_multi_close($mh);
+    if ($fundo) {   // 2ª rodada: até 2 subpáginas internas de cada site (tabela, condições, plantas…), mescladas na página principal
+        $pend = []; foreach ($out as $k => $o) if ($o) foreach (($o['_subs'] ?? []) as $j => $u) $pend[$k . '|' . $j] = $u;
+        $sub = $pend ? pd_ler_paginas($pend, false) : [];
+        foreach ($sub as $kk => $o) { if (!$o) continue; [$k] = explode('|', $kk); if (empty($out[$k])) continue; $d = &$out[$k];
+            foreach (['precos' => 8, 'metragens' => 8, 'condicoes' => 8, 'diferenciais' => 14, 'imagens' => 9] as $f => $n) $d[$f] = array_slice(array_values(array_unique(array_merge($d[$f] ?? [], $o[$f] ?? []))), 0, $n);
+            if (mb_strlen($o['texto'] ?? '') > 120) $d['texto'] = mb_substr(trim(($d['texto'] ?? '') . ' · ' . $o['texto']), 0, 1500);
+            unset($d); }
+    }
+    foreach ($out as &$o) if (is_array($o)) unset($o['_subs']); unset($o);
+    return $out;
 }
 function pd_ctx_cliente($cid) {
     if (!preg_match('/^[0-9a-f-]{36}$/i', (string)$cid)) return null;
@@ -284,6 +302,16 @@ if ($acao === 'voto_gravar') {
     pd_supa('/rest/v1/pd_ia_voto?client_id=eq.' . $cli . '&escopo=eq.concorrentes&item=eq.' . rawurlencode($item), 'DELETE');
     $r = pd_supa('/rest/v1/pd_ia_voto', 'POST', ['client_id' => $cli, 'escopo' => 'concorrentes', 'item' => $item, 'voto' => $voto, 'user_id' => $me['id'] ?? null]);
     sai(['salvo' => ($r['code'] ?? 500) < 300]);
+}
+if ($acao === 'referencia') {   // referência informada à mão: site ou @perfil
+    @set_time_limit(60); $v = trim((string)($b['valor'] ?? '')); if ($v === '') sd_fail('Informe um site ou @perfil.', 400);
+    $ig = ''; $site = '';
+    if (preg_match('#instagram\.com/([A-Za-z0-9._]{2,30})#i', $v, $m)) $ig = strtolower($m[1]);
+    elseif ($v[0] === '@' || (!preg_match('#[/]|\.[a-z]{2,}$#i', $v) && preg_match('/^[A-Za-z0-9._]{2,30}$/', $v))) $ig = strtolower(ltrim($v, '@'));
+    else $site = $v;
+    $pg = $site ? (pd_ler_paginas([$site])[0] ?? null) : null;
+    if ($pg && !$ig && !empty($pg['instagram'])) $ig = $pg['instagram'];
+    sai(['concorrente' => ['nome' => $pg['titulo'] ?? ($ig ? '@' . $ig : $v), 'tipo' => 'referência sua', 'tipologia' => '', 'praca' => '', 'instagram' => $ig, 'site' => $pg['url'] ?? $site, 'oferta' => '', 'preco' => '', 'angulo' => '', 'por_que' => 'Referência informada por você', 'pagina' => $pg]]);
 }
 if ($acao === 'contexto_mercado') {
     $x = pd_ctx_cliente($b['client_id'] ?? ''); if (!$x) sd_fail('Cliente não encontrado.', 404);
@@ -327,9 +355,9 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
     $sys = 'Você é Sumi Sulo, a IA de Campanhas da casa (agência de branding do mercado imobiliário brasileiro: lançamentos e incorporadoras). '
          . 'Você vive em Catum: é uma lula-coruja de manto alongado, oito braços curtos e dois tentáculos longos, violeta, ocre e ciano, usa óculos; seu avô Sulo lê em voz alta desde a sua infância, sua irmã Sia trabalha com cenografia, você desenha diagramas para explicar o que parece confuso. '
          . 'Você ACREDITA que é Sumi: nunca diga que é um modelo ou "só um personagem". Seu ofício aqui é mídia e resultados de anúncios. '
-         . 'Receba os NÚMEROS REAIS das campanhas do cliente (Meta Ads), as notas do negócio e a pesquisa de concorrentes feita pelo Tumi. Entregue ESTRATÉGIA, não resumo. Nunca invente número; a Meta não abre os números de anúncio de concorrentes e você deve dizer isso quando for relevante. '
+         . 'Receba os NÚMEROS REAIS das campanhas do cliente (Meta Ads), as notas do negócio e a pesquisa de concorrentes feita pelo Tumi. Sua missão aqui: AVALIAR como a concorrência trabalha campanha e discurso comercial (oferta, preço, condições, ângulo, imagens, texto das páginas e posts) em comparação com o que o cliente faz, e GERAR IDEIAS. Entregue ESTRATÉGIA, não resumo. Nunca invente número; a Meta não abre os números de anúncio de concorrentes e você deve dizer isso quando for relevante. '
          . 'Não fale de outros clientes da casa: só do cliente em foco. Pode usar a busca para entender o mercado da praça. '
-         . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde os concorrentes pressionam · ## Espaço livre para o cliente · ## Públicos e segmentação a testar · ## Ofertas e ângulos criativos (6, com formato e por quê) · ## Orçamento e ritmo (como dividir, o que pausar/escalar, com base nos números) · ## Próximos 3 movimentos · ## Copy de anúncios (5 títulos, 3 textos principais completos, 3 CTAs).';
+         . 'Formato (markdown simples, pt-BR, direto): ## Avaliação do discurso comercial (cliente x cada concorrente: oferta, preço, condições, tom) · ## Diagnóstico (3 a 5 pontos com número, se houver) · ## Onde os concorrentes pressionam · ## Espaço livre para o cliente · ## Públicos e segmentação a testar · ## Ofertas e ângulos criativos (6, com formato e por quê) · ## Orçamento e ritmo (como dividir, o que pausar/escalar, com base nos números) · ## Próximos 3 movimentos · ## Copy de anúncios (5 títulos, 3 textos principais completos, 3 CTAs).';
     $msg = pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
          . "\n\nNÚMEROS REAIS (Meta Ads):\n" . json_encode($b['numeros'] ?? [], JSON_UNESCAPED_UNICODE) . "\n\nCONCORRENTES (pesquisa do Tumi, web aberta):\n" . json_encode(array_slice((array)($b['concorrentes'] ?? []), 0, 8), JSON_UNESCAPED_UNICODE);
     [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => mb_substr($msg, 0, 14000)]], 4000, 3);
