@@ -314,12 +314,24 @@ if ($acao === 'referencia') {   // referência informada à mão: site ou @perfi
     if ($pg && !$ig && !empty($pg['instagram'])) $ig = $pg['instagram'];
     sai(['concorrente' => ['nome' => $pg['titulo'] ?? ($ig ? '@' . $ig : $v), 'tipo' => 'referência sua', 'tipologia' => '', 'praca' => '', 'instagram' => $ig, 'site' => $pg['url'] ?? $site, 'oferta' => '', 'preco' => '', 'angulo' => '', 'por_que' => 'Referência informada por você', 'pagina' => $pg]]);
 }
+if ($acao === 'doc_salvar') {   // documento da Sumi/Muru: guarda o texto da IA e a versão final editada pelo humano
+    $org = ($b['origem'] ?? '') === 'social' ? 'social' : 'campanhas'; $id = (string)($b['id'] ?? '');
+    $cli = preg_match('/^[0-9a-f-]{36}$/i', (string)($b['client_id'] ?? '')) ? $b['client_id'] : null; $prod = preg_match('/^[0-9a-f-]{36}$/i', (string)($b['product_id'] ?? '')) ? $b['product_id'] : null;
+    $final = isset($b['texto_final']) ? mb_substr((string)$b['texto_final'], 0, 60000) : null;
+    if ($id !== '' && preg_match('/^[0-9a-f-]{36}$/i', $id)) {
+        $r = pd_supa('/rest/v1/pd_docs_ia?id=eq.' . $id, 'PATCH', ['texto_final' => $final, 'estado' => ($b['estado'] ?? '') === 'aprovado' ? 'aprovado' : 'rascunho', 'editado_por' => $me['id'] ?? null, 'editado_em' => gmdate('c')]);
+        sai(['id' => $id, 'salvo' => ($r['code'] ?? 500) < 300]);
+    }
+    $ia = mb_substr((string)($b['texto_ia'] ?? ''), 0, 60000); if (trim($ia) === '') sd_fail('Sem texto para guardar.', 400);
+    $r = pd_supa('/rest/v1/pd_docs_ia', 'POST', ['client_id' => $cli, 'product_id' => $prod, 'origem' => $org, 'titulo' => mb_substr((string)($b['titulo'] ?? ''), 0, 160), 'texto_ia' => $ia, 'texto_final' => $final, 'criado_por' => $me['id'] ?? null], ['Prefer: return=representation']);
+    sai(['id' => $r['body'][0]['id'] ?? null, 'salvo' => ($r['code'] ?? 500) < 300]);
+}
 if ($acao === 'tarefas_doc') {   // do documento da Sumi/Muru → tarefas sugeridas, com responsável pela função
     @set_time_limit(120); $doc = mb_substr(trim((string)($b['texto'] ?? '')), 0, 12000); if ($doc === '') sd_fail('Sem documento para transformar em tarefas.', 400);
     $cli = mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $eq = [];
     foreach (array_slice((array)($b['equipe'] ?? []), 0, 30) as $e) if (is_array($e) && !empty($e['key'])) $eq[] = ['key' => mb_substr((string)$e['key'], 0, 30), 'nome' => mb_substr((string)($e['nome'] ?? ''), 0, 60), 'funcoes' => array_slice((array)($e['funcoes'] ?? []), 0, 6)];
     $sys = 'Você é a coordenação de produção de uma agência de branding do mercado imobiliário. Recebe um DOCUMENTO de estratégia/ideias (feito por uma IA da casa) e o ELENCO da equipe com as funções de cada pessoa. '
-         . 'Transforme o documento em TAREFAS de trabalho, no mínimo 3 e no máximo 6, sempre incluindo: (1) AVALIAR A ESTRATÉGIA SUGERIDA (quem cuida de performance/campanha: funcao trafego ou estrategia); (2) AVALIAR AS COPYS para a campanha de <produto/cliente> (funcao copy), citando os títulos/textos do documento; (3) PRODUÇÃO DE CRIATIVOS com direção toda detalhada (funcao designer ou direcao): por criativo, formato e medida, conceito visual, o que aparece na imagem, texto na peça, CTA, referências do documento e o que evitar. Se o documento trouxer vários formatos ou ângulos, divida os criativos em mais de uma tarefa. '
+         . 'Transforme o documento em TAREFAS de trabalho, no mínimo 3 e no máximo 8. Se o documento tiver peças de SOCIAL, crie a tarefa por formato (reels/vídeo, carrossel, estático, stories, stories com vídeo) com dia e horário sugeridos, texto e direção; se tiver conteúdo para o SITE (post de blog, troca de capa), crie tarefa de site com texto e imagem; vídeos levam roteiro, falas e textos em tela. A COPY sempre vira tarefa de amostra para o cliente aprovar (acontece dentro da plataforma, sem subir arquivo). Sempre incluindo: (1) AVALIAR A ESTRATÉGIA SUGERIDA (quem cuida de performance/campanha: funcao trafego ou estrategia); (2) AVALIAR AS COPYS para a campanha de <produto/cliente> (funcao copy), citando os títulos/textos do documento; (3) PRODUÇÃO DE CRIATIVOS com direção toda detalhada (funcao designer ou direcao): por criativo, formato e medida, conceito visual, o que aparece na imagem, texto na peça, CTA, referências do documento e o que evitar. Se o documento trouxer vários formatos ou ângulos, divida os criativos em mais de uma tarefa. '
          . 'Escolha o responsável (resp) SOMENTE entre as chaves do elenco, pela função; se ninguém tiver a função, use a chave de quem mais se aproxima. Nunca invente número nem dado que não esteja no documento. '
          . 'Responda SOMENTE um JSON: {"tarefas":[{"titulo":"curto, no imperativo, até 90 caracteres","funcao":"trafego|estrategia|copy|designer|direcao|...","resp":"CHAVE","obs":"o briefing completo da tarefa, em texto corrido com tópicos simples, até 3000 caracteres","project":"GERAL"}]}';
     [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nELENCO: " . json_encode($eq, JSON_UNESCAPED_UNICODE) . "\n\nDOCUMENTO:\n$doc"]], 5000, 0);

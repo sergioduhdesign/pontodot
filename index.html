@@ -5477,7 +5477,7 @@ function ccmpPinta(){
       <button class="btn cp-b" onclick="pdfCompararCamp()" ${vis.length || CCMP.resp ? '' : 'disabled'} title="Imprimir o que está na tela">PDF</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CCMP.pensa ? progHtml('A Sumi está avaliando o discurso comercial dos concorrentes…', '#18155F') : ''}
-    ${CCMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('camp')">Criar tarefas</button></div><div class="md">${mdHtml(CCMP.resp)}</div></div>` : ''}
+    ${CCMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('camp')">Criar tarefas</button></div>${docEd('camp')}</div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar cliente</h3>
     <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
     ${alvoCard('alvoSet(null);ccmpPinta()')}
@@ -5567,6 +5567,22 @@ async function ccmpAdd(){
   try { const j = await adsFala({ acao:'referencia', valor:v }), c = j.concorrente; c.manual = true; CCMP.players = (CCMP.players || []).filter(x => x.nome !== c.nome).concat([c]); ccmpAjustaFora(); }
   catch(e){ CCMP.msg = e.message; }
   progFim(); CCMP.add = false; ccmpPinta(); ccmpLer();
+}
+// DOCUMENTO EDITÁVEL da Sumi/Muru: clique no texto, edite; a versão final (com a mão humana) fica salva e é a que vai para tarefas e PDF
+function docObj(o){ return o === 'soc' ? CMP : CCMP; }
+function docEd(o){ const d = docObj(o); return `<div class="md ed" id="docEd_${o}" onclick="docEditar('${o}')" title="Clique para editar">${mdHtml(d.resp)}</div>
+  <div class="nota" style="margin-top:6px">✎ Clique no texto para editar. ${d.docEstado === 'salvo' ? '✓ Versão final salva.' : d.docEstado === 'salvando' ? 'Salvando…' : d.docEstado === 'erro' ? '<span style="color:var(--rosa)">Não salvou (a tabela v160 já foi criada?). O texto continua aqui.</span>' : 'A sua edição vira a versão final.'}</div>`; }
+function docEditar(o){ const el = document.getElementById('docEd_' + o), d = docObj(o); if (!el || el.tagName === 'TEXTAREA') return;
+  const t = document.createElement('textarea'); t.id = 'docEd_' + o; t.className = 'cp-sel1'; t.style.cssText = 'width:100%;min-height:320px;font:13.5px/1.55 inherit;resize:vertical'; t.value = d.resp;
+  t.onblur = () => { const novo = t.value; if (novo !== d.resp){ d.resp = novo; docSalva(o); } if (o === 'soc') cmpPinta(); else ccmpPinta(); };
+  el.replaceWith(t); t.focus(); t.setSelectionRange(0, 0); }
+async function docSalva(o, novo){   // novo = acabou de gerar (cria o registro); senão, grava a edição
+  const d = docObj(o); d.docEstado = 'salvando';
+  try {
+    const cid = o === 'soc' ? ((ALVO && ALVO.client_id) || '') : (CCMP.sel[0] || ''), base = { origem: o === 'soc' ? 'social' : 'campanhas', client_id: cid, product_id: (ALVO && ALVO.product_id) || '' };
+    if (novo || !d.docId){ const j = await adsFala({ acao:'doc_salvar', ...base, titulo: (ALVO && ALVO.titulo) || '', texto_ia: d.respIa || d.resp, texto_final: d.resp !== d.respIa ? d.resp : null }); d.docId = j.id; d.docEstado = j.salvo ? 'salvo' : 'erro'; }
+    else { const j = await adsFala({ acao:'doc_salvar', id: d.docId, ...base, texto_final: d.resp }); d.docEstado = j.salvo ? 'salvo' : 'erro'; }
+  } catch(e){ d.docEstado = 'erro'; }
 }
 // DOCUMENTO → TAREFAS: pega o que a Sumi/Muru escreveu, sugere 3+ tarefas (avaliar estratégia, avaliar copy, criativos detalhados) com responsável pela função
 const DT = { itens:[], cliente:'', clientId:'', carregando:false, criando:false, msg:'' };
@@ -5680,7 +5696,7 @@ async function ccmpDirecao(){
   const numeros = Object.values(por).map(o => ({ ...o, cpl: o.leads ? +(o.investido / o.leads).toFixed(2) : null }));
   CCMP.msg = ''; CCMP.pensa = true; ccmpPinta(); progIni(); cmpTopo();
   try { const j = await adsFala({ acao:'direcao_camp', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, alvo: alvoOut(), numeros, concorrentes: ccmpVisiveis().map(p => ({ ...p, instagram_dados: (CCMP.dados[p.instagram] && !CCMP.dados[p.instagram].erro) ? (d => ({ seguidores:d.seguidores, posts_por_semana:d.por_semana, engajamento_pct:d.engajamento, mix_30d:d.mix_30d, melhores_posts:(d.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) }))(CCMP.dados[p.instagram]) : null })) });
-    CCMP.resp = j.resposta; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
+    CCMP.resp = j.resposta; CCMP.respIa = j.resposta; CCMP.docId = null; CCMP.docEstado = ''; docSalva('camp', true); CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
   catch(e){ CCMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.pensa = false; ccmpPinta(); cmpTopo();
 }
@@ -6037,7 +6053,7 @@ async function cmpDirecao(){
   CMP.notas = (document.getElementById('cmpNotas') || {}).value ?? CMP.notas; CMP.foco = (document.getElementById('cmpFoco') || {}).value ?? CMP.foco;
   CMP.msg = ''; CMP.pensa = true; cmpPinta(); progIni(); cmpTopo();
   try { const j = await socFala({ acao:'direcao', alvo: alvoOut(), cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
-    CMP.resp = j.resposta; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
+    CMP.resp = j.resposta; CMP.respIa = j.resposta; CMP.docId = null; CMP.docEstado = ''; docSalva('soc', true); CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
   catch(e){ CMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CMP.pensa = false; cmpPinta(); cmpTopo();
 }
@@ -6065,7 +6081,7 @@ function cmpPinta(){
       return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="heat" style="grid-template-columns:repeat(${n},1fr)">${a.map((v, h) => `<i title="${rot(h)} · ${v} post${v === 1 ? '' : 's'}" style="background:${CMP_COR[x.i]};opacity:${v ? .15 + .85 * v / mx : .06}"></i>`).join('')}</div></div>`; }).join('')}</div>` : '';
   pdMantemRolagem(X, () => { X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa || ok.length < 2 ? 'disabled' : ''} title="${ok.length < 2 ? 'Escolha pelo menos 2 perfis' : ''}">${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button><button class="btn cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
-    ${CMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('soc')">Criar tarefas</button></div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}
+    ${CMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('soc')">Criar tarefas</button></div>${docEd('soc')}</div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
     ${alvoCard('alvoSet(null);cmpPinta();cmpLer()')}
     ${ok.length < 2 ? '<div class="nota" style="margin:0 0 8px">A Muru libera a direção e a copy quando houver 2 perfis lidos.</div>' : ''}
