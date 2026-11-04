@@ -4999,12 +4999,12 @@ const ICO_MEGA = '<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 
 const ICO_FUNIL = '<path d="M3.5 4.5h17l-6.5 8v6.5l-4 1.8v-8.3z"/>';
 const adsSvg = (d, t = 22) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 function adsLinhaLead(l){
-  const av = (ADS.avs || {})[l.page_id], cli = l.clients?.name || '';
+  const av = (ADS.avs || {})[l.page_id], cli = (lpCliente(l) === 'Sem cliente' ? '' : lpCliente(l)), prN = (lpProduto(l) || {}).nome || '';
   const fonte = `<span style="position:relative;display:block;width:34px;height:34px;flex:0 0 34px">${logoCliente(cli, 34)}${av ? `<img src="${esc(av)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:34px;height:34px;border-radius:50%;object-fit:cover">` : ''}</span>`;
   return `<button class="ads-linha" style="gap:9px" onclick="abrirLead('${esc(l.id)}')">
     <span title="Lead de anúncio" style="flex:0 0 18px;display:grid;place-items:center;opacity:.65">${adsSvg(ICO_MEGA, 16)}</span>${fonte}
     <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div>
-      <div class="d">${esc(cli || 'Sem cliente')}${l.products?.name ? ' › ' + esc(l.products.name) : ''}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${quando(l.recebido_em)}</div></div>
+      <div class="d">${esc(cli || 'Sem cliente')}${prN ? ' › ' + esc(prN) : ''}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${quando(l.recebido_em)}</div></div>
     <div class="v">${esc(l.status)}</div></button>`;
 }
 function adsAba(a){ ADS.aba = a; try { render(); } catch(e){} }
@@ -5176,7 +5176,25 @@ function pdfCampanha(conta, id){
   w.document.close();
 }
 // PAINEL DE LEADS: todos os leads que chegaram pelos formulários da Meta, com filtro (cliente, status, datas, busca) e download em planilha
-const LP = { rows:null, carregando:false, cli:'', prod:'', st:'', de:'', ate:'', q:'' };
+const LP = { rows:null, prods:[], carregando:false, cli:'', prod:'', st:'', de:'', ate:'', q:'', vista:'grupo' };
+// PRODUTO do lead: o que está salvo; senão, a etiqueta da campanha — "[LEADS] [SANTA MARIA] [SET 2026]" → Santa Maria — casada com os produtos dos clientes
+const lpTitulo = t => String(t).toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase());
+function lpTagCamp(n){
+  const t = (String(n || '').match(/\[([^\]]+)\]/g) || []).map(x => x.slice(1, -1).trim())
+    .filter(x => x && !/\d{4}/.test(x) && !/^(LEADS?|TR[ÁA]FEGO|VENDAS?|CONVERS[ÃA]O|ENGAJAMENTO|ALCANCE|RECONHECIMENTO|CADASTRO|WHATS(APP)?|FORM(UL[ÁA]RIO)?|SET|OUT|NOV|DEZ|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO)$/i.test(x));
+  return t[0] || '';
+}
+function lpProduto(l){
+  if (l.products?.name) return { nome: l.products.name, cli: l.client_id };
+  const tag = lpTagCamp(l.campanha_nome); if (!tag) return null;
+  const k = semAcento(tag), m = (LP.prods || []).find(p => { const n = semAcento(p.name); return n === k || n.includes(k) || k.includes(n); });
+  return m ? { nome: m.name, cli: m.client_id, inf: 1 } : { nome: lpTitulo(tag), cli: null, inf: 1 };
+}
+function lpCliente(l){
+  if (l.clients?.name) return l.clients.name;
+  const p = lpProduto(l); if (p && p.cli){ const c = clientesReais.find(x => x.id === p.cli); if (c) return c.name; }
+  return 'Sem cliente';
+}
 async function leadsCarregar(){
   if (LP.carregando) return; LP.carregando = true; const todos = [];
   try {
@@ -5190,25 +5208,52 @@ async function leadsCarregar(){
       if (error || !data) break; todos.push(...data); if (data.length < 1000) break;
     }
   } catch(e){}
+  try { const { data } = await sbR.from('products').select('id,name,client_id'); LP.prods = data || []; } catch(e){}
   await adsAvatares(); LP.rows = todos; LP.carregando = false; leadsPintar();
 }
 function leadsFiltrados(){
   const q = semAcento(LP.q || '');
-  return (LP.rows || []).filter(l =>
-    (!LP.cli || (l.clients?.name || 'Sem cliente') === LP.cli) && (!LP.prod || (l.products?.name || 'Sem produto') === LP.prod) && (!LP.st || l.status === LP.st) &&
+  return (LP.rows || []).filter(l => { const pr = lpProduto(l);
+    return (!LP.cli || lpCliente(l) === LP.cli) && (!LP.prod || (pr ? pr.nome : 'Sem produto') === LP.prod) && (!LP.st || l.status === LP.st) &&
     (!LP.de  || String(l.recebido_em || '').slice(0, 10) >= LP.de) && (!LP.ate || String(l.recebido_em || '').slice(0, 10) <= LP.ate) &&
-    (!q || semAcento([l.nome, l.email, l.telefone, l.campanha_nome, l.ad_nome, l.products?.name].join(' ')).includes(q)));
+    (!q || semAcento([l.nome, l.email, l.telefone, l.campanha_nome, l.ad_nome, pr && pr.nome].join(' ')).includes(q)); });
 }
+function lpMudaCli(v){ LP.cli = v; LP.prod = ''; leadsPintar(); }
+function lpVista(v){ LP.vista = v; leadsPintar(); }
 function leadsPintar(){
   const C = document.getElementById('lpCorpo'); if (!C) return;
   const todos = LP.rows || [], fil = leadsFiltrados();
-  const por = {}; todos.forEach(l => { const k = l.clients?.name || 'Sem cliente'; por[k] = (por[k] || 0) + 1; });
-  const selC = document.getElementById('lpCli'); if (selC && !selC.dataset.ok){ selC.innerHTML = '<option value="">todos os clientes</option>' + Object.keys(por).sort().map(k => `<option value="${esc(k)}">${esc(k)} (${por[k]})</option>`).join(''); selC.dataset.ok = '1'; selC.value = LP.cli; }
-  const selP = document.getElementById('lpProd'), pp = {}; todos.forEach(l => { if (l.products?.name) pp[l.products.name] = (pp[l.products.name] || 0) + 1; });
+  // clientes: os que têm lead + os que têm conta de anúncio / campanha (mesmo com zero leads)
+  const por = {}; todos.forEach(l => { const k = lpCliente(l); por[k] = (por[k] || 0) + 1; });
+  ((ADS.dados && ADS.dados.contas) || []).forEach(c => { if (c.cliente && !(c.cliente in por)) por[c.cliente] = 0; });
+  const semC = por['Sem cliente'] || 0, nomesC = Object.keys(por).filter(k => k !== 'Sem cliente').sort();
+  const selC = document.getElementById('lpCli');
+  if (selC){ const sig = nomesC.map(k => k + por[k]).join('|') + '|' + semC;
+    if (selC.dataset.ok !== sig){ selC.innerHTML = '<option value="">todos os clientes</option>' + nomesC.map(k => `<option value="${esc(k)}">${esc(k)} (${por[k]})</option>`).join('') + (semC ? `<option value="Sem cliente">Sem cliente (${semC})</option>` : ''); selC.dataset.ok = sig; }
+    selC.value = LP.cli; }
+  // produtos do cliente escolhido (ou todos): os que têm lead + os cadastrados do cliente
+  const pp = {}; todos.filter(l => !LP.cli || lpCliente(l) === LP.cli).forEach(l => { const pr = lpProduto(l); if (pr) pp[pr.nome] = (pp[pr.nome] || 0) + 1; });
+  if (LP.cli){ const c = clientesReais.find(x => x.name === LP.cli); if (c) (LP.prods || []).filter(p => p.client_id === c.id).forEach(p => { if (!(p.name in pp)) pp[p.name] = 0; }); }
+  const selP = document.getElementById('lpProd');
   if (selP){ const ks = Object.keys(pp).sort(); selP.style.display = ks.length ? '' : 'none';
-    if (selP.dataset.ok !== ks.join('|')){ selP.innerHTML = '<option value="">todos os produtos</option>' + ks.map(k => `<option value="${esc(k)}">${esc(k)} (${pp[k]})</option>`).join(''); selP.dataset.ok = ks.join('|'); selP.value = LP.prod; } }
-  const tot = document.getElementById('lpTot'); if (tot) tot.innerHTML = `<b>${fil.length}</b> de ${todos.length} leads`;
-  C.innerHTML = fil.slice(0, 300).map(adsLinhaLead).join('') + (fil.length > 300 ? `<div class="nota">Mostrando 300 de ${fil.length}. A planilha leva todos.</div>` : '') || '<div class="nota">Nenhum lead com esse filtro.</div>';
+    const sig = ks.map(k => k + pp[k]).join('|');
+    if (selP.dataset.ok !== sig){ selP.innerHTML = '<option value="">todos os produtos</option>' + ks.map(k => `<option value="${esc(k)}">${esc(k)} (${pp[k]})</option>`).join(''); selP.dataset.ok = sig; }
+    selP.value = LP.prod; }
+  const tot = document.getElementById('lpTot');
+  if (tot) tot.innerHTML = `<b>${fil.length}</b> de ${todos.length} leads${semC ? ` · <span style="opacity:.85">${semC} sem cliente: ligue a Página do Facebook ao cliente em Redes sociais</span>` : ''}`;
+  const vb = document.getElementById('lpVista'); if (vb) vb.innerHTML = ['grupo', 'lista'].map(v => `<button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px;${LP.vista === v ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}" onclick="lpVista('${v}')">${v === 'grupo' ? 'Por cliente › produto' : 'Lista'}</button>`).join('');
+  const lim = fil.slice(0, 300);
+  let html = '';
+  if (LP.vista === 'lista') html = lim.map(adsLinhaLead).join('');
+  else {   // cliente › produto, com o total de cada um
+    const g = {}; lim.forEach(l => { const c = lpCliente(l), pr = lpProduto(l), pn = pr ? pr.nome : 'Sem produto'; ((g[c] = g[c] || {})[pn] = g[c][pn] || []).push(l); });
+    const tc = c => Object.values(g[c]).reduce((a, x) => a + x.length, 0);
+    html = Object.keys(g).sort((a, b) => (a === 'Sem cliente') - (b === 'Sem cliente') || tc(b) - tc(a)).map(c => `
+      <div style="display:flex;align-items:center;gap:9px;margin:14px 0 2px">${logoCliente(c === 'Sem cliente' ? '' : c, 26)}<b style="font-size:14px;flex:1">${esc(c)}</b><span class="nota" style="margin:0">${tc(c)} lead${tc(c) === 1 ? '' : 's'}</span></div>
+      ${Object.keys(g[c]).sort((a, b) => (a === 'Sem produto') - (b === 'Sem produto') || g[c][b].length - g[c][a].length).map(pn => `
+        <div class="ads-sec" style="margin:8px 0 0;padding-left:35px">${esc(pn)} · ${g[c][pn].length}</div>${g[c][pn].map(adsLinhaLead).join('')}`).join('')}`).join('');
+  }
+  C.innerHTML = (html + (fil.length > 300 ? `<div class="nota">Mostrando 300 de ${fil.length}. A planilha leva todos.</div>` : '')) || '<div class="nota">Nenhum lead com esse filtro.</div>';
 }
 function leadsBaixar(){
   const fil = leadsFiltrados(); if (!fil.length){ toast('Nenhum lead para baixar.'); return; }
@@ -5216,7 +5261,7 @@ function leadsBaixar(){
   const extras = [...new Set(fil.flatMap(l => Object.keys(l.campos || {}).filter(k => !/^(full_name|email|phone_number|nome|telefone|e-mail)$/i.test(k))))];
   const cab = ['Data', 'Hora', 'Cliente', 'Produto', 'Campanha', 'Anúncio', 'Nome', 'Telefone', 'E-mail', 'Status', ...extras.map(k => k.replace(/_/g, ' '))];
   const linhas = fil.map(l => { const d = new Date(l.recebido_em);
-    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }), l.clients?.name || '', l.products?.name || '', l.campanha_nome || '', l.ad_nome || '', l.nome || '', l.telefone || '', l.email || '', l.status || '',
+    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }), (lpCliente(l) === 'Sem cliente' ? '' : lpCliente(l)), (lpProduto(l) || {}).nome || '', l.campanha_nome || '', l.ad_nome || '', l.nome || '', l.telefone || '', l.email || '', l.status || '',
       ...extras.map(k => (l.campos || {})[k] ?? '')].map(cel).join(';'); });
   const csv = '﻿' + cab.map(cel).join(';') + '\r\n' + linhas.join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
@@ -5232,14 +5277,14 @@ function abrirLeads(){
       <button class="btn" style="min-height:34px" onclick="leadsBaixar()">⬇ baixar planilha</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 6px">
-      <select id="lpCli" style="${campo}" onchange="LP.cli=this.value;leadsPintar()"><option value="">todos os clientes</option></select>
+      <select id="lpCli" style="${campo}" onchange="lpMudaCli(this.value)"><option value="">todos os clientes</option></select>
       <select id="lpProd" style="${campo};display:none" onchange="LP.prod=this.value;leadsPintar()"><option value="">todos os produtos</option></select>
       <select style="${campo}" onchange="LP.st=this.value;leadsPintar()"><option value="">todos os status</option>${['novo','em contato','convertido','descartado'].map(st => `<option${LP.st===st?' selected':''}>${st}</option>`).join('')}</select>
       <input type="date" style="${campo}" value="${LP.de}" onchange="LP.de=this.value;leadsPintar()" aria-label="De">
       <input type="date" style="${campo}" value="${LP.ate}" onchange="LP.ate=this.value;leadsPintar()" aria-label="Até">
       <input placeholder="buscar nome, telefone, campanha…" style="${campo};flex:1;min-width:140px" value="${esc(LP.q)}" oninput="LP.q=this.value;leadsPintar()">
     </div>
-    <div class="nota" id="lpTot" style="margin:0 0 8px">Buscando…</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 6px;flex-wrap:wrap"><div id="lpVista" style="display:flex;gap:6px"></div><div class="nota" id="lpTot" style="margin:0;flex:1;min-width:140px">Buscando…</div></div>
     <div id="lpCorpo" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none"><div class="nota">Buscando leads…</div></div>
   </div>`, true);
   if (LP.rows) leadsPintar(); leadsCarregar();
