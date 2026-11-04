@@ -12,6 +12,7 @@
 // =====================================================================
 
 require_once __DIR__ . '/../sd-private/sd-config.php';
+require_once __DIR__ . '/pd-elenco-lib.php';
 
 const PD_META_VERSAO = 'v25.0';
 const PD_META_CACHE  = __DIR__ . '/.cache-pd';
@@ -110,4 +111,24 @@ function pd_cache_ler($chave, $validade) {
 function pd_cache_gravar($chave, $dados) {
     if (!is_dir(PD_META_CACHE)) { @mkdir(PD_META_CACHE, 0755, true); @file_put_contents(PD_META_CACHE . '/.htaccess', "Deny from all\n"); }
     @file_put_contents(PD_META_CACHE . '/ads-' . md5($chave) . '.json', json_encode($dados), LOCK_EX);
+}
+
+// Claude com busca na web, para as IAs de campanha (Sumi/Tumi). Devolve [texto, custo_usd, erro].
+function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4) {
+    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . "\n\n" . pdElencoTexto(false),
+        'messages' => $msgs];
+    if ($usos > 0) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]];
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $ch = curl_init($base . '/v1/messages');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
+        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE)]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code !== 200) return [null, 0, 'A IA não respondeu (HTTP ' . $code . ').'];
+    $j = json_decode((string)$raw, true); $t = '';
+    foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $t .= $x['text'];
+    $u = $j['usage'] ?? [];
+    $custo = (($u['input_tokens'] ?? 0) * 3 + ($u['output_tokens'] ?? 0) * 15) / 1e6 + (($u['server_tool_use']['web_search_requests'] ?? 0) * 0.01);
+    return [trim($t), round($custo, 4), null];
 }

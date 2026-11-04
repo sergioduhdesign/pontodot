@@ -5059,7 +5059,7 @@ function adsAba(a){ ADS.aba = a; try { render(); } catch(e){} }
 function adsBarra(){
   const b = (id, ico, tit) => { const on = ADS.aba === id;
     return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="adsAba('${id}')" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
-  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_CIFRA, 'Campanhas')}<button class="btn" data-ajuda="ia_sumi" aria-label="Comparar clientes com a Sumi" onclick="abrirCompararCampanhas()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.9">${iaAv('sumi', 30)}</button></div>`;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_CIFRA, 'Campanhas')}<button class="btn" title="Subir campanha na Meta" aria-label="Subir campanha na Meta" onclick="abrirSubirCampanha()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.9;font-size:22px">▶</button><button class="btn" data-ajuda="ia_sumi" aria-label="Comparar clientes com a Sumi" onclick="abrirCompararCampanhas()" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;opacity:.9">${iaAv('sumi', 30)}</button></div>`;
 }
 function adsPeriodo(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; render(); carregarAds(true); }
 async function conectarMeta(){
@@ -5477,7 +5477,7 @@ function ccmpPinta(){
       <button class="btn cp-b" onclick="pdfCompararCamp()" ${vis.length || CCMP.resp ? '' : 'disabled'} title="Imprimir o que está na tela">PDF</button>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CCMP.pensa ? progHtml('A Sumi está avaliando o discurso comercial dos concorrentes…', '#18155F') : ''}
-    ${CCMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cheio cp-b" onclick="docTarefas('camp')">Criar tarefas</button></div>${docEd('camp')}</div>` : ''}
+    ${CCMP.resp ? `<div class="cmp-resp"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="ia-rel" style="display:flex;align-items:center;gap:8px;flex:1">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</span><button class="btn cp-b" onclick="abrirSubirCampanha(CCMP.sel[0], CCMP.resp, CCMP.docId, ALVO && ALVO.product_id)" title="Transformar este documento em campanha na Meta (pausada)">Subir na Meta</button><button class="btn cheio cp-b" onclick="docTarefas('camp')">Criar tarefas</button></div>${docEd('camp')}</div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar cliente</h3>
     <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
     ${alvoCard('alvoSet(null);ccmpPinta()')}
@@ -5568,6 +5568,158 @@ async function ccmpAdd(){
   catch(e){ CCMP.msg = e.message; }
   progFim(); CCMP.add = false; ccmpPinta(); ccmpLer();
 }
+// SUBIR CAMPANHA NA META — do documento final da Sumi até o play (tudo nasce PAUSADO; o play é humano e admin)
+const LC = { conta:'', cid:'', pid:'', doc:'', docId:null, opc:null, plano:null, pagina:'', instagram:'', pixel:'', formulario:'', link:'', whatsapp:'', pecas:[], bus:{}, est:{}, carreg:'', msg:'', feito:null, lista:null, confirmo:false, zoomPeca:null };
+const LC_DIAS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const lcFala = d => adsFala(d, '/meta-lancar.php');
+function abrirSubirCampanha(cid, doc, docId, pid){
+  if (cid) LC.cid = cid; if (doc) { LC.doc = doc; LC.docId = docId || null; LC.plano = null; } if (pid) LC.pid = pid;
+  if (!LC.conta){ const c = (ADS.dados?.contas || []).find(x => !x.erro && x.client_id === LC.cid); if (c) LC.conta = c.conta; }
+  if (!document.getElementById('cxLc')) abrirJanela('<div class="caixa invertida cp" style="padding:16px 18px 20px" id="cxLc"></div>', true);
+  LC.feito = null; LC.msg = ''; lcPinta(); if (LC.conta && !LC.opc) lcOpcoes(); lcLista();
+}
+function lcPinta(){
+  const X = document.getElementById('cxLc'); if (!X) return; const o = LC.opc, pl = LC.plano, cn = (clientesReais.find(c => c.id === LC.cid) || {}).name || '';
+  const contas = (ADS.dados?.contas || []).filter(c => !c.erro), prods = (ADS.prods || []).filter(x => x.client_id === LC.cid);
+  const pronto = !!(LC.conta && o && LC.pagina && pl && (pl.conjuntos || []).length && (pl.anuncios || []).length && pl.anuncios.every(a => a.peca_id) && !LC.carreg);
+  const sel = (id, val, ops, on, extra) => `<select class="cp-sel1" id="${id}" onchange="${on}" ${extra || ''}>${ops.map(([v, t]) => `<option value="${esc(String(v))}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+  const inp = (val, on, ph, tipo) => `<input class="cp-sel1" type="${tipo || 'text'}" value="${esc(val == null ? '' : String(val))}" placeholder="${esc(ph || '')}" onchange="${on}">`;
+  const sec = t => `<div class="ads-sec">${t}</div>`;
+  const obj = pl ? pl.campanha.objetivo : 'OUTCOME_LEADS';
+  pdMantemRolagem(X, () => { X.innerHTML = `<div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span>
+      ${LC.feito ? `<a class="btn cp-b" href="${esc(LC.feito.link)}" target="_blank" rel="noopener">Ver no Gerenciador</a>${ehAdmin() ? `<button class="btn cheio cp-b" onclick="lcPlay('${esc(LC.feito.id || '')}')" ${LC.carreg || !LC.confirmo ? 'disabled' : ''}>▶ Dar play</button>` : ''}`
+        : `<button class="btn cheio cp-b" onclick="lcSubir()" ${pronto ? '' : 'disabled'} title="Cria campanha, conjuntos e anúncios na Meta, tudo PAUSADO">${iaAv('sumi', 20)}<span style="margin-left:6px">Criar pausado na Meta</span></button>`}
+      <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Subir campanha · ${esc(cn)}</h3>
+    <div class="nota" style="margin:0 0 8px">Nada vai ao ar sozinho: a plataforma cria tudo pausado na Meta e um admin dá o play depois de conferir pagamento e aprovação do cliente.</div>
+    ${LC.carreg ? progHtml(LC.carreg, '#18155F') : ''}${LC.msg ? `<div class="nota" style="margin:8px 0;color:var(--rosa)">${esc(LC.msg)}</div>` : ''}
+    ${LC.feito ? `<div class="cmp-prog" style="border-style:solid"><b>Criado na Meta, pausado.</b> ${LC.feito.conjuntos} conjunto${LC.feito.conjuntos === 1 ? '' : 's'} · ${LC.feito.anuncios} anúncio${LC.feito.anuncios === 1 ? '' : 's'} · ${LC.feito.segundos}s${LC.feito.registro ? '' : ' · <span style="color:var(--rosa)">não ficou registrado na plataforma (rode o SQL v161)</span>'}
+      ${LC.feito.estado === 'ativa' ? '<div style="margin-top:6px;color:var(--verde,#1f8a55)"><b>No ar.</b></div>' : ehAdmin() ? `<label class="nota" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" ${LC.confirmo ? 'checked' : ''} onchange="LC.confirmo=this.checked;lcPinta()"> Confirmo que o cliente aprovou o investimento e as peças, e que a conta tem pagamento ativo na Meta.</label>` : '<div class="nota" style="margin-top:6px">Peça a um admin para dar o play.</div>'}</div>` : ''}
+
+    ${sec('1 · Conta, Página e destino')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><small class="nota">Conta de anúncio</small>${sel('lcConta', LC.conta, [['', 'Escolher…']].concat(contas.map(c => [c.conta, (c.cliente || c.nome) + ' · ' + c.nome])), 'lcConta(this.value)')}</div>
+      <div><small class="nota">Produto</small>${sel('lcProd', LC.pid, [['', 'Cliente inteiro']].concat(prods.map(p => [p.id, p.name])), 'LC.pid=this.value')}</div>
+      ${o ? `<div><small class="nota">Página do Facebook (assina o anúncio)</small>${sel('lcPag', LC.pagina, [['', 'Escolher…']].concat(o.paginas.map(p => [p.id, p.nome + (p.ig ? ' · @' + p.ig : '') + (o.paginas_cliente.some(x => x.id === p.id) ? ' ✓ do cliente' : '')])), 'lcPagina(this.value)')}</div>
+      <div><small class="nota">Instagram</small><div class="cp-sel1" style="opacity:.8">${esc((o.paginas.find(p => p.id === LC.pagina) || {}).ig ? '@' + (o.paginas.find(p => p.id === LC.pagina) || {}).ig : 'vem junto da Página')}</div></div>
+      <div><small class="nota">Formulário instantâneo (leads)</small>${sel('lcForm', LC.formulario, [['', 'Nenhum']].concat(o.formularios.filter(f => !LC.pagina || f.pagina === LC.pagina).map(f => [f.id, f.nome])), 'LC.formulario=this.value;lcPinta()')}</div>
+      <div><small class="nota">WhatsApp do cliente (com DDI, só números)</small>${inp(LC.whatsapp, 'LC.whatsapp=this.value.replace(/\\D/g,\'\');lcPinta()', '5519999999999')}</div>
+      <div><small class="nota">Link de destino (site / LP)</small>${inp(LC.link, 'LC.link=this.value.trim();lcPinta()', 'https://…')}</div>
+      <div><small class="nota">Pixel</small>${sel('lcPix', LC.pixel, [['', 'Nenhum']].concat(o.pixels.map(p => [p.id, p.name])), 'LC.pixel=this.value')}</div>
+      <div style="grid-column:1/-1" class="nota">Conta ${o.conta.ativa ? 'ativa' : '<b style="color:var(--rosa)">inativa</b>'} · ${o.conta.moeda} · pagamento: ${o.conta.pagamento ? esc(o.conta.pagamento) : '<b style="color:var(--rosa)">não cadastrado na Meta</b>'}${o.conta.orcamento_minimo ? ' · orçamento mínimo por dia: ' + brl(o.conta.orcamento_minimo, o.conta.moeda) : ''}${o.conta.fuso ? ' · fuso ' + esc(o.conta.fuso) : ''}</div>` : ''}
+    </div>
+
+    ${sec('2 · Plano da Sumi')}
+    ${pl ? '' : `<div class="nota" style="margin:0 0 6px">A Sumi transforma o documento final (já com a sua mão) em campanha, conjuntos, públicos, horários e anúncios.</div>
+      <textarea class="cp-sel1" rows="4" placeholder="Cole aqui o documento, ou abra pelo botão 'Subir na Meta' do próprio documento." onchange="LC.doc=this.value">${esc(LC.doc || '')}</textarea>
+      <div style="margin:8px 0"><button class="btn cheio cp-b" onclick="lcPlano()" ${LC.doc && LC.conta && !LC.carreg ? '' : 'disabled'}>${iaAv('sumi', 20)}<span style="margin-left:6px">Pedir o plano à Sumi</span></button></div>`}
+    ${pl ? `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px">
+      <div><small class="nota">Nome</small>${inp(pl.campanha.nome, 'LC.plano.campanha.nome=this.value')}</div>
+      <div><small class="nota">Objetivo</small>${sel('lcObj', obj, Object.entries(o ? o.objetivos : { OUTCOME_LEADS:'Leads' }), 'LC.plano.campanha.objetivo=this.value;lcPinta()')}</div>
+      <div><small class="nota">Início</small>${inp(pl.campanha.inicio, 'LC.plano.campanha.inicio=this.value', '', 'date')}</div>
+      <div><small class="nota">Fim (opcional)</small>${inp(pl.campanha.fim, 'LC.plano.campanha.fim=this.value', '', 'date')}</div></div>
+      ${pl.campanha.obs ? `<div class="nota" style="margin:6px 0">${iaAv('sumi', 18)} ${esc(pl.campanha.obs)}</div>` : ''}
+      <div class="nota" style="margin:6px 0">Imóvel é categoria especial na Meta (HOUSING): idade fica 18–65+, sem gênero e raio mínimo de 24 km. A plataforma já ajusta.</div>
+      <div style="margin:6px 0"><button class="btn cp-b" onclick="LC.plano=null;lcPinta()">Refazer plano</button></div>
+
+      ${sec('3 · Conjuntos e públicos')}
+      ${pl.conjuntos.map((cj, i) => { const pb = cj.publico = cj.publico || {}; const est = LC.est[i];
+        const chips = (lista, rot, rm) => (lista || []).map((x, k) => `<span class="cp-chip" style="margin:2px 4px 2px 0">${esc(rot(x))} <b style="cursor:pointer" onclick="${rm}(${i},${k})">✕</b></span>`).join('');
+        return `<div class="cmp-prog" style="border-style:solid"><div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px">
+          <div><small class="nota">Conjunto ${i + 1}</small>${inp(cj.nome, `LC.plano.conjuntos[${i}].nome=this.value`)}</div>
+          <div><small class="nota">Orçamento/dia (${o ? o.conta.moeda : 'BRL'})</small>${inp(cj.orcamento_diario, `LC.plano.conjuntos[${i}].orcamento_diario=+this.value`, '', 'number')}</div>
+          <div><small class="nota">Otimizar para</small>${sel('', cj.otimizacao || 'LEAD_GENERATION', [['LEAD_GENERATION', 'Leads (formulário)'], ['CONVERSATIONS', 'Conversas (WhatsApp)'], ['LINK_CLICKS', 'Cliques'], ['LANDING_PAGE_VIEWS', 'Visitas à página'], ['REACH', 'Alcance'], ['OFFSITE_CONVERSIONS', 'Conversões (pixel)']], `LC.plano.conjuntos[${i}].otimizacao=this.value`)}</div></div>
+          ${cj.por_que ? `<div class="nota" style="margin:6px 0">${iaAv('sumi', 16)} ${esc(cj.por_que)}</div>` : ''}
+          <div style="margin-top:8px"><small class="nota">Cidades (raio ${pb.raio_km || 25} km)</small><div>${chips(pb.cidades, x => x.nome || x.key || x, 'lcRmCidade')}</div>
+            <div style="display:flex;gap:8px"><input class="cp-sel1" placeholder="Buscar cidade ou região na Meta…" oninput="lcBuscar('lugar',${i},this.value)"><input class="cp-sel1" style="width:110px" type="number" value="${pb.raio_km || 25}" title="raio km" onchange="LC.plano.conjuntos[${i}].publico.raio_km=+this.value"></div>
+            ${(LC.bus['lugar' + i] || []).length ? `<div class="ads-per" style="flex-wrap:wrap;margin-top:4px">${LC.bus['lugar' + i].map((x, k) => `<button onclick="lcAddCidade(${i},${k})">${esc(x.nome)} <small>${esc(x.tipo)}</small></button>`).join('')}</div>` : ''}</div>
+          <div style="margin-top:8px"><small class="nota">Interesses e comportamentos</small><div>${chips(pb.interesses, x => x.nome || x, 'lcRmInt')}${(pb.interesses || []).some(x => !x.id) ? '<div class="nota" style="color:var(--rosa)">Os interesses em texto ainda precisam ser confirmados na busca da Meta (clique para achar o equivalente).</div>' : ''}</div>
+            <input class="cp-sel1" placeholder="Buscar interesse na Meta (ex.: imóveis, financiamento, apartamento)…" oninput="lcBuscar('interesse',${i},this.value)">
+            ${(LC.bus['interesse' + i] || []).length ? `<div class="ads-per" style="flex-wrap:wrap;margin-top:4px">${LC.bus['interesse' + i].map((x, k) => `<button onclick="lcAddInt(${i},${k})">${esc(x.nome)}${x.alcance ? ' <small>' + nf(x.alcance) + '</small>' : ''}</button>`).join('')}</div>` : ''}</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px" class="nota">
+            <label><input type="checkbox" ${pb.advantage_publico ? 'checked' : ''} onchange="LC.plano.conjuntos[${i}].publico.advantage_publico=this.checked"> Público Advantage+ (a Meta amplia)</label>
+            ${['facebook', 'instagram', 'messenger', 'audience_network'].map(p => `<label><input type="checkbox" ${!(pb.posicionamentos_manuais || []).length || pb.posicionamentos_manuais.includes(p) ? 'checked' : ''} onchange="lcPos(${i},'${p}',this.checked)"> ${p}</label>`).join('')}
+            ${o && o.publicos.length ? `<span>Públicos salvos: ${o.publicos.map(p => `<label><input type="checkbox" ${(pb.publicos_salvos || []).some(x => (x.id || x) === p.id) ? 'checked' : ''} onchange="lcPubSalvo(${i},'${esc(p.id)}',this.checked)"> ${esc(p.name)}</label>`).join(' ')}</span>` : ''}</div>
+          <div style="margin-top:8px"><small class="nota">Horários de veiculação (vale com data de fim; sem fim a Meta roda o dia todo)</small>
+            ${(cj.horarios || []).map((h, k) => `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0">${LC_DIAS.map((d, di) => `<label class="nota"><input type="checkbox" ${(h.dias || []).includes(di) ? 'checked' : ''} onchange="lcDia(${i},${k},${di},this.checked)">${d}</label>`).join('')}
+              <input class="cp-sel1" style="width:90px" type="time" value="${esc(h.de || '08:00')}" onchange="LC.plano.conjuntos[${i}].horarios[${k}].de=this.value"> até <input class="cp-sel1" style="width:90px" type="time" value="${esc(h.ate || '22:00')}" onchange="LC.plano.conjuntos[${i}].horarios[${k}].ate=this.value"><button class="btn cp-b" onclick="LC.plano.conjuntos[${i}].horarios.splice(${k},1);lcPinta()">✕</button></div>`).join('')}
+            <button class="btn cp-b" onclick="(LC.plano.conjuntos[${i}].horarios=LC.plano.conjuntos[${i}].horarios||[]).push({dias:[1,2,3,4,5],de:'08:00',ate:'22:00'});lcPinta()">+ faixa</button></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn cp-b" onclick="lcEstimar(${i})">Estimar público</button><span class="nota">${est ? (est.de != null ? nf(est.de) + ' a ' + nf(est.ate) + ' pessoas/mês' : esc(est.erro || '')) : ''}</span><span style="flex:1"></span>${pl.conjuntos.length > 1 ? `<button class="btn cp-b" onclick="LC.plano.conjuntos.splice(${i},1);lcPinta()">Tirar conjunto</button>` : ''}</div></div>`; }).join('')}
+      <button class="btn cp-b" onclick="LC.plano.conjuntos.push({nome:'Conjunto ' + (LC.plano.conjuntos.length+1),orcamento_diario:50,otimizacao:'LEAD_GENERATION',publico:{cidades:[],interesses:[],raio_km:25},horarios:[]});lcPinta()">+ conjunto</button>
+
+      ${sec('4 · Anúncios (cada um com uma peça aprovada)')}
+      ${LC.pecas.length ? '' : '<div class="nota" style="color:var(--rosa)">Este cliente não tem peça aprovada com arte. Aprove os criativos primeiro (eles vêm da esteira de aprovação).</div>'}
+      ${pl.anuncios.map((a, i) => `<div class="cmp-prog" style="border-style:solid"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><small class="nota">Anúncio ${i + 1}</small>${inp(a.nome, `LC.plano.anuncios[${i}].nome=this.value`)}</div>
+          <div><small class="nota">Conjunto</small>${sel('', a.conjunto || 0, pl.conjuntos.map((c, k) => [k, c.nome]), `LC.plano.anuncios[${i}].conjunto=+this.value`)}</div>
+          <div><small class="nota">Botão (CTA)</small>${sel('', a.cta || 'SIGN_UP', (o ? o.ctas : ['SIGN_UP']).map(c => [c, c.replace(/_/g, ' ').toLowerCase()]), `LC.plano.anuncios[${i}].cta=this.value`)}</div>
+          <div><small class="nota">Título (até 40)</small>${inp(a.titulo, `LC.plano.anuncios[${i}].titulo=this.value`)}</div>
+          <div style="grid-column:2/-1"><small class="nota">Descrição</small>${inp(a.descricao, `LC.plano.anuncios[${i}].descricao=this.value`)}</div>
+          <div style="grid-column:1/-1"><small class="nota">Texto principal</small><textarea class="cp-sel1" rows="4" onchange="LC.plano.anuncios[${i}].texto=this.value">${esc(a.texto || '')}</textarea></div></div>
+          ${a.direcao_criativo ? `<div class="nota" style="margin:6px 0">${iaAv('sumi', 16)} Direção da peça: ${esc(a.direcao_criativo)}</div>` : ''}
+          <small class="nota">Peça aprovada</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${LC.pecas.map(p => `<div onclick="LC.plano.anuncios[${i}].peca_id='${esc(p.id)}';lcPinta()" title="${esc(p.titulo)}" style="width:96px;cursor:pointer;border-radius:10px;padding:3px;${a.peca_id === p.id ? 'outline:2px solid var(--verde,#1f8a55)' : 'opacity:.75'}">${p.capa ? `<img src="${esc(p.capa)}" referrerpolicy="no-referrer" alt="" style="width:90px;height:90px;object-fit:cover;border-radius:8px;display:block" onclick="event.stopPropagation();ccZoom(this.src)">` : '<div style="width:90px;height:90px;border-radius:8px;background:rgba(127,127,127,.2)"></div>'}<div class="nota" style="font-size:10px;line-height:1.2;margin-top:2px;overflow:hidden;max-height:24px">${p.video ? '▶ ' : ''}${p.n > 1 ? p.n + ' telas · ' : ''}${esc(p.titulo)}</div></div>`).join('')}</div>
+          <div style="margin-top:8px;text-align:right">${pl.anuncios.length > 1 ? `<button class="btn cp-b" onclick="LC.plano.anuncios.splice(${i},1);lcPinta()">Tirar anúncio</button>` : ''}</div></div>`).join('')}
+      <button class="btn cp-b" onclick="LC.plano.anuncios.push({nome:'Anúncio ' + (LC.plano.anuncios.length+1),titulo:'',texto:'',descricao:'',cta:'SIGN_UP',conjunto:0});lcPinta()">+ anúncio</button>` : ''}
+
+    ${sec('Campanhas que a plataforma subiu')}
+    ${LC.lista ? (LC.lista.length ? LC.lista.map(c => `<div class="cmp-p" style="align-items:center"><div style="flex:1;min-width:0"><b>${esc(c.nome || '')}</b> <span class="cp-chip">${esc(c.estado)}</span><div class="nota">${esc((c.clients || {}).name || '')}${(c.products || {}).name ? ' · ' + esc(c.products.name) : ''} · ${new Date(c.criado_em).toLocaleDateString('pt-BR')}</div></div>
+        <a class="btn cp-b" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${esc(c.conta.replace('act_', ''))}&selected_campaign_ids=${esc(c.campanha_meta_id)}" target="_blank" rel="noopener">Gerenciador</a>
+        ${ehAdmin() ? (c.estado === 'ativa' ? `<button class="btn cp-b" onclick="lcEstado('${esc(c.id)}','pausar')">Pausar</button>` : `<button class="btn cheio cp-b" onclick="LC.feito={id:'${esc(c.id)}',link:'',conjuntos:'?',anuncios:'?',segundos:0,registro:true,estado:c.estado};LC.confirmo=false;lcPinta();cmpTopo()">Preparar play</button>`) : ''}</div>`).join('') : '<div class="nota">Nenhuma ainda.</div>') : '<div class="nota">Carregando…</div>'}`; });
+}
+function lcConta(v){ LC.conta = v; LC.opc = null; LC.pagina = ''; LC.formulario = ''; LC.pixel = ''; lcPinta(); if (v) lcOpcoes(); }
+function lcPagina(v){ LC.pagina = v; const p = (LC.opc.paginas || []).find(x => x.id === v); LC.instagram = p && p.ig_id || ''; lcPinta(); }
+async function lcOpcoes(){
+  LC.carreg = 'Lendo a conta na Meta (páginas, formulários, pixel, pagamento)…'; lcPinta(); progIni();
+  try { LC.opc = await lcFala({ acao:'opcoes', conta: LC.conta });
+    const pc = LC.opc.paginas_cliente[0], p = pc && LC.opc.paginas.find(x => x.id === pc.id); if (p) lcPagina(p.id);
+    if (LC.cid){ const j = await lcFala({ acao:'criativos', client_id: LC.cid }); LC.pecas = j.pecas || []; } }
+  catch(e){ LC.msg = e.message; }
+  progFim(); LC.carreg = ''; lcPinta();
+}
+async function lcPlano(){
+  const cn = (clientesReais.find(c => c.id === LC.cid) || {}).name || '', pn = adsNomeProd(LC.pid);
+  LC.carreg = 'A Sumi está montando campanha, públicos, horários e anúncios…'; LC.msg = ''; lcPinta(); progIni();
+  try { const j = await lcFala({ acao:'plano', texto: LC.doc, cliente: cn, produto: pn, moeda: LC.opc ? LC.opc.conta.moeda : 'BRL' }); LC.plano = j.plano; LC.plano.conjuntos = LC.plano.conjuntos || []; LC.plano.anuncios = LC.plano.anuncios || [];
+    LC.plano.conjuntos.forEach(cj => { const pb = cj.publico = cj.publico || {}; pb.cidades = (pb.cidades || []).map(x => typeof x === 'string' ? { nome:x } : x); pb.interesses = (pb.interesses || []).map(x => typeof x === 'string' ? { nome:x } : x); });
+    lcResolver(); }
+  catch(e){ LC.msg = e.message; }
+  progFim(); LC.carreg = ''; lcPinta();
+}
+async function lcResolver(){   // os nomes que a Sumi deu viram chaves reais da Meta (cidade e interesse), em silêncio
+  for (const [i, cj] of (LC.plano.conjuntos || []).entries()){ const pb = cj.publico;
+    for (const c of pb.cidades) if (!c.key && c.nome){ try { const j = await lcFala({ acao:'buscar', tipo:'lugar', q: c.nome.split(',')[0], conta: LC.conta }); const m = (j.itens || []).find(x => x.tipo === 'city') || (j.itens || [])[0]; if (m){ c.key = m.key; c.nome = m.nome; c.tipo = m.tipo; } } catch(e){} }
+    for (const c of pb.interesses) if (!c.id && c.nome){ try { const j = await lcFala({ acao:'buscar', tipo:'interesse', q: c.nome, conta: LC.conta }); const m = (j.itens || [])[0]; if (m){ c.id = m.id; c.nome = m.nome; } } catch(e){} }
+    pb.cidades = pb.cidades.filter(c => c.key); lcPinta(); }
+}
+let lcBT = null;
+function lcBuscar(tipo, i, q){ clearTimeout(lcBT); if (!q || q.length < 2){ LC.bus[tipo + i] = []; return; } lcBT = setTimeout(async () => { try { const j = await lcFala({ acao:'buscar', tipo, q, conta: LC.conta }); LC.bus[tipo + i] = j.itens || []; const X = document.getElementById('cxLc'), a = document.activeElement, v = a && a.value; lcPinta(); } catch(e){} }, 450); }
+function lcAddCidade(i, k){ const x = LC.bus['lugar' + i][k]; const pb = LC.plano.conjuntos[i].publico; pb.cidades = pb.cidades || []; if (!pb.cidades.some(c => c.key === x.key)) pb.cidades.push({ key:x.key, nome:x.nome, tipo:x.tipo }); LC.bus['lugar' + i] = []; lcPinta(); }
+function lcAddInt(i, k){ const x = LC.bus['interesse' + i][k]; const pb = LC.plano.conjuntos[i].publico; pb.interesses = (pb.interesses || []).filter(c => c.id); if (!pb.interesses.some(c => c.id === x.id)) pb.interesses.push({ id:x.id, nome:x.nome }); LC.bus['interesse' + i] = []; lcPinta(); }
+function lcRmCidade(i, k){ LC.plano.conjuntos[i].publico.cidades.splice(k, 1); lcPinta(); }
+function lcRmInt(i, k){ LC.plano.conjuntos[i].publico.interesses.splice(k, 1); lcPinta(); }
+function lcPos(i, p, on){ const pb = LC.plano.conjuntos[i].publico; let l = pb.posicionamentos_manuais && pb.posicionamentos_manuais.length ? pb.posicionamentos_manuais.slice() : ['facebook', 'instagram', 'messenger', 'audience_network']; l = on ? l.concat(l.includes(p) ? [] : [p]) : l.filter(x => x !== p); pb.posicionamentos_manuais = l.length === 4 ? [] : l; lcPinta(); }
+function lcPubSalvo(i, id, on){ const pb = LC.plano.conjuntos[i].publico; let l = (pb.publicos_salvos || []).map(x => x.id || x).filter(x => x !== id); if (on) l.push(id); pb.publicos_salvos = l.map(x => ({ id:x })); }
+function lcDia(i, k, d, on){ const h = LC.plano.conjuntos[i].horarios[k]; h.dias = (h.dias || []).filter(x => x !== d); if (on) h.dias.push(d); }
+async function lcEstimar(i){ LC.est[i] = { erro:'calculando…' }; lcPinta(); try { const j = await lcFala({ acao:'estimar', conta: LC.conta, publico: LC.plano.conjuntos[i].publico, objetivo: LC.plano.campanha.objetivo }); LC.est[i] = j.estimativa || { erro: j.erro || 'sem estimativa' }; } catch(e){ LC.est[i] = { erro:e.message }; } lcPinta(); }
+async function lcSubir(){
+  const pl = LC.plano; if (!pl) return; const n = pl.conjuntos.length, na = pl.anuncios.length;
+  if (!confirm(`Criar na Meta, PAUSADO: 1 campanha, ${n} conjunto${n === 1 ? '' : 's'} e ${na} anúncio${na === 1 ? '' : 's'}? Nada vai ao ar sem o play.`)) return;
+  LC.carreg = 'Criando campanha, conjuntos, criativos e anúncios na Meta… (vídeo demora mais)'; LC.msg = ''; lcPinta(); progIni(); cmpTopo();
+  try { const j = await lcFala({ acao:'subir', conta: LC.conta, client_id: LC.cid, product_id: LC.pid, plano: pl, pagina: LC.pagina, instagram: LC.instagram, pixel: LC.pixel, formulario: LC.formulario, link: LC.link, whatsapp: LC.whatsapp, doc_id: LC.docId });
+    LC.feito = { ...j, estado:'pausada' }; LC.confirmo = false; toast('Campanha criada na Meta, pausada.'); lcLista(); }
+  catch(e){ LC.msg = e.message; }
+  progFim(); LC.carreg = ''; lcPinta(); cmpTopo();
+}
+async function lcPlay(id){
+  if (!id){ LC.msg = 'Essa campanha não ficou registrada na plataforma; dê o play direto no Gerenciador.'; return lcPinta(); }
+  if (!confirm('Dar PLAY agora? A campanha começa a gastar na conta do cliente.')) return;
+  LC.carreg = 'Ligando na Meta…'; lcPinta(); progIni();
+  try { const j = await lcFala({ acao:'play', id, confirmo: true }); LC.feito.estado = j.estado; if ((j.avisos || []).length) LC.msg = 'Ligou com avisos: ' + j.avisos.join(' · '); toast('No ar.'); lcLista(); }
+  catch(e){ LC.msg = e.message; }
+  progFim(); LC.carreg = ''; lcPinta();
+}
+async function lcEstado(id, acao){ try { await lcFala({ acao, id }); toast(acao === 'pausar' ? 'Pausada.' : 'Ligada.'); } catch(e){ LC.msg = e.message; } lcLista(); }
+async function lcLista(){ try { const j = await lcFala({ acao:'lista', client_id: LC.cid }); LC.lista = j.campanhas || []; } catch(e){ LC.lista = []; } lcPinta(); }
 // DOCUMENTO EDITÁVEL da Sumi/Muru: clique no texto, edite; a versão final (com a mão humana) fica salva e é a que vai para tarefas e PDF
 function docObj(o){ return o === 'soc' ? CMP : CCMP; }
 function docEd(o){ const d = docObj(o); return `<div class="md ed" id="docEd_${o}" onclick="docEditar('${o}')" title="Clique para editar">${mdHtml(d.resp)}</div>
@@ -11224,7 +11376,7 @@ function perguntarClienteAnexo(){
     : tasksReais.filter(t => !dica || t.client_id === dica.id).slice(0, 5);
 
   // peça final (imagem/vídeo/PDF) que o usuário diz ser pra aprovar: vira lote de aprovação, não material de origem
-  const soMidia = fs.length && fs.every(f => /\.(jpe?g|png|webp|gif|mp4|mov|webm|m4v|pdf)$/i.test(f.name));
+  const soMidia = fs.length && fs.every(f => /\.(jpe?g|png|webp|gif|mp4|mov|webm|m4v|pdf|zip)$/i.test(f.name));   // zip: pacote de criativos (imagens e vídeos) — o leitor da SAÍDA abre e cada arquivo vira peça
   const recente = (THREADS.sd||[]).slice(-8).map(m=>String(m.t||'')).join(' ');
   const querAprovar = soMidia && !ehCorrecao && /aprov|pront|finai|finalizad|entrega/i.test(recente);
   const acoes = [];

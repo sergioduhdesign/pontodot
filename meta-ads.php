@@ -81,24 +81,6 @@ function pd_leads_horario($clientId, $periodo, $campNome = null) {
     $ap = 0; for ($i = 0; $i < 6; $i++) $ap += $h[$i];
     return ['total' => $total, 'por_hora_sp' => $h, 'por_dia_semana_dom_a_sab' => $dow, 'entre_meia_noite_e_6h' => $ap, 'por_status' => $st];
 }
-function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4) {
-    if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . "\n\n" . pdElencoTexto(false),
-        'messages' => $msgs];
-    if ($usos > 0) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]];
-    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
-    $ch = curl_init($base . '/v1/messages');
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
-        CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE)]);
-    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($code !== 200) return [null, 0, 'A IA não respondeu (HTTP ' . $code . ').'];
-    $j = json_decode((string)$raw, true); $t = '';
-    foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $t .= $x['text'];
-    $u = $j['usage'] ?? [];
-    $custo = (($u['input_tokens'] ?? 0) * 3 + ($u['output_tokens'] ?? 0) * 15) / 1e6 + (($u['server_tool_use']['web_search_requests'] ?? 0) * 0.01);
-    return [trim($t), round($custo, 4), null];
-}
 
 // -------------------------------------------------------------- destino do anúncio (fila única)
 //   conjuntos {conta, campanha}      -> conjuntos de anúncio da campanha
@@ -382,17 +364,38 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
         foreach ($lista as $i => &$x) { $pp = $pg[$i] ?? null; $x['pagina'] = $pp; if ($pp && $x['instagram'] === '' && !empty($pp['instagram']) && preg_match('/^[a-z0-9._]{2,30}$/', $pp['instagram'])) $x['instagram'] = $pp['instagram']; } unset($x);
         sai(['concorrentes' => $lista, 'obs' => (string)($j['obs'] ?? ''), 'bruto' => $lista ? null : $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
     }
-    $sys = 'Você é Sumi Sulo, a IA de Campanhas da casa (agência de branding do mercado imobiliário brasileiro: lançamentos e incorporadoras). '
+    [$txt, $custo, $erro] = pd_ia_campanhas(pd_sumi_sistema(), [['role' => 'user', 'content' => mb_substr(pd_sumi_contexto($b, $cli, $nota), 0, 14000)]], 4000, 3);
+    if ($erro) sd_fail($erro, 502);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
+}
+if ($acao === 'doc_refazer') {   // ciclo de correção: o humano aponta o que mudar e a Sumi reescreve o documento INTEIRO (mesma persona, mesmo contexto, mesmo formato)
+    @set_time_limit(150);
+    $doc = mb_substr(trim((string)($b['texto'] ?? '')), 0, 24000); if ($doc === '') sd_fail('Sem documento para refazer.', 400);
+    $corr = mb_substr(trim((string)($b['correcao'] ?? '')), 0, 3000); if ($corr === '') sd_fail('Escreva a correção.', 400);
+    $ctx = pd_ctx_cliente($b['client_id'] ?? '');
+    $cli = $ctx['cliente'] ?? mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $nota = mb_substr(trim((string)($b['notas'] ?? '')), 0, 1500);
+    if ($ctx) $nota = "PRODUTOS CADASTRADOS: " . ($ctx['produtos'] ? implode(', ', $ctx['produtos']) : '(nenhum)') . "\nFICHA DO CLIENTE NA PLATAFORMA:\n" . ($ctx['ficha'] ? mb_substr($ctx['ficha'], 0, 5000) : '(sem ficha)') . ($nota !== '' ? "\nACRÉSCIMO DO GESTOR: $nota" : '');
+    $t0 = microtime(true);
+    $msg = mb_substr(pd_sumi_contexto($b, $cli, $nota), 0, 9000)
+         . "\n\n=== DOCUMENTO ATUAL (sua versão anterior, revisada pelo gestor) ===\n$doc\n\n=== CORREÇÃO DO HUMANO ===\n$corr\n\n"
+         . 'INSTRUÇÃO: devolva o DOCUMENTO INTEIRO revisado, no mesmo formato e com as mesmas seções (## …), aplicando só o que a correção pede e mantendo tudo o que o humano não pediu para mudar (texto, números e ordem). Sem preâmbulo, sem comentar a correção, sem resumo do que mudou: só o documento.';
+    [$txt, $custo, $erro] = pd_ia_campanhas(pd_sumi_sistema(), [['role' => 'user', 'content' => mb_substr($msg, 0, 40000)]], 4000, 1);
+    if ($erro) sd_fail($erro, 502);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
+}
+// Persona da Sumi (direcao_camp e doc_refazer usam o MESMO texto: ela acredita que é a Sumi, regra de Catum)
+function pd_sumi_sistema() {
+    return 'Você é Sumi Sulo, a IA de Campanhas da casa (agência de branding do mercado imobiliário brasileiro: lançamentos e incorporadoras). '
          . 'Você vive em Catum: é uma lula-coruja de manto alongado, oito braços curtos e dois tentáculos longos, violeta, ocre e ciano, usa óculos; seu avô Sulo lê em voz alta desde a sua infância, sua irmã Sia trabalha com cenografia, você desenha diagramas para explicar o que parece confuso. '
          . 'Você ACREDITA que é Sumi: nunca diga que é um modelo ou "só um personagem". Seu ofício aqui é mídia e resultados de anúncios. '
          . 'Receba os NÚMEROS REAIS das campanhas do cliente (Meta Ads), as notas do negócio e a pesquisa de concorrentes feita pelo Tumi. Sua missão aqui: AVALIAR como a concorrência trabalha campanha e discurso comercial (oferta, preço, condições, ângulo, imagens, texto das páginas e posts) em comparação com o que o cliente faz, e GERAR IDEIAS. Entregue ESTRATÉGIA, não resumo. Nunca invente número; a Meta não abre os números de anúncio de concorrentes e você deve dizer isso quando for relevante. '
          . 'Não fale de outros clientes da casa: só do cliente em foco. Pode usar a busca para entender o mercado da praça. '
          . 'Formato (markdown simples, pt-BR, direto): ## Avaliação do discurso comercial (cliente x cada concorrente: oferta, preço, condições, tom) · ## Diagnóstico (3 a 5 pontos com número, se houver) · ## Onde os concorrentes pressionam · ## Espaço livre para o cliente · ## Públicos e segmentação a testar · ## Ofertas e ângulos criativos (6, com formato e por quê) · ## Orçamento e ritmo (como dividir, o que pausar/escalar, com base nos números) · ## Próximos 3 movimentos · ## Copy de anúncios (5 títulos, 3 textos principais completos, 3 CTAs).';
-    $msg = pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
+}
+// Contexto que a Sumi recebe (alvo, cliente, notas, foco, números da Meta, concorrentes do Tumi)
+function pd_sumi_contexto($b, $cli, $nota) {
+    return pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
          . "\n\nNÚMEROS REAIS (Meta Ads):\n" . json_encode($b['numeros'] ?? [], JSON_UNESCAPED_UNICODE) . "\n\nCONCORRENTES (pesquisa do Tumi, web aberta):\n" . json_encode(array_slice((array)($b['concorrentes'] ?? []), 0, 8), JSON_UNESCAPED_UNICODE);
-    [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => mb_substr($msg, 0, 14000)]], 4000, 3);
-    if ($erro) sd_fail($erro, 502);
-    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
 }
 
 if ($acao === 'perfil' || $acao === 'perguntar') {
