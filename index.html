@@ -4919,7 +4919,7 @@ function htmlSocial(){
 // (que guarda 10 min pra não queimar o limite da Meta); os leads vêm do
 // banco, que a própria Meta alimenta na hora pelo meta-webhook.php.
 // =====================================================================
-let ADS = { periodo:'last_7d', dados:null, erro:'', carregando:false, em:0, leads:null };
+let ADS = { periodo:'last_7d', dados:null, erro:'', carregando:false, em:0, leads:null, aba:'leads', avs:null };
 const ADS_PERIODOS = [['last_7d','7 dias'],['last_30d','30 dias'],['this_month','Este mês']];
 const brl = (v, moeda) => { try { return Number(v || 0).toLocaleString('pt-BR', { style:'currency', currency: moeda || 'BRL', maximumFractionDigits: 2 }); } catch(e){ return 'R$ ' + Number(v||0).toFixed(2); } };
 async function adsFala(dados){
@@ -4935,16 +4935,46 @@ async function carregarAds(forcar){
   if (!window.REAL || ADS.carregando) return;
   if (!forcar && ADS.em && Date.now() - ADS.em < 5 * 60e3) return;
   ADS.carregando = true;
-  try { ADS.dados = await adsFala({ acao:'resumo', periodo: ADS.periodo }); ADS.erro = ''; }
-  catch(e){ ADS.erro = e.message; }
   try {
-    const { data, error } = await sbR.from('meta_leads')
-      .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,clients(name)')
+    let { data, error } = await sbR.from('meta_leads')
+      .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,page_id,product_id,clients(name),products(name)')
       .order('recebido_em', { ascending:false }).limit(30);
+    if (error) ({ data, error } = await sbR.from('meta_leads')      // banco sem produto (v155)
+      .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,page_id,clients(name)')
+      .order('recebido_em', { ascending:false }).limit(30));
     ADS.leads = error ? [] : (data || []);
   } catch(e){ ADS.leads = []; }
+  await adsAvatares();
+  try { render(); } catch(e){}          // os leads são rápidos: aparecem antes dos números da Meta
+  try { ADS.dados = await adsFala({ acao:'resumo', periodo: ADS.periodo }); ADS.erro = ''; }
+  catch(e){ ADS.erro = e.message; }
   ADS.em = Date.now(); ADS.carregando = false;
   try { render(); } catch(e){}
+}
+// de onde vem o lead: o avatar da Página do Facebook que o recebeu (cai no logo do cliente se a foto quebrar)
+async function adsAvatares(){
+  if (ADS.avs) return;
+  try { const { data } = await sbR.from('social_accounts').select('external_account_id,account_avatar_url').eq('platform', 'facebook');
+    ADS.avs = {}; (data || []).forEach(a => { if (a.external_account_id && a.account_avatar_url) ADS.avs[a.external_account_id] = a.account_avatar_url; });
+  } catch(e){ ADS.avs = {}; }
+}
+const ICO_MEGA = '<path d="M4 10.5v3.5h3l6.5 4V6.5L7 10.5z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 7a7 7 0 0 1 0 10"/>';
+const ICO_FUNIL = '<path d="M3.5 4.5h17l-6.5 8v6.5l-4 1.8v-8.3z"/>';
+const adsSvg = (d, t = 22) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+function adsLinhaLead(l){
+  const av = (ADS.avs || {})[l.page_id], cli = l.clients?.name || '';
+  const fonte = `<span style="position:relative;display:block;width:34px;height:34px;flex:0 0 34px">${logoCliente(cli, 34)}${av ? `<img src="${esc(av)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:34px;height:34px;border-radius:50%;object-fit:cover">` : ''}</span>`;
+  return `<button class="ads-linha" style="gap:9px" onclick="abrirLead('${esc(l.id)}')">
+    <span title="Lead de anúncio" style="flex:0 0 18px;display:grid;place-items:center;opacity:.65">${adsSvg(ICO_MEGA, 16)}</span>${fonte}
+    <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div>
+      <div class="d">${esc(cli || 'Sem cliente')}${l.products?.name ? ' › ' + esc(l.products.name) : ''}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${quando(l.recebido_em)}</div></div>
+    <div class="v">${esc(l.status)}</div></button>`;
+}
+function adsAba(a){ ADS.aba = a; try { render(); } catch(e){} }
+function adsBarra(){
+  const b = (id, ico, tit) => { const on = ADS.aba === id;
+    return `<button class="btn" title="${tit}" aria-label="${tit}" onclick="adsAba('${id}')" style="min-height:52px;padding:6px 4px;display:grid;place-items:center;${on ? 'border-color:var(--verde,#1f8a55);box-shadow:0 0 0 1px var(--verde,#1f8a55) inset' : 'opacity:.7'}">${adsSvg(ico, 24)}</button>`; };
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px">${b('leads', ICO_FUNIL, 'Leads')}${b('campanhas', ICO_MEGA, 'Campanhas')}</div>`;
 }
 function adsPeriodo(p){ ADS.periodo = p; ADS.dados = null; ADS.em = 0; render(); carregarAds(true); }
 async function conectarMeta(){
@@ -4961,32 +4991,38 @@ const quando = iso => { if (!iso) return ''; const m = Math.round((Date.now() - 
 function htmlAnuncios(){
   if (!window.REAL) return gadCaixa('Anúncios', `<div class="nota" style="padding:6px 2px 2px">Entre na sua conta para ver campanhas e leads da Meta.</div>`);
   if (!ADS.em && !ADS.carregando) setTimeout(() => carregarAds(), 0);
+  const bar = adsBarra();
+  // ---- LEADS: o botão "ver todos" fica NO TOPO da lista, nunca no fundo ----
+  if (ADS.aba === 'leads'){
+    if (ADS.leads == null) return gadCaixa('Anúncios', bar + `<div class="nota">Buscando os leads…</div>`);
+    const ls = ADS.leads, novos = ls.filter(l => l.status === 'novo').length;
+    return gadCaixa('Anúncios', bar + `<div style="display:flex;align-items:center;gap:8px;margin:0 0 4px">
+        <span class="nota" style="margin:0;flex:1">${ls.length ? `${ls.length} recentes${novos ? ' · <b>' + novos + ' novo' + (novos > 1 ? 's' : '') + '</b>' : ''}` : ''}</span>
+        <button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirLeads()">Ver todos</button></div>
+      ${ls.slice(0, 6).map(adsLinhaLead).join('') || '<div class="nota" style="margin:6px 0 0">Nenhum lead ainda. Eles chegam aqui na hora em que alguém preenche o formulário.</div>'}`);
+  }
+  // ---- CAMPANHAS ----
   const per = `<div class="ads-per">${ADS_PERIODOS.map(([k,n]) => `<button class="${ADS.periodo===k?'on':''}" onclick="adsPeriodo('${k}')">${n}</button>`).join('')}</div>`;
-  if (!ADS.dados && !ADS.erro) return gadCaixa('Anúncios', per + `<div class="nota">Buscando na Meta…</div>`);
-  if (ADS.erro && !ADS.dados) return gadCaixa('Anúncios', per + `<div class="nota" style="line-height:1.5">${esc(ADS.erro)}</div>`, ['Conectar a Meta', 'conectarMeta()']);
+  if (!ADS.dados && !ADS.erro) return gadCaixa('Anúncios', bar + per + `<div class="nota">Buscando na Meta…</div>`);
+  if (ADS.erro && !ADS.dados) return gadCaixa('Anúncios', bar + per + `<div class="nota" style="line-height:1.5">${esc(ADS.erro)}</div><div style="margin-top:8px"><button class="btn" style="min-height:34px;padding:6px 12px;font-size:11.5px" onclick="conectarMeta()">Conectar a Meta</button></div>`);
   const contas = ADS.dados.contas || [];
-  if (!contas.length) return gadCaixa('Anúncios', per + `<div class="nota" style="line-height:1.5">Nenhuma conta de anúncio conectada ainda. Conecte a Meta e aceite os anúncios.</div>`, ['Conectar a Meta', 'conectarMeta()']);
+  if (!contas.length) return gadCaixa('Anúncios', bar + per + `<div class="nota" style="line-height:1.5">Nenhuma conta de anúncio conectada ainda. Conecte a Meta e aceite os anúncios.</div><div style="margin-top:8px"><button class="btn" style="min-height:34px;padding:6px 12px;font-size:11.5px" onclick="conectarMeta()">Conectar a Meta</button></div>`);
   const ok = contas.filter(c => !c.erro);
   const gasto = ok.reduce((a, c) => a + (c.gasto || 0), 0), leads = ok.reduce((a, c) => a + (c.leads || 0), 0);
   const moeda = (ok[0] && ok[0].moeda) || 'BRL';
-  const linhas = contas.slice(0, 8).map(c => `<button class="ads-linha" onclick="abrirCampanhas('${esc(c.conta)}')">
+  const linhas = contas.slice(0, 8).map(c => `<button class="ads-linha" style="gap:9px" onclick="abrirCampanhas('${esc(c.conta)}')">
+      <span style="flex:0 0 18px;display:grid;place-items:center;opacity:.65">${adsSvg(ICO_MEGA, 16)}</span>${logoCliente(c.cliente || '', 34)}
       <div class="c"><div class="n">${esc(c.cliente || c.nome || c.conta)}</div>
         <div class="d">${c.erro ? esc(c.erro) : `${(c.leads||0)} lead${c.leads===1?'':'s'}${c.cpl!=null ? ' · CPL ' + brl(c.cpl, c.moeda) : ''}`}</div></div>
       ${c.erro ? '' : `<div class="v">${brl(c.gasto, c.moeda)}<small>investido</small></div>`}
     </button>`).join('');
   const semCliente = contas.filter(c => !c.client_id).length;
-  const ultimos = (ADS.leads || []).slice(0, 3).map(l => `<button class="ads-linha" onclick="abrirLead('${esc(l.id)}')">
-      <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div><div class="d">${esc(l.clients?.name || l.campanha_nome || '')} · ${quando(l.recebido_em)}</div></div>
-      <div class="v">${esc(l.status)}</div></button>`).join('');
-  return gadCaixa('Anúncios', per + `
+  return gadCaixa('Anúncios', bar + per + `
     <div class="ads-tot"><div><small>Investido</small><b>${brl(gasto, moeda)}</b></div>
       <div><small>Leads</small><b>${leads}</b></div>
       <div><small>CPL médio</small><b>${leads ? brl(gasto / leads, moeda) : '—'}</b></div></div>
-    ${linhas}
     ${semCliente && perfil?.role === 'admin' ? `<button class="ads-linha" onclick="abrirVinculoAds()"><div class="c"><div class="d">${semCliente} conta${semCliente>1?'s':''} sem cliente — vincular</div></div></button>` : ''}
-    <div class="ads-sec">Leads recentes</div>
-    ${ultimos || '<div class="nota" style="margin:6px 0 0">Nenhum lead ainda. Eles chegam aqui na hora em que alguém preenche o formulário.</div>'}`,
-    ['Ver todos os leads', 'abrirLeads()']);
+    ${linhas}`);
 }
 // PRODUTO da campanha: cada campanha pode ser de um produto do cliente (ex.: Nova Oliveira). Os leads dela herdam o produto.
 async function adsCarregaProdutos(){
@@ -5109,15 +5145,15 @@ async function leadsCarregar(){
   try {
     for (let ini = 0; ini < 10000; ini += 1000){
       let { data, error } = await sbR.from('meta_leads')
-        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,product_id,clients(name),products(name)')
+        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,page_id,product_id,clients(name),products(name)')
         .order('recebido_em', { ascending:false }).range(ini, ini + 999);
       if (error) ({ data, error } = await sbR.from('meta_leads')      // banco ainda sem produto (migration v155)
-        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,clients(name)')
+        .select('id,nome,email,telefone,campanha_nome,ad_nome,status,recebido_em,campos,client_id,page_id,clients(name)')
         .order('recebido_em', { ascending:false }).range(ini, ini + 999));
       if (error || !data) break; todos.push(...data); if (data.length < 1000) break;
     }
   } catch(e){}
-  LP.rows = todos; LP.carregando = false; leadsPintar();
+  await adsAvatares(); LP.rows = todos; LP.carregando = false; leadsPintar();
 }
 function leadsFiltrados(){
   const q = semAcento(LP.q || '');
@@ -5135,9 +5171,7 @@ function leadsPintar(){
   if (selP){ const ks = Object.keys(pp).sort(); selP.style.display = ks.length ? '' : 'none';
     if (selP.dataset.ok !== ks.join('|')){ selP.innerHTML = '<option value="">todos os produtos</option>' + ks.map(k => `<option value="${esc(k)}">${esc(k)} (${pp[k]})</option>`).join(''); selP.dataset.ok = ks.join('|'); selP.value = LP.prod; } }
   const tot = document.getElementById('lpTot'); if (tot) tot.innerHTML = `<b>${fil.length}</b> de ${todos.length} leads`;
-  C.innerHTML = fil.slice(0, 300).map(l => `<button class="ads-linha" onclick="abrirLead('${esc(l.id)}')">
-      <div class="c"><div class="n">${esc(l.nome || 'Sem nome')}</div><div class="d">${esc(l.clients?.name || 'Sem cliente')}${l.products?.name ? ' › ' + esc(l.products.name) : ''}${l.campanha_nome ? ' · ' + esc(l.campanha_nome) : ''} · ${new Date(l.recebido_em).toLocaleDateString('pt-BR')} ${quando(l.recebido_em)}</div></div>
-      <div class="v">${esc(l.status)}</div></button>`).join('') + (fil.length > 300 ? `<div class="nota">Mostrando 300 de ${fil.length}. A planilha leva todos.</div>` : '') || '<div class="nota">Nenhum lead com esse filtro.</div>';
+  C.innerHTML = fil.slice(0, 300).map(adsLinhaLead).join('') + (fil.length > 300 ? `<div class="nota">Mostrando 300 de ${fil.length}. A planilha leva todos.</div>` : '') || '<div class="nota">Nenhum lead com esse filtro.</div>';
 }
 function leadsBaixar(){
   const fil = leadsFiltrados(); if (!fil.length){ toast('Nenhum lead para baixar.'); return; }
