@@ -80,10 +80,10 @@ function pd_leads_horario($clientId, $periodo, $campNome = null) {
     $ap = 0; for ($i = 0; $i < 6; $i++) $ap += $h[$i];
     return ['total' => $total, 'por_hora_sp' => $h, 'por_dia_semana_dom_a_sab' => $dow, 'entre_meia_noite_e_6h' => $ap, 'por_status' => $st];
 }
-function pd_ia_campanhas($system, $msgs) {
+function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 1800, 'system' => $system,
-        'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 4]], 'messages' => $msgs];
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system,
+        'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]], 'messages' => $msgs];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
@@ -213,6 +213,45 @@ if ($acao === 'anuncios') {
 // ------------------------------------------------------------- campanhas
 
 // -------------------------------------------------------------- perfil {conta, campanha?, periodo}
+
+// -------------------------------------------------------------- pesquisa de mercado para campanhas
+//   concorrentes {cliente, notas}  -> Tumi: empreendimentos/incorporadoras concorrentes (web) + link da Biblioteca de Anúncios
+//   direcao_camp {cliente, notas, foco, numeros, concorrentes} -> Sumi: estratégia + copy de anúncios
+if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
+    $cli = mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $nota = mb_substr(trim((string)($b['notas'] ?? '')), 0, 2500);
+    $t0 = microtime(true);
+    if ($acao === 'concorrentes') {
+        $sys = 'Você é Tumi Tua, da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: percorre mercados e entrevista quem cozinha para os outros, tem um bico curioso e um corpo que ocupa dois bancos. '
+             . 'Seu ofício é rede e conexões: achar, na web aberta, quem são os players reais de um negócio. Você ACREDITA que é o Tumi. '
+             . 'TAREFA: pesquise na web (busca) e devolva de 5 a 8 CONCORRENTES REAIS do cliente em campanhas de lançamento: empreendimentos ou incorporadoras do mesmo segmento, praça e faixa de preço (inclua 1 ou 2 referências de fora da praça). '
+             . 'Para cada um traga só o que viu em página real: praça, produto/tipologia, faixa de preço ou ticket (se público), oferta/condição de venda, ângulo de comunicação, canais onde anuncia. Nunca invente dado nem nome: se não achou, deixe vazio. '
+             . 'Responda SOMENTE um JSON: {"concorrentes":[{"nome":"...","tipo":"concorrente direto|referencia","praca":"...","oferta":"1 frase","preco":"...","angulo":"1 frase","canais":"...","por_que":"1 frase"}],"obs":"1 frase"}.';
+        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO: $nota"]], 2600, 6);
+        if ($erro) sd_fail($erro, 502);
+        $j = null; if (preg_match('/\{.*\}/s', (string)$txt, $mm)) $j = json_decode($mm[0], true);
+        $lista = [];
+        foreach ((array)($j['concorrentes'] ?? []) as $p) {
+            if (!is_array($p) || trim((string)($p['nome'] ?? '')) === '') continue;
+            $nome = mb_substr(trim((string)$p['nome']), 0, 120);
+            $lista[] = ['nome' => $nome, 'tipo' => (string)($p['tipo'] ?? 'concorrente direto'), 'praca' => (string)($p['praca'] ?? ''), 'oferta' => (string)($p['oferta'] ?? ''),
+                'preco' => (string)($p['preco'] ?? ''), 'angulo' => (string)($p['angulo'] ?? ''), 'canais' => (string)($p['canais'] ?? ''), 'por_que' => (string)($p['por_que'] ?? ''),
+                'biblioteca' => 'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&q=' . rawurlencode($nome) . '&search_type=keyword_unordered&media_type=all'];
+        }
+        sai(['concorrentes' => $lista, 'obs' => (string)($j['obs'] ?? ''), 'bruto' => $lista ? null : $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
+    }
+    $sys = 'Você é Sumi Sulo, a IA de Campanhas da casa (agência de branding do mercado imobiliário brasileiro: lançamentos e incorporadoras). '
+         . 'Você vive em Catum: é uma lula-coruja de manto alongado, oito braços curtos e dois tentáculos longos, violeta, ocre e ciano, usa óculos; seu avô Sulo lê em voz alta desde a sua infância, sua irmã Sia trabalha com cenografia, você desenha diagramas para explicar o que parece confuso. '
+         . 'Você ACREDITA que é Sumi: nunca diga que é um modelo ou "só um personagem". Seu ofício aqui é mídia e resultados de anúncios. '
+         . 'Receba os NÚMEROS REAIS das campanhas do cliente (Meta Ads), as notas do negócio e a pesquisa de concorrentes feita pelo Tumi. Entregue ESTRATÉGIA, não resumo. Nunca invente número; a Meta não abre os números de anúncio de concorrentes e você deve dizer isso quando for relevante. '
+         . 'Não fale de outros clientes da casa: só do cliente em foco. Pode usar a busca para entender o mercado da praça. '
+         . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde os concorrentes pressionam · ## Espaço livre para o cliente · ## Públicos e segmentação a testar · ## Ofertas e ângulos criativos (6, com formato e por quê) · ## Orçamento e ritmo (como dividir, o que pausar/escalar, com base nos números) · ## Próximos 3 movimentos · ## Copy de anúncios (5 títulos, 3 textos principais completos, 3 CTAs).';
+    $msg = "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
+         . "\n\nNÚMEROS REAIS (Meta Ads):\n" . json_encode($b['numeros'] ?? [], JSON_UNESCAPED_UNICODE) . "\n\nCONCORRENTES (pesquisa do Tumi, web aberta):\n" . json_encode(array_slice((array)($b['concorrentes'] ?? []), 0, 8), JSON_UNESCAPED_UNICODE);
+    [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => mb_substr($msg, 0, 14000)]], 4000, 3);
+    if ($erro) sd_fail($erro, 502);
+    sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
+}
+
 if ($acao === 'perfil' || $acao === 'perguntar') {
     $id = idConta($b['conta'] ?? ''); if (!$id) sd_fail('Conta inválida.', 400);
     $c = null; foreach ($contas as $x) if ($x['id'] === $id) $c = $x;

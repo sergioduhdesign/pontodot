@@ -5415,8 +5415,13 @@ async function iaCampEnviar(txt){
 }
 
 // COMPARAR CAMPANHAS: até 5 clientes lado a lado (investido, leads, CPL, cliques, alcance)
-const CCMP = { sel:[] };
+const CCMP = { sel:[], notas:'', foco:'', players:null, resp:null, msg:'', custo:0, seg:0 };
 function abrirCompararCampanhas(){
+  if (!document.getElementById('cxCcmp')) abrirJanela('<div class="caixa invertida cp" style="padding:16px 18px 20px" id="cxCcmp"></div>', true);
+  ccmpPinta();
+}
+function ccmpPinta(){
+  const X = document.getElementById('cxCcmp'); if (!X) return;
   const contas = (ADS.dados?.contas || []).filter(c => !c.erro && c.client_id), por = {};
   contas.forEach(c => { const o = por[c.client_id] = por[c.client_id] || { id:c.client_id, nome:c.cliente || c.nome, gasto:0, leads:0, moeda:c.moeda, n:0 }; o.gasto += c.gasto || 0; o.leads += c.leads || 0; o.n++; });
   Object.values(por).forEach(o => { o.cpl = o.leads ? o.gasto / o.leads : null; });
@@ -5424,15 +5429,48 @@ function abrirCompararCampanhas(){
   const sel = CCMP.sel.map(id => por[id]).filter(Boolean), cor = ['#2f9e6b','#4c7dff','#e59a2f','#e0526b','#9a6bdb'];
   const barras = (tit, fn, fmt) => { const vs = sel.map(fn), mx = Math.max(...vs.map(v => v || 0), 0.0001);
     return `<div class="ads-sec" style="margin:14px 0 6px">${tit}</div>` + sel.map((o, i) => `<div class="cmp-b"><span class="who" style="color:${cor[i]}">${esc(o.nome)}</span><div class="bar"><i style="width:${Math.max(2, (vs[i] || 0) / mx * 100)}%;background:${cor[i]}"></i></div><b>${vs[i] == null ? '—' : fmt(vs[i])}</b></div>`).join(''); };
-  abrirJanela(`<div class="caixa invertida cp" style="padding:16px 18px 20px"><div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+  X.innerHTML = `<div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="ccmpDirecao()" ${CCMP.pensa || !sel.length ? 'disabled' : ''}>${iaAv('sumi', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    ${CCMP.pensa ? progHtml('A Sumi está cruzando seus números com a pesquisa do Tumi…', '#18155F') : ''}
+    ${CCMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CCMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar clientes</h3>
-    <div class="nota" style="margin:0 0 8px">Escolha até 5 clientes. Período: ${pdfPer()}. Concorrentes não aparecem aqui: a Meta não abre os números de anúncio de terceiros.</div>
+    <div class="nota" style="margin:0 0 8px">Escolha até 5 clientes. Período: ${pdfPer()}. A Meta não abre os números de anúncio de terceiros: os concorrentes vêm da pesquisa do Tumi na web, com atalho para a Biblioteca de Anúncios.</div>
     <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
+
+    <div class="ads-sec">Concorrentes e mercado</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn cp-b" onclick="ccmpTumi()" ${CCMP.tumi || !sel.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi os concorrentes</span></button></div>
+    ${CCMP.tumi ? progHtml('O Tumi está pesquisando concorrentes na web…', '#11BA98') : ''}
+    ${CCMP.msg ? `<div class="nota" style="margin:8px 0;color:var(--rosa)">${esc(CCMP.msg)}</div>` : ''}
+    ${CCMP.players ? `<div class="cmp-pl">${CCMP.players.map(p => `<div class="cmp-p"><div style="flex:1;min-width:0"><b>${esc(p.nome)}</b> <span class="cp-chip">${esc(p.tipo || 'concorrente')}</span>${p.praca ? ` <small class="nota">${esc(p.praca)}</small>` : ''}
+      <div class="nota" style="margin:2px 0 0">${esc([p.oferta, p.preco && 'Ticket: ' + p.preco, p.angulo && 'Ângulo: ' + p.angulo, p.canais && 'Canais: ' + p.canais].filter(Boolean).join(' · ') || p.por_que || '')}</div></div>
+      <a class="btn cp-b" href="${esc(p.biblioteca)}" target="_blank" rel="noopener">Anúncios</a></div>`).join('') || '<div class="nota">O Tumi não achou concorrentes confiáveis. ' + esc(CCMP.obs || '') + '</div>'}</div>` : ''}
+    <div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">Praça, produto, ticket, público, diferenciais, meta e o que já foi testado. Quanto mais, melhor o Tumi pesquisa e a Sumi decide.</div>
+    <textarea id="ccmpNotas" class="cp-sel1" rows="3" style="width:100%" placeholder="Ex.: lançamento 2 e 3 dorms em Campinas, ticket R$ 650 mil, público investidor e família jovem…" onchange="CCMP.notas=this.value">${esc(CCMP.notas || '')}</textarea>
+    <input id="ccmpFoco" class="cp-sel1" style="width:100%;margin-top:6px" placeholder="Foco (ex.: baixar o CPL, escalar leads qualificados)" value="${esc(CCMP.foco || '')}" onchange="CCMP.foco=this.value">
     ${sel.length ? `<div class="cmp-cols" style="grid-template-columns:repeat(${sel.length},minmax(150px,1fr))">${sel.map((o, i) => `<div class="cmp-col" style="border-top:3px solid ${cor[i]}"><div class="h">${logoCliente(o.nome, 30)}<div><b>${esc(o.nome)}</b><small>${o.n} conta${o.n === 1 ? '' : 's'}</small></div></div>
       <div class="kv"><small>Investido</small><b>${brl(o.gasto, o.moeda)}</b></div><div class="kv"><small>Leads</small><b>${nf(o.leads)}</b></div><div class="kv"><small>CPL</small><b>${o.cpl != null ? brl(o.cpl, o.moeda) : '—'}</b></div></div>`).join('')}</div>
-    ${barras('Investido', o => o.gasto, v => brl(v, 'BRL'))}${barras('Leads', o => o.leads, v => nf(v))}${barras('Custo por lead (menor é melhor)', o => o.cpl, v => brl(v, 'BRL'))}` : '<div class="nota">Escolha pelo menos um cliente.</div>'}</div>`, true);
+    ${barras('Investido', o => o.gasto, v => brl(v, 'BRL'))}${barras('Leads', o => o.leads, v => nf(v))}${barras('Custo por lead (menor é melhor)', o => o.cpl, v => brl(v, 'BRL'))}` : '<div class="nota">Escolha pelo menos um cliente.</div>'}`;
 }
-function ccmpToggle(id){ let s = CCMP.sel.slice(); if (s.includes(id)) s = s.filter(x => x !== id); else if (s.length < 5) s.push(id); else toast('No máximo 5 clientes.'); CCMP.sel = s; abrirCompararCampanhas(); }
+const CCMP_SALVA = () => { CCMP.notas = (document.getElementById('ccmpNotas') || {}).value ?? CCMP.notas; CCMP.foco = (document.getElementById('ccmpFoco') || {}).value ?? CCMP.foco; };
+function ccmpCliente(){ const c = (ADS.dados?.contas || []).find(x => x.client_id === CCMP.sel[0]); return c ? (c.cliente || c.nome) : ''; }
+async function ccmpTumi(){
+  CCMP_SALVA(); if (!CCMP.sel.length) return;
+  CCMP.msg = ''; CCMP.tumi = true; ccmpPinta(); progIni();
+  try { const j = await adsFala({ acao:'concorrentes', cliente: ccmpCliente(), notas: CCMP.notas });
+    CCMP.players = j.concorrentes || []; CCMP.obs = j.obs || ''; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
+  catch(e){ CCMP.msg = e.message; }
+  progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.tumi = false; ccmpPinta();
+}
+async function ccmpDirecao(){
+  CCMP_SALVA(); if (!CCMP.sel.length) return;
+  const por = {}; (ADS.dados?.contas || []).filter(c => !c.erro && c.client_id && CCMP.sel.includes(c.client_id)).forEach(c => { const o = por[c.client_id] = por[c.client_id] || { cliente:c.cliente || c.nome, periodo:pdfPer(), investido:0, leads:0 }; o.investido += c.gasto || 0; o.leads += c.leads || 0; });
+  const numeros = Object.values(por).map(o => ({ ...o, cpl: o.leads ? +(o.investido / o.leads).toFixed(2) : null }));
+  CCMP.msg = ''; CCMP.pensa = true; ccmpPinta(); progIni(); cmpTopo();
+  try { const j = await adsFala({ acao:'direcao_camp', cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, numeros, concorrentes: CCMP.players || [] });
+    CCMP.resp = j.resposta; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
+  catch(e){ CCMP.msg = e.message; }
+  progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.pensa = false; ccmpPinta(); cmpTopo();
+}
+function ccmpToggle(id){ let s = CCMP.sel.slice(); if (s.includes(id)) s = s.filter(x => x !== id); else if (s.length < 5) s.push(id); else toast('No máximo 5 clientes.'); CCMP_SALVA(); CCMP.sel = s; ccmpPinta(); }
 // PDF: relatório limpo (logo do cliente + ícone da PD) → imprimir / Salvar como PDF. Usa as informações escolhidas.
 function pdfDoc(titulo, sub, clienteNome, corpo){
   document.getElementById('pdfFrame')?.remove();
@@ -5764,6 +5802,7 @@ async function cmpLer(){
   catch(e){ CMP.msg = e.message; }
   CMP.lendo = false; cmpPinta();
 }
+function cmpTopo(){ const X = document.getElementById('cxCmp') || document.getElementById('cxCcmp'); const c = X && (X.closest('.j-caixa') || X.parentElement); [X, c, X && X.parentElement].forEach(e => { try { e && e.scrollTo({ top:0, behavior:'smooth' }); } catch(_){} }); }
 let PROG_T = null;
 function progIni(cor){ progFim(true); const t0 = Date.now(); PROG_T = setInterval(() => { const el = document.getElementById('cmpProgF'); if (!el) return; const x = (Date.now() - t0) / 1000; el.style.width = (92 * (1 - Math.exp(-x / 14))).toFixed(1) + '%'; }, 250); }
 function progFim(quieto){ if (PROG_T){ clearInterval(PROG_T); PROG_T = null; } const el = document.getElementById('cmpProgF'); if (el && !quieto) el.style.width = '100%'; }
@@ -5780,11 +5819,11 @@ async function cmpDirecao(){
   const ok = CMP.slots.map(s => CMP.dados[s.handle]).filter(p => p && !p.erro);
   if (ok.length < 2){ CMP.msg = 'Preciso de pelo menos 2 perfis lidos com sucesso para comparar.'; return cmpPinta(); }
   CMP.notas = (document.getElementById('cmpNotas') || {}).value ?? CMP.notas; CMP.foco = (document.getElementById('cmpFoco') || {}).value ?? CMP.foco;
-  CMP.msg = ''; CMP.pensa = true; cmpPinta(); progIni();
+  CMP.msg = ''; CMP.pensa = true; cmpPinta(); progIni(); cmpTopo();
   try { const j = await socFala({ acao:'direcao', cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
     CMP.resp = j.resposta; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
   catch(e){ CMP.msg = e.message; }
-  progFim(); await new Promise(r => setTimeout(r, 350)); CMP.pensa = false; cmpPinta();
+  progFim(); await new Promise(r => setTimeout(r, 350)); CMP.pensa = false; cmpPinta(); cmpTopo();
 }
 function cmpBarras(titulo, fn, fmt){
   const ps = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })).filter(x => x.p && !x.p.erro), vs = ps.map(x => fn(x.p)), mx = Math.max(...vs.map(v => v || 0), 0.0001);
@@ -5809,6 +5848,8 @@ function cmpPinta(){
   const heat = (titulo, key, n, rot) => ok.length ? `<div class="cmp-bl"><div class="ads-sec" style="margin:14px 0 6px">${titulo}</div>${ok.map(x => { const a = x.p[key] || [], mx = Math.max(...a, 1);
       return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="heat" style="grid-template-columns:repeat(${n},1fr)">${a.map((v, h) => `<i title="${rot(h)} · ${v} post${v === 1 ? '' : 's'}" style="background:${CMP_COR[x.i]};opacity:${v ? .15 + .85 * v / mx : .06}"></i>`).join('')}</div></div>`; }).join('')}</div>` : '';
   X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span>${ok.length >= 2 ? `<button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa ? 'disabled' : ''}>${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button>` : ''}<button class="btn cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
+    ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
     <div class="nota" data-pdq="1" style="margin:0 0 10px;line-height:1.5">Escolha até 5 perfis de Instagram: o do cliente primeiro e os players. Os números vêm do Instagram aberto, pela API oficial da Meta (só perfis profissionais e públicos). Alcance, idade e gênero só existem para as contas que são nossas.</div>
     <div class="cmp-slots">${CMP.slots.map((s, i) => `<span class="cmp-slot" style="border-color:${CMP_COR[i]}"><i style="background:${CMP_COR[i]}"></i>@${esc(s.handle)}<small>${i === 0 ? 'cliente' : 'player'}</small><button onclick="cmpTira('${esc(s.handle)}')" aria-label="Tirar">✕</button></span>`).join('') || '<span class="nota">Nenhum perfil escolhido ainda.</span>'}</div>
@@ -5825,9 +5866,7 @@ function cmpPinta(){
     ${colunas}
     ${cmpBarras('Seguidores', p => p.seguidores, v => nf(v))}${cmpBarras('Engajamento por post (% dos seguidores)', p => p.engajamento, v => String(v).replace('.', ',') + '%')}
     ${cmpBarras('Posts por semana', p => p.por_semana, v => String(v).replace('.', ','))}${cmpBarras('Média de curtidas', p => p.media_curtidas, v => nf(Math.round(v)))}${cmpBarras('Média de comentários', p => p.media_comentarios, v => String(v).replace('.', ','))}
-    ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}
-    ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
-    ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}`;
+    ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}`;
 }
 function pdfComparar(){
   const ok = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })).filter(x => x.p && !x.p.erro); if (!ok.length) return;
