@@ -214,11 +214,34 @@ if ($acao === 'anuncios') {
 
 // -------------------------------------------------------------- perfil {conta, campanha?, periodo}
 
+
+// contexto do cliente que já existe na plataforma (ficha, produtos): a IA usa isso em vez de pedir texto ao gestor
+function pd_ctx_cliente($cid) {
+    if (!preg_match('/^[0-9a-f-]{36}$/i', (string)$cid)) return null;
+    $c = pd_supa('/rest/v1/clients?id=eq.' . $cid . '&select=id,name&limit=1'); $nome = $c['body'][0]['name'] ?? null; if (!$nome) return null;
+    $pr = pd_supa('/rest/v1/products?client_id=eq.' . $cid . '&select=name&order=name'); $prods = [];
+    foreach ((array)($pr['body'] ?? []) as $x) if (is_array($x) && !empty($x['name'])) $prods[] = (string)$x['name'];
+    $ficha = null; $titulo = null;
+    $d = pd_supa('/rest/v1/client_docs?ativo=eq.true&select=cliente_nome,apelidos,titulo,texto&limit=200');
+    foreach ((array)($d['body'] ?? []) as $x) {
+        if (!is_array($x)) continue;
+        $nomes = array_merge([(string)($x['cliente_nome'] ?? '')], (array)($x['apelidos'] ?? []));
+        foreach ($nomes as $n) if ($n !== '' && mb_strtolower(trim($n)) === mb_strtolower(trim($nome))) { $ficha = (string)($x['texto'] ?? ''); $titulo = $x['titulo'] ?? null; break 2; }
+    }
+    return ['cliente' => $nome, 'produtos' => $prods, 'ficha' => $ficha, 'ficha_titulo' => $titulo];
+}
 // -------------------------------------------------------------- pesquisa de mercado para campanhas
 //   concorrentes {cliente, notas}  -> Tumi: empreendimentos/incorporadoras concorrentes (web) + link da Biblioteca de Anúncios
 //   direcao_camp {cliente, notas, foco, numeros, concorrentes} -> Sumi: estratégia + copy de anúncios
+if ($acao === 'contexto_mercado') {
+    $x = pd_ctx_cliente($b['client_id'] ?? ''); if (!$x) sd_fail('Cliente não encontrado.', 404);
+    sai(['cliente' => $x['cliente'], 'produtos' => $x['produtos'], 'tem_ficha' => $x['ficha'] !== null && trim($x['ficha']) !== '', 'trecho' => $x['ficha'] ? mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags($x['ficha']))), 0, 420) : '']);
+}
 if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
-    $cli = mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $nota = mb_substr(trim((string)($b['notas'] ?? '')), 0, 2500);
+    @set_time_limit(150);
+    $ctx = pd_ctx_cliente($b['client_id'] ?? '');
+    $cli = $ctx['cliente'] ?? mb_substr(trim((string)($b['cliente'] ?? '')), 0, 120); $nota = mb_substr(trim((string)($b['notas'] ?? '')), 0, 1500);
+    if ($ctx) $nota = "PRODUTOS CADASTRADOS: " . ($ctx['produtos'] ? implode(', ', $ctx['produtos']) : '(nenhum)') . "\nFICHA DO CLIENTE NA PLATAFORMA:\n" . ($ctx['ficha'] ? mb_substr($ctx['ficha'], 0, 5000) : '(sem ficha)') . ($nota !== '' ? "\nACRÉSCIMO DO GESTOR: $nota" : '');
     $t0 = microtime(true);
     if ($acao === 'concorrentes') {
         $sys = 'Você é Tumi Tua, da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: percorre mercados e entrevista quem cozinha para os outros, tem um bico curioso e um corpo que ocupa dois bancos. '
@@ -226,7 +249,7 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
              . 'TAREFA: pesquise na web (busca) e devolva de 5 a 8 CONCORRENTES REAIS do cliente em campanhas de lançamento: empreendimentos ou incorporadoras do mesmo segmento, praça e faixa de preço (inclua 1 ou 2 referências de fora da praça). '
              . 'Para cada um traga só o que viu em página real: praça, produto/tipologia, faixa de preço ou ticket (se público), oferta/condição de venda, ângulo de comunicação, canais onde anuncia. Nunca invente dado nem nome: se não achou, deixe vazio. '
              . 'Responda SOMENTE um JSON: {"concorrentes":[{"nome":"...","tipo":"concorrente direto|referencia","praca":"...","oferta":"1 frase","preco":"...","angulo":"1 frase","canais":"...","por_que":"1 frase"}],"obs":"1 frase"}.';
-        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO: $nota"]], 2600, 6);
+        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO:\n$nota"]], 2400, 4);
         if ($erro) sd_fail($erro, 502);
         $j = null; if (preg_match('/\{.*\}/s', (string)$txt, $mm)) $j = json_decode($mm[0], true);
         $lista = [];

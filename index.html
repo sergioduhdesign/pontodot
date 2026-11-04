@@ -5429,7 +5429,7 @@ function ccmpPinta(){
   const sel = CCMP.sel.map(id => por[id]).filter(Boolean), cor = ['#2f9e6b','#4c7dff','#e59a2f','#e0526b','#9a6bdb'];
   const barras = (tit, fn, fmt) => { const vs = sel.map(fn), mx = Math.max(...vs.map(v => v || 0), 0.0001);
     return `<div class="ads-sec" style="margin:14px 0 6px">${tit}</div>` + sel.map((o, i) => `<div class="cmp-b"><span class="who" style="color:${cor[i]}">${esc(o.nome)}</span><div class="bar"><i style="width:${Math.max(2, (vs[i] || 0) / mx * 100)}%;background:${cor[i]}"></i></div><b>${vs[i] == null ? '—' : fmt(vs[i])}</b></div>`).join(''); };
-  X.innerHTML = `<div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="ccmpDirecao()" ${CCMP.pensa || !sel.length ? 'disabled' : ''}>${iaAv('sumi', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+  pdMantemRolagem(X, () => { X.innerHTML = `<div class="cp-top">${voltaBtn('Campanhas', 'abrirTodasCampanhas()')}<span style="flex:1"></span><button class="btn cheio cp-b" onclick="ccmpDirecao()" ${CCMP.pensa || !sel.length ? 'disabled' : ''}>${iaAv('sumi', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CCMP.pensa ? progHtml('A Sumi está cruzando seus números com a pesquisa do Tumi…', '#18155F') : ''}
     ${CCMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CCMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar clientes</h3>
@@ -5437,27 +5437,41 @@ function ccmpPinta(){
     <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
 
     <div class="ads-sec">Concorrentes e mercado</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn cp-b" onclick="ccmpTumi()" ${CCMP.tumi || !sel.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi os concorrentes</span></button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn cp-b" onclick="ccmpPrep()" ${CCMP.tumi || CCMP.prep || !sel.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi os concorrentes</span></button></div>
+    ${CCMP.ctx ? `<div class="cmp-prog" style="border-style:solid"><div style="display:flex;gap:10px;align-items:flex-start">${iaAv('tumi', 28)}<div style="flex:1;min-width:0"><b>Antes de buscar, o Tumi vai usar o que já temos de ${esc(CCMP.ctx.cliente)}:</b>
+      <div class="nota" style="margin:6px 0 0;line-height:1.5">Produtos: ${CCMP.ctx.produtos.length ? esc(CCMP.ctx.produtos.join(', ')) : '<b>nenhum cadastrado</b>'}<br>Ficha do cliente: ${CCMP.ctx.tem_ficha ? 'encontrada' + (CCMP.ctx.trecho ? ' — “' + esc(CCMP.ctx.trecho) + '…”' : '') : '<b>não encontrada</b>'}</div>
+      ${!CCMP.ctx.produtos.length && !CCMP.ctx.tem_ficha ? '<div class="nota" style="margin:6px 0 0;color:var(--rosa)">Sem ficha nem produto, a busca fica genérica. Acrescente a praça e o produto abaixo, ou cadastre o produto.</div>' : ''}
+      <input id="ccmpExtra" class="cp-sel1" style="width:100%;margin-top:8px" placeholder="Acrescentar algo (opcional): praça, ticket, público…" value="${esc(CCMP.notas || '')}">
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn cheio cp-b" onclick="ccmpTumi()">Buscar concorrentes</button><button class="btn cp-b" onclick="CCMP.ctx=null;ccmpPinta()">Cancelar</button></div></div></div></div>` : ''}
+    ${CCMP.prep ? progHtml('O Tumi está olhando a ficha e os produtos do cliente…', '#11BA98') : ''}
     ${CCMP.tumi ? progHtml('O Tumi está pesquisando concorrentes na web…', '#11BA98') : ''}
     ${CCMP.msg ? `<div class="nota" style="margin:8px 0;color:var(--rosa)">${esc(CCMP.msg)}</div>` : ''}
     ${CCMP.players ? `<div class="cmp-pl">${CCMP.players.map(p => `<div class="cmp-p"><div style="flex:1;min-width:0"><b>${esc(p.nome)}</b> <span class="cp-chip">${esc(p.tipo || 'concorrente')}</span>${p.praca ? ` <small class="nota">${esc(p.praca)}</small>` : ''}
       <div class="nota" style="margin:2px 0 0">${esc([p.oferta, p.preco && 'Ticket: ' + p.preco, p.angulo && 'Ângulo: ' + p.angulo, p.canais && 'Canais: ' + p.canais].filter(Boolean).join(' · ') || p.por_que || '')}</div></div>
       <a class="btn cp-b" href="${esc(p.biblioteca)}" target="_blank" rel="noopener">Anúncios</a></div>`).join('') || '<div class="nota">O Tumi não achou concorrentes confiáveis. ' + esc(CCMP.obs || '') + '</div>'}</div>` : ''}
-    <div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">Praça, produto, ticket, público, diferenciais, meta e o que já foi testado. Quanto mais, melhor o Tumi pesquisa e a Sumi decide.</div>
+    <div class="ads-sec">Dados do negócio</div><div class="nota" style="margin:0 0 6px">Opcional. A ficha e os produtos do cliente já entram sozinhos; escreva só o que não estiver cadastrado.</div>
     <textarea id="ccmpNotas" class="cp-sel1" rows="3" style="width:100%" placeholder="Ex.: lançamento 2 e 3 dorms em Campinas, ticket R$ 650 mil, público investidor e família jovem…" onchange="CCMP.notas=this.value">${esc(CCMP.notas || '')}</textarea>
     <input id="ccmpFoco" class="cp-sel1" style="width:100%;margin-top:6px" placeholder="Foco (ex.: baixar o CPL, escalar leads qualificados)" value="${esc(CCMP.foco || '')}" onchange="CCMP.foco=this.value">
     ${sel.length ? `<div class="cmp-cols" style="grid-template-columns:repeat(${sel.length},minmax(150px,1fr))">${sel.map((o, i) => `<div class="cmp-col" style="border-top:3px solid ${cor[i]}"><div class="h">${logoCliente(o.nome, 30)}<div><b>${esc(o.nome)}</b><small>${o.n} conta${o.n === 1 ? '' : 's'}</small></div></div>
       <div class="kv"><small>Investido</small><b>${brl(o.gasto, o.moeda)}</b></div><div class="kv"><small>Leads</small><b>${nf(o.leads)}</b></div><div class="kv"><small>CPL</small><b>${o.cpl != null ? brl(o.cpl, o.moeda) : '—'}</b></div></div>`).join('')}</div>
-    ${barras('Investido', o => o.gasto, v => brl(v, 'BRL'))}${barras('Leads', o => o.leads, v => nf(v))}${barras('Custo por lead (menor é melhor)', o => o.cpl, v => brl(v, 'BRL'))}` : '<div class="nota">Escolha pelo menos um cliente.</div>'}`;
+    ${barras('Investido', o => o.gasto, v => brl(v, 'BRL'))}${barras('Leads', o => o.leads, v => nf(v))}${barras('Custo por lead (menor é melhor)', o => o.cpl, v => brl(v, 'BRL'))}` : '<div class="nota">Escolha pelo menos um cliente.</div>'}`; });
 }
 const CCMP_SALVA = () => { CCMP.notas = (document.getElementById('ccmpNotas') || {}).value ?? CCMP.notas; CCMP.foco = (document.getElementById('ccmpFoco') || {}).value ?? CCMP.foco; };
 function ccmpCliente(){ const c = (ADS.dados?.contas || []).find(x => x.client_id === CCMP.sel[0]); return c ? (c.cliente || c.nome) : ''; }
+async function ccmpPrep(){
+  CCMP_SALVA(); if (!CCMP.sel.length) return; CCMP.msg = ''; CCMP.prep = true; ccmpPinta(); progIni();
+  try { CCMP.ctx = await adsFala({ acao:'contexto_mercado', client_id: CCMP.sel[0] }); }
+  catch(e){ CCMP.msg = e.message; CCMP.ctx = null; }
+  progFim(true); CCMP.prep = false; ccmpPinta();
+}
 async function ccmpTumi(){
-  CCMP_SALVA(); if (!CCMP.sel.length) return;
-  CCMP.msg = ''; CCMP.tumi = true; ccmpPinta(); progIni();
-  try { const j = await adsFala({ acao:'concorrentes', cliente: ccmpCliente(), notas: CCMP.notas });
-    CCMP.players = j.concorrentes || []; CCMP.obs = j.obs || ''; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
-  catch(e){ CCMP.msg = e.message; }
+  const ex = document.getElementById('ccmpExtra'); if (ex) CCMP.notas = ex.value; else CCMP_SALVA();
+  if (!CCMP.sel.length) return;
+  CCMP.ctx = null; CCMP.msg = ''; CCMP.tumi = true; ccmpPinta(); progIni();
+  try { const j = await adsFala({ acao:'concorrentes', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas });
+    CCMP.players = j.concorrentes || []; CCMP.obs = j.obs || ''; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0;
+    if (!CCMP.players.length) CCMP.msg = 'O Tumi não achou concorrentes confiáveis. ' + (j.obs || '') + (j.bruto ? ' Resposta dele: ' + String(j.bruto).slice(0, 300) : ''); }
+  catch(e){ CCMP.msg = 'A busca não terminou: ' + e.message + '. Tente de novo; se repetir, é tempo limite do servidor.'; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.tumi = false; ccmpPinta();
 }
 async function ccmpDirecao(){
@@ -5465,7 +5479,7 @@ async function ccmpDirecao(){
   const por = {}; (ADS.dados?.contas || []).filter(c => !c.erro && c.client_id && CCMP.sel.includes(c.client_id)).forEach(c => { const o = por[c.client_id] = por[c.client_id] || { cliente:c.cliente || c.nome, periodo:pdfPer(), investido:0, leads:0 }; o.investido += c.gasto || 0; o.leads += c.leads || 0; });
   const numeros = Object.values(por).map(o => ({ ...o, cpl: o.leads ? +(o.investido / o.leads).toFixed(2) : null }));
   CCMP.msg = ''; CCMP.pensa = true; ccmpPinta(); progIni(); cmpTopo();
-  try { const j = await adsFala({ acao:'direcao_camp', cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, numeros, concorrentes: CCMP.players || [] });
+  try { const j = await adsFala({ acao:'direcao_camp', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, numeros, concorrentes: CCMP.players || [] });
     CCMP.resp = j.resposta; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
   catch(e){ CCMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.pensa = false; ccmpPinta(); cmpTopo();
@@ -5802,6 +5816,7 @@ async function cmpLer(){
   catch(e){ CMP.msg = e.message; }
   CMP.lendo = false; cmpPinta();
 }
+function pdMantemRolagem(X, fn){ const pos = []; for (let e = X; e; e = e.parentElement) if (e.scrollTop > 0) pos.push([e, e.scrollTop]); fn(); pos.forEach(([e, t]) => { e.scrollTop = t; }); }
 function cmpTopo(){ const X = document.getElementById('cxCmp') || document.getElementById('cxCcmp'); const c = X && (X.closest('.j-caixa') || X.parentElement); [X, c, X && X.parentElement].forEach(e => { try { e && e.scrollTo({ top:0, behavior:'smooth' }); } catch(_){} }); }
 let PROG_T = null;
 function progIni(cor){ progFim(true); const t0 = Date.now(); PROG_T = setInterval(() => { const el = document.getElementById('cmpProgF'); if (!el) return; const x = (Date.now() - t0) / 1000; el.style.width = (92 * (1 - Math.exp(-x / 14))).toFixed(1) + '%'; }, 250); }
@@ -5847,7 +5862,7 @@ function cmpPinta(){
       <div class="nota" style="margin:4px 0 0"><span style="color:#e0526b">■</span> reels/vídeo · <span style="color:#4c7dff">■</span> carrossel · <span style="color:#8a8c94">■</span> imagem</div></div>` : '';
   const heat = (titulo, key, n, rot) => ok.length ? `<div class="cmp-bl"><div class="ads-sec" style="margin:14px 0 6px">${titulo}</div>${ok.map(x => { const a = x.p[key] || [], mx = Math.max(...a, 1);
       return `<div class="cmp-b"><span class="who" style="color:${CMP_COR[x.i]}">@${esc(x.p.usuario)}</span><div class="heat" style="grid-template-columns:repeat(${n},1fr)">${a.map((v, h) => `<i title="${rot(h)} · ${v} post${v === 1 ? '' : 's'}" style="background:${CMP_COR[x.i]};opacity:${v ? .15 + .85 * v / mx : .06}"></i>`).join('')}</div></div>`; }).join('')}</div>` : '';
-  X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span>${ok.length >= 2 ? `<button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa ? 'disabled' : ''}>${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button>` : ''}<button class="btn cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+  pdMantemRolagem(X, () => { X.innerHTML = `<div class="cp-top">${voltaBtn('Social', 'abrirSocialTodas()')}<span style="flex:1"></span>${ok.length >= 2 ? `<button class="btn cheio cp-b" onclick="cmpDirecao()" ${CMP.pensa ? 'disabled' : ''}>${iaAv('muru', 20)}<span style="margin-left:6px">Gerar direção e copy</span></button>` : ''}<button class="btn cp-b" onclick="pdfComparar()" ${ok.length < 1 ? 'disabled' : ''}>Gerar PDF</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
     ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
@@ -5866,7 +5881,7 @@ function cmpPinta(){
     ${colunas}
     ${cmpBarras('Seguidores', p => p.seguidores, v => nf(v))}${cmpBarras('Engajamento por post (% dos seguidores)', p => p.engajamento, v => String(v).replace('.', ',') + '%')}
     ${cmpBarras('Posts por semana', p => p.por_semana, v => String(v).replace('.', ','))}${cmpBarras('Média de curtidas', p => p.media_curtidas, v => nf(Math.round(v)))}${cmpBarras('Média de comentários', p => p.media_comentarios, v => String(v).replace('.', ','))}
-    ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}`;
+    ${mixB}${heat('Horário em que posta (Brasília, 30 dias)', 'por_hora_sp', 24, h => h + 'h')}${heat('Dia da semana (dom a sáb)', 'por_dia_semana_dom_a_sab', 7, d => ['dom','seg','ter','qua','qui','sex','sáb'][d])}`; });
 }
 function pdfComparar(){
   const ok = CMP.slots.map((s, i) => ({ s, i, p: CMP.dados[s.handle] })).filter(x => x.p && !x.p.erro); if (!ok.length) return;
