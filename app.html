@@ -964,8 +964,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 
               <div class="entity-card" data-perm="social.conectar" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div class="entity-card-name">Redes sociais</div>
-                <div id="admin-social-resumo" style="display:flex;flex-direction:column;gap:6px"></div>
-                <button class="btn btn-secondary btn-sm" onclick="conectarInstagram()">+ Conectar outra</button>
+                <div id="admin-social-resumo" style="display:flex;flex-direction:column;gap:10px"></div>
               </div>
             </div>
 
@@ -5331,7 +5330,17 @@ async function renderAdmin(){
 // nome de Página raramente bate exatamente com nome de cliente, então
 // sugerimos automaticamente pela semelhança, mas sempre com confirmação.
 // ================================================================
+function pdCarregandoTela(txt){
+  document.getElementById('pd-carregando')?.remove();
+  const o = document.createElement('div'); o.id = 'pd-carregando';
+  o.style.cssText = 'position:fixed;inset:0;z-index:99950;display:grid;place-items:center;background:rgba(10,10,12,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)';
+  o.innerHTML = `<style>@keyframes pdbar{0%{margin-left:-38%}100%{margin-left:100%}}</style><div style="width:min(320px,80vw);text-align:center;color:#f2f2f2">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px">${txt}</div>
+    <div style="height:4px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden"><i style="display:block;height:100%;width:38%;border-radius:4px;background:#f2f2f2;animation:pdbar 1.2s ease-in-out infinite"></i></div></div>`;
+  document.body.appendChild(o);
+}
 async function conectarInstagram(){
+  pdCarregandoTela('Abrindo a Meta…');
   const btn = document.getElementById('btn-conectar-meta');
   if (btn) { btn.disabled = true; btn.textContent = 'Abrindo a Meta…'; }
   try {
@@ -5340,6 +5349,7 @@ async function conectarInstagram(){
     // estiver embutido (popup/painel), navega a janela de cima.
     try { (window.top || window).location.href = url; } catch(_) { window.open(url, '_top'); }
   } catch(e){
+    document.getElementById('pd-carregando')?.remove();
     showToast('Erro: ' + e.message, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Conectar Instagram'; }
   }
@@ -6741,34 +6751,19 @@ async function renderRedesSociais(){
     .select('id,platform,account_name,client_id')
     .order('platform');
 
-  if (!contas || !contas.length) {
-    box.innerHTML = `<div style="font-size:11.5px;color:var(--text3)">Nenhuma conta conectada ainda.</div>`;
-    return;
-  }
-
-  const porPlataforma = {};
-  contas.forEach(c => {
-    (porPlataforma[c.platform] = porPlataforma[c.platform] || []).push(c);
-  });
-
-  const sem = contas.filter(c => !c.client_id).length;
-  box.innerHTML = `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--surface2);border-radius:7px;flex-wrap:wrap">
-      ${Object.entries(porPlataforma).map(([plat, lista]) => `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px">${iconeRedeSocial(plat, 16)}${lista.length}</span>`).join('')}
-      <span style="font-size:11.5px;flex:1;color:var(--text2)">${contas.length} conta${contas.length!==1?'s':''}${sem?` · <b style="color:#ea580c">${sem} sem vínculo</b>`:''}</span>
-      <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:10.5px" onclick="abrirDetalheRedeSocial('${Object.keys(porPlataforma)[0]}')">Ver detalhes</button>
-    </div>`;
+  const lista = contas || [];
+  const redes = ['instagram', 'facebook'];
+  lista.forEach(c => { if (!redes.includes(c.platform)) redes.push(c.platform); });   // LinkedIn, TikTok… entram sozinhos
+  const linhas = redes.map(r => {
+    const todas = lista.filter(c => c.platform === r), lig = todas.filter(c => c.client_id).length;
+    return `<div style="display:flex;align-items:center;gap:12px;opacity:${todas.length ? 1 : .5}">
+      <span style="display:inline-flex;width:34px;justify-content:center">${iconeRedeSocial(r, 30)}</span>
+      <span style="font-size:22px;font-weight:700;line-height:1;letter-spacing:-.02em">${lig}<span style="font-size:13px;font-weight:500;color:var(--text3);letter-spacing:0"> de ${todas.length}</span></span>
+      <span style="font-size:11px;color:var(--text3)">conectada${todas.length === 1 ? '' : 's'}</span></div>`;
+  }).join('');
+  box.innerHTML = linhas + `<button class="btn btn-primary" style="width:100%;margin-top:4px;padding:10px 14px;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase" onclick="abrirDetalheRedeSocial('instagram')">Configurar redes</button>`;
 }
 
-// Contas conectadas, organizadas como o Business Manager: por cliente, com os ativos de cada um
-// (Instagram, Página, conta de anúncios) e o estado. Dobrável; o cabeçalho já resume e avisa.
-// Contas que a pessoa escolheu VER na lista (vazio = todas). Fica guardado neste aparelho.
-let filaContasSel = new Set(); try { filaContasSel = new Set(JSON.parse(localStorage.getItem('sd_fila_contas')||'[]')); } catch(e){}
-function _salvarContasSel(){ try { localStorage.setItem('sd_fila_contas', JSON.stringify([...filaContasSel])); } catch(e){} }
-function verConta(id){ filaContasSel.has(id) ? filaContasSel.delete(id) : filaContasSel.add(id); _salvarContasSel(); desenharFila(); renderContasFila(); }
-function verContasDe(ids, liga){ ids.forEach(i => liga ? filaContasSel.add(i) : filaContasSel.delete(i)); _salvarContasSel(); desenharFila(); renderContasFila(); }
-function limparContasSel(){ filaContasSel.clear(); _salvarContasSel(); desenharFila(); renderContasFila(); }
-let _contasAberto = false;
-function alternarContasFila(){ _contasAberto = !_contasAberto; renderContasFila(); }
 async function renderContasFila(){
   const box = document.getElementById('fila-contas'); if (!box) return;
   const [rs, ra] = await Promise.all([
@@ -6984,11 +6979,11 @@ function esquecerContaSocial(contaId){
   ov.style.cssText = 'position:fixed;inset:0;z-index:99800;display:grid;place-items:center;padding:20px;background:rgba(10,10,12,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)';
   const nome = String(c.account_name || 'esta conta').replace(/</g, '&lt;');
   ov.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);max-width:400px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.4)">
-    <div style="font-size:15px;font-weight:700;margin-bottom:8px">Esquecer “${nome}”?</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px">Esquecer “${nome}”</div>
     <div style="font-size:12.5px;color:var(--text2);line-height:1.5">Deseja realmente esquecer essa conta agora? Ela some da lista, mas continua possível de conectar: basta clicar em <b>＋ Conectar contas</b>.</div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
       <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-esquecer-conta').remove()">Cancelar</button>
-      <button class="btn btn-primary btn-sm" id="btn-esquecer-ok" style="background:#dc2626;border-color:#dc2626" onclick="esquecerContaSocialOk('${contaId}')">Esquecer</button></div></div>`;
+      <button class="btn btn-secondary btn-sm" id="btn-esquecer-ok" style="font-weight:700" onclick="esquecerContaSocialOk('${contaId}')">Esquecer</button></div></div>`;
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
   document.body.appendChild(ov);
 }

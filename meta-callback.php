@@ -58,9 +58,31 @@ $RET_BASE = '';
 function voltar($status, $msg = '') {
     $qs = http_build_query(['meta' => $status, 'msg' => $msg]);
     // volta pra FRENTE (o verso sozinho, app.html, não tem o botão de virar)
-    global $RET_BASE;
-    header('Location: ' . ($RET_BASE ?: sd_base()) . '/?' . $qs);
+    global $RET_BASE, $PD_CARREGANDO;
+    $url = ($RET_BASE ?: sd_base()) . '/?' . $qs;
+    if (!empty($PD_CARREGANDO)) {   // a tela de "carregando" já foi mostrada: não dá mais pra usar header(), volta pelo navegador
+        echo '<script>location.replace(' . json_encode($url) . ');</script><noscript><a href="' . htmlspecialchars($url) . '">Continuar</a></noscript></body></html>';
+        exit;
+    }
+    header('Location: ' . $url);
     exit;
+}
+
+// Enquanto a plataforma busca as contas na Meta (leva alguns segundos), mostra uma barra de carregamento — nunca uma tela em branco.
+$PD_CARREGANDO = false;
+function mostrarCarregando() {
+    global $PD_CARREGANDO;
+    while (ob_get_level() > 0) @ob_end_flush();
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Conectando…</title>'
+       . '<style>html,body{height:100%;margin:0}body{display:grid;place-items:center;background:#0e0e10;color:#f2f2f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'
+       . '.c{width:min(340px,80vw);text-align:center}.t{font-size:15px;font-weight:600;margin-bottom:6px}.s{font-size:12.5px;color:#9a9aa2;margin-bottom:18px}'
+       . '.b{height:4px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}.b i{display:block;height:100%;width:38%;border-radius:4px;background:#f2f2f2;animation:m 1.2s ease-in-out infinite}'
+       . '@keyframes m{0%{margin-left:-38%}100%{margin-left:100%}}</style></head><body><div class="c"><div class="t">Conectando suas contas…</div>'
+       . '<div class="s">Buscando Páginas, Instagram e contas de anúncio. Não feche esta janela.</div><div class="b"><i></i></div></div>' . str_repeat(' ', 1024);
+    @flush();
+    $PD_CARREGANDO = true;
 }
 
 // --- 1. Confere o state -----------------------------------------------
@@ -89,6 +111,7 @@ if (!empty($_GET['error'])) {
 $code = $_GET['code'] ?? '';
 if (!$code) voltar('erro', 'Código ausente no retorno da Meta.');
 
+mostrarCarregando();
 // --- 2. Troca o código pelo token curto ---------------------------------
 $r1 = meta_get('/oauth/access_token', [
     'client_id'     => SD_META_APP_ID,
