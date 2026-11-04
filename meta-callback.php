@@ -156,10 +156,26 @@ error_log('Meta callback - paginas encontradas: ' . count($paginas) . ' — ' . 
     fn($p) => ['id'=>$p['id']??null,'nome'=>$p['name']??null,'tem_token'=>!empty($p['access_token']),'tem_ig'=>!empty($p['instagram_business_account']['id']??null)],
     $paginas
 )));
+// DIAGNÓSTICO: Páginas que existem nos portfólios (Business Manager) da pessoa, mas que o login dela NÃO consegue administrar.
+// É o motivo mais comum de "a conta está no BM e não aparece na plataforma": o portfólio é dono da Página, mas a pessoa não foi atribuída a ela.
+$faltam = [];
+try {
+    $vistas = []; foreach ($paginas as $pg0) $vistas[(string)($pg0['id'] ?? '')] = true;
+    $rb = pd_meta('GET', '/me/businesses', ['fields' => 'id,name', 'limit' => 50], $tokenLongo, 15);
+    foreach ((array)($rb['body']['data'] ?? []) as $bz) {
+        if (empty($bz['id'])) continue;
+        foreach (['owned_pages', 'client_pages'] as $aresta) {
+            $ro = pd_meta('GET', '/' . $bz['id'] . '/' . $aresta, ['fields' => 'id,name', 'limit' => 100], $tokenLongo, 15);
+            foreach ((array)($ro['body']['data'] ?? []) as $pg1) if (!empty($pg1['id']) && empty($vistas[(string)$pg1['id']])) { $vistas[(string)$pg1['id']] = true; $faltam[] = ($pg1['name'] ?? $pg1['id']) . ' (' . ($bz['name'] ?? '') . ')'; }
+        }
+    }
+} catch (Throwable $e) { error_log('Meta callback - diagnóstico: ' . $e->getMessage()); }
+error_log('Meta callback - Páginas nos portfólios sem acesso da pessoa: ' . json_encode($faltam, JSON_UNESCAPED_UNICODE));
+$aviso_faltam = $faltam ? ' · SEM ACESSO SEU (atribua você à Página no portfólio): ' . mb_substr(implode('; ', $faltam), 0, 420) : '';
 if (!count($paginas)) {
-    voltar($contasAds ? 'ok' : 'aviso', $contasAds
+    voltar($contasAds ? 'ok' : 'aviso', ($contasAds
         ? "Nenhuma Página, mas $contasAds conta(s) de anúncio conectada(s)."
-        : 'Login feito, mas nenhuma Página foi encontrada nesta conta.');
+        : 'Login feito, mas nenhuma Página foi encontrada nesta conta.') . $aviso_faltam);
 }
 
 // --- 6. Salva cada conta encontrada -------------------------------------
@@ -194,7 +210,7 @@ foreach ($paginas as $pagina) {
 
 voltar('ok', $conectadas . ' conta(s) conectada(s)'
     . ($contasAds ? ' · ' . $contasAds . ' de anúncio' : '')
-    . (!empty($leadsAtivos) ? ' · leads chegando de ' . $leadsAtivos . ' Página(s)' : '') . '.');
+    . (!empty($leadsAtivos) ? ' · leads chegando de ' . $leadsAtivos . ' Página(s)' : '') . '.' . $aviso_faltam);
 
 // =========================================================================
 // Funções auxiliares — leem antes de escrever, porque não temos certeza

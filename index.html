@@ -8592,10 +8592,18 @@ async function bootReal(){
 (function retornoMeta(){
   try {
     const qs = new URLSearchParams(location.search); const m = qs.get('meta'); if (!m) return;
-    const msg = (qs.get('msg') || '').slice(0, 240);
-    window._retornoMeta = { m, msg };
+    const msgTudo = (qs.get('msg') || '').slice(0, 900), corte = msgTudo.indexOf(' · SEM ACESSO SEU');
+    const msg = (corte >= 0 ? msgTudo.slice(0, corte) : msgTudo).slice(0, 240);
+    const semAcesso = corte >= 0 ? msgTudo.slice(corte + 3).replace(/^SEM ACESSO SEU \(atribua você à Página no portfólio\):\s*/, '') : '';
+    window._retornoMeta = { m, msg, semAcesso };
     history.replaceState({}, '', location.pathname + location.hash);
     setTimeout(() => toast(m === 'ok' ? 'Meta conectada — ' + msg : m === 'erro' ? 'A Meta não conectou: ' + msg : msg), 1500);
+    if (semAcesso) setTimeout(() => { try { abrirJanela(`<div class="caixa invertida" style="padding:20px 18px 16px">
+      <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Páginas que a Meta não liberou pra você</h3>
+        <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+      <div class="nota" style="margin:8px 0 10px;line-height:1.5">Estas Páginas existem nos seus portfólios, mas o seu login não administra nenhuma delas, por isso não entraram na plataforma:</div>
+      ${semAcesso.split(';').map(x => `<div class="lead-campo"><b>${esc(x.trim())}</b></div>`).join('')}
+      <div class="nota" style="margin:12px 0 0;line-height:1.5"><b>Como resolver:</b> business.facebook.com → escolha o portfólio → Configurações do negócio → Contas → Páginas → clique na Página → <b>Atribuir pessoas</b> → selecione você → ligue <b>Controle total</b> → Atribuir. Depois clique em ＋ Conectar contas de novo.</div></div>`, true); } catch(e){} }, 2600);
   } catch(e){}
 })();
 // ---- prefs por pessoa (profiles.prefs): espelho das chaves locais que são "do usuário" ----
