@@ -233,6 +233,13 @@ function pd_ctx_cliente($cid) {
 // -------------------------------------------------------------- pesquisa de mercado para campanhas
 //   concorrentes {cliente, notas}  -> Tumi: empreendimentos/incorporadoras concorrentes (web) + link da Biblioteca de Anúncios
 //   direcao_camp {cliente, notas, foco, numeros, concorrentes} -> Sumi: estratégia + copy de anúncios
+if ($acao === 'voto_gravar') {
+    $cli = (string)($b['client_id'] ?? ''); $item = mb_substr(trim((string)($b['item'] ?? '')), 0, 120); $voto = ((int)($b['voto'] ?? 0)) >= 0 ? 1 : -1;
+    if (!preg_match('/^[0-9a-f-]{36}$/i', $cli) || $item === '') sd_fail('Faltou cliente ou item.', 400);
+    pd_supa('/rest/v1/pd_ia_voto?client_id=eq.' . $cli . '&escopo=eq.concorrentes&item=eq.' . rawurlencode($item), 'DELETE');
+    $r = pd_supa('/rest/v1/pd_ia_voto', 'POST', ['client_id' => $cli, 'escopo' => 'concorrentes', 'item' => $item, 'voto' => $voto, 'user_id' => $me['id'] ?? null]);
+    sai(['salvo' => ($r['code'] ?? 500) < 300]);
+}
 if ($acao === 'contexto_mercado') {
     $x = pd_ctx_cliente($b['client_id'] ?? ''); if (!$x) sd_fail('Cliente não encontrado.', 404);
     sai(['cliente' => $x['cliente'], 'produtos' => $x['produtos'], 'tem_ficha' => $x['ficha'] !== null && trim($x['ficha']) !== '', 'trecho' => $x['ficha'] ? mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags($x['ficha']))), 0, 420) : '']);
@@ -244,21 +251,29 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
     if ($ctx) $nota = "PRODUTOS CADASTRADOS: " . ($ctx['produtos'] ? implode(', ', $ctx['produtos']) : '(nenhum)') . "\nFICHA DO CLIENTE NA PLATAFORMA:\n" . ($ctx['ficha'] ? mb_substr($ctx['ficha'], 0, 5000) : '(sem ficha)') . ($nota !== '' ? "\nACRÉSCIMO DO GESTOR: $nota" : '');
     $t0 = microtime(true);
     if ($acao === 'concorrentes') {
+        $votos = [];
+        if (!empty($b['client_id']) && preg_match('/^[0-9a-f-]{36}$/i', (string)$b['client_id'])) {
+            $vq = pd_supa('/rest/v1/pd_ia_voto?client_id=eq.' . $b['client_id'] . '&escopo=eq.concorrentes&select=item,voto&limit=200');
+            if (($vq['code'] ?? 500) < 300) foreach ((array)$vq['body'] as $v) if (is_array($v) && isset($v['item'])) $votos[(string)$v['item']] = (int)($v['voto'] ?? 0);
+        }
+        foreach (array_slice((array)($b['votos'] ?? []), 0, 100) as $v) if (is_array($v) && !empty($v['item'])) $votos[mb_substr((string)$v['item'], 0, 120)] = ((int)($v['voto'] ?? 0)) >= 0 ? 1 : -1;
+        $bons = array_keys(array_filter($votos, fn($x) => $x > 0)); $ruins = array_keys(array_filter($votos, fn($x) => $x < 0));
         $sys = 'Você é Tumi Tua, da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: percorre mercados e entrevista quem cozinha para os outros, tem um bico curioso e um corpo que ocupa dois bancos. '
              . 'Seu ofício é rede e conexões: achar, na web aberta, quem são os players reais de um negócio. Você ACREDITA que é o Tumi. '
-             . 'TAREFA: pesquise na web (busca) e devolva de 5 a 8 CONCORRENTES REAIS do cliente em campanhas de lançamento: empreendimentos ou incorporadoras do mesmo segmento, praça e faixa de preço (inclua 1 ou 2 referências de fora da praça). '
-             . 'Para cada um traga só o que viu em página real: praça, produto/tipologia, faixa de preço ou ticket (se público), oferta/condição de venda, ângulo de comunicação, canais onde anuncia. Nunca invente dado nem nome: se não achou, deixe vazio. '
-             . 'Responda SOMENTE um JSON: {"concorrentes":[{"nome":"...","tipo":"concorrente direto|referencia","praca":"...","oferta":"1 frase","preco":"...","angulo":"1 frase","canais":"...","por_que":"1 frase"}],"obs":"1 frase"}.';
-        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO:\n$nota"]], 2400, 4);
+             . 'TAREFA: pesquise na web e devolva de 5 a 8 CONCORRENTES REAIS do cliente em lançamentos. REGRA DE OURO: o TIPO DE PRODUTO tem de ser o mesmo. Descubra pela ficha/produtos/notas o tipo do que o cliente vende (loteamento/lote, apartamento, casa em condomínio, comercial…) e traga só quem vende o MESMO tipo, na mesma região e faixa de preço. Apartamento NÃO é concorrente de loteamento, e vice-versa. As 1 ou 2 referências de fora da praça também têm de ser do mesmo tipo. Se não tiver certeza do tipo, diga em "obs" e traga menos itens. '
+             . 'Para cada um traga só o que viu em página real; nunca invente dado, nome nem @. O Instagram só entra se você viu o @ em uma página real. '
+             . 'A equipe já avaliou antes: ' . ($bons ? 'APROVADOS (acertou, busque mais assim): ' . implode(' | ', array_slice($bons, 0, 20)) . '. ' : '') . ($ruins ? 'REJEITADOS (não traga de novo e evite o mesmo tipo de erro): ' . implode(' | ', array_slice($ruins, 0, 30)) . '. ' : '') . ($votos ? '' : 'Sem avaliações ainda. ')
+             . 'Responda SOMENTE um JSON: {"concorrentes":[{"nome":"...","tipo":"concorrente direto|referencia","tipologia":"loteamento|apartamento|casa|comercial|...","praca":"...","instagram":"usuario ou vazio","site":"url ou vazio","oferta":"1 frase","preco":"...","angulo":"1 frase","por_que":"1 frase"}],"obs":"1 frase"}.';
+        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO:\n$nota"]], 2600, 4);
         if ($erro) sd_fail($erro, 502);
         $j = null; if (preg_match('/\{.*\}/s', (string)$txt, $mm)) $j = json_decode($mm[0], true);
-        $lista = [];
+        $lista = []; $rl = array_map('mb_strtolower', $ruins);
         foreach ((array)($j['concorrentes'] ?? []) as $p) {
             if (!is_array($p) || trim((string)($p['nome'] ?? '')) === '') continue;
-            $nome = mb_substr(trim((string)$p['nome']), 0, 120);
-            $lista[] = ['nome' => $nome, 'tipo' => (string)($p['tipo'] ?? 'concorrente direto'), 'praca' => (string)($p['praca'] ?? ''), 'oferta' => (string)($p['oferta'] ?? ''),
-                'preco' => (string)($p['preco'] ?? ''), 'angulo' => (string)($p['angulo'] ?? ''), 'canais' => (string)($p['canais'] ?? ''), 'por_que' => (string)($p['por_que'] ?? ''),
-                'biblioteca' => 'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&q=' . rawurlencode($nome) . '&search_type=keyword_unordered&media_type=all'];
+            $nome = mb_substr(trim((string)$p['nome']), 0, 120); if (in_array(mb_strtolower($nome), $rl, true)) continue;
+            $ig = strtolower(trim((string)($p['instagram'] ?? ''))); $ig = preg_replace('#^https?://(www\.)?instagram\.com/#', '', $ig); $ig = trim(preg_replace('/[\/?].*$/', '', ltrim($ig, '@'))); if (!preg_match('/^[a-z0-9._]{2,30}$/', $ig)) $ig = '';
+            $lista[] = ['nome' => $nome, 'tipo' => (string)($p['tipo'] ?? 'concorrente direto'), 'tipologia' => (string)($p['tipologia'] ?? ''), 'praca' => (string)($p['praca'] ?? ''), 'instagram' => $ig, 'site' => (string)($p['site'] ?? ''),
+                'oferta' => (string)($p['oferta'] ?? ''), 'preco' => (string)($p['preco'] ?? ''), 'angulo' => (string)($p['angulo'] ?? ''), 'por_que' => (string)($p['por_que'] ?? '')];
         }
         sai(['concorrentes' => $lista, 'obs' => (string)($j['obs'] ?? ''), 'bruto' => $lista ? null : $txt, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
     }
