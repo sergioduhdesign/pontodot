@@ -1458,6 +1458,8 @@ button.ct-rotulo:hover{color:var(--branco)}
   border-radius:999px;color:rgba(255,255,255,.92);font-size:12.5px;font-weight:400;padding:11px 18px;
   box-shadow:0 10px 26px rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap}
 .verso .v-pe.mini .fale-mini{display:inline-flex}
+/* caixa aberta no app (popup com blur): fica por cima do chat da IA */
+.verso.ov-app .v-pe{opacity:0 !important;pointer-events:none !important;transition:opacity .15s ease !important}
 
 
 /* A IA fica no mesmo lugar, do mesmo tamanho, nos dois lados: some num, aparece no outro */

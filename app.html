@@ -6751,14 +6751,12 @@ async function renderRedesSociais(){
     (porPlataforma[c.platform] = porPlataforma[c.platform] || []).push(c);
   });
 
-  box.innerHTML = Object.entries(porPlataforma).map(([plat, lista]) => {
-    const semVinculo = lista.filter(c => !c.client_id).length;
-    return `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--surface2);border-radius:7px">
-      ${iconeRedeSocial(plat, 16)}
-      <span style="font-size:11.5px;flex:1">${lista.length} conta${lista.length!==1?'s':''}${semVinculo?` · ${semVinculo} sem vínculo`:''}</span>
-      <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:10.5px" onclick="abrirDetalheRedeSocial('${plat}')">Ver detalhe</button>
+  const sem = contas.filter(c => !c.client_id).length;
+  box.innerHTML = `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:var(--surface2);border-radius:7px;flex-wrap:wrap">
+      ${Object.entries(porPlataforma).map(([plat, lista]) => `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px">${iconeRedeSocial(plat, 16)}${lista.length}</span>`).join('')}
+      <span style="font-size:11.5px;flex:1;color:var(--text2)">${contas.length} conta${contas.length!==1?'s':''}${sem?` · <b style="color:#ea580c">${sem} sem vínculo</b>`:''}</span>
+      <button class="btn btn-secondary btn-sm" style="padding:3px 9px;font-size:10.5px" onclick="abrirDetalheRedeSocial('${Object.keys(porPlataforma)[0]}')">Ver detalhes</button>
     </div>`;
-  }).join('');
 }
 
 // Contas conectadas, organizadas como o Business Manager: por cliente, com os ativos de cada um
@@ -6857,9 +6855,11 @@ async function abrirDetalheRedeSocial(plataforma){
 }
 async function pintarDetalheRede(){
   const plataforma = _redeAberta, painel = document.getElementById('dr-painel'); if (!plataforma || !painel) return;
-  const { data: contas } = await sb.from('social_accounts')
-    .select('id,platform,external_account_id,account_name,account_avatar_url,status,client_id')
-    .eq('platform', plataforma).order('account_name');
+  const { data: todas } = await sb.from('social_accounts')
+    .select('id,platform,external_account_id,account_name,account_avatar_url,status,client_id').order('account_name');
+  const redes = [...new Set(['instagram','facebook', ...(todas||[]).map(c => c.platform)])];   // as redes novas (LinkedIn, TikTok…) entram sozinhas quando houver conta
+  const nomeRede = r => ({ instagram:'Instagram', facebook:'Facebook', linkedin:'LinkedIn', tiktok:'TikTok', youtube:'YouTube' })[r] || r;
+  const contas = (todas||[]).filter(c => c.platform === plataforma);
   const pendentes = (contas||[]).filter(c => !c.client_id), vinculadas = (contas||[]).filter(c => c.client_id);
   const rot = plataforma === 'instagram' ? 'Instagram' : plataforma === 'facebook' ? 'Página do Facebook' : plataforma;
   const nomeCli = id => (clients.find(x=>x.id===id)||{}).name || '—';
@@ -6895,8 +6895,9 @@ async function pintarDetalheRede(){
   const chip = (t, cor) => `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid ${cor};color:${cor}">${t}</span>`;
   painel.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap">
-      ${iconeRedeSocial(plataforma, 26)}
-      <div style="font-size:18px;font-weight:800;flex:1;min-width:140px">${plataforma === 'instagram' ? 'Instagram' : plataforma === 'facebook' ? 'Facebook' : plataforma}</div>
+      <div style="font-size:18px;font-weight:800;margin-right:4px">Redes sociais</div>
+      <div style="display:flex;gap:6px;flex:1;min-width:200px;flex-wrap:wrap">${redes.map(r => { const n = (todas||[]).filter(c => c.platform === r), sem = n.filter(c => !c.client_id).length, on = r === plataforma;
+        return `<button onclick="_redeAberta='${r}';pintarDetalheRede()" style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;border:1px solid ${on?'var(--accent,#2563eb)':'var(--border)'};background:${on?'var(--accent,#2563eb)':'transparent'};color:${on?'#fff':'var(--text2)'}">${iconeRedeSocial(r, 15)}${nomeRede(r)}<span style="opacity:.75;font-weight:600">${n.length}</span>${sem ? `<span title="${sem} esperando vínculo" style="width:8px;height:8px;border-radius:50%;background:#ea580c"></span>` : ''}</button>`; }).join('')}</div>
       ${chip('● '+vinculadas.length+' vinculada'+(vinculadas.length===1?'':'s'), '#16a34a')}
       ${pendentes.length ? chip('● '+pendentes.length+' esperando vínculo', '#ea580c') : ''}
       <button class="btn btn-primary btn-sm" data-perm="social.conectar" onclick="conectarInstagram()">＋ Conectar contas</button>
@@ -13415,6 +13416,13 @@ window.abrirSobreApp = abrirSobreApp;
   setInterval(atualiza, 700); document.addEventListener('change', atualiza);
   try { if (window.parent !== window && innerWidth <= 768) document.documentElement.classList.add('em-moldura'); } catch(e){}
 })();
+</script>
+<script>
+/* REGRA DA CASA: toda caixa (popup com blur) fica POR CIMA do chat da IA. O chat mora na página de fora, então avisamos lá enquanto houver caixa aberta. */
+(function(){ let ant = null; setInterval(function(){
+  var on = false; try { Array.prototype.forEach.call(document.body.children, function(el){ if (el.nodeType !== 1 || on) return; var st = getComputedStyle(el);
+    if (st.position === 'fixed' && st.display !== 'none' && st.visibility !== 'hidden' && el.offsetWidth > 240 && el.offsetHeight > 240 && (parseInt(st.zIndex, 10) || 0) >= 900 && /(modal|overlay|ov\b)/i.test((el.id || '') + ' ' + el.className) ) on = true; }); } catch(e){}
+  if (on !== ant){ ant = on; try { var v = window.parent.document.querySelector('.verso'); if (v) v.classList.toggle('ov-app', on); } catch(e){} } }, 300); })();
 </script>
 </body>
 </html>
