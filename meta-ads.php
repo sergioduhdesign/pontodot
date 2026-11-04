@@ -216,6 +216,11 @@ if ($acao === 'anuncios') {
 
 
 // contexto do cliente que já existe na plataforma (ficha, produtos): a IA usa isso em vez de pedir texto ao gestor
+function pd_alvo_txt($a) {
+    if (!is_array($a) || empty($a['tipo'])) return '';
+    return 'FOCO ESPECÍFICO DA COMPARAÇÃO (' . mb_substr((string)$a['tipo'], 0, 20) . '): ' . mb_substr((string)($a['titulo'] ?? ''), 0, 200) . (!empty($a['texto']) ? ' · TEXTO: ' . mb_substr((string)$a['texto'], 0, 700) : '')
+         . (!empty($a['metricas']) ? ' · NÚMEROS: ' . json_encode($a['metricas'], JSON_UNESCAPED_UNICODE) : '') . '. Procure e compare o que é comparável a ESSE item (se for produto: mesma tipologia, metragem, ticket e praça; se for anúncio: mesmo ângulo, oferta e formato), não ao cliente em geral.' . "\n";
+}
 function pd_ctx_cliente($cid) {
     if (!preg_match('/^[0-9a-f-]{36}$/i', (string)$cid)) return null;
     $c = pd_supa('/rest/v1/clients?id=eq.' . $cid . '&select=id,name&limit=1'); $nome = $c['body'][0]['name'] ?? null; if (!$nome) return null;
@@ -264,7 +269,7 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
              . 'Para cada um traga só o que viu em página real; nunca invente dado, nome nem @. O Instagram só entra se você viu o @ em uma página real. '
              . 'A equipe já avaliou antes: ' . ($bons ? 'APROVADOS (acertou, busque mais assim): ' . implode(' | ', array_slice($bons, 0, 20)) . '. ' : '') . ($ruins ? 'REJEITADOS (não traga de novo e evite o mesmo tipo de erro): ' . implode(' | ', array_slice($ruins, 0, 30)) . '. ' : '') . ($votos ? '' : 'Sem avaliações ainda. ')
              . 'Responda SOMENTE um JSON: {"concorrentes":[{"nome":"...","tipo":"concorrente direto|referencia","tipologia":"loteamento|apartamento|casa|comercial|...","praca":"...","instagram":"usuario ou vazio","site":"url ou vazio","oferta":"1 frase","preco":"...","angulo":"1 frase","por_que":"1 frase"}],"obs":"1 frase"}.';
-        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO:\n$nota"]], 2600, 4);
+        [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nSOBRE O NEGÓCIO/EMPREENDIMENTO:\n$nota"]], 2600, 4);
         if ($erro) sd_fail($erro, 502);
         $j = null; if (preg_match('/\{.*\}/s', (string)$txt, $mm)) $j = json_decode($mm[0], true);
         $lista = []; $rl = array_map('mb_strtolower', $ruins);
@@ -283,7 +288,7 @@ if ($acao === 'concorrentes' || $acao === 'direcao_camp') {
          . 'Receba os NÚMEROS REAIS das campanhas do cliente (Meta Ads), as notas do negócio e a pesquisa de concorrentes feita pelo Tumi. Entregue ESTRATÉGIA, não resumo. Nunca invente número; a Meta não abre os números de anúncio de concorrentes e você deve dizer isso quando for relevante. '
          . 'Não fale de outros clientes da casa: só do cliente em foco. Pode usar a busca para entender o mercado da praça. '
          . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde os concorrentes pressionam · ## Espaço livre para o cliente · ## Públicos e segmentação a testar · ## Ofertas e ângulos criativos (6, com formato e por quê) · ## Orçamento e ritmo (como dividir, o que pausar/escalar, com base nos números) · ## Próximos 3 movimentos · ## Copy de anúncios (5 títulos, 3 textos principais completos, 3 CTAs).';
-    $msg = "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
+    $msg = pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
          . "\n\nNÚMEROS REAIS (Meta Ads):\n" . json_encode($b['numeros'] ?? [], JSON_UNESCAPED_UNICODE) . "\n\nCONCORRENTES (pesquisa do Tumi, web aberta):\n" . json_encode(array_slice((array)($b['concorrentes'] ?? []), 0, 8), JSON_UNESCAPED_UNICODE);
     [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => mb_substr($msg, 0, 14000)]], 4000, 3);
     if ($erro) sd_fail($erro, 502);

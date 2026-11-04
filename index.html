@@ -5333,8 +5333,9 @@ function anunAbrir(i){
     <div class="vimg">${m ? `<img src="${esc(m)}" referrerpolicy="no-referrer" alt="">` : '<div class="nota">Sem imagem disponível.</div>'}${a.tipo==='video' ? '<span class="vd">▶ vídeo</span>' : ''}</div>
     <div class="n" style="font-size:15px;margin:10px 0 2px">${esc(a.nome)} <span class="cp-chip">${esc(st)}</span></div>
     ${a.titulo ? `<div style="font-weight:500;margin:4px 0">${esc(a.titulo)}</div>` : ''}${a.texto ? `<div class="d" style="white-space:pre-wrap;line-height:1.5;margin:0 0 8px">${esc(a.texto)}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn cheio cp-b" onclick="pdfAnuncio(${i})">PDF deste anúncio</button><button class="btn cp-b" data-ajuda="ia_tumi" onclick="alvoAnuncio(${i})">${iaAv('tumi', 18)}<span style="margin-left:6px">Comparar com o mercado</span></button>${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir a prévia na Meta</a>` : ''}</div>
     <div class="cp-kpis" style="margin:8px 0 6px">${metCards(a)}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cheio cp-b" onclick="pdfAnuncio(${i})">PDF deste anúncio</button>${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir a prévia na Meta</a>` : ''}</div></div>`;
+  </div>`;
   V.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 function anunFecha(){ const V = document.getElementById('anunVer'); if (V) V.innerHTML = ''; document.querySelectorAll('.cp-anun').forEach(x => x.classList.remove('on')); }
@@ -5426,6 +5427,36 @@ async function iaCampEnviar(txt){
 }
 
 // COMPARAR CAMPANHAS: até 5 clientes lado a lado (investido, leads, CPL, cliques, alcance)
+
+// FOCO da comparação: um anúncio, um post ou um produto específico (pente fino). Vale para Campanhas e Social.
+let ALVO = null;
+const alvoOut = () => ALVO ? { tipo:ALVO.tipo, titulo:ALVO.titulo, texto:ALVO.texto, metricas:ALVO.metricas } : null;
+function alvoSet(a){ ALVO = a; CCMP.players = null; CCMP.ctx = null; CCMP.resp = null; CCMP.dados = {}; CMP.players = null; CMP.resp = null; CMP.dados = {}; }
+function alvoCard(onLimpa){
+  if (!ALVO) return '';
+  const rot = { anuncio:'Anúncio', post:'Post', produto:'Produto' }[ALVO.tipo] || 'Foco';
+  return `<div class="cmp-prog" style="border-style:solid;display:flex;gap:12px;align-items:flex-start">${ALVO.imagem ? `<img src="${esc(ALVO.imagem)}" referrerpolicy="no-referrer" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover;flex:0 0 64px" onerror="this.remove()">` : ''}
+    <div style="flex:1;min-width:0"><small class="nota" style="letter-spacing:.1em;text-transform:uppercase">Comparando só este ${rot.toLowerCase()}</small><div style="font-weight:500;margin:2px 0">${esc(ALVO.titulo || '')}</div>
+    ${ALVO.texto ? `<div class="nota" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(ALVO.texto)}</div>` : ''}</div>
+    <button class="acao-cab" style="color:var(--branco)" aria-label="Voltar para o cliente inteiro" title="Voltar para o cliente inteiro" onclick="${onLimpa}">✕</button></div>`;
+}
+function alvoChips(clientId, onPick, prods){
+  const ps = (prods || []).filter(x => x.client_id === clientId); if (!ps.length) return '';
+  return `<div class="nota" style="margin:10px 0 4px">Comparar o quê?</div><div class="ads-per" style="flex-wrap:wrap"><button class="${!ALVO ? 'on' : ''}" onclick="${onPick}(null)">Cliente inteiro</button>${ps.map(x => `<button class="${ALVO && ALVO.product_id === x.id ? 'on' : ''}" onclick="${onPick}('${esc(x.id)}')">${esc(x.name)}</button>`).join('')}</div>`;
+}
+function ccmpProduto(id){ const x = (ADS.prods || []).find(y => y.id === id); alvoSet(x ? { tipo:'produto', titulo:x.name, product_id:x.id, client_id:x.client_id } : null); ccmpPinta(); }
+function cmpProduto(id){ const x = (SOC.prods || []).find(y => y.id === id); alvoSet(x ? { tipo:'produto', titulo:x.name, product_id:x.id, client_id:x.client_id } : null); cmpPinta(); if (CMP.slots.length) cmpLer(); }
+function alvoAnuncio(i){
+  const a = (CP.ads || [])[i]; if (!a) return; const c0 = (ADS.dados?.contas || []).find(x => x.conta === CP.conta) || {};
+  alvoSet({ tipo:'anuncio', titulo:a.titulo || a.nome || 'Anúncio', texto:a.texto || '', imagem:a.imagem || a.miniatura || '', metricas:{ investido:a.gasto, leads:a.leads, cpl:a.cpl, ctr:a.ctr, alcance:a.alcance }, client_id:c0.client_id });
+  if (c0.client_id) CCMP.sel = [c0.client_id]; fecharJanela(); setTimeout(abrirCompararCampanhas, 260);
+}
+async function alvoPost(i){
+  const a = (CP.ads || [])[i], c = (SOC.dados || {})[CP.id] || {}; if (!a) return;
+  alvoSet({ tipo:'post', titulo:`${c.nome || ''} · ${a.tipo || 'post'} de ${new Date(a.quando).toLocaleDateString('pt-BR')}`, texto:a.texto || '', imagem:a.imagem || '', metricas:{ curtidas:a.curtidas, comentarios:a.comentarios, formato:a.tipo }, client_id:c.client_id });
+  fecharJanela(); await new Promise(r => setTimeout(r, 260)); await abrirComparar();
+  const h = cmpH(c.nome); if (h && !CMP.slots.some(x => x.handle === h)){ CMP.slots.unshift({ handle:h, nome:c.nome, tipo:'cliente', avatar:c.avatar || null }); cmpLer(); }
+}
 const CCMP = { sel:[], notas:'', foco:'', players:null, resp:null, msg:'', custo:0, seg:0, dados:{}, lendo:false, votos:(() => { try { return JSON.parse(localStorage.getItem('pd_votos_conc') || '{}'); } catch(e){ return {}; } })() };
 const ccmpVk = n => (CCMP.sel[0] || '') + '|' + String(n || '').toLowerCase();
 function abrirCompararCampanhas(){
@@ -5445,9 +5476,11 @@ function ccmpPinta(){
     ${CCMP.pensa ? progHtml('A Sumi está cruzando seus números com a pesquisa do Tumi…', '#18155F') : ''}
     ${CCMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('sumi', 26)} Sumi Sulo · ⏱ ${Math.round(CCMP.seg)}s · US$ ${CCMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CCMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar clientes</h3>
+    ${alvoCard('alvoSet(null);ccmpPinta()')}
     <div class="nota" style="margin:0 0 8px">Escolha até 5 clientes. Período: ${pdfPer()}. A Meta não abre os números de anúncio de terceiros: os concorrentes vêm da pesquisa do Tumi na web, com atalho para a Biblioteca de Anúncios.</div>
     <div class="ads-per" style="flex-wrap:wrap">${todos.map(o => `<button class="${CCMP.sel.includes(o.id) ? 'on' : ''}" onclick="ccmpToggle('${esc(o.id)}')">${esc(o.nome)}</button>`).join('')}</div>
 
+    ${alvoChips(CCMP.sel[0], 'ccmpProduto', ADS.prods)}
     <div class="ads-sec">Concorrentes e mercado</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn cp-b" data-ajuda="ia_tumi" onclick="ccmpPrep()" ${CCMP.tumi || CCMP.prep || !sel.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi os concorrentes</span></button></div>
     ${CCMP.ctx ? `<div class="cmp-prog" style="border-style:solid"><div style="display:flex;gap:10px;align-items:flex-start" data-ajuda="ia_tumi">${iaAv('tumi', 28)}<div style="flex:1;min-width:0"><b>Antes de buscar, o Tumi vai usar o que já temos de ${esc(CCMP.ctx.cliente)}:</b>
@@ -5481,7 +5514,7 @@ function ccmpLista(){
     return `<div class="cmp-col" style="border-top:3px solid ${cor[k % 5]}"><div class="h">${d.avatar ? `<img src="${esc(d.avatar)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : `<span class="ini">${esc(p.nome.slice(0, 2).toUpperCase())}</span>`}<div style="min-width:0"><b>${esc(p.nome)}</b><small>@${esc(d.usuario || p.instagram)}</small></div>${voto(p, x.i)}</div>
       <div class="nota" style="margin:2px 0 8px">${esc([p.tipologia, p.praca].filter(Boolean).join(' · '))}</div>
       <div class="kv"><small>Seguidores</small><b>${nf(d.seguidores)}</b></div><div class="kv"><small>Posts/semana</small><b>${String(d.por_semana).replace('.', ',')}</b></div><div class="kv"><small>Engajamento</small><b>${d.engajamento != null ? String(d.engajamento).replace('.', ',') + '%' : '—'}</b></div>
-      ${(d.top || []).map((t, q) => `<div class="ccr" onclick="this.classList.toggle('open')">${t.imagem ? `<img src="${esc(t.imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}<div class="tx">${esc(t.texto || '(sem legenda)')}</div><div class="nm">${t.curtidas != null ? '♥ ' + nf(t.curtidas) : ''} · 💬 ${nf(t.comentarios)} · ${esc(t.tipo)}</div></div>`).join('')}
+      ${d.parecidos && d.parecidos.length ? '<div class="nota" style="margin:10px 0 0">Posts mais parecidos com o seu:</div>' : ''}${(d.parecidos && d.parecidos.length ? d.parecidos : (d.top || [])).map((t, q) => `<div class="ccr" onclick="this.classList.toggle('open')">${t.imagem ? `<img src="${esc(t.imagem)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}<div class="tx">${esc(t.texto || '(sem legenda)')}</div><div class="nm">${t.curtidas != null ? '♥ ' + nf(t.curtidas) : ''} · 💬 ${nf(t.comentarios)} · ${esc(t.tipo)}</div></div>`).join('')}
       ${p.oferta || p.preco ? `<div class="nota" style="margin:8px 0 0">${esc([p.oferta, p.preco && 'Ticket: ' + p.preco].filter(Boolean).join(' · '))}</div>` : ''}</div>`; }).join('')}</div>` : '';
   const linhas = semDados.length ? `<div class="cmp-pl">${semDados.map(x => { const p = x.p;
     return `<div class="cmp-p"><div style="flex:1;min-width:0"><b>${esc(p.nome)}</b> <span class="cp-chip">${esc(p.tipo || 'concorrente')}</span>${p.tipologia ? ` <span class="cp-chip">${esc(p.tipologia)}</span>` : ''} <small class="nota">${esc(p.praca || '')}</small>
@@ -5499,7 +5532,7 @@ function ccmpVoto(i, v){
 async function ccmpLer(){
   const hs = ccmpVisiveis().map(p => p.instagram).filter(h => h && !CCMP.dados[h]).slice(0, 5); if (!hs.length) return;
   CCMP.lendo = true; ccmpPinta();
-  try { const j = await socFala({ acao:'comparar', handles:hs }); (j.perfis || []).forEach(d => { CCMP.dados[d.handle] = d; }); }
+  try { const j = await socFala({ acao:'comparar', handles:hs, foco_texto: ALVO ? ALVO.texto : '' }); (j.perfis || []).forEach(d => { CCMP.dados[d.handle] = d; }); }
   catch(e){ CCMP.msg = e.message; }
   CCMP.lendo = false; ccmpPinta();
 }
@@ -5514,7 +5547,7 @@ async function ccmpTumi(){
   if (!CCMP.sel.length) return;
   CCMP.ctx = null; CCMP.msg = ''; CCMP.tumi = true; ccmpPinta(); progIni();
   try { const pre = (CCMP.sel[0] || '') + '|', votos = Object.keys(CCMP.votos).filter(k => k.startsWith(pre) && CCMP.votos[k]).map(k => ({ item:k.slice(pre.length), voto:CCMP.votos[k] }));
-    const j = await adsFala({ acao:'concorrentes', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, votos });
+    const j = await adsFala({ acao:'concorrentes', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, votos, alvo: alvoOut() });
     CCMP.players = j.concorrentes || []; CCMP.obs = j.obs || ''; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0;
     if (!CCMP.players.length) CCMP.msg = 'O Tumi não achou concorrentes confiáveis. ' + (j.obs || '') + (j.bruto ? ' Resposta dele: ' + String(j.bruto).slice(0, 300) : ''); }
   catch(e){ CCMP.msg = 'A busca não terminou: ' + e.message + '. Tente de novo; se repetir, é tempo limite do servidor.'; }
@@ -5525,7 +5558,7 @@ async function ccmpDirecao(){
   const por = {}; (ADS.dados?.contas || []).filter(c => !c.erro && c.client_id && CCMP.sel.includes(c.client_id)).forEach(c => { const o = por[c.client_id] = por[c.client_id] || { cliente:c.cliente || c.nome, periodo:pdfPer(), investido:0, leads:0 }; o.investido += c.gasto || 0; o.leads += c.leads || 0; });
   const numeros = Object.values(por).map(o => ({ ...o, cpl: o.leads ? +(o.investido / o.leads).toFixed(2) : null }));
   CCMP.msg = ''; CCMP.pensa = true; ccmpPinta(); progIni(); cmpTopo();
-  try { const j = await adsFala({ acao:'direcao_camp', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, numeros, concorrentes: ccmpVisiveis().map(p => ({ ...p, instagram_dados: (CCMP.dados[p.instagram] && !CCMP.dados[p.instagram].erro) ? (d => ({ seguidores:d.seguidores, posts_por_semana:d.por_semana, engajamento_pct:d.engajamento, mix_30d:d.mix_30d, melhores_posts:(d.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) }))(CCMP.dados[p.instagram]) : null })) });
+  try { const j = await adsFala({ acao:'direcao_camp', client_id: CCMP.sel[0], cliente: ccmpCliente(), notas: CCMP.notas, foco: CCMP.foco, alvo: alvoOut(), numeros, concorrentes: ccmpVisiveis().map(p => ({ ...p, instagram_dados: (CCMP.dados[p.instagram] && !CCMP.dados[p.instagram].erro) ? (d => ({ seguidores:d.seguidores, posts_por_semana:d.por_semana, engajamento_pct:d.engajamento, mix_30d:d.mix_30d, melhores_posts:(d.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) }))(CCMP.dados[p.instagram]) : null })) });
     CCMP.resp = j.resposta; CCMP.custo += j.custo_usd || 0; CCMP.seg += j.segundos || 0; }
   catch(e){ CCMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CCMP.pensa = false; ccmpPinta(); cmpTopo();
@@ -5732,8 +5765,8 @@ function socPostAbrir(i){
     <div class="vimg">${a.imagem ? `<img src="${esc(a.imagem)}" referrerpolicy="no-referrer" alt="">` : '<div class="nota">Sem imagem disponível.</div>'}</div>
     <div class="n" style="font-size:15px;margin:10px 0 4px">${esc(new Date(a.quando).toLocaleDateString('pt-BR'))} · ${esc(a.tipo || 'post')}</div>
     ${a.texto ? `<div class="d" style="white-space:pre-wrap;line-height:1.5;margin:0 0 8px">${esc(a.texto)}</div>` : ''}
-    <div class="cp-kpis" style="margin:8px 0 6px"><div><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div><small>Comentários</small><b>${nf(a.comentarios)}</b></div>${a.compart ? `<div><small>Compart.</small><b>${nf(a.compart)}</b></div>` : ''}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn cheio cp-b" onclick="pdfPost(${i})">PDF deste post</button>${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir o post</a>` : ''}</div></div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0"><button class="btn cheio cp-b" onclick="pdfPost(${i})">PDF deste post</button><button class="btn cp-b" data-ajuda="ia_tumi" onclick="alvoPost(${i})">${iaAv('tumi', 18)}<span style="margin-left:6px">Comparar com o mercado</span></button>${a.link ? `<a class="btn cp-b" style="text-decoration:none;display:inline-block" href="${esc(a.link)}" target="_blank" rel="noopener">Abrir o post</a>` : ''}</div>
+    <div class="cp-kpis" style="margin:8px 0 6px"><div><small>Curtidas</small><b>${nf(a.curtidas)}</b></div><div><small>Comentários</small><b>${nf(a.comentarios)}</b></div>${a.compart ? `<div><small>Compart.</small><b>${nf(a.compart)}</b></div>` : ''}</div></div>`;
   V.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 function pdfPost(i){
@@ -5858,7 +5891,7 @@ function cmpTira(h){ CMP.slots = CMP.slots.filter(s => s.handle !== h); CMP.resp
 async function cmpLer(){
   const falta = CMP.slots.map(s => s.handle).filter(h => !CMP.dados[h]); cmpPinta(); if (!falta.length) return;
   CMP.lendo = true; cmpPinta();
-  try { const j = await socFala({ acao:'comparar', handles:falta }); (j.perfis || []).forEach(p => { CMP.dados[p.handle] = p; }); }
+  try { const j = await socFala({ acao:'comparar', handles:falta, foco_texto: ALVO ? ALVO.texto : '' }); (j.perfis || []).forEach(p => { CMP.dados[p.handle] = p; }); }
   catch(e){ CMP.msg = e.message; }
   CMP.lendo = false; cmpPinta();
 }
@@ -5871,7 +5904,7 @@ function progHtml(txt, cor){ return `<div class="cmp-prog"><div class="cmp-prog-
 async function cmpTumi(){
   if (!CMP.slots.length){ CMP.msg = 'Escolha primeiro o perfil do cliente.'; return cmpPinta(); }
   CMP.msg = ''; CMP.tumi = true; cmpPinta(); progIni();
-  try { const j = await socFala({ acao:'players', cliente: CMP.slots[0].nome, notas: CMP.notas, perfil_base: CMP.slots.slice(0, 1).map(s => CMP.dados[s.handle] || { handle:s.handle }) });
+  try { const j = await socFala({ acao:'players', alvo: alvoOut(), cliente: CMP.slots[0].nome, notas: CMP.notas, perfil_base: CMP.slots.slice(0, 1).map(s => CMP.dados[s.handle] || { handle:s.handle }) });
     CMP.players = j.players || []; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = j.players && j.players.length ? '' : 'O Tumi não achou perfis confiáveis. ' + (j.obs || ''); }
   catch(e){ CMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CMP.tumi = false; cmpPinta();
@@ -5881,7 +5914,7 @@ async function cmpDirecao(){
   if (ok.length < 2){ CMP.msg = 'Preciso de pelo menos 2 perfis lidos com sucesso para comparar.'; return cmpPinta(); }
   CMP.notas = (document.getElementById('cmpNotas') || {}).value ?? CMP.notas; CMP.foco = (document.getElementById('cmpFoco') || {}).value ?? CMP.foco;
   CMP.msg = ''; CMP.pensa = true; cmpPinta(); progIni(); cmpTopo();
-  try { const j = await socFala({ acao:'direcao', cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
+  try { const j = await socFala({ acao:'direcao', alvo: alvoOut(), cliente: CMP.slots[0].nome, notas: CMP.notas, foco: CMP.foco, perfis: ok.map(p => ({ ...p, top: (p.top || []).map(t => ({ tipo:t.tipo, texto:t.texto, curtidas:t.curtidas, comentarios:t.comentarios })) })) });
     CMP.resp = j.resposta; CMP.custo += j.custo_usd || 0; CMP.seg += j.segundos || 0; CMP.msg = ''; }
   catch(e){ CMP.msg = e.message; }
   progFim(); await new Promise(r => setTimeout(r, 350)); CMP.pensa = false; cmpPinta(); cmpTopo();
@@ -5912,11 +5945,13 @@ function cmpPinta(){
     ${CMP.pensa ? progHtml('A Muru está cruzando os dados e escrevendo a direção…', '#145DEC') : ''}
     ${CMP.resp ? `<div class="cmp-resp"><div class="ia-rel" style="margin-bottom:6px">${iaAv('muru', 26)} Muru Mara · ⏱ ${Math.round(CMP.seg)}s · US$ ${CMP.custo.toFixed(2).replace('.', ',')}</div><div class="md">${mdHtml(CMP.resp)}</div></div>` : ''}
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Comparar</h3>
+    ${alvoCard('alvoSet(null);cmpPinta();cmpLer()')}
     ${ok.length < 2 ? '<div class="nota" style="margin:0 0 8px">A Muru libera a direção e a copy quando houver 2 perfis lidos.</div>' : ''}
     <div class="nota" data-pdq="1" style="margin:0 0 10px;line-height:1.5">Escolha até 5 perfis de Instagram: o do cliente primeiro e os players. Os números vêm do Instagram aberto, pela API oficial da Meta (só perfis profissionais e públicos). Alcance, idade e gênero só existem para as contas que são nossas.</div>
     <div class="cmp-slots">${CMP.slots.map((s, i) => `<span class="cmp-slot" style="border-color:${CMP_COR[i]}"><i style="background:${CMP_COR[i]}"></i>@${esc(s.handle)}<small>${i === 0 ? 'cliente' : 'player'}</small><button onclick="cmpTira('${esc(s.handle)}')" aria-label="Tirar">✕</button></span>`).join('') || '<span class="nota">Nenhum perfil escolhido ainda.</span>'}</div>
     ${CMP.slots.length < 5 ? `<div class="cmp-add"><select class="cp-sel1" onchange="if(this.value){const c=(CMP.contas||[]).find(x=>x.id===this.value);cmpAdd(c.account_name,c.account_name,'cliente',c.account_avatar_url)}"><option value="">+ perfil de um cliente nosso…</option>${contas.map(c => `<option value="${esc(c.id)}">@${esc(c.account_name)}${clienteDe(c) ? ' · ' + esc(clienteDe(c)) : ''}</option>`).join('')}</select>
       <form onsubmit="event.preventDefault();cmpAdd(this.u.value);this.u.value=''"><input name="u" class="cp-sel1" placeholder="+ @usuario ou link do Instagram de outro perfil" autocomplete="off"><button class="btn cp-b" type="submit">Adicionar</button></form></div>` : ''}
+    ${(() => { const c0 = (CMP.contas || []).find(c => CMP.slots[0] && cmpH(c.account_name) === CMP.slots[0].handle); return c0 && c0.client_id ? alvoChips(c0.client_id, 'cmpProduto', SOC.prods) : ''; })()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px"><button class="btn cp-b" data-ajuda="ia_tumi" onclick="cmpTumi()" ${CMP.tumi || !CMP.slots.length ? 'disabled' : ''}>${iaAv('tumi', 20)}<span style="margin-left:6px">Pedir ao Tumi players parecidos</span></button></div>
     ${CMP.players ? `<div class="cmp-pl">${CMP.players.map(p => `<div class="cmp-p"><div style="flex:1;min-width:0"><b>@${esc(p.handle)}</b> <span class="cp-chip">${esc(p.tipo || 'player')}</span><div class="nota" style="margin:2px 0 0">${esc(p.por_que || '')}</div></div><button class="btn cp-b" ${CMP.slots.some(s => s.handle === p.handle) || CMP.slots.length >= 5 ? 'disabled' : ''} onclick="cmpAdd('${esc(p.handle)}','${esc(p.nome)}','player')">+ adicionar</button></div>`).join('')}</div>` : ''}
     ${CMP.tumi ? progHtml('O Tumi está pesquisando players parecidos na web…', '#11BA98') : ''}

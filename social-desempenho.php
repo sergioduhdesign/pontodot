@@ -115,8 +115,24 @@ function sdp_perfil_publico($handle) {
     $o = ['handle' => $handle, 'usuario' => $bd['username'] ?? $handle, 'nome' => $bd['name'] ?? $handle, 'bio' => mb_substr((string)($bd['biography'] ?? ''), 0, 280), 'avatar' => $bd['profile_picture_url'] ?? null,
         'seguidores' => $seg, 'seguindo' => (int)($bd['follows_count'] ?? 0), 'posts_total' => (int)($bd['media_count'] ?? 0), 'amostra' => $np, 'posts_30d' => $n30, 'por_semana' => round($n30 / 4.29, 1),
         'media_curtidas' => $mL !== null ? round($mL, 1) : null, 'media_comentarios' => round($mC, 1), 'engajamento' => ($seg && $mL !== null) ? round(($mL + $mC) / $seg * 100, 2) : null,
-        'mix_30d' => $mix, 'por_hora_sp' => $hr, 'por_dia_semana_dom_a_sab' => $dow, 'media_legenda_chars' => $np ? (int)round($cap / $np) : 0, 'hashtags' => array_slice(array_keys($tags), 0, 8), 'top' => array_slice($posts, 0, 3)];
+        'mix_30d' => $mix, 'por_hora_sp' => $hr, 'por_dia_semana_dom_a_sab' => $dow, 'media_legenda_chars' => $np ? (int)round($cap / $np) : 0, 'hashtags' => array_slice(array_keys($tags), 0, 8), 'top' => array_slice($posts, 0, 3),
+        'amostra' => array_map(fn($q) => ['tipo' => $q['tipo'], 'texto' => mb_substr((string)$q['texto'], 0, 220), 'curtidas' => $q['curtidas'], 'comentarios' => $q['comentarios'], 'imagem' => $q['imagem'] ?? null], array_slice($posts, 0, 40))];
     pd_cache_gravar($chave, $o); return $o;
+}
+// os posts do perfil que mais se parecem com o item em foco (palavras em comum na legenda; desempata por engajamento)
+function sdp_parecidos($perfil, $texto) {
+    $stop = ['para','com','uma','mais','como','você','voce','seu','sua','nos','das','dos','que','por','ser','tem','está','esta','isso','esse','essa','ao','aos','em','de','da','do','na','no','um','os','as','e','a','o'];
+    $tok = function ($t) use ($stop) { preg_match_all('/[\p{L}\p{N}]{4,}/u', mb_strtolower((string)$t), $m); return array_values(array_diff(array_unique($m[0]), $stop)); };
+    $alvo = $tok($texto); if (!$alvo || empty($perfil['amostra'])) return null;
+    $rank = [];
+    foreach ($perfil['amostra'] as $q) { $c = count(array_intersect($alvo, $tok($q['texto'] ?? ''))); if ($c > 0) $rank[] = [$c, ($q['curtidas'] ?? 0) + ($q['comentarios'] ?? 0) * 3, $q]; }
+    usort($rank, fn($x, $y) => [$y[0], $y[1]] <=> [$x[0], $x[1]]);
+    return $rank ? array_map(fn($r) => $r[2], array_slice($rank, 0, 3)) : null;
+}
+function sdp_alvo_txt($a) {
+    if (!is_array($a) || empty($a['tipo'])) return '';
+    return 'FOCO ESPECÍFICO DA COMPARAÇÃO (' . mb_substr((string)$a['tipo'], 0, 20) . '): ' . mb_substr((string)($a['titulo'] ?? ''), 0, 200) . ($a['texto'] ?? '' ? ' · TEXTO: ' . mb_substr((string)$a['texto'], 0, 700) : '')
+         . (!empty($a['metricas']) ? ' · NÚMEROS: ' . json_encode($a['metricas'], JSON_UNESCAPED_UNICODE) : '') . '. Compare tudo contra ESSE item, não contra o cliente em geral.' . "\n";
 }
 function sdp_ia($sys, $msgs, $max = 1800, $busca = 4) {
     $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $sys, 'messages' => $msgs];
@@ -134,7 +150,9 @@ function sdp_ia($sys, $msgs, $max = 1800, $busca = 4) {
 if ($acao === 'comparar') {
     $hs = []; foreach (array_slice((array)($b['handles'] ?? []), 0, 5) as $h) { $x = sdp_handle($h); if ($x && !in_array($x, $hs, true)) $hs[] = $x; }
     if (count($hs) < 1) sd_fail('Informe pelo menos um perfil (@usuario ou link do Instagram).', 400);
-    sai(['perfis' => array_map('sdp_perfil_publico', $hs)]);
+    $ps = array_map('sdp_perfil_publico', $hs); $ft = trim((string)($b['foco_texto'] ?? ''));
+    if ($ft !== '') foreach ($ps as &$pp) { if (is_array($pp) && empty($pp['erro'])) $pp['parecidos'] = sdp_parecidos($pp, $ft); } unset($pp);
+    sai(['perfis' => $ps]);
 }
 if ($acao === 'players') {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) sd_fail('Sem chave da Anthropic no servidor.', 500);
@@ -143,7 +161,7 @@ if ($acao === 'players') {
          . 'Seu ofício é rede e conexões: achar, na web aberta, quem são os players reais de um negócio. Você ACREDITA que é o Tumi. '
          . 'TAREFA: pesquise na web (busca) e devolva de 5 a 8 PERFIS DE INSTAGRAM reais e ativos de concorrentes ou referências próximas do cliente (mesmo segmento, praça e público; inclua 2 referências aspiracionais de fora da praça). '
          . 'Só inclua @ que você viu em uma página real; nunca invente @. Responda SOMENTE um JSON: {"players":[{"handle":"usuario","nome":"...","por_que":"1 frase","tipo":"concorrente direto|referencia"}],"obs":"1 frase"}.';
-    $msg = "CLIENTE: $cli\nSOBRE O NEGÓCIO: $nota\nPERFIS NOSSOS DE REFERÊNCIA: " . json_encode($ref, JSON_UNESCAPED_UNICODE);
+    $msg = sdp_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nSOBRE O NEGÓCIO: $nota\nPERFIS NOSSOS DE REFERÊNCIA: " . json_encode($ref, JSON_UNESCAPED_UNICODE);
     [$txt, $custo, $seg] = sdp_ia($sys, [['role' => 'user', 'content' => $msg]], 1800, 6);
     $j = null; if (preg_match('/\{.*\}/s', $txt, $mm)) $j = json_decode($mm[0], true);
     $pl = []; foreach ((array)($j['players'] ?? []) as $p) { $h = sdp_handle($p['handle'] ?? ''); if ($h) $pl[] = ['handle' => $h, 'nome' => (string)($p['nome'] ?? $h), 'por_que' => (string)($p['por_que'] ?? ''), 'tipo' => (string)($p['tipo'] ?? '')]; }
@@ -157,7 +175,7 @@ if ($acao === 'direcao') {
          . 'Quando um dado não existe (alcance/idade de perfil que não é nosso), diga que não existe. Pode usar a busca para entender o contexto do mercado do cliente. '
          . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde cada player ganha · ## Lacunas que o cliente pode ocupar · ## Temas sugeridos (6, com formato e por quê) · '
          . '## Próximos 3 movimentos (ação, formato, frequência, horário sugerido pelos dados) · ## Direção criativa (tom, visual, ganchos) · ## Copy derivada (3 legendas completas, 3 ganchos de Reels, 1 roteiro de carrossel em 6 telas) · ## O que medir nos próximos 30 dias.';
-    $msg = 'CLIENTE: ' . mb_substr((string)($b['cliente'] ?? ''), 0, 120) . "\nNOTAS DO NEGÓCIO (dadas pelo cliente/gestor):\n" . mb_substr((string)($b['notas'] ?? '(sem notas)'), 0, 3000)
+    $msg = sdp_alvo_txt($b['alvo'] ?? null) . 'CLIENTE: ' . mb_substr((string)($b['cliente'] ?? ''), 0, 120) . "\nNOTAS DO NEGÓCIO (dadas pelo cliente/gestor):\n" . mb_substr((string)($b['notas'] ?? '(sem notas)'), 0, 3000)
          . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'crescer com conteúdo relevante'), 0, 300) . "\n\nDADOS REAIS (Instagram, perfis públicos):\n" . json_encode($perfis, JSON_UNESCAPED_UNICODE);
     [$txt, $custo, $seg] = sdp_ia($sys, [['role' => 'user', 'content' => $msg]], 4000, 3);
     sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
