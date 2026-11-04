@@ -5556,19 +5556,38 @@ async function ccmpAdd(){
   progFim(); CCMP.add = false; ccmpPinta(); ccmpLer();
 }
 function pdfCompararCamp(){
-  const vis = ccmpVisiveis(), cn = ccmpCliente(); if (!vis.length && !CCMP.resp) return;
-  const li = a => (a || []).length ? '<ul style="margin:4px 0 0;padding-left:18px">' + a.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '';
-  const seu = ALVO ? `<h2>O seu · ${esc(ALVO.tipo)}</h2><div class="row">${ALVO.imagem ? `<img class="th" style="border-radius:12px" src="${esc(ALVO.imagem)}" alt="">` : ''}<div class="c"><b class="n">${esc(ALVO.titulo || '')}</b>${ALVO.texto ? `<p>${esc(ALVO.texto)}</p>` : ''}${ALVO.metricas ? `<p>${Object.entries(ALVO.metricas).filter(([, v]) => v != null && v !== '').map(([k, v]) => esc(k) + ': ' + esc(String(v))).join(' · ')}</p>` : ''}</div></div>` : '';
-  const conc = vis.map(p => { const pg = p.pagina || {}, d = CCMP.dados[p.instagram], img = ccmpImg(p);
-    return `<div class="row">${img ? `<img class="th" style="border-radius:12px" src="${esc(img)}" alt="">` : ''}<div class="c"><b class="n">${esc(p.nome)}</b> <span class="cp p">${esc(p.tipologia || p.tipo || 'concorrente')}</span>
-      ${p.praca ? `<p>${esc(p.praca)}</p>` : ''}${p.oferta ? `<p><b>Oferta:</b> ${esc(p.oferta)}</p>` : ''}${p.preco ? `<p><b>Ticket:</b> ${esc(p.preco)}</p>` : ''}${p.angulo ? `<p><b>Ângulo:</b> ${esc(p.angulo)}</p>` : ''}
-      ${pg.descricao ? `<p>${esc(pg.descricao)}</p>` : ''}${(pg.chamadas || []).length ? `<p>${pg.chamadas.map(c => '“' + esc(c) + '”').join('<br>')}</p>` : ''}
-      ${(pg.precos || []).length || (pg.metragens || []).length ? `<p><b>Valores / metragens:</b> ${esc([].concat(pg.precos || [], pg.metragens || []).join(' · '))}</p>` : ''}
-      ${(pg.condicoes || []).length ? `<p><b>Condições:</b></p>${li(pg.condicoes)}` : ''}${(pg.diferenciais || []).length ? `<p><b>Diferenciais:</b></p>${li(pg.diferenciais.slice(0, 8))}` : ''}
-      ${d && !d.erro ? `<p><b>Instagram @${esc(d.usuario || p.instagram)}:</b> ${nf(d.seguidores)} seguidores · ${String(d.por_semana).replace('.', ',')} posts/sem${d.engajamento != null ? ' · ' + String(d.engajamento).replace('.', ',') + '% eng.' : ''}</p>${(d.parecidos && d.parecidos.length ? d.parecidos : (d.top || [])).slice(0, 3).map(t => `<p style="color:#55575F">• ${esc((t.texto || '(sem legenda)').slice(0, 220))} <i>(${t.curtidas != null ? '♥ ' + nf(t.curtidas) + ' · ' : ''}💬 ${nf(t.comentarios)})</i></p>`).join('')}` : ''}
-      ${p.site ? `<p style="color:#6B6D75">${esc(p.site)}</p>` : ''}</div></div>`; }).join('');
+  const vis = ccmpVisiveis().filter(p => !(CCMP.fora || {})[ccmpVk(p.nome)]).slice(0, 5), cn = ccmpCliente(); if (!vis.length && !CCMP.resp) return;
+  const cor = ['#2f9e6b','#11BA98','#4c7dff','#e59a2f','#e0526b'], n = vis.length + 1, im = (u, c) => u ? `<img class="${c || 'ph'}" referrerpolicy="no-referrer" src="${esc(u)}" alt="">` : '';
+  const li = a => (a || []).length ? '<ul>' + a.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '';
+  const ig = p => { const d = CCMP.dados[p.instagram]; return d && !d.erro ? d : null; };
+  const seu = `<div class="col" style="border-top:4px solid #15161A"><div class="ch"><b>${esc(cn)}</b><small>o seu${ALVO ? ' · ' + esc(ALVO.tipo) : ''}</small></div>
+    ${ALVO ? `${im(ALVO.imagem)}<p class="t">${esc(ALVO.titulo || '')}</p>${ALVO.texto ? `<p>${esc(ALVO.texto.slice(0, 600))}</p>` : ''}${ALVO.metricas ? `<p class="m">${Object.entries(ALVO.metricas).filter(([, v]) => v != null && v !== '').map(([k, v]) => esc(k) + ': <b>' + esc(String(v)) + '</b>').join(' · ')}</p>` : ''}` : '<p>Cliente inteiro.</p>'}</div>`;
+  const cols = vis.map((p, i) => { const pg = p.pagina || {}, d = ig(p), imgs = (pg.imagens && pg.imagens.length ? pg.imagens : [ccmpImg(p)]).filter(Boolean), chips = [].concat(pg.precos || [], pg.metragens || []);
+    const ps = d ? (d.parecidos && d.parecidos.length ? d.parecidos : (d.top || [])).slice(0, 2) : [];
+    return `<div class="col" style="border-top:4px solid ${cor[i]}"><div class="ch"><b>${esc(p.nome)}</b><small>${esc([p.tipo, p.tipologia, p.praca].filter(Boolean).join(' · '))}</small></div>
+      ${im(imgs[0])}${imgs.length > 1 ? `<div class="th">${imgs.slice(1, 4).map(u => im(u, 'tn')).join('')}</div>` : ''}
+      ${pg.titulo ? `<p class="t">${esc(pg.titulo)}</p>` : ''}${pg.descricao ? `<p>${esc(pg.descricao)}</p>` : ''}${(pg.chamadas || []).length ? `<p class="q">${pg.chamadas.slice(0, 4).map(c => '“' + esc(c) + '”').join('<br>')}</p>` : ''}
+      ${p.oferta ? `<p><b>Oferta:</b> ${esc(p.oferta)}</p>` : ''}${p.preco ? `<p><b>Ticket:</b> ${esc(p.preco)}</p>` : ''}${p.angulo ? `<p><b>Ângulo:</b> ${esc(p.angulo)}</p>` : ''}
+      ${chips.length ? `<p class="m">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</p>` : ''}
+      ${(pg.condicoes || []).length ? `<h4>Condições</h4>${li(pg.condicoes.slice(0, 4))}` : ''}${(pg.diferenciais || []).length ? `<h4>Diferenciais</h4>${li(pg.diferenciais.slice(0, 6))}` : ''}
+      ${ps.length ? `<h4>Posts ${d.parecidos && d.parecidos.length ? 'parecidos com o seu' : 'que mais engajaram'}</h4>${ps.map(t => `<div class="po">${im(t.imagem, 'pi')}<div><span>${esc((t.texto || '(sem legenda)').slice(0, 150))}</span><i>${t.curtidas != null ? '♥ ' + nf(t.curtidas) + ' · ' : ''}💬 ${nf(t.comentarios)}</i></div></div>`).join('')}` : ''}
+      ${p.site ? `<p class="u">${esc(p.site.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</p>` : ''}</div>`; }).join('');
+  const comIg = vis.map((p, i) => ({ p, i, d: ig(p) })).filter(x => x.d);
+  const barra = (tit, fn, fmt) => { const vs = comIg.map(x => fn(x.d) || 0), mx = Math.max(...vs, 0.0001);
+    return `<div class="gr"><h4>${tit}</h4>${comIg.map((x, k) => `<div class="br"><span>${esc(x.p.nome)}</span><div><i style="width:${Math.max(2, vs[k] / mx * 100)}%;background:${cor[x.i]}"></i></div><b>${fmt(vs[k])}</b></div>`).join('')}</div>`; };
+  const mix = comIg.length ? `<div class="gr"><h4>Mix de formatos (30 dias)</h4>${comIg.map(x => { const m = x.d.mix_30d || {}, r = m.reels || 0, c = m.carrossel || 0, g = m.imagem || 0, t = (r + c + g) || 1;
+      return `<div class="br"><span>${esc(x.p.nome)}</span><div class="mx"><i style="width:${r / t * 100}%;background:#e0526b"></i><i style="width:${c / t * 100}%;background:#4c7dff"></i><i style="width:${g / t * 100}%;background:#e59a2f"></i></div><b>${r}/${c}/${g}</b></div>`; }).join('')}<div class="lg2"><span style="--c:#e0526b">Reels</span><span style="--c:#4c7dff">Carrossel</span><span style="--c:#e59a2f">Imagem</span></div></div>` : '';
+  const graf = comIg.length ? `<h2>Instagram lado a lado</h2><div class="grs">${barra('Seguidores', d => d.seguidores, v => nf(v))}${barra('Posts por semana', d => d.por_semana, v => String(v).replace('.', ','))}${barra('Engajamento (%)', d => d.engajamento, v => String(v).replace('.', ',') + '%')}${mix}</div>` : '';
+  const css = `.wd{display:grid;grid-template-columns:repeat(${n},minmax(0,1fr));gap:9px;align-items:start}.col{border:1px solid #E4E3DE;border-radius:12px;padding:10px;background:#FBFAF8;min-width:0;font-size:10.5px;line-height:1.4}
+  .col p{margin:4px 0;overflow-wrap:anywhere}.col .t{font-weight:600;font-size:11.5px}.col .q{color:#55575F}.col .m{margin:5px 0}.col .u{color:#8A8C94;font-size:9px}.col h4,.gr h4{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#6B6D75;margin:8px 0 3px}
+  .col ul{margin:0;padding-left:14px}.ch{margin-bottom:6px}.ch b{display:block;font-size:13px}.ch small{color:#6B6D75;font-size:9.5px}.ph{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;background:#EEE;display:block}
+  .th{display:flex;gap:4px;margin-top:4px}.tn{width:calc(33% - 3px);aspect-ratio:1;object-fit:cover;border-radius:6px}.chip{display:inline-block;background:#15161A;color:#fff;border-radius:99px;padding:1px 7px;margin:0 3px 3px 0;font-size:9px}
+  .po{display:flex;gap:6px;margin:4px 0;break-inside:avoid}.pi{width:42px;height:42px;border-radius:6px;object-fit:cover;flex:0 0 42px}.po span{display:block}.po i{color:#6B6D75;font-size:9px;font-style:normal}
+  .grs{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.gr{border:1px solid #E4E3DE;border-radius:12px;padding:10px 12px;break-inside:avoid}.br{display:grid;grid-template-columns:110px 1fr 70px;gap:8px;align-items:center;margin:5px 0;font-size:10.5px}
+  .br>div{height:12px;background:#ECEBE6;border-radius:99px;overflow:hidden;display:flex}.br>div i{display:block;height:100%}.br b{text-align:right}.br span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lg2{display:flex;gap:12px;margin-top:6px;font-size:9px;color:#6B6D75}.lg2 span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:4px}`;
   pdfDoc('Comparativo de campanhas e discurso comercial', `${cn} · ${vis.length} referência${vis.length === 1 ? '' : 's'} · ${new Date().toLocaleDateString('pt-BR')}`, cn,
-    `${seu}<h2>Concorrentes e referências</h2>${conc || '<p>Nenhuma referência.</p>'}${CCMP.resp ? `<h2>Avaliação e ideias · Sumi Sulo</h2><div style="line-height:1.55">${mdHtml(CCMP.resp)}</div>` : ''}`);
+    `<h2>Lado a lado</h2><div class="wd">${seu}${cols}</div>${graf}${CCMP.resp ? `<h2>Avaliação e ideias · Sumi Sulo</h2><div style="line-height:1.55">${mdHtml(CCMP.resp)}</div>` : ''}`, { wide:true, css });
 }
 function ccmpVoto(i, v){
   const p = ccmpVisiveis()[i]; if (!p) return; const k = ccmpVk(p.nome);
@@ -5613,7 +5632,7 @@ async function ccmpDirecao(){
 }
 function ccmpToggle(id){ CCMP_SALVA(); if (CCMP.sel[0] === id) return; if (ALVO && ALVO.client_id !== id) ALVO = null; CCMP.sel = [id]; CCMP.players = null; CCMP.dados = {}; CCMP.resp = null; CCMP.ctx = null; CCMP.msg = ''; CCMP.fora = {}; ccmpPinta(); }
 // PDF: relatório limpo (logo do cliente + ícone da PD) → imprimir / Salvar como PDF. Usa as informações escolhidas.
-function pdfDoc(titulo, sub, clienteNome, corpo){
+function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
   document.getElementById('pdfFrame')?.remove();
   const fr = document.createElement('iframe'); fr.id = 'pdfFrame'; fr.setAttribute('aria-hidden', 'true');
   fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none'; document.body.appendChild(fr);
@@ -5623,7 +5642,7 @@ function pdfDoc(titulo, sub, clienteNome, corpo){
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
   const logo = cli && cli.logo_url ? `<img class="lg" src="${esc(cli.logo_url)}" alt="">` : (clienteNome ? `<span class="lg ini">${esc(clienteNome.slice(0,2).toUpperCase())}</span>` : '');
   w.document.write(`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(titulo)} · relatório</title>
-  <style>@page{margin:13mm 12mm}*{box-sizing:border-box}body{font:13px/1.5 -apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0;padding:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  <style>${opts.wide ? '@page{size:A4 landscape;margin:8mm 9mm}' : '@page{margin:13mm 12mm}'}*{box-sizing:border-box}body{font:13px/1.5 -apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0;padding:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .cab{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1.5px solid #15161A;margin-bottom:20px}
   .lg{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:0 0 56px;display:block}.ini{display:grid;place-items:center;background:#15161A;color:#fff;font-weight:700;font-size:18px}.bol{display:flex;gap:10px;flex:0 0 auto}
   .cab h1{font-size:23px;line-height:1.15;margin:0;font-weight:600;letter-spacing:-.01em}.cab .sub{color:#6B6D75;font-size:12px;margin-top:3px}.cab .t{flex:1;min-width:0}.pd{width:56px;height:56px;flex:0 0 56px;border-radius:50%;object-fit:cover;display:block}
@@ -5634,6 +5653,7 @@ function pdfDoc(titulo, sub, clienteNome, corpo){
   .cp{font-size:10px;padding:2px 8px;border-radius:99px;background:#15161A;color:#fff;margin-left:6px;vertical-align:2px}.cp.p{background:#E4E3DE;color:#15161A}
   table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-top:1px solid #ECEBE6}td:last-child{text-align:right}
   .rod{margin-top:30px;padding-top:12px;border-top:1px solid #E4E3DE;display:flex;align-items:flex-start;gap:10px;color:#6B6D75;font-size:10.5px;line-height:1.5}.rod img{width:22px;height:22px;margin-top:1px}.rod b{color:#15161A;font-weight:600}.rod .leg{display:block;margin-top:4px;color:#8A8C94;font-size:9.5px}
+  ${opts.css || ''}
   </style>
   <div class="cab"><div class="t"><h1>${esc(titulo)}</h1><div class="sub">${sub}</div></div><div class="bol">${logo}<img class="pd" src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt="pontodot"></div></div>
   ${corpo}
