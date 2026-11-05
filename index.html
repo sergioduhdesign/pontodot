@@ -10250,10 +10250,10 @@ function miniTexto(t){
   return rotStatus(t.status);
 }
 
-const CAMPOS_V46 = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,tarefa_mae_id,prompt_ia,prompt_ia_em,clients(name),products(name)';
+const CAMPOS_V46 = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,product_id,tarefa_mae_id,prompt_ia,prompt_ia_em,clients(name),products(name)';
 let CAMPOS_TAREFA = CAMPOS_V46 + ',batata,batata_em';
 // migração v46 ainda não rodou? o site não pode morrer por causa disso
-const CAMPOS_BASICOS = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,clients(name),products(name)';
+const CAMPOS_BASICOS = 'id,action,project,status,resp,week,date_int,date_cli,obs,total_seconds,cover_url,client_id,product_id,clients(name),products(name)';
 // carrega TODAS as abertas, em páginas — nenhum corte silencioso
 async function buscarTodasAbertas(){
   const tudo = [], PAG = 400;
@@ -10564,6 +10564,57 @@ function editarInline(ev, id, campo, tipo){
     if (e.key==='Escape'){ feito = true; volta(); }
   };
 }
+
+async function escolherProduto(ev, id){
+  ev && ev.stopPropagation && ev.stopPropagation();
+  const t = tasksReais.find(x=>x.id===id) || {};
+  try {
+    let q = sbR.from('products').select('id,name').order('name');
+    if (t.client_id) q = q.eq('client_id', t.client_id);
+    const { data } = await q;
+    abrirMenuSel(ev, `<div class="mini">PRODUTO DE ${id}</div><button onclick="fecharMenuCtx();aplicarCampo('${id}','product_id',null)">Sem produto</button>` +
+      (data||[]).map(p=>`<button onclick="fecharMenuCtx();aplicarCampo('${id}','product_id',${JSON.stringify(p.id)})">${esc(p.name)}</button>`).join(''));
+  } catch(e){ toast('Não deu: ' + e.message); }
+}
+// botão Editar: tudo da tarefa num formulário só
+async function editarTarefaTudo(id){
+  const t = tasksReais.find(x=>x.id===id); if (!t) return;
+  const ativos = (clientesReais||[]).filter(c=>c.active!==false);
+  let prods = [];
+  try { let q = sbR.from('products').select('id,name,client_id').order('name'); const r = await q; prods = r.data||[]; } catch(e){}
+  const inp = 'width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid rgba(128,128,128,.35);border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:13.5px';
+  const lab = x=>`<label style="display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin:12px 0 4px">${x}</label>`;
+  window._edProds = prods;
+  abrirJanela(`<div class="caixa" style="padding:20px;max-height:86vh;overflow-y:auto"><h3 style="margin:0 0 4px">Editar ${esc(id)}</h3>
+    ${lab('Título')}<input id="edAction" style="${inp}" value="${esc(t.action||'')}">
+    ${lab('Cliente')}<select id="edCli" style="${inp}" onchange="edFiltraProd()"><option value="">PD (interna, sem cliente)</option>${ativos.map(c=>`<option value="${esc(c.id)}"${c.id===t.client_id?' selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    ${lab('Produto')}<select id="edProd" style="${inp}"></select>
+    ${lab('Projeto')}<input id="edProj" style="${inp}" value="${esc(t.project||'')}">
+    ${lab('Status')}<select id="edSt" style="${inp}">${STATUS_SD.map(x=>`<option value="${x}"${x===t.status?' selected':''}>${esc(rotStatus(x))}</option>`).join('')}</select>
+    ${lab('Responsável')}<select id="edResp" style="${inp}">${EQUIPE.map(x=>`<option${String(t.resp||'').toUpperCase()===x?' selected':''}>${x}</option>`).join('')}</select>
+    ${lab('Entrega interna')}<input id="edDi" type="date" style="${inp}" value="${String(t.date_int||'').slice(0,10)}">
+    ${lab('Entrega cliente')}<input id="edDc" type="date" style="${inp}" value="${String(t.date_cli||'').slice(0,10)}">
+    ${lab('Briefing')}<textarea id="edObs" rows="7" style="${inp};resize:vertical">${esc(t.obs||'')}</textarea>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end"><button class="btn" onclick="fecharJanela()">Cancelar</button><button class="btn cheio" onclick="salvarTarefaTudo('${id}')">Salvar</button></div></div>`, true);
+  window._edProdAtual = t.product_id || '';
+  edFiltraProd();
+}
+function edFiltraProd(){
+  const c = $('#edCli').value, sel = $('#edProd'); if (!sel) return;
+  const l = (window._edProds||[]).filter(p=>!c || p.client_id===c);
+  sel.innerHTML = '<option value="">Sem produto</option>' + l.map(p=>`<option value="${esc(p.id)}"${p.id===window._edProdAtual?' selected':''}>${esc(p.name)}</option>`).join('');
+}
+async function salvarTarefaTudo(id){
+  const v = x=>($('#'+x)||{}).value;
+  const up = { action:v('edAction').trim()||null, client_id:v('edCli')||null, product_id:v('edProd')||null, project:v('edProj').trim()||null,
+    status:v('edSt'), resp:v('edResp'), date_int:v('edDi')||null, date_cli:v('edDc')||null, obs:v('edObs')||null };
+  try {
+    const { error } = await sbR.from('tasks').update(up).eq('id', id);
+    if (error) throw error;
+    await carregarReal(); atualizarVersoApp(); fecharJanela(); toast(id + ' atualizada.');
+    if (tasksReais.some(x=>x.id===id)) abrirTarefaReal(id); else { fecharTarefa(); render(); }
+  } catch(e){ toast('Não deu: ' + e.message); }
+}
 async function aplicarCampo(id, campo, valor){
   try {
     const { error } = await sbR.from('tasks').update({ [campo]: valor }).eq('id', id);
@@ -10574,7 +10625,7 @@ async function aplicarCampo(id, campo, valor){
     if (campo === 'status' && valor === 'ENTREGUE'){
       fecharTarefa(); toast(`${id} entregue — saiu das abertas. 🎉`); render(); return;
     }
-    toast(campo==='client_id' ? `${id} — cliente atualizado` : campo==='week' ? `${id} — semana atualizada` : `${id} → ${valor}`);
+    toast(campo==='product_id' ? `${id} — produto atualizado` : campo==='client_id' ? `${id} — cliente atualizado` : campo==='week' ? `${id} — semana atualizada` : `${id} → ${valor}`);
     if (!$('#tarefaCheia').classList.contains('oculto')){
       if (aindaAberta) { abrirTarefaReal(id); return; }
       fecharTarefa();
@@ -10630,6 +10681,7 @@ async function abrirTarefaReal(id){
       <button id="tcLike" class="btn cp-b cp-ic" onclick="curtirTarefa('${t.id}')" title="Curtir">${coracaoSvg(false)}</button>
       <button class="btn cp-b cp-ic" onclick="compartilharTarefa(event,'${t.id}')" title="Compartilhar o link da tarefa">${icoMini('compart',15)}</button>
       <span style="flex:1"></span>
+      <button class="btn cp-b" style="padding:0 12px;font-size:12px" onclick="editarTarefaTudo('${t.id}')" title="Editar todos os campos da tarefa">✎ Editar</button>
       <button class="btn cp-b cp-ic" onclick="copiarTarefa('${t.id}',this)" title="Copiar toda a informação da tarefa" aria-label="copiar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
       ${ehAdm ? `<button class="btn cp-b cp-ic" style="color:var(--rosa)" onclick="excluirTarefa(event,'${t.id}')" title="Excluir a tarefa" aria-label="excluir"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/></svg></button>` : ''}
       <button class="acao-cab tc-x" onclick="fecharTarefa()" aria-label="Fechar">✕</button>
@@ -10646,7 +10698,7 @@ async function abrirTarefaReal(id){
     </div>
     <div class="tc-grade ntc-g">
       ${campo9('Cliente', t.clients?.name||'SD', `escolherCliente(event,'${t.id}')`, 'Trocar o cliente')}
-      ${campo9('Produto', t.products?.name)}
+      ${campo9('Produto', t.products?.name, `escolherProduto(event,'${t.id}')`, 'Trocar o produto')}
       ${campo9('Projeto', t.project||'GERAL', `editarInline(event,'${t.id}','project','texto')`)}
       ${campo9('Status', rotStatus(t.status), `escolherStatus(event,'${t.id}')`, 'Mudar o status')}
       ${campo9('Entrega · interna', fmtD(t.date_int), `editarInline(event,'${t.id}','date_int','data')`)}
