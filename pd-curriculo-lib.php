@@ -85,6 +85,14 @@ function pdCurrSalvar($row, $a, $userId) {
 /** Confere os pedidos abertos: se a professora já devolveu o AULA.json, valida e publica. */
 function pdCurrVarrer() {
     if (!pdPonteOk()) return null;
+    // AUTOMÁTICO: curso sem conteúdo e sem nenhum pedido ainda → pede à professora (até 5 por rodada; nunca repete sozinho)
+    try {
+        $tem = array_column(pdAulaSup('/rest/v1/pd_habilidades?select=skill_id&limit=2000')['body'] ?? [], 'skill_id');
+        $pj = pdAulaSup('/rest/v1/pd_curriculo_pedidos?select=skill_id&limit=2000');
+        if (($pj['code'] ?? 500) < 300) { $ja = array_column($pj['body'] ?? [], 'skill_id'); $n = 0;
+            foreach (array_keys(pdCurrDiretrizes()['cursos']) as $c) { if ($n >= 5) break; $sk = pdCurrSkillId($c);
+                if (in_array($sk, $tem, true) || in_array($sk, $ja, true)) continue; $r = pdCurrPedir($c, null); if (!empty($r['ok'])) $n++; } }
+    } catch (Throwable $e) {}
     $rows = pdAulaSup('/rest/v1/pd_curriculo_pedidos?status=eq.pedido&select=*&limit=20')['body'] ?? []; $out = [];
     foreach ((array)$rows as $row) {
         $ch = (array)$row['chamado']; if (empty($ch['saidaId'])) continue;
