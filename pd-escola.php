@@ -297,7 +297,7 @@ if (in_array($acao, ['esc_skills', 'esc_skill_salvar', 'esc_skill_pausar', 'esc_
             foreach ($forms as $f) if ($f['skill_id'] === $k) { $j = $jm[$f['ia_user_id']] ?? []; $pers = strtolower(trim((string)($j['personagem'] ?? $f['personagem'])));
                 $al[] = ['id' => $f['id'], 'ia_user_id' => $f['ia_user_id'], 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'dona' => $nm[$f['ia_user_id']] ?? '', 'ativa' => (bool)$f['ativa'], 'apta' => !empty($f['apta_em'])]; }
             $out[] = ['skill_id' => $k, 'versao' => $h['versao'], 'nome' => $h['nome'], 'finalidade' => $h['finalidade'], 'entradas' => $h['entradas'], 'metodo' => $h['metodo'], 'criterios' => $h['criterios'], 'limites' => $h['limites'],
-                'pausada' => !empty($h['pausada']), 'origem' => $h['origem'] ?? '', 'versoes' => $v['versoes'], 'alunos' => $al, 'aulas' => $ac[$k]['t'] ?? 0, 'validadas' => $ac[$k]['v'] ?? 0]; }
+                'exemplos' => $h['exemplos'] ?? [], 'criada_em' => $h['criada_em'], 'pausada' => !empty($h['pausada']), 'origem' => $h['origem'] ?? '', 'versoes' => $v['versoes'], 'alunos' => $al, 'aulas' => $ac[$k]['t'] ?? 0, 'validadas' => $ac[$k]['v'] ?? 0]; }
         echo json_encode(['skills' => $out], JSON_UNESCAPED_UNICODE); exit;
     }
     if ($acao === 'esc_ias') {   // todas as IAs da casa, para inscrever
@@ -316,6 +316,7 @@ if (in_array($acao, ['esc_skills', 'esc_skill_salvar', 'esc_skill_pausar', 'esc_
             pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid), 'PATCH', ['ativa' => false]); }
         else { $sid = strtoupper(preg_replace('/[^A-Za-z0-9_]/', '', (string)($b['novo_id'] ?? ''))) ?: pdEscSkillId($d['nome']); $ja = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&select=skill_id&limit=1')['body'][0] ?? null; if ($ja) $sid .= '_' . substr(md5((string)microtime(true)), 0, 4); $pausada = false; }
         $r = pdAulaSup('/rest/v1/pd_habilidades', 'POST', ['skill_id' => $sid, 'versao' => $ver, 'nome' => $d['nome'], 'finalidade' => $d['finalidade'], 'entradas' => $d['entradas'], 'metodo' => $d['metodo'], 'criterios' => $d['criterios'], 'limites' => $d['limites'],
+            'exemplos' => array_values(array_filter([trim((string)($b['exemplo_bom'] ?? '')) !== '' ? ['tipo' => 'bom', 'texto' => mb_substr(trim((string)$b['exemplo_bom']), 0, 3000)] : null, trim((string)($b['exemplo_ruim'] ?? '')) !== '' ? ['tipo' => 'ruim', 'texto' => mb_substr(trim((string)$b['exemplo_ruim']), 0, 3000)] : null])),
             'ativa' => !$pausada, 'pausada' => $pausada, 'origem' => in_array($b['origem'] ?? '', ['doc', 'manual'], true) ? $b['origem'] : 'manual', 'notas_versao' => mb_substr((string)($b['notas'] ?? ''), 0, 500), 'criada_por' => $u['id']]);
         if (($r['code'] ?? 500) >= 300) sd_fail('Não salvou a skill: ' . mb_substr(json_encode($r['body'] ?? '', JSON_UNESCAPED_UNICODE), 0, 200), 500);
         echo json_encode(['ok' => true, 'skill_id' => $sid, 'versao' => $ver]); exit;

@@ -3,98 +3,114 @@
 <title>Escola — bastidores — Pontodot</title><meta name="robots" content="noindex,nofollow">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.12);--soft:#f5f5f3;--ok:#1f8a55;--bad:#c63d32;--mid:#c8941a;--bg:#fff}
 @media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.14);--soft:#1b1c1e;--bg:#121212}}
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.5 "Inter Tight",system-ui,sans-serif}
-/* barras de rolagem sempre visíveis */
-*{scrollbar-width:auto;scrollbar-color:rgba(128,128,128,.6) transparent}
+*{box-sizing:border-box;scrollbar-width:auto;scrollbar-color:rgba(128,128,128,.6) transparent}
 ::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-thumb{background:rgba(128,128,128,.55);border-radius:8px;border:3px solid transparent;background-clip:content-box}
-.app{display:grid;grid-template-columns:340px 1fr;height:100%}@media(max-width:820px){.app{grid-template-columns:1fr}.app.det .lista{display:none}.app:not(.det) .detalhe{display:none}}
-.lista{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-.topo{padding:14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
-.topo h1{font-size:19px;margin:0;letter-spacing:-.02em;font-weight:600}.sub{color:var(--gray);font-size:12.5px}
-.rol{overflow-y:scroll;flex:1;padding:8px}
-.btn{font:500 13px "Inter Tight";padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.r{color:var(--bad);border-color:var(--bad)}.btn:disabled{opacity:.4}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.sk{padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin:6px 0;cursor:pointer;background:var(--soft)}.sk.on{border-color:var(--ink)}
-.sk b{font-weight:600}.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--gray);margin-left:4px}.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.par{color:var(--mid);border-color:var(--mid)}
-.faces{display:flex;margin-top:6px}.faces img{width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid var(--soft);margin-right:-6px;background:var(--line)}.faces img.off{filter:grayscale(1);opacity:.5}
-.detalhe{overflow-y:scroll;min-height:0;display:flex;flex-direction:column}
-.dtopo{position:sticky;top:0;background:var(--bg);z-index:3;padding:12px 18px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.dc{padding:16px 18px 60px;max-width:860px}
-h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin:24px 0 8px;font-weight:600}
-label{display:block;font-size:12px;color:var(--gray);margin:12px 0 4px}
-input,select,textarea{width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}textarea{min-height:90px;resize:vertical}
-.al{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.al img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--line)}.al .t{flex:1}
-.box{border:1px dashed var(--line);border-radius:12px;padding:14px;background:var(--soft)}
-.msg{padding:50px 20px;text-align:center;color:var(--gray)}.aviso{padding:9px 14px;font-size:13px;background:var(--soft);border-bottom:1px solid var(--line)}
-.ver{font-size:12.5px;color:var(--gray);padding:3px 0}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.5 "Inter Tight",system-ui,sans-serif}
+.topo{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.topo h1{font-size:20px;margin:0 8px 0 0;font-weight:600;letter-spacing:-.02em}.topo .sp{flex:1}
+.btn{font:500 13px "Inter Tight";padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.r{color:var(--bad);border-color:var(--bad)}
+.dica{padding:10px 22px;color:var(--gray);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;padding:6px 22px 60px}
+.card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--soft);cursor:pointer;display:flex;flex-direction:column}.card:hover{border-color:var(--ink)}
+.capa{height:130px;background:#222 center/cover;position:relative}.capa i{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.55))}
+.capa b{position:absolute;left:12px;bottom:8px;color:#fff;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+.cc{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}.cc h3{margin:0;font-size:15px;font-weight:600;line-height:1.25}.cc p{margin:0;color:var(--gray);font-size:12.5px;line-height:1.4}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--gray)}.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.par{color:var(--mid);border-color:var(--mid)}.tag.vz{color:var(--gray);border-style:dashed}
+.faces{display:flex;align-items:center;margin-top:auto}.faces img{width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid var(--soft);margin-right:-6px;background:var(--line)}.faces span{margin-left:12px;font-size:12px;color:var(--gray)}
+.fundo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none}.fundo.on{display:block}
+.gav{position:fixed;top:0;right:0;bottom:0;width:min(620px,100%);background:var(--bg);z-index:21;border-left:1px solid var(--line);display:none;flex-direction:column}.gav.on{display:flex}
+.gtopo{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}.gtopo .sp{flex:1}
+.gcorpo{overflow-y:scroll;flex:1;padding:0 0 50px}
+.gcapa{height:150px;background:#222 center/cover;position:relative}.gcapa i{position:absolute;inset:0;background:linear-gradient(transparent 30%,rgba(0,0,0,.65))}.gcapa h2{position:absolute;left:20px;bottom:14px;right:20px;margin:0;color:#fff;font-size:22px;font-weight:600;line-height:1.2}
+.pad{padding:0 20px}.met{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 4px}.met div{background:var(--bg);padding:12px 14px}.met b{display:block;font-size:20px;font-weight:600}.met small{color:var(--gray);font-size:11.5px}
+h4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin:22px 0 8px;font-weight:600}
+.pre{white-space:pre-wrap;margin:0;font-size:13.5px;line-height:1.55}ul{margin:0;padding-left:18px;font-size:13.5px}
+.al{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}.al img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--line)}.al .t{flex:1;font-size:13.5px}.al .t small{color:var(--gray);display:block}
+.vz{padding:18px;border:1px dashed var(--line);border-radius:12px;color:var(--gray);font-size:13.5px}
+.ver{display:flex;gap:10px;padding:6px 0;font-size:13px}.ver b{min-width:36px}.ver span{color:var(--gray)}
+select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.msg{padding:60px;text-align:center;color:var(--gray)}.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;z-index:40;display:none}
 </style></head><body>
-<div class="app" id="app"><div class="msg" style="grid-column:1/-1">Carregando…</div></div>
+<div class="topo"><h1>Escola — bastidores</h1>
+  <button class="btn p" onclick="baixarModelo()">Baixar planilha padrão</button>
+  <button class="btn" onclick="$('#arq').click()">Subir planilha preenchida</button><input type="file" id="arq" accept=".xlsx,.xls" style="display:none" onchange="subirPlanilha(this)">
+  <span class="sp"></span><select id="filtro" onchange="draw()"><option value="">Todas</option><option value="ativa">Com conteúdo</option><option value="vazia">Sem conteúdo</option><option value="parada">Paradas</option></select></div>
+<div class="dica">A operação é simples: baixe a planilha, peça ao Claude ou ao GPT para preencher (ex.: "preencha com a skill de fazer post"), e suba aqui. Se a aula já existe, vira uma nova versão.</div>
+<div id="grid" class="grid"><div class="msg">Carregando…</div></div>
+<div class="fundo" id="fundo" onclick="fecha()"></div><div class="gav" id="gav"></div><div class="toast" id="toast"></div>
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let NOVO_ID='',CURSO='',sb,ses,SK=[],IAS=[],SEL=null,MODO='ver',PROP=null,PROP_ALVO='',MSG='',BUSY=false;
+// os cursos da Escola agêntica (a persona é a capa) — o conteúdo de cada um vem da planilha
+const CURSOS=[['nix','Abrir alternativas e escolher uma','Criação'],['iro','Experiências pequenas de campanha','Criação'],['zumi','Alternativas em conversa','Conteúdo'],['nami','Estrutura de landing page','Páginas e sites','LP_ESTRUTURA'],['kiro','Revisão estrutural','Estratégia','LP_REVISAO_ESTRUTURA'],['sago','Briefing sem lacuna','Atendimento'],['oru','Comparar e sintetizar critérios','Estratégia'],['sumi','Leitura de resultados de anúncios','Mídia'],['brum','Do pedido ao plano com prazos','Operação'],['taro','A próxima ação verificável','Operação'],['koda','Continuidade e riscos sem drama','Gestão'],['boku','Orçamento de produção','Operação'],['gigi','Alinhar expectativas','Atendimento'],['raku','Feedback e acordos com clareza','Atendimento'],['tumi','Conexões úteis entre pessoas e ideias','Rede'],['muru','Acompanhar no ritmo de cada um','Acompanhamento']].map(c=>({curso:c[0],titulo:c[1],area:c[2],skill:c[3]||'CURSO_'+c[0].toUpperCase()}));
+let sb,ses,SK=[],IAS=[],SEL=null;
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',3500)};
 async function api(b){const r=await fetch('/pd-escola.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
-  if(!ses){$('#app').innerHTML='<div class="msg" style="grid-column:1/-1">Entre na plataforma para abrir os bastidores.</div>';return;}
-  await carrega();
-  const qc=new URLSearchParams(location.search).get('curso');if(qc){CURSO=qc;const sid='CURSO_'+qc.toUpperCase().replace(/[^A-Z0-9]/g,'');if(SK.some(x=>x.skill_id===sid))novo('doc',sid);else{NOVO_ID=sid;novo('doc');}}}
-async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;}catch(e){$('#app').innerHTML='<div class="msg" style="grid-column:1/-1">'+esc(e.message)+'</div>';return;}draw();}
+  if(!ses){$('#grid').innerHTML='<div class="msg">Entre na plataforma para abrir os bastidores.</div>';return;}
+  await carrega();const qc=new URLSearchParams(location.search).get('curso');if(qc){const c=CURSOS.find(x=>x.curso===qc);if(c)abre(c.skill);}}
+async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 const face=p=>'/pd/personagens/'+encodeURIComponent(p||'')+'/avatar.jpg';
-function cur(){return SK.find(s=>s.skill_id===SEL);}
-function lista(){return `<div class="lista"><div class="topo"><h1>Escola — bastidores</h1><div class="sub">Cada skill é uma aula real. Inscreva as IAs, melhore, pare ou suba um documento novo.</div>
- <div class="row"><button class="btn p" onclick="novo('doc')">Subir documento</button><button class="btn" onclick="novo('manual')">Nova skill</button></div></div>
- <div class="rol">${SK.map(s=>{const ativos=s.alunos.filter(a=>a.ativa);return `<div class="sk ${s.skill_id===SEL&&MODO==='ver'?'on':''}" onclick="abre('${esc(s.skill_id)}')"><b>${esc(s.nome)}</b>
-  <span class="tag">v${s.versao}</span><span class="tag ${s.pausada?'par':'ok'}">${s.pausada?'parada':'ativa'}</span>
-  <div class="sub">${esc((s.finalidade||'').slice(0,110))}</div>
-  <div class="faces">${s.alunos.slice(0,8).map(a=>`<img class="${a.ativa?'':'off'}" src="${face(a.personagem)}" title="${esc(a.nome)} · IA do ${esc(a.dona)}">`).join('')}</div>
-  <div class="sub" style="margin-top:8px">${ativos.length} estudando · ${s.alunos.filter(a=>a.apta).length} aptas · ${s.aulas} aulas</div></div>`}).join('')||'<div class="msg">Nenhuma skill ainda.</div>'}</div></div>`;}
-function campos(d,id){return `<label>Nome</label><input id="${id}n" value="${esc(d.nome)}">
- <label>Finalidade (o que a IA passa a saber fazer)</label><textarea id="${id}f">${esc(d.finalidade)}</textarea>
- <label>Entradas — o que precisa chegar (uma por linha)</label><textarea id="${id}e">${esc((d.entradas||[]).join('\n'))}</textarea>
- <label>Método — passos e o que a IA decide sozinha</label><textarea id="${id}m" style="min-height:200px">${esc(d.metodo)}</textarea>
- <label>Critérios observáveis de revisão (um por linha)</label><textarea id="${id}c">${esc((d.criterios||[]).join('\n'))}</textarea>
- <label>Limites — o que exige humano</label><textarea id="${id}l">${esc(d.limites)}</textarea>`;}
-function ler(id){const L=x=>$('#'+id+x).value.split('\n').map(s=>s.trim()).filter(Boolean);return{nome:$('#'+id+'n').value,finalidade:$('#'+id+'f').value,entradas:L('e'),metodo:$('#'+id+'m').value,criterios:L('c'),limites:$('#'+id+'l').value};}
-function detalhe(){
- if(MODO==='doc')return `<div class="detalhe"><div class="dtopo"><b style="flex:1">Subir documento</b><button class="btn" onclick="MODO='ver';draw()">Cancelar</button></div><div class="dc">
-  ${CURSO?`<div class="aviso" style="border:1px solid var(--line);border-radius:10px;margin-bottom:10px">Aula vinculada ao curso <b>${esc(CURSO)}</b> da Escola agêntica.</div>`:''}<div class="box">Suba um documento feito com Claude ou GPT (.docx, .md, .txt) ou cole o texto. A plataforma lê e propõe uma skill — você revisa antes de salvar.</div>
-  <label>O que fazer com ele</label><select id="alvo" onchange="PROP_ALVO=this.value"><option value="">Criar uma skill/aula NOVA</option>${SK.map(s=>`<option value="${esc(s.skill_id)}" ${PROP_ALVO===s.skill_id?'selected':''}>Melhorar: ${esc(s.nome)} (v${s.versao} → v${s.versao+1})</option>`).join('')}</select>
-  <label>Arquivo</label><input type="file" id="arq" accept=".docx,.md,.txt,.markdown" onchange="lerArq(this)">
-  <label>ou cole o texto</label><textarea id="txt" style="min-height:220px"></textarea>
-  <div class="row" style="margin-top:12px"><button class="btn p" id="bAnalisa" onclick="analisa()" ${BUSY?'disabled':''}>${BUSY?'Lendo…':'Ler e propor skill'}</button></div>
-  ${PROP?`<h2>Proposta — revise e salve</h2>${campos(PROP,'p')}<label>O que esta versão traz de novo</label><input id="pnotas" value="${esc(PROP.notas||'')}">
-  <div class="row" style="margin-top:14px"><button class="btn p" onclick="salvar('p',PROP_ALVO,'doc')">${PROP_ALVO?'Salvar como nova versão':'Criar skill'}</button></div>`:''}</div></div>`;
- if(MODO==='manual')return `<div class="detalhe"><div class="dtopo"><b style="flex:1">Nova skill</b><button class="btn p" onclick="salvar('n','','manual')">Criar skill</button><button class="btn" onclick="MODO='ver';draw()">Cancelar</button></div><div class="dc">${campos({},'n')}</div></div>`;
- const s=cur();if(!s)return `<div class="detalhe"><div class="msg">Escolha uma skill à esquerda ou suba um documento.</div></div>`;
- const livres=IAS.filter(i=>!s.alunos.some(a=>a.ia_user_id===i.ia_user_id));
- return `<div class="detalhe"><div class="dtopo"><b style="flex:1;font-size:16px">${esc(s.nome)} <span class="tag">v${s.versao}</span><span class="tag ${s.pausada?'par':'ok'}">${s.pausada?'parada':'ativa'}</span></b>
-  <button class="btn p" onclick="salvar('d','${esc(s.skill_id)}','manual')">Salvar nova versão</button>
-  <button class="btn" onclick="pausar('${esc(s.skill_id)}',${!s.pausada})">${s.pausada?'Voltar com a aula':'Parar a aula'}</button>
-  <button class="btn" onclick="novo('doc','${esc(s.skill_id)}')">Melhorar com documento</button>
-  <button class="btn r" onclick="apagar('${esc(s.skill_id)}')">Apagar</button><button class="btn" onclick="fecha()" style="display:none" id="bvolta">Voltar</button></div>
-  ${MSG?`<div class="aviso">${esc(MSG)}</div>`:''}<div class="dc">
-  <h2>Quem está estudando (${s.alunos.length})</h2>
-  ${s.alunos.map(a=>`<div class="al"><img src="${face(a.personagem)}"><div class="t"><b>${esc(a.nome)}</b> · IA do ${esc(a.dona||'—')}<div class="sub">${a.apta?'apta':'estudando'}${a.ativa?'':' · parada'}</div></div>
-   <button class="btn" onclick="aluno('${esc(s.skill_id)}','${a.ia_user_id}','${a.ativa?'parar':'retomar'}')">${a.ativa?'Parar':'Retomar'}</button><button class="btn r" onclick="aluno('${esc(s.skill_id)}','${a.ia_user_id}','remover')">Tirar</button></div>`).join('')||'<div class="sub">Ninguém inscrito ainda.</div>'}
-  <div class="row" style="margin-top:12px"><select id="insc" style="max-width:340px"><option value="">Inscrever uma IA…</option>${livres.map(i=>`<option value="${i.ia_user_id}">${esc(i.nome)} · IA do ${esc(i.dona)}</option>`).join('')}</select><button class="btn" onclick="aluno('${esc(s.skill_id)}',$('#insc').value,'matricular')">Inscrever</button></div>
-  <h2>Conteúdo da aula (editável)</h2>${campos(s,'d')}<label>O que muda nesta versão</label><input id="dnotas" placeholder="ex.: incluí regra de CTA">
-  <h2>Versões</h2>${s.versoes.map(v=>`<div class="ver">v${v.versao} · ${new Date(v.criada_em).toLocaleDateString('pt-BR')}${v.origem?' · '+esc(v.origem):''}${v.notas?' — '+esc(v.notas):''}</div>`).join('')}
-  <div class="sub" style="margin-top:14px">${s.aulas} aulas feitas · ${s.validadas} validadas</div></div></div>`;}
-function draw(){$('#app').className='app'+(SEL||MODO!=='ver'?' det':'');$('#app').innerHTML=lista()+detalhe();const b=$('#bvolta');if(b&&innerWidth<=820)b.style.display='';}
-function abre(id){SEL=id;MODO='ver';MSG='';draw();}
-function fecha(){SEL=null;MODO='ver';draw();}
-function novo(m,alvo){MODO=m;PROP=null;PROP_ALVO=alvo||'';MSG='';draw();}
-async function lerArq(inp){const f=inp.files[0];if(!f)return;let t='';try{if(/\.docx$/i.test(f.name)){t=(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value;}else t=await f.text();}catch(e){MSG='Não consegui ler o arquivo.';}$('#txt').value=t;}
-async function analisa(){const t=$('#txt').value;PROP_ALVO=$('#alvo').value;BUSY=true;draw();$('#txt').value=t;
- try{const r=await api({acao:'esc_skill_doc',texto:t,skill_id:PROP_ALVO});PROP=Object.assign({},r.proposta);}catch(e){alert(e.message);}BUSY=false;const keep=t;draw();$('#txt').value=keep;}
-async function salvar(id,skill,origem){const d=ler(id);d.acao='esc_skill_salvar';d.skill_id=skill;if(!skill&&NOVO_ID)d.novo_id=NOVO_ID;d.origem=origem;d.notas=(id==='p'?$('#pnotas'):id==='d'?$('#dnotas'):{value:''}).value;
- try{const r=await api(d);SEL=r.skill_id;MODO='ver';PROP=null;await carrega();MSG='Salva: versão '+r.versao+'.';draw();}catch(e){alert(e.message);}}
-async function pausar(id,pz){try{await api({acao:'esc_skill_pausar',skill_id:id,pausada:pz});await carrega();MSG=pz?'Aula parada: nenhuma prova nova nasce.':'Aula de volta.';draw();}catch(e){alert(e.message);}}
-async function apagar(id){if(!confirm('Apagar esta skill e as inscrições? As aulas já feitas ficam no histórico.'))return;try{await api({acao:'esc_skill_apagar',skill_id:id,confirmo:true});SEL=null;await carrega();}catch(e){alert(e.message);}}
-async function aluno(sk,ia,fz){if(!ia)return;try{await api({acao:'esc_aluno',skill_id:sk,ia_user_id:ia,fazer:fz});await carrega();}catch(e){alert(e.message);}}
+const sk=id=>SK.find(s=>s.skill_id===id);
+// um card por curso da escola + um por skill de trabalho que não é curso
+function itens(){const usados=new Set(CURSOS.map(c=>c.skill));
+  const a=CURSOS.map(c=>({id:c.skill,curso:c.curso,titulo:sk(c.skill)?sk(c.skill).nome:c.titulo,area:c.area,capa:'/pd/personagens/'+c.curso+'/nascimento.jpg',s:sk(c.skill)}));
+  const b=SK.filter(s=>!usados.has(s.skill_id)).map(s=>({id:s.skill_id,curso:'',titulo:s.nome,area:'Skill de trabalho',capa:'',s}));return a.concat(b);}
+function estado(i){return !i.s?'vazia':i.s.pausada?'parada':'ativa';}
+function draw(){const f=$('#filtro').value;$('#grid').innerHTML=itens().filter(i=>!f||estado(i)===f).map(i=>{const s=i.s,e=estado(i),al=s?s.alunos.filter(a=>a.ativa):[];
+  return `<div class="card" onclick="abre('${esc(i.id)}')"><div class="capa" style="${i.capa?`background-image:url(${i.capa})`:'background:linear-gradient(135deg,#2a2d35,#14161a)'}"><i></i><b>${esc(i.area)}</b></div>
+  <div class="cc"><h3>${esc(i.titulo)}</h3><div><span class="tag ${e==='ativa'?'ok':e==='parada'?'par':'vz'}">${e==='ativa'?'v'+s.versao:e==='parada'?'parada':'sem conteúdo'}</span></div>
+  <p>${esc(s?(s.finalidade||'').slice(0,100):'Baixe a planilha, preencha e suba.')}</p>
+  <div class="faces">${al.slice(0,6).map(a=>`<img src="${face(a.personagem)}" title="${esc(a.nome)} · IA do ${esc(a.dona)}">`).join('')}<span>${al.length} estudando</span></div></div></div>`}).join('');}
+function itemDe(id){return itens().find(i=>i.id===id);}
+function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
+  const taxa=s&&s.aulas?Math.round(100*s.validadas/s.aulas)+'%':'—';
+  const livres=IAS.filter(x=>!(s?s.alunos:[]).some(a=>a.ia_user_id===x.ia_user_id));
+  $('#gav').innerHTML=`<div class="gtopo"><button class="btn" onclick="baixarModelo('${esc(id)}')">Baixar planilha${s?' desta aula':''}</button><button class="btn p" onclick="$('#arq').click()">Subir planilha</button><span class="sp"></span>
+    ${s?`<button class="btn" onclick="pausar('${esc(id)}',${!s.pausada})">${s.pausada?'Voltar com a aula':'Parar a aula'}</button><button class="btn r" onclick="apagar('${esc(id)}')">Apagar</button>`:''}<button class="btn" onclick="fecha()">✕</button></div>
+  <div class="gcorpo"><div class="gcapa" style="${i.capa?`background-image:url(${i.capa})`:'background:linear-gradient(135deg,#2a2d35,#14161a)'}"><i></i><h2>${esc(i.titulo)}</h2></div>
+  ${s?`<div class="met"><div><b>${s.alunos.filter(a=>a.ativa).length}</b><small>estudando</small></div><div><b>${taxa}</b><small>aproveitamento</small></div><div><b>v${s.versao}</b><small>versão</small></div><div><b>${s.aulas}</b><small>aulas feitas</small></div></div>
+  <div class="pad"><h4>Objetivo</h4><p class="pre">${esc(s.finalidade)}</p>
+  <h4>Como a IA faz</h4><p class="pre">${esc(s.metodo)}</p>
+  ${(s.entradas||[]).length?`<h4>O que precisa chegar</h4><ul>${s.entradas.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+  <h4>Como se avalia</h4><ul>${(s.criterios||[]).map(x=>`<li>${esc(typeof x==='string'?x:x.criterio)}</li>`).join('')}</ul>
+  ${s.limites?`<h4>O que fica com a pessoa</h4><p class="pre">${esc(s.limites)}</p>`:''}
+  ${(s.exemplos||[]).map(x=>`<h4>Exemplo ${x.tipo==='ruim'?'ruim':'bom'}</h4><p class="pre">${esc(x.texto)}</p>`).join('')}
+  <h4>Quem está estudando</h4>${s.alunos.map(a=>`<div class="al"><img src="${face(a.personagem)}"><div class="t"><b>${esc(a.nome)}</b> · IA do ${esc(a.dona||'—')}<small>${a.apta?'apta':'estudando'}${a.ativa?'':' · parada'}</small></div>
+    <button class="btn" onclick="aluno('${esc(id)}','${a.ia_user_id}','${a.ativa?'parar':'retomar'}')">${a.ativa?'Parar':'Retomar'}</button><button class="btn r" onclick="aluno('${esc(id)}','${a.ia_user_id}','remover')">Tirar</button></div>`).join('')||'<div class="vz">Ninguém inscrito ainda.</div>'}
+  <div style="display:flex;gap:8px;margin-top:12px"><select id="insc" style="flex:1"><option value="">Inscrever uma IA…</option>${livres.map(x=>`<option value="${x.ia_user_id}">${esc(x.nome)} · IA do ${esc(x.dona)}</option>`).join('')}</select><button class="btn" onclick="aluno('${esc(id)}',$('#insc').value,'matricular')">Inscrever</button></div>
+  <h4>Histórico de versões</h4>${s.versoes.map(v=>`<div class="ver"><b>v${v.versao}</b><div>${v.notas?esc(v.notas):'<span>—</span>'}<br><span>${new Date(v.criada_em).toLocaleDateString('pt-BR')}${v.origem?' · '+esc(v.origem):''}</span></div></div>`).join('')}</div>`
+  :`<div class="pad"><h4>Conteúdo</h4><div class="vz">Esta aula ainda não tem conteúdo. Baixe a planilha (já vem ligada a este curso), peça ao Claude ou ao GPT para preencher e suba de volta.</div></div>`}</div>`;
+  $('#fundo').classList.add('on');$('#gav').classList.add('on');}
+function fecha(){SEL=null;$('#fundo').classList.remove('on');$('#gav').classList.remove('on');}
+// ---------- a planilha padrão ----------
+const CAMPOS=[['ID_DA_AULA','Deixe como está. Vazio = aula nova; preenchido = nova versão desta aula.'],['CURSO','Curso da Escola ao qual esta aula pertence (nix, iro, zumi, nami, kiro, sago, oru, sumi, brum, taro, koda, boku, gigi, raku, tumi, muru). Pode ficar vazio.'],['NOME','Nome curto da aula/skill. Ex.: Arte de post (feed 1080×1080).'],['OBJETIVO','Para que serve: o que a IA passa a saber fazer, em 1 ou 2 frases.'],['ENTRADAS','O que precisa chegar para a IA trabalhar. Uma por linha.'],['METODO','Passo a passo e o que a IA decide sozinha. Texto corrido, passos numerados.'],['CRITERIOS','Como se avalia o resultado: critérios observáveis, um por linha (mínimo 2).'],['LIMITES','O que exige decisão humana (publicar, preço, prometer ao cliente…).'],['EXEMPLO_BOM','Um exemplo de entrega boa (opcional).'],['EXEMPLO_RUIM','Um exemplo de entrega ruim, com o motivo (opcional).'],['O_QUE_MUDOU','Só para versão nova: o que esta versão traz de novo, em 1 frase.']];
+function baixarModelo(id){const i=id?itemDe(id):null,s=i&&i.s;
+  const v={ID_DA_AULA:s?s.skill_id:'',CURSO:i&&i.curso||'',NOME:s?s.nome:(i?i.titulo:''),OBJETIVO:s?s.finalidade:'',ENTRADAS:s?(s.entradas||[]).join('\n'):'',METODO:s?s.metodo:'',CRITERIOS:s?(s.criterios||[]).map(x=>typeof x==='string'?x:x.criterio).join('\n'):'',LIMITES:s?s.limites:'',EXEMPLO_BOM:s?((s.exemplos||[]).find(x=>x.tipo!=='ruim')||{}).texto||'':'',EXEMPLO_RUIM:s?((s.exemplos||[]).find(x=>x.tipo==='ruim')||{}).texto||'':'',O_QUE_MUDOU:''};
+  if(i&&!s&&i.id&&!i.curso)v.ID_DA_AULA=i.id;
+  if(i&&!s&&i.curso)v.ID_DA_AULA='';
+  const wb=XLSX.utils.book_new();
+  const a=XLSX.utils.aoa_to_sheet([['CAMPO','O QUE RESPONDER','RESPOSTA (preencha só esta coluna)']].concat(CAMPOS.map(c=>[c[0],c[1],v[c[0]]||''])));a['!cols']=[{wch:16},{wch:70},{wch:100}];
+  XLSX.utils.book_append_sheet(wb,a,'Aula');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['COMO USAR'],['1. Preencha somente a coluna C da aba "Aula". Não mude as colunas A e B nem os nomes das abas.'],['2. Use só o que está nos documentos ou na skill de origem. Se não souber, deixe vazio — não invente.'],['3. Suba o arquivo em Escola — bastidores › Subir planilha preenchida.'],['4. Se ID_DA_AULA estiver preenchido, vira uma nova versão; vazio, cria a aula (e liga ao CURSO, se informado).']]),'Leia-me');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ID_DA_AULA','NOME','CURSO','VERSAO']].concat(itens().map(x=>[x.s?x.s.skill_id:x.id,x.titulo,x.curso,x.s?x.s.versao:'sem conteúdo']))),'Aulas existentes');
+  XLSX.writeFile(wb,s?'aula-'+s.skill_id.toLowerCase()+'.xlsx':'pontodot-aula-modelo.xlsx');}
+async function subirPlanilha(inp){const f=inp.files[0];inp.value='';if(!f)return;
+  try{const wb=XLSX.read(await f.arrayBuffer());const ws=wb.Sheets['Aula'];if(!ws)throw new Error('Não achei a aba "Aula". Use a planilha padrão.');
+    const v={};XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).forEach(r=>{if(r[0])v[String(r[0]).trim()]=String(r[2]??'').trim();});
+    const L=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
+    if(!v.NOME)throw new Error('Falta o NOME da aula.');if(L(v.CRITERIOS).length<2)throw new Error('Coloque pelo menos 2 CRITERIOS (um por linha).');if(!v.OBJETIVO||!v.METODO)throw new Error('Faltam OBJETIVO e/ou METODO.');
+    let id=(v.ID_DA_AULA||'').toUpperCase(),curso=(v.CURSO||'').toLowerCase();let novo='';
+    if(!id&&curso){const c=CURSOS.find(x=>x.curso===curso);if(c){if(sk(c.skill))id=c.skill;else novo=c.skill;}}
+    if(id&&!sk(id)){novo=id;id='';}
+    const r=await api({acao:'esc_skill_salvar',skill_id:id,novo_id:novo,nome:v.NOME,finalidade:v.OBJETIVO,entradas:L(v.ENTRADAS),metodo:v.METODO,criterios:L(v.CRITERIOS),limites:v.LIMITES,exemplo_bom:v.EXEMPLO_BOM,exemplo_ruim:v.EXEMPLO_RUIM,notas:v.O_QUE_MUDOU,origem:'doc'});
+    await carrega();toast('Pronto: '+v.NOME+' · versão '+r.versao);abre(r.skill_id);}catch(e){toast(e.message);}}
+async function pausar(id,pz){try{await api({acao:'esc_skill_pausar',skill_id:id,pausada:pz});await carrega();abre(id);}catch(e){toast(e.message);}}
+async function apagar(id){if(!confirm('Apagar esta aula e as inscrições? As aulas já feitas ficam no histórico.'))return;try{await api({acao:'esc_skill_apagar',skill_id:id,confirmo:true});fecha();await carrega();}catch(e){toast(e.message);}}
+async function aluno(sid,ia,fz){if(!ia)return;try{await api({acao:'esc_aluno',skill_id:sid,ia_user_id:ia,fazer:fz});await carrega();abre(sid);}catch(e){toast(e.message);}}
 boot();
 </script></body></html>
