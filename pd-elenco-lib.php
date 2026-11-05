@@ -108,7 +108,7 @@ function pdPedidosRodar($max = 2) {
         } catch (Throwable $e) { $ok = false; $resp = 'Deu erro ao executar: ' . mb_substr($e->getMessage(), 0, 160); }
         // GARIMPO NÃO DESISTE: sem novidade, tenta de novo com outros termos ao longo do dia (até 10 tentativas, a cada 40 min)
         $tent = (int)($c0['tentativas'] ?? 0) + 1;
-        if (!$ok && ($ped['para_ia'] ?? '') === 'tumi' && $tent < 10 && preg_match('/já estava na carteira|não achei empresas|não devolveu uma lista|Não consegui garimpar agora: (a busca|tudo|não achei|a IA)/u', $resp) && !preg_match('/teto|SD_ANTHROPIC_KEY/u', $resp)) {
+        if (!$ok && ($ped['para_ia'] ?? '') === 'tumi' && $tent < 10 && preg_match('/já estava na carteira|não achei empresas|não devolveu uma lista|não consegui gravar|banco recusou|HTTP 0|Não consegui garimpar agora: (a busca|tudo|não achei|a IA)/u', $resp) && !preg_match('/teto|SD_ANTHROPIC_KEY/u', $resp)) {
             sd_supabase('/rest/v1/pd_ia_pedidos?id=eq.' . $ped['id'], 'PATCH', ['estado' => 'novo', 'iniciado_em' => null, 'resposta' => 'Tentativa ' . $tent . ' sem empresas novas; sigo procurando com outros termos.', 'contexto' => array_merge($c0, ['tentativas' => $tent, 'proxima_em' => gmdate('c', time() + 2400)])]);
             if ($tent === 1) { try { $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$ped['de_user']) . '&select=zap')['body'][0] ?? null;
                 if ($pf && !empty($pf['zap']) && function_exists('pdZapEnviar')) pdZapEnviar(pdZapNormaliza((string)$pf['zap']), '🔁 Tumi: a primeira rodada só trouxe empresas que já estavam na carteira. Não desisti: vou procurar o dia todo, mudando termos e cidades, e te aviso quando juntar as novas.', true); } catch (Throwable $e) {} }

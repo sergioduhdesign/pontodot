@@ -4,6 +4,7 @@
 require_once __DIR__ . '/sd-base.php';
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-vendas-lib.php';
+require_once __DIR__ . '/pd-lib.php';
 header('Content-Type: application/json; charset=utf-8');
 @set_time_limit(240);
 $u = sd_current_user();
@@ -33,6 +34,12 @@ switch ($acao) {
     case 'lote_criar':
         $r = vdLoteCriar(vdFiltroQs($b, $cart), trim((string)($b['nome'] ?? '')) ?: 'Lote ' . date('d/m H:i'), (int)($b['max'] ?? 500), $cart, $u['id'], (string)($b['motivo'] ?? '') ?: null);
         if (!empty($r['erro'])) sd_fail($r['erro'], 500); $out(['r' => $r]); break;
+    case 'pedidos_reabrir':   // pedidos ao Tumi que morreram com erro nas últimas 24h voltam pra fila agora (sem pedir de novo)
+        $ps = vdLinhas(vdSup('/rest/v1/pd_ia_pedidos?para_ia=eq.tumi&estado=eq.erro&criado_em=gte.' . rawurlencode(gmdate('c', time() - 86400)) . '&select=id,contexto')); $n = 0;
+        foreach ($ps as $pp) { $cx = is_array($pp['contexto'] ?? null) ? $pp['contexto'] : (json_decode((string)($pp['contexto'] ?? ''), true) ?: []); unset($cx['proxima_em']); $cx['tentativas'] = 0;
+            $w = vdSup('/rest/v1/pd_ia_pedidos?id=eq.' . $pp['id'], 'PATCH', ['estado' => 'novo', 'iniciado_em' => null, 'concluido_em' => null, 'resposta' => 'Reaberto: tentando de novo agora.', 'contexto' => $cx]); if (($w['code'] ?? 500) < 300) $n++; }
+        if ($n && function_exists('pdAcordaRelogio')) pdAcordaRelogio();
+        $out(['reabertos' => $n]); break;
     case 'descobrir':
         $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
     case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
