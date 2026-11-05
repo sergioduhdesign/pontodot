@@ -3107,9 +3107,10 @@ function clearFilters(){
 }
 function updateClearBtn(){document.getElementById('clear-btn').style.display=(fSearch||fClient||fResp||fStatus||fProduct)?'':'none';}
 
+const _nrResp=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
 function applyFilters(){
   if(fSearch){filtered=TagSearch.filter(tasks,clients,products,fSearch);}
-  else{filtered=tasks.filter(t=>{if(t.clients?.active===false&&!fClient)return false;if(fClient&&t.client_id!==fClient)return false;if(fResp&&t.resp!==fResp)return false;if(fStatus&&t.status!==fStatus)return false;if(fProduct&&t.product_id!==fProduct)return false;return true;});}
+  else{filtered=tasks.filter(t=>{if(t.clients?.active===false&&!fClient)return false;if(fClient&&t.client_id!==fClient)return false;if(fResp&&_nrResp(t.resp)!==_nrResp(fResp))return false;if(fStatus&&t.status!==fStatus)return false;if(fProduct&&t.product_id!==fProduct)return false;return true;});}
   if(customRangeStart&&customRangeEnd){
     filtered=filtered.filter(t=>{const d=t.date_int||t.date_cli;return d&&d>=customRangeStart&&d<=customRangeEnd;});
   }

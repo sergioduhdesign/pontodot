@@ -10601,7 +10601,7 @@ async function editarTarefaTudo(id){
     ${lab('Produto')}<select id="edProd" style="${inp}"></select>
     ${lab('Projeto')}<input id="edProj" style="${inp}" value="${esc(t.project||'')}">
     ${lab('Status')}<select id="edSt" style="${inp}">${STATUS_SD.map(x=>`<option value="${x}"${x===t.status?' selected':''}>${esc(rotStatus(x))}</option>`).join('')}</select>
-    ${lab('Responsável')}<select id="edResp" style="${inp}">${EQUIPE.map(x=>`<option${String(t.resp||'').toUpperCase()===x?' selected':''}>${x}</option>`).join('')}</select>
+    ${lab('Responsável')}<select id="edResp" style="${inp}">${(()=>{ const nr=x=>semAcento(String(x||'')).toUpperCase().trim(); const atual=String(t.resp||''); let ops=(PERFIS||[]).filter(x=>x.role!=='client'&&!x.client_id).map(x=>chaveDe(x)).filter(Boolean); ops=[...new Set(ops.length?ops:EQUIPE.map(nr))]; let achou=ops.find(o=>nr(o)===nr(atual)); if(!achou&&atual){ ops.unshift(atual); achou=atual; } return ops.map(o=>`<option value="${esc(o)}"${o===achou?' selected':''}>${esc(o)}</option>`).join(''); })()}</select>
     ${lab('Entrega interna')}<input id="edDi" type="date" style="${inp}" value="${String(t.date_int||'').slice(0,10)}">
     ${lab('Entrega cliente')}<input id="edDc" type="date" style="${inp}" value="${String(t.date_cli||'').slice(0,10)}">
     ${lab('Briefing')}<textarea id="edObs" rows="7" style="${inp};resize:vertical">${esc(t.obs||'')}</textarea>
