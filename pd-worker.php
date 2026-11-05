@@ -661,6 +661,7 @@ $n11 = w_skills();                   echo "Skills anunciadas: $n11\n";
 $n12 = retro_relogio();            echo "Retrospectiva: $n12\n";
 $n13 = pdIncubacaoRelogio();       echo "Sala de aula: $n13\n";
 $n13b = (function () { try { require_once __DIR__ . '/pd-aula-doc-lib.php'; return pdAulaDocRelogio(); } catch (Throwable $e) { return 'erro: ' . $e->getMessage(); } })(); echo "Aulas de documento: $n13b\n";
+$n13c = (function () { try { require_once __DIR__ . '/pd-curriculo-lib.php'; return pdCurrVarrer() ?: 'nada novo'; } catch (Throwable $e) { return 'erro: ' . $e->getMessage(); } })(); echo "Currículo da escola: $n13c\n";
 $n13c = (function () { try { require_once __DIR__ . '/pd-aula-arte-lib.php'; return pdAulaArteRelogio(); } catch (Throwable $e) { return 'erro: ' . $e->getMessage(); } })(); echo "Aulas de arte: $n13c\n";
 $n14 = pdLembretesDisparar();        echo "Lembretes: $n14\n";
 try { require_once __DIR__ . '/pd-vendas-lib.php'; $n15 = vdTick(); echo "Vendas: " . json_encode($n15, JSON_UNESCAPED_UNICODE) . "\n"; } catch (Throwable $e) { echo "Vendas: erro " . $e->getMessage() . "\n"; }

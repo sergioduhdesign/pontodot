@@ -36,10 +36,11 @@ select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:
 .msg{padding:60px;text-align:center;color:var(--gray)}.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;z-index:40;display:none}
 </style></head><body>
 <div class="topo"><h1>Escola — bastidores</h1>
-  <button class="btn p" onclick="baixarModelo()">Baixar planilha padrão</button>
+  <button class="btn p" onclick="pedirVazios()">Pedir à professora o que falta</button>
+  <button class="btn" onclick="baixarModelo()">Baixar planilha padrão</button>
   <button class="btn" onclick="$('#arq').click()">Subir planilha preenchida</button><input type="file" id="arq" accept=".xlsx,.xls" style="display:none" onchange="subirPlanilha(this)">
   <span class="sp"></span><select id="filtro" onchange="draw()"><option value="">Todas</option><option value="ativa">Com conteúdo</option><option value="vazia">Sem conteúdo</option><option value="parada">Paradas</option></select></div>
-<div class="dica">A operação é simples: baixe a planilha, peça ao Claude ou ao GPT para preencher (ex.: "preencha com a skill de fazer post"), e suba aqui. Se a aula já existe, vira uma nova versão.</div>
+<div class="dica">A professora (GPT) escreve e atualiza as aulas com base no conhecimento dela: você só pede, e a PD publica quando ela devolver. Também dá para baixar a planilha, preencher com o Claude ou o GPT e subir aqui — se a aula já existe, vira nova versão.</div>
 <div id="grid" class="grid"><div class="msg">Carregando…</div></div>
 <div class="fundo" id="fundo" onclick="fecha()"></div><div class="gav" id="gav"></div><div class="toast" id="toast"></div>
 <script>
@@ -47,30 +48,31 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // os cursos da Escola agêntica (a persona é a capa) — o conteúdo de cada um vem da planilha
 const CURSOS=[['nix','Abrir alternativas e escolher uma','Criação'],['iro','Experiências pequenas de campanha','Criação'],['zumi','Alternativas em conversa','Conteúdo'],['nami','Estrutura de landing page','Páginas e sites','LP_ESTRUTURA'],['kiro','Revisão estrutural','Estratégia','LP_REVISAO_ESTRUTURA'],['sago','Briefing sem lacuna','Atendimento'],['oru','Comparar e sintetizar critérios','Estratégia'],['sumi','Leitura de resultados de anúncios','Mídia'],['brum','Do pedido ao plano com prazos','Operação'],['taro','A próxima ação verificável','Operação'],['koda','Continuidade e riscos sem drama','Gestão'],['boku','Orçamento de produção','Operação'],['gigi','Alinhar expectativas','Atendimento'],['raku','Feedback e acordos com clareza','Atendimento'],['tumi','Conexões úteis entre pessoas e ideias','Rede'],['muru','Acompanhar no ritmo de cada um','Acompanhamento']].map(c=>({curso:c[0],titulo:c[1],area:c[2],skill:c[3]||'CURSO_'+c[0].toUpperCase()}));
-let sb,ses,SK=[],IAS=[],SEL=null;
+let sb,ses,SK=[],IAS=[],PED=[],SEL=null;
 const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',3500)};
 async function api(b){const r=await fetch('/pd-escola.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#grid').innerHTML='<div class="msg">Entre na plataforma para abrir os bastidores.</div>';return;}
   await carrega();const qc=new URLSearchParams(location.search).get('curso');if(qc){const c=CURSOS.find(x=>x.curso===qc);if(c)abre(c.skill);}}
-async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;try{PED=(await api({acao:'curriculo_lista'})).pedidos||[];}catch(e){PED=[];}}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 const face=p=>'/pd/personagens/'+encodeURIComponent(p||'')+'/avatar.jpg';
 const sk=id=>SK.find(s=>s.skill_id===id);
 // um card por curso da escola + um por skill de trabalho que não é curso
 function itens(){const usados=new Set(CURSOS.map(c=>c.skill));
   const a=CURSOS.map(c=>({id:c.skill,curso:c.curso,titulo:sk(c.skill)?sk(c.skill).nome:c.titulo,area:c.area,capa:'/pd/personagens/'+c.curso+'/nascimento.jpg',s:sk(c.skill)}));
   const b=SK.filter(s=>!usados.has(s.skill_id)).map(s=>({id:s.skill_id,curso:'',titulo:s.nome,area:'Skill de trabalho',capa:'',s}));return a.concat(b);}
+function pedAberto(id){return PED.find(p=>p.skill_id===id&&p.status==='pedido');}
 function estado(i){return !i.s?'vazia':i.s.pausada?'parada':'ativa';}
 function draw(){const f=$('#filtro').value;$('#grid').innerHTML=itens().filter(i=>!f||estado(i)===f).map(i=>{const s=i.s,e=estado(i),al=s?s.alunos.filter(a=>a.ativa):[];
   return `<div class="card" onclick="abre('${esc(i.id)}')"><div class="capa" style="${i.capa?`background-image:url(${i.capa})`:'background:linear-gradient(135deg,#2a2d35,#14161a)'}"><i></i><b>${esc(i.area)}</b></div>
-  <div class="cc"><h3>${esc(i.titulo)}</h3><div><span class="tag ${e==='ativa'?'ok':e==='parada'?'par':'vz'}">${e==='ativa'?'v'+s.versao:e==='parada'?'parada':'sem conteúdo'}</span></div>
+  <div class="cc"><h3>${esc(i.titulo)}</h3><div><span class="tag ${e==='ativa'?'ok':e==='parada'?'par':'vz'}">${e==='ativa'?'v'+s.versao:e==='parada'?'parada':'sem conteúdo'}</span>${pedAberto(i.id)?' <span class="tag par">com a professora</span>':''}</div>
   <p>${esc(s?(s.finalidade||'').slice(0,100):'Baixe a planilha, preencha e suba.')}</p>
   <div class="faces">${al.slice(0,6).map(a=>`<img src="${face(a.personagem)}" title="${esc(a.nome)} · IA do ${esc(a.dona)}">`).join('')}<span>${al.length} estudando</span></div></div></div>`}).join('');}
 function itemDe(id){return itens().find(i=>i.id===id);}
 function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
   const taxa=s&&s.aulas?Math.round(100*s.validadas/s.aulas)+'%':'—';
   const livres=IAS.filter(x=>!(s?s.alunos:[]).some(a=>a.ia_user_id===x.ia_user_id));
-  $('#gav').innerHTML=`<div class="gtopo"><button class="btn" onclick="baixarModelo('${esc(id)}')">Baixar planilha${s?' desta aula':''}</button><button class="btn p" onclick="$('#arq').click()">Subir planilha</button><span class="sp"></span>
+  $('#gav').innerHTML=`<div class="gtopo"><button class="btn p" onclick="pedir('${esc(i.curso||id)}')">${pedAberto(id)?'Avisar a professora de novo':s?'Pedir melhoria à professora':'Pedir à professora'}</button><button class="btn" onclick="baixarModelo('${esc(id)}')">Baixar planilha${s?' desta aula':''}</button><button class="btn" onclick="$('#arq').click()">Subir planilha</button><span class="sp"></span>
     ${s?`<button class="btn" onclick="pausar('${esc(id)}',${!s.pausada})">${s.pausada?'Voltar com a aula':'Parar a aula'}</button><button class="btn r" onclick="apagar('${esc(id)}')">Apagar</button>`:''}<button class="btn" onclick="fecha()">✕</button></div>
   <div class="gcorpo"><div class="gcapa" style="${i.capa?`background-image:url(${i.capa})`:'background:linear-gradient(135deg,#2a2d35,#14161a)'}"><i></i><h2>${esc(i.titulo)}</h2></div>
   ${s?`<div class="met"><div><b>${s.alunos.filter(a=>a.ativa).length}</b><small>estudando</small></div><div><b>${taxa}</b><small>aproveitamento</small></div><div><b>v${s.versao}</b><small>versão</small></div><div><b>${s.aulas}</b><small>aulas feitas</small></div></div>
@@ -84,7 +86,7 @@ function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
     <button class="btn" onclick="aluno('${esc(id)}','${a.ia_user_id}','${a.ativa?'parar':'retomar'}')">${a.ativa?'Parar':'Retomar'}</button><button class="btn r" onclick="aluno('${esc(id)}','${a.ia_user_id}','remover')">Tirar</button></div>`).join('')||'<div class="vz">Ninguém inscrito ainda.</div>'}
   <div style="display:flex;gap:8px;margin-top:12px"><select id="insc" style="flex:1"><option value="">Inscrever uma IA…</option>${livres.map(x=>`<option value="${x.ia_user_id}">${esc(x.nome)} · IA do ${esc(x.dona)}</option>`).join('')}</select><button class="btn" onclick="aluno('${esc(id)}',$('#insc').value,'matricular')">Inscrever</button></div>
   <h4>Histórico de versões</h4>${s.versoes.map(v=>`<div class="ver"><b>v${v.versao}</b><div>${v.notas?esc(v.notas):'<span>—</span>'}<br><span>${new Date(v.criada_em).toLocaleDateString('pt-BR')}${v.origem?' · '+esc(v.origem):''}</span></div></div>`).join('')}</div>`
-  :`<div class="pad"><h4>Conteúdo</h4><div class="vz">Esta aula ainda não tem conteúdo. Baixe a planilha (já vem ligada a este curso), peça ao Claude ou ao GPT para preencher e suba de volta.</div></div>`}</div>`;
+  :`<div class="pad"><h4>Conteúdo</h4><div class="vz">${pedAberto(id)?'Pedido com a professora desde '+new Date(pedAberto(id).criado_em).toLocaleDateString('pt-BR')+'. Quando ela devolver o AULA.json, a PD publica sozinha.'+(pedAberto(id).erro?'<br><b>Última rejeição:</b> '+esc(pedAberto(id).erro):''):'Esta aula ainda não tem conteúdo. Peça à professora (ela escreve a partir do conhecimento dela, com as diretrizes do curso) ou baixe a planilha e suba preenchida.'}</div></div>`}</div>`;
   $('#fundo').classList.add('on');$('#gav').classList.add('on');}
 function fecha(){SEL=null;$('#fundo').classList.remove('on');$('#gav').classList.remove('on');}
 // ---------- a planilha padrão ----------
@@ -109,6 +111,8 @@ async function subirPlanilha(inp){const f=inp.files[0];inp.value='';if(!f)return
     if(id&&!sk(id)){novo=id;id='';}
     const r=await api({acao:'esc_skill_salvar',skill_id:id,novo_id:novo,nome:v.NOME,finalidade:v.OBJETIVO,entradas:L(v.ENTRADAS),metodo:v.METODO,criterios:L(v.CRITERIOS),limites:v.LIMITES,exemplo_bom:v.EXEMPLO_BOM,exemplo_ruim:v.EXEMPLO_RUIM,notas:v.O_QUE_MUDOU,origem:'doc'});
     await carrega();toast('Pronto: '+v.NOME+' · versão '+r.versao);abre(r.skill_id);}catch(e){toast(e.message);}}
+async function pedir(c){try{const r=await api({acao:'curriculo_pedir',cursos:[c]});toast(r.msgs.join(' '));await carrega();if(SEL)abre(SEL);}catch(e){toast(e.message);}}
+async function pedirVazios(){if(!confirm('Enviar à professora o pedido de todos os cursos que ainda estão sem conteúdo?'))return;try{const r=await api({acao:'curriculo_pedir',cursos:'vazios'});toast(r.enviados+' pedido(s) enviado(s).'+(r.msgs.some(m=>/SQL/.test(m))?' Falta rodar o SQL v167.':''));await carrega();}catch(e){toast(e.message);}}
 async function pausar(id,pz){try{await api({acao:'esc_skill_pausar',skill_id:id,pausada:pz});await carrega();abre(id);}catch(e){toast(e.message);}}
 async function apagar(id){if(!confirm('Apagar esta aula e as inscrições? As aulas já feitas ficam no histórico.'))return;try{await api({acao:'esc_skill_apagar',skill_id:id,confirmo:true});fecha();await carrega();}catch(e){toast(e.message);}}
 async function aluno(sid,ia,fz){if(!ia)return;try{await api({acao:'esc_aluno',skill_id:sid,ia_user_id:ia,fazer:fz});await carrega();abre(sid);}catch(e){toast(e.message);}}

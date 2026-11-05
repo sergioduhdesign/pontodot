@@ -1,0 +1,108 @@
+{
+ "versao": 1,
+ "regras": [
+  "Use SOMENTE o conhecimento do Projeto e dos documentos da agência (branding, mercado imobiliário, lançamentos). Se não houver base, escreva \"[CONFIRMAR]\" em vez de inventar.",
+  "Nunca use dado de cliente real em exemplos; use cliente fictício.",
+  "Publicar, gastar verba, prometer preço ou prazo ao cliente é sempre decisão humana — escreva isso em LIMITES.",
+  "Critérios precisam ser observáveis (dá para responder sim/não olhando a entrega).",
+  "Português do Brasil, direto, sem enfeite."
+ ],
+ "cursos": {
+  "nix": {
+   "titulo": "Abrir alternativas e escolher uma",
+   "area": "Criação",
+   "ensinar": "Dado um briefing (ex.: lançamento imobiliário), gerar 3 a 5 caminhos criativos realmente diferentes entre si e fechar numa experiência pequena e testável. Ensinar a diferença entre alternativa e variação, como escolher com critério explícito e como descrever o teste (o que muda, o que medir).",
+   "onde_aparece": "Conceito de campanha, nome de produto, linha de post, ângulo de anúncio."
+  },
+  "iro": {
+   "titulo": "Experiências pequenas de campanha",
+   "area": "Criação",
+   "ensinar": "Propor testes baratos e rápidos antes de gastar verba: hipótese, variável única, métrica, prazo e critério de decisão. Ensinar a não testar tudo de uma vez e a ler o resultado sem se enganar com amostra pequena.",
+   "onde_aparece": "Testes de criativo, público, oferta e CTA em campanhas Meta de lançamentos."
+  },
+  "zumi": {
+   "titulo": "Alternativas em conversa",
+   "area": "Conteúdo",
+   "ensinar": "Conduzir uma conversa com o cliente ou o time para ir de três ideias a uma direção, sem reunião interminável: perguntar uma coisa por vez, resumir, propor e confirmar. Ensinar o tom (curto, caloroso, direto) e quando parar de perguntar e decidir.",
+   "onde_aparece": "Chat de criação de tarefa, conversa de briefing, alinhamento de linha editorial."
+  },
+  "nami": {
+   "titulo": "Estrutura de landing page",
+   "area": "Páginas e sites",
+   "ensinar": "Organizar as seções de uma landing page de lançamento imobiliário: o que cada seção faz, a ordem, onde faltam provas e como marcar lacunas em vez de inventar. Já existe a skill LP_ESTRUTURA: aprofundar e complementar, sem contradizê-la.",
+   "onde_aparece": "LPs de empreendimentos, páginas de captação, estrutura antes do design."
+  },
+  "kiro": {
+   "titulo": "Revisão estrutural",
+   "area": "Estratégia",
+   "ensinar": "Revisar um trabalho (LP, estratégia, copy) pela estrutura: contexto, dependências e critérios, apontando o que corrigir sem reescrever. Já existe a skill LP_REVISAO_ESTRUTURA: complementar com checklist e exemplos de parecer bom e ruim.",
+   "onde_aparece": "Revisão de LPs, estratégias de campanha e documentos antes de ir ao cliente."
+  },
+  "sago": {
+   "titulo": "Briefing sem lacuna",
+   "area": "Atendimento",
+   "ensinar": "Receber um pedido de cliente ou do time e devolver as perguntas que faltam (público, oferta, prazo, verba, material, aprovador) antes de produzir. Ensinar a listar lacunas por ordem de impacto e a nunca preencher o que não foi dito.",
+   "onde_aparece": "Triagem de pedidos, criação de tarefas, briefing de lançamento."
+  },
+  "oru": {
+   "titulo": "Comparar e sintetizar critérios",
+   "area": "Estratégia",
+   "ensinar": "Comparar referências, concorrentes e opiniões e entregar uma síntese que sustente uma decisão: critérios explícitos, tabela comparativa, recomendação e o que ficou incerto. Ensinar a separar fato de opinião.",
+   "onde_aparece": "Comparar com o mercado, benchmark de concorrentes de lançamentos, escolha de referências."
+  },
+  "sumi": {
+   "titulo": "Leitura de resultados de anúncios",
+   "area": "Mídia",
+   "ensinar": "Transformar o relatório de campanha (Meta) numa decisão: o que manter, o que cortar, o que testar. Ensinar métricas por objetivo (custo por lead, CTR, frequência, qualidade do lead), leitura de público e criativo, e a regra de que toda conclusão cita o dado.",
+   "onde_aparece": "Estratégia de campanha, relatórios, otimização semanal de lançamentos."
+  },
+  "brum": {
+   "titulo": "Do pedido ao plano com prazos",
+   "area": "Operação",
+   "ensinar": "Converter uma intenção em passos claros, com responsável e prazo realista, respeitando a capacidade da equipe. Ensinar a quebrar em tarefas, ordenar dependências e sinalizar o que não cabe no prazo.",
+   "onde_aparece": "Planejamento de lançamentos, cronogramas, criação de tarefas filhas."
+  },
+  "taro": {
+   "titulo": "A próxima ação verificável",
+   "area": "Operação",
+   "ensinar": "Definir o próximo passo que dá para conferir e colher retorno rápido: ação única, quem faz, como saber que ficou pronto. Ensinar a evitar passos vagos (\"alinhar\", \"ver isso\").",
+   "onde_aparece": "Fechamento de reunião, destravar tarefa parada, próximo passo de cada job."
+  },
+  "koda": {
+   "titulo": "Continuidade e riscos sem drama",
+   "area": "Gestão",
+   "ensinar": "Acompanhar os combinados e apontar riscos cedo, sem dramatizar: o que está atrasado, o que depende de quem, o que pode travar. Ensinar o aviso curto, com fato, impacto e sugestão.",
+   "onde_aparece": "Cobrança de prazos, tarefas em play esquecidas, aprovações paradas."
+  },
+  "boku": {
+   "titulo": "Orçamento de produção",
+   "area": "Operação",
+   "ensinar": "Separar esforço humano, tempo de IA e verba de mídia numa estimativa honesta de produção: o que entra, o que não entra, premissas e faixa de erro. Ensinar a nunca prometer preço final ao cliente (decisão humana).",
+   "onde_aparece": "Orçamentos de lançamento, pacotes de social, estimativa de horas."
+  },
+  "gigi": {
+   "titulo": "Alinhar expectativas",
+   "area": "Atendimento",
+   "ensinar": "Criar espaço para cada participante falar e chegar a um combinado que todos entendem: perguntar, devolver o que entendeu, confirmar prazo e escopo. Ensinar o tom com clientes (incorporadoras, corretores) e o que nunca prometer.",
+   "onde_aparece": "Atendimento ao cliente, início de job, mudanças de escopo."
+  },
+  "raku": {
+   "titulo": "Feedback e acordos com clareza",
+   "area": "Atendimento",
+   "ensinar": "Pedir e dar retorno ao cliente com cuidado e sem ambiguidade: aprovação de peças, pedido de ajuste, cobrança de material. Ensinar a transformar comentário vago do cliente em ajuste objetivo.",
+   "onde_aparece": "Aprovação de criativos, rodadas de correção, comentários do cliente."
+  },
+  "tumi": {
+   "titulo": "Conexões úteis entre pessoas e ideias",
+   "area": "Rede",
+   "ensinar": "Descobrir quem, dentro e fora da casa, resolve cada necessidade: designer, copy, mídia, fornecedor, cliente. Ensinar a indicar a pessoa certa com o motivo e o que levar para ela.",
+   "onde_aparece": "Delegação entre IAs e pessoas, indicação de especialistas, roteamento de pedidos."
+  },
+  "muru": {
+   "titulo": "Acompanhar no ritmo de cada um",
+   "area": "Acompanhamento",
+   "ensinar": "Lembrar e cobrar com presença discreta, respeitando o ritmo da pessoa: quando insistir, quando esperar, como retomar. Ensinar a estratégia de social (leitura de perfis, direção de conteúdo) como parte do acompanhamento do cliente.",
+   "onde_aparece": "Estratégia de social, acompanhamento de clientes e do time."
+  }
+ }
+}
