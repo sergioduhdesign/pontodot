@@ -262,20 +262,6 @@ function pd_ler_paginas(array $urls, $fundo = true) {
     foreach ($out as &$o) if (is_array($o)) unset($o['_subs']); unset($o);
     return $out;
 }
-function pd_ctx_cliente($cid) {
-    if (!preg_match('/^[0-9a-f-]{36}$/i', (string)$cid)) return null;
-    $c = pd_supa('/rest/v1/clients?id=eq.' . $cid . '&select=id,name&limit=1'); $nome = $c['body'][0]['name'] ?? null; if (!$nome) return null;
-    $pr = pd_supa('/rest/v1/products?client_id=eq.' . $cid . '&select=name&order=name'); $prods = [];
-    foreach ((array)($pr['body'] ?? []) as $x) if (is_array($x) && !empty($x['name'])) $prods[] = (string)$x['name'];
-    $ficha = null; $titulo = null;
-    $d = pd_supa('/rest/v1/client_docs?ativo=eq.true&select=cliente_nome,apelidos,titulo,texto&limit=200');
-    foreach ((array)($d['body'] ?? []) as $x) {
-        if (!is_array($x)) continue;
-        $nomes = array_merge([(string)($x['cliente_nome'] ?? '')], (array)($x['apelidos'] ?? []));
-        foreach ($nomes as $n) if ($n !== '' && mb_strtolower(trim($n)) === mb_strtolower(trim($nome))) { $ficha = (string)($x['texto'] ?? ''); $titulo = $x['titulo'] ?? null; break 2; }
-    }
-    return ['cliente' => $nome, 'produtos' => $prods, 'ficha' => $ficha, 'ficha_titulo' => $titulo];
-}
 // -------------------------------------------------------------- pesquisa de mercado para campanhas
 //   concorrentes {cliente, notas}  -> Tumi: empreendimentos/incorporadoras concorrentes (web) + link da Biblioteca de Anúncios
 //   direcao_camp {cliente, notas, foco, numeros, concorrentes} -> Sumi: estratégia + copy de anúncios

@@ -150,3 +150,19 @@ function sdp_muru_sistema() {
          . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde cada player ganha · ## Lacunas que o cliente pode ocupar · ## Temas sugeridos (6, com formato e por quê) · '
          . '## Próximos 3 movimentos (ação, formato, frequência, horário sugerido pelos dados) · ## Direção criativa (tom, visual, ganchos) · ## Copy derivada (3 legendas completas, 3 ganchos de Reels, 1 roteiro de carrossel em 6 telas) · ## O que medir nos próximos 30 dias.';
 }
+
+// Contexto do cliente na plataforma (cadastro, produtos, ficha em client_docs) — usado por campanhas, lançamento e escola
+function pd_ctx_cliente($cid) {
+    if (!preg_match('/^[0-9a-f-]{36}$/i', (string)$cid)) return null;
+    $c = pd_supa('/rest/v1/clients?id=eq.' . $cid . '&select=id,name&limit=1'); $nome = $c['body'][0]['name'] ?? null; if (!$nome) return null;
+    $pr = pd_supa('/rest/v1/products?client_id=eq.' . $cid . '&select=name&order=name'); $prods = [];
+    foreach ((array)($pr['body'] ?? []) as $x) if (is_array($x) && !empty($x['name'])) $prods[] = (string)$x['name'];
+    $ficha = null; $titulo = null;
+    $d = pd_supa('/rest/v1/client_docs?ativo=eq.true&select=cliente_nome,apelidos,titulo,texto&limit=200');
+    foreach ((array)($d['body'] ?? []) as $x) {
+        if (!is_array($x)) continue;
+        $nomes = array_merge([(string)($x['cliente_nome'] ?? '')], (array)($x['apelidos'] ?? []));
+        foreach ($nomes as $n) if ($n !== '' && mb_strtolower(trim($n)) === mb_strtolower(trim($nome))) { $ficha = (string)($x['texto'] ?? ''); $titulo = $x['titulo'] ?? null; break 2; }
+    }
+    return ['cliente' => $nome, 'produtos' => $prods, 'ficha' => $ficha, 'ficha_titulo' => $titulo];
+}
