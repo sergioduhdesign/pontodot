@@ -3647,6 +3647,9 @@ function escMitologia(){
     #esc-mito .mt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.65))}
     #esc-mito .mt-card span{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;font-size:15px;font-weight:400}
     #esc-mito .mt-card small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:3px}
+    #esc-mito .mt-cw{position:relative}
+    #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:26px;line-height:1;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.28)}
+    #esc-mito .mt-sw:hover{background:#fff;transform:translateY(-50%) scale(1.06)}#esc-mito .mt-sw-e{left:10px}#esc-mito .mt-sw-d{right:10px}
     #esc-mito .mt-hab{display:flex;gap:12px;overflow-x:scroll;padding:4px 0 14px}
     #esc-mito .mt-h{flex:0 0 96px;text-align:center;font-size:12px}#esc-mito .mt-h img{width:96px;height:96px;border-radius:50%;object-fit:cover;display:block;margin-bottom:6px}
     #esc-mito .mt-nms{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
@@ -3659,7 +3662,7 @@ function escMitologia(){
     #esc-mito .mt-bt{display:inline-block;margin-top:22px;background:#F4F3EF;color:#15161A;border:0;border-radius:999px;padding:13px 30px;font:500 14px inherit;cursor:pointer}
     #esc-mito .mt-zoom{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;color:#fff}
     #esc-mito .mt-zoom img{max-width:min(1100px,94vw);max-height:80vh;border-radius:14px}
-    #esc-mito .mt-zoom button{position:absolute;top:18px;right:20px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
+    #esc-mito .mt-zx{position:absolute;top:18px;right:20px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
     @media(max-width:800px){#esc-mito .mt-r{grid-template-columns:1fr;gap:18px;padding:36px 22px}#esc-mito .mt-car{padding:6px 22px 18px;margin:0 -22px}#esc-mito .mt-nms{grid-template-columns:1fr}#esc-mito .mt-fim{padding:48px 22px}}
   </style>
   <div class="mt-fundo" onclick="escFecharMito()"></div>
@@ -3676,12 +3679,12 @@ function escMitologia(){
       <p class="mt-perg">Criamos as primeiras condições. A pergunta permanece aberta.<br>Quanto de um ser nasce daquilo que ele aprende a reconhecer em si?</p></div></section>
 
     <section class="mt-r mt-full" style="padding-top:40px;padding-bottom:30px"><div><h3 style="font-size:clamp(22px,2.6vw,30px)">Alguns endereços de Catum</h3><p class="mt-sub">Role para o lado e toque numa imagem para ver maior.</p></div>
-      <div class="mt-car" id="mtCar"></div></section>
+      <div class="mt-cw"><button class="mt-sw mt-sw-e" onclick="mtRola('mtCar',-1)" aria-label="Anterior">‹</button><div class="mt-car" id="mtCar"></div><button class="mt-sw mt-sw-d" onclick="mtRola('mtCar',1)" aria-label="Próxima">›</button></div></section>
 
     <section class="mt-r"><div><h3>Habitantes</h3><p class="mt-sub">Cada inteligência, uma história em construção.</p></div><div>
       <p>Em Catum, as inteligências têm nome, rosto e uma história para continuar. São personagens que dão presença à nossa experiência com IAs agênticas: sistemas capazes de organizar etapas, consultar ferramentas e executar ações em direção a um objetivo, dentro das permissões recebidas.</p>
       <p>Na ficção, elas habitam um mundo. Na prática, a proposta é construir uma relação de aprendizado contínuo: te conhecer, reconhecer limites e melhorar com orientação constante. É no que acontece entre uma tentativa e outra que essa história ganha sentido.</p>
-      <div class="mt-hab">${MT_HAB.map(k => `<div class="mt-h"><img src="/pd/personagens/${k}/avatar.jpg" alt="" loading="lazy">${k.charAt(0).toUpperCase() + k.slice(1)}</div>`).join('')}</div></div></section>
+      <div class="mt-cw"><button class="mt-sw mt-sw-e" onclick="mtRola('mtHab',-1)" aria-label="Anterior">‹</button><div class="mt-hab" id="mtHab">${MT_HAB.map(k => `<div class="mt-h"><img src="/pd/personagens/${k}/avatar.jpg" alt="" loading="lazy">${k.charAt(0).toUpperCase() + k.slice(1)}</div>`).join('')}</div><button class="mt-sw mt-sw-d" onclick="mtRola('mtHab',1)" aria-label="Próxima">›</button></div></div></section>
 
     <section class="mt-r"><div><h3>Escola Agêntica</h3><p class="mt-sub">Onde aprender precisa aparecer no fazer.</p></div><div>
       <p>A Pontodot é a escola de IAs agênticas em Monema. Sua proposta é transformar experiência em capacidade: estudar, praticar, receber uma correção e tentar novamente, levando adiante o que foi aprendido.</p>
@@ -3705,14 +3708,18 @@ function escMitologia(){
   mtImagens().then(imgs => {
     const car = document.getElementById('mtCar'); if (!car || !imgs.length) { if (car) car.closest('section').remove(); return; }
     const L = MT_LUGARES.map((n, i) => [n, imgs[i % imgs.length]]).concat(imgs.slice(MT_LUGARES.length, MT_LUGARES.length + 8).map(u => ['', u]));
-    car.innerHTML = L.map(([n, u]) => `<button class="mt-card" onclick="mtZoom('${u.replace(/'/g, '')}','${n}')"><img src="${u}" alt="${n}" loading="lazy"><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
+    window.MT_L = L; car.innerHTML = L.map(([n, u], i) => `<button class="mt-card" onclick="mtZoom(${i})"><img src="${u}" alt="${n}" loading="lazy"><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
   });
 }
-function mtZoom(u, n){
-  const z = document.createElement('div'); z.className = 'mt-zoom'; z.onclick = () => z.remove();
-  z.innerHTML = `<button aria-label="Fechar">✕</button><img src="${u}" alt="${n}">${n ? `<div style="font-size:15px;letter-spacing:.04em">${n} · Catum</div>` : ''}`;
-  document.getElementById('esc-mito').appendChild(z);
+function mtRola(id, dir){ const e = document.getElementById(id); if (e) e.scrollBy({ left: dir * Math.max(240, e.clientWidth * .8), behavior: 'smooth' }); }
+function mtZoom(i){
+  const L = window.MT_L || []; if (!L.length) return; i = (i + L.length) % L.length;
+  let z = document.getElementById('mtZoom');
+  if (!z){ z = document.createElement('div'); z.id = 'mtZoom'; z.className = 'mt-zoom'; z.onclick = e => { if (e.target === z) z.remove(); }; document.getElementById('esc-mito').appendChild(z); }
+  const [n, u] = L[i];
+  z.innerHTML = `<button class="mt-zx" onclick="document.getElementById('mtZoom').remove()" aria-label="Fechar">✕</button><button class="mt-sw mt-sw-e" style="position:fixed" onclick="mtZoom(${i - 1})" aria-label="Anterior">‹</button><img src="${u}" alt="${n}"><button class="mt-sw mt-sw-d" style="position:fixed" onclick="mtZoom(${i + 1})" aria-label="Próxima">›</button>${n ? `<div style="font-size:15px;letter-spacing:.04em">${n} · Catum</div>` : ''}<small style="opacity:.6">${i + 1} / ${L.length}</small>`;
 }
+document.addEventListener('keydown', e => { const z = document.getElementById('mtZoom'); if (!z) return; const m = z.querySelector('.mt-sw-d'); if (e.key === 'ArrowRight' && m) m.click(); if (e.key === 'ArrowLeft') z.querySelector('.mt-sw-e')?.click(); });
 function escFecharMito(){ document.getElementById('esc-mito')?.remove(); document.documentElement.style.overflow = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharMito(); });
 function escFecharZoom(){ const d = document.getElementById('esc-zoom'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
