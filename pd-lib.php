@@ -601,6 +601,25 @@ function pdNomeIA($userId) {
         return $pc ? (trim((string)($pj['apelido'] ?? '')) ?: $pc[0]) : '';
     } catch (\Throwable $e) { return ''; }
 }
+/** Chama o relógio da casa agora (sem esperar os 5 min do cron), sem travar quem pediu. */
+function pdAcordaRelogio() {
+    try { if (!defined('SD_CRON_KEY')) return;
+        $ch = curl_init('https://pontodot.ai/pd-worker.php?key=' . urlencode(SD_CRON_KEY));
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_NOSIGNAL => 1, CURLOPT_TIMEOUT_MS => 1200, CURLOPT_CONNECTTIMEOUT_MS => 1000]);
+        curl_exec($ch); curl_close($ch); } catch (\Throwable $e) {}
+}
+/** CONFIRMAR SOLICITAÇÃO: estado real dos pedidos entre IAs (novo → em andamento → feito/erro), com a resposta. */
+function pdPedidosStatus($a, $p) {
+    $para = pdElencoBusca(trim((string)($a['para'] ?? ''))) ?: '';
+    $q = '/rest/v1/pd_ia_pedidos?order=criado_em.desc&limit=6&select=para_ia,de_ia,pedido,estado,resposta,criado_em,concluido_em'
+       . (!(function_exists('iaEhAdmin') && iaEhAdmin($p)) && !empty($p['id']) ? '&de_user=eq.' . urlencode((string)$p['id']) : '')
+       . ($para ? '&para_ia=eq.' . urlencode($para) : '');
+    $r = sd_supabase($q); if (($r['code'] ?? 500) >= 300) return '⚠️ Não consegui ler a fila de pedidos (rodou o SQL v159?).';
+    $L = (array)($r['body'] ?? []); if (!$L) return 'Não há pedido registrado' . ($para ? ' para ' . ucfirst($para) : '') . '. Se você achou que passou um, ele não chegou: peça de novo.';
+    $E = ['novo' => '⏳ na fila, ainda não começou', 'em_andamento' => '🔄 rodando agora', 'feito' => '✅ feito', 'erro' => '❌ não deu certo'];
+    $o = []; foreach ($L as $x) { $o[] = '• ' . ucfirst((string)$x['para_ia']) . ' · ' . ($E[$x['estado']] ?? $x['estado']) . ' · pedido: ' . mb_substr((string)$x['pedido'], 0, 90) . ' · ' . date('d/m H:i', strtotime((string)$x['criado_em']) - 3 * 3600) . (!empty($x['resposta']) ? "\n   resposta: " . mb_substr((string)$x['resposta'], 0, 300) : ''); }
+    return "📋 Pedidos entre IAs (mais recentes primeiro):\n" . implode("\n", $o);
+}
 /** DELEGAR: gente → IA, IA → IA, IA → gente. Papel da casa (Tumi, Sumi, Muru, Gigi) vira pedido na fila; IA pessoal de alguém vira recado a essa pessoa pela IA dela. */
 function pdDelegar($a, $p) {
     $paraRaw = trim((string)($a['para'] ?? '')); $pedido = trim((string)($a['pedido'] ?? ($a['texto'] ?? '')));
@@ -609,11 +628,13 @@ function pdDelegar($a, $p) {
     if ($id) {
         $x = pdElencoPapeis()[$id];
         if ($id === 'tumi') { require_once __DIR__ . '/pd-vendas-lib.php'; if (!vdPode($p)) return "⚠️ Vendas não está liberada pra você. Peça ao admin."; }
+        $qt = (int)($a['quantos'] ?? 0); if ($qt < 1 && preg_match('/(\d{1,2})\s*(leads?|empresas?|contatos?|prospects?)/iu', $pedido, $mq)) $qt = (int)$mq[1];
         $r = sd_supabase('/rest/v1/pd_ia_pedidos', 'POST', ['de_user' => $p['id'] ?? null, 'de_ia' => $iaDe ?: null, 'para_ia' => $id, 'pedido' => mb_substr($pedido, 0, 1500),
-            'contexto' => ['cliente' => (string)($a['cliente'] ?? ''), 'quantos' => (int)($a['quantos'] ?? 0)]]);
+            'contexto' => ['cliente' => (string)($a['cliente'] ?? ''), 'quantos' => $qt]]);
+        if (($r['code'] ?? 500) < 300) pdAcordaRelogio();
         if (($r['code'] ?? 500) >= 300) return "⚠️ Não consegui registrar o pedido para " . $x['nome'] . " (rodou o SQL v159 no Supabase?).";
-        return "📨 Pedido passado " . ($id === 'tumi' ? 'pro ' : 'pra ') . $x['nome'] . ' (' . $x['papel'] . '): ' . mb_substr($pedido, 0, 140) . '. '
-             . ($id === 'tumi' ? 'Ele roda no próximo ciclo do relógio (até 5 min) e responde por aqui.' : 'Ficou registrado; ela ainda não roda isso sozinha por aqui.');
+        return "📨 Pedido registrado e na fila " . ($id === 'tumi' ? 'do ' : 'da ') . $x['nome'] . ' (' . $x['papel'] . '): ' . mb_substr($pedido, 0, 140) . '. '
+             . ($id === 'tumi' ? 'Já acordei o relógio da casa: ele começa agora, leva alguns minutos e a resposta chega pelo zap. Para conferir, use a ação status_pedidos.' : 'Ficou registrado; ela ainda não roda isso sozinha por aqui. Para conferir, use a ação status_pedidos.');
     }
     $k = mb_strtolower(preg_replace('/^(a|o|pra|pro|para)\s+/iu', '', $paraRaw)); $dona = null;
     foreach ((array)(sd_supabase('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=200')['body'] ?? []) as $j) {
@@ -1012,6 +1033,7 @@ function pdZapRetro($a) {
 function pdZapAcao($a, $p, $statusValidos) {
     if (($a['tipo'] ?? '') === 'recado') return pdZapRecado($a, $p);
     if (($a['tipo'] ?? '') === 'delegar') return pdDelegar($a, $p);
+    if (($a['tipo'] ?? '') === 'status_pedidos') return pdPedidosStatus($a, $p);
     if (($a['tipo'] ?? '') === 'orientar') return pdOrientar($a['texto'] ?? '', $p['id'] ?? null, 'zap', $a['ate'] ?? null, (string)($a['cliente'] ?? ''));
     // mesmo motor do chat da plataforma (pd-ia-lib.php): mesmos campos, mesma conferência, mesmo registro pra desfazer
     require_once __DIR__ . '/pd-ia-lib.php';

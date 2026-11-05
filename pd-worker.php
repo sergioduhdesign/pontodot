@@ -32,6 +32,7 @@ require_once __DIR__ . '/pd-site-lib.php';
 require_once __DIR__ . '/retro-lib.php';
 require_once __DIR__ . '/pd-aula-lib.php';
 
+ignore_user_abort(true); @set_time_limit(280);
 if (!defined('SD_CRON_KEY') || SD_CRON_KEY === 'SUA_CRON_KEY_AQUI') { http_response_code(500); die('SD_CRON_KEY nao configurada.'); }
 if (($_GET['key'] ?? '') !== SD_CRON_KEY) { http_response_code(403); die('Chave invalida.'); }
 @set_time_limit(280);

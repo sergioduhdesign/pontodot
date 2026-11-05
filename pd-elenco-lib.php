@@ -28,7 +28,7 @@ function pdElencoTexto($acoes = true) {
     $t = "ELENCO DAS IAs DA CASA (todas se conhecem e se pedem coisas; comunicação é de todos para todos, de forma leve e rápida; use o papel certo de cada uma):\n";
     foreach (pdElencoPapeis() as $id => $x) $t .= '- ' . $x['nome'] . ' (' . $x['papel'] . '): ' . $x['faz'] . ' Executa: ' . $x['executa'] . '. Fica no ' . $x['onde'] . ".\n";
     $t .= "- Cada pessoa da equipe também tem a IA parceira dela (veja time_e_suas_ias). Pedir algo a essa IA é levar o recado à pessoa, pela IA dela.\n";
-    if ($acoes) $t .= "COMO PEDIR A OUTRA IA: se o trabalho é do papel de outra IA, você encaminha (não diz que não sabe quem é, e não faz de conta que fez). No WhatsApp e no chat escreva a ação delegar: ##ACAO## {\"tipo\":\"delegar\",\"para\":\"tumi\",\"pedido\":\"o que fazer, completo\",\"cliente\":\"opcional\",\"quantos\":5}. "
+    if ($acoes) $t .= "COMO PEDIR A OUTRA IA: se o trabalho é do papel de outra IA, você encaminha (não diz que não sabe quem é, e não faz de conta que fez). No WhatsApp e no chat escreva a ação delegar: ##ACAO## {\"tipo\":\"delegar\",\"para\":\"tumi\",\"pedido\":\"o que fazer, completo\",\"cliente\":\"opcional\",\"quantos\":5}. Para CONFIRMAR se um pedido foi recebido/está rodando/terminou, NUNCA diga que não tem retorno: escreva ##ACAO## {\"tipo\":\"status_pedidos\",\"para\":\"tumi\"} e conte o estado real (na fila, rodando, feito, erro). "
         . "Quando a pessoa disser \"pede pro Tumi...\", \"passa pra Sumi\", \"vê isso com a Muru\" ou der entrada num trabalho que cabe no papel de uma delas, delegue para ela. "
         . "Se você mesma é a IA do papel, é seu: faça. Nunca diga que alguém \"não está na equipe\": as IAs da casa são parte da equipe. "
         . "ORIENTAÇÃO PARA TODAS AS IAs: quando a pessoa pedir para avisar/lembrar as IAs de uma regra válida por um tempo (\"a partir de agora não citem o sócio X\", \"em novembro é Novembro Azul\", \"esse mês nada de promessa de valorização\"), guarde com ##ACAO## {\"tipo\":\"orientar\",\"texto\":\"a regra, clara\",\"ate\":\"AAAA-MM-DD ou vazio\",\"cliente\":\"nome do cliente ou vazio\"} — ela passa a valer para todas as IAs da casa (ou só para aquele cliente).";
@@ -72,7 +72,7 @@ function pdPedidoTumiProspectar($ped) {
     $cart = vdCasaId(); $nomeCart = 'SD / Stratesign';
     $cn = trim((string)($ctx['cliente'] ?? ''));
     if ($cn !== '') { $r = vdLinhas(vdSup('/rest/v1/clients?name=ilike.' . rawurlencode('*' . $cn . '*') . '&active=is.true&select=id,name&limit=1')); if ($r) { $cart = $r[0]['id']; $nomeCart = $r[0]['name']; } }
-    $quantos = max(3, min(8, (int)($ctx['quantos'] ?? 5)));
+    $quantos = max(3, min(20, (int)($ctx['quantos'] ?? 5)));
     $r = vdDescobrir((string)$ped['pedido'], $quantos, $cart, $ped['de_user'] ?? null);
     if (empty($r['ok'])) return [false, 'Não consegui garimpar agora: ' . ($r['erro'] ?? 'sem detalhe') . '.'];
     $leads = vdLinhas(vdSup('/rest/v1/pd_prospects?estagio=eq.novo&select=id,nome&carteira_id=eq.' . $cart . '&order=nota.desc.nullslast&limit=40')); $esc = 0;
