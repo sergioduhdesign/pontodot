@@ -788,7 +788,11 @@ html.dia .esc-janela{--esc-fundo:#232428;--esc-tinta:#F2F2EE;--esc-suave:rgba(24
 .cmp-slots{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}.cmp-slot{display:inline-flex;align-items:center;gap:7px;padding:6px 8px 6px 10px;border:1.5px solid;border-radius:999px;font-size:13px}.cmp-slot i{width:9px;height:9px;border-radius:50%}.cmp-slot small{opacity:.55;font-size:10.5px}.cmp-slot button{border:0;background:none;color:inherit;cursor:pointer;opacity:.6;padding:0 2px}
 .cmp-add{display:grid;gap:8px;margin:0 0 4px}.cmp-add form{display:flex;gap:8px}.cmp-add form input{flex:1;min-width:0}
 .cmp-pl{display:grid;gap:7px;margin:8px 0}.cmp-p{display:flex;gap:10px;align-items:center;padding:9px 11px;border:.5px solid var(--linha);border-radius:12px}
-.dt-c{width:min(760px,94vw);max-height:90vh;overflow-y:auto;padding:16px 18px 20px}#dtOv{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);display:grid;place-items:center}.ccth{display:flex;gap:4px;margin:4px 0 6px;overflow-x:auto;scrollbar-width:thin}.ccth img{width:54px;height:54px;border-radius:8px;object-fit:cover;flex:0 0 54px;cursor:zoom-in}.ccimg{cursor:zoom-in}.ccul{margin:3px 0 0;padding-left:16px;font-size:12px;line-height:1.45;font-weight:400}.vt-x{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:13px;padding:2px 4px}#ccZoom{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:grid;place-items:center;cursor:zoom-out}#ccZoom img{max-width:94vw;max-height:92vh;object-fit:contain;border-radius:10px}#ccZoom button{position:fixed;top:14px;right:16px;color:#fff}
+.dt-c{width:min(760px,94vw);max-height:90vh;overflow-y:auto;padding:16px 18px 20px}#dtOv{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);display:grid;place-items:center}.ntc{margin:8px 0 2px;padding:14px 16px;border-radius:16px;background:#fff;color:#15161A;border:.5px solid rgba(0,0,0,.08);font-weight:300;line-height:1.45;text-align:left}
+.ntc-id{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.5}.ntc-t{font-size:18px;font-weight:400;margin:2px 0 1px;letter-spacing:-.01em}.ntc-c{font-size:12px;opacity:.65;margin-bottom:10px}
+.ntc-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 12px;padding:8px 0;border-top:.5px solid rgba(0,0,0,.08)}.ntc-f small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.55}.ntc-f b{font-weight:400;font-size:13px}
+.ntc-o{margin-top:8px;padding-top:8px;border-top:.5px solid rgba(0,0,0,.08);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}.ntc-o a{color:inherit}
+.ccth{display:flex;gap:4px;margin:4px 0 6px;overflow-x:auto;scrollbar-width:thin}.ccth img{width:54px;height:54px;border-radius:8px;object-fit:cover;flex:0 0 54px;cursor:zoom-in}.ccimg{cursor:zoom-in}.ccul{margin:3px 0 0;padding-left:16px;font-size:12px;line-height:1.45;font-weight:400}.vt-x{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:13px;padding:2px 4px}#ccZoom{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:grid;place-items:center;cursor:zoom-out}#ccZoom img{max-width:94vw;max-height:92vh;object-fit:contain;border-radius:10px}#ccZoom button{position:fixed;top:14px;right:16px;color:#fff}
 .cmp-cols{display:grid;gap:10px;overflow-x:auto;padding:2px 0 6px;margin:10px 0 0;scrollbar-width:none}.cmp-col{border:.5px solid var(--linha);border-radius:14px;padding:12px;min-width:0;background:rgba(127,127,127,.06)}
 .cmp-col .h{display:flex;align-items:center;gap:9px;margin-bottom:8px}.cmp-col .h img,.cmp-col .h .ini{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:0 0 34px;display:grid;place-items:center;background:rgba(127,127,127,.3);font-size:11px}.cmp-col .h b{display:block;font-size:13px;overflow-wrap:anywhere}.cmp-col .h small{opacity:.6;font-size:10.5px}
 .cmp-col .kv{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-top:.5px solid var(--sep);font-size:12px}.cmp-col .kv small{opacity:.6}.cmp-col .kv b{font-weight:500;font-size:14px}
@@ -2488,6 +2492,7 @@ pdAbertura(false);
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
 <script src="/js/pd-ajuda.js?v=327"></script>
+<script src="/js/pd-tarefa-nova.js?v=1" defer></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -3757,6 +3762,7 @@ function enviar(micou, doVerso){
   const txt = $('#campo').value.trim(); if (!txt) { if(!doVerso) $('#campo').focus(); return; }
   if (window._maestroCorrigindo){ limparCampo($('#campo')); maestroEnviar(txt, window._maestroCorrigindo); return; }
   limparCampo($('#campo'));
+  if (window.NT && NT.ativa && typeof ntResponder === 'function'){ ntResponder(txt); return; }   // criando tarefa pelo chat: a IA pergunta, a pessoa responde
   if (!chat && !doVerso) { chat = true; layoutChatDesk(true); }
   const th = THREADS[atual] = THREADS[atual] || [];
   if (atual === 'sd') guardarSlot();
@@ -8105,9 +8111,9 @@ function clicouManda(lado, ev){
 function abrirMenuMais(bt, lado){
   const velho = document.getElementById('menuMais'); if (velho){ velho.remove(); return; }
   const m = document.createElement('div'); m.id = 'menuMais';
-  m.innerHTML = `<button onclick="fecharMenuMais();abrirNovaTarefaCaixa()"><b>Criar tarefa</b><small>abre a caixa de tarefa nova</small></button>
-    <button onclick="fecharMenuMais();novoJobNoCampo()"><b>Pedir um job no chat</b><small>a ${esc(nomeDaIA ? nomeDaIA() : 'IA')} monta pra você</small></button>
-    <button onclick="fecharMenuMais();novoChat()"><b>Novo chat</b><small>conversa em branco</small></button>`;
+  const ia = esc(typeof nomeDaIA === 'function' ? nomeDaIA() : 'sua IA');
+  m.innerHTML = `<button onclick="fecharMenuMais();ntIniciar()"><b>Criar tarefa</b><small>${ia} pergunta e monta a tarefa com você</small></button>
+    <button onclick="fecharMenuMais();novoChat()"><b>Falar com ${ia}</b><small>conversa nova</small></button>`;
   document.body.appendChild(m);
   const r = bt ? bt.getBoundingClientRect() : { right: innerWidth - 12, top: innerHeight - 70 };
   m.style.right = Math.max(10, innerWidth - r.right) + 'px';
