@@ -444,7 +444,8 @@ function vdDescobrir($consulta, $quantos, $carteira, $uid) {
     $lote = $lr[0]['id'] ?? null; $rows = [];
     foreach ($lista as $x) { if (!is_array($x) || empty($x['nome']) || empty($x['site'])) continue; $rows[] = ['nome' => $x['nome'], 'site' => $x['site'], 'cidade' => $x['cidade'] ?? '', 'uf' => $x['uf'] ?? '', 'segmento' => $x['segmento'] ?? '']; }
     $r = vdImportarLinhas($rows, $cart, $lote, $uid, 'descoberta');
-    if (empty($r['ids'])) return ['erro' => 'tudo que achei já estava na carteira', 'duplicados' => $r['duplicados'] ?? 0];
+    if (!empty($r['erro'])) return ['erro' => 'não consegui gravar os leads: ' . $r['erro']];
+    if (empty($r['ids'])) return ['erro' => 'tudo que achei já estava na carteira (' . count($rows) . ' achadas, ' . (int)($r['duplicados'] ?? 0) . ' repetidas, ' . (int)($r['ignorados'] ?? 0) . ' sem nome)', 'duplicados' => $r['duplicados'] ?? 0];
     foreach (array_slice($r['ids'], 0, 15) as $id) vdEnriquecer($id);   // já lê os sites
     foreach ($lista as $x) if (!empty($x['motivo']) && !empty($x['site'])) { $d = vdDominio($x['site']); if ($d) vdSup('/rest/v1/pd_prospects?dominio=eq.' . urlencode($d) . '&angulo=is.null' . ($cart ? '&carteira_id=eq.' . $cart : '&carteira_id=is.null'), 'PATCH', ['angulo' => mb_substr((string)$x['motivo'], 0, 300)]); }
     return ['ok' => true, 'novos' => $r['novos'], 'duplicados' => $r['duplicados'], 'lote' => $lote];
