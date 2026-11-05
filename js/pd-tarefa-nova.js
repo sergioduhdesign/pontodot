@@ -9,7 +9,7 @@
 //   Usa os mesmos globais do index.html (THREADS, render, clientesReais…).
 // =====================================================================
 const NT = { ativa:false, passo:null, d:{}, verso:false };
-const NT_PASSOS = ['acao', 'cliente', 'produto', 'resp', 'date_int', 'extra'];
+const NT_PASSOS = ['acao', 'cliente', 'produto', 'resp', 'date_int', 'mae', 'filha', 'extra'];
 
 function ntNomeIA(){ try { return (typeof nomeDaIA === 'function' ? nomeDaIA() : '') || 'sua IA'; } catch(e){ return 'sua IA'; } }
 function ntThread(){ return THREADS[atual] = THREADS[atual] || []; }
@@ -19,8 +19,8 @@ function ntRolar(){ requestAnimationFrame(() => { ['#vcRolo', '#rolo', '.rolo'].
 function ntSemAcento(v){ return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 
 // ---- começa: uma frase e a IA já tira o que dá dela; só pergunta o que falta, uma coisa por vez
-function ntIniciar(){
-  NT.ativa = true; NT.d = { links:[] }; NT.passo = 'acao'; NT.verso = typeof noVersoAgora === 'function' && noVersoAgora();
+function ntIniciar(mae){
+  NT.ativa = true; NT.d = { links:[] }; if (mae && typeof mae === 'string'){ const m = (tasksReais || []).find(x => x.id === mae); if (m){ NT.d.mae = m; NT.d.client = (clientesReais || []).find(c => c.id === m.client_id) || undefined; } } NT.passo = 'acao'; NT.verso = typeof noVersoAgora === 'function' && noVersoAgora();
   if (!NT.verso && !chat) modoChat(true);
   if (atual !== 'sd') { atual = 'sd'; }
   ntFala(`O que vamos criar?`, [['Cancelar', '', 'ntCancelar()']]);
@@ -45,9 +45,11 @@ function ntProximo(){
   if (d.client && d.product === undefined && ntProdutos(d.client.id).length) return ntPergunta('produto');
   if (!d.resp) return ntPergunta('resp');
   if (d.date_int === undefined) return ntPergunta('date_int');
+  if (d.mae === undefined) return ntPergunta('mae');
+  if (d.filha === undefined) return ntPergunta('filha');
   return ntPergunta('extra');
 }
-function ntResumo(){ const d = NT.d; return [d.client ? d.client.name : 'SD', d.product && d.product.name, d.resp, d.date_int && fmtD(d.date_int)].filter(Boolean).join(' · '); }
+function ntResumo(){ const d = NT.d; return [d.client ? d.client.name : 'SD', d.product && d.product.name, d.resp, d.date_int && fmtD(d.date_int), d.mae && ('filha de ' + d.mae.id)].filter(Boolean).join(' · '); }
 
 // ---- o texto que a pessoa mandou cai aqui (chamado por enviar())
 function ntResponder(txt){
@@ -70,6 +72,12 @@ function ntResponder(txt){
       if (!m.length) return ntFala('Quem? Escolhe:', ntChipsEquipe());
       return ntEscolhe('resp', m[0]); }
     case 'date_int': { if (pula){ NT.d.date_int = null; return ntProximo(); } const d = ntData(t); if (!d) return ntFala('Não entendi. "amanhã", "sexta", "15/11"…'); NT.d.date_int = d; return ntProximo(); }
+    case 'mae': { if (pula){ NT.d.mae = null; return ntProximo(); }
+      const q = tl.replace(/^sd-?/, ''); const m = (tasksReais || []).filter(x => ntSemAcento(x.id).includes(tl) || ntSemAcento(x.action).includes(tl)).sort((a, b) => (b.client_id === (NT.d.client && NT.d.client.id)) - (a.client_id === (NT.d.client && NT.d.client.id))).slice(0, 5);
+      if (!m.length) return ntFala('Não achei essa tarefa. Código ou parte do nome?', [['Não vem de outra', '', "ntEscolhe('mae',null)"]]);
+      if (m.length === 1) return ntEscolhe('mae', m[0].id);
+      return ntFala('Qual delas?', m.map(x => [x.id + ' · ' + String(x.action).slice(0, 40), '', `ntEscolhe('mae','${x.id}')`])); }
+    case 'filha': NT.d.filha = /^(s|sim|vai|yes)$/.test(tl); return ntProximo();
     case 'extra': { if (!pula){ const ls = t.match(/https?:\/\/\S+/g) || []; if (ls.length) NT.d.links = NT.d.links.concat(ls); const resto = t.replace(/https?:\/\/\S+/g, '').trim(); if (/^(cria|criar|ok|vai|sim|manda|pode)$/.test(tl)){} else if (resto || ls.length) NT.d.obs = (NT.d.obs ? NT.d.obs + '\n' : '') + t; } return ntCriar(); }
   }
 }
@@ -80,6 +88,8 @@ function ntPergunta(p){
     case 'produto': ph('Produto…'); return ntFala('Qual produto?', ntChipsProdutos().concat([['Cliente todo', '', "ntEscolhe('produto',null)"]]));
     case 'resp': ph('Quem cuida…'); return ntFala('Quem cuida?', ntChipsEquipe());
     case 'date_int': ph('amanhã · sexta · 15/11 · em 3 dias'); return ntFala('Pra quando?', [['Hoje', '', "ntEscolhe('date_int','hoje')"], ['Amanhã', '', "ntEscolhe('date_int','amanhã')"], ['Sexta', '', "ntEscolhe('date_int','sexta')"], ['Sem data', '', "ntEscolhe('date_int',null)"]]);
+    case 'mae': ph('Código ou nome da tarefa de origem…'); return ntFala('Ela vem de outra tarefa?', [['Não', '', "ntEscolhe('mae',null)"]].concat(ntMaesProvaveis().map(x => [x.id + ' · ' + String(x.action).slice(0, 34), '', `ntEscolhe('mae','${x.id}')`])));
+    case 'filha': return ntFala('Vai gerar outra tarefa depois?', [['Não', '', "ntEscolhe('filha',false)"], ['Sim', '', "ntEscolhe('filha',true)"]]);
     case 'extra': ph('Links ou detalhes — ou aperte Criar'); return ntFala(`<span class="nota">${esc(ntResumo())}</span><br>Algum link ou detalhe?`, [['Criar tarefa', 'verde', 'ntResponder("criar")'], ['Cancelar', '', 'ntCancelar()']]);
   }
 }
@@ -89,8 +99,11 @@ function ntEscolhe(campo, v){
   else if (campo === 'produto'){ NT.d.product = v ? ntProdutos(NT.d.client && NT.d.client.id).find(p => p.id === v) || null : null; ntEu(NT.d.product ? NT.d.product.name : 'Cliente todo'); }
   else if (campo === 'resp'){ NT.d.resp = v; const p = (PERFIS || []).find(x => chaveDe(x) === v); ntEu(p ? p.name.split(' ')[0] : v); }
   else if (campo === 'date_int'){ NT.d.date_int = v ? ntData(v) : null; ntEu(v ? fmtD(NT.d.date_int) : 'Sem data'); }
+  else if (campo === 'mae'){ NT.d.mae = v ? (tasksReais || []).find(x => x.id === v) || null : null; ntEu(NT.d.mae ? NT.d.mae.id : 'Não'); }
+  else if (campo === 'filha'){ NT.d.filha = !!v; ntEu(v ? 'Sim' : 'Não'); }
   return ntProximo();
 }
+function ntMaesProvaveis(){ const cid = NT.d.client && NT.d.client.id; return (tasksReais || []).filter(x => cid && x.client_id === cid && x.status !== 'ENTREGUE').sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 3); }
 
 // ---- autopreenchimento
 function ntAchaCliente(q){ const ql = ntSemAcento(q); return (clientesReais || []).filter(c => ntSemAcento(c.name).includes(ql)).sort((a, b) => ntSemAcento(a.name).startsWith(ql) ? -1 : 1); }
@@ -132,14 +145,14 @@ async function ntCriar(){
   try {
     const { data: nid, error: eid } = await sbR.rpc('next_task_id'); if (eid || !nid) throw new Error(eid?.message || 'sem id novo');
     const nova = { id: nid, action: d.action.slice(0, 160), status: 'BRIEFING', resp: (d.resp || chaveDe(perfil) || 'SD').toUpperCase(), project: d.project || 'GERAL', week: 'ESTA SEMANA', created_by: perfil.id, obs: ntPreview().obs ? ntPreview().obs.slice(0, 4000) : null };
-    if (d.client) nova.client_id = d.client.id; if (d.product) nova.product_id = d.product.id; if (d.date_int) nova.date_int = d.date_int; if (d.date_cli) nova.date_cli = d.date_cli;
+    if (d.mae) nova.tarefa_mae_id = d.mae.id; if (d.client) nova.client_id = d.client.id; if (d.product) nova.product_id = d.product.id; if (d.date_int) nova.date_int = d.date_int; if (d.date_cli) nova.date_cli = d.date_cli;
     let { data, error } = await sbR.from('tasks').insert(nova).select('id,action').single();
     if (error && /product_id/i.test(error.message || '')){ delete nova.product_id; ({ data, error } = await sbR.from('tasks').insert(nova).select('id,action').single()); }
     if (error) throw error;
     NT.ativa = false; NT.passo = null; const c = document.querySelector('#campo'); if (c) c.placeholder = 'Fale comigo...';
     try { await carregarReal(); atualizarVersoApp(); } catch(e){}
     const t = (tasksReais || []).find(x => x.id === data.id) || { ...nova, clients: d.client ? { name: d.client.name } : null, products: d.product ? { name: d.product.name } : null };
-    ntFala(`Criada: <b>${data.id}</b>. Já está no board.` + ntCardHtml(t), [['Abrir a tarefa', 'verde', `abrirTarefaReal('${data.id}')`], ['Subir material para aprovação', 'azul', `ntSubirAprovacao('${data.id}')`], ['Criar outra', '', 'ntIniciar()']]);
+    ntFala(`Criada: <b>${data.id}</b>. Já está no board.` + ntCardHtml(t), [['Abrir a tarefa', '', `abrirTarefaReal('${data.id}')`], ['Subir material para aprovação', 'azul', `ntSubirAprovacao('${data.id}')`], ].concat(d.filha ? [['Criar a tarefa filha', 'verde', `ntIniciar('${data.id}')`]] : [['Criar outra', '', 'ntIniciar()']]));
     if (nova.client_id && /copy|legenda|texto/i.test(nova.action) && typeof adsFala === 'function') adsFala({ acao:'executar_tarefa', task_id: data.id }, '/pd-copy.php').then(j => toast('Copy da ' + data.id + ' montada no Studio › Copys (' + (j.n || 0) + ' itens).')).catch(() => {});
   } catch(e){ ntFala('Não consegui criar: ' + esc(e.message), [['Tentar de novo', 'verde', 'ntCriar()'], ['Cancelar', '', 'ntCancelar()']]); }
 }

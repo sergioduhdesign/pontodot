@@ -933,6 +933,8 @@ html.dia .frente .tarefa-cheia{background:rgba(244,243,239,.3)}
 .tc-id{font-size:10px;color:var(--branco2)}
 .tc-caixa h3{margin:1px 0 2px;font-size:23.5px;line-height:1.08;font-weight:400}
 #tarefaCheia .tc-caixa.tcn{background:#F4F3EF;color:#15161A;font-weight:300;padding:16px 20px 18px;border:0}
+#tarefaCheia .tcn .tc-x{margin-left:16px}
+#tarefaCheia .tcn .cp-ic{min-width:38px;padding:7px 10px;display:inline-flex;align-items:center;justify-content:center;gap:2px}#tarefaCheia .tcn #tcLike b{display:none}
 #tarefaCheia .tcn .cp-top{flex-wrap:wrap;gap:6px}#tarefaCheia .tcn .tc-x{color:#15161A}
 #tarefaCheia .tcn .tc-grade{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 14px;padding:10px 0 6px;border-top:.5px solid rgba(0,0,0,.08);border-bottom:.5px solid rgba(0,0,0,.08)}
 #tarefaCheia .tcn .tc-camp span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.55}#tarefaCheia .tcn .tc-camp b{font-weight:400;font-size:13.5px}
@@ -2501,7 +2503,7 @@ pdAbertura(false);
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
 <script src="/js/pd-ajuda.js?v=327"></script>
-<script src="/js/pd-tarefa-nova.js?v=2" defer></script>
+<script src="/js/pd-tarefa-nova.js?v=3" defer></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -10213,7 +10215,8 @@ async function carregarReal(){
       .then(({data}) => { clientesReais = data || []; }).catch(()=>{}); });
   // quem mais está com o cronômetro rodando agora (o mostrador da casa)
   sbR.from('task_sessions').select('task_id,user_id,started_at,profiles(name)').is('ended_at', null).limit(40)
-    .then(({data}) => { window.sessoesEquipe = (data||[])
+    .then(({data}) => { window.sessoesMinhas = (data||[]).filter(s => s.user_id === perfil.id).map(s => ({ task_id: s.task_id, started_at: s.started_at })); setTimeout(() => { try { pvAviso(); } catch(e){} }, 4000);
+      window.sessoesEquipe = (data||[])
       .filter(s => s.user_id !== perfil.id)
       .map(s => ({ task_id: s.task_id, nome: s.profiles?.name || 'alguém' })); })
     .catch(()=>{ window.sessoesEquipe = []; });
@@ -10505,6 +10508,18 @@ async function aplicarCampo(id, campo, valor){
   } catch(e){ toast('Não deu: ' + e.message); }
 }
 // a página da tarefa (desenho 3) com dados reais: conversa, status, play
+// avatares da tarefa: a pessoa responsável + a IA dela no processo (toca no rosto para passar a tarefa)
+function tcAvatares(t){
+  const r = String(t.resp || '').toUpperCase();
+  const p = (PERFIS || []).find(x => (typeof chaveDe === 'function' ? chaveDe(x) : (x.name || '').split(' ')[0].toUpperCase()) === r) || (PERFIS || []).find(x => (x.name || '').split(' ')[0].toUpperCase() === r);
+  const ini = (p ? p.name : t.resp || '?').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
+  const humano = p && p.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="${esc(p.name)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">` : `<span style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500">${esc(ini)}</span>`;
+  const ias = (typeof IACASA !== 'undefined' && IACASA.d && IACASA.d.ias) || null;
+  if (!ias && typeof IACASA !== 'undefined' && !IACASA.d && !IACASA.pedindo && typeof iasCarrega === 'function'){ IACASA.pedindo = true; Promise.resolve(iasCarrega()).then(() => { IACASA.pedindo = false; if (IACASA.d && !$('#tarefaCheia').classList.contains('oculto') && $('#tarefaCheia .ntc-id') && $('#tarefaCheia .ntc-id').textContent.indexOf(t.id) === 0) abrirTarefaReal(t.id); }).catch(() => { IACASA.pedindo = false; }); }
+  const ia = (ias || []).find(i => String(i.dona || '').split(' ')[0].toUpperCase() === r);
+  const iaH = ia ? `<img src="/icone-ia.php?p=${encodeURIComponent(ia.personagem)}&s=80" alt="${esc(ia.nome)}" title="${esc(ia.nome)} · IA de ${esc(ia.dona)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;margin-left:-10px;border:2px solid #F4F3EF">` : '';
+  return `<span style="display:flex;align-items:center;flex-shrink:0;cursor:pointer" title="${esc(p ? p.name : t.resp || '')}${ia ? ' + ' + esc(ia.nome) + ' (IA)' : ''} — toca pra passar a tarefa" onclick="escolherResp(event,'${t.id}')">${humano}${iaH}</span>`;
+}
 async function abrirTarefaReal(id){
   try { visitarTarefa(id); } catch(e){}
   let t = tasksReais.find(x=>x.id===id);
@@ -10527,22 +10542,23 @@ async function abrirTarefaReal(id){
   const campo9 = (r,v,click,tip)=>`<div class="tc-camp${click?' edit':''}"${click?` onclick="${click.replace(/"/g,'&quot;')}" title="${tip||'Toca pra editar'}"`:''}><span>${r}</span><b>${v||'—'}</b></div>`;
   const ehAdm = !!(perfil && (perfil.is_admin || perfil.role === 'admin' || /sergio|sérgio/i.test(perfil.name || '')));
   const rodando = !!sessAbertas[t.id];
+  el.classList.add('sem-ajuda');
   el.innerHTML = `
   <div class="caixa tc-caixa invertida cp tcn">
     <div class="cp-top">
-      <button class="btn cp-b" onclick="event.stopPropagation();escolherStatus(event,'${t.id}')">${t.status ? rotStatus(t.status) : 'status'} ∨</button>
-      <button class="btn cp-b" onclick="event.stopPropagation();escolherResp(event,'${t.id}')">passar pra… ∨</button>
-      <button class="btn cp-b" style="${rodando?'color:var(--verde);border-color:var(--verde)':''}" onclick="playTarefa('${t.id}')">${icoPlay(rodando,15)} ${rodando?'pausar':'trabalhar'}</button>
-      <button class="btn cp-b" onclick="abrirArtesReais('${t.id}')">${icoMini('olho')} peças</button>
-      <button class="btn cheio cp-b" onclick="popupIframe('/novo-lote.html?embed=1&task=${t.id}','Subir material — ${t.id}')">${icoMini('subir',14)} subir material</button>
-      ${(driveMap[t.id] && !['produzir','corrigir'].includes(driveMap[t.id].status)) ? `<button class="btn cp-b" title="Mandar a IA começar agora" onclick="fecharTarefa();forcarStart('${t.id}')">▶ IA começa</button>` : ''}
+      <button class="btn cp-b cp-ic" style="${rodando?'color:var(--verde);border-color:var(--verde)':''}" title="${rodando?'Pausar o cronômetro de produção':'Iniciar o cronômetro de produção (conta o tempo trabalhado nesta tarefa)'}" aria-label="cronômetro" onclick="playTarefa('${t.id}')">${icoPlay(rodando,15)}${t.total_seconds ? `<small style="margin-left:5px;font-variant-numeric:tabular-nums">${Math.floor(t.total_seconds/3600)}h${String(Math.floor(t.total_seconds%3600/60)).padStart(2,'0')}</small>` : ''}</button>
+      <button class="btn cp-b cp-ic" title="Ver as peças" aria-label="peças" onclick="abrirArtesReais('${t.id}')">${icoMini('olho')}</button>
+      <button class="btn cheio cp-b cp-ic" title="Subir material para aprovação" aria-label="subir material" onclick="popupIframe('/novo-lote.html?embed=1&task=${t.id}','Subir material — ${t.id}')">${icoMini('subir',14)}</button>
+      ${(driveMap[t.id] && !['produzir','corrigir'].includes(driveMap[t.id].status)) ? `<button class="btn cp-b cp-ic" title="Mandar a IA começar agora" aria-label="IA começa" onclick="fecharTarefa();forcarStart('${t.id}')">▶</button>` : ''}
+      <button id="tcLike" class="btn cp-b cp-ic" onclick="curtirTarefa('${t.id}')" title="Curtir">${coracaoSvg(false)}</button>
+      <button class="btn cp-b cp-ic" onclick="compartilharTarefa(event,'${t.id}')" title="Compartilhar o link da tarefa">${icoMini('compart',15)}</button>
       <span style="flex:1"></span>
-      <button class="btn cp-b" onclick="copiarTarefa('${t.id}',this)" title="Copiar toda a informação da tarefa">copiar</button>
-      ${ehAdm ? `<button class="btn cp-b" style="color:var(--rosa)" onclick="excluirTarefa(event,'${t.id}')">excluir</button>` : ''}
+      <button class="btn cp-b cp-ic" onclick="copiarTarefa('${t.id}',this)" title="Copiar toda a informação da tarefa" aria-label="copiar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+      ${ehAdm ? `<button class="btn cp-b cp-ic" style="color:var(--rosa)" onclick="excluirTarefa(event,'${t.id}')" title="Excluir a tarefa" aria-label="excluir"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/></svg></button>` : ''}
       <button class="acao-cab tc-x" onclick="fecharTarefa()" aria-label="Fechar">✕</button>
     </div>
     <div class="tc-topo" style="margin-top:10px">
-      <span style="margin-top:2px">${cara(caraDe(t),30)}</span>
+      ${tcAvatares(t)}
       <div style="flex:1;min-width:0">
         <div class="ntc-id">${t.id}${tempo} ${(window.PDCARD && PDCARD.batataHTML(t)) || ''}</div>
         <h3 class="edit ntc-t" style="margin:2px 0 1px;font-size:22px" title="Toca pra editar o título" onclick="editarInline(event,'${t.id}','action','texto')">${esc(t.action)}</h3>
@@ -10550,29 +10566,17 @@ async function abrirTarefaReal(id){
       </div>
       ${t.cover_url?`<img src="${t.cover_url}" style="width:64px;height:64px;object-fit:cover;border-radius:12px;flex-shrink:0">`:''}
     </div>
-    <div class="tc-social">
-      <button id="tcLike" onclick="curtirTarefa('${t.id}')" title="Curtir">${coracaoSvg(false)} <b>·</b></button>
-      <button onclick="compartilharTarefa(event,'${t.id}')" title="Compartilhar o link da tarefa">${icoMini('compart',15)} compartilhar</button>
-      <span style="margin-left:auto;font-size:9.5px;letter-spacing:.08em;opacity:.45">TOCA NUM CAMPO PRA EDITAR</span>
-    </div>
     <div class="tc-grade ntc-g">
       ${campo9('Cliente', t.clients?.name||'SD', `escolherCliente(event,'${t.id}')`, 'Trocar o cliente')}
       ${campo9('Produto', t.products?.name)}
       ${campo9('Projeto', t.project||'GERAL', `editarInline(event,'${t.id}','project','texto')`)}
-      ${campo9('Responsável', t.resp, `escolherResp(event,'${t.id}')`, 'Passar pra outra pessoa')}
       ${campo9('Status', rotStatus(t.status), `escolherStatus(event,'${t.id}')`, 'Mudar o status')}
-      ${campo9('Semana', (t.week||'').toLowerCase(), `escolherSemana(event,'${t.id}')`, 'Mudar a semana')}
-      ${campo9('Entrega interna', fmtD(t.date_int), `editarInline(event,'${t.id}','date_int','data')`)}
-      ${campo9('Para o cliente', fmtD(t.date_cli), `editarInline(event,'${t.id}','date_cli','data')`)}
+      ${campo9('Entrega · interna', fmtD(t.date_int), `editarInline(event,'${t.id}','date_int','data')`)}
+      ${campo9('Entrega · cliente', fmtD(t.date_cli), `editarInline(event,'${t.id}','date_cli','data')`)}
     </div>
     <div class="tc-orelhas" id="tcOrelhas"></div>
-    ${t.obs?`<div class="tc-obs edit" title="Toca pra editar" onclick="editarInline(event,'${t.id}','obs','area')">${String(t.obs).replace(/</g,'&lt;').replace(/(https?:\/\/\S+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}</div>`
-      :`<div class="tc-obs edit" style="opacity:.5" onclick="editarInline(event,'${t.id}','obs','area')">+ detalhes da tarefa… (toca pra escrever)</div>`}
-    ${t.prompt_ia ? `<div class="tc-prompt">
-      <span style="flex:1;min-width:0"><b>Prompt da tarefa</b> — ${String(t.prompt_ia).length.toLocaleString('pt-BR')} caracteres${t.prompt_ia_em?` · ${fmtD(t.prompt_ia_em)}`:''}</span>
-      <button class="btn cp-b" onclick="verPromptTarefa('${t.id}')">ver</button>
-      <button class="btn cp-b" onclick="window._promptAtual={id:'${t.id}',texto:(tasksReais.find(x=>x.id==='${t.id}')||{}).prompt_ia||''};baixarPrompt()">baixar</button>
-    </div>` : ''}
+    ${t.prompt_ia ? `<div class="tc-obs" style="max-height:200px;overflow-y:scroll;white-space:pre-wrap;cursor:pointer" title="Abrir o briefing completo" onclick="verPromptTarefa('${t.id}')"><small style="display:block;opacity:.5;letter-spacing:.1em;text-transform:uppercase;font-size:10px;margin-bottom:4px">Briefing</small>${String(t.prompt_ia).replace(/</g,'&lt;')}</div>`
+      : `<div class="tc-obs edit" style="${t.obs?'':'opacity:.5'}" title="Toca pra editar" onclick="editarInline(event,'${t.id}','obs','area')"><small style="display:block;opacity:.5;letter-spacing:.1em;text-transform:uppercase;font-size:10px;margin-bottom:4px">Briefing</small>${t.obs ? String(t.obs).replace(/</g,'&lt;').replace(/(https?:\/\/\S+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>') : '+ escreva o briefing…'}</div>`}
     <div id="tcDrive"></div>
     <div id="tcFixes"></div>
     <div id="tcApr"></div>
@@ -10585,6 +10589,7 @@ async function abrirTarefaReal(id){
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7.5 7L9 19"/></svg></button>
     </div>
   </div>`;
+
   el.onclick = e => { if (e.target === el) fecharTarefa(); };
   setTimeout(()=>{ const c=el.querySelector('.tc-caixa'); if(c){ delete c.dataset.fio; fio(c); } }, 30);
   carregarEventos(id);
@@ -10789,13 +10794,7 @@ async function carregarAprovacao(id){
   try { const { data } = await sbR.from('v_task_approval').select('*').eq('task_id', id); ap = (data||[])[0]; } catch(e){}
   if (!ap){
     if (driveMap[id]){ box.innerHTML = ''; return; }   // com Drive, a entrega nasce no "importar"
-    box.innerHTML = `<div class="tc-apr" style="border-style:dashed">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <div style="flex:1;min-width:170px"><b>Material pronto?</b>
-          <div style="opacity:.7;margin-top:2px;line-height:1.45">Sobe as artes e manda pro cliente aprovar — a tarefa anda sozinha pra "com o cliente".</div></div>
-        <button class="btn" style="background:var(--verde);border-color:var(--verde);color:#fff;font-weight:600"
-          onclick="popupIframe('/novo-lote.html?embed=1&task=${id}','Subir material — ${id}')">${icoMini('subir',14)} subir material</button>
-      </div></div>`;
+    box.innerHTML = '';
     return;
   }
   if (!ap.total){
@@ -10815,8 +10814,7 @@ async function carregarAprovacao(id){
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:150px"><b>${esc(ap.title||'Lote de aprovação')}</b>
         <div style="color:${cor};font-weight:500;margin-top:2px">${resumo}</div></div>
-      <button class="btn" onclick="abrirArtesReais('${id}')">${icoMini('olho',13)} ver peças</button>
-      <button class="btn" onclick="popupIframe('/novo-lote.html?embed=1&task=${id}','Subir correções — ${id}')">↻ subir correções</button>
+      <button class="btn cp-ic" title="Subir correções" aria-label="subir correções" onclick="popupIframe('/novo-lote.html?embed=1&task=${id}','Subir correções — ${id}')">↻</button>
       ${ap.set_id?`<a class="btn btn-ico" href="/aprovacao.html?set=${ap.set_id}" target="_blank" rel="noopener" title="O lote completo">${icoMini('externo',14)}</a>`:''}
     </div>
     <div class="barra"><i style="width:${pct}%;background:${cor}"></i></div>
@@ -10910,6 +10908,28 @@ async function comentarReal(id){
   const { error } = await sbR.from('comments').insert({ task_id: id, user_id: perfil.id, body: v });
   if (error){ toast('Não gravou: ' + error.message); return; }
   carregarEventos(id); carregarReal().catch(()=>{});
+}
+// a IA da pessoa cuida do play: tarefa esquecida em play há mais de um dia vira pergunta (uma vez por dia por tarefa)
+function pvAviso(){
+  const velhas = (window.sessoesMinhas || []).filter(x => Date.now() - new Date(x.started_at).getTime() > 24 * 3600e3);
+  if (!velhas.length || document.getElementById('pvAviso')) return;
+  const v = velhas.find(x => { try { return localStorage.getItem('pv_' + x.task_id) !== new Date().toISOString().slice(0, 10); } catch(e){ return true; } }); if (!v) return;
+  const t = (tasksReais || []).find(x => x.id === v.task_id); if (!t) return;
+  const dias = Math.floor((Date.now() - new Date(v.started_at).getTime()) / 86400e3);
+  const nome = (perfil && perfil.name ? perfil.name.split(' ')[0] : '');
+  const pers = (typeof jeito !== 'undefined' && jeito && jeito.personagem) || 'maestro';
+  const box = document.createElement('div'); box.id = 'pvAviso'; box.className = 'sem-ajuda';
+  box.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9600;display:flex;align-items:flex-end;gap:8px;max-width:360px';
+  box.innerHTML = `<div class="vida" style="border-radius:14px 14px 4px 14px;padding:12px 14px;font-size:13px;line-height:1.45"><b>${esc(nome)}</b>, a <b>${esc(t.id)}</b> (${esc(String(t.action).slice(0, 60))}) está no play há ${dias} dia${dias > 1 ? 's' : ''}. Você pausou? Quer parar o play, cancelar ou já entregou?
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px"><button class="btn" onclick="pvResp('${t.id}','parar')">Parar o play</button><button class="btn" onclick="pvResp('${t.id}','abrir')">Abrir a tarefa</button><button class="btn" onclick="pvResp('${t.id}','depois')">Depois</button></div></div>
+    <img src="/icone-ia.php?p=${encodeURIComponent(pers)}&s=128" alt="" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
+  document.body.appendChild(box);
+}
+async function pvResp(id, o){
+  try { localStorage.setItem('pv_' + id, new Date().toISOString().slice(0, 10)); } catch(e){}
+  const b = document.getElementById('pvAviso'); if (b) b.remove();
+  if (o === 'parar'){ await playReal({ id, play: false, real: (tasksReais || []).find(x => x.id === id) }); toast('Play parado.'); window.sessoesMinhas = (window.sessoesMinhas || []).filter(x => x.task_id !== id); }
+  else if (o === 'abrir') abrirTarefaReal(id);
 }
 async function playTarefa(id){
   const aberta = !!sessAbertas[id];
