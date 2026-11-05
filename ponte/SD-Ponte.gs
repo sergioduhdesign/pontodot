@@ -47,7 +47,9 @@ function doPost(e) {
       // aprovações morando no Drive em vez de comer o plano do Supabase
       lixeira: lixeira_,
       aprov_pasta: aprovPasta_, aprov_subir: aprovSubir_,
-      aprov_puxar: aprovPuxar_, aprov_conferir: aprovConferir_
+      aprov_puxar: aprovPuxar_, aprov_conferir: aprovConferir_,
+      // escola: a professora pode devolver o CORRECAO.json por e-mail (resposta ao aviso ou e-mail novo com o chamado)
+      email_correcao: emailCorrecao_
     };
     if (!acoes[d.acao]) throw new Error('Ação desconhecida: ' + d.acao);
     r = acoes[d.acao](d);
@@ -659,4 +661,29 @@ function lixeira_(d) {
     catch (e) { out[ids[i]] = 'sem acesso'; }
   }
   return { lixeira: out };
+}
+
+// ---------------------------------------------------------------- ESCOLA: parecer da professora por e-mail
+// A PD pergunta: {acao:'email_correcao', chamado:'AULA-xxxx-R1-...'}.
+// Procura no Gmail desta conta um e-mail que cite o chamado (assunto ou corpo) e traga um JSON
+// (no corpo ou num anexo .json / .txt). Devolve o texto do JSON. Marca a thread com a etiqueta SD-IA/lido.
+function emailCorrecao_(d) {
+  var chamado = String(d.chamado || '').trim(); if (!chamado) throw new Error('Sem chamado.');
+  var threads = GmailApp.search('"' + chamado + '" newer_than:10d -label:SD-IA-lido', 0, 10);
+  var lido = GmailApp.getUserLabelByName('SD-IA-lido') || GmailApp.createLabel('SD-IA-lido');
+  for (var i = 0; i < threads.length; i++) {
+    var msgs = threads[i].getMessages();
+    for (var j = msgs.length - 1; j >= 0; j--) {
+      var m = msgs[j]; if (m.getFrom().indexOf('workflow@sergioduh.com') >= 0) continue;   // o aviso da PD não é resposta
+      var cand = [];
+      var att = m.getAttachments(); for (var k = 0; k < att.length; k++) { var n = att[k].getName().toLowerCase(); if (/\.(json|txt)$/.test(n)) cand.push(att[k].getDataAsString()); }
+      cand.push(m.getPlainBody() || '');
+      for (var c = 0; c < cand.length; c++) {
+        var t = String(cand[c] || ''); var a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b <= a) continue;
+        var json = t.substring(a, b + 1).replace(/[“”]/g, '"');
+        try { var o = JSON.parse(json); if (o && o.contrato && String(o.chamado || '') === chamado) { threads[i].addLabel(lido); return { achou: true, json: json, de: m.getFrom(), quando: m.getDate().toISOString() }; } } catch (e) {}
+      }
+    }
+  }
+  return { achou: false };
 }

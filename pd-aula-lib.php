@@ -210,6 +210,7 @@ function pdProfessorTexto($a, $sk, $cfg, $chamado) {
         $L[] = 'ESTA É UMA AULA DE DOCUMENTO DE JOB REAL: o cliente é real e a entrega é texto (ENTRADA/entrega-R' . $a['rodada'] . '.md). Leia antes o 00_CONTEXTO.md (ficha do cliente, produtos, briefing da tarefa, afinação do dono da tarefa) — o parecer precisa considerar esse contexto.';
         $L[] = 'Não produza a nova versão pela aluna: aponte problema, motivo e correção; pode sugerir frase, pergunta, referência ou dois caminhos. A nova versão é dela. Até ' . $a['max_rodadas'] . ' rodadas nesta noite; o que ficar em aberto vai destacado para a equipe de manhã.';
         $L[] = 'Se a professora for o próprio GPT com acesso ao Drive (sem dot), ela mesma grava SAIDA/CORRECAO.json e escreve TERMINEI ' . $chamado . ' na célula B2 — transportado_por: "gpt".';
+        $L[] = 'OU RESPONDA POR E-MAIL: responda a este aviso (ou mande um e-mail novo para ' . emailIA() . ' com o assunto [SD-IA] CORRECAO · ' . $chamado . ') com o CORRECAO.json inteiro no corpo ou em anexo. A PD lê em até 5 minutos. O chamado dentro do JSON tem de ser exatamente ' . $chamado . '.';
     } else $L[] = 'Não produza a arte pela aluna, não envie nada a ninguém e não use dados de cliente real. O exercício usa cliente fictício.';
     $L[] = 'Sem acesso à pasta ou à planilha: e-mail para sergio.duh.design@gmail.com (SEM o +sdia), assunto [SD-IA BLOQUEIO] ' . $chamado . ', com o motivo.';
     return implode("\n", $L);
@@ -288,6 +289,16 @@ function pdProfessorPasso($a, $sk, $cfg) {
         $st = strtoupper(trim((string)(ponte('ler_status', ['controleId' => $ch['controleId']])['status'] ?? '')));
         $min = round((time() - strtotime($ch['enviado_em'] ?? 'now')) / 60); $ha = $min < 60 ? $min . ' min' : round($min / 60, 1) . ' h';
         if (strpos($st, 'TERMINEI') !== 0) {
+            // a professora pode ter respondido por E-MAIL (resposta ao aviso, ou e-mail novo citando o chamado) — a ponte procura no Gmail
+            $em = null; try { $em = ponte('email_correcao', ['chamado' => $ch['chamado']]); } catch (Throwable $e) { $em = null; }
+            if ($em && !empty($em['achou'])) {
+                $j = pdJson((string)$em['json']); [$ok, $n] = pdCorrecaoValida($j, $a, $ch, $cfg);
+                if (!$ok) { pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($a['id']), 'PATCH', ['chamado' => array_merge($ch, ['erro' => 'e-mail: ' . $n])]); return ['ok' => false, 'msg' => 'Parecer por e-mail rejeitado: ' . $n]; }
+                $n['_origem']['transportado_por'] = 'email';
+                $r = pdAulaAplicarCorrecao($a, $n, 'Professora (' . $n['_origem']['projeto'] . ') por e-mail', $cfg);
+                try { ponte('status', ['controleId' => $ch['controleId'], 'status' => 'RECEBIDO PELO SD (e-mail)', 'rodada' => $a['rodada'], 'obs' => 'nota ' . round($n['nota'])]); } catch (Throwable $e) {}
+                return $r;
+            }
             if (strpos($st, 'AGUARDANDO-PROFESSOR') === 0) return ['ok' => false, 'msg' => 'O dot avisou: o professor ainda não respondeu (há ' . $ha . '). A aula segue aguardando.'];
             return ['ok' => false, 'msg' => 'Aguardando o dot e o professor (aviso há ' . $ha . ').'];
         }
