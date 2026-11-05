@@ -3648,7 +3648,7 @@ function escMitologia(){
     #esc-mito .mt-card span{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;font-size:15px;font-weight:400}
     #esc-mito .mt-card small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:3px}
     #esc-mito .mt-cw{position:relative}
-    #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:26px;line-height:1;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.28)}
+    #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:26px;line-height:1;padding:0 0 4px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.28)}
     #esc-mito .mt-sw:hover{background:#fff;transform:translateY(-50%) scale(1.06)}#esc-mito .mt-sw-e{left:10px}#esc-mito .mt-sw-d{right:10px}
     #esc-mito .mt-hab{display:flex;gap:12px;overflow-x:scroll;padding:4px 0 14px}
     #esc-mito .mt-h{flex:0 0 96px;text-align:center;font-size:12px}#esc-mito .mt-h img{width:96px;height:96px;border-radius:50%;object-fit:cover;display:block;margin-bottom:6px}
@@ -3719,6 +3719,8 @@ function mtZoom(i){
   const [n, u] = L[i];
   z.innerHTML = `<button class="mt-zx" onclick="document.getElementById('mtZoom').remove()" aria-label="Fechar">✕</button><button class="mt-sw mt-sw-e" style="position:fixed" onclick="mtZoom(${i - 1})" aria-label="Anterior">‹</button><img src="${u}" alt="${n}"><button class="mt-sw mt-sw-d" style="position:fixed" onclick="mtZoom(${i + 1})" aria-label="Próxima">›</button>${n ? `<div style="font-size:15px;letter-spacing:.04em">${n} · Catum</div>` : ''}<small style="opacity:.6">${i + 1} / ${L.length}</small>`;
 }
+let MT_X = null; document.addEventListener('touchstart', e => { MT_X = e.target.closest && e.target.closest('#mtZoom') ? e.touches[0].clientX : null; }, { passive:true });
+document.addEventListener('touchend', e => { if (MT_X === null) return; const dx = e.changedTouches[0].clientX - MT_X; MT_X = null; if (Math.abs(dx) > 50) document.querySelector('#mtZoom ' + (dx < 0 ? '.mt-sw-d' : '.mt-sw-e'))?.click(); }, { passive:true });
 document.addEventListener('keydown', e => { const z = document.getElementById('mtZoom'); if (!z) return; const m = z.querySelector('.mt-sw-d'); if (e.key === 'ArrowRight' && m) m.click(); if (e.key === 'ArrowLeft') z.querySelector('.mt-sw-e')?.click(); });
 function escFecharMito(){ document.getElementById('esc-mito')?.remove(); document.documentElement.style.overflow = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharMito(); });
