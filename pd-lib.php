@@ -638,7 +638,8 @@ function pdDelegar($a, $p) {
     $iaDe = pdNomeIA($p['id'] ?? ''); $id = pdElencoBusca($paraRaw);
     if ($id) {
         $x = pdElencoPapeis()[$id];
-        if ($id === 'tumi') { require_once __DIR__ . '/pd-vendas-lib.php'; if (!vdPode($p)) return "⚠️ Vendas não está liberada pra você. Peça ao admin."; }
+        if ($id === 'tumi') { require_once __DIR__ . '/pd-vendas-lib.php'; if (!vdPode($p)) return "⚠️ Vendas não está liberada pra você. Peça ao admin.";
+            if (mb_strlen($pedido) < 70) return "⚠️ O briefing para o Tumi está curto demais. NÃO enviei. Pergunte a quem pediu, numa só mensagem: 1) para quem é (carteira/cliente) e o que oferecemos; 2) quem procurar (segmento e porte); 3) onde (região); 4) quem não pode entrar (concorrentes etc.); 5) quantos (até 20); 6) ângulo da abordagem. Depois delegue de novo com tudo em texto corrido."; }
         $qt = (int)($a['quantos'] ?? 0); if ($qt < 1 && preg_match('/(\d{1,2})\s*(leads?|empresas?|contatos?|prospects?)/iu', $pedido, $mq)) $qt = (int)$mq[1];
         $r = sd_supabase('/rest/v1/pd_ia_pedidos', 'POST', ['de_user' => $p['id'] ?? null, 'de_ia' => $iaDe ?: null, 'para_ia' => $id, 'pedido' => mb_substr($pedido, 0, 1500),
             'contexto' => ['cliente' => (string)($a['cliente'] ?? ''), 'quantos' => $qt]]);
