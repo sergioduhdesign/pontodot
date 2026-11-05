@@ -241,6 +241,18 @@ if ($acao === 'play' || $acao === 'pausar') {
     sai(['estado' => $acao === 'play' ? 'ativa' : 'pausada', 'avisos' => $erros]);
 }
 
+if ($acao === 'apagar') {   // (admin) tira da lista; com meta=true também apaga a campanha na Meta (só se estiver pausada)
+    if (($me['role'] ?? '') !== 'admin') sd_fail('Só admin apaga.', 403);
+    $id = uuidOk($b['id'] ?? '') ?: sd_fail('Campanha inválida.', 400);
+    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id . '&select=*'); $L = $q['body'][0] ?? null; if (!$L) sd_fail('Não achei.', 404);
+    $avisos = [];
+    if (!empty($b['meta'])) { [$tok] = tokenConta($L['conta']);
+        $st = pd_meta('GET', '/' . $L['campanha_meta_id'], ['fields' => 'effective_status'], $tok); $es = (string)($st['body']['effective_status'] ?? '');
+        if ($es === 'ACTIVE') sd_fail('A campanha está ATIVA na Meta. Pause antes de apagar.', 409);
+        $r = pd_meta('DELETE', '/' . $L['campanha_meta_id'], [], $tok); if (empty($r['body']['success'])) $avisos[] = 'Meta: ' . pd_meta_erro($r); }
+    pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'DELETE');
+    sai(['apagada' => true, 'avisos' => $avisos]);
+}
 if ($acao === 'lista') {
     $cid = uuidOk($b['client_id'] ?? '');
     $q = pd_supa('/rest/v1/pd_campanhas_lancadas?select=id,client_id,product_id,conta,campanha_meta_id,nome,objetivo,estado,criado_em,ligada_em,clients(name)' . ($cid ? '&client_id=eq.' . $cid : '') . '&order=criado_em.desc&limit=60');

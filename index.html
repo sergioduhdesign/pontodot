@@ -5664,9 +5664,9 @@ function lcPinta(){
     ${sec('Campanhas que a plataforma subiu')}
     ${LC.lista ? (LC.lista.length ? LC.lista.map(c => `<div class="cmp-p" style="align-items:center"><div style="flex:1;min-width:0"><b>${esc(c.nome || '')}</b> <span class="cp-chip">${esc(c.estado)}</span><div class="nota">${esc((c.clients || {}).name || '')}${c.product_id && adsNomeProd(c.product_id) ? ' · ' + esc(adsNomeProd(c.product_id)) : ''} · ${new Date(c.criado_em).toLocaleDateString('pt-BR')}</div></div>
         <a class="btn cp-b" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${esc(c.conta.replace('act_', ''))}&selected_campaign_ids=${esc(c.campanha_meta_id)}" target="_blank" rel="noopener">Gerenciador</a>
-        ${ehAdmin() ? (c.estado === 'ativa' ? `<button class="btn cp-b" onclick="lcEstado('${esc(c.id)}','pausar')">Pausar</button>` : `<button class="btn cheio cp-b" onclick="LC.feito={id:'${esc(c.id)}',link:'',conjuntos:'?',anuncios:'?',segundos:0,registro:true,estado:c.estado};LC.confirmo=false;lcPinta();cmpTopo()">Preparar play</button>`) : ''}</div>`).join('') : '<div class="nota">Nenhuma ainda.</div>') : '<div class="nota">Carregando…</div>'}`; });
+        ${ehAdmin() ? (c.estado === 'ativa' ? `<button class="btn cp-b" onclick="lcEstado('${esc(c.id)}','pausar')">Pausar</button>` : `<button class="btn cheio cp-b" onclick="LC.feito={id:'${esc(c.id)}',link:'',conjuntos:'?',anuncios:'?',segundos:0,registro:true,estado:'${esc(c.estado)}'};LC.confirmo=false;lcPinta();cmpTopo()">Preparar play</button><button class="vt-x" title="Apagar (pergunta se tira da Meta também)" onclick="lcApagar('${esc(c.id)}')">✕</button>`) : ''}</div>`).join('') : '<div class="nota">Nenhuma ainda.</div>') : '<div class="nota">Carregando…</div>'}`; });
 }
-function lcConta(v){ LC.conta = v; LC.opc = null; LC.pagina = ''; LC.formulario = ''; LC.pixel = ''; lcPinta(); if (v) lcOpcoes(); }
+function lcConta(v){ LC.conta = v; const c0 = (ADS.dados?.contas || []).find(x => x.conta === v); if (c0 && c0.client_id){ LC.cid = c0.client_id; LC.pid = ''; } LC.opc = null; LC.pagina = ''; LC.formulario = ''; LC.pixel = ''; lcPinta(); if (v) lcOpcoes(); }
 function lcPagina(v){ LC.pagina = v; const p = (LC.opc.paginas || []).find(x => x.id === v); LC.instagram = p && p.ig_id || ''; lcPinta(); }
 async function lcOpcoes(){
   LC.carreg = 'Lendo a conta na Meta (páginas, formulários, pixel, pagamento)…'; lcPinta(); progIni();
@@ -5719,6 +5719,8 @@ async function lcPlay(id){
   catch(e){ LC.msg = e.message; }
   progFim(); LC.carreg = ''; lcPinta();
 }
+async function lcApagar(id){ if (!confirm('Tirar esta campanha da lista da plataforma?')) return; const meta = confirm('Apagar também na Meta? (só funciona se estiver pausada)\nOK = apaga na Meta também · Cancelar = só da lista');
+  try { const j = await lcFala({ acao:'apagar', id, meta }); toast('Apagada.' + ((j.avisos || []).length ? ' ' + j.avisos.join(' · ') : '')); } catch(e){ LC.msg = e.message; lcPinta(); } lcLista(); }
 async function lcEstado(id, acao){ try { await lcFala({ acao, id }); toast(acao === 'pausar' ? 'Pausada.' : 'Ligada.'); } catch(e){ LC.msg = e.message; } lcLista(); }
 async function lcLista(){ try { const j = await lcFala({ acao:'lista', client_id: LC.cid }); LC.lista = j.campanhas || []; } catch(e){ LC.lista = []; } lcPinta(); }
 // DOCUMENTO EDITÁVEL da Sumi/Muru: clique no texto, edite; a versão final (com a mão humana) fica salva e é a que vai para tarefas e PDF
