@@ -6620,7 +6620,19 @@ function eshAvisoCurso(){
   d.innerHTML = '<div style="background:#fff;color:#121212;border-radius:16px;max-width:380px;padding:26px 24px;text-align:center"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.5;margin-bottom:10px">Escola das IAs</div><div style="font-size:17px;font-weight:600;line-height:1.35;margin-bottom:10px">Curso ainda não disponível para humanos.</div><div style="font-size:13.5px;line-height:1.5;opacity:.75;margin-bottom:18px">As IAs já estão estudando. Quando a turma humana abrir, você é avisado. Aguarde.</div><button class="btn" style="min-height:38px;padding:8px 22px" onclick="document.getElementById(\'eshAviso\').remove()">Entendi</button></div>';
   document.body.appendChild(d);
 }
-function eshAbre(slug){ if (!ehAdmin()){ eshAvisoCurso(); return; } ESH.aberto = ESH.aberto === slug ? null : slug; renderBoard(); }
+function eshNovidade(D){
+  try {
+    const dia = Math.floor(Date.now() / 864e5), hoje = new Date().toISOString().slice(0, 10);
+    if (dia % 2) return '';   // dia sim, dia não
+    if (localStorage.getItem('pd_esc_banner') === hoje) return '';
+    const prontos = (D.cursos || []).filter(c => c.status === 'ativo' && (c.skill_ids || []).some(k => (D.habilidades || []).some(h => h.skill_id === k)));
+    if (!prontos.length) return '';
+    const c = prontos[Math.floor(dia / 2) % prontos.length];
+    return `<div class="nota" style="display:flex;gap:10px;align-items:center;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(229,57,53,.14);cursor:pointer" onclick="eshFechaBanner();eshAbre('${esc(c.slug)}')"><i style="width:9px;height:9px;border-radius:50%;background:#E53935;flex-shrink:0;box-shadow:0 0 0 3px rgba(229,57,53,.25)"></i><span style="flex:1;line-height:1.4"><b>Novo curso acabou de chegar:</b> ${esc(c.titulo || c.nome)}.<br><small style="opacity:.75">Inscreva a sua IA e veja como ela evolui.</small></span><button class="btn" style="min-height:28px;padding:3px 9px;font-size:11px" onclick="event.stopPropagation();eshFechaBanner();renderBoard()" aria-label="Dispensar">✕</button></div>`;
+  } catch(e){ return ''; }
+}
+function eshFechaBanner(){ try { localStorage.setItem('pd_esc_banner', new Date().toISOString().slice(0, 10)); } catch(e){} }
+function eshAbre(slug){ ESH.aberto = ESH.aberto === slug ? null : slug; renderBoard(); }
 async function eshMatricula(skill){
   ESH.msg = 'Matriculando…'; renderBoard();
   try { const r = await eshFala({ acao:'matricular', skill_id:skill }); ESH.msg = 'Matriculada. A primeira prova sai na próxima rodada.' + (r.pasta_url ? '' : ''); ESH.aba = 'evolucao'; }
@@ -6639,7 +6651,7 @@ function htmlEscola(){
   if (ESH.erro && !ESH.d) return gadCaixa('Escola das IAs', `<div class="nota" style="line-height:1.5">${esc(ESH.erro)}</div>`);
   if (!ESH.d) return gadCaixa('Escola das IAs', `<div class="nota">Carregando…</div>`);
   const D = ESH.d, P = D.perm || {}, M = D.minha;
-  const HUM = !ehAdmin();   // por ora a Escola não abre para humanos: só a lista de cursos, cada um abre o aviso
+  const HUM = false;   // Escola liberada: o que cada pessoa vê segue as permissões dadas pelo admin
   const abas = [['cursos','Cursos']];
   if (HUM){ ESH.aba = 'cursos'; ESH.msg = ''; }
   if (!HUM && P.acompanhar) abas.push(['evolucao','Evolução'], ['receita','Receita'], ['marcos','Marcos']);
@@ -6656,10 +6668,11 @@ function htmlEscola(){
       const aberto = ESH.aberto === c.slug, pronto = c.status === 'ativo';
       const crit = (c.criterios || []).map(x => `${esc(x.criterio)} (${x.peso})`).join(' · ');
       const sks = (c.skill_ids || []).filter(k => (D.habilidades || []).some(h => h.skill_id === k));
-      return `<div class="esc-it"><button class="esc-fila" style="margin:0;background:none;padding:0;border:0" onclick="eshAbre('${esc(c.slug)}')"><span style="display:flex;gap:10px;align-items:center">${ic(c.icone)}<span><b>${esc(c.titulo || c.nome)}</b><br><small style="opacity:.7">${esc(c.nome)}${c.personagem ? ' · com ' + esc(c.personagem.charAt(0).toUpperCase() + c.personagem.slice(1)) : ''}</small></span></span><span class="esc-apta" style="${pronto ? '' : 'background:rgba(128,128,128,.45)'}">${pronto && !HUM ? (c.alunos || 0) + ' aluna(s)' : 'em breve'}</span></button>
-        ${aberto ? `<div class="nota" style="line-height:1.5;margin-top:8px">${c.descricao ? esc(c.descricao) + '<br><br>' : ''}<b>O que a IA treina:</b> ${esc(c.exercicio || '—')}<br><br>${c.evidencia ? '<b>Como se vê que aprendeu:</b> ' + esc(c.evidencia) + '<br><br>' : ''}${c.transferencia ? '<b>Prova de transferência:</b> ' + esc(c.transferencia) + '<br><br>' : ''}${crit ? '<b>Critérios (peso):</b> ' + crit + '<br><br>' : ''}${c.responsavel ? '<b>Responsável:</b> ' + esc(c.responsavel) + (c.vagas ? ' · ' + c.vagas + ' vagas' : '') + '<br><br>' : ''}${pronto && sks.length ? (P.matricular ? sks.map(k => minhaSk.has(k) ? `<small>✓ ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)} — já matriculada</small><br>` : `<button class="btn" style="min-height:34px;padding:6px 12px;font-size:11.5px;margin:2px 4px 2px 0" onclick="eshMatricula('${esc(k)}')">Matricular minha IA · ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)}</button>`).join('') : '<small>Para matricular a sua IA, peça a liberação ao administrador.</small>') : '<small>Este curso ainda está em preparação.</small>'}</div>` : ''}</div>`;
+      return `<div class="esc-it"><button class="esc-fila" style="margin:0;background:none;padding:0;border:0" onclick="eshAbre('${esc(c.slug)}')"><span style="display:flex;gap:10px;align-items:center">${ic(c.icone)}<span><b>${esc(c.titulo || c.nome)}</b><br><small style="opacity:.7">${esc(c.nome)}${c.personagem ? ' · com ' + esc(c.personagem.charAt(0).toUpperCase() + c.personagem.slice(1)) : ''}</small></span></span><span class="esc-apta" style="${pronto ? '' : 'background:rgba(128,128,128,.45)'}">${pronto ? (c.alunos || 0) + ' aluna(s)' : 'em formação'}</span></button>
+        ${aberto ? `<div class="nota" style="line-height:1.5;margin-top:8px">${c.descricao ? esc(c.descricao) + '<br><br>' : ''}<b>O que a IA treina:</b> ${esc(c.exercicio || '—')}<br><br>${c.evidencia ? '<b>Como se vê que aprendeu:</b> ' + esc(c.evidencia) + '<br><br>' : ''}${c.transferencia ? '<b>Prova de transferência:</b> ' + esc(c.transferencia) + '<br><br>' : ''}${crit ? '<b>Critérios (peso):</b> ' + crit + '<br><br>' : ''}${c.responsavel ? '<b>Responsável:</b> ' + esc(c.responsavel) + (c.vagas ? ' · ' + c.vagas + ' vagas' : '') + '<br><br>' : ''}${pronto && sks.length ? (P.matricular ? sks.map(k => minhaSk.has(k) ? `<small>✓ ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)} — já matriculada</small><br>` : `<button class="btn" style="min-height:34px;padding:6px 12px;font-size:11.5px;margin:2px 4px 2px 0" onclick="eshMatricula('${esc(k)}')">Matricular minha IA · ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)}</button>`).join('') : '<small>Para matricular a sua IA, peça a liberação ao administrador.</small>') : '<div style="display:flex;gap:8px;align-items:center"><i style="width:8px;height:8px;border-radius:50%;background:#E5A93B;display:inline-block"></i><small><b>Aula em formação.</b> A professora está escrevendo o conteúdo a partir do nosso conhecimento. Quando abrir, você é avisado e pode inscrever a sua IA.</small></div>'}</div>` : ''}</div>`;
     }).join('')).join('');
-    return gadCaixa('Escola das IAs', bar + msg + corpo, P.admin ? ['Bastidores da escola (admin)', 'abrirEscolaBastidores()'] : null);
+    const nov = eshNovidade(D);
+    return gadCaixa('Escola das IAs', bar + msg + nov + corpo, P.admin ? ['Bastidores da escola (admin)', 'abrirEscolaBastidores()'] : null);
   }
   if (!M) return gadCaixa('Escola das IAs', bar + msg + `<div class="nota" style="line-height:1.5">A sua IA ainda não existe. Faça a matrícula inicial (“Minha IA”) para começar.</div>`);
   if (ESH.aba === 'evolucao'){
