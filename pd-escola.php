@@ -128,7 +128,7 @@ if ($acao === 'aula_documento') {   // {persona, texto, client_id, task_id, doc_
 }
 if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por persona/habilidade. Só admin e quem tem "acompanhar".
     if (!$perm['admin'] && !$perm['acompanhar']) sd_fail('Sem permissão para acompanhar as aulas.', 403);
-    $as = pdAulaSup('/rest/v1/pd_aulas?or=(tipo.eq.documento,and(tipo.eq.arte,modo.eq.job))&select=id,tipo,modo,personagem,skill_id,status,rodada,max_rodadas,entregas,correcoes,nota_final,task_id,client_id,origem,prazo,entregue_em,pendencias,criada_em,parecer_humano,contexto,clients(name)&order=criada_em.desc&limit=80')['body'] ?? [];
+    $as = pdAulaSup('/rest/v1/pd_aulas?or=(tipo.eq.documento,and(tipo.eq.arte,modo.eq.job))&select=id,tipo,modo,personagem,skill_id,status,rodada,max_rodadas,entregas,correcoes,nota_final,task_id,client_id,origem,prazo,entregue_em,pendencias,criada_em,parecer_humano,contexto,chamado,clients(name)&order=criada_em.desc&limit=80')['body'] ?? [];
     $lista = []; $pl = [];
     // aulas de arte: as miniaturas da PD (peças do lote de aula) e a "master" (peças aprovadas do designer humano na mesma tarefa, sem chapéu de aula)
     $arteIds = []; $arteTasks = []; foreach ((array)$as as $a) if (is_array($a) && ($a['tipo'] ?? '') === 'arte') { $arteIds[] = $a['id']; if (!empty($a['task_id'])) $arteTasks[] = $a['task_id']; }
@@ -144,7 +144,8 @@ if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por perso
         $pl[$k]['aulas']++; if ($r1 !== null) { $pl[$k]['notas_r1'][] = $r1; } if ($ok) $pl[$k]['rodadas_ok'][] = $ok;
         $lista[] = ['id' => $a['id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'status' => $a['status'], 'rodada' => $a['rodada'], 'max' => $a['max_rodadas'], 'versoes' => count($ent), 'pareceres' => count($cor), 'nota_r1' => $r1, 'nota_final' => $a['nota_final'],
             'task_id' => $a['task_id'], 'cliente' => $a['clients']['name'] ?? '', 'origem' => $a['origem'], 'prazo' => $a['prazo'], 'entregue_em' => $a['entregue_em'], 'pendencias' => $a['pendencias'], 'criada_em' => $a['criada_em'], 'decisao' => $a['parecer_humano'],
-            'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 600),
+            'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultima_toda' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 12000), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 3000),
+            'estado' => $a['contexto']['estado'] ?? null, 'pasta' => $a['chamado']['folderUrl'] ?? null, 'notas' => array_map(fn($c) => ['r' => (int)($c['rodada'] ?? 0), 'nota' => round((float)($c['nota'] ?? 0)), 'ressalva' => !empty($c['ressalva'])], $cor),
             'tipo' => $ehArte ? 'arte' : 'documento', 'set_aula_id' => $ehArte ? ($a['contexto']['set_aula_id'] ?? null) : null, 'pecas' => $ehArte ? count((array)($a['contexto']['pecas'] ?? [])) : null,
             'thumbs_pd' => $ehArte ? ($pdThumbs[$a['id']] ?? array_values(array_map(fn($pc) => ['url' => $pc['url'], 'titulo' => $pc['titulo'] ?? '', 'kind' => $pc['kind'] ?? ''], (array)((end($ent) ?: [])['pecas'] ?? [])))) : null,
             'thumbs_master' => $ehArte && !empty($a['task_id']) ? ($masterThumbs[$a['task_id']] ?? []) : null]; }
