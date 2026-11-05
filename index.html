@@ -1568,6 +1568,11 @@ button.ct-rotulo:hover{color:var(--branco)}
 /* A IA fica no mesmo lugar, do mesmo tamanho, nos dois lados: some num, aparece no outro */
 .frente .rodape{opacity:1;transition:opacity .35s ease .6s}
 .mundo.virado .frente .rodape{opacity:0;transition:opacity .22s ease 0s}
+/* caixa de digitação com texto tapa a resposta: fica translúcida quando o mouse sai dela */
+@media (hover:hover){
+  html.emChat .frente .rodape:has(textarea:not(:placeholder-shown)):not(:hover){opacity:.22;transition:opacity .2s ease 0s}
+  html.emChat .frente .rodape:hover{opacity:1;transition:opacity .15s ease 0s}
+}
 .mundo .verso .v-pe{opacity:0;transition:opacity .22s ease 0s}
 .mundo.virado .verso .v-pe{opacity:1;transition:opacity .35s ease .6s}
 .mundo.virado .verso .v-pe.oculto{opacity:0}
