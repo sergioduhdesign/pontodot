@@ -272,6 +272,19 @@ if ($acao === 'curso_info') {   // {curso_id, skill?}: o que a aula ensina (skil
         $al[] = ['personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers ?: 'IA')), 'dona' => $nm[$i['user_id']] ?? '', 'desde' => $i['iniciada_em'], 'ate' => $i['termina_em'], 'eu' => $i['user_id'] === $u['id']]; }
     echo json_encode(['skill' => $h, 'skill_id' => $sk, 'alunos' => $al, 'admin' => $ehAdmin], JSON_UNESCAPED_UNICODE); exit;
 }
+if (in_array($acao, ['aula_reabrir', 'aula_passo', 'curriculo_diag'], true)) {   // admin: operação e diagnóstico do ciclo PD ↔ professora
+    if (!$ehAdmin) sd_fail('Só admin.', 403);
+    if ($acao === 'curriculo_diag') { require_once __DIR__ . '/pd-curriculo-lib.php'; $o = [];
+        foreach ((array)(pdAulaSup('/rest/v1/pd_curriculo_pedidos?status=eq.pedido&select=id,titulo,chamado&limit=40')['body'] ?? []) as $r) { $c = (array)$r['chamado']; $f = [];
+            try { foreach ((array)(ponte('listar', ['folderId' => $c['saidaId'] ?? ''])['arquivos'] ?? []) as $x) $f[] = $x['name']; } catch (Throwable $e) { $f = ['ERRO ' . $e->getMessage()]; }
+            $o[] = ['titulo' => $r['titulo'], 'pedido' => $c['pedido'] ?? '', 'saida' => $f, 'pasta' => $c['folderUrl'] ?? '']; }
+        echo json_encode(['pedidos' => $o, 'varrer' => pdCurrVarrer()], JSON_UNESCAPED_UNICODE); exit; }
+    $aid = (string)($b['aula_id'] ?? ''); if (!preg_match('/^[0-9a-f-]{36}$/i', $aid)) sd_fail('aula_id inválido.', 400);
+    if ($acao === 'aula_reabrir') { echo json_encode(pdAulaReabrir($aid), JSON_UNESCAPED_UNICODE); exit; }
+    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($aid) . '&select=*')['body'][0] ?? null; if (!$a) sd_fail('aula não encontrada.', 404);
+    $r = pdAulaDocPasso($a); pdAulaSincroniza($aid, null, empty($r['ok']) && preg_match('/não refez|teto|Falha|rejeit/u', (string)($r['msg'] ?? '')) ? mb_substr((string)$r['msg'], 0, 300) : null);
+    echo json_encode($r, JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'curriculo_pedir' || $acao === 'curriculo_lista') {   // admin: pede à professora o conteúdo de cursos/skills; lista os pedidos
     if (!$ehAdmin) sd_fail('Só admin.', 403);
     require_once __DIR__ . '/pd-curriculo-lib.php';

@@ -279,6 +279,8 @@ function pdProfessorEnviar($a, $sk, $cfg, $manual = false) {
     } catch (Throwable $e) { error_log('professor chamado: ' . $e->getMessage()); return ['ok' => false, 'msg' => 'Não consegui avisar o dot: ' . $e->getMessage()]; }
 }
 /** Valida o CORRECAO.json contra o contrato pd-correcao/2. Devolve [true, correção_normalizada] ou [false, motivo]. */
+// Regra do Sérgio: ≥80 aprova (se os critérios foram atendidos); 78–79 libera COM RESSALVA (nota real + pendências); <78 revisão. Nunca se altera a nota.
+const PD_NOTA_APROVA = 80; const PD_NOTA_RESSALVA = 78;
 function pdCorrecaoValida($j, $a, $ch, $cfg) {
     if (!is_array($j)) return [false, 'arquivo não é um JSON válido'];
     if (($j['contrato'] ?? '') !== PD_CONTRATO_CORRECAO) return [false, 'contrato diferente de ' . PD_CONTRATO_CORRECAO];
@@ -292,11 +294,11 @@ function pdCorrecaoValida($j, $a, $ch, $cfg) {
     $txt = trim((string)($pp['texto_do_professor'] ?? '')); if (mb_strlen($txt) < 60) return [false, 'texto_do_professor ausente ou curto demais (cole o parecer do professor, sem resumir)'];
     if (!isset($pp['nota']) || !is_numeric($pp['nota']) || $pp['nota'] < 0 || $pp['nota'] > 100) return [false, 'nota ausente ou fora de 0–100'];
     $pb = array_values(array_filter((array)($pp['problemas'] ?? []), fn($x) => is_array($x) && trim((string)($x['problema'] ?? '')) !== '' && trim((string)($x['motivo'] ?? '')) !== ''));
-    $min = (float)($cfg['nota_minima'] ?? 85); $aprov = !empty($pp['aprovado']) && (float)$pp['nota'] >= $min;
-    if (!$aprov && !$pb) return [false, 'parecer sem problemas específicos (problema + motivo + correcao)'];
+    $aprov = !empty($pp['aprovado']) && (float)$pp['nota'] >= PD_NOTA_APROVA; $ress = (float)$pp['nota'] >= PD_NOTA_RESSALVA && (float)$pp['nota'] < PD_NOTA_APROVA;
+    if (!$aprov && !$ress && !$pb) return [false, 'parecer sem problemas específicos (problema + motivo + correcao)'];
     $fb = ''; foreach ($pb as $i => $x) $fb .= ($i + 1) . '. ' . trim((string)$x['problema']) . "\n   Motivo: " . trim((string)$x['motivo']) . (trim((string)($x['correcao'] ?? '')) !== '' ? "\n   Corrigir: " . trim((string)$x['correcao']) : '') . "\n";
     $l = (array)($j['licao_sugerida'] ?? []); $esc = in_array($l['escopo'] ?? '', ['habilidade', 'universal', 'cliente'], true) ? $l['escopo'] : 'habilidade';
-    return [true, ['nota' => (float)$pp['nota'], 'aprovado' => $aprov, 'feedback' => trim($fb) ?: $txt, 'pontos_fortes' => (string)($pp['pontos_fortes'] ?? ''), 'texto_do_professor' => $txt,
+    return [true, ['nota' => (float)$pp['nota'], 'aprovado' => $aprov, 'ressalva' => $ress, 'feedback' => trim($fb) ?: $txt, 'pontos_fortes' => (string)($pp['pontos_fortes'] ?? ''), 'texto_do_professor' => $txt,
         'licao' => trim((string)($l['regra'] ?? '')) !== '' && stripos((string)$l['regra'], '<') !== 0 ? ['regra' => $l['regra'], 'escopo' => $esc, 'exemplo_bom' => (string)($l['exemplo_bom'] ?? ''), 'exemplo_ruim' => (string)($l['exemplo_ruim'] ?? '')] : null,
         '_origem' => ['papel' => 'professor', 'fonte' => 'chatgpt_projeto', 'projeto' => $o['projeto'], 'transportado_por' => (string)($o['transportado_por'] ?? 'dot')]]];
 }
@@ -346,13 +348,49 @@ function pdProfessorVarrer() {
     return $out ? implode(' | ', $out) : null;
 }
 
+/** ESTADO da aula: quem precisa agir, última movimentação, notas por rodada, pendências, erro — e o REGISTRO COMPARTILHADO na pasta do Drive (a professora lê por lá). */
+function pdAulaSincroniza($id, $nota = null, $erro = null) {
+    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id) . '&select=*')['body'][0] ?? null; if (!$a) return;
+    $ch = (array)($a['chamado'] ?? []); $ctx = (array)($a['contexto'] ?? []); $ant = (array)($ctx['estado'] ?? []);
+    $quem = 'sistema'; $oque = '';
+    if ($a['status'] === 'em_correcao') { $quem = 'professora'; $oque = 'corrigir a R' . (int)$a['rodada'] . ' (chamado ' . ($ch['chamado'] ?? 'ainda não enviado') . ')'; }
+    elseif ($a['status'] === 'em_exercicio') { $quem = 'aluna'; $oque = 'refazer e entregar a R' . (int)$a['rodada']; }
+    elseif ($a['status'] === 'validacao_humana') { $quem = 'responsável humano'; $oque = 'decidir (aprovar, revisar ou reprovar)'; }
+    elseif (in_array($a['status'], ['validada', 'reprovada', 'cancelada'], true)) { $quem = 'ninguém'; $oque = 'encerrada (' . $a['status'] . ')'; }
+    $est = ['quem' => $quem, 'precisa' => $oque, 'ultima' => gmdate('c'), 'nota' => $nota, 'erro' => $erro, 'tentativas' => $erro ? (int)($ant['tentativas'] ?? 0) + 1 : 0];
+    if (!$erro && $nota !== null && $ant && ($ant['quem'] ?? '') === $quem && ($ant['precisa'] ?? '') === $oque) $est['ultima'] = $ant['ultima'] ?? $est['ultima'];   // sem movimento novo: mantém o horário
+    $ctx['estado'] = $est; pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', ['contexto' => $ctx]);
+    if (empty($ch['folderId']) || !function_exists('ponte')) return;
+    $notas = []; foreach ((array)$a['correcoes'] as $c) $notas[] = 'R' . (int)$c['rodada'] . ' = ' . round((float)$c['nota']) . (!empty($c['ressalva']) ? ' (com ressalva)' : '');
+    $t = "REGISTRO COMPARTILHADO PD ↔ PROFESSORA (atualizado pela PD — não edite)\n\n"
+       . 'Aula: ' . $id . "\nCliente: " . (($ctx['cliente'] ?? '') ?: '—') . "\nPersonagem: " . $a['personagem'] . "\nHabilidade: " . $a['skill_id'] . "\nTipo: " . ($a['tipo'] ?? '') . ' · modo ' . ($a['modo'] ?? '') . "\n"
+       . 'Rodada atual: R' . (int)$a['rodada'] . ' de ' . (int)$a['max_rodadas'] . "\nEstado: " . $a['status'] . "\nQUEM PRECISA AGIR: " . $quem . ($oque ? ' — ' . $oque : '') . "\n"
+       . 'Última movimentação: ' . date('d/m/Y H:i', strtotime($est['ultima']) - 3 * 3600) . " (Brasília)\nNotas: " . ($notas ? implode(' · ', $notas) : 'nenhuma ainda') . "\n"
+       . ($a['pendencias'] ? "Pendências:\n" . $a['pendencias'] . "\n" : '') . ($erro ? "ERRO REGISTRADO: " . $erro . ' (a PD tenta de novo sozinha; tentativas ' . $est['tentativas'] . ")\n" : '')
+       . "\nRegra de nota: 80+ aprova (critérios atendidos) · 78–79 libera com ressalva · abaixo de 78 revisão · até 3 rodadas por noite · a decisão final é do responsável humano.\n"
+       . "Contratos: pd-correcao/2 (CORRECAO.json em SAIDA, com o mesmo chamado e rodada) · pd-curriculo/1 (AULA.json).\n";
+    try { ponte('gravar', ['folderId' => $ch['folderId'], 'nome' => '00_STATUS_PD.txt', 'substituir' => true, 'b64' => base64_encode("\xEF\xBB\xBF" . $t), 'mime' => 'text/plain']); } catch (Throwable $e) {}
+}
+/** Reabre a MESMA aula para a próxima rodada quando ela foi devolvida sem aprovação (nota abaixo da regra) e ainda há rodadas. Idempotente. */
+function pdAulaReabrir($id) {
+    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id) . '&select=*')['body'][0] ?? null; if (!$a) return ['ok' => false, 'msg' => 'aula não encontrada'];
+    $cor = (array)$a['correcoes']; $uc = $cor ? end($cor) : null;
+    if (!$uc) return ['ok' => false, 'msg' => 'a aula ainda não tem parecer'];
+    if ((float)$uc['nota'] >= PD_NOTA_APROVA) return ['ok' => false, 'msg' => 'a nota já aprova; não há o que refazer'];
+    if (count((array)$a['entregas']) > count($cor)) return ['ok' => true, 'msg' => 'a próxima rodada já tem versão; nada a reabrir'];
+    $prox = count($cor) + 1; if ($prox > (int)$a['max_rodadas']) return ['ok' => false, 'msg' => 'rodadas esgotadas; segue para decisão humana'];
+    $ctx = (array)($a['contexto'] ?? []); $ctx['inicio'] = gmdate('c');
+    pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'em_exercicio', 'rodada' => $prox, 'entregue_em' => null, 'pendencias' => null, 'nota_final' => null, 'prazo' => pdAulaDocPrazo(), 'contexto' => $ctx]);
+    pdAulaSincroniza($id);
+    return ['ok' => true, 'msg' => 'aula reaberta na R' . $prox];
+}
 /** Aplica o parecer do professor: nota, lição PROPOSTA, próximo estado. Aprovar é decisão do Sérgio. */
 function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
     $id = $a['id']; $cfg = $cfg ?: (pdIncub() ?: ['nota_minima' => 85]); $cor = (array)$a['correcoes']; $teste = ($a['modo'] ?? '') === 'teste';
     foreach ($cor as $c) if ((int)($c['rodada'] ?? 0) === (int)$a['rodada']) return ['ok' => false, 'msg' => 'Esta rodada já tem correção registrada.'];
     $patch = fn($d) => pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', $d);
     $nota = max(0, min(100, (float)($j['nota'] ?? 0))); $o = (array)($j['_origem'] ?? []);
-    $aprovou = array_key_exists('aprovado', $j) ? !empty($j['aprovado']) : $nota >= (float)$cfg['nota_minima'];
+    $aprovou = $nota >= PD_NOTA_APROVA && (array_key_exists('aprovado', $j) ? !empty($j['aprovado']) : true); $ressalva = !$aprovou && $nota >= PD_NOTA_RESSALVA && $nota < PD_NOTA_APROVA;
     $cor[] = ['rodada' => (int)$a['rodada'], 'nota' => $nota, 'feedback' => (string)($j['feedback'] ?? ''), 'fortes' => (string)($j['pontos_fortes'] ?? ''), 'professor' => $prof,
               'origem' => $o, 'texto_do_professor' => (string)($j['texto_do_professor'] ?? ''), 'em' => gmdate('c')];
     if ($teste) {   // rodada de teste da ponte: prova que a PD reconheceu o parecer; sem nota, sem lição
@@ -361,7 +399,8 @@ function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
         return ['ok' => true, 'msg' => 'PONTE RECONHECIDA: a PD leu o parecer do professor (' . $prof . '). Falta a sua confirmação para liberar a rotina.'];
     }
     pdAulaSup('/rest/v1/pd_notas', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'fonte' => 'professor', 'nota' => $nota, 'aula_id' => $id]);
-    if ($aprovou && $nota >= (float)$cfg['nota_minima']) {
+    if ($ressalva) { $cor[count($cor) - 1]['ressalva'] = true; $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota, 'pendencias' => mb_substr('LIBERADA COM RESSALVA (nota ' . round($nota) . '): ' . (string)($j['feedback'] ?? ''), 0, 1800)]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — liberada com ressalva; aguarda a SUA decisão.']; }
+    if ($aprovou) {
         $l = $j['licao'] ?? null;
         pdAulaSup('/rest/v1/pd_licoes?aula_id=eq.' . urlencode($id) . '&status=eq.proposta', 'DELETE');
         if (is_array($l) && !empty($l['regra'])) pdAulaSup('/rest/v1/pd_licoes', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'regra' => mb_substr($l['regra'], 0, 600),

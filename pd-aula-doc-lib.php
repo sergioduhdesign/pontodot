@@ -118,7 +118,8 @@ function pdAulaDocPasso($a) {
 function pdAulaDocEntregar($a, $motivo) {
     if (!function_exists('pdNotificarResp')) require_once __DIR__ . '/pd-lib.php';
     $ent = (array)$a['entregas']; $ult = end($ent); $cor = (array)$a['correcoes']; $uc = $cor ? end($cor) : null;
-    $pend = []; if ($uc && empty($uc['aprovado']) && (float)($uc['nota'] ?? 0) < 85) $pend[] = 'Professora ainda não aprovou (nota ' . round((float)($uc['nota'] ?? 0)) . '): ' . mb_substr((string)($uc['feedback'] ?? ''), 0, 600);
+    $pend = []; if ($uc && (float)($uc['nota'] ?? 0) >= PD_NOTA_RESSALVA && (float)($uc['nota'] ?? 0) < PD_NOTA_APROVA) $pend[] = 'LIBERADA COM RESSALVA (nota ' . round((float)$uc['nota']) . '): ' . mb_substr((string)($uc['feedback'] ?? ''), 0, 600);
+    elseif ($uc && empty($uc['aprovado']) && (float)($uc['nota'] ?? 0) < PD_NOTA_RESSALVA) $pend[] = 'Professora ainda não aprovou (nota ' . round((float)($uc['nota'] ?? 0)) . '): ' . mb_substr((string)($uc['feedback'] ?? ''), 0, 600);
     if (!$cor) $pend[] = 'A professora não respondeu esta noite; a versão é a original.';
     $txt = (string)($ult['texto'] ?? ''); $pendTxt = $pend ? implode("\n", $pend) : '';
     if (!empty($a['doc_id'])) pdAulaSup('/rest/v1/pd_docs_ia?id=eq.' . urlencode($a['doc_id']), 'PATCH', ['texto_final' => $txt, 'editado_em' => gmdate('c')]);
@@ -138,6 +139,12 @@ function pdAulaDocEntregar($a, $motivo) {
 /** Relógio das aulas de documento: roda no pd-worker (a cada 5 min), independente da rotina de provas. */
 function pdAulaDocRelogio() {
     if (!pdPonteOk()) return 'ponte do Drive não configurada';
+    // RECUPERAÇÃO: aula entregue na virada com parecer abaixo da regra e rodadas sobrando, sem versão nova → reabre a MESMA aula (sem criar outra)
+    try { foreach ((array)(pdAulaSup('/rest/v1/pd_aulas?tipo=eq.documento&entregue_em=not.is.null&status=eq.validacao_humana&modo=eq.job&select=id,correcoes,entregas,max_rodadas,entregue_em&order=criada_em.desc&limit=30')['body'] ?? []) as $x) {
+        $cx = (array)$x['correcoes']; $uc = $cx ? end($cx) : null; if (!$uc || (float)$uc['nota'] >= PD_NOTA_RESSALVA || count((array)$x['entregas']) > count($cx) || count($cx) >= (int)$x['max_rodadas']) continue;
+        if (!empty($uc['humano'])) continue;   // o responsável já mexeu: ele decide
+        if (strtotime((string)$x['entregue_em']) < time() - 36 * 3600) continue;   // só aulas recentes
+        pdAulaReabrir($x['id']); } } catch (Throwable $e) {}
     $as = pdAulaSup('/rest/v1/pd_aulas?tipo=eq.documento&entregue_em=is.null&status=in.(em_exercicio,em_correcao,validacao_humana)&select=*&order=criada_em&limit=20')['body'] ?? [];
     $msg = []; $agora = gmdate('c');
     foreach ((array)$as as $a) {
@@ -145,7 +152,9 @@ function pdAulaDocRelogio() {
             $vencida = !empty($a['prazo']) && $a['prazo'] <= $agora;
             if (!$vencida && !empty($a['contexto']['inicio']) && $a['contexto']['inicio'] > $agora && $a['status'] !== 'validacao_humana') continue;   // ainda não é hora da professora
             if ($vencida || $a['status'] === 'validacao_humana') { $msg[] = pdAulaDocEntregar($a, $vencida ? 'Virada de dia.' : 'A professora aprovou.'); continue; }
-            for ($i = 0; $i < 2; $i++) { $r = pdAulaDocPasso($a); if (!empty($r['msg'])) $msg[] = substr($a['id'], 0, 8) . ': ' . $r['msg']; if (empty($r['ok'])) break;
+            for ($i = 0; $i < 2; $i++) { $r = pdAulaDocPasso($a); if (!empty($r['msg'])) $msg[] = substr($a['id'], 0, 8) . ': ' . $r['msg'];
+                $falha = empty($r['ok']) && preg_match('/não refez|teto|Falha|rejeit|não configurada|não cadastrada/u', (string)($r['msg'] ?? '')); pdAulaSincroniza($a['id'], null, $falha ? mb_substr((string)$r['msg'], 0, 300) : null);
+                if (empty($r['ok'])) break;
                 $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($a['id']) . '&select=*')['body'][0] ?? $a; if (!empty($a['entregue_em']) || $a['status'] === 'validacao_humana') break; }
         } catch (Throwable $e) { $msg[] = substr($a['id'], 0, 8) . ': ' . $e->getMessage(); }
     }
