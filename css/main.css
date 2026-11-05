@@ -1355,3 +1355,7 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 .modal .modal-foot{position:sticky;bottom:0;z-index:6;background:color-mix(in srgb,var(--surface) 88%,transparent);
   backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);align-items:center}
 .modal .modal-foot .faixa-msg{flex:1;min-width:0;font-size:12.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+
+/* escola agêntica: quem estuda e como funciona */
+.esc-quem h4,.esc-como h4{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin:18px 0 8px;font-weight:500}.esc-al{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px}.esc-al img{width:32px;height:32px;border-radius:50%;object-fit:cover}.esc-al em{opacity:.55;font-style:normal;font-size:12px}.esc-como p{font-size:13.5px;line-height:1.55;margin:0 0 6px}.esc-como ul{margin:0;padding-left:18px;font-size:13px;line-height:1.55}
+.esc-cur-tx{max-height:80vh;overflow-y:scroll}

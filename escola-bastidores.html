@@ -36,11 +36,12 @@ input,select,textarea{width:100%;font:inherit;padding:9px 11px;border:1px solid 
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let sb,ses,SK=[],IAS=[],SEL=null,MODO='ver',PROP=null,PROP_ALVO='',MSG='',BUSY=false;
+let NOVO_ID='',CURSO='',sb,ses,SK=[],IAS=[],SEL=null,MODO='ver',PROP=null,PROP_ALVO='',MSG='',BUSY=false;
 async function api(b){const r=await fetch('/pd-escola.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg" style="grid-column:1/-1">Entre na plataforma para abrir os bastidores.</div>';return;}
-  await carrega();}
+  await carrega();
+  const qc=new URLSearchParams(location.search).get('curso');if(qc){CURSO=qc;const sid='CURSO_'+qc.toUpperCase().replace(/[^A-Z0-9]/g,'');if(SK.some(x=>x.skill_id===sid))novo('doc',sid);else{NOVO_ID=sid;novo('doc');}}}
 async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;}catch(e){$('#app').innerHTML='<div class="msg" style="grid-column:1/-1">'+esc(e.message)+'</div>';return;}draw();}
 const face=p=>'/pd/personagens/'+encodeURIComponent(p||'')+'/avatar.jpg';
 function cur(){return SK.find(s=>s.skill_id===SEL);}
@@ -60,7 +61,7 @@ function campos(d,id){return `<label>Nome</label><input id="${id}n" value="${esc
 function ler(id){const L=x=>$('#'+id+x).value.split('\n').map(s=>s.trim()).filter(Boolean);return{nome:$('#'+id+'n').value,finalidade:$('#'+id+'f').value,entradas:L('e'),metodo:$('#'+id+'m').value,criterios:L('c'),limites:$('#'+id+'l').value};}
 function detalhe(){
  if(MODO==='doc')return `<div class="detalhe"><div class="dtopo"><b style="flex:1">Subir documento</b><button class="btn" onclick="MODO='ver';draw()">Cancelar</button></div><div class="dc">
-  <div class="box">Suba um documento feito com Claude ou GPT (.docx, .md, .txt) ou cole o texto. A plataforma lê e propõe uma skill — você revisa antes de salvar.</div>
+  ${CURSO?`<div class="aviso" style="border:1px solid var(--line);border-radius:10px;margin-bottom:10px">Aula vinculada ao curso <b>${esc(CURSO)}</b> da Escola agêntica.</div>`:''}<div class="box">Suba um documento feito com Claude ou GPT (.docx, .md, .txt) ou cole o texto. A plataforma lê e propõe uma skill — você revisa antes de salvar.</div>
   <label>O que fazer com ele</label><select id="alvo" onchange="PROP_ALVO=this.value"><option value="">Criar uma skill/aula NOVA</option>${SK.map(s=>`<option value="${esc(s.skill_id)}" ${PROP_ALVO===s.skill_id?'selected':''}>Melhorar: ${esc(s.nome)} (v${s.versao} → v${s.versao+1})</option>`).join('')}</select>
   <label>Arquivo</label><input type="file" id="arq" accept=".docx,.md,.txt,.markdown" onchange="lerArq(this)">
   <label>ou cole o texto</label><textarea id="txt" style="min-height:220px"></textarea>
@@ -90,7 +91,7 @@ function novo(m,alvo){MODO=m;PROP=null;PROP_ALVO=alvo||'';MSG='';draw();}
 async function lerArq(inp){const f=inp.files[0];if(!f)return;let t='';try{if(/\.docx$/i.test(f.name)){t=(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value;}else t=await f.text();}catch(e){MSG='Não consegui ler o arquivo.';}$('#txt').value=t;}
 async function analisa(){const t=$('#txt').value;PROP_ALVO=$('#alvo').value;BUSY=true;draw();$('#txt').value=t;
  try{const r=await api({acao:'esc_skill_doc',texto:t,skill_id:PROP_ALVO});PROP=Object.assign({},r.proposta);}catch(e){alert(e.message);}BUSY=false;const keep=t;draw();$('#txt').value=keep;}
-async function salvar(id,skill,origem){const d=ler(id);d.acao='esc_skill_salvar';d.skill_id=skill;d.origem=origem;d.notas=(id==='p'?$('#pnotas'):id==='d'?$('#dnotas'):{value:''}).value;
+async function salvar(id,skill,origem){const d=ler(id);d.acao='esc_skill_salvar';d.skill_id=skill;if(!skill&&NOVO_ID)d.novo_id=NOVO_ID;d.origem=origem;d.notas=(id==='p'?$('#pnotas'):id==='d'?$('#dnotas'):{value:''}).value;
  try{const r=await api(d);SEL=r.skill_id;MODO='ver';PROP=null;await carrega();MSG='Salva: versão '+r.versao+'.';draw();}catch(e){alert(e.message);}}
 async function pausar(id,pz){try{await api({acao:'esc_skill_pausar',skill_id:id,pausada:pz});await carrega();MSG=pz?'Aula parada: nenhuma prova nova nasce.':'Aula de volta.';draw();}catch(e){alert(e.message);}}
 async function apagar(id){if(!confirm('Apagar esta skill e as inscrições? As aulas já feitas ficam no histórico.'))return;try{await api({acao:'esc_skill_apagar',skill_id:id,confirmo:true});SEL=null;await carrega();}catch(e){alert(e.message);}}

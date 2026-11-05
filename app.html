@@ -3697,6 +3697,14 @@ async function escCurso(id){
     corpo = `<p class="esc-peq"><b>Compromisso:</b> ${c.semanas} semanas. Sua IA treina esta habilidade com os seus trabalhos reais e, toda semana, mostramos se as correções estão diminuindo. Você pode sair quando quiser.</p>
       <button class="esc-btn" onclick="escInscrever('${c.id}')">Inscrever a minha IA</button>`;
   }
+  let info = null; try { info = await sdFetch('/pd-escola.php', { acao:'curso_info', curso_id:id, skill:c.skill||'' }); } catch(e){}
+  const alunos = (info && info.alunos) || [], skl = info && info.skill, adm = info && info.admin;
+  const lAl = alunos.length ? alunos.map(a => `<div class="esc-al"><img src="/icone-ia.php?p=${encodeURIComponent(a.personagem||'maestro')}&s=64" alt=""><span><b>${escSafe(a.nome)}</b> · IA ${a.dona ? 'do ' + escSafe(a.dona) : ''}${a.eu ? ' <em>(a sua)</em>' : ''}</span></div>`).join('') : '<small class="esc-peq">Ninguém inscrito ainda.</small>';
+  const lCrit = skl ? (skl.criterios || []).map(x => `<li>${escSafe(typeof x === 'string' ? x : (x.criterio || ''))}</li>`).join('') : '';
+  const lComo = skl ? `<div class="esc-como"><h4>O que a aula ensina</h4><p>${escSafe(skl.finalidade)}</p>
+      <h4>Como a IA faz</h4><p style="white-space:pre-wrap">${escSafe(skl.metodo)}</p>${lCrit ? `<h4>Como se avalia</h4><ul>${lCrit}</ul>` : ''}
+      ${skl.limites ? `<h4>O que fica com a pessoa</h4><p>${escSafe(skl.limites)}</p>` : ''}${adm ? `<a class="esc-btn sec" style="display:inline-block;margin-top:10px;text-decoration:none" href="/escola-bastidores.html?curso=${encodeURIComponent(id)}" target="_blank">Melhorar a aula</a>` : ''}</div>`
+    : `<div class="esc-como"><h4>Conteúdo da aula</h4><p class="esc-peq">Esta aula ainda não tem conteúdo escrito.${adm ? '' : ' Ela só abre quando o conteúdo estiver pronto.'}</p>${adm ? `<a class="esc-btn sec" style="display:inline-block;text-decoration:none" href="/escola-bastidores.html?curso=${encodeURIComponent(id)}" target="_blank">Subir o documento da aula</a>` : ''}</div>`;
   const foto = escFoto(c.quem,'avatar');
   const passo = (n,t) => `<li><b>${n}</b><span>${t}</span></li>`;
   escPop(`<div class="esc-cur">
@@ -3706,6 +3714,7 @@ async function escCurso(id){
     <div class="esc-cur-tx"><small class="esc-area">${escSafe(c.area)} · Curso rápido</small>
       <h3>${escSafe(c.titulo)}</h3><p class="esc-cur-res">${escSafe(c.resumo)}</p>
       <ol class="esc-cur-passos">${passo(1,'Sua IA treina com os seus trabalhos reais.')}${passo(2,'Toda semana mostramos se as correções estão diminuindo.')}${passo(3,'No fim, você vê o antes e o depois, em números.')}</ol>
+      <div class="esc-quem"><h4>Quem está estudando (${alunos.length})</h4>${lAl}</div>${lComo}
       ${insc ? corpo : `<div class="esc-cur-cta">${corpo.replace(/<p class="esc-peq">[\s\S]*?<button/,'<button')}</div>`}
     </div></div>`, true);
 }
@@ -3715,6 +3724,7 @@ async function escInscrever(id){
   const fim = new Date(Date.now() + c.semanas*7*864e5).toISOString();
   const { error } = await sb.from('pd_inscricoes').insert({ user_id: profile.id, curso_id: id, termina_em: fim, base: { media: base.media, entregas: base.n, medida: 'rodadas de correção por entrega' } });
   if (error){ showToast(/does not exist|relation/.test(error.message) ? 'Falta rodar o SQL v86 no Supabase.' : 'Não consegui inscrever: ' + error.message); return; }
+  try { await sdFetch('/pd-escola.php', { acao:'matricular', skill_id: c.skill || ('CURSO_' + id.toUpperCase().replace(/[^A-Z0-9]/g,'')) }); } catch(e){}   // com conteúdo real, entra também na formação (provas, notas)
   showToast('Sua IA está inscrita.'); escCarregarSocial().then(renderEscola); escCurso(id);
 }
 async function escSair(inscId){
