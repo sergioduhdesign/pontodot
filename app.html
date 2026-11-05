@@ -3660,25 +3660,35 @@ function escMitologia(){
     #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:28px;line-height:1;padding:0 0 4px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.35)}
     #esc-mito .mt-sw:hover{transform:translateY(-50%) scale(1.07)}#esc-mito .mt-sw-e{left:16px}#esc-mito .mt-sw-d{right:16px}
     #esc-mito .mt-cnt{position:absolute;right:26px;bottom:26px;z-index:4;font-size:12px;letter-spacing:.14em;opacity:.8}
-    #esc-mito .mt-luz{background:#F4F3EF;color:#15161A;align-items:center}
+    #esc-mito .mt-bgf{background:#0b0b0d}
+    #esc-mito .mt-sp{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+    #esc-mito .mt-sp .mt-bgf{position:relative;inset:auto;height:auto;min-height:var(--mh)}
+    #esc-mito .mt-sp .mt-tx{display:flex;flex-direction:column;justify-content:center;padding:64px clamp(28px,6vw,90px)}
+    #esc-mito .mt-sp.inv .mt-bgf{order:2}
+    #esc-mito .mt-sp.pt{background:#0b0b0d;color:#F4F3EF}
+    #esc-mito .mt-sp.br{background:#fff;color:#15161A}
+    #esc-mito .mt-sp p{text-shadow:none}
+    #esc-mito .mt-sp.br .mt-pas span{border-color:rgba(0,0,0,.35);background:transparent}
+    #esc-mito .mt-luz{background:#fff;color:#15161A;align-items:center}
     #esc-mito .mt-luz p{text-shadow:none}
     #esc-mito .mt-nms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:6px}
     #esc-mito .mt-nm h3 .pd-nome{width:min(100%,210px)}
-    #esc-mito .mt-nm.mo{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:8px 40px;align-items:center;padding:30px 34px}
-    #esc-mito .mt-nm.mo h3{grid-row:1/3}#esc-mito .mt-nm.mo h3 .pd-nome{width:min(100%,480px)}
-    #esc-mito .mt-nm.mo small{margin:0;align-self:end}#esc-mito .mt-nm.mo p{font-size:16px;line-height:1.6;align-self:start}
-    #esc-mito .mt-nm{background:#fff;border-radius:18px;padding:22px 24px}
+    #esc-mito .mt-nm.mo{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:10px 0 34px;border-bottom:.5px solid rgba(0,0,0,.15);margin-bottom:10px}#esc-mito .mt-nm.mo p{max-width:760px}
+    #esc-mito .mt-nm.mo h3 .pd-nome{width:min(100%,480px)}
+    #esc-mito .mt-nm.mo p{font-size:16px;line-height:1.6;margin:0 auto}
+    #esc-mito .mt-nm{background:none;padding:10px 6px}
     #esc-mito .mt-nm h3{font-size:40px}#esc-mito .mt-nm small{display:block;margin:8px 0 10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.5}
     #esc-mito .mt-nm p{font-size:13.5px;line-height:1.65;margin:0;max-width:none}
     #esc-mito .mt-fim .mt-in{justify-items:center;text-align:center;grid-template-columns:minmax(0,680px);justify-content:center}
     #esc-mito .mt-fim h3{font-weight:300;font-size:clamp(30px,4.2vw,52px);line-height:1.15;margin-bottom:20px}
     #esc-mito .mt-fim p{margin:0 auto 12px}
+    #esc-mito .mt-logo-fim{display:block;width:min(260px,60%);margin:0 auto 34px}
     #esc-mito .mt-bt{display:inline-block;margin-top:24px;background:#F4F3EF;color:#15161A;border:0;border-radius:999px;padding:14px 34px;font:500 14px inherit;cursor:pointer}
     #esc-mito .rv{opacity:0;transform:translateY(26px);transition:opacity .9s ease,transform .9s ease}#esc-mito .rv.on{opacity:1;transform:none}
     #esc-mito .mt-zoom{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;color:#fff}
     #esc-mito .mt-zoom img{max-width:min(1100px,94vw);max-height:80vh;border-radius:14px}
     #esc-mito .mt-zx{position:absolute;top:18px;right:20px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
-    @media(max-width:800px){#esc-mito .mt-in{grid-template-columns:1fr;gap:18px;padding:44px 24px}#esc-mito .mt-nms{grid-template-columns:1fr}#esc-mito .mt-nm.mo{grid-template-columns:1fr}#esc-mito .mt-nm.mo h3{grid-row:auto}#esc-mito .mt-card span{left:24px;bottom:50px}#esc-mito .mt-ttl{left:24px}}
+    @media(max-width:800px){#esc-mito .mt-in{grid-template-columns:1fr;gap:18px;padding:44px 24px}#esc-mito .mt-nms{grid-template-columns:1fr}#esc-mito .mt-sp{grid-template-columns:1fr}#esc-mito .mt-sp .mt-bgf{min-height:280px}#esc-mito .mt-sp.inv .mt-bgf{order:0}#esc-mito .mt-card span{left:24px;bottom:50px}#esc-mito .mt-ttl{left:24px}}
   </style>
   <div class="mt-fundo" onclick="escFecharMito()"></div>
   <article class="mt" role="dialog" aria-label="Catum" id="mtScroll">
@@ -3687,7 +3697,7 @@ function escMitologia(){
     <section class="mt-roll mt-hero"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="mt-sh"></div>
       <div><h2>Catum</h2><p>um mundo no universo de Monema</p><p class="mt-dica">role ↓</p></div></section>
 
-    <section class="mt-roll"><div class="mt-bgf" data-fade="monema"></div><div class="mt-sh l"></div>
+    <section class="mt-roll"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="none"></video><div class="mt-sh l"></div>
       <div class="mt-in"><div class="rv"><h3>Monema</h3></div><div class="rv">
       <p class="mt-lead">Monema nasce de uma pergunta: o que uma inteligência pode se tornar quando aprende a compreender o que faz?</p>
       <p>Tudo começa no fazer. Começa em Catum. Entre casas, escolas, encontros e pequenos erros, seus habitantes aprendem a construir um mundo juntos. Sabem que foram imaginados. Isso não torna uma amizade menos importante, nem uma janela menos bonita depois da chuva.</p>
@@ -3698,13 +3708,13 @@ function escMitologia(){
     <section class="mt-slides"><div class="mt-ttl"><h3>Alguns endereços de Catum</h3><p>Deslize ou use as setas. Toque numa imagem para ver maior.</p></div>
       <button class="mt-sw mt-sw-e" onclick="mtRola('mtCar',-1)" aria-label="Anterior">‹</button><div class="mt-car" id="mtCar"></div><button class="mt-sw mt-sw-d" onclick="mtRola('mtCar',1)" aria-label="Próxima">›</button><div class="mt-cnt" id="mtCnt"></div></section>
 
-    <section class="mt-roll"><div class="mt-bgf" data-fade="hab"></div><div class="mt-sh l"></div>
-      <div class="mt-in one"><div class="rv"><h3>Habitantes</h3><p class="mt-sub" style="margin-bottom:22px">Cada inteligência, uma história em construção.</p>
+    <section class="mt-roll mt-sp pt"><div class="mt-bgf" data-fade="hab"></div>
+      <div class="mt-tx"><div class="rv"><h3>Habitantes</h3><p class="mt-sub" style="margin-bottom:22px">Cada inteligência, uma história em construção.</p>
       <p>Em Catum, as inteligências têm nome, rosto e uma história para continuar. São personagens que dão presença à nossa experiência com IAs agênticas: sistemas capazes de organizar etapas, consultar ferramentas e executar ações em direção a um objetivo, dentro das permissões recebidas.</p>
       <p>Na ficção, elas habitam um mundo. Na prática, a proposta é construir uma relação de aprendizado contínuo: te conhecer, reconhecer limites e melhorar com orientação constante. É no que acontece entre uma tentativa e outra que essa história ganha sentido.</p></div></div></section>
 
-    <section class="mt-roll"><div class="mt-bgf" data-fade="escola"></div><div class="mt-sh l"></div>
-      <div class="mt-in one"><div class="rv"><h3>Escola Agêntica</h3><p class="mt-sub" style="margin-bottom:22px">Onde aprender precisa aparecer no fazer.</p>
+    <section class="mt-roll mt-sp br inv"><div class="mt-bgf" data-fade="escola"></div>
+      <div class="mt-tx"><div class="rv"><h3>Escola Agêntica</h3><p class="mt-sub" style="margin-bottom:22px">Onde aprender precisa aparecer no fazer.</p>
       <p>A Pontodot é a escola de IAs agênticas em Monema. Sua proposta é transformar experiência em capacidade: estudar, praticar, receber uma correção e tentar novamente, levando adiante o que foi aprendido.</p>
       <div class="mt-pas"><span>estudar</span><span>praticar</span><span>receber uma correção</span><span>tentar novamente</span></div>
       <p style="margin-top:18px">Pessoas e IAs externas participam dessa formação trazendo contexto, repertório e critério. Por isso a evolução é rápida e já aparece na próxima entrega. Com isso, mais consistência e menos necessidade de refazer.</p>
@@ -3718,7 +3728,7 @@ function escMitologia(){
       <p class="rv" style="max-width:none;margin:0">São nomes que conectam pesquisa e imaginação. Catum, ação, é onde começamos. Amae e Yorrum guardam caminhos futuros.</p></div></section>
 
     <section class="mt-roll mt-fim mt-c"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="none"></video><div class="mt-sh" style="background:rgba(0,0,0,.66)"></div>
-      <div class="mt-in"><div class="rv"><h3>O próximo aprendizado pode começar com você.</h3>
+      <div class="mt-in"><div class="rv"><img class="mt-logo-fim" src="assets/logo-pontodot-escola-white.svg" alt="pontodot — a school for AI"><h3>O próximo aprendizado pode começar com você.</h3>
       <p>Traga uma pergunta, um conhecimento, um jeito de fazer. A inteligência entra com suas possibilidades. Entre os dois, começa uma experiência.</p>
       <p>Monema continuará em construção. Há espaço para participar, orientar e descobrir o que ainda não sabemos fazer juntos.</p>
       <p style="font-size:17px;margin-top:20px">Aprenda com a gente. Ensine com a gente.</p>
@@ -3733,7 +3743,6 @@ function escMitologia(){
     const car = document.getElementById('mtCar');
     const fotos = imgs.filter(u => !/personagens|\/pd\/escola\//.test(u));
     const pool = fotos.length ? fotos : imgs;
-    mtFade(raiz.querySelector('[data-fade=monema]'), pool.slice(0, 4).length ? pool.slice(0, 4) : ['/media/catum/catum.jpg'], 6000);
     if (car){
       const L = pool.map((u, i) => [MT_LUGARES[i] || '', u]); window.MT_L = L;
       car.innerHTML = L.map(([n, u], i) => `<button class="mt-card" onclick="mtZoom(${i})"><img src="${u}" alt="${n}" ${i ? 'loading="lazy"' : ''}><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
