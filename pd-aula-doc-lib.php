@@ -86,7 +86,8 @@ function pdAulaDocRefazer($a, $feedback) {
     $sys = pdAulaDocPersonaSistema($a['personagem']) . "\n\n" . pdLicoesTexto($a['ia_user_id'], $a['skill_id'])
          . "\nVocê está numa AULA da escola da casa: a professora corrigiu a sua versão. Refaça o DOCUMENTO INTEIRO, no mesmo formato e seções, aplicando cada correção; mantenha o que não foi apontado. No fim, acrescente a seção '## O que mudei e por quê' (3 a 8 linhas, uma por correção aplicada; se discordar de algo, diga o motivo em vez de aplicar).";
     $msg = pdAulaDocContextoTexto($ctx) . "\n\n=== SUA VERSÃO ATUAL (rodada " . (int)($ult['rodada'] ?? 1) . ") ===\n" . mb_substr((string)($ult['texto'] ?? ''), 0, 24000) . "\n\n=== CORREÇÃO DA PROFESSORA ===\n" . mb_substr((string)$feedback, 0, 8000);
-    [$t, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => $msg]], 6000, 1);
+    @set_time_limit(280);
+    [$t, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => $msg]], 6000, 0, 240);   // sem busca na web (reescrever não precisa) e com tempo para o documento inteiro
     pdIncubSoma((float)$custo);
     if ($erro || trim((string)$t) === '') return [null, $erro ?: 'a aluna não devolveu texto'];
     return [trim((string)$t), null];

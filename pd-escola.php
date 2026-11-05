@@ -282,7 +282,7 @@ if (in_array($acao, ['aula_reabrir', 'aula_passo', 'curriculo_diag'], true)) {  
     $aid = (string)($b['aula_id'] ?? ''); if (!preg_match('/^[0-9a-f-]{36}$/i', $aid)) sd_fail('aula_id inválido.', 400);
     if ($acao === 'aula_reabrir') { echo json_encode(pdAulaReabrir($aid), JSON_UNESCAPED_UNICODE); exit; }
     $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($aid) . '&select=*')['body'][0] ?? null; if (!$a) sd_fail('aula não encontrada.', 404);
-    $r = pdAulaDocPasso($a); pdAulaSincroniza($aid, null, empty($r['ok']) && preg_match('/não refez|teto|Falha|rejeit/u', (string)($r['msg'] ?? '')) ? mb_substr((string)$r['msg'], 0, 300) : null);
+    @set_time_limit(280); $r = pdAulaDocPasso($a); pdAulaSincroniza($aid, null, empty($r['ok']) && preg_match('/não refez|teto|Falha|rejeit/u', (string)($r['msg'] ?? '')) ? mb_substr((string)$r['msg'], 0, 300) : null);
     echo json_encode($r, JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'curriculo_pedir' || $acao === 'curriculo_lista') {   // admin: pede à professora o conteúdo de cursos/skills; lista os pedidos

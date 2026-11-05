@@ -115,18 +115,18 @@ function pd_cache_gravar($chave, $dados) {
 }
 
 // Claude com busca na web, para as IAs de campanha (Sumi/Tumi). Devolve [texto, custo_usd, erro].
-function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4) {
+function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4, $timeout = 110) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
     $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . "\n\n" . pdElencoTexto(false),
         'messages' => $msgs];
     if ($usos > 0) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => (int)$timeout, CURLOPT_CONNECTTIMEOUT => 20,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
         CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE)]);
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($code !== 200) return [null, 0, 'A IA não respondeu (HTTP ' . $code . ').'];
+    if ($code !== 200) return [null, 0, 'A IA não respondeu (HTTP ' . $code . ($code === 0 ? ', tempo esgotado' : '') . ').'];
     $j = json_decode((string)$raw, true); $t = '';
     foreach ((array)($j['content'] ?? []) as $x) if (($x['type'] ?? '') === 'text') $t .= $x['text'];
     $u = $j['usage'] ?? [];
