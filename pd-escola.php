@@ -121,7 +121,8 @@ if ($acao === 'area_quem') {   // {minha: a IA da pessoa, mestre: a IA da área,
 // ---------------------------------------------------------------- AULA DE DOCUMENTO (job real)
 if ($acao === 'aula_documento') {   // {persona, texto, client_id, task_id, doc_id, origem, afinacao, extra}
     if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
-    $r = pdAulaDocCriar($u['id'], (string)($b['persona'] ?? ''), (string)($b['texto'] ?? ''), $b['client_id'] ?? null, $b['task_id'] ?? null, $b['doc_id'] ?? null, $b['origem'] ?? null, (string)($b['afinacao'] ?? ''), is_array($b['extra'] ?? null) ? $b['extra'] : []);
+    try { $r = pdAulaDocCriar($u['id'], (string)($b['persona'] ?? ''), (string)($b['texto'] ?? ''), $b['client_id'] ?? null, $b['task_id'] ?? null, $b['doc_id'] ?? null, $b['origem'] ?? null, (string)($b['afinacao'] ?? ''), is_array($b['extra'] ?? null) ? $b['extra'] : []); }
+    catch (Throwable $e) { sd_fail('Aula: ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')', 500); }
     if (empty($r['ok'])) sd_fail($r['msg'], 500);
     echo json_encode(['ok' => true] + $r, JSON_UNESCAPED_UNICODE); exit;
 }
