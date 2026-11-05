@@ -420,14 +420,21 @@ function vdDescobrir($consulta, $quantos, $carteira, $uid) {
     $hoje = count(vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . gmdate('Y-m-d\T00:00:00\Z', strtotime('today')) . '&select=id&limit=50')));
     $tg = vdTetoGeral()['buscas']; if ($hoje >= $tg) return ['erro' => 'teto geral de ' . $tg . ' buscas por dia atingido (cada uma gasta busca na web)'];
     $quantos = max(3, min(20, (int)$quantos)); $cart = $carteira && $carteira !== 'todas' ? $carteira : null;
-    $sys = "Você acha EMPRESAS REAIS para prospecção comercial usando a busca na web. Regras: só inclua empresa cujo site apareceu nos resultados que você leu; nunca invente site, nome ou cidade; prefira as que mostram sinais de momento (lançamento, obras, anúncios). "
+    // contexto real da casa: quem são os clientes (para achar SEMELHANTES) e o que já está na carteira (para NÃO repetir)
+    $casa = array_column(vdLinhas(vdSup('/rest/v1/clients?select=name&active=is.true&limit=80')), 'name');
+    $jaTem = []; foreach (vdLinhas(vdSup('/rest/v1/pd_prospects?select=nome,dominio&order=id.desc&limit=350')) as $pp) $jaTem[] = trim(($pp['dominio'] ?? '') ?: ($pp['nome'] ?? ''));
+    $sys = "Você acha EMPRESAS REAIS para prospecção comercial usando a busca na web. Regras: só inclua empresa cujo site apareceu nos resultados que você leu; nunca invente site, nome ou cidade. "
+         . "GARIMPAR = ir atrás de SEMELHANTES aos clientes da casa" . ($casa ? " (" . implode(', ', array_slice($casa, 0, 60)) . ")" : '') . ", que NÃO sejam concorrentes deles nem os próprios clientes. "
+         . "Siga o CRITÉRIO do pedido ao pé da letra. Quando o pedido falar de erros e defeitos: procure sites e redes sociais com defeitos CLAROS e verificáveis (site quebrado, lento, desatualizado, sem mobile, sem rastreio/CRM, redes paradas, atendimento manual, uso fraco ou inexistente de tecnologia e IA) e escreva em 'motivo' o defeito concreto que você viu. "
+         . "NÃO REPITA nada desta lista, que já está na carteira: " . ($jaTem ? implode(', ', array_slice(array_filter($jaTem), 0, 350)) : '(vazia)') . ". "
+         . "INSISTA: faça várias buscas; se os primeiros resultados forem repetidos ou famosos demais, mude termos, cidades, segmentos e porte e busque de novo até juntar a quantidade pedida. Prefira empresas médias e pequenas menos óbvias. "
          . "Responda SOMENTE um JSON array de até $quantos itens: [{\"nome\":\"\",\"site\":\"\",\"cidade\":\"\",\"uf\":\"\",\"segmento\":\"\",\"instagram\":\"\",\"motivo\":\"1 frase do porquê é um bom lead\"}]. Sem texto fora do JSON.";
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 150,
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 240,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 5000, 'system' => $sys,
-            'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 6]], 'messages' => [['role' => 'user', 'content' => 'Achar leads: ' . mb_substr($consulta, 0, 400)]]])]);
+        CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 6000, 'system' => $sys,
+            'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 10]], 'messages' => [['role' => 'user', 'content' => 'PEDIDO (' . $quantos . ' empresas novas): ' . mb_substr($consulta, 0, 1800)]]])]);
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     if ($code !== 200) { $m = json_decode((string)$raw, true); return ['erro' => 'a busca na web não respondeu (HTTP ' . $code . ')' . (!empty($m['error']['message']) ? ': ' . mb_substr($m['error']['message'], 0, 160) : '') . ($code === 400 ? ' — confira se a busca na web está habilitada na sua conta da Anthropic' : '')]; }
     $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $bl) if (($bl['type'] ?? '') === 'text') $t .= $bl['text'];

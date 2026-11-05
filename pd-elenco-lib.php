@@ -83,13 +83,23 @@ function pdPedidoTumiProspectar($ped) {
 function pdPedidosRodar($max = 2) {
     // pedido preso em andamento há mais de 20 min (o relógio morreu no meio): fecha com erro explícito e avisa, em vez de ficar pendurado
     try { $pr = sd_supabase('/rest/v1/pd_ia_pedidos?estado=eq.em_andamento&iniciado_em=lt.' . rawurlencode(gmdate('c', time() - 1200)) . '&select=id'); foreach ((array)($pr['body'] ?? []) as $x) sd_supabase('/rest/v1/pd_ia_pedidos?id=eq.' . $x['id'], 'PATCH', ['estado' => 'erro', 'resposta' => 'A execução foi interrompida (o relógio da casa caiu no meio). Peça de novo.', 'concluido_em' => gmdate('c')]); } catch (Throwable $e) {}
-    $q = sd_supabase('/rest/v1/pd_ia_pedidos?estado=eq.novo&order=criado_em.asc&limit=' . (int)$max . '&select=*'); if (($q['code'] ?? 500) >= 300) return 0; $n = 0;
+    $q = sd_supabase('/rest/v1/pd_ia_pedidos?estado=eq.novo&order=criado_em.asc&limit=10&select=*'); if (($q['code'] ?? 500) >= 300) return 0; $n = 0;
     foreach ((array)$q['body'] as $ped) {
-        if (!is_array($ped)) continue;
+        if (!is_array($ped)) continue; if ($n >= (int)$max) break;
+        $c0 = is_array($ped['contexto'] ?? null) ? $ped['contexto'] : (json_decode((string)($ped['contexto'] ?? ''), true) ?: []);
+        if (!empty($c0['proxima_em']) && strtotime((string)$c0['proxima_em']) > time()) continue;   // pedido que está insistindo: espera o próximo horário
         sd_supabase('/rest/v1/pd_ia_pedidos?id=eq.' . $ped['id'], 'PATCH', ['estado' => 'em_andamento', 'iniciado_em' => gmdate('c')]);
         try {
             if (($ped['para_ia'] ?? '') === 'tumi') [$ok, $resp] = pdPedidoTumiProspectar($ped); else { $ok = false; $resp = 'Ainda não tenho como a ' . ucfirst((string)$ped['para_ia']) . ' rodar isso sozinha; o pedido ficou registrado.'; }
         } catch (Throwable $e) { $ok = false; $resp = 'Deu erro ao executar: ' . mb_substr($e->getMessage(), 0, 160); }
+        // GARIMPO NÃO DESISTE: sem novidade, tenta de novo com outros termos ao longo do dia (até 10 tentativas, a cada 40 min)
+        $tent = (int)($c0['tentativas'] ?? 0) + 1;
+        if (!$ok && ($ped['para_ia'] ?? '') === 'tumi' && $tent < 10 && preg_match('/já estava na carteira|não achei empresas|não devolveu uma lista|Não consegui garimpar agora: (a busca|tudo|não achei|a IA)/u', $resp) && !preg_match('/teto|SD_ANTHROPIC_KEY/u', $resp)) {
+            sd_supabase('/rest/v1/pd_ia_pedidos?id=eq.' . $ped['id'], 'PATCH', ['estado' => 'novo', 'iniciado_em' => null, 'resposta' => 'Tentativa ' . $tent . ' sem empresas novas; sigo procurando com outros termos.', 'contexto' => array_merge($c0, ['tentativas' => $tent, 'proxima_em' => gmdate('c', time() + 2400)])]);
+            if ($tent === 1) { try { $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$ped['de_user']) . '&select=zap')['body'][0] ?? null;
+                if ($pf && !empty($pf['zap']) && function_exists('pdZapEnviar')) pdZapEnviar(pdZapNormaliza((string)$pf['zap']), '🔁 Tumi: a primeira rodada só trouxe empresas que já estavam na carteira. Não desisti: vou procurar o dia todo, mudando termos e cidades, e te aviso quando juntar as novas.', true); } catch (Throwable $e) {} }
+            $n++; continue;
+        }
         sd_supabase('/rest/v1/pd_ia_pedidos?id=eq.' . $ped['id'], 'PATCH', ['estado' => $ok ? 'feito' : 'erro', 'resposta' => $resp, 'concluido_em' => gmdate('c')]);
         // devolve pra quem pediu, pelo zap (a janela de 24h costuma estar aberta: foi ele quem mandou a mensagem)
         try { $pf = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$ped['de_user']) . '&select=name,zap')['body'][0] ?? null;
