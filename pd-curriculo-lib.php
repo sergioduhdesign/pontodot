@@ -32,6 +32,19 @@ function pdCurrTexto($pid, $curso, $skill, $titulo, $dir, $atual) {
     $L[] = '3) Depois, escreva TERMINEI ' . $pid . ' na célula B2 da planilha de controle (ou responda ao e-mail deste chamado com o JSON).';
     return implode("\n", $L);
 }
+/** Assunto que o filtro do GPT da professora reconhece ("AULA · CORRIGIR") + o rótulo próprio do currículo. */
+function pdCurrAssunto($titulo, $pid) { return '[SD-IA] AULA · CORRIGIR · CURRÍCULO · ' . $titulo . ' · ' . $pid; }
+/** Reenvia o e-mail de um pedido ainda aberto (mesma pasta/AULA.json), com o assunto que o filtro da professora pega. */
+function pdCurrLembrar($row) {
+    $ch = (array)$row['chamado']; if (empty($ch['pedido'])) return false;
+    $D = pdCurrDiretrizes(); $dir = $D['cursos'][$row['curso']] ?? null;
+    if (!$dir) { $h0 = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($row['skill_id']) . '&select=nome,finalidade&order=versao.desc&limit=1')['body'][0] ?? null; $dir = ['area' => 'Skill de trabalho', 'ensinar' => 'Revisar e melhorar esta skill: ' . ($h0['finalidade'] ?? ''), 'onde_aparece' => '']; }
+    $atual = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($row['skill_id']) . '&ativa=eq.true&select=nome,finalidade,entradas,metodo,criterios,limites&order=versao.desc&limit=1')['body'][0] ?? null;
+    $texto = pdCurrTexto($ch['pedido'], $row['curso'], $row['skill_id'], $row['titulo'], $dir, $atual);
+    $ok = @mail(emailIA(), '=?UTF-8?B?' . base64_encode(pdCurrAssunto($row['titulo'], $ch['pedido'])) . '?=', "LEMBRETE: este pedido continua aberto — grave o AULA.json na pasta SAIDA.\n\n" . $texto . "\n\nPasta: " . ($ch['folderUrl'] ?? '') . "\nPontodot · " . sd_base(), "From: SD Workflow <workflow@sergioduh.com>\r\nReply-To: workflow@sergioduh.com\r\nX-SD-Chamado: " . $ch['pedido'] . "\r\nContent-Type: text/plain; charset=UTF-8");
+    pdAulaSup('/rest/v1/pd_curriculo_pedidos?id=eq.' . urlencode($row['id']), 'PATCH', ['chamado' => array_merge($ch, ['lembrado_em' => gmdate('c'), 'assunto_v' => 2])]);
+    return (bool)$ok;
+}
 /** Cria o pedido e avisa a professora. $curso = slug do curso (nix…muru) ou skill_id de uma skill existente. */
 function pdCurrPedir($curso, $userId) {
     if (!pdPonteOk()) return ['ok' => false, 'msg' => 'A ponte do Drive não está configurada.'];
@@ -54,9 +67,9 @@ function pdCurrPedir($curso, $userId) {
         $g($p['folderId'], '00_FORMATO_AULA.json', json_encode(pdCurrModelo($pid, $curso, $skill), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         $g($p['folderId'], '00_BRIEFING_IA.txt', "\xEF\xBB\xBF" . $texto); $g($p['folderId'], '00_CHAMADO_IA.txt', "\xEF\xBB\xBF" . $texto);
         ponte('status', ['controleId' => $p['controleId'], 'status' => 'CURRICULO', 'rodada' => 1, 'obs' => 'pedido enviado']);
-        $assunto = '[SD-IA] CURRÍCULO · ' . $titulo . ' · ' . $pid;
+        $assunto = pdCurrAssunto($titulo, $pid);
         $ok = @mail(emailIA(), '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPasta: " . ($p['folderUrl'] ?? '') . "\nPontodot · " . sd_base(), "From: SD Workflow <workflow@sergioduh.com>\r\nReply-To: workflow@sergioduh.com\r\nX-SD-Chamado: " . $pid . "\r\nContent-Type: text/plain; charset=UTF-8");
-        pdAulaSup('/rest/v1/pd_curriculo_pedidos?id=eq.' . urlencode($row['id']), 'PATCH', ['chamado' => ['pedido' => $pid, 'folderId' => $p['folderId'], 'folderUrl' => $p['folderUrl'] ?? '', 'entradaId' => $p['entradaId'] ?? null, 'saidaId' => $p['saidaId'] ?? null, 'controleId' => $p['controleId'] ?? null, 'enviado_em' => gmdate('c'), 'email' => (bool)$ok]]);
+        pdAulaSup('/rest/v1/pd_curriculo_pedidos?id=eq.' . urlencode($row['id']), 'PATCH', ['chamado' => ['pedido' => $pid, 'folderId' => $p['folderId'], 'folderUrl' => $p['folderUrl'] ?? '', 'entradaId' => $p['entradaId'] ?? null, 'saidaId' => $p['saidaId'] ?? null, 'controleId' => $p['controleId'] ?? null, 'enviado_em' => gmdate('c'), 'assunto_v' => 2, 'email' => (bool)$ok]]);
         return ['ok' => true, 'msg' => 'Pedido enviado à professora: ' . $titulo . '.'];
     } catch (Throwable $e) { pdAulaSup('/rest/v1/pd_curriculo_pedidos?id=eq.' . urlencode($row['id']), 'PATCH', ['erro' => $e->getMessage()]); return ['ok' => false, 'msg' => 'Não consegui avisar o dot: ' . $e->getMessage()]; }
 }
@@ -94,6 +107,13 @@ function pdCurrVarrer() {
                 if (in_array($sk, $tem, true) || in_array($sk, $ja, true)) continue; $r = pdCurrPedir($c, null); if (!empty($r['ok'])) $n++; } }
     } catch (Throwable $e) {}
     $rows = pdAulaSup('/rest/v1/pd_curriculo_pedidos?status=eq.pedido&select=*&limit=20')['body'] ?? []; $out = [];
+    // TRAVADO: pedido aberto sem resposta é reenviado — uma vez com o assunto novo (assunto_v) e depois toda manhã (6h–10h de Brasília), no máximo 4 por rodada
+    try { $nl = 0; $hb = (int)gmdate('G', time() - 3 * 3600);
+        foreach ((array)$rows as $row) { if ($nl >= 4) break; $ch = (array)$row['chamado']; if (empty($ch['pedido'])) continue;
+            $ult = max(strtotime((string)($ch['lembrado_em'] ?? '')) ?: 0, strtotime((string)($ch['enviado_em'] ?? '')) ?: 0);
+            if ((int)($ch['assunto_v'] ?? 0) < 2 || ($hb >= 6 && $hb < 10 && time() - $ult > 20 * 3600)) { if (pdCurrLembrar($row)) $nl++; } }
+        if ($nl) $out[] = $nl . ' lembrete(s) reenviado(s) à professora';
+    } catch (Throwable $e) {}
     foreach ((array)$rows as $row) {
         $ch = (array)$row['chamado']; if (empty($ch['saidaId'])) continue;
         try {
