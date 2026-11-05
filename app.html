@@ -3665,6 +3665,7 @@ function escMitologia(){
     #esc-mito .mt-sp .mt-bgf{position:relative;inset:auto;height:auto;min-height:var(--mh)}
     #esc-mito .mt-sp .mt-tx{display:flex;flex-direction:column;justify-content:center;padding:64px clamp(28px,6vw,90px)}
     #esc-mito .mt-sp.inv .mt-bgf{order:2}
+    #esc-mito .mt-sp .mt-bgf img{transition:none!important;transform:none!important;object-position:50% 50%}
     #esc-mito .mt-sp.pt{background:#0b0b0d;color:#F4F3EF}
     #esc-mito .mt-sp.br{background:#fff;color:#15161A}
     #esc-mito .mt-sp p{text-shadow:none}
@@ -3752,7 +3753,7 @@ function escMitologia(){
   });
   const vidas = []; MT_HAB.forEach(k => vidas.push('/pd/personagens/' + k + '/vida.jpg', '/pd/personagens/' + k + '/nascimento.jpg'));
   mtFade(raiz.querySelector('[data-fade=hab]'), vidas.sort(() => Math.random() - .5), 4200);
-  mtFade(raiz.querySelector('[data-fade=escola]'), ['/pd/escola/capa-1-aula-1800.jpg', '/pd/escola/capa-2-jardim-1800.jpg', '/pd/escola/capa-3-formatura-1800.jpg'], 5200);
+  mtFade(raiz.querySelector('[data-fade=escola]'), ['/pd/escola/capa-3-formatura-1800.jpg'], 5200);
 }
 function mtFade(box, urls, ms){
   if (!box || !urls || !urls.length) return;
