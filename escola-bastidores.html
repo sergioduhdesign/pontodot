@@ -84,8 +84,8 @@ function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
   ${s.limites?`<h4>O que fica com a pessoa</h4><p class="pre">${esc(s.limites)}</p>`:''}
   ${(s.exemplos||[]).map(x=>`<h4>Exemplo ${x.tipo==='ruim'?'ruim':'bom'}</h4><p class="pre">${esc(x.texto)}</p>`).join('')}
   <h4>Quem está estudando</h4>${s.alunos.map(a=>`<div class="al"><img src="${face(a.personagem)}"><div class="t"><b>${esc(a.nome)}</b> · IA do ${esc(a.dona||'—')}<small>${a.apta?'apta':'estudando'}${a.ativa?'':' · parada'}</small></div>
-    <button class="btn" onclick="aluno('${esc(id)}','${a.ia_user_id}','${a.ativa?'parar':'retomar'}')">${a.ativa?'Parar':'Retomar'}</button><button class="btn r" onclick="aluno('${esc(id)}','${a.ia_user_id}','remover')">Tirar</button></div>`).join('')||'<div class="vz">Ninguém inscrito ainda.</div>'}
-  <div style="display:flex;gap:8px;margin-top:12px"><select id="insc" style="flex:1"><option value="">Inscrever uma IA…</option>${livres.map(x=>`<option value="${x.ia_user_id}">${esc(x.nome)} · IA do ${esc(x.dona)}</option>`).join('')}</select><button class="btn" onclick="aluno('${esc(id)}',$('#insc').value,'matricular')">Inscrever</button></div>
+</div>`).join('')||'<div class="vz">Ninguém inscrito ainda.</div>'}
+
   <h4>Histórico de versões</h4>${s.versoes.map(v=>`<div class="ver"><b>v${v.versao}</b><div>${v.notas?esc(v.notas):'<span>—</span>'}<br><span>${new Date(v.criada_em).toLocaleDateString('pt-BR')}${v.origem?' · '+esc(v.origem):''}</span></div></div>`).join('')}</div>`
   :`<div class="pad"><h4>Conteúdo</h4><div class="vz">${pedAberto(id)?'Pedido com a professora desde '+new Date(pedAberto(id).criado_em).toLocaleDateString('pt-BR')+'. Quando ela devolver o AULA.json, a PD publica sozinha.'+(pedAberto(id).erro?'<br><b>Última rejeição:</b> '+esc(pedAberto(id).erro):''):'Esta aula ainda não tem conteúdo. Peça à professora (ela escreve a partir do conhecimento dela, com as diretrizes do curso) ou baixe a planilha e suba preenchida.'}</div></div>`}</div>`;
   $('#fundo').classList.add('on');document.documentElement.classList.add('trava');$('#gav').classList.add('on');}
