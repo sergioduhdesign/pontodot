@@ -3623,11 +3623,11 @@ function escMitologia(){
   const d = document.createElement('div'); d.id = 'esc-mito';
   const nm = (n, t, txt, c) => `<div class="mt-nm rv ${c || ''}"><h3>${n}</h3><small>${t}</small><p>${txt}</p></div>`;
   d.innerHTML = `<style>
-    #esc-mito{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px}
+    #esc-mito{--mh:min(calc(100vh - 190px),800px);position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px 14px 0}
     #esc-mito .mt-fundo{position:absolute;inset:0;background:rgba(10,10,12,.66);backdrop-filter:blur(8px)}
-    #esc-mito .mt{position:relative;width:min(1180px,100%);height:min(94vh,980px);overflow-y:scroll;scroll-snap-type:y proximity;background:#0b0b0d;color:#F4F3EF;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.55);font:300 14.5px/1.8 "Inter Tight",system-ui,sans-serif;scroll-behavior:smooth}
+    #esc-mito .mt{position:relative;width:min(1480px,100%);height:var(--mh);overflow-y:scroll;scroll-snap-type:y proximity;background:#0b0b0d;color:#F4F3EF;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.55);font:300 14.5px/1.8 "Inter Tight",system-ui,sans-serif;scroll-behavior:smooth}
     #esc-mito .mt-x{position:sticky;top:14px;float:right;margin:14px 14px -52px 0;z-index:9;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#15161A;font-size:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3)}
-    #esc-mito .mt-roll{position:relative;min-height:min(94vh,980px);scroll-snap-align:start;overflow:hidden;display:flex;align-items:flex-end}
+    #esc-mito .mt-roll{position:relative;min-height:var(--mh);scroll-snap-align:start;overflow:hidden;display:flex;align-items:flex-end}
     #esc-mito .mt-roll.mt-c{align-items:center}
     #esc-mito .mt-bgf,#esc-mito .mt-bgf img,#esc-mito .mt-roll>video{position:absolute;inset:0;width:100%;height:100%}
     #esc-mito .mt-bgf img,#esc-mito .mt-roll>video{object-fit:cover}
@@ -3648,8 +3648,8 @@ function escMitologia(){
     #esc-mito .mt-perg{font-size:16px;font-weight:400;margin-top:20px}
     #esc-mito .mt-pas{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 6px}
     #esc-mito .mt-pas span{border:.5px solid rgba(255,255,255,.5);border-radius:999px;padding:7px 18px;font-size:13px;letter-spacing:.06em;backdrop-filter:blur(6px);background:rgba(255,255,255,.08)}
-    #esc-mito .mt-slides{position:relative;min-height:min(94vh,980px);background:#0b0b0d;scroll-snap-align:start}
-    #esc-mito .mt-car{display:flex;overflow-x:scroll;scroll-snap-type:x mandatory;height:min(94vh,980px);scrollbar-width:thin}
+    #esc-mito .mt-slides{position:relative;min-height:var(--mh);background:#0b0b0d;scroll-snap-align:start}
+    #esc-mito .mt-car{display:flex;overflow-x:scroll;scroll-snap-type:x mandatory;height:var(--mh);scrollbar-width:thin}
     #esc-mito .mt-card{flex:0 0 100%;scroll-snap-align:center;border:0;padding:0;background:#111;position:relative;cursor:zoom-in;color:#fff;text-align:left}
     #esc-mito .mt-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     #esc-mito .mt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2),transparent 30%,transparent 55%,rgba(0,0,0,.75))}
