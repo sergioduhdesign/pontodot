@@ -7,12 +7,12 @@
   var RX = /\b(catum|yorrum|monema|amae)\b/gi;
   var SEL = 'h1,h2,h3,h4,.pd-titulo,.pop-titulo,.esc-h3,.esc-h3-cursos,.modal-title,.esc-cur-pf small,.esc-cidade-nome,.esc-postal-vazio,.mt-tit small';
   var css = document.createElement('style');
-  css.textContent = '.pd-nome{display:inline-block;width:calc(.82em*var(--r));max-width:100%;height:auto;aspect-ratio:var(--r);vertical-align:-.03em;background:currentColor;' +
+  css.textContent = 'pd-nome.pd-nome{display:inline-block;font-style:normal;font-weight:400;opacity:1;width:calc(.82em*var(--r));max-width:100%;height:auto;aspect-ratio:var(--r);vertical-align:-.03em;background:currentColor;' +
     '-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;overflow:hidden;text-indent:-9999px;white-space:nowrap;font-size:inherit;letter-spacing:0;text-transform:none}' +
-    '.pd-nome+.pd-nome{margin-left:.28em}';
+    'pd-nome.pd-nome+pd-nome.pd-nome{margin-left:.28em}';
   document.head.appendChild(css);
   function span(n) {
-    var k = n.toLowerCase(), s = document.createElement('span');
+    var k = n.toLowerCase(), s = document.createElement('pd-nome');
     s.className = 'pd-nome'; s.setAttribute('role', 'img'); s.setAttribute('aria-label', n.charAt(0).toUpperCase() + k.slice(1));
     s.style.setProperty('--r', R[k]); s.style.setProperty('--m', 'url(/assets/nomes/' + k + '.svg)'); s.textContent = n; return s;
   }

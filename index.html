@@ -10399,8 +10399,10 @@ const _TELA = (function(){ try { const sv = JSON.parse(localStorage.getItem('sd_
       const w = frameVerso();
       if (w && typeof w.setView === 'function' && w.eval("!!document.getElementById('app') && document.getElementById('app').style.display !== 'none'")){
         w.setView(_TELA);
+        // se a pessoa clicar/tocar/teclar no app, ela manda: a restauração para de reafirmar a tela antiga
+        let mandou = false; try { ['pointerdown', 'keydown'].forEach(ev => w.document.addEventListener(ev, () => { mandou = true; }, true)); } catch(e){}
         // o app às vezes termina de carregar dados e se põe na tela inicial por cima: reafirma duas vezes
-        [1500, 3500, 6000].forEach(ms => setTimeout(() => { try { const x = frameVerso(); if (x && x.eval('currentView') !== _TELA) x.setView(_TELA); } catch(e){} }, ms));
+        [1500, 3500, 6000].forEach(ms => setTimeout(() => { try { if (mandou) return; const x = frameVerso(); if (x && x.eval('currentView') !== _TELA) x.setView(_TELA); } catch(e){} }, ms));
         setTimeout(() => { _restaurando = false; try { localStorage.setItem('sd_tela_aberta', '1'); } catch(e){} }, 7000);
         return;
       }
@@ -12331,6 +12333,6 @@ setTimeout(ofiSonda, 6000); setInterval(() => { if (!document.hidden) ofiSonda()
   descer('clBtnBusca', () => { if (movel()) clAbrirBusca(); });
 })();
 </script>
-<script src="/js/pd-nomes.js?v=1" defer></script>
+<script src="/js/pd-nomes.js?v=2" defer></script>
 </body>
 </html>
