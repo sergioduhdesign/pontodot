@@ -286,7 +286,7 @@ body.carregando .nl-skel{display:block}
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/aprovacao-comum.js?v=20"></script>
+<script src="/js/aprovacao-comum.js?v=21"></script>
 <script>
 let profile=null, clients=[], tasks=[], setId=null;
 let MODO = null;          // lote_zip | lote_variado | peca_unica | post_unico
@@ -313,7 +313,7 @@ if (EMBED) document.documentElement.style.background = 'transparent';
 (async () => {
  try {
   Theme.init();
-  if (EMBED) document.body.classList.add('embed');
+  if (EMBED){ document.body.classList.add('embed'); document.documentElement.setAttribute('data-theme','light'); setTimeout(()=>document.documentElement.setAttribute('data-theme','light'),400); }
   const a = await Auth.requireAuth(['admin','team']);
   if (!a) return;
   profile = a.profile;
@@ -760,15 +760,24 @@ el('btnSave').onclick = async () => {
       const totalArtes = zipPecas.reduce((t,p)=>t+p.files.length,0);
       let subidas = 0;
 
-      for (let i = 0; i < zipPecas.length; i++) {
-        const p = zipPecas[i];
-        const media = [];
-        for (const f of p.files) {
-          media.push(await AP.subirMidia(f.file, clientId, setId, { path: f.path }));
+      // sobe tudo em paralelo (6 por vez) e remonta na ordem certa
+      const fila = []; zipPecas.forEach((p, pi) => p.files.forEach((f, fi) => fila.push({ pi, fi, f })));
+      const subiu = zipPecas.map(p => new Array(p.files.length));
+      let prox = 0;
+      const trabalhador = async () => {
+        while (prox < fila.length) {
+          const j = fila[prox++];
+          subiu[j.pi][j.fi] = await AP.subirMidia(j.f.file, clientId, setId, { path: j.f.path });
           subidas++;
           el('progBar').style.width = Math.round(subidas/totalArtes*100) + '%';
           el('status').textContent = `Subindo artes… ${subidas} de ${totalArtes}`;
         }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, fila.length) }, trabalhador));
+
+      for (let i = 0; i < zipPecas.length; i++) {
+        const p = zipPecas[i];
+        const media = subiu[i];
         itens.push({
           set_id: setId, position: i,
           kind: p.kind,

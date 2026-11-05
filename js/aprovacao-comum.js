@@ -307,14 +307,17 @@ AP.lerPacote = async function(files, opts){
         else { legenda = ''; hashtags = ''; }
       }
 
+      // lê as artes do zip em paralelo (lotes de 6), mantendo a ordem
       const fl = [];
-      for (const m of g.lista) {
-        const blob = await m.e.blob();
-        const f2 = (blob instanceof File && blob.name === m.nome) ? blob
-                 : new File([blob], m.nome, { type: AP.mime(m.nome) });
-        fl.push({ file: f2, url: URL.createObjectURL(f2), nome: m.nome, path: m.e.path });
-        lidas++;
-        st(`Extraindo artes… ${lidas} de ${totalMidia}`);
+      for (let k = 0; k < g.lista.length; k += 6) {
+        const parte = await Promise.all(g.lista.slice(k, k + 6).map(async m => {
+          const blob = await m.e.blob();
+          const f2 = (blob instanceof File && blob.name === m.nome) ? blob
+                   : new File([blob], m.nome, { type: AP.mime(m.nome) });
+          lidas++; st(`Extraindo artes… ${lidas} de ${totalMidia}`);
+          return { file: f2, url: URL.createObjectURL(f2), nome: m.nome, path: m.e.path };
+        }));
+        fl.push(...parte);
       }
 
       const temVideo = fl.some(f => VID.test(f.nome));
