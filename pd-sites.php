@@ -55,6 +55,10 @@ if (!preg_match('/^[0-9a-fA-F-]{36}$/', $cid)) sd_fail('Cliente inválido.', 400
 header('Content-Type: application/json; charset=utf-8');
 
 try {
+    if (($d['acao'] ?? '') === 'bloco') {   // o trecho que se cola no site HTML (feed assinado + script do bloco)
+        $k = substr(hash_hmac('sha256', 'feed:' . $cid, SD_SECRET_KEY), 0, 24); $base = rtrim(sd_base(), '/'); $feed = $base . '/pd-sites.php?feed=' . $cid . '&k=' . $k;
+        echo json_encode(['ok' => true, 'feed' => $feed, 'snippet' => '<div id="pd-bloco"></div>' . "\n" . '<script src="' . $base . '/pd-bloco.js" data-feed="' . $feed . '" data-max="6" defer></script>'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit;
+    }
     if (($d['acao'] ?? '') === 'testar') {
         $r = pdWPTestar($cid);
         // de brinde: o endereço do feed assinado pro "bloco embutido"
