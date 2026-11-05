@@ -91,8 +91,13 @@ function pdCurrSalvar($row, $a, $userId) {
     $ver = $m ? (int)$m['versao'] + 1 : 1; $pz = $m && !empty($m['pausada']);
     if ($m) pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($sid), 'PATCH', ['ativa' => false]);
     $ex = []; foreach (['bom' => 'exemplo_bom', 'ruim' => 'exemplo_ruim'] as $t => $k) if (trim((string)($a[$k] ?? '')) !== '') $ex[] = ['tipo' => $t, 'texto' => mb_substr(trim((string)$a[$k]), 0, 3000)];
-    $r = pdAulaSup('/rest/v1/pd_habilidades', 'POST', ['skill_id' => $sid, 'versao' => $ver, 'nome' => mb_substr(trim($a['nome']), 0, 90), 'finalidade' => mb_substr(trim($a['objetivo']), 0, 800), 'entradas' => $a['entradas'], 'metodo' => mb_substr(trim($a['metodo']), 0, 6000),
-        'criterios' => $a['criterios'], 'limites' => mb_substr(trim((string)($a['limites'] ?? '')), 0, 1500), 'exemplos' => $ex, 'ativa' => !$pz, 'pausada' => $pz, 'origem' => 'doc', 'notas_versao' => mb_substr((string)($a['o_que_mudou'] ?? 'escrita pela professora'), 0, 500), 'criada_por' => $userId]);
+    $dados = ['skill_id' => $sid, 'versao' => $ver, 'nome' => mb_substr(trim($a['nome']), 0, 90), 'finalidade' => mb_substr(trim($a['objetivo']), 0, 800), 'entradas' => $a['entradas'], 'metodo' => mb_substr(trim($a['metodo']), 0, 6000),
+        'criterios' => $a['criterios'], 'limites' => mb_substr(trim((string)($a['limites'] ?? '')), 0, 1500), 'exemplos' => $ex, 'ativa' => !$pz, 'pausada' => $pz, 'origem' => 'doc', 'notas_versao' => mb_substr((string)($a['o_que_mudou'] ?? 'escrita pela professora'), 0, 500), 'criada_por' => $userId];
+    // tolerante a migração atrasada: se o banco ainda não tem uma coluna nova (PGRST204), grava sem ela em vez de perder a aula
+    for ($i = 0; $i < 5; $i++) { $r = pdAulaSup('/rest/v1/pd_habilidades', 'POST', $dados);
+        if (($r['code'] ?? 500) < 300) break;
+        if (preg_match("/Could not find the '([a-z_]+)' column/", (string)($r['body']['message'] ?? ''), $mm) && array_key_exists($mm[1], $dados)) { unset($dados[$mm[1]]); continue; } break; }
+    if (($r['code'] ?? 500) >= 300 && $m && !$pz) pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($sid) . '&versao=eq.' . (int)$m['versao'], 'PATCH', ['ativa' => true]);   // falhou: a versão anterior continua valendo
     return ($r['code'] ?? 500) < 300 ? [true, $ver] : [false, mb_substr(json_encode($r['body'] ?? '', JSON_UNESCAPED_UNICODE), 0, 200)];
 }
 /** Confere os pedidos abertos: se a professora já devolveu o AULA.json, valida e publica. */
