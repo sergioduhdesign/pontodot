@@ -1570,6 +1570,11 @@ button.ct-rotulo:hover{color:var(--branco)}
 .mundo.virado .frente .rodape{opacity:0;transition:opacity .22s ease 0s}
 /* caixa de digitação com texto tapa a resposta: fica translúcida quando o mouse sai dela */
 @media (hover:hover){
+  /* verso: a caixa de digitação grande tapa a resposta da IA — fica translúcida quando o mouse sai dela */
+  .verso .v-pe .v-fala2:has(textarea:not(:placeholder-shown)):not(:hover){opacity:.2;backdrop-filter:none;-webkit-backdrop-filter:none;transition:opacity .2s ease}
+  .verso .v-pe .v-fala2:hover{opacity:1;transition:opacity .15s ease}
+}
+@media (hover:hover){
   html.emChat .frente .rodape:has(textarea:not(:placeholder-shown)):not(:hover){opacity:.22;transition:opacity .2s ease 0s}
   html.emChat .frente .rodape:hover{opacity:1;transition:opacity .15s ease 0s}
 }
