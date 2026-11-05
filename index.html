@@ -5747,11 +5747,49 @@ async function docSalva(o, novo){   // novo = acabou de gerar (cria o registro);
     else { const j = await adsFala({ acao:'doc_salvar', id: d.docId, ...base, texto_final: d.resp }); d.docEstado = j.salvo ? 'salvo' : 'erro'; }
   } catch(e){ d.docEstado = 'erro'; }
 }
+// AULAS DE JOB REAL — o box de aulas (admin e quem tem "acompanhar"): lista, placar por persona/habilidade, decisão da lição
+const AUL = { d:null, msg:'', aberta:null, carregando:false };
+const escolaFala = d => adsFala(d, '/pd-escola.php');
+async function abrirAulas(){
+  if (!document.getElementById('cxAul')) abrirJanela('<div class="caixa invertida cp sem-ajuda" style="padding:16px 18px 20px" id="cxAul"></div>', true);
+  aulPinta(); aulCarrega();
+}
+async function aulCarrega(){ AUL.carregando = true; aulPinta(); try { AUL.d = await escolaFala({ acao:'aulas_documento' }); AUL.msg = ''; } catch(e){ AUL.msg = e.message; } AUL.carregando = false; aulPinta(); }
+function aulPinta(){
+  const X = document.getElementById('cxAul'); if (!X) return; const d = AUL.d || { aulas:[], placar:[] };
+  const ST = { em_correcao:'com a professora', em_exercicio:'aluna refazendo', validacao_humana:'sua decisão', validada:'lição aprovada', reprovada:'sem parecer', cancelada:'cancelada' };
+  const face = p => iaAv(p === 'copy' ? 'sumi' : p, 22);
+  const placar = d.placar.length ? `<div class="cmp-cols" style="grid-template-columns:repeat(${Math.min(4, d.placar.length)},minmax(190px,1fr))">${d.placar.map(p => { const t = p.nota_r1_recente != null && p.nota_r1_anterior != null ? (p.nota_r1_recente > p.nota_r1_anterior ? '▲' : p.nota_r1_recente < p.nota_r1_anterior ? '▼' : '=') : '';
+      return `<div class="cmp-col"><div class="h">${face(p.personagem)}<div style="min-width:0"><b>${esc(p.personagem)}</b><small>${esc(p.skill_id.toLowerCase().replace(/_/g, ' '))}</small></div></div>
+        <div class="kv"><small>Aulas</small><b>${p.aulas}</b></div><div class="kv"><small>Nota R1 média</small><b>${p.nota_r1_media != null ? p.nota_r1_media : '—'}</b></div>
+        <div class="kv"><small>R1 recente × anterior</small><b>${p.nota_r1_recente != null ? p.nota_r1_recente : '—'} ${t} ${p.nota_r1_anterior != null ? p.nota_r1_anterior : ''}</b></div>
+        <div class="kv"><small>Rodadas até aprovar</small><b>${p.rodadas_ate_ok != null ? p.rodadas_ate_ok : '—'}</b></div></div>`; }).join('')}</div>` : '<div class="nota">Sem aulas ainda. A primeira nasce quando você cria tarefas de um documento e escolhe "Deixar com a professora esta noite".</div>';
+  const linhas = d.aulas.map(a => { const ab = AUL.aberta === a.id;
+    return `<div class="cmp-p" style="flex-direction:column;align-items:stretch"><div style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="AUL.aberta=AUL.aberta==='${a.id}'?null:'${a.id}';aulPinta()">${face(a.personagem)}
+      <div style="flex:1;min-width:0"><b>${esc(a.cliente || 'Sem cliente')}</b> <span class="cp-chip">${esc(a.skill_id.toLowerCase().replace(/_/g, ' '))}</span> <span class="cp-chip">${esc(ST[a.status] || a.status)}</span>${a.task_id ? ` <small class="nota">${esc(a.task_id)}</small>` : ''}
+        <div class="nota" style="margin:2px 0 0">R${a.rodada}/${a.max} · ${a.versoes} vers${a.versoes === 1 ? 'ão' : 'ões'} · ${a.pareceres} parecer${a.pareceres === 1 ? '' : 'es'}${a.nota_r1 != null ? ' · nota R1 ' + Math.round(a.nota_r1) : ''}${a.nota_final != null ? ' · final ' + Math.round(a.nota_final) : ''} · ${new Date(a.criada_em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}${a.entregue_em ? ' · devolvida' : (a.prazo ? ' · volta ' + new Date(a.prazo).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '')}</div></div>
+      <span class="nota">${ab ? '▴' : '▾'}</span></div>
+      ${ab ? `<div style="padding:10px 2px 2px">${a.ultimo_parecer ? `<div class="kv" style="display:block"><small>Último parecer da professora</small><div class="nota" style="line-height:1.5;margin-top:4px">${esc(a.ultimo_parecer)}</div></div>` : '<div class="nota">A professora ainda não respondeu.</div>'}
+        ${a.pendencias ? `<div class="nota" style="color:var(--rosa);margin:6px 0">${esc(a.pendencias)}</div>` : ''}
+        <div class="kv" style="display:block"><small>Última versão (início)</small><div class="nota" style="line-height:1.5;margin-top:4px">${esc(a.ultima)}…</div></div>
+        ${a.task_id ? `<div style="margin:8px 0"><button class="btn cp-b" onclick="abrirTarefaReal('${esc(a.task_id)}')">Abrir a tarefa</button></div>` : ''}
+        ${a.status === 'validacao_humana' && ehAdmin() ? `<div class="cmp-prog" style="border-style:solid"><b>Sua decisão sobre a lição</b><div class="nota" style="margin:4px 0 6px">Aprovar guarda a lição sugerida no repertório da aluna. Revisar manda seu comentário e ela refaz mais uma vez. Reprovar descarta a lição.</div>
+          <textarea class="cp-sel1" id="aulPar_${a.id}" rows="3" placeholder="Seu parecer (opcional; obrigatório para revisar)"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn cheio cp-b" onclick="aulDecide('${a.id}','aprovar')">👍 Aprovar lição</button><button class="btn cp-b" onclick="aulDecide('${a.id}','revisar')">↺ Revisar</button><button class="btn cp-b" onclick="aulDecide('${a.id}','reprovar')">👎 Reprovar</button></div></div>` : (a.decisao ? `<div class="nota">Sua decisão: ${esc(a.decisao)}</div>` : '')}</div>` : ''}</div>`; }).join('');
+  pdMantemRolagem(X, () => { X.innerHTML = `<div class="cp-top">${voltaBtn('Painel', 'fecharJanela()')}<span style="flex:1"></span><button class="btn cp-b" onclick="aulCarrega()" ${AUL.carregando ? 'disabled' : ''}>Atualizar</button><button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
+    <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Aulas de job real</h3>
+    <div class="nota" style="margin:0 0 8px">Cada aula é uma tarefa de verdade: a aluna entrega, a professora (o GPT do Sérgio) corrige, a aluna refaz, até 3 rodadas na noite. O placar diz se está aprendendo: nota da rodada 1 subindo e menos rodadas até aprovar.</div>
+    ${AUL.carregando ? progHtml('Lendo as aulas…', '#11BA98') : ''}${AUL.msg ? `<div class="nota" style="color:var(--rosa)">${esc(AUL.msg)}</div>` : ''}
+    <div class="ads-sec">Placar</div>${placar}
+    <div class="ads-sec">Aulas</div><div class="cmp-pl">${linhas || '<div class="nota">Nenhuma aula ainda.</div>'}</div>`; });
+}
+async function aulDecide(id, dec){ const p = (document.getElementById('aulPar_' + id) || {}).value || ''; if (dec === 'revisar' && !p.trim()){ toast('Escreva o que ela deve rever.'); return; }
+  try { const r = await escolaFala({ acao:'aula_decidir', id, decisao: dec, parecer: p }); toast(r.msg || 'Decisão registrada.'); } catch(e){ toast(e.message); } aulCarrega(); }
 // DOCUMENTO → TAREFAS: pega o que a Sumi/Muru escreveu, sugere 3+ tarefas (avaliar estratégia, avaliar copy, criativos detalhados) com responsável pela função
-const DT = { itens:[], cliente:'', clientId:'', carregando:false, criando:false, msg:'' };
+const DT = { itens:[], cliente:'', clientId:'', carregando:false, criando:false, msg:'', origem:'camp', professora:false, afinacao:'' };
 function dtEquipe(){ return (PERFIS || []).filter(x => x.name && !x.client_id).map(x => ({ key: chaveDe(x), nome: x.name, funcoes: x.funcoes || [] })).filter(x => x.key); }
 async function docTarefas(origem){
-  const resp = origem === 'soc' ? CMP.resp : CCMP.resp; if (!resp) return;
+  const resp = origem === 'soc' ? CMP.resp : CCMP.resp; if (!resp) return; DT.origem = origem; DT.professora = new Date().getHours() >= 17; DT.afinacao = '';
   DT.cliente = origem === 'soc' ? ((ALVO && ALVO.client_id && (clientesReais.find(c => c.id === ALVO.client_id) || {}).name) || '') : (ccmpCliente() || (clientesReais.find(c => c.id === CCMP.sel[0]) || {}).name || '');
   DT.clientId = origem === 'soc' ? (ALVO && ALVO.client_id) || '' : CCMP.sel[0] || ''; DT.itens = []; DT.msg = ''; DT.carregando = true; dtPinta(); progIni();
   try { const j = await adsFala({ acao:'tarefas_doc', texto: resp, cliente: DT.cliente, equipe: dtEquipe() });
@@ -5768,6 +5806,10 @@ function dtPinta(){
     <div class="nota" style="margin:6px 0 10px">${esc2(DT.cliente || 'Sem cliente')} · o responsável sugerido vem da função de cada pessoa. Ajuste o que quiser antes de criar.</div>
     ${DT.carregando ? progHtml('Separando o documento em tarefas e escolhendo quem cuida de cada uma…', '#18155F') : ''}
     ${DT.msg ? `<div class="nota" style="color:var(--rosa);margin:8px 0">${esc2(DT.msg)}</div>` : ''}
+    ${DT.itens.length ? `<div class="cmp-prog" style="border-style:solid"><b>Quando mandar para produção?</b>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin:6px 0" class="nota"><label><input type="radio" name="dtQuando" ${!DT.professora ? 'checked' : ''} onchange="DT.professora=false;dtPinta()"> Agora: as tarefas já entram em produção</label>
+      <label><input type="radio" name="dtQuando" ${DT.professora ? 'checked' : ''} onchange="DT.professora=true;dtPinta()"> Deixar com a professora esta noite (até 3 rodadas); amanhã o responsável faz a última checagem</label></div>
+      <textarea class="cp-sel1" rows="2" placeholder="Afinação (opcional): o que a ${DT.origem === 'soc' ? 'Muru' : 'Sumi'} deve priorizar antes de ir para a professora ou para a produção" onchange="DT.afinacao=this.value">${esc2(DT.afinacao)}</textarea></div>` : ''}
     ${DT.itens.map((t, i) => `<div class="cmp-prog" style="border-style:solid;${t.on ? '' : 'opacity:.5'}"><div style="display:flex;gap:8px;align-items:center"><input type="checkbox" ${t.on ? 'checked' : ''} onchange="DT.itens[${i}].on=this.checked;dtPinta()" aria-label="Incluir">
       <input class="cp-sel1" style="flex:1" value="${esc2(t.titulo)}" onchange="DT.itens[${i}].titulo=this.value"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><select class="cp-sel1" onchange="DT.itens[${i}].resp=this.value"><option value="">Sem responsável</option>${eq.map(e => `<option value="${esc2(e.key)}" ${e.key === t.resp ? 'selected' : ''}>${esc2(e.nome.split(' ')[0])}${(e.funcoes || []).length ? ' · ' + esc2(e.funcoes.slice(0, 2).join('/')) : ''}</option>`).join('')}</select>
@@ -5787,6 +5829,12 @@ async function dtCriar(){
     } catch(e){ falhas.push(t.titulo.slice(0, 30) + ': ' + e.message); }
   }
   DT.criando = false;
+  if (feitas.length && DT.professora){   // a aula nasce do job real: documento + tarefa de estratégia/copy + afinação → professora esta noite
+    const d = docObj(DT.origem), alvoT = feitas.find(f => /estrat|copy/i.test(f.action)) || feitas[0];
+    try { const r = await escolaFala({ acao:'aula_documento', persona: DT.origem === 'soc' ? 'muru' : 'sumi', texto: d.resp, client_id: DT.clientId, task_id: alvoT.id, doc_id: d.docId || null, origem: DT.origem === 'soc' ? 'social' : 'campanhas', afinacao: DT.afinacao, extra: DT.origem === 'soc' ? {} : { concorrentes: (typeof ccmpVisiveis === 'function' ? ccmpVisiveis() : []).slice(0, 6).map(p => ({ nome:p.nome, tipologia:p.tipologia, praca:p.praca, oferta:p.oferta, preco:p.preco, angulo:p.angulo })) } });
+      toast('Aula criada: a professora recebe o aviso agora; a versão volta amanhã às 7h na ' + alvoT.id + (r.aviso ? '' : ' (o aviso não saiu: ' + (r.msg || '') + ')')); }
+    catch(e){ falhas.push('aula: ' + e.message); }
+  }
   if (feitas.length){ try { await carregarReal(); atualizarVersoApp(); } catch(e){} document.getElementById('dtOv')?.remove(); toast(feitas.length + ' tarefa' + (feitas.length > 1 ? 's criadas' : ' criada') + ': ' + feitas.map(f => f.id).join(', ') + (falhas.length ? ' · falhou: ' + falhas.join(' | ') : '')); }
   else { DT.msg = 'Nada foi criado. ' + falhas.join(' | '); dtPinta(); }
 }
@@ -7145,7 +7193,7 @@ function htmlEscolaAdmin(abas){
       <div class="esc-nm"><small>${st.fechadas} de ${m} provas · ${st.boas} boas</small><small>seguidas ${Math.min(st.seguidas, bp)}/${bp}</small></div></div>`;
   }).join('') || `<div class="nota" style="line-height:1.5">Nenhuma IA em formação ainda. Matricule em “Gerenciar”.</div>`;
   const aviso = `<div class="nota" style="margin:8px 0 0;line-height:1.45">${I.teste_confirmado_em ? '' : '🔒 Rotina travada: falta a rodada de teste ponta a ponta (em Gerenciar). '}Professor: ${esc(P.professor)}</div>`;
-  return gadCaixa('Escola das IAs', abas + (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + gptH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
+  return gadCaixa('Escola das IAs', abas + `<div style="margin:0 0 8px"><button class="btn cheio" style="min-height:34px;padding:6px 12px;font-size:12px" onclick="abrirAulas()">Aulas de job real · placar</button></div>` + (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + gptH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
 }
 
 const GADGETS = {

@@ -3,6 +3,7 @@
 // e, só admin: curso_salvar · perm_lista · perm_salvar · resumo_admin.
 // Permissões por pessoa em pd_escola_perm (matricular / acompanhar / criar); admin tem todas.
 require_once __DIR__ . '/pd-aula-lib.php';
+require_once __DIR__ . '/pd-aula-doc-lib.php';
 require_once __DIR__ . '/pd-lib.php';
 $u = sd_current_user(); $b = sd_body(); $acao = (string)($b['acao'] ?? 'inicio');
 @set_time_limit(60);
@@ -115,6 +116,36 @@ if ($acao === 'area_quem') {   // {minha: a IA da pessoa, mestre: a IA da área,
     $relogio = pdRelogioCatum($minha['id'] ?? null); $relogioMestre = pdRelogioCatum($mestre['id'] ?? null);
     $porque = 'definida no Painel › Inteligências da casa como mestre de ' . ($area ?: 'digital') . ': é ela quem assina o que sai daqui quando você não tem IA sua, e quem revisa o que a sua faz.';
     echo json_encode(['minha' => $minha, 'mestre' => $mestre + ['porque' => $porque], 'chefe' => ['personagem' => 'maestro', 'nome' => 'Maestro', 'titulo' => 'chefe da casa', 'porque' => 'distribui o trabalho entre as IAs, cobra prazo e revisa antes de ir pro cliente'], 'hoje' => $hoje, 'total' => $total, 'masters' => pdAreaMasters(), 'recentes' => $recentes, 'relogio' => $relogio, 'relogio_mestre' => $relogioMestre], JSON_UNESCAPED_UNICODE); exit;
+}
+// ---------------------------------------------------------------- AULA DE DOCUMENTO (job real)
+if ($acao === 'aula_documento') {   // {persona, texto, client_id, task_id, doc_id, origem, afinacao, extra}
+    if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
+    $r = pdAulaDocCriar($u['id'], (string)($b['persona'] ?? ''), (string)($b['texto'] ?? ''), $b['client_id'] ?? null, $b['task_id'] ?? null, $b['doc_id'] ?? null, $b['origem'] ?? null, (string)($b['afinacao'] ?? ''), is_array($b['extra'] ?? null) ? $b['extra'] : []);
+    if (empty($r['ok'])) sd_fail($r['msg'], 500);
+    echo json_encode(['ok' => true] + $r, JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por persona/habilidade. Só admin e quem tem "acompanhar".
+    if (!$perm['admin'] && !$perm['acompanhar']) sd_fail('Sem permissão para acompanhar as aulas.', 403);
+    $as = pdAulaSup('/rest/v1/pd_aulas?tipo=eq.documento&select=id,personagem,skill_id,status,rodada,max_rodadas,entregas,correcoes,nota_final,task_id,client_id,origem,prazo,entregue_em,pendencias,criada_em,parecer_humano,clients(name)&order=criada_em.desc&limit=80')['body'] ?? [];
+    $lista = []; $pl = [];
+    foreach ((array)$as as $a) { if (!is_array($a)) continue;
+        $ent = (array)$a['entregas']; $cor = (array)$a['correcoes']; $r1 = null; $ok = null;
+        foreach ($cor as $c) { if ((int)($c['rodada'] ?? 0) === 1) $r1 = (float)($c['nota'] ?? 0); if (!empty($c['aprovado']) || (float)($c['nota'] ?? 0) >= 85) { $ok = (int)$c['rodada']; break; } }
+        $k = $a['personagem'] . '|' . $a['skill_id']; $pl[$k] = $pl[$k] ?? ['personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'aulas' => 0, 'notas_r1' => [], 'rodadas_ok' => [], 'ultimas_r1' => []];
+        $pl[$k]['aulas']++; if ($r1 !== null) { $pl[$k]['notas_r1'][] = $r1; } if ($ok) $pl[$k]['rodadas_ok'][] = $ok;
+        $lista[] = ['id' => $a['id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'status' => $a['status'], 'rodada' => $a['rodada'], 'max' => $a['max_rodadas'], 'versoes' => count($ent), 'pareceres' => count($cor), 'nota_r1' => $r1, 'nota_final' => $a['nota_final'],
+            'task_id' => $a['task_id'], 'cliente' => $a['clients']['name'] ?? '', 'origem' => $a['origem'], 'prazo' => $a['prazo'], 'entregue_em' => $a['entregue_em'], 'pendencias' => $a['pendencias'], 'criada_em' => $a['criada_em'], 'decisao' => $a['parecer_humano'],
+            'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 600)]; }
+    $placar = [];
+    foreach ($pl as $x) { $n = count($x['notas_r1']); $m = $n ? array_sum($x['notas_r1']) / $n : null; $rec = array_slice($x['notas_r1'], 0, 5); $ant = array_slice($x['notas_r1'], 5, 5);   // lista vem do mais novo
+        $placar[] = ['personagem' => $x['personagem'], 'skill_id' => $x['skill_id'], 'aulas' => $x['aulas'], 'nota_r1_media' => $m !== null ? round($m, 1) : null, 'nota_r1_recente' => $rec ? round(array_sum($rec) / count($rec), 1) : null, 'nota_r1_anterior' => $ant ? round(array_sum($ant) / count($ant), 1) : null,
+            'rodadas_ate_ok' => $x['rodadas_ok'] ? round(array_sum($x['rodadas_ok']) / count($x['rodadas_ok']), 1) : null]; }
+    echo json_encode(['ok' => true, 'aulas' => $lista, 'placar' => $placar], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'aula_decidir') {   // Sérgio decide a lição: aprovar | revisar | reprovar (+ parecer, + regra editada)
+    if (!$ehAdmin) sd_fail('Só admin decide a aula.', 403);
+    $r = pdAulaValidar((string)($b['id'] ?? ''), (string)($b['decisao'] ?? ''), (string)($b['parecer'] ?? ''), $u['id'], $b['licao'] ?? null);
+    echo json_encode(['ok' => !empty($r['ok'])] + (array)$r, JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_id, evento, dados}] — a IA da pessoa (ou a mestre da área) registra como aprendizado
     $lote = is_array($b['lote'] ?? null) ? array_slice($b['lote'], 0, 100) : []; if (!$lote) { echo json_encode(['ok' => true, 'n' => 0]); exit; }

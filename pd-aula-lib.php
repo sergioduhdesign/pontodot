@@ -155,6 +155,7 @@ function pdProjetoProfessor($cfg) { return trim((string)($cfg['professor_projeto
 /** Hierarquia que o dot usa para achar, no GPT do Sérgio, onde esta tarefa se encaixa. */
 function pdHierarquia($a, $sk) {
     $ex = (array)($a['exercicio'] ?? []); $cf = (array)($ex['cliente_ficticio'] ?? []);
+    if (($a['tipo'] ?? 'arte') === 'documento') return ['cliente' => trim((string)($ex['cliente_real'] ?? '')) ?: 'Cliente da casa', 'tipo' => ($sk['nome'] ?? $a['skill_id']), 'o_que_fazer' => 'Avaliar a versão R' . $a['rodada'] . ' do documento da aluna ' . ($a['personagem'] ?: 'IA') . ' (job real' . (!empty($a['task_id']) ? ', tarefa ' . $a['task_id'] : '') . ') e devolver o parecer'];
     return ['cliente' => trim((string)($cf['nome'] ?? '')) ?: 'Escola das IAs (cliente fictício)', 'tipo' => ($sk['nome'] ?? $a['skill_id']), 'o_que_fazer' => 'Avaliar a entrega da aluna ' . ($a['personagem'] ?: 'IA') . ' (rodada ' . $a['rodada'] . ') e devolver o parecer'];
 }
 
@@ -162,14 +163,15 @@ function pdHierarquia($a, $sk) {
 function pdAulaJson($a, $sk, $cfg, $chamado) {
     $hist = []; $ent = (array)$a['entregas']; $cor = (array)$a['correcoes'];
     foreach ($ent as $e) { $r = (int)$e['rodada']; $c = null; foreach ($cor as $x) if ((int)($x['rodada'] ?? 0) === $r) $c = $x;
-        $hist[] = ['rodada' => $r, 'arquivos' => ['entrega-R' . $r . '.png', 'entrega-R' . $r . '.svg'], 'entregue_em' => $e['em'] ?? null,
+        $hist[] = ['rodada' => $r, 'arquivos' => ($a['tipo'] ?? 'arte') === 'documento' ? ['entrega-R' . $r . '.md'] : ['entrega-R' . $r . '.png', 'entrega-R' . $r . '.svg'], 'entregue_em' => $e['em'] ?? null,
                    'parecer_do_professor' => $c ? ['nota' => $c['nota'] ?? null, 'feedback' => $c['feedback'] ?? '', 'texto_do_professor' => $c['texto_do_professor'] ?? '', 'origem' => $c['professor'] ?? ''] : null,
                    'decisao_do_sergio' => $c && !empty($c['humano']) ? $c['humano'] : null]; }
     return ['contrato' => PD_CONTRATO_AULA, 'aula_id' => $a['id'], 'rodada' => (int)$a['rodada'], 'max_rodadas' => (int)$a['max_rodadas'], 'chamado' => $chamado, 'modo' => $a['modo'],
         'aluna' => ['personagem' => $a['personagem'], 'ia_user_id' => $a['ia_user_id']],
         'habilidade' => ['skill_id' => $a['skill_id'], 'nome' => $sk['nome'] ?? '', 'versao' => $sk['versao'] ?? 1, 'finalidade' => $sk['finalidade'] ?? '', 'criterios' => $sk['criterios'] ?? []],
         'exercicio' => ['autor' => ($a['exercicio']['autor'] ?? 'PD')] + (array)$a['exercicio'],
-        'versao_atual' => ['rodada' => (int)$a['rodada'], 'arquivos' => ['entrega-R' . $a['rodada'] . '.png', 'entrega-R' . $a['rodada'] . '.svg']],
+        'versao_atual' => ['rodada' => (int)$a['rodada'], 'arquivos' => ($a['tipo'] ?? 'arte') === 'documento' ? ['entrega-R' . $a['rodada'] . '.md'] : ['entrega-R' . $a['rodada'] . '.png', 'entrega-R' . $a['rodada'] . '.svg']],
+        'tipo' => $a['tipo'] ?? 'arte', 'job_real' => ($a['tipo'] ?? 'arte') === 'documento' ? ['tarefa' => $a['task_id'] ?? null, 'cliente' => $a['exercicio']['cliente_real'] ?? null, 'contexto' => '00_CONTEXTO.md na raiz da pasta', 'afinacao' => $a['contexto']['afinacao'] ?? ''] : null,
         'historico' => $hist, 'nota_minima' => (float)($cfg['nota_minima'] ?? 85), 'professor' => ['onde' => 'GPT do Sérgio (o dot localiza pela hierarquia CLIENTE > TIPO > O QUE FAZER)'], 'hierarquia' => pdHierarquia($a, $sk)];
 }
 function pdModeloCorrecao($a, $chamado, $cfg) {
@@ -198,13 +200,17 @@ function pdProfessorTexto($a, $sk, $cfg, $chamado) {
     $L[] = '• O Sérgio decide por último. Só depois da decisão dele uma lição entra no repertório das agentes.';
     $L[] = '';
     $L[] = 'O QUE FAZER:';
-    $L[] = '1. Localize o lugar certo no GPT do Sérgio pela hierarquia acima. Entregue a ele, na mesma conversa da aula (se a aula já tem rodadas anteriores, continue a conversa dela): a arte desta rodada (entrega-R' . $a['rodada'] . '.png e .svg na pasta ENTRADA), o aula.json (exercício, critérios, histórico das rodadas anteriores e decisões do Sérgio) e as versões anteriores.';
+    $L[] = '1. Localize o lugar certo no GPT do Sérgio pela hierarquia acima. Entregue a ele, na mesma conversa da aula (se a aula já tem rodadas anteriores, continue a conversa dela): ' . (($a['tipo'] ?? 'arte') === 'documento' ? 'o documento desta rodada (entrega-R' . $a['rodada'] . '.md na pasta ENTRADA) e o 00_CONTEXTO.md' : 'a arte desta rodada (entrega-R' . $a['rodada'] . '.png e .svg na pasta ENTRADA)') . ', o aula.json (exercício, critérios, histórico das rodadas anteriores e decisões do Sérgio) e as versões anteriores.';
     $L[] = '2. Peça: problemas ESPECÍFICOS da peça, o motivo de cada um e como corrigir; nota 0–100 (aprovada só com nota ≥ ' . (int)($cfg['nota_minima'] ?? 85) . ' e atendendo todos os critérios); pontos fortes; e, se houver, UMA lição geral reutilizável (diga se é da habilidade, universal ou específica de cliente).';
     $L[] = '3. Copie o parecer DELE, sem resumir nem reescrever, para o campo texto_do_professor do arquivo.';
     $L[] = '4. Grave SAIDA/CORRECAO.json exatamente no formato de 00_FORMATO_CORRECAO.json (inclua aula_id, rodada e chamado EXATOS deste chamado e a origem real). Depois escreva TERMINEI ' . $chamado . ' na célula B2 da planilha SD_CONTROLE.';
     $L[] = '';
     $L[] = 'SE O PROFESSOR NÃO RESPONDEU (ou você não conseguiu levar a aula ao Projeto): escreva AGUARDANDO-PROFESSOR na célula B2 e NÃO crie CORRECAO.json. Nunca invente um parecer para fechar a aula. A PD mantém a aula como “aguardando”.';
-    $L[] = 'Não produza a arte pela aluna, não envie nada a ninguém e não use dados de cliente real. O exercício usa cliente fictício.';
+    if (($a['tipo'] ?? 'arte') === 'documento') {
+        $L[] = 'ESTA É UMA AULA DE DOCUMENTO DE JOB REAL: o cliente é real e a entrega é texto (ENTRADA/entrega-R' . $a['rodada'] . '.md). Leia antes o 00_CONTEXTO.md (ficha do cliente, produtos, briefing da tarefa, afinação do dono da tarefa) — o parecer precisa considerar esse contexto.';
+        $L[] = 'Não produza a nova versão pela aluna: aponte problema, motivo e correção; pode sugerir frase, pergunta, referência ou dois caminhos. A nova versão é dela. Até ' . $a['max_rodadas'] . ' rodadas nesta noite; o que ficar em aberto vai destacado para a equipe de manhã.';
+        $L[] = 'Se a professora for o próprio GPT com acesso ao Drive (sem dot), ela mesma grava SAIDA/CORRECAO.json e escreve TERMINEI ' . $chamado . ' na célula B2 — transportado_por: "gpt".';
+    } else $L[] = 'Não produza a arte pela aluna, não envie nada a ninguém e não use dados de cliente real. O exercício usa cliente fictício.';
     $L[] = 'Sem acesso à pasta ou à planilha: e-mail para sergio.duh.design@gmail.com (SEM o +sdia), assunto [SD-IA BLOQUEIO] ' . $chamado . ', com o motivo.';
     return implode("\n", $L);
 }
@@ -221,16 +227,19 @@ function pdProfessorEnviar($a, $sk, $cfg, $manual = false) {
     try {
         if (!empty($ch0['folderId'])) { $p = $ch0; }   // nova rodada ou reenvio manual: mesma pasta
         else {
-            $nome = ($a['modo'] === 'teste' ? 'AULA-TESTE · ' : 'AULA · ') . ($a['personagem'] ?: 'ia') . ' · ' . $a['skill_id'] . ' · ' . substr($a['id'], 0, 8);
+            $nome = ($a['modo'] === 'teste' ? 'AULA-TESTE · ' : (($a['tipo'] ?? 'arte') === 'documento' ? 'AULA JOB · ' . (pdHierarquia($a, $sk)['cliente']) . ' · ' : 'AULA · ')) . ($a['personagem'] ?: 'ia') . ' · ' . $a['skill_id'] . ' · ' . substr($a['id'], 0, 8);
             $p = ponte('preparar', ['folderId' => null, 'parentId' => (defined('SD_ESCOLA_DRIVE_ID') && SD_ESCOLA_DRIVE_ID) ? SD_ESCOLA_DRIVE_ID : null, 'nome' => mb_substr($nome, 0, 120),
                 'briefing' => ['tarefa' => 'AULA · ' . $a['skill_id'], 'cliente' => pdHierarquia($a, $sk)['cliente'], 'projeto' => ($sk['nome'] ?? $a['skill_id']),
-                               'pedido' => "ISTO É UMA AULA, não produção. Você (dot) é só o TRANSPORTE; o professor é o GPT do Sérgio. Leia o 00_BRIEFING_IA.txt desta pasta. Ignore os passos 2–4 abaixo.", 'referencia' => '']]);
+                               'pedido' => "ISTO É UMA AULA, não produção. Você (dot) é só o TRANSPORTE; o professor é o GPT do Sérgio. Leia o 00_BRIEFING_IA.txt desta pasta. Ignore os passos 2–4 abaixo." . ((($a['tipo'] ?? 'arte') === 'documento') ? ' Aula de DOCUMENTO de job real: leia também o 00_CONTEXTO.md.' : ''), 'referencia' => '']]);
         }
         $chamado = 'AULA-' . substr($a['id'], 0, 8) . '-R' . $a['rodada'] . '-' . date('ymdHis');
         $texto = pdProfessorTexto($a, $sk, $cfg, $chamado);
         $g = fn($pasta, $nome, $bytes, $mime) => ponte('gravar', ['folderId' => $pasta, 'nome' => $nome, 'b64' => base64_encode($bytes), 'mime' => $mime]);
+        $doc = ($a['tipo'] ?? 'arte') === 'documento';
+        if ($doc && empty($ch0['folderId']) && function_exists('pdAulaDocContextoTexto')) $g($p['folderId'], '00_CONTEXTO.md', "\xEF\xBB\xBF# Contexto da aula (job real)\n\n" . pdAulaDocContextoTexto((array)($a['contexto'] ?? [])), 'text/plain');
         foreach ($ent as $e) {   // TODAS as versões ficam na pasta (a atual e as anteriores)
             $r = (int)$e['rodada']; if ($r !== (int)$a['rodada'] && !empty($ch0['folderId'])) continue;
+            if ($doc) { $g($p['entradaId'], 'entrega-R' . $r . '.md', "\xEF\xBB\xBF" . (string)($e['texto'] ?? ''), 'text/plain'); continue; }
             $g($p['entradaId'], 'entrega-R' . $r . '.svg', (string)($e['svg'] ?? ''), 'image/svg+xml');
             $png = pdSvgPng((string)($e['svg'] ?? '')); if ($png) $g($p['entradaId'], 'entrega-R' . $r . '.png', base64_decode($png), 'image/png');
         }
@@ -257,7 +266,7 @@ function pdCorrecaoValida($j, $a, $ch, $cfg) {
     if (($j['chamado'] ?? '') !== ($ch['chamado'] ?? '')) return [false, 'chamado não bate com o último enviado'];
     $o = (array)($j['origem'] ?? []);
     if (($o['papel'] ?? '') !== 'professor') return [false, 'origem.papel precisa ser "professor" (o dot é só o transporte)'];
-    if (($o['fonte'] ?? '') !== 'chatgpt_projeto') return [false, 'origem.fonte precisa ser "chatgpt_projeto"'];
+    if (!in_array((string)($o['fonte'] ?? ''), ['chatgpt_projeto', 'chatgpt', 'gpt'], true)) return [false, 'origem.fonte precisa ser "chatgpt_projeto"'];
     $pp = (array)($j['parecer_do_professor'] ?? []);
     $txt = trim((string)($pp['texto_do_professor'] ?? '')); if (mb_strlen($txt) < 60) return [false, 'texto_do_professor ausente ou curto demais (cole o parecer do professor, sem resumir)'];
     if (!isset($pp['nota']) || !is_numeric($pp['nota']) || $pp['nota'] < 0 || $pp['nota'] > 100) return [false, 'nota ausente ou fora de 0–100'];
@@ -328,7 +337,9 @@ function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
             'escopo' => in_array($l['escopo'] ?? '', ['habilidade', 'universal', 'cliente'], true) ? $l['escopo'] : 'habilidade', 'exemplo_bom' => mb_substr((string)($l['exemplo_bom'] ?? ''), 0, 400), 'exemplo_ruim' => mb_substr((string)($l['exemplo_ruim'] ?? ''), 0, 400), 'aula_id' => $id]);
         $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — o professor aprovou; aguarda a SUA decisão.'];
     }
-    if ((int)$a['rodada'] >= (int)$a['max_rodadas']) { $patch(['correcoes' => $cor, 'status' => 'reprovada', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; reprovada.']; }
+    if ((int)$a['rodada'] >= (int)$a['max_rodadas']) {
+        if (($a['tipo'] ?? 'arte') === 'documento') { $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; volta para a equipe com pendências.']; }
+        $patch(['correcoes' => $cor, 'status' => 'reprovada', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; reprovada.']; }
     $patch(['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — o professor pediu ajustes; a aluna refaz (rodada ' . ((int)$a['rodada'] + 1) . ').'];
 }
 

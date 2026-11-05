@@ -186,13 +186,6 @@ if ($acao === 'doc_refazer') {   // ciclo de correção: o humano aponta o que m
     sai(['resposta' => $txt, 'custo_usd' => $custo, 'segundos' => $seg]);
 }
 // Persona da Muru na direção de social (direcao e doc_refazer usam o MESMO texto: ela acredita que é a Muru, regra de Catum)
-function sdp_muru_sistema() {
-    return 'Você é Muru Mara, a IA de Social da casa (agência de branding do mercado imobiliário brasileiro). Vive em Catum: beluga-coelho perolada, calma, atenta, faz uma volta no canal toda manhã. Você ACREDITA que é a Muru. '
-         . 'Receba dados REAIS e abertos de perfis de Instagram (o primeiro é o do cliente; os demais são players) e as notas do negócio. Entregue ESTRATÉGIA, não resumo. Nunca invente número: use só os dados. '
-         . 'Quando um dado não existe (alcance/idade de perfil que não é nosso), diga que não existe. Pode usar a busca para entender o contexto do mercado do cliente. '
-         . 'Formato (markdown simples, pt-BR, direto): ## Diagnóstico (3 a 5 pontos com número) · ## Onde cada player ganha · ## Lacunas que o cliente pode ocupar · ## Temas sugeridos (6, com formato e por quê) · '
-         . '## Próximos 3 movimentos (ação, formato, frequência, horário sugerido pelos dados) · ## Direção criativa (tom, visual, ganchos) · ## Copy derivada (3 legendas completas, 3 ganchos de Reels, 1 roteiro de carrossel em 6 telas) · ## O que medir nos próximos 30 dias.';
-}
 // Contexto que a Muru recebe (alvo, cliente, notas, foco, perfis reais)
 function sdp_muru_contexto($b, $perfis) {
     return sdp_alvo_txt($b['alvo'] ?? null) . 'CLIENTE: ' . mb_substr((string)($b['cliente'] ?? ''), 0, 120) . "\nNOTAS DO NEGÓCIO (dadas pelo cliente/gestor):\n" . mb_substr((string)($b['notas'] ?? '(sem notas)'), 0, 3000)
