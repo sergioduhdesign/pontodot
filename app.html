@@ -3706,8 +3706,8 @@ async function escCurso(id){
   const lCrit = skl ? (skl.criterios || []).map(x => `<li>${escSafe(typeof x === 'string' ? x : (x.criterio || ''))}</li>`).join('') : '';
   const lComo = skl ? `<div class="esc-como"><h4>O que a aula ensina</h4><p>${escSafe(skl.finalidade)}</p>
       <h4>Como a IA faz</h4><p style="white-space:pre-wrap">${escSafe(skl.metodo)}</p>${lCrit ? `<h4>Como se avalia</h4><ul>${lCrit}</ul>` : ''}
-      ${skl.limites ? `<h4>O que fica com a pessoa</h4><p>${escSafe(skl.limites)}</p>` : ''}${adm ? `<a class="esc-btn sec" style="display:inline-block;margin-top:10px;text-decoration:none" href="/escola-bastidores.html?curso=${encodeURIComponent(id)}" target="_blank">Melhorar a aula</a>` : ''}</div>`
-    : `<div class="esc-como"><h4>Conteúdo da aula</h4><p class="esc-peq">Esta aula ainda não tem conteúdo escrito.${adm ? '' : ' Ela só abre quando o conteúdo estiver pronto.'}</p>${adm ? `<a class="esc-btn sec" style="display:inline-block;text-decoration:none" href="/escola-bastidores.html?curso=${encodeURIComponent(id)}" target="_blank">Subir o documento da aula</a>` : ''}</div>`;
+      ${skl.limites ? `<h4>O que fica com a pessoa</h4><p>${escSafe(skl.limites)}</p>` : ''}</div>`
+    : `<div class="esc-como"><h4>Conteúdo da aula</h4><p class="esc-peq">Esta aula ainda está sendo preparada. Ela abre quando o conteúdo estiver pronto.</p></div>`;
   const foto = escFoto(c.quem,'avatar');
   const passo = (n,t) => `<li><b>${n}</b><span>${t}</span></li>`;
   escPop(`<div class="esc-cur">
