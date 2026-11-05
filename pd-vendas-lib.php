@@ -349,8 +349,16 @@ function vdImportarLinhas(array $rows, $carteira, $lote, $uid, $origem = 'planil
     foreach ($porChave as $chave => $x) { $r = $x['row'];
         $ins[] = ['nome' => $r['nome'], 'site' => $r['site'], 'dominio' => $x['dom'] ?: null, 'cidade' => $r['cidade'], 'uf' => $r['uf'], 'segmento' => $r['segmento'], 'porte' => $r['porte'], 'zap' => $r['zap'] ?: null,
                   'origem' => $origem, 'lote_id' => $lote, 'carteira_id' => $carteira, 'criado_por' => $uid, 'chave' => $chave, 'nota' => vdPreNota($r), 'sinais' => ['PRE' => true] + ($x['inf'] ? ['SITE_INFERIDO' => true] : [])]; }
-    $r = sd_supabase('/rest/v1/pd_prospects?on_conflict=chave', 'POST', $ins, ['Prefer: resolution=ignore-duplicates,return=representation']);
-    if (($r['code'] ?? 500) >= 300) return ['erro' => 'banco recusou: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200)];
+    // dedupe no código (não depende de índice único no banco): o que já existe com a mesma chave fica de fora
+    $chaves = array_values(array_unique(array_column($ins, 'chave'))); $jaTem = [];
+    foreach (array_chunk($chaves, 150) as $ck) { $q = sd_supabase('/rest/v1/pd_prospects?chave=in.(' . implode(',', array_map(fn($c) => '"' . str_replace('"', '', $c) . '"', $ck)) . ')&select=chave'); foreach ((array)($q['body'] ?? []) as $x) if (is_array($x)) $jaTem[$x['chave']] = 1; }
+    $ins = array_values(array_filter($ins, fn($x) => !isset($jaTem[$x['chave']])));
+    if (!$ins) return ['novos' => 0, 'duplicados' => count($porChave), 'ignorados' => $ignorados, 'ids' => []];
+    $r = sd_supabase('/rest/v1/pd_prospects', 'POST', $ins, ['Prefer: return=representation']);
+    if (($r['code'] ?? 500) >= 300) {   // coluna faltando (migração atrasada): grava sem ela
+        $msg = (string)($r['body']['message'] ?? $r['raw'] ?? '');
+        if (preg_match("/Could not find the '([a-z_]+)' column/", $msg, $mm)) { $ins = array_map(function ($x) use ($mm) { unset($x[$mm[1]]); return $x; }, $ins); $r = sd_supabase('/rest/v1/pd_prospects', 'POST', $ins, ['Prefer: return=representation']); }
+        if (($r['code'] ?? 500) >= 300) return ['erro' => 'banco recusou: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200)]; }
     $novos = (array)$r['body']; $cts = [];
     foreach ($novos as $n) { $x = $porChave[$n['chave']]['row'] ?? null; if (!$x) continue;
         if ($x['email'] !== '' || $x['zap'] !== '' || $x['contato'] !== '') $cts[] = ['prospect_id' => $n['id'], 'nome' => $x['contato'] ?: $x['nome'], 'cargo' => $x['cargo'] ?: null, 'email' => $x['email'] ?: null, 'zap' => $x['zap'] ?: null, 'email_status' => 'palpite', 'principal' => true, 'dono' => $x['contato'] !== ''];
