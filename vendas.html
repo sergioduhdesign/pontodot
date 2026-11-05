@@ -54,7 +54,8 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .capa{position:relative;border-radius:var(--r);overflow:hidden;height:clamp(110px,19vw,190px);border:.5px solid var(--linha);background:#161918}
 .capa>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 45%}
 .capa-v{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,9,.88) 0%,rgba(8,10,9,.55) 42%,rgba(8,10,9,0) 75%)}
-.capa-t{position:absolute;left:18px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:14px}.capa-t .lg{height:34px;width:auto}
+.capa-t{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:flex-start;gap:0}.capa-t .lg{height:30px;width:auto}.capa-t h1{margin:0;line-height:1}
+.proc{margin:10px 0 0;display:flex;flex-direction:column;gap:6px}.proc .it{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:.5px solid var(--linha);border-radius:12px;font-size:12.5px;line-height:1.4}.proc .it .st{flex:0 0 auto;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.08)}.proc .it .st.rod{background:#2b5a3b}.proc .it .st.err{background:#6b2b2b}.proc .it small{display:block;opacity:.65;margin-top:3px}
 .carts{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:none}.carts::-webkit-scrollbar{display:none}
 .ct{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:5px 13px 5px 5px;border-radius:999px;border:.5px solid var(--linha);background:rgba(255,255,255,.04);color:var(--branco2);font:inherit;font-size:12.5px;cursor:pointer}
 .ct.on{border-color:var(--branco);color:var(--branco);background:rgba(255,255,255,.12)}
@@ -70,10 +71,11 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
 </style></head><body><div class="w">
 <div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
-  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div><div class="eyebrow">PD · garimpo de leads</div><h1>Dig</h1></div><span class="row" style="gap:8px;margin-left:6px;opacity:.95"><span class="tumi" style="width:44px;height:44px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></span></div>
+  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div class="row" style="gap:14px;align-items:center;margin-top:8px"><div><div class="eyebrow">garimpo de leads</div><h1>Dig</h1></div><span class="tumi" style="width:58px;height:58px;border-width:1.5px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></div></div>
 </div>
 <div class="cw"><button class="sc l" onclick="rola(-1)" aria-label="Anterior">‹</button><div class="carts" id="carts"></div><button class="sc r" onclick="rola(1)" aria-label="Próximo">›</button></div>
 <div class="faixa" id="faixa" style="display:none"></div>
+<div class="proc" id="proc"></div>
 <div class="sub" style="margin-top:12px">Prospecção com a IA: sinais do site → nota → um ângulo por lead → você aprova → sai. Quem pede pra sair, nunca mais recebe.</div>
 <div class="tabs" id="tabs"></div><div id="app"><div class="msg">Carregando…</div></div></div>
 <div class="dr" id="dr" onclick="if(event.target===this)fecha()"><div id="drc"></div></div>
@@ -98,6 +100,10 @@ function chips(){
     let dn=false,x0=0,s0=0,mv=false;el.addEventListener('mousedown',e=>{dn=true;mv=false;x0=e.pageX;s0=el.scrollLeft;});window.addEventListener('mouseup',()=>{dn=false;});el.addEventListener('mousemove',e=>{if(!dn)return;const d=e.pageX-x0;if(Math.abs(d)>4)mv=true;el.scrollLeft=s0-d;});el.addEventListener('click',e=>{if(mv){e.stopPropagation();e.preventDefault();mv=false;}},true);}
   const on=el.querySelector('.ct.on');if(on&&!el._ok){el._ok=1;el.scrollLeft=on.offsetLeft-60;}
   faixa();}
+let PROC=[];
+function proc(){const p=$('#proc');if(!p)return;const E={novo:['na fila','novo'],em_andamento:['garimpando agora','rod'],erro:['não deu','err'],feito:['entregue','ok']};
+  const L=PROC.filter(x=>x.estado!=='feito'||(Date.now()-new Date(x.concluido_em||x.criado_em).getTime())<36e5*6);
+  p.innerHTML=L.length?`<div class="eyebrow" style="margin:4px 0 2px">Em processo com o Tumi</div>`+L.map(x=>{const e=E[x.estado]||[x.estado,''];const ctx=x.contexto||{};return`<div class="it"><span class="st ${e[1]}">${e[0]}</span><div><b>${esc((x.pedido||'').slice(0,160))}${(x.pedido||'').length>160?'…':''}</b><small>${x.de_ia?'pedido por '+esc(x.de_ia):''}${ctx.cliente?' · '+esc(ctx.cliente):''}${ctx.quantos?' · '+ctx.quantos+' empresas':''}${ctx.task_id?' · '+esc(ctx.task_id):''} · ${new Date(x.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${ctx.tentativas?' · tentativa '+ctx.tentativas:''}${x.resposta?'<br>'+esc(x.resposta.slice(0,220)):''}</small></div></div>`}).join(''):'';}
 function rola(d){$('#carts').scrollBy({left:d*260,behavior:'smooth'});}
 function faixa(){const f=$('#faixa');if(!f)return;
   if(CART==='todas'){f.style.display='none';return;}
@@ -109,7 +115,7 @@ async function troca(id){AUTOMSG='';CART=id;EST='';PAG=0;chips();faixa();await c
 async function carrega(){
   $('#app')&&($('#app').style.opacity='.55');
   try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);
-    FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;}
+    FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;PROC=f.pedidos||[];proc();}
   catch(e){$('#app').style.opacity='';$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
   $('#app').style.opacity='';draw();extras();}
 let _ex=0;

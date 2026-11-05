@@ -15,7 +15,7 @@ $fCart = $cart === 'todas' ? '' : '&carteira_id=' . ($cart ? 'eq.' . $cart : 'is
 $pid = vdUuid($b['id'] ?? ''); $cid = vdUuid($b['conversa'] ?? '');
 
 switch ($acao) {
-    case 'funil': $out(['funil' => vdFunil($cart), 'carteiras' => vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color&active=is.true&order=name')),
+    case 'funil': $out(['pedidos' => vdLinhas(vdSup('/rest/v1/pd_ia_pedidos?para_ia=eq.tumi&order=criado_em.desc&limit=12&select=pedido,estado,resposta,de_ia,contexto,criado_em,concluido_em')), 'funil' => vdFunil($cart), 'carteiras' => vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color&active=is.true&order=name')),
         'fila' => count(vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=not.is.null&enriquecido_em=is.null&select=id&limit=1000'))), 'imap' => (bool)vdCaixasTodas(), 'caixas' => array_map(fn($x) => $x['client_id'], vdLinhas(vdSup('/rest/v1/pd_vendas_caixas?ativo=is.true&select=client_id')))]); break;
     case 'listar':
         $qs = vdFiltroQs($b, $cart);
