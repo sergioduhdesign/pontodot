@@ -3274,8 +3274,17 @@ async function escSkills(){
     const { data } = await sb.from('pd_skills').select('titulo,resumo,exemplo,tipo,link,duracao_min,segmento,criado_em').eq('ativo', true).order('criado_em', { ascending:false }).limit(30);
     const L = data || []; const box = document.getElementById('esc-skills'); if (!box || !L.length) return;
     document.getElementById('esc-sk-h').style.display = '';
-    box.innerHTML = L.map(x => `<div class="esc-curso" style="cursor:default"><b>${x.tipo==='aula'?'📚 ':'✨ '}${escSafe(x.titulo)}</b><small>${escSafe(x.resumo)}${x.exemplo?' · Peça: “'+escSafe(x.exemplo)+'”':''}${x.duracao_min?' · '+x.duracao_min+' min':''}${x.link?` · <a href="${escSafe(x.link)}" target="_blank" rel="noopener">abrir</a>`:''}</small></div>`).join('');
+    ESC.sk = L;
+    box.innerHTML = L.map((x, i) => `<button class="esc-curso" onclick="escSkillAbre(${i})"><b>${x.tipo==='aula'?'📚 ':'✨ '}${escSafe(x.titulo)}</b><small>${escSafe(x.resumo)}${x.exemplo?' · Peça: “'+escSafe(x.exemplo)+'”':''}${x.duracao_min?' · '+x.duracao_min+' min':''}${x.link?` · abrir`:''}</small></button>`).join('');
   } catch(e){}
+}
+function escSkillAbre(i){
+  const x = (ESC.sk || [])[i]; if (!x) return;
+  const aula = x.tipo === 'aula';
+  escPop(`<div class="esc-cur-tx" style="max-width:520px"><small class="esc-area">${aula ? 'Aula' : 'Skill'}${x.segmento ? ' · ' + escSafe(x.segmento) : ''}${x.duracao_min ? ' · ' + x.duracao_min + ' min' : ''}</small>
+    <h3>${escSafe(x.titulo)}</h3><p class="esc-cur-res">${escSafe(x.resumo)}</p>
+    ${x.exemplo ? `<div class="esc-como"><h4>Como pedir à sua IA</h4><p>“${escSafe(x.exemplo)}”</p><button class="esc-btn sec" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(x.exemplo).replace(/"/g, '&quot;')});showToast('Pedido copiado.')">Copiar o pedido</button></div>` : ''}
+    ${x.link ? `<a class="esc-btn" style="display:inline-block;margin-top:12px;text-decoration:none" href="${escSafe(x.link)}" target="_blank" rel="noopener">Abrir a aula</a>` : `<p class="esc-peq" style="margin-top:12px">Esta ${aula ? 'aula' : 'skill'} já está ativa na sua IA. Use o pedido acima no chat.</p>`}</div>`, false);
 }
 async function escCarregarSocial(){
   escSkills();
