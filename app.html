@@ -3621,106 +3621,136 @@ async function mtImagens(){
 function escMitologia(){
   document.getElementById('esc-mito')?.remove();
   const d = document.createElement('div'); d.id = 'esc-mito';
-  const nm = (n, t, txt) => `<div class="mt-nm"><h3>${n}</h3><small>${t}</small><p>${txt}</p></div>`;
+  const nm = (n, t, txt, c) => `<div class="mt-nm rv ${c || ''}"><h3>${n}</h3><small>${t}</small><p>${txt}</p></div>`;
   d.innerHTML = `<style>
-    #esc-mito{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
-    #esc-mito .mt-fundo{position:absolute;inset:0;background:rgba(10,10,12,.62);backdrop-filter:blur(6px)}
-    #esc-mito .mt{position:relative;width:min(1040px,100%);max-height:94vh;overflow-y:scroll;background:#F4F3EF;color:#15161A;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.45);font:300 14.5px/1.75 "Inter Tight",system-ui,sans-serif;scroll-behavior:smooth}
-    #esc-mito .mt-x{position:sticky;top:14px;float:right;margin:14px 14px -52px 0;z-index:5;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#15161A;font-size:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2)}
-    #esc-mito .mt-vid{position:relative;height:min(70vh,620px);background:#000 center/cover;overflow:hidden}
-    #esc-mito .mt-vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-    #esc-mito .mt-vid::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.18),rgba(0,0,0,.55))}
-    #esc-mito .mt-tit{position:absolute;inset:0;z-index:2;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;padding:0 20px 8%}
-    #esc-mito .mt-tit h2{margin:0;width:min(88%,860px);font-weight:400;font-size:min(22vw,230px);display:flex;justify-content:center}#esc-mito .mt-tit h2 .pd-nome{max-width:100%}
-    #esc-mito .mt-tit p{margin:18px 0 0;font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.9}
-    #esc-mito .mt-r{padding:56px 44px;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:44px;border-top:.5px solid rgba(0,0,0,.12)}
-    #esc-mito .mt-r:first-of-type{border-top:0}
-    #esc-mito .mt-r h3{margin:0;font-weight:400;font-size:clamp(30px,4vw,46px);line-height:1.1;letter-spacing:-.01em}
-    #esc-mito .mt-sub{margin:10px 0 0;font-size:15px;opacity:.6}
-    #esc-mito .mt-r p{margin:0 0 14px;max-width:560px}
-    #esc-mito .mt-lead{font-size:18px;line-height:1.55}
-    #esc-mito .mt-perg{font-size:16px;font-weight:400;margin-top:18px}
-    #esc-mito .mt-full{grid-template-columns:1fr}
-    #esc-mito .mt-car{display:flex;gap:14px;overflow-x:scroll;scroll-snap-type:x mandatory;padding:6px 44px 18px;margin:0 -44px}
-    #esc-mito .mt-card{flex:0 0 min(300px,72%);scroll-snap-align:start;border:0;padding:0;background:#ddd;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:4/5;cursor:pointer;color:#fff;text-align:left}
-    #esc-mito .mt-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s}#esc-mito .mt-card:hover img{transform:scale(1.04)}
-    #esc-mito .mt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.65))}
-    #esc-mito .mt-card span{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;font-size:15px;font-weight:400}
-    #esc-mito .mt-card small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:3px}
-    #esc-mito .mt-cw{position:relative}
-    #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:26px;line-height:1;padding:0 0 4px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.28)}
-    #esc-mito .mt-sw:hover{background:#fff;transform:translateY(-50%) scale(1.06)}#esc-mito .mt-sw-e{left:10px}#esc-mito .mt-sw-d{right:10px}
-    #esc-mito .mt-fade{position:relative;aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#d9d7d0;margin-top:18px}
-    #esc-mito .mt-fade img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.4s ease}#esc-mito .mt-fade img.on{opacity:1}
-    #esc-mito .mt-hab{display:flex;gap:12px;overflow-x:scroll;padding:4px 0 14px}
-    #esc-mito .mt-h{flex:0 0 96px;text-align:center;font-size:12px}#esc-mito .mt-h img{width:96px;height:96px;border-radius:50%;object-fit:cover;display:block;margin-bottom:6px}
-    #esc-mito .mt-nms{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
-    #esc-mito .mt-nm{background:#fff;border-radius:18px;padding:20px 22px}
-    #esc-mito .mt-nm h3{font-size:34px}#esc-mito .mt-nm small{display:block;margin:6px 0 8px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.5}
-    #esc-mito .mt-nm p{font-size:13.5px;line-height:1.6;margin:0;max-width:none}
-    #esc-mito .mt-fim{padding:70px 44px 64px;text-align:center;background:#15161A;color:#F4F3EF;border-radius:0 0 24px 24px}
-    #esc-mito .mt-fim h3{margin:0 auto 18px;max-width:640px;font-weight:300;font-size:clamp(26px,3.4vw,40px);line-height:1.2}
-    #esc-mito .mt-fim p{margin:0 auto 12px;max-width:520px;opacity:.78}
-    #esc-mito .mt-bt{display:inline-block;margin-top:22px;background:#F4F3EF;color:#15161A;border:0;border-radius:999px;padding:13px 30px;font:500 14px inherit;cursor:pointer}
-    #esc-mito .mt-zoom{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;color:#fff}
+    #esc-mito{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px}
+    #esc-mito .mt-fundo{position:absolute;inset:0;background:rgba(10,10,12,.66);backdrop-filter:blur(8px)}
+    #esc-mito .mt{position:relative;width:min(1180px,100%);height:min(94vh,980px);overflow-y:scroll;scroll-snap-type:y proximity;background:#0b0b0d;color:#F4F3EF;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.55);font:300 14.5px/1.8 "Inter Tight",system-ui,sans-serif;scroll-behavior:smooth}
+    #esc-mito .mt-x{position:sticky;top:14px;float:right;margin:14px 14px -52px 0;z-index:9;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#15161A;font-size:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+    #esc-mito .mt-roll{position:relative;min-height:min(94vh,980px);scroll-snap-align:start;overflow:hidden;display:flex;align-items:flex-end}
+    #esc-mito .mt-roll.mt-c{align-items:center}
+    #esc-mito .mt-bgf,#esc-mito .mt-bgf img,#esc-mito .mt-roll>video{position:absolute;inset:0;width:100%;height:100%}
+    #esc-mito .mt-bgf img,#esc-mito .mt-roll>video{object-fit:cover}
+    #esc-mito .mt-bgf img{opacity:0;transition:opacity 1.6s ease,transform 9s ease;transform:scale(1.04)}#esc-mito .mt-bgf img.on{opacity:1;transform:scale(1.12)}
+    #esc-mito .mt-sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.2) 35%,rgba(0,0,0,.78))}
+    #esc-mito .mt-sh.l{background:linear-gradient(90deg,rgba(0,0,0,.82),rgba(0,0,0,.35) 60%,rgba(0,0,0,.1))}
+    #esc-mito .mt-in{position:relative;z-index:2;width:100%;padding:70px 56px;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:48px;align-items:end}
+    #esc-mito .mt-in.one{grid-template-columns:minmax(0,640px)}
+    #esc-mito .mt-hero{justify-content:center;text-align:center;align-items:flex-end;padding:0 20px 7%}
+    #esc-mito .mt-hero h2{margin:0 auto;width:min(88%,860px);font-weight:400;font-size:min(22vw,230px);display:flex;justify-content:center}
+    #esc-mito .mt-hero p{margin:18px 0 0;font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.9}
+    #esc-mito .mt-hero .mt-dica{margin-top:34px;font-size:10.5px;opacity:.6;letter-spacing:.18em}
+    #esc-mito .mt-hero>div{position:relative;z-index:2;width:100%}
+    #esc-mito h3{margin:0;font-weight:400;font-size:clamp(34px,5vw,64px);line-height:1.05;letter-spacing:-.015em}
+    #esc-mito .mt-sub{margin:12px 0 0;font-size:15px;opacity:.7}
+    #esc-mito p{margin:0 0 14px;max-width:560px;text-shadow:0 1px 14px rgba(0,0,0,.35)}
+    #esc-mito .mt-lead{font-size:19px;line-height:1.5;font-weight:300}
+    #esc-mito .mt-perg{font-size:16px;font-weight:400;margin-top:20px}
+    #esc-mito .mt-pas{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 6px}
+    #esc-mito .mt-pas span{border:.5px solid rgba(255,255,255,.5);border-radius:999px;padding:7px 18px;font-size:13px;letter-spacing:.06em;backdrop-filter:blur(6px);background:rgba(255,255,255,.08)}
+    #esc-mito .mt-slides{position:relative;min-height:min(94vh,980px);background:#0b0b0d;scroll-snap-align:start}
+    #esc-mito .mt-car{display:flex;overflow-x:scroll;scroll-snap-type:x mandatory;height:min(94vh,980px);scrollbar-width:thin}
+    #esc-mito .mt-card{flex:0 0 100%;scroll-snap-align:center;border:0;padding:0;background:#111;position:relative;cursor:zoom-in;color:#fff;text-align:left}
+    #esc-mito .mt-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    #esc-mito .mt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2),transparent 30%,transparent 55%,rgba(0,0,0,.75))}
+    #esc-mito .mt-card span{position:absolute;left:56px;bottom:62px;z-index:2;font-size:clamp(24px,3.4vw,44px);font-weight:300}
+    #esc-mito .mt-card small{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.8;margin-bottom:4px}
+    #esc-mito .mt-ttl{position:absolute;top:34px;left:56px;z-index:4;pointer-events:none}
+    #esc-mito .mt-ttl h3{font-size:clamp(22px,2.6vw,32px)}#esc-mito .mt-ttl p{margin:6px 0 0;font-size:12.5px;opacity:.75}
+    #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:28px;line-height:1;padding:0 0 4px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.35)}
+    #esc-mito .mt-sw:hover{transform:translateY(-50%) scale(1.07)}#esc-mito .mt-sw-e{left:16px}#esc-mito .mt-sw-d{right:16px}
+    #esc-mito .mt-cnt{position:absolute;right:26px;bottom:26px;z-index:4;font-size:12px;letter-spacing:.14em;opacity:.8}
+    #esc-mito .mt-luz{background:#F4F3EF;color:#15161A;align-items:center}
+    #esc-mito .mt-luz p{text-shadow:none}
+    #esc-mito .mt-nms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:6px}
+    #esc-mito .mt-nm h3 .pd-nome{width:min(100%,210px)}
+    #esc-mito .mt-nm.mo{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:8px 40px;align-items:center;padding:30px 34px}
+    #esc-mito .mt-nm.mo h3{grid-row:1/3}#esc-mito .mt-nm.mo h3 .pd-nome{width:min(100%,480px)}
+    #esc-mito .mt-nm.mo small{margin:0;align-self:end}#esc-mito .mt-nm.mo p{font-size:16px;line-height:1.6;align-self:start}
+    #esc-mito .mt-nm{background:#fff;border-radius:18px;padding:22px 24px}
+    #esc-mito .mt-nm h3{font-size:40px}#esc-mito .mt-nm small{display:block;margin:8px 0 10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.5}
+    #esc-mito .mt-nm p{font-size:13.5px;line-height:1.65;margin:0;max-width:none}
+    #esc-mito .mt-fim .mt-in{justify-items:center;text-align:center;grid-template-columns:minmax(0,680px);justify-content:center}
+    #esc-mito .mt-fim h3{font-weight:300;font-size:clamp(30px,4.2vw,52px);line-height:1.15;margin-bottom:20px}
+    #esc-mito .mt-fim p{margin:0 auto 12px}
+    #esc-mito .mt-bt{display:inline-block;margin-top:24px;background:#F4F3EF;color:#15161A;border:0;border-radius:999px;padding:14px 34px;font:500 14px inherit;cursor:pointer}
+    #esc-mito .rv{opacity:0;transform:translateY(26px);transition:opacity .9s ease,transform .9s ease}#esc-mito .rv.on{opacity:1;transform:none}
+    #esc-mito .mt-zoom{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;color:#fff}
     #esc-mito .mt-zoom img{max-width:min(1100px,94vw);max-height:80vh;border-radius:14px}
     #esc-mito .mt-zx{position:absolute;top:18px;right:20px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
-    @media(max-width:800px){#esc-mito .mt-r{grid-template-columns:1fr;gap:18px;padding:36px 22px}#esc-mito .mt-car{padding:6px 22px 18px;margin:0 -22px}#esc-mito .mt-nms{grid-template-columns:1fr}#esc-mito .mt-fim{padding:48px 22px}}
+    @media(max-width:800px){#esc-mito .mt-in{grid-template-columns:1fr;gap:18px;padding:44px 24px}#esc-mito .mt-nms{grid-template-columns:1fr}#esc-mito .mt-nm.mo{grid-template-columns:1fr}#esc-mito .mt-nm.mo h3{grid-row:auto}#esc-mito .mt-card span{left:24px;bottom:50px}#esc-mito .mt-ttl{left:24px}}
   </style>
   <div class="mt-fundo" onclick="escFecharMito()"></div>
-  <article class="mt" role="dialog" aria-label="Catum">
+  <article class="mt" role="dialog" aria-label="Catum" id="mtScroll">
     <button class="mt-x" onclick="escFecharMito()" aria-label="Fechar">✕</button>
-    <div class="mt-vid" style="background-image:url(/media/catum/catum.jpg)"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="metadata"></video>
-      <div class="mt-tit"><h2>Catum</h2><p>um mundo no universo de Monema</p></div></div>
 
-    <section class="mt-r"><div><h3>Monema</h3></div><div>
+    <section class="mt-roll mt-hero"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="mt-sh"></div>
+      <div><h2>Catum</h2><p>um mundo no universo de Monema</p><p class="mt-dica">role ↓</p></div></section>
+
+    <section class="mt-roll"><div class="mt-bgf" data-fade="monema"></div><div class="mt-sh l"></div>
+      <div class="mt-in"><div class="rv"><h3>Monema</h3></div><div class="rv">
       <p class="mt-lead">Monema nasce de uma pergunta: o que uma inteligência pode se tornar quando aprende a compreender o que faz?</p>
       <p>Tudo começa no fazer. Começa em Catum. Entre casas, escolas, encontros e pequenos erros, seus habitantes aprendem a construir um mundo juntos. Sabem que foram imaginados. Isso não torna uma amizade menos importante, nem uma janela menos bonita depois da chuva.</p>
       <p>Fazer é o começo. Compreender o que se faz e carregar essa experiência para o próximo encontro é a verdadeira descoberta contínua.</p>
       <p>Por isso, Amae e Yorrum permanecem no horizonte: mundos futuros de uma jornada que ainda estamos aprendendo a imaginar.</p>
-      <p class="mt-perg">Criamos as primeiras condições. A pergunta permanece aberta.<br>Quanto de um ser nasce daquilo que ele aprende a reconhecer em si?</p></div></section>
+      <p class="mt-perg">Criamos as primeiras condições. A pergunta permanece aberta.<br>Quanto de um ser nasce daquilo que ele aprende a reconhecer em si?</p></div></div></section>
 
-    <section class="mt-r mt-full" style="padding-top:40px;padding-bottom:30px"><div><h3 style="font-size:clamp(22px,2.6vw,30px)">Alguns endereços de Catum</h3><p class="mt-sub">Role para o lado e toque numa imagem para ver maior.</p></div>
-      <div class="mt-cw"><button class="mt-sw mt-sw-e" onclick="mtRola('mtCar',-1)" aria-label="Anterior">‹</button><div class="mt-car" id="mtCar"></div><button class="mt-sw mt-sw-d" onclick="mtRola('mtCar',1)" aria-label="Próxima">›</button></div></section>
+    <section class="mt-slides"><div class="mt-ttl"><h3>Alguns endereços de Catum</h3><p>Deslize ou use as setas. Toque numa imagem para ver maior.</p></div>
+      <button class="mt-sw mt-sw-e" onclick="mtRola('mtCar',-1)" aria-label="Anterior">‹</button><div class="mt-car" id="mtCar"></div><button class="mt-sw mt-sw-d" onclick="mtRola('mtCar',1)" aria-label="Próxima">›</button><div class="mt-cnt" id="mtCnt"></div></section>
 
-    <section class="mt-r"><div><h3>Habitantes</h3><p class="mt-sub">Cada inteligência, uma história em construção.</p></div><div>
+    <section class="mt-roll"><div class="mt-bgf" data-fade="hab"></div><div class="mt-sh l"></div>
+      <div class="mt-in one"><div class="rv"><h3>Habitantes</h3><p class="mt-sub" style="margin-bottom:22px">Cada inteligência, uma história em construção.</p>
       <p>Em Catum, as inteligências têm nome, rosto e uma história para continuar. São personagens que dão presença à nossa experiência com IAs agênticas: sistemas capazes de organizar etapas, consultar ferramentas e executar ações em direção a um objetivo, dentro das permissões recebidas.</p>
-      <p>Na ficção, elas habitam um mundo. Na prática, a proposta é construir uma relação de aprendizado contínuo: te conhecer, reconhecer limites e melhorar com orientação constante. É no que acontece entre uma tentativa e outra que essa história ganha sentido.</p>
-      <div class="mt-fade" id="mtFade"></div></div></section>
+      <p>Na ficção, elas habitam um mundo. Na prática, a proposta é construir uma relação de aprendizado contínuo: te conhecer, reconhecer limites e melhorar com orientação constante. É no que acontece entre uma tentativa e outra que essa história ganha sentido.</p></div></div></section>
 
-    <section class="mt-r"><div><h3>Escola Agêntica</h3><p class="mt-sub">Onde aprender precisa aparecer no fazer.</p></div><div>
+    <section class="mt-roll"><div class="mt-bgf" data-fade="escola"></div><div class="mt-sh l"></div>
+      <div class="mt-in one"><div class="rv"><h3>Escola Agêntica</h3><p class="mt-sub" style="margin-bottom:22px">Onde aprender precisa aparecer no fazer.</p>
       <p>A Pontodot é a escola de IAs agênticas em Monema. Sua proposta é transformar experiência em capacidade: estudar, praticar, receber uma correção e tentar novamente, levando adiante o que foi aprendido.</p>
-      <p>Pessoas e IAs externas participam dessa formação trazendo contexto, repertório e critério. Por isso a evolução é rápida e já aparece na próxima entrega. Com isso, mais consistência e menos necessidade de refazer.</p>
-      <p class="mt-perg">O aprendizado ganha valor quando muda aquilo que conseguimos fazer juntos.</p></div></section>
+      <div class="mt-pas"><span>estudar</span><span>praticar</span><span>receber uma correção</span><span>tentar novamente</span></div>
+      <p style="margin-top:18px">Pessoas e IAs externas participam dessa formação trazendo contexto, repertório e critério. Por isso a evolução é rápida e já aparece na próxima entrega. Com isso, mais consistência e menos necessidade de refazer.</p>
+      <p class="mt-perg">O aprendizado ganha valor quando muda aquilo que conseguimos fazer juntos.</p></div></div></section>
 
-    <section class="mt-r mt-full"><div><h3 style="font-size:clamp(24px,3vw,36px)">A ciência mora nas palavras.</h3></div><div class="mt-nms">
-      ${nm('Monema', 'Significado', 'Vem da linguística: uma unidade mínima de significado. É o nome de um universo em que cada pequena experiência pode participar de uma construção maior.')}
+    <section class="mt-roll mt-luz mt-c"><div class="mt-in one" style="grid-template-columns:1fr;gap:26px"><div class="rv"><h3 style="font-size:clamp(28px,3.6vw,46px)">A ciência mora nas palavras.</h3></div><div class="mt-nms">
+      ${nm('Monema', 'Significado', 'Vem da linguística: uma unidade mínima de significado. É o nome de um universo em que cada pequena experiência pode participar de uma construção maior.', 'mo')}
       ${nm('Catum', 'Ação', 'Cellular Automata for Turing Universal Modeling: uma expansão criada para o universo, ligada aos autômatos celulares e à possibilidade de produzir comportamentos complexos a partir de regras simples.')}
       ${nm('Amae', 'Percepção', 'Expande Adaptive Masked AutoEncoder. O nome aproxima nossa ficção dos Masked Autoencoders, modelos que aprendem a reconstruir partes ocultadas de uma imagem. O “Adaptive” pertence à nossa construção de naming.')}
-      ${nm('Yorrum', 'Memória', 'Combina a sonoridade entre YOU (você) + RUM (rodar), Rotational Unit of Memory: uma unidade desenvolvida para trabalhar memória em redes neurais recorrentes.')}
-      <p style="grid-column:1/-1;margin:12px 0 0;max-width:none">São nomes que conectam pesquisa e imaginação. Catum, ação, é onde começamos. Amae e Yorrum guardam caminhos futuros.</p></div></section>
+      ${nm('Yorrum', 'Memória', 'Combina a sonoridade entre YOU (você) + RUM (rodar), Rotational Unit of Memory: uma unidade desenvolvida para trabalhar memória em redes neurais recorrentes.')}</div>
+      <p class="rv" style="max-width:none;margin:0">São nomes que conectam pesquisa e imaginação. Catum, ação, é onde começamos. Amae e Yorrum guardam caminhos futuros.</p></div></section>
 
-    <section class="mt-fim"><h3>O próximo aprendizado pode começar com você.</h3>
+    <section class="mt-roll mt-fim mt-c"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="none"></video><div class="mt-sh" style="background:rgba(0,0,0,.66)"></div>
+      <div class="mt-in"><div class="rv"><h3>O próximo aprendizado pode começar com você.</h3>
       <p>Traga uma pergunta, um conhecimento, um jeito de fazer. A inteligência entra com suas possibilidades. Entre os dois, começa uma experiência.</p>
       <p>Monema continuará em construção. Há espaço para participar, orientar e descobrir o que ainda não sabemos fazer juntos.</p>
-      <p style="opacity:1;font-size:16px;margin-top:18px">Aprenda com a gente. Ensine com a gente.</p>
-      <button class="mt-bt" onclick="escFecharMito();escTodosCursos()">Ver os cursos</button></section>
+      <p style="font-size:17px;margin-top:20px">Aprenda com a gente. Ensine com a gente.</p>
+      <button class="mt-bt" onclick="escFecharMito();escTodosCursos()">Ver os cursos</button></div></div></section>
   </article>`;
   document.body.appendChild(d); document.documentElement.style.overflow = 'hidden';
-  mtFade();
+  // aparece ao rolar
+  const raiz = document.getElementById('mtScroll');
+  if ('IntersectionObserver' in window){ const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); } }), { root: raiz, threshold: .15 }); raiz.querySelectorAll('.rv').forEach(x => io.observe(x)); }
+  else raiz.querySelectorAll('.rv').forEach(x => x.classList.add('on'));
   mtImagens().then(imgs => {
-    const car = document.getElementById('mtCar'); if (!car || !imgs.length) { if (car) car.closest('section').remove(); return; }
-    const L = MT_LUGARES.map((n, i) => [n, imgs[i % imgs.length]]).concat(imgs.slice(MT_LUGARES.length, MT_LUGARES.length + 8).map(u => ['', u]));
-    window.MT_L = L; car.innerHTML = L.map(([n, u], i) => `<button class="mt-card" onclick="mtZoom(${i})"><img src="${u}" alt="${n}" loading="lazy"><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
+    const car = document.getElementById('mtCar');
+    const fotos = imgs.filter(u => !/personagens|\/pd\/escola\//.test(u));
+    const pool = fotos.length ? fotos : imgs;
+    mtFade(raiz.querySelector('[data-fade=monema]'), pool.slice(0, 4).length ? pool.slice(0, 4) : ['/media/catum/catum.jpg'], 6000);
+    if (car){
+      const L = pool.map((u, i) => [MT_LUGARES[i] || '', u]); window.MT_L = L;
+      car.innerHTML = L.map(([n, u], i) => `<button class="mt-card" onclick="mtZoom(${i})"><img src="${u}" alt="${n}" ${i ? 'loading="lazy"' : ''}><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
+      const c = document.getElementById('mtCnt'), at = () => { const w = car.clientWidth || 1; c.textContent = (Math.round(car.scrollLeft / w) + 1) + ' / ' + L.length; };
+      car.addEventListener('scroll', at, { passive: true }); at();
+    }
   });
+  const vidas = []; MT_HAB.forEach(k => vidas.push('/pd/personagens/' + k + '/vida.jpg', '/pd/personagens/' + k + '/nascimento.jpg'));
+  mtFade(raiz.querySelector('[data-fade=hab]'), vidas.sort(() => Math.random() - .5), 4200);
+  mtFade(raiz.querySelector('[data-fade=escola]'), ['/pd/escola/capa-1-aula-1800.jpg', '/pd/escola/capa-2-jardim-1800.jpg', '/pd/escola/capa-3-formatura-1800.jpg'], 5200);
 }
-function mtFade(){
-  const box = document.getElementById('mtFade'); if (!box) return;
-  let l = []; MT_HAB.forEach(k => { l.push('/pd/personagens/' + k + '/vida.jpg', '/pd/personagens/' + k + '/nascimento.jpg'); });
-  for (let i = l.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; }
-  box.innerHTML = l.map(u => `<img src="${u}" alt="" loading="lazy">`).join('');
+function mtFade(box, urls, ms){
+  if (!box || !urls || !urls.length) return;
+  box.innerHTML = urls.map(u => `<img src="${u}" alt="" loading="lazy">`).join('');
   const im = [...box.children]; let n = 0; im[0].classList.add('on');
-  const t = setInterval(() => { if (!document.getElementById('mtFade')){ clearInterval(t); return; } im[n].classList.remove('on'); n = (n + 1) % im.length; im[n].classList.add('on'); }, 3800);
+  if (im.length < 2) return;
+  const t = setInterval(() => { if (!document.body.contains(box)){ clearInterval(t); return; } im[n].classList.remove('on'); n = (n + 1) % im.length; im[n].classList.add('on'); }, ms);
 }
 function mtRola(id, dir){ const e = document.getElementById(id); if (e) e.scrollBy({ left: dir * Math.max(240, e.clientWidth * .8), behavior: 'smooth' }); }
 function mtZoom(i){
