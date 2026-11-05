@@ -275,7 +275,7 @@ if ($acao === 'curso_info') {   // {curso_id, skill?}: o que a aula ensina (skil
 if ($acao === 'curriculo_pedir' || $acao === 'curriculo_lista') {   // admin: pede à professora o conteúdo de cursos/skills; lista os pedidos
     if (!$ehAdmin) sd_fail('Só admin.', 403);
     require_once __DIR__ . '/pd-curriculo-lib.php';
-    if ($acao === 'curriculo_lista') { $r = pdAulaSup('/rest/v1/pd_curriculo_pedidos?select=id,curso,skill_id,titulo,status,erro,versao,criado_em,entregue_em,chamado&order=criado_em.desc&limit=200'); echo json_encode(['pedidos' => $r['body'] ?? [], 'diretrizes' => array_keys(pdCurrDiretrizes()['cursos'])], JSON_UNESCAPED_UNICODE); exit; }
+    if ($acao === 'curriculo_lista') { $r = pdAulaSup('/rest/v1/pd_curriculo_pedidos?select=id,curso,skill_id,titulo,status,erro,versao,criado_em,entregue_em,chamado&order=criado_em.desc&limit=200'); echo json_encode(['pedidos' => (($r['code'] ?? 500) < 300 && is_array($r['body'] ?? null)) ? $r['body'] : [], 'diretrizes' => array_keys(pdCurrDiretrizes()['cursos'])], JSON_UNESCAPED_UNICODE); exit; }
     $lista = $b['cursos'] ?? []; if ($lista === 'vazios') { $lista = []; $ja = pdAulaSup('/rest/v1/pd_habilidades?select=skill_id&limit=2000')['body'] ?? []; $tem = array_column($ja, 'skill_id');
         foreach (array_keys(pdCurrDiretrizes()['cursos']) as $c) if (!in_array(pdCurrSkillId($c), $tem, true)) $lista[] = $c; }
     $msgs = []; $ok = 0; foreach ((array)$lista as $c) { $r = pdCurrPedir((string)$c, $u['id']); if (!empty($r['ok'])) $ok++; $msgs[] = $r['msg']; }

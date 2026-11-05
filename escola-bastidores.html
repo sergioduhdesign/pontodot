@@ -54,7 +54,7 @@ async function api(b){const r=await fetch('/pd-escola.php',{method:'POST',header
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#grid').innerHTML='<div class="msg">Entre na plataforma para abrir os bastidores.</div>';return;}
   await carrega();const qc=new URLSearchParams(location.search).get('curso');if(qc){const c=CURSOS.find(x=>x.curso===qc);if(c)abre(c.skill);}}
-async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;try{PED=(await api({acao:'curriculo_lista'})).pedidos||[];}catch(e){PED=[];}}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;try{const q=(await api({acao:'curriculo_lista'})).pedidos;PED=Array.isArray(q)?q:[];}catch(e){PED=[];}}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 const face=p=>'/pd/personagens/'+encodeURIComponent(p||'')+'/avatar.jpg';
 const sk=id=>SK.find(s=>s.skill_id===id);
 // um card por curso da escola + um por skill de trabalho que não é curso
