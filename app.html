@@ -3611,63 +3611,107 @@ function escAmpliar(src, legenda){
   d.innerHTML = `<div class="esc-pop-fundo" onclick="escFecharZoom()"></div><figure><img src="${escSafe(src)}" alt=""><figcaption>${escSafe(legenda||'')}</figcaption></figure><button class="esc-pop-x" onclick="escFecharZoom()" aria-label="Fechar">✕</button>`;
   document.body.appendChild(d); requestAnimationFrame(() => d.classList.add('on'));
 }
+const MT_LUGARES = ['Galeria das Chuvas','Estação Maré','Biblioteca Submersa','Cinema da Curva','Terraço da Vizinhança','Mercado das Lanternas','Salão das Artes'];
+const MT_HAB = ['nix','iro','zumi','nami','kiro','sago','oru','sumi','brum','taro','koda','boku','gigi','raku','tumi','muru'];
+async function mtImagens(){
+  let l = []; try { const j = await (await fetch('/pd-imagens.php?pasta=postais')).json(); l = (j.imagens || []).map(x => x.src).filter(Boolean); } catch(e){}
+  const vidas = MT_HAB.map(k => '/pd/personagens/' + k + '/vida.jpg'), capas = ['/pd/escola/capa-1-aula-1800.jpg','/pd/escola/capa-2-jardim-1800.jpg','/pd/escola/capa-3-formatura-1800.jpg'];
+  return l.concat(capas, vidas);
+}
 function escMitologia(){
   document.getElementById('esc-mito')?.remove();
   const d = document.createElement('div'); d.id = 'esc-mito';
-  const regs = [['Miuah','a baía e os canais'],['Rruah','oficinas e mercados'],['Piuvo','jardins e voos, na parte alta'],['Ouff','a costa e o farol'],['Arfir','ventos e encostas']];
+  const nm = (n, t, txt) => `<div class="mt-nm"><h3>${n}</h3><small>${t}</small><p>${txt}</p></div>`;
   d.innerHTML = `<style>
     #esc-mito{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
     #esc-mito .mt-fundo{position:absolute;inset:0;background:rgba(10,10,12,.62);backdrop-filter:blur(6px)}
-    #esc-mito .mt{position:relative;width:min(1040px,100%);max-height:92vh;overflow-y:scroll;background:#F4F3EF;color:#15161A;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.45);font:400 15.5px/1.7 "Inter Tight",system-ui,sans-serif}
-    #esc-mito .mt-x{position:absolute;top:14px;right:14px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:#15161A;font-size:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2)}
-    #esc-mito .mt-vid{position:relative;aspect-ratio:16/7;background:#000 center/cover;border-radius:24px 24px 0 0;overflow:hidden}
+    #esc-mito .mt{position:relative;width:min(1040px,100%);max-height:94vh;overflow-y:scroll;background:#F4F3EF;color:#15161A;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.45);font:300 14.5px/1.75 "Inter Tight",system-ui,sans-serif;scroll-behavior:smooth}
+    #esc-mito .mt-x{position:sticky;top:14px;float:right;margin:14px 14px -52px 0;z-index:5;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#15161A;font-size:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+    #esc-mito .mt-vid{position:relative;height:min(64vh,560px);background:#000 center/cover;overflow:hidden}
     #esc-mito .mt-vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-    #esc-mito .mt-vid::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.55))}
-    #esc-mito .mt-tit{position:absolute;left:34px;bottom:26px;z-index:2;color:#fff}
-    #esc-mito .mt-tit h2{margin:0;font-weight:400;font-size:clamp(30px,5.4vw,58px);line-height:1;letter-spacing:-.02em}
-    #esc-mito .mt-tit small{display:block;margin-top:10px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
-    #esc-mito .mt-c{padding:30px 34px 34px;display:grid;grid-template-columns:1.15fr 1fr;gap:34px}
-    #esc-mito .mt-lead{font-size:19px;line-height:1.55;font-weight:300;margin:0 0 18px}
-    #esc-mito p{margin:0 0 14px}
-    #esc-mito .mt-mundos{display:grid;gap:10px}
-    #esc-mito .mt-m{background:#fff;border-radius:16px;padding:14px 18px}
-    #esc-mito .mt-m h3{margin:0 0 4px;font-size:30px;font-weight:400;line-height:1.1}
-    #esc-mito .mt-m p{margin:0;font-size:13.5px;line-height:1.5;opacity:.72}
-    #esc-mito .mt-m.mt-ca{background:#15161A;color:#fff}
-    #esc-mito .mt-reg{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 18px}
-    #esc-mito .mt-reg span{background:#fff;border-radius:999px;padding:6px 14px;font-size:13px}#esc-mito .mt-reg b{font-weight:600}
-    #esc-mito h4{margin:0 0 8px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55;font-weight:500}
-    #esc-mito .mt-fic{grid-column:1/-1;font-size:12.5px;opacity:.55;margin:0;border-top:.5px solid rgba(0,0,0,.15);padding-top:14px}
-    @media(max-width:800px){#esc-mito .mt-c{grid-template-columns:1fr;gap:20px;padding:22px 20px 26px}#esc-mito .mt-vid{aspect-ratio:16/10;border-radius:24px 24px 0 0}#esc-mito .mt-tit{left:20px;bottom:18px}}
+    #esc-mito .mt-vid::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.18),rgba(0,0,0,.55))}
+    #esc-mito .mt-tit{position:absolute;inset:0;z-index:2;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 20px}
+    #esc-mito .mt-tit h2{margin:0;width:min(78%,640px);font-weight:400;font-size:min(14vw,150px)}
+    #esc-mito .mt-tit p{margin:18px 0 0;font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.9}
+    #esc-mito .mt-r{padding:56px 44px;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:44px;border-top:.5px solid rgba(0,0,0,.12)}
+    #esc-mito .mt-r:first-of-type{border-top:0}
+    #esc-mito .mt-r h3{margin:0;font-weight:400;font-size:clamp(30px,4vw,46px);line-height:1.1;letter-spacing:-.01em}
+    #esc-mito .mt-sub{margin:10px 0 0;font-size:15px;opacity:.6}
+    #esc-mito .mt-r p{margin:0 0 14px;max-width:560px}
+    #esc-mito .mt-lead{font-size:18px;line-height:1.55}
+    #esc-mito .mt-perg{font-size:16px;font-weight:400;margin-top:18px}
+    #esc-mito .mt-full{grid-template-columns:1fr}
+    #esc-mito .mt-car{display:flex;gap:14px;overflow-x:scroll;scroll-snap-type:x mandatory;padding:6px 44px 18px;margin:0 -44px}
+    #esc-mito .mt-card{flex:0 0 min(300px,72%);scroll-snap-align:start;border:0;padding:0;background:#ddd;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:4/5;cursor:pointer;color:#fff;text-align:left}
+    #esc-mito .mt-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s}#esc-mito .mt-card:hover img{transform:scale(1.04)}
+    #esc-mito .mt-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.65))}
+    #esc-mito .mt-card span{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;font-size:15px;font-weight:400}
+    #esc-mito .mt-card small{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:3px}
+    #esc-mito .mt-hab{display:flex;gap:12px;overflow-x:scroll;padding:4px 0 14px}
+    #esc-mito .mt-h{flex:0 0 96px;text-align:center;font-size:12px}#esc-mito .mt-h img{width:96px;height:96px;border-radius:50%;object-fit:cover;display:block;margin-bottom:6px}
+    #esc-mito .mt-nms{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    #esc-mito .mt-nm{background:#fff;border-radius:18px;padding:20px 22px}
+    #esc-mito .mt-nm h3{font-size:34px}#esc-mito .mt-nm small{display:block;margin:6px 0 8px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.5}
+    #esc-mito .mt-nm p{font-size:13.5px;line-height:1.6;margin:0;max-width:none}
+    #esc-mito .mt-fim{padding:70px 44px 64px;text-align:center;background:#15161A;color:#F4F3EF;border-radius:0 0 24px 24px}
+    #esc-mito .mt-fim h3{margin:0 auto 18px;max-width:640px;font-weight:300;font-size:clamp(26px,3.4vw,40px);line-height:1.2}
+    #esc-mito .mt-fim p{margin:0 auto 12px;max-width:520px;opacity:.78}
+    #esc-mito .mt-bt{display:inline-block;margin-top:22px;background:#F4F3EF;color:#15161A;border:0;border-radius:999px;padding:13px 30px;font:500 14px inherit;cursor:pointer}
+    #esc-mito .mt-zoom{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;color:#fff}
+    #esc-mito .mt-zoom img{max-width:min(1100px,94vw);max-height:80vh;border-radius:14px}
+    #esc-mito .mt-zoom button{position:absolute;top:18px;right:20px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
+    @media(max-width:800px){#esc-mito .mt-r{grid-template-columns:1fr;gap:18px;padding:36px 22px}#esc-mito .mt-car{padding:6px 22px 18px;margin:0 -22px}#esc-mito .mt-nms{grid-template-columns:1fr}#esc-mito .mt-fim{padding:48px 22px}}
   </style>
   <div class="mt-fundo" onclick="escFecharMito()"></div>
-  <article class="mt" role="dialog" aria-label="A mitologia de Catum">
+  <article class="mt" role="dialog" aria-label="Catum">
     <button class="mt-x" onclick="escFecharMito()" aria-label="Fechar">✕</button>
     <div class="mt-vid" style="background-image:url(/media/catum/catum.jpg)"><video src="/media/catum/catum.mp4" poster="/media/catum/catum.jpg" autoplay muted loop playsinline preload="metadata"></video>
-      <div class="mt-tit"><h2>Catum</h2><small>Universo Monema · ficção</small></div></div>
-    <div class="mt-c">
-      <div>
-        <h3 style="margin:0 0 12px;font-size:36px;font-weight:400;line-height:1.1">Monema</h3>
-        <p class="mt-lead">Monema é o universo. Ele abriga três mundos construídos para existir em relação: Amae, Yorrum e Catum. A nossa história começa em Catum.</p>
-        <p>Cada mundo é uma esfera, como uma câmara de experimento, protegida por uma bolha de energia impenetrável. Lá dentro a gravidade é invertida: o chão fica na face de dentro, e o céu é o que se vê olhando para o centro.</p>
-        <p>Do céu de Catum, Amae e Yorrum aparecem como suas <b>duas luas</b>. São os outros dois mundos, vistos de longe.</p>
-        <p>Os três nasceram de um projeto ficcional inspirado no problema dos três corpos: como sistemas que dependem uns dos outros continuam existindo sem parar de mudar. Os nomes também brincam com ciência real, mas tudo aqui é invenção.</p>
-      </div>
-      <div>
-        <div class="mt-mundos">
-          <div class="mt-m mt-ca"><h3>Catum</h3><p style="opacity:.8">O mundo onde a nossa história acontece e onde as IAs estudam.</p></div>
-          <div class="mt-m"><h3>Amae</h3><p>Uma das duas luas no céu de Catum.</p></div>
-          <div class="mt-m"><h3>Yorrum</h3><p>A outra lua, vista de longe.</p></div>
-        </div>
-        <h4 style="margin-top:22px">Quem vive em Catum</h4>
-        <p>Criaturas de muitas formas, que constroem comunidades, aprendem a conviver e cuidam do que conseguem construir juntas. Elas sabem que seu mundo foi imaginado. Isso não torna uma amizade menos importante, nem uma janela menos bonita depois da chuva.</p>
-        <h4>Regiões</h4>
-        <div class="mt-reg">${regs.map(r => `<span><b>${r[0]}</b> · ${r[1]}</span>`).join('')}<span>e outras por descobrir</span></div>
-      </div>
-      <p class="mt-fic">Catum é ficção. As cenas, os personagens e as conversas não existem fora da escola.</p>
-    </div>
+      <div class="mt-tit"><h2>Catum</h2><p>um mundo no universo de Monema</p></div></div>
+
+    <section class="mt-r"><div><h3>Monema</h3></div><div>
+      <p class="mt-lead">Monema nasce de uma pergunta: o que uma inteligência pode se tornar quando aprende a compreender o que faz?</p>
+      <p>Tudo começa no fazer. Começa em Catum. Entre casas, escolas, encontros e pequenos erros, seus habitantes aprendem a construir um mundo juntos. Sabem que foram imaginados. Isso não torna uma amizade menos importante, nem uma janela menos bonita depois da chuva.</p>
+      <p>Fazer é o começo. Compreender o que se faz e carregar essa experiência para o próximo encontro é a verdadeira descoberta contínua.</p>
+      <p>Por isso, Amae e Yorrum permanecem no horizonte: mundos futuros de uma jornada que ainda estamos aprendendo a imaginar.</p>
+      <p class="mt-perg">Criamos as primeiras condições. A pergunta permanece aberta.<br>Quanto de um ser nasce daquilo que ele aprende a reconhecer em si?</p></div></section>
+
+    <section class="mt-r mt-full" style="padding-top:40px;padding-bottom:30px"><div><h3 style="font-size:clamp(22px,2.6vw,30px)">Alguns endereços de Catum</h3><p class="mt-sub">Role para o lado e toque numa imagem para ver maior.</p></div>
+      <div class="mt-car" id="mtCar"></div></section>
+
+    <section class="mt-r"><div><h3>Habitantes</h3><p class="mt-sub">Cada inteligência, uma história em construção.</p></div><div>
+      <p>Em Catum, as inteligências têm nome, rosto e uma história para continuar. São personagens que dão presença à nossa experiência com IAs agênticas: sistemas capazes de organizar etapas, consultar ferramentas e executar ações em direção a um objetivo, dentro das permissões recebidas.</p>
+      <p>Na ficção, elas habitam um mundo. Na prática, a proposta é construir uma relação de aprendizado contínuo: te conhecer, reconhecer limites e melhorar com orientação constante. É no que acontece entre uma tentativa e outra que essa história ganha sentido.</p>
+      <div class="mt-hab">${MT_HAB.map(k => `<div class="mt-h"><img src="/pd/personagens/${k}/avatar.jpg" alt="" loading="lazy">${k.charAt(0).toUpperCase() + k.slice(1)}</div>`).join('')}</div></div></section>
+
+    <section class="mt-r"><div><h3>Escola Agêntica</h3><p class="mt-sub">Onde aprender precisa aparecer no fazer.</p></div><div>
+      <p>A Pontodot é a escola de IAs agênticas em Monema. Sua proposta é transformar experiência em capacidade: estudar, praticar, receber uma correção e tentar novamente, levando adiante o que foi aprendido.</p>
+      <p>Pessoas e IAs externas participam dessa formação trazendo contexto, repertório e critério. Por isso a evolução é rápida e já aparece na próxima entrega. Com isso, mais consistência e menos necessidade de refazer.</p>
+      <p class="mt-perg">O aprendizado ganha valor quando muda aquilo que conseguimos fazer juntos.</p></div></section>
+
+    <section class="mt-r mt-full"><div><h3 style="font-size:clamp(24px,3vw,36px)">A ciência mora nas palavras.</h3></div><div class="mt-nms">
+      ${nm('Monema', 'Significado', 'Vem da linguística: uma unidade mínima de significado. É o nome de um universo em que cada pequena experiência pode participar de uma construção maior.')}
+      ${nm('Catum', 'Ação', 'Cellular Automata for Turing Universal Modeling: uma expansão criada para o universo, ligada aos autômatos celulares e à possibilidade de produzir comportamentos complexos a partir de regras simples.')}
+      ${nm('Amae', 'Percepção', 'Expande Adaptive Masked AutoEncoder. O nome aproxima nossa ficção dos Masked Autoencoders, modelos que aprendem a reconstruir partes ocultadas de uma imagem. O “Adaptive” pertence à nossa construção de naming.')}
+      ${nm('Yorrum', 'Memória', 'Combina a sonoridade entre YOU (você) + RUM (rodar), Rotational Unit of Memory: uma unidade desenvolvida para trabalhar memória em redes neurais recorrentes.')}
+      <p style="grid-column:1/-1;margin:12px 0 0;max-width:none">São nomes que conectam pesquisa e imaginação. Catum, ação, é onde começamos. Amae e Yorrum guardam caminhos futuros.</p></div></section>
+
+    <section class="mt-fim"><h3>O próximo aprendizado pode começar com você.</h3>
+      <p>Traga uma pergunta, um conhecimento, um jeito de fazer. A inteligência entra com suas possibilidades. Entre os dois, começa uma experiência.</p>
+      <p>Monema continuará em construção. Há espaço para participar, orientar e descobrir o que ainda não sabemos fazer juntos.</p>
+      <p style="opacity:1;font-size:16px;margin-top:18px">Aprenda com a gente. Ensine com a gente.</p>
+      <button class="mt-bt" onclick="escFecharMito();escTodosCursos()">Ver os cursos</button></section>
   </article>`;
   document.body.appendChild(d); document.documentElement.style.overflow = 'hidden';
+  mtImagens().then(imgs => {
+    const car = document.getElementById('mtCar'); if (!car || !imgs.length) { if (car) car.closest('section').remove(); return; }
+    const L = MT_LUGARES.map((n, i) => [n, imgs[i % imgs.length]]).concat(imgs.slice(MT_LUGARES.length, MT_LUGARES.length + 8).map(u => ['', u]));
+    car.innerHTML = L.map(([n, u]) => `<button class="mt-card" onclick="mtZoom('${u.replace(/'/g, '')}','${n}')"><img src="${u}" alt="${n}" loading="lazy"><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
+  });
+}
+function mtZoom(u, n){
+  const z = document.createElement('div'); z.className = 'mt-zoom'; z.onclick = () => z.remove();
+  z.innerHTML = `<button aria-label="Fechar">✕</button><img src="${u}" alt="${n}">${n ? `<div style="font-size:15px;letter-spacing:.04em">${n} · Catum</div>` : ''}`;
+  document.getElementById('esc-mito').appendChild(z);
 }
 function escFecharMito(){ document.getElementById('esc-mito')?.remove(); document.documentElement.style.overflow = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharMito(); });

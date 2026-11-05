@@ -5,9 +5,9 @@
   if (window.__pdNomes) return; window.__pdNomes = true;
   var R = { catum: 4.1, yorrum: 3.93, monema: 8.44, amae: 5.56 };
   var RX = /\b(catum|yorrum|monema|amae)\b/gi;
-  var SEL = 'h1,h2,h3,h4,.pd-titulo,.pop-titulo,.esc-h3,.esc-h3-cursos,.modal-title';
+  var SEL = 'h1,h2,h3,h4,.pd-titulo,.pop-titulo,.esc-h3,.esc-h3-cursos,.modal-title,.esc-cur-pf small,.esc-cidade-nome,.esc-postal-vazio,.mt-tit small';
   var css = document.createElement('style');
-  css.textContent = '.pd-nome{display:inline-block;height:.82em;width:calc(.82em*var(--r));vertical-align:-.03em;background:currentColor;' +
+  css.textContent = '.pd-nome{display:inline-block;width:calc(.82em*var(--r));max-width:100%;height:auto;aspect-ratio:var(--r);vertical-align:-.03em;background:currentColor;' +
     '-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;overflow:hidden;text-indent:-9999px;white-space:nowrap;font-size:inherit;letter-spacing:0;text-transform:none}' +
     '.pd-nome+.pd-nome{margin-left:.28em}';
   document.head.appendChild(css);
