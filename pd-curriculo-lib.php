@@ -111,7 +111,7 @@ function pdCurrVarrer() {
             foreach (array_keys(pdCurrDiretrizes()['cursos']) as $c) { if ($n >= 5) break; $sk = pdCurrSkillId($c);
                 if (in_array($sk, $tem, true) || in_array($sk, $ja, true)) continue; $r = pdCurrPedir($c, null); if (!empty($r['ok'])) $n++; } }
     } catch (Throwable $e) {}
-    $rows = pdAulaSup('/rest/v1/pd_curriculo_pedidos?status=eq.pedido&select=*&limit=20')['body'] ?? []; $out = [];
+    $rows = pdAulaSup('/rest/v1/pd_curriculo_pedidos?status=eq.pedido&select=*&limit=20')['body'] ?? []; $out = []; $pub = [];
     // TRAVADO: pedido aberto sem resposta é reenviado — uma vez com o assunto novo (assunto_v) e depois toda manhã (6h–10h de Brasília), no máximo 4 por rodada
     try { $nl = 0; $hb = (int)gmdate('G', time() - 3 * 3600);
         foreach ((array)$rows as $row) { if ($nl >= 4) break; $ch = (array)$row['chamado']; if (empty($ch['pedido'])) continue;
@@ -134,9 +134,10 @@ function pdCurrVarrer() {
             if (!$s) { $out[] = $row['titulo'] . ' não salvou: ' . $ver; continue; }
             pdAulaSup('/rest/v1/pd_curriculo_pedidos?id=eq.' . urlencode($row['id']), 'PATCH', ['status' => 'entregue', 'versao' => $ver, 'entregue_em' => gmdate('c'), 'erro' => null]);
             try { ponte('status', ['controleId' => $ch['controleId'], 'status' => 'RECEBIDO PELO SD', 'rodada' => 1, 'obs' => 'v' . $ver]); } catch (Throwable $e) {}
-            if (function_exists('pdNotificarResp')) try { pdNotificarResp('SERGIO', 'escola', 'Aula nova da professora: ' . $row['titulo'], 'Versão ' . $ver . ' publicada na Escola. Confira nos bastidores.', null); } catch (Throwable $e) {}
-            $out[] = $row['titulo'] . ' v' . $ver . ' publicada';
+            $out[] = $row['titulo'] . ' v' . $ver . ' publicada'; $pub[] = $row['titulo'] . ' (v' . $ver . ')';
         } catch (Throwable $e) { error_log('curriculo varrer: ' . $e->getMessage()); }
     }
+    // UM aviso por rodada (nunca um por aula), com o link dos bastidores
+    if ($pub && function_exists('pdNotificarResp')) try { pdNotificarResp('SERGIO', 'escola', count($pub) === 1 ? 'Aula nova da professora' : count($pub) . ' aulas novas da professora', implode("\n", array_map(fn($t) => '• ' . $t, $pub)) . "\n\nVer nos bastidores: " . sd_base() . '/escola-bastidores.html', sd_base() . '/escola-bastidores.html'); } catch (Throwable $e) {}
     return $out ? implode(' | ', $out) : null;
 }

@@ -736,8 +736,9 @@ function pdNotificarUsuario($uid, $tipo, $titulo, $corpo, $link = null, $taskId 
 }
 function pdNotificarResp($teamKey, $tipo, $titulo, $corpo, $link = null, $exceto = null, $taskId = null) {
     $teamKey = trim((string)$teamKey); if ($teamKey === '') return;
-    $r = sd_supabase('/rest/v1/profiles?team_key=eq.' . urlencode($teamKey) . '&role=in.(team,admin)&active=eq.true&select=id');
-    foreach ((array)($r['body'] ?? []) as $x) if (($x['id'] ?? '') !== $exceto) pdNotificarUsuario($x['id'], $tipo, $titulo, $corpo, $link, $taskId);
+    $r = sd_supabase('/rest/v1/profiles?team_key=eq.' . urlencode($teamKey) . '&role=in.(team,admin)&active=eq.true&select=id,zap&order=created_at.asc');
+    $vistos = [];   // duas contas da mesma pessoa (mesmo zap) recebem UMA vez
+    foreach ((array)($r['body'] ?? []) as $x) { if (($x['id'] ?? '') === $exceto) continue; $k = preg_replace('/\D+/', '', (string)($x['zap'] ?? '')) ?: (string)$x['id']; if (isset($vistos[$k])) continue; $vistos[$k] = 1; pdNotificarUsuario($x['id'], $tipo, $titulo, $corpo, $link, $taskId); }
 }
 
 // Lembretes (zap e plataforma): quando é o próximo disparo
