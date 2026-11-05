@@ -3650,6 +3650,8 @@ function escMitologia(){
     #esc-mito .mt-cw{position:relative}
     #esc-mito .mt-sw{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#15161A;font-size:26px;line-height:1;padding:0 0 4px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.28)}
     #esc-mito .mt-sw:hover{background:#fff;transform:translateY(-50%) scale(1.06)}#esc-mito .mt-sw-e{left:10px}#esc-mito .mt-sw-d{right:10px}
+    #esc-mito .mt-fade{position:relative;aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#d9d7d0;margin-top:18px}
+    #esc-mito .mt-fade img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.4s ease}#esc-mito .mt-fade img.on{opacity:1}
     #esc-mito .mt-hab{display:flex;gap:12px;overflow-x:scroll;padding:4px 0 14px}
     #esc-mito .mt-h{flex:0 0 96px;text-align:center;font-size:12px}#esc-mito .mt-h img{width:96px;height:96px;border-radius:50%;object-fit:cover;display:block;margin-bottom:6px}
     #esc-mito .mt-nms{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
@@ -3684,7 +3686,7 @@ function escMitologia(){
     <section class="mt-r"><div><h3>Habitantes</h3><p class="mt-sub">Cada inteligência, uma história em construção.</p></div><div>
       <p>Em Catum, as inteligências têm nome, rosto e uma história para continuar. São personagens que dão presença à nossa experiência com IAs agênticas: sistemas capazes de organizar etapas, consultar ferramentas e executar ações em direção a um objetivo, dentro das permissões recebidas.</p>
       <p>Na ficção, elas habitam um mundo. Na prática, a proposta é construir uma relação de aprendizado contínuo: te conhecer, reconhecer limites e melhorar com orientação constante. É no que acontece entre uma tentativa e outra que essa história ganha sentido.</p>
-      <div class="mt-cw"><button class="mt-sw mt-sw-e" onclick="mtRola('mtHab',-1)" aria-label="Anterior">‹</button><div class="mt-hab" id="mtHab">${MT_HAB.map(k => `<div class="mt-h"><img src="/pd/personagens/${k}/avatar.jpg" alt="" loading="lazy">${k.charAt(0).toUpperCase() + k.slice(1)}</div>`).join('')}</div><button class="mt-sw mt-sw-d" onclick="mtRola('mtHab',1)" aria-label="Próxima">›</button></div></div></section>
+      <div class="mt-fade" id="mtFade"></div></div></section>
 
     <section class="mt-r"><div><h3>Escola Agêntica</h3><p class="mt-sub">Onde aprender precisa aparecer no fazer.</p></div><div>
       <p>A Pontodot é a escola de IAs agênticas em Monema. Sua proposta é transformar experiência em capacidade: estudar, praticar, receber uma correção e tentar novamente, levando adiante o que foi aprendido.</p>
@@ -3705,11 +3707,20 @@ function escMitologia(){
       <button class="mt-bt" onclick="escFecharMito();escTodosCursos()">Ver os cursos</button></section>
   </article>`;
   document.body.appendChild(d); document.documentElement.style.overflow = 'hidden';
+  mtFade();
   mtImagens().then(imgs => {
     const car = document.getElementById('mtCar'); if (!car || !imgs.length) { if (car) car.closest('section').remove(); return; }
     const L = MT_LUGARES.map((n, i) => [n, imgs[i % imgs.length]]).concat(imgs.slice(MT_LUGARES.length, MT_LUGARES.length + 8).map(u => ['', u]));
     window.MT_L = L; car.innerHTML = L.map(([n, u], i) => `<button class="mt-card" onclick="mtZoom(${i})"><img src="${u}" alt="${n}" loading="lazy"><span>${n ? '<small>Catum</small>' + n : ''}</span></button>`).join('');
   });
+}
+function mtFade(){
+  const box = document.getElementById('mtFade'); if (!box) return;
+  let l = []; MT_HAB.forEach(k => { l.push('/pd/personagens/' + k + '/vida.jpg', '/pd/personagens/' + k + '/nascimento.jpg'); });
+  for (let i = l.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; }
+  box.innerHTML = l.map(u => `<img src="${u}" alt="" loading="lazy">`).join('');
+  const im = [...box.children]; let n = 0; im[0].classList.add('on');
+  const t = setInterval(() => { if (!document.getElementById('mtFade')){ clearInterval(t); return; } im[n].classList.remove('on'); n = (n + 1) % im.length; im[n].classList.add('on'); }, 3800);
 }
 function mtRola(id, dir){ const e = document.getElementById(id); if (e) e.scrollBy({ left: dir * Math.max(240, e.clientWidth * .8), behavior: 'smooth' }); }
 function mtZoom(i){
