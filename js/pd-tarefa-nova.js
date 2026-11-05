@@ -9,76 +9,87 @@
 //   Usa os mesmos globais do index.html (THREADS, render, clientesReais…).
 // =====================================================================
 const NT = { ativa:false, passo:null, d:{}, verso:false };
-const NT_PASSOS = ['acao', 'cliente', 'produto', 'projeto', 'resp', 'date_int', 'date_cli', 'links', 'obs', 'revisar'];
+const NT_PASSOS = ['acao', 'cliente', 'produto', 'resp', 'date_int', 'extra'];
 
 function ntNomeIA(){ try { return (typeof nomeDaIA === 'function' ? nomeDaIA() : '') || 'sua IA'; } catch(e){ return 'sua IA'; } }
 function ntThread(){ return THREADS[atual] = THREADS[atual] || []; }
-function ntFala(t, acoes){ ntThread().push({ t, h: hAgora(), acoes: acoes && acoes.length ? acoes : undefined }); render(); ntRolar(); }
-function ntEu(t){ ntThread().push({ eu:true, t: esc(t).replace(/\n/g, '<br>'), h: hAgora() }); }
+function ntFala(t, acoes){ ntThread().push({ t, h: hAgora(), nt: true, acoes: acoes && acoes.length ? acoes : undefined }); render(); ntRolar(); }
+function ntEu(t){ ntThread().forEach(m => { if (m.nt && m.acoes) delete m.acoes; }); ntThread().push({ eu:true, t: esc(t).replace(/\n/g, '<br>'), h: hAgora() }); }
 function ntRolar(){ requestAnimationFrame(() => { ['#vcRolo', '#rolo', '.rolo'].forEach(s => { const r = document.querySelector(s); if (r) r.scrollTop = r.scrollHeight; }); }); }
 function ntSemAcento(v){ return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 
-// ---- começa
+// ---- começa: uma frase e a IA já tira o que dá dela; só pergunta o que falta, uma coisa por vez
 function ntIniciar(){
   NT.ativa = true; NT.d = { links:[] }; NT.passo = 'acao'; NT.verso = typeof noVersoAgora === 'function' && noVersoAgora();
   if (!NT.verso && !chat) modoChat(true);
   if (atual !== 'sd') { atual = 'sd'; }
-  ntFala(`Vamos criar uma tarefa. <b>O que é?</b> Uma frase basta, eu pergunto o resto.`, [['Cancelar', '', 'ntCancelar()']]);
-  setTimeout(() => { const c = document.querySelector(NT.verso ? '#campoVerso' : '#campo'); if (c){ c.placeholder = 'Ex.: Criativos do lançamento Reserva, 3 posts e 2 stories'; c.focus(); } }, 80);
+  ntFala(`O que vamos criar?`, [['Cancelar', '', 'ntCancelar()']]);
+  setTimeout(() => { const c = document.querySelector(NT.verso ? '#campoVerso' : '#campo'); if (c){ c.placeholder = 'Ex.: 3 posts e 2 stories do Reserva pra sexta, Joy'; c.focus(); } }, 80);
 }
-function ntCancelar(){ NT.ativa = false; NT.passo = null; const c = document.querySelector('#campo'); if (c) c.placeholder = 'Fale comigo...'; ntFala('Ok, deixei pra lá. Quando quiser, é só clicar no + de novo.'); }
+function ntCancelar(){ NT.ativa = false; NT.passo = null; const c = document.querySelector('#campo'); if (c) c.placeholder = 'Fale comigo...'; ntFala('Ok, deixei pra lá.'); }
+
+// tira da frase o que ela já diz: cliente, responsável, data
+function ntInferir(t){
+  const tl = ntSemAcento(t);
+  const cs = (clientesReais || []).filter(c => c.active !== false).map(c => ({ c, n: ntSemAcento(c.name) })).filter(x => x.n.length >= 3 && (tl.includes(x.n) || tl.split(/\W+/).includes(x.n.split(/\s+/)[0]) && x.n.split(/\s+/)[0].length >= 4)).sort((a, b) => b.n.length - a.n.length);
+  if (cs.length) NT.d.client = cs[0].c;
+  const pe = (EQUIPE || []).find(k => { const p = (PERFIS || []).find(x => chaveDe(x) === k); const n = ntSemAcento(p ? p.name.split(' ')[0] : k); return n.length >= 3 && new RegExp('\\b(pra|para|com|resp|responsavel|de)\\s+(a |o )?' + n + '\\b|[,;]\\s*' + n + '\\s*$').test(tl); });
+  if (pe) NT.d.resp = pe;
+  const dm = tl.match(/\b(?:pra|para|ate|até|em|dia)\s+(amanha|hoje|depois de amanha|segunda|terca|quarta|quinta|sexta|sabado|domingo|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d+ dias?)\b/);
+  if (dm){ const d = ntData(/^\d+ dias?$/.test(dm[1]) ? 'em ' + dm[1] : dm[1]); if (d) NT.d.date_int = d; }
+}
+// próximo campo que ainda falta
+function ntProximo(){
+  const d = NT.d;
+  if (d.client === undefined) return ntPergunta('cliente');
+  if (d.client && d.product === undefined && ntProdutos(d.client.id).length) return ntPergunta('produto');
+  if (!d.resp) return ntPergunta('resp');
+  if (d.date_int === undefined) return ntPergunta('date_int');
+  return ntPergunta('extra');
+}
+function ntResumo(){ const d = NT.d; return [d.client ? d.client.name : 'SD', d.product && d.product.name, d.resp, d.date_int && fmtD(d.date_int)].filter(Boolean).join(' · '); }
 
 // ---- o texto que a pessoa mandou cai aqui (chamado por enviar())
 function ntResponder(txt){
   ntEu(txt); const t = txt.trim(), tl = ntSemAcento(t);
   if (/^(cancela|cancelar|deixa|esquece|para)$/.test(tl)) return ntCancelar();
-  const pula = /^(pula|pular|nenhum|nenhuma|nao|não|n|-|sem|depois|skip)$/.test(tl);
+  const pula = /^(pula|pular|nenhum|nenhuma|nao|n|-|sem|depois|skip|nada)$/.test(tl);
   switch (NT.passo) {
-    case 'acao': if (t.length < 3) return ntFala('Me dá pelo menos uma frase curta do que é a tarefa.'); NT.d.action = t.slice(0, 160); return ntPergunta('cliente');
-    case 'cliente': { if (pula){ NT.d.client = null; return ntPergunta('projeto'); }
-      const m = ntAchaCliente(t); if (!m.length) return ntFala(`Não achei cliente com "${esc(t)}". Tenta outro nome, ou escolhe:`, ntChipsClientes(''));
+    case 'acao': if (t.length < 3) return ntFala('Me dá uma frase curta do que é.');
+      NT.d.action = t.slice(0, 160); ntInferir(t); return ntProximo();
+    case 'cliente': { if (pula){ NT.d.client = null; return ntProximo(); }
+      const m = ntAchaCliente(t); if (!m.length) return ntFala(`Não achei "${esc(t)}". Outro nome?`, ntChipsClientes(''));
       if (m.length > 1 && ntSemAcento(m[0].name) !== tl) return ntFala('Qual deles?', m.slice(0, 6).map(c => [c.name, '', `ntEscolhe('cliente','${c.id}')`]));
       return ntEscolhe('cliente', m[0].id); }
-    case 'produto': { if (pula){ NT.d.product = null; return ntPergunta('projeto'); }
-      const ps = ntProdutos(NT.d.client && NT.d.client.id), m = ps.filter(p => ntSemAcento(p.name).includes(tl));
-      if (!m.length) return ntFala('Não achei esse produto. Escolhe um, ou pula:', ntChipsProdutos());
+    case 'produto': { if (pula){ NT.d.product = null; return ntProximo(); }
+      const m = ntProdutos(NT.d.client && NT.d.client.id).filter(p => ntSemAcento(p.name).includes(tl));
+      if (!m.length) return ntFala('Esse não achei. Qual?', ntChipsProdutos());
       return ntEscolhe('produto', m[0].id); }
-    case 'projeto': NT.d.project = pula ? 'GERAL' : t.toUpperCase().slice(0, 40); return ntPergunta('resp');
-    case 'resp': { if (pula){ NT.d.resp = chaveDe(perfil); return ntPergunta('date_int'); }
-      const m = (EQUIPE || []).filter(k => ntSemAcento(k).startsWith(tl) || ntSemAcento(k).includes(tl));
-      if (!m.length) return ntFala('Não achei essa pessoa. Escolhe:', ntChipsEquipe());
+    case 'resp': { if (pula){ NT.d.resp = chaveDe(perfil); return ntProximo(); }
+      const m = (EQUIPE || []).filter(k => { const p = (PERFIS || []).find(x => chaveDe(x) === k); return ntSemAcento(k).includes(tl) || (p && ntSemAcento(p.name).includes(tl)); });
+      if (!m.length) return ntFala('Quem? Escolhe:', ntChipsEquipe());
       return ntEscolhe('resp', m[0]); }
-    case 'date_int': { if (pula){ NT.d.date_int = null; return ntPergunta('date_cli'); } const d = ntData(t); if (!d) return ntFala('Não entendi a data. Pode ser "amanhã", "sexta", "15/11" ou "em 3 dias".'); NT.d.date_int = d; return ntPergunta('date_cli'); }
-    case 'date_cli': { if (pula){ NT.d.date_cli = null; return ntPergunta('links'); } const d = ntData(t); if (!d) return ntFala('Não entendi a data. "amanhã", "sexta", "15/11"…'); NT.d.date_cli = d; return ntPergunta('links'); }
-    case 'links': { if (!pula){ const ls = t.match(/https?:\/\/\S+/g) || []; if (ls.length) NT.d.links = NT.d.links.concat(ls); else NT.d.obs_extra = (NT.d.obs_extra ? NT.d.obs_extra + '\n' : '') + t; } return ntPergunta('obs'); }
-    case 'obs': if (!pula) NT.d.obs = t; return ntPergunta('revisar');
-    case 'revisar': { if (/^(cria|criar|ok|vai|sim|confirma|manda|pode)$/.test(tl)) return ntCriar();
-      NT.d.obs = (NT.d.obs ? NT.d.obs + '\n' : '') + t; return ntPergunta('revisar'); }
+    case 'date_int': { if (pula){ NT.d.date_int = null; return ntProximo(); } const d = ntData(t); if (!d) return ntFala('Não entendi. "amanhã", "sexta", "15/11"…'); NT.d.date_int = d; return ntProximo(); }
+    case 'extra': { if (!pula){ const ls = t.match(/https?:\/\/\S+/g) || []; if (ls.length) NT.d.links = NT.d.links.concat(ls); const resto = t.replace(/https?:\/\/\S+/g, '').trim(); if (/^(cria|criar|ok|vai|sim|manda|pode)$/.test(tl)){} else if (resto || ls.length) NT.d.obs = (NT.d.obs ? NT.d.obs + '\n' : '') + t; } return ntCriar(); }
   }
 }
 function ntPergunta(p){
   NT.passo = p; const c = document.querySelector(NT.verso ? '#campoVerso' : '#campo'); const ph = s => { if (c) c.placeholder = s; };
-  const pular = ['Pular', '', 'ntPular()'];
   switch (p) {
-    case 'cliente': ph('Nome do cliente…'); return ntFala('<b>De qual cliente?</b>', ntChipsClientes('').concat([['Sem cliente (SD)', '', "ntEscolhe('cliente',null)"]]));
-    case 'produto': { const ps = ntProdutos(NT.d.client && NT.d.client.id); if (!ps.length){ NT.d.product = null; return ntPergunta('projeto'); } ph('Produto…'); return ntFala('<b>De qual produto?</b>', ntChipsProdutos().concat([['Cliente inteiro', '', "ntEscolhe('produto',null)"]])); }
-    case 'projeto': { ph('Projeto (ex.: LANÇAMENTO, SOCIAL)…'); const recentes = ntProjetos(NT.d.client && NT.d.client.id); return ntFala('<b>Em qual projeto?</b>', recentes.map(x => [x, '', `ntEscolhe('projeto','${esc(x)}')`]).concat([['GERAL', '', "ntEscolhe('projeto','GERAL')"]])); }
-    case 'resp': ph('Quem cuida…'); return ntFala('<b>Quem cuida?</b>', ntChipsEquipe());
-    case 'date_int': ph('amanhã · sexta · 15/11 · em 3 dias'); return ntFala('<b>Entrega interna</b> (quando a equipe precisa ter pronto)?', [['Amanhã', '', "ntEscolhe('date_int','amanhã')"], ['Sexta', '', "ntEscolhe('date_int','sexta')"], ['Em 1 semana', '', "ntEscolhe('date_int','em 7 dias')"], pular]);
-    case 'date_cli': ph('amanhã · sexta · 15/11'); return ntFala('<b>Data para o cliente</b> (quando ele recebe)?', [['Mesmo dia', '', "ntEscolhe('date_cli','igual')"], ['+2 dias', '', "ntEscolhe('date_cli','+2')"], pular]);
-    case 'links': ph('Cola links, ou escreve "pula"'); return ntFala('<b>Tem arquivo ou link?</b> Cola aqui os links. Arquivos você sobe na tarefa, logo depois de criar.', [pular]);
-    case 'obs': ph('Detalhes, briefing, o que não pode faltar…'); return ntFala('<b>Mais detalhes?</b> Briefing, referências, o que não pode faltar. Ou pula.', [pular]);
-    case 'revisar': ph('"criar", ou escreva mais algum detalhe'); return ntFala(ntCardHtml(ntPreview()) + '<div class="nota" style="margin-top:6px">Está certo? Escreva mais detalhes se quiser; eles entram na tarefa.</div>', [['Criar tarefa', 'verde', 'ntCriar()'], ['Trocar cliente', '', "ntPergunta('cliente')"], ['Trocar responsável', '', "ntPergunta('resp')"], ['Cancelar', '', 'ntCancelar()']]);
+    case 'cliente': ph('Nome do cliente…'); return ntFala('Pra qual cliente?', ntChipsClientes('').concat([['SD (sem cliente)', '', "ntEscolhe('cliente',null)"]]));
+    case 'produto': ph('Produto…'); return ntFala('Qual produto?', ntChipsProdutos().concat([['Cliente todo', '', "ntEscolhe('produto',null)"]]));
+    case 'resp': ph('Quem cuida…'); return ntFala('Quem cuida?', ntChipsEquipe());
+    case 'date_int': ph('amanhã · sexta · 15/11 · em 3 dias'); return ntFala('Pra quando?', [['Hoje', '', "ntEscolhe('date_int','hoje')"], ['Amanhã', '', "ntEscolhe('date_int','amanhã')"], ['Sexta', '', "ntEscolhe('date_int','sexta')"], ['Sem data', '', "ntEscolhe('date_int',null)"]]);
+    case 'extra': ph('Links ou detalhes — ou aperte Criar'); return ntFala(`<span class="nota">${esc(ntResumo())}</span><br>Algum link ou detalhe?`, [['Criar tarefa', 'verde', 'ntResponder("criar")'], ['Cancelar', '', 'ntCancelar()']]);
   }
 }
-function ntPular(){ ntEu('pula'); const i = NT_PASSOS.indexOf(NT.passo); if (NT.passo === 'cliente') NT.d.client = null; ntPergunta(NT_PASSOS[Math.min(i + 1, NT_PASSOS.length - 1)]); }
+function ntPular(){ ntResponder('pula'); }
 function ntEscolhe(campo, v){
-  if (campo === 'cliente'){ NT.d.client = v ? clientesReais.find(c => c.id === v) || null : null; ntEu(NT.d.client ? NT.d.client.name : 'Sem cliente'); return ntPergunta('produto'); }
-  if (campo === 'produto'){ const ps = ntProdutos(NT.d.client && NT.d.client.id); NT.d.product = v ? ps.find(p => p.id === v) || null : null; ntEu(NT.d.product ? NT.d.product.name : 'Cliente inteiro'); return ntPergunta('projeto'); }
-  if (campo === 'projeto'){ NT.d.project = v; ntEu(v); return ntPergunta('resp'); }
-  if (campo === 'resp'){ NT.d.resp = v; ntEu(v); return ntPergunta('date_int'); }
-  if (campo === 'date_int'){ NT.d.date_int = ntData(v); ntEu(fmtD(NT.d.date_int)); return ntPergunta('date_cli'); }
-  if (campo === 'date_cli'){ NT.d.date_cli = v === 'igual' ? NT.d.date_int : (v === '+2' ? ntMaisDias(NT.d.date_int, 2) : ntData(v)); ntEu(fmtD(NT.d.date_cli)); return ntPergunta('links'); }
+  if (campo === 'cliente'){ NT.d.client = v ? clientesReais.find(c => c.id === v) || null : null; ntEu(NT.d.client ? NT.d.client.name : 'SD'); }
+  else if (campo === 'produto'){ NT.d.product = v ? ntProdutos(NT.d.client && NT.d.client.id).find(p => p.id === v) || null : null; ntEu(NT.d.product ? NT.d.product.name : 'Cliente todo'); }
+  else if (campo === 'resp'){ NT.d.resp = v; const p = (PERFIS || []).find(x => chaveDe(x) === v); ntEu(p ? p.name.split(' ')[0] : v); }
+  else if (campo === 'date_int'){ NT.d.date_int = v ? ntData(v) : null; ntEu(v ? fmtD(NT.d.date_int) : 'Sem data'); }
+  return ntProximo();
 }
 
 // ---- autopreenchimento
@@ -115,6 +126,8 @@ function ntCardHtml(t){
 // ---- grava
 async function ntCriar(){
   if (!NT.ativa) return; const d = NT.d; if (!d.action) return ntPergunta('acao');
+  if (!d.project){ const pj = ntProjetos(d.client && d.client.id)[0]; d.project = (Array.isArray(pj) ? pj[0] : pj) || 'GERAL'; }
+  if (!d.date_cli && d.date_int) d.date_cli = d.date_int;
   ntFala('Criando…');
   try {
     const { data: nid, error: eid } = await sbR.rpc('next_task_id'); if (eid || !nid) throw new Error(eid?.message || 'sem id novo');
