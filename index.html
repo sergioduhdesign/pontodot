@@ -10696,7 +10696,7 @@ function popupIframe(url, titulo){
   const verbo = String(titulo || '').split(' — ')[0];
   const nome = t ? t.action : String(titulo || '');
   const sub = t ? [tid, t.clients && t.clients.name, t.products && t.products.name].filter(Boolean).join(' · ') : (tid || '');
-  abrirJanela(`<div data-sem-fio style="background:#F4F3EF;color:#15161A;height:100%;display:flex;flex-direction:column;border-radius:18px;overflow:hidden">
+  abrirJanela(`<div data-sem-fio class="sem-ajuda" style="background:#F4F3EF;color:#15161A;height:100%;display:flex;flex-direction:column;border-radius:18px;overflow:hidden">
     <div style="display:flex;align-items:center;gap:14px;padding:16px 20px 12px;border-bottom:.5px solid rgba(0,0,0,.1)">
       <img src="/assets/logo-pontodot.svg" alt="PD" style="height:26px;flex-shrink:0">
       <div style="flex:1;min-width:0"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.5">${esc(verbo)}</div>
