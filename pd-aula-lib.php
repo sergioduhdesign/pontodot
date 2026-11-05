@@ -420,7 +420,9 @@ function pdAulaValidar($id, $decisao, $parecer, $porId, $licaoRegra = null) {
     $teste = ($a['modo'] ?? '') === 'teste';
     if ($decisao === 'revisar' && !$teste) {
         $cor = (array)$a['correcoes']; if ($cor) { $k = count($cor) - 1; $cor[$k]['humano'] = mb_substr((string)$parecer, 0, 800); }
-        pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', ['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1, 'max_rodadas' => max((int)$a['max_rodadas'], (int)$a['rodada'] + 1), 'nota_final' => null]);
+        $prox = count($cor) + 1; $ctx = (array)($a['contexto'] ?? []); $ctx['inicio'] = gmdate('c');
+        pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($id), 'PATCH', ['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => $prox, 'max_rodadas' => max((int)$a['max_rodadas'], $prox), 'nota_final' => null, 'entregue_em' => null, 'pendencias' => null, 'prazo' => function_exists('pdAulaDocPrazo') ? pdAulaDocPrazo() : null, 'contexto' => $ctx]);
+        if (function_exists('pdAulaSincroniza')) pdAulaSincroniza($id);
         return true;
     }
     $aprovar = $decisao === 'aprovar';

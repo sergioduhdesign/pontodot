@@ -146,12 +146,13 @@ if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por perso
             'task_id' => $a['task_id'], 'cliente' => $a['clients']['name'] ?? '', 'origem' => $a['origem'], 'prazo' => $a['prazo'], 'entregue_em' => $a['entregue_em'], 'pendencias' => $a['pendencias'], 'criada_em' => $a['criada_em'], 'decisao' => $a['parecer_humano'],
             'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultima_toda' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 12000), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 3000),
             'estado' => $a['contexto']['estado'] ?? null, 'pasta' => $a['chamado']['folderUrl'] ?? null, 'notas' => array_map(fn($c) => ['r' => (int)($c['rodada'] ?? 0), 'nota' => round((float)($c['nota'] ?? 0)), 'ressalva' => !empty($c['ressalva'])], $cor),
+            'pareceres' => array_map(fn($c) => ['r' => (int)($c['rodada'] ?? 0), 'nota' => round((float)($c['nota'] ?? 0)), 'fortes' => mb_substr((string)($c['fortes'] ?? ''), 0, 1500), 'problemas' => mb_substr((string)($c['feedback'] ?? ''), 0, 4000), 'em' => $c['em'] ?? null, 'humano' => $c['humano'] ?? null], $cor),
             'tipo' => $ehArte ? 'arte' : 'documento', 'set_aula_id' => $ehArte ? ($a['contexto']['set_aula_id'] ?? null) : null, 'pecas' => $ehArte ? count((array)($a['contexto']['pecas'] ?? [])) : null,
             'thumbs_pd' => $ehArte ? ($pdThumbs[$a['id']] ?? array_values(array_map(fn($pc) => ['url' => $pc['url'], 'titulo' => $pc['titulo'] ?? '', 'kind' => $pc['kind'] ?? ''], (array)((end($ent) ?: [])['pecas'] ?? [])))) : null,
             'thumbs_master' => $ehArte && !empty($a['task_id']) ? ($masterThumbs[$a['task_id']] ?? []) : null]; }
     $placar = [];
     foreach ($pl as $x) { $n = count($x['notas_r1']); $m = $n ? array_sum($x['notas_r1']) / $n : null; $rec = array_slice($x['notas_r1'], 0, 5); $ant = array_slice($x['notas_r1'], 5, 5);   // lista vem do mais novo
-        $placar[] = ['personagem' => $x['personagem'], 'skill_id' => $x['skill_id'], 'aulas' => $x['aulas'], 'nota_r1_media' => $m !== null ? round($m, 1) : null, 'nota_r1_recente' => $rec ? round(array_sum($rec) / count($rec), 1) : null, 'nota_r1_anterior' => $ant ? round(array_sum($ant) / count($ant), 1) : null,
+        $placar[] = ['serie' => array_reverse($x['notas_r1']), 'personagem' => $x['personagem'], 'skill_id' => $x['skill_id'], 'aulas' => $x['aulas'], 'nota_r1_media' => $m !== null ? round($m, 1) : null, 'nota_r1_recente' => $rec ? round(array_sum($rec) / count($rec), 1) : null, 'nota_r1_anterior' => $ant ? round(array_sum($ant) / count($ant), 1) : null,
             'rodadas_ate_ok' => $x['rodadas_ok'] ? round(array_sum($x['rodadas_ok']) / count($x['rodadas_ok']), 1) : null]; }
     echo json_encode(['ok' => true, 'aulas' => $lista, 'placar' => $placar], JSON_UNESCAPED_UNICODE); exit;
 }
