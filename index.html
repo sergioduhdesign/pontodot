@@ -6656,11 +6656,13 @@ function htmlEscola(){
   const abas = [['cursos','Cursos']];
   if (HUM){ ESH.aba = 'cursos'; ESH.msg = ''; }
   if (!HUM && P.acompanhar) abas.push(['evolucao','Evolução'], ['receita','Receita'], ['marcos','Marcos']);
+  if (!HUM && (P.admin || P.acompanhar)) abas.push(['aulas','Aulas']);
   if (!HUM && P.admin) abas.push(['fila','Decidir']);
   if (!abas.some(a => a[0] === ESH.aba)) ESH.aba = 'cursos';
   const bar = HUM ? '' : `<div class="esc-bt" style="margin:0 0 8px">${abas.map(a => `<button class="btn" style="min-height:32px;padding:5px 11px;font-size:11px;${ESH.aba === a[0] ? 'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700' : ''}" onclick="eshAba('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
   const msg = ESH.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESH.msg)}</div>` : '';
   const ic = k => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${ICONE_CURSO[k] || ICONE_CURSO.estrela}</svg>`;
+  if (ESH.aba === 'aulas'){ setTimeout(abrirAulas, 0); ESH.aba = 'cursos'; }
   if (ESH.aba === 'fila' && P.admin) return htmlEscolaAdmin(bar);
   if (ESH.aba === 'cursos'){
     const fam = {}; (D.cursos || []).forEach(c => { (fam[c.familia] = fam[c.familia] || []).push(c); });
