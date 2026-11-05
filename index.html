@@ -10525,6 +10525,7 @@ async function abrirTarefaReal(id){
   const tempo = t.total_seconds ? ` · <span style="font-variant-numeric:tabular-nums">${Math.floor(t.total_seconds/3600)}h${String(Math.floor(t.total_seconds%3600/60)).padStart(2,'0')} trabalhadas</span>` : '';
   // tudo que a caixa antiga tinha, aqui e editável: clica no campo e muda
   const campo9 = (r,v,click,tip)=>`<div class="tc-camp${click?' edit':''}"${click?` onclick="${click.replace(/"/g,'&quot;')}" title="${tip||'Toca pra editar'}"`:''}><span>${r}</span><b>${v||'—'}</b></div>`;
+  const ehAdm = !!(perfil && (perfil.is_admin || perfil.role === 'admin' || /sergio|sérgio/i.test(perfil.name || '')));
   const rodando = !!sessAbertas[t.id];
   el.innerHTML = `
   <div class="caixa tc-caixa invertida cp tcn">
