@@ -2505,7 +2505,7 @@ pdAbertura(false);
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
 <script src="/js/pd-ajuda.js?v=327"></script>
-<script src="/js/pd-tarefa-nova.js?v=3" defer></script>
+<script src="/js/pd-tarefa-form.js?v=1" defer></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
@@ -8125,7 +8125,7 @@ function abrirMenuMais(bt, lado){
   const velho = document.getElementById('menuMais'); if (velho){ velho.remove(); return; }
   const m = document.createElement('div'); m.id = 'menuMais';
   const ia = esc(typeof nomeDaIA === 'function' ? nomeDaIA() : 'sua IA');
-  m.innerHTML = `<button onclick="fecharMenuMais();ntIniciar()"><b>Criar tarefa</b><small>${ia} pergunta e monta a tarefa com você</small></button>
+  m.innerHTML = `<button onclick="fecharMenuMais();abrirNovaTarefa()"><b>Criar tarefa</b><small>caixa com os campos para preencher</small></button>
     <button onclick="fecharMenuMais();novoChat()"><b>Falar com ${ia}</b><small>conversa nova</small></button>`;
   document.body.appendChild(m);
   const r = bt ? bt.getBoundingClientRect() : { right: innerWidth - 12, top: innerHeight - 70 };
@@ -8206,7 +8206,7 @@ function abrirSala(){
   }
   ov.style.display = 'flex';
 }
-function menuNovaTarefa(){ abrirNovaTarefaCaixa(); }
+function menuNovaTarefa(){ abrirNovaTarefa(); }
 function menuCheio(prep){
   let m = $('#menuCheio');
   if (!m){ m = document.createElement('div'); m.id = 'menuCheio'; document.body.appendChild(m); }
