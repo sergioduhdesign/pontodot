@@ -259,4 +259,89 @@ if ($acao === 'resumo_admin') {   // histórico de todas as IAs + média de apro
         $ias[] = ['dona' => $nm[$f['ia_user_id']] ?? '', 'personagem' => $f['personagem'], 'skill_id' => $f['skill_id'], 'ativa' => (bool)$f['ativa'], 'apta' => !empty($f['apta_em']), 'provas' => $v['f'], 'aprovadas' => $v['b'] ?? 0]; }
     echo json_encode(['cursos' => $cursos, 'ias' => $ias], JSON_UNESCAPED_UNICODE); exit;
 }
+
+// ======================= BASTIDORES DA ESCOLA (admin): skills = aulas reais =======================
+function pdEscSkillId($nome) { $x = strtoupper(trim(preg_replace('/[^A-Za-z0-9]+/', '_', iconv('UTF-8', 'ASCII//TRANSLIT', $nome)), '_')); return mb_substr($x ?: 'SKILL', 0, 40); }
+function pdEscSkillLimpa($b) {
+    $lst = function($v, $n = 12) { $o = []; foreach ((array)$v as $x) { $x = mb_substr(trim((string)(is_array($x) ? ($x['criterio'] ?? json_encode($x, JSON_UNESCAPED_UNICODE)) : $x)), 0, 300); if ($x !== '') $o[] = $x; } return array_slice($o, 0, $n); };
+    return ['nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 90), 'finalidade' => mb_substr(trim((string)($b['finalidade'] ?? '')), 0, 800), 'entradas' => $lst($b['entradas'] ?? []),
+        'metodo' => mb_substr(trim((string)($b['metodo'] ?? '')), 0, 6000), 'criterios' => $lst($b['criterios'] ?? [], 15), 'limites' => mb_substr(trim((string)($b['limites'] ?? '')), 0, 1500)];
+}
+if (in_array($acao, ['esc_skills', 'esc_skill_salvar', 'esc_skill_pausar', 'esc_skill_apagar', 'esc_skill_doc', 'esc_aluno', 'esc_ias'], true)) {
+    if (!$ehAdmin) sd_fail('Só admin.', 403);
+    $enc = fn($x) => urlencode((string)$x);
+    if ($acao === 'esc_skills') {
+        $hs = pdAulaSup('/rest/v1/pd_habilidades?select=*&order=skill_id.asc,versao.desc&limit=2000');
+        if (($hs['code'] ?? 500) >= 300) sd_fail('Rode o SQL v166 no Supabase.', 500);
+        $forms = pdAulaSup('/rest/v1/pd_formacoes?select=id,ia_user_id,personagem,skill_id,ativa,apta_em,criada_em&limit=2000')['body'] ?? [];
+        $jeito = pdAulaSup('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=300')['body'] ?? []; $jm = []; foreach ($jeito as $j) $jm[$j['user_id']] = $j;
+        $pf = pdAulaSup('/rest/v1/profiles?select=id,name&limit=300')['body'] ?? []; $nm = []; foreach ($pf as $p) $nm[$p['id']] = $p['name'];
+        $aulas = pdAulaSup('/rest/v1/pd_aulas?modo=neq.teste&select=skill_id,status&limit=5000')['body'] ?? []; $ac = [];
+        foreach ($aulas as $a) { $k = $a['skill_id']; $ac[$k]['t'] = ($ac[$k]['t'] ?? 0) + 1; if ($a['status'] === 'validada') $ac[$k]['v'] = ($ac[$k]['v'] ?? 0) + 1; }
+        $cat = pdPersonagens(); $por = [];
+        foreach ($hs['body'] as $h) { $k = $h['skill_id']; if (!isset($por[$k])) $por[$k] = ['atual' => $h, 'versoes' => []]; $por[$k]['versoes'][] = ['versao' => $h['versao'], 'criada_em' => $h['criada_em'], 'notas' => $h['notas_versao'] ?? '', 'origem' => $h['origem'] ?? '']; }
+        $out = [];
+        foreach ($por as $k => $v) { $h = $v['atual']; $al = [];
+            foreach ($forms as $f) if ($f['skill_id'] === $k) { $j = $jm[$f['ia_user_id']] ?? []; $pers = strtolower(trim((string)($j['personagem'] ?? $f['personagem'])));
+                $al[] = ['id' => $f['id'], 'ia_user_id' => $f['ia_user_id'], 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'dona' => $nm[$f['ia_user_id']] ?? '', 'ativa' => (bool)$f['ativa'], 'apta' => !empty($f['apta_em'])]; }
+            $out[] = ['skill_id' => $k, 'versao' => $h['versao'], 'nome' => $h['nome'], 'finalidade' => $h['finalidade'], 'entradas' => $h['entradas'], 'metodo' => $h['metodo'], 'criterios' => $h['criterios'], 'limites' => $h['limites'],
+                'pausada' => !empty($h['pausada']), 'origem' => $h['origem'] ?? '', 'versoes' => $v['versoes'], 'alunos' => $al, 'aulas' => $ac[$k]['t'] ?? 0, 'validadas' => $ac[$k]['v'] ?? 0]; }
+        echo json_encode(['skills' => $out], JSON_UNESCAPED_UNICODE); exit;
+    }
+    if ($acao === 'esc_ias') {   // todas as IAs da casa, para inscrever
+        $jeito = pdAulaSup('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=300')['body'] ?? [];
+        $pf = pdAulaSup('/rest/v1/profiles?select=id,name,role,active&limit=300')['body'] ?? []; $nm = []; foreach ($pf as $p) $nm[$p['id']] = $p;
+        $cat = pdPersonagens(); $o = [];
+        foreach ($jeito as $j) { if (trim((string)$j['personagem']) === '') continue; $p = $nm[$j['user_id']] ?? null; if (!$p || ($p['active'] ?? true) === false) continue; $pers = strtolower(trim((string)$j['personagem']));
+            $o[] = ['ia_user_id' => $j['user_id'], 'personagem' => $pers, 'nome' => trim((string)$j['apelido']) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'dona' => $p['name']]; }
+        echo json_encode(['ias' => $o], JSON_UNESCAPED_UNICODE); exit;
+    }
+    if ($acao === 'esc_skill_salvar') {   // cria skill nova (sem skill_id) ou MELHORA uma existente (nova versão; a anterior fica no histórico)
+        $d = pdEscSkillLimpa($b); if ($d['nome'] === '' || $d['finalidade'] === '' || $d['metodo'] === '') sd_fail('Preencha nome, finalidade e método.');
+        if (count($d['criterios']) < 2) sd_fail('Coloque pelo menos 2 critérios observáveis.');
+        $sid = strtoupper(preg_replace('/[^A-Za-z0-9_]/', '', (string)($b['skill_id'] ?? ''))); $ver = 1;
+        if ($sid !== '') { $m = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&select=versao,pausada&order=versao.desc&limit=1')['body'][0] ?? null; if (!$m) sd_fail('Skill não encontrada.'); $ver = (int)$m['versao'] + 1; $pausada = !empty($m['pausada']);
+            pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid), 'PATCH', ['ativa' => false]); }
+        else { $sid = pdEscSkillId($d['nome']); $ja = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&select=skill_id&limit=1')['body'][0] ?? null; if ($ja) $sid .= '_' . substr(md5((string)microtime(true)), 0, 4); $pausada = false; }
+        $r = pdAulaSup('/rest/v1/pd_habilidades', 'POST', ['skill_id' => $sid, 'versao' => $ver, 'nome' => $d['nome'], 'finalidade' => $d['finalidade'], 'entradas' => $d['entradas'], 'metodo' => $d['metodo'], 'criterios' => $d['criterios'], 'limites' => $d['limites'],
+            'ativa' => !$pausada, 'pausada' => $pausada, 'origem' => in_array($b['origem'] ?? '', ['doc', 'manual'], true) ? $b['origem'] : 'manual', 'notas_versao' => mb_substr((string)($b['notas'] ?? ''), 0, 500), 'criada_por' => $u['id']]);
+        if (($r['code'] ?? 500) >= 300) sd_fail('Não salvou a skill: ' . mb_substr(json_encode($r['body'] ?? '', JSON_UNESCAPED_UNICODE), 0, 200), 500);
+        echo json_encode(['ok' => true, 'skill_id' => $sid, 'versao' => $ver]); exit;
+    }
+    if ($acao === 'esc_skill_pausar') {   // parar / voltar a skill inteira (nenhuma aula nova nasce enquanto pausada)
+        $sid = (string)($b['skill_id'] ?? ''); $pz = !empty($b['pausada']);
+        $m = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&select=versao&order=versao.desc&limit=1')['body'][0] ?? null; if (!$m) sd_fail('Skill não encontrada.');
+        pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid), 'PATCH', ['ativa' => false, 'pausada' => $pz]);
+        if (!$pz) pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&versao=eq.' . (int)$m['versao'], 'PATCH', ['ativa' => true]);
+        echo json_encode(['ok' => true]); exit;
+    }
+    if ($acao === 'esc_skill_apagar') {
+        $sid = (string)($b['skill_id'] ?? ''); if ($sid === '' || empty($b['confirmo'])) sd_fail('Confirme para apagar.');
+        pdAulaSup('/rest/v1/pd_formacoes?skill_id=eq.' . $enc($sid), 'DELETE');
+        pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid), 'DELETE');
+        echo json_encode(['ok' => true]); exit;
+    }
+    if ($acao === 'esc_aluno') {   // {skill_id, ia_user_id, fazer: matricular|parar|retomar|remover}
+        $sid = (string)($b['skill_id'] ?? ''); $ia = (string)($b['ia_user_id'] ?? ''); $fz = (string)($b['fazer'] ?? '');
+        if ($fz === 'matricular') { $ok = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&select=skill_id,pausada&order=versao.desc&limit=1')['body'][0] ?? null; if (!$ok) sd_fail('Skill não encontrada.'); if (!empty($ok['pausada'])) sd_fail('Esta skill está parada. Volte com ela antes de inscrever.');
+            $je = pdAulaSup('/rest/v1/pd_jeito?user_id=eq.' . $enc($ia) . '&select=personagem&limit=1')['body'][0] ?? null; if (!$je) sd_fail('Essa IA ainda não existe.');
+            pdFormacaoMatricula($ia, (string)$je['personagem'], $sid); }
+        elseif ($fz === 'parar' || $fz === 'retomar') pdAulaSup('/rest/v1/pd_formacoes?ia_user_id=eq.' . $enc($ia) . '&skill_id=eq.' . $enc($sid), 'PATCH', ['ativa' => $fz === 'retomar']);
+        elseif ($fz === 'remover') pdAulaSup('/rest/v1/pd_formacoes?ia_user_id=eq.' . $enc($ia) . '&skill_id=eq.' . $enc($sid), 'DELETE');
+        else sd_fail('Ação inválida.');
+        echo json_encode(['ok' => true]); exit;
+    }
+    if ($acao === 'esc_skill_doc') {   // um doc (feito com Claude/GPT) vira PROPOSTA de skill: nova, ou melhoria de uma existente. Só propõe; quem salva é esc_skill_salvar.
+        $doc = trim((string)($b['texto'] ?? '')); if (mb_strlen($doc) < 80) sd_fail('O documento está vazio ou curto demais.'); $doc = mb_substr($doc, 0, 40000);
+        $sid = strtoupper(preg_replace('/[^A-Za-z0-9_]/', '', (string)($b['skill_id'] ?? ''))); $atual = null;
+        if ($sid !== '') { $atual = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid) . '&select=*&order=versao.desc&limit=1')['body'][0] ?? null; if (!$atual) sd_fail('Skill não encontrada.'); }
+        $sys = "Você transforma um documento de conhecimento em uma SKILL de IA para uma agência de branding do mercado imobiliário. Responda SOMENTE um JSON: {\"nome\":\"\",\"finalidade\":\"1-2 frases\",\"entradas\":[\"o que precisa chegar\"],\"metodo\":\"passos e o que a IA decide sozinha, em texto corrido organizado\",\"criterios\":[\"critério observável de revisão\"],\"limites\":\"o que exige humano\",\"notas\":\"o que esta versão traz de novo (1 frase)\"}. Use SOMENTE o que está no documento; não invente regras. Critérios: de 3 a 8, verificáveis. Português do Brasil.";
+        $usr = $atual ? "SKILL ATUAL (versão {$atual['versao']}):\n" . json_encode(['nome' => $atual['nome'], 'finalidade' => $atual['finalidade'], 'entradas' => $atual['entradas'], 'metodo' => $atual['metodo'], 'criterios' => $atual['criterios'], 'limites' => $atual['limites']], JSON_UNESCAPED_UNICODE) . "\n\nDOCUMENTO NOVO (melhore a skill com ele; devolva a skill COMPLETA já mesclada, sem perder o que continua valendo):\n" . $doc
+                : "DOCUMENTO (crie uma skill nova a partir dele):\n" . $doc;
+        [$t, $custo, $erro] = pdClaude($sys, $usr, 3500); pdIncubSoma((float)$custo);
+        $j = $t ? pdJson($t) : null; if (!$j || empty($j['nome'])) sd_fail('Não consegui ler o documento como skill' . ($erro ? ': ' . $erro : '') . '.', 502);
+        echo json_encode(['ok' => true, 'proposta' => pdEscSkillLimpa($j) + ['notas' => mb_substr((string)($j['notas'] ?? ''), 0, 500)], 'skill_id' => $sid ?: null, 'versao_atual' => $atual['versao'] ?? null], JSON_UNESCAPED_UNICODE); exit;
+    }
+}
+
 sd_fail('Ação desconhecida.');

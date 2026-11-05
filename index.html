@@ -6646,7 +6646,7 @@ function htmlEscola(){
       return `<div class="esc-it"><button class="esc-fila" style="margin:0;background:none;padding:0;border:0" onclick="eshAbre('${esc(c.slug)}')"><span style="display:flex;gap:10px;align-items:center">${ic(c.icone)}<span><b>${esc(c.titulo || c.nome)}</b><br><small style="opacity:.7">${esc(c.nome)}${c.personagem ? ' · com ' + esc(c.personagem.charAt(0).toUpperCase() + c.personagem.slice(1)) : ''}</small></span></span><span class="esc-apta" style="${pronto ? '' : 'background:rgba(128,128,128,.45)'}">${pronto && !HUM ? (c.alunos || 0) + ' aluna(s)' : 'em breve'}</span></button>
         ${aberto ? `<div class="nota" style="line-height:1.5;margin-top:8px">${c.descricao ? esc(c.descricao) + '<br><br>' : ''}<b>O que a IA treina:</b> ${esc(c.exercicio || '—')}<br><br>${c.evidencia ? '<b>Como se vê que aprendeu:</b> ' + esc(c.evidencia) + '<br><br>' : ''}${c.transferencia ? '<b>Prova de transferência:</b> ' + esc(c.transferencia) + '<br><br>' : ''}${crit ? '<b>Critérios (peso):</b> ' + crit + '<br><br>' : ''}${c.responsavel ? '<b>Responsável:</b> ' + esc(c.responsavel) + (c.vagas ? ' · ' + c.vagas + ' vagas' : '') + '<br><br>' : ''}${pronto && sks.length ? (P.matricular ? sks.map(k => minhaSk.has(k) ? `<small>✓ ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)} — já matriculada</small><br>` : `<button class="btn" style="min-height:34px;padding:6px 12px;font-size:11.5px;margin:2px 4px 2px 0" onclick="eshMatricula('${esc(k)}')">Matricular minha IA · ${esc(((D.habilidades || []).find(h => h.skill_id === k) || {}).nome || k)}</button>`).join('') : '<small>Para matricular a sua IA, peça a liberação ao administrador.</small>') : '<small>Este curso ainda está em preparação.</small>'}</div>` : ''}</div>`;
     }).join('')).join('');
-    return gadCaixa('Escola das IAs', bar + msg + corpo, P.admin ? ['Gerenciar (admin)', 'abrirSala()'] : null);
+    return gadCaixa('Escola das IAs', bar + msg + corpo, P.admin ? ['Bastidores da escola (admin)', 'abrirEscolaBastidores()'] : null);
   }
   if (!M) return gadCaixa('Escola das IAs', bar + msg + `<div class="nota" style="line-height:1.5">A sua IA ainda não existe. Faça a matrícula inicial (“Minha IA”) para começar.</div>`);
   if (ESH.aba === 'evolucao'){
@@ -8183,6 +8183,7 @@ function abrirVendas(carteira){
     <div class="tc-topo" style="padding:10px 12px 0"><span class="tc-id" style="align-self:center;color:rgba(255,255,255,.6)">PD · Dig</span><button class="fechar" style="color:#fff" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <iframe title="Dig" src="vendas.html?v=${encodeURIComponent(window.SD_VERSAO || Date.now())}${carteira !== undefined ? '&cart=' + encodeURIComponent(carteira) : ''}" style="flex:1;border:0;width:100%;min-height:0;background:transparent" allowtransparency="true"></iframe></div>`, true);
 }
+function abrirEscolaBastidores(){ popupIframe('/escola-bastidores.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()), 'Escola — bastidores'); }
 function abrirSala(){
   let ov = document.getElementById('salaOv');
   if (!ov){
