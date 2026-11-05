@@ -5,6 +5,7 @@
 require_once __DIR__ . '/pd-aula-lib.php';
 require_once __DIR__ . '/pd-aula-doc-lib.php';
 require_once __DIR__ . '/pd-lib.php';
+require_once __DIR__ . '/pd-elenco-lib.php';
 $u = sd_current_user(); $b = sd_body(); $acao = (string)($b['acao'] ?? 'inicio');
 @set_time_limit(60);
 $ehAdmin = $u['role'] === 'admin';
@@ -141,6 +142,34 @@ if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por perso
         $placar[] = ['personagem' => $x['personagem'], 'skill_id' => $x['skill_id'], 'aulas' => $x['aulas'], 'nota_r1_media' => $m !== null ? round($m, 1) : null, 'nota_r1_recente' => $rec ? round(array_sum($rec) / count($rec), 1) : null, 'nota_r1_anterior' => $ant ? round(array_sum($ant) / count($ant), 1) : null,
             'rodadas_ate_ok' => $x['rodadas_ok'] ? round(array_sum($x['rodadas_ok']) / count($x['rodadas_ok']), 1) : null]; }
     echo json_encode(['ok' => true, 'aulas' => $lista, 'placar' => $placar], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'escola_config') {   // a caixa de configuração da escola (ler); salvar só admin
+    $c = pdIncub() ?: []; $campos = ['ativa', 'sandbox', 'nota_minima', 'teto_gasto_dia', 'gasto_hoje', 'chamados_dia', 'professor_modo', 'hora_professora', 'hora_virada', 'max_rodadas_noite', 'teto_noite', 'fins_de_semana', 'aula_arte_ligada', 'teste_confirmado_em'];
+    $cfg = []; foreach ($campos as $k) $cfg[$k] = $c[$k] ?? null;
+    $hoje = date('Y-m-d', time() - 3 * 3600);
+    $or = pdAulaSup('/rest/v1/pd_orientacoes?ativa=eq.true&select=id,texto,escopo,client_id,de,ate,via,criado_em,clients(name),profiles:criado_por(name)&order=criado_em.desc&limit=60')['body'] ?? [];
+    $sk = pdAulaSup('/rest/v1/pd_habilidades?ativa=eq.true&select=skill_id,nome&order=skill_id')['body'] ?? [];
+    echo json_encode(['ok' => true, 'config' => $cfg, 'orientacoes' => array_values(array_filter((array)$or, 'is_array')), 'habilidades' => $sk, 'hoje' => $hoje, 'admin' => $ehAdmin], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'escola_config_salvar') {
+    if (!$ehAdmin) sd_fail('Só admin configura a escola.', 403);
+    $d = []; foreach (['hora_professora', 'hora_virada'] as $k) if (isset($b[$k]) && preg_match('/^\d{2}:\d{2}$/', (string)$b[$k])) $d[$k] = $b[$k];
+    foreach (['max_rodadas_noite', 'chamados_dia'] as $k) if (isset($b[$k])) $d[$k] = max(1, min(10, (int)$b[$k]));
+    foreach (['teto_noite', 'teto_gasto_dia', 'nota_minima'] as $k) if (isset($b[$k]) && is_numeric($b[$k])) $d[$k] = (float)$b[$k];
+    foreach (['fins_de_semana', 'aula_arte_ligada', 'ativa', 'sandbox'] as $k) if (array_key_exists($k, $b)) $d[$k] = !empty($b[$k]);
+    if (!$d) sd_fail('Nada para salvar.', 400);
+    $r = pdAulaSup('/rest/v1/pd_incubacao?id=eq.1', 'PATCH', $d); if (($r['code'] ?? 500) >= 300) sd_fail('Não salvou (o SQL v164 já rodou?).', 500);
+    echo json_encode(['ok' => true]); exit;
+}
+if ($acao === 'orientacao_salvar') {
+    if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
+    $m = pdOrientar((string)($b['texto'] ?? ''), $u['id'], 'painel', $b['ate'] ?? null, (string)($b['cliente'] ?? ''), $b['de'] ?? null);
+    echo json_encode(['ok' => strpos($m, '✅') === 0, 'msg' => $m], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'orientacao_apagar') {
+    if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
+    $id = (string)($b['id'] ?? ''); if (!preg_match('/^[0-9a-f-]{36}$/i', $id)) sd_fail('Id inválido.', 400);
+    pdAulaSup('/rest/v1/pd_orientacoes?id=eq.' . $id, 'PATCH', ['ativa' => false]); echo json_encode(['ok' => true]); exit;
 }
 if ($acao === 'aula_decidir') {   // Sérgio decide a lição: aprovar | revisar | reprovar (+ parecer, + regra editada)
     if (!$ehAdmin) sd_fail('Só admin decide a aula.', 403);

@@ -45,9 +45,19 @@ function pdAulaDocContextoTexto($ctx) {
     return implode("\n\n", $L);
 }
 /** A virada de dia: amanhã às 07:00 (America/Sao_Paulo); se já passou das 07:00 de hoje e ainda é madrugada, hoje mesmo. */
-function pdAulaDocPrazo() {
-    $tz = new DateTimeZone('America/Sao_Paulo'); $d = new DateTime('now', $tz); $h = (int)$d->format('G');
-    if ($h >= 7) $d->modify('+1 day'); $d->setTime(7, 0, 0); $d->setTimezone(new DateTimeZone('UTC')); return $d->format('c');
+function pdAulaDocCfg() { $c = pdIncub() ?: []; return ['hora_professora' => substr((string)($c['hora_professora'] ?? '20:00'), 0, 5), 'hora_virada' => substr((string)($c['hora_virada'] ?? '07:00'), 0, 5), 'max' => max(1, (int)($c['max_rodadas_noite'] ?? 3)), 'teto_noite' => (float)($c['teto_noite'] ?? 10), 'fds' => !array_key_exists('fins_de_semana', $c) || !empty($c['fins_de_semana'])]; }
+function pdAulaDocPrazo() {   // a virada de dia: a próxima hora_virada depois da hora_professora
+    $cfg = pdAulaDocCfg(); [$hv, $mv] = array_map('intval', explode(':', $cfg['hora_virada'] . ':0'));
+    $tz = new DateTimeZone('America/Sao_Paulo'); $d = new DateTime('now', $tz);
+    if ((int)$d->format('G') * 60 + (int)$d->format('i') >= $hv * 60 + $mv) $d->modify('+1 day'); $d->setTime($hv, $mv, 0);
+    if (!$cfg['fds']) while (in_array((int)$d->format('N'), [6, 7], true)) $d->modify('+1 day');
+    $d->setTimezone(new DateTimeZone('UTC')); return $d->format('c');
+}
+function pdAulaDocInicio() {   // quando a PD manda a aula à professora: a próxima hora_professora (hoje, se ainda não passou)
+    $cfg = pdAulaDocCfg(); [$hp, $mp] = array_map('intval', explode(':', $cfg['hora_professora'] . ':0'));
+    $tz = new DateTimeZone('America/Sao_Paulo'); $d = new DateTime('now', $tz);
+    if ((int)$d->format('G') * 60 + (int)$d->format('i') >= $hp * 60 + $mp) return gmdate('c');   // já é noite: vai agora
+    $d->setTime($hp, $mp, 0); $d->setTimezone(new DateTimeZone('UTC')); return $d->format('c');
 }
 
 /** Cria a aula a partir do documento e já manda o aviso à professora. */
@@ -59,13 +69,15 @@ function pdAulaDocCriar($criadoPor, $personagem, $texto, $clientId = null, $task
     if (!$sk) return ['ok' => false, 'msg' => 'habilidade ' . $skill . ' não cadastrada (rode o SQL v163)'];
     $ctx = pdAulaDocContexto($clientId, $taskId, $afinacao, $extra);
     $ex = ['autor' => 'job real', 'cliente_real' => $ctx['cliente'], 'brief' => $ctx['tarefa']['briefing'] ?? '', 'tarefa' => $ctx['tarefa']['id'] ?? null, 'criterios' => $sk['criterios'] ?? [], 'skill_versao' => $sk['versao'] ?? 1];
-    $r = pdAulaSup('/rest/v1/pd_aulas', 'POST', ['ia_user_id' => $criadoPor, 'personagem' => $personagem, 'skill_id' => $skill, 'modo' => 'job', 'tipo' => 'documento', 'status' => 'em_correcao', 'rodada' => 1, 'max_rodadas' => 3,
+    $inicio = pdAulaDocInicio(); $agora = $inicio <= gmdate('c');
+    $r = pdAulaSup('/rest/v1/pd_aulas', 'POST', ['ia_user_id' => $criadoPor, 'personagem' => $personagem, 'skill_id' => $skill, 'modo' => 'job', 'tipo' => 'documento', 'status' => 'em_correcao', 'rodada' => 1, 'max_rodadas' => pdAulaDocCfg()['max'],
         'exercicio' => $ex, 'entregas' => [['rodada' => 1, 'texto' => $texto, 'em' => gmdate('c'), 'por' => 'documento original']], 'task_id' => $taskId, 'client_id' => preg_match('/^[0-9a-f-]{36}$/i', (string)$clientId) ? $clientId : null,
-        'doc_id' => preg_match('/^[0-9a-f-]{36}$/i', (string)$docId) ? $docId : null, 'origem' => $origem, 'contexto' => $ctx, 'prazo' => pdAulaDocPrazo(), 'criada_por' => $criadoPor, 'dia' => date('Y-m-d', time() - 3 * 3600)], ['Prefer: return=representation']);
+        'doc_id' => preg_match('/^[0-9a-f-]{36}$/i', (string)$docId) ? $docId : null, 'origem' => $origem, 'contexto' => $ctx + ['inicio' => $inicio], 'prazo' => pdAulaDocPrazo(), 'criada_por' => $criadoPor, 'dia' => date('Y-m-d', time() - 3 * 3600)], ['Prefer: return=representation']);
     $a = $r['body'][0] ?? null; if (!$a) return ['ok' => false, 'msg' => 'não consegui gravar a aula (' . ($r['code'] ?? '?') . '). O SQL v163 já rodou?'];
     if ($taskId) { if (!function_exists('pdEvento')) require_once __DIR__ . '/pd-lib.php'; pdEvento($taskId, 'aula', 'Documento em aula com a professora', 'Até 3 rodadas esta noite. De manhã a versão final volta para esta tarefa.', 'Escola', 'robo', ['aula_id' => $a['id']]); }
+    if (!$agora) return ['ok' => true, 'aula_id' => $a['id'], 'prazo' => $a['prazo'], 'inicio' => $inicio, 'msg' => 'Aula criada; a professora recebe o aviso às ' . pdAulaDocCfg()['hora_professora'] . '.', 'aviso' => true];
     $e = pdProfessorEnviar($a, $sk, pdIncub() ?: ['nota_minima' => 85], true);
-    return ['ok' => true, 'aula_id' => $a['id'], 'prazo' => $a['prazo'], 'msg' => 'Aula criada. ' . ($e['msg'] ?? ''), 'aviso' => !empty($e['ok'])];
+    return ['ok' => true, 'aula_id' => $a['id'], 'prazo' => $a['prazo'], 'inicio' => $inicio, 'msg' => 'Aula criada. ' . ($e['msg'] ?? ''), 'aviso' => !empty($e['ok'])];
 }
 
 /** A aluna refaz o documento a partir do parecer (e da afinação). Devolve [texto, erro]. */
@@ -89,6 +101,7 @@ function pdAulaDocPasso($a) {
     if ($a['status'] === 'em_exercicio') {       // a aluna refaz com o último parecer
         $ent = (array)$a['entregas']; if (count($ent) >= (int)$a['rodada']) { $patch(['status' => 'em_correcao']); return ['ok' => true, 'msg' => 'rodada ' . $a['rodada'] . ' já tinha versão']; }
         if (!pdIncubTemTeto()) return ['ok' => false, 'msg' => 'teto de gasto do dia'];
+        $c0 = pdIncub() ?: []; if ((float)($c0['gasto_hoje'] ?? 0) >= pdAulaDocCfg()['teto_noite']) return ['ok' => false, 'msg' => 'teto da noite atingido (US$ ' . pdAulaDocCfg()['teto_noite'] . ')'];
         $cor = (array)$a['correcoes']; $uc = $cor ? end($cor) : null; $fb = $uc ? (($uc['texto_do_professor'] ?: $uc['feedback']) . (!empty($uc['humano']) ? "\n\nCOMENTÁRIO DO SÉRGIO (prioridade máxima):\n" . $uc['humano'] : '')) : 'Revise com rigor pelos critérios.';
         [$txt, $err] = pdAulaDocRefazer($a, $fb); if (!$txt) return ['ok' => false, 'msg' => 'a aluna não refez: ' . $err];
         $ent[] = ['rodada' => (int)$a['rodada'], 'texto' => $txt, 'em' => gmdate('c'), 'por' => $a['personagem']];
@@ -130,6 +143,7 @@ function pdAulaDocRelogio() {
     foreach ((array)$as as $a) {
         try {
             $vencida = !empty($a['prazo']) && $a['prazo'] <= $agora;
+            if (!$vencida && !empty($a['contexto']['inicio']) && $a['contexto']['inicio'] > $agora && $a['status'] !== 'validacao_humana') continue;   // ainda não é hora da professora
             if ($vencida || $a['status'] === 'validacao_humana') { $msg[] = pdAulaDocEntregar($a, $vencida ? 'Virada de dia.' : 'A professora aprovou.'); continue; }
             for ($i = 0; $i < 2; $i++) { $r = pdAulaDocPasso($a); if (!empty($r['msg'])) $msg[] = substr($a['id'], 0, 8) . ': ' . $r['msg']; if (empty($r['ok'])) break;
                 $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($a['id']) . '&select=*')['body'][0] ?? $a; if (!empty($a['entregue_em']) || $a['status'] === 'validacao_humana') break; }

@@ -30,9 +30,34 @@ function pdElencoTexto($acoes = true) {
     $t .= "- Cada pessoa da equipe também tem a IA parceira dela (veja time_e_suas_ias). Pedir algo a essa IA é levar o recado à pessoa, pela IA dela.\n";
     if ($acoes) $t .= "COMO PEDIR A OUTRA IA: se o trabalho é do papel de outra IA, você encaminha (não diz que não sabe quem é, e não faz de conta que fez). No WhatsApp e no chat escreva a ação delegar: ##ACAO## {\"tipo\":\"delegar\",\"para\":\"tumi\",\"pedido\":\"o que fazer, completo\",\"cliente\":\"opcional\",\"quantos\":5}. "
         . "Quando a pessoa disser \"pede pro Tumi...\", \"passa pra Sumi\", \"vê isso com a Muru\" ou der entrada num trabalho que cabe no papel de uma delas, delegue para ela. "
-        . "Se você mesma é a IA do papel, é seu: faça. Nunca diga que alguém \"não está na equipe\": as IAs da casa são parte da equipe.";
+        . "Se você mesma é a IA do papel, é seu: faça. Nunca diga que alguém \"não está na equipe\": as IAs da casa são parte da equipe. "
+        . "ORIENTAÇÃO PARA TODAS AS IAs: quando a pessoa pedir para avisar/lembrar as IAs de uma regra válida por um tempo (\"a partir de agora não citem o sócio X\", \"em novembro é Novembro Azul\", \"esse mês nada de promessa de valorização\"), guarde com ##ACAO## {\"tipo\":\"orientar\",\"texto\":\"a regra, clara\",\"ate\":\"AAAA-MM-DD ou vazio\",\"cliente\":\"nome do cliente ou vazio\"} — ela passa a valer para todas as IAs da casa (ou só para aquele cliente).";
     else $t .= "Se o pedido cabe no papel de outra IA, diga com naturalidade quem é ela e onde pedir (no painel dela ou pelo WhatsApp da equipe); você conhece todas e fala delas como colegas. Nunca diga que alguém \"não está na equipe\".";
+    $t .= pdOrientacoesTexto();
     return $t;
+}
+/** Orientações vigentes da casa (painel › Escola, zap ou chat): valem hoje, para todas as IAs; as de cliente citam o cliente. */
+function pdOrientacoesTexto($clientId = null) {
+    if (!function_exists('sd_supabase')) return '';
+    static $cache = null; if ($cache === null) {
+        $hoje = date('Y-m-d', time() - 3 * 3600);
+        $r = sd_supabase('/rest/v1/pd_orientacoes?ativa=eq.true&or=(de.is.null,de.lte.' . $hoje . ')&select=texto,escopo,client_id,ate,clients(name)&order=criado_em.desc&limit=40');
+        $cache = []; foreach ((array)($r['body'] ?? []) as $o) if (is_array($o) && (empty($o['ate']) || $o['ate'] >= $hoje)) $cache[] = $o;
+    }
+    $l = array_filter($cache, fn($o) => $o['escopo'] === 'todas' || !$clientId || $o['client_id'] === $clientId); if (!$l) return '';
+    $t = "\nORIENTAÇÕES VIGENTES DA CASA (valem hoje; aplique sem citar que são orientações):\n";
+    foreach ($l as $o) $t .= '- ' . ($o['escopo'] === 'cliente' && !empty($o['clients']['name']) ? '[' . $o['clients']['name'] . '] ' : '') . trim($o['texto']) . (!empty($o['ate']) ? ' (até ' . date('d/m', strtotime($o['ate'])) . ')' : '') . "\n";
+    return $t;
+}
+/** Guarda uma orientação (painel, zap ou chat). Devolve texto de confirmação. */
+function pdOrientar($texto, $porId, $via = 'painel', $ate = null, $clienteNome = '', $de = null) {
+    $texto = trim((string)$texto); if (mb_strlen($texto) < 6) return '⚠️ Orientação curta demais.';
+    $cid = null; if ($clienteNome !== '') { $c = sd_supabase('/rest/v1/clients?select=id,name&name=ilike.*' . rawurlencode($clienteNome) . '*&limit=1'); $cid = $c['body'][0]['id'] ?? null; }
+    $row = ['texto' => mb_substr($texto, 0, 600), 'escopo' => $cid ? 'cliente' : 'todas', 'client_id' => $cid, 'via' => $via, 'criado_por' => $porId,
+        'de' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$de) ? $de : null, 'ate' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$ate) ? $ate : null];
+    $r = sd_supabase('/rest/v1/pd_orientacoes', 'POST', $row);
+    if (($r['code'] ?? 500) >= 300) return '⚠️ Não consegui guardar a orientação (o SQL v164 já rodou?).';
+    return '✅ Orientação guardada para ' . ($cid ? 'o cliente ' . $clienteNome : 'todas as IAs') . ($row['ate'] ? ' até ' . date('d/m', strtotime($row['ate'])) : '') . ': "' . mb_substr($texto, 0, 120) . '". Está no painel › Escola › Configuração.';
 }
 // "tumi", "Tumi Tua", "a Sumi" → id do papel da casa; senão null
 function pdElencoBusca($q) {

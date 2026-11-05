@@ -469,6 +469,7 @@ function iaCatalogo($u) {
     $T[] = ['name' => 'lembrete', 'description' => 'Lembrete pra própria pessoa (plataforma + zap). op: criar|cancelar. quando "AAAA-MM-DD HH:MM"; recorrencia nenhuma|diaria|dias_uteis|semanal|mensal (com hora "HH:MM").',
         'input_schema' => $S(['op' => $str, 'texto' => $str, 'quando' => $str, 'recorrencia' => $str, 'hora' => $str, 'id' => ['type' => 'integer']])];
     $T[] = ['name' => 'delegar', 'description' => 'Passa um pedido a outra IA da casa (tumi = captação e pesquisa de mercado; sumi = campanhas; muru = social; gigi = cliente) ou à IA parceira de alguém. Use quando o trabalho cabe no papel dela.', 'input_schema' => $S(['para' => $str, 'pedido' => $str, 'cliente' => $str, 'quantos' => ['type' => 'integer']], ['para', 'pedido'])];
+    $T[] = ['name' => 'orientar', 'description' => 'Guarda uma orientação temporária que passa a valer para TODAS as IAs da casa (ou só para um cliente): regra de período, sócio que saiu, campanha sazonal. ate = AAAA-MM-DD (opcional).', 'input_schema' => $S(['texto' => $str, 'ate' => $str, 'cliente' => $str], ['texto'])];
     $T[] = ['name' => 'recado', 'description' => 'Leva um recado a um colega da equipe pelo WhatsApp (via a IA dele).', 'input_schema' => $S(['para' => $str, 'texto' => $str], ['para', 'texto'])];
     $T[] = ['name' => 'producao', 'description' => 'Fala com a IA de produção da tarefa. op: play (dá start), pausar, retomar, mensagem (texto pra IA aplicar no trabalho), nota (anota na tarefa).', 'input_schema' => $S(['op' => $str, 'id' => $str, 'texto' => $str], ['op', 'id'])];
     if (iaEhAdmin($u) || iaPode($u, 'cliente.criar')) $T[] = ['name' => 'cliente_criar', 'description' => 'Cria um cliente (empresa), com produtos, zap, e-mail de aviso e Gigi (IA de atendimento no zap do cliente).',
@@ -514,6 +515,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'lembrete':        return iaLembrete($args, $u, $lote);
         case 'recado':          return iaRecado($args, $u, $lote);
         case 'delegar':         return iaDelegar($args, $u, $lote);
+        case 'orientar':        return ['texto' => pdOrientar($args['texto'] ?? '', $u['id'] ?? null, 'chat', $args['ate'] ?? null, (string)($args['cliente'] ?? '')), 'ids' => []];
         case 'producao':        return iaProducao($args, $u, $lote);
         case 'cliente_criar':   return iaClienteCriar($args, $u, $lote);
         case 'cliente_editar':  return iaClienteEditar($args, $u, $lote);

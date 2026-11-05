@@ -1012,6 +1012,7 @@ function pdZapRetro($a) {
 function pdZapAcao($a, $p, $statusValidos) {
     if (($a['tipo'] ?? '') === 'recado') return pdZapRecado($a, $p);
     if (($a['tipo'] ?? '') === 'delegar') return pdDelegar($a, $p);
+    if (($a['tipo'] ?? '') === 'orientar') return pdOrientar($a['texto'] ?? '', $p['id'] ?? null, 'zap', $a['ate'] ?? null, (string)($a['cliente'] ?? ''));
     // mesmo motor do chat da plataforma (pd-ia-lib.php): mesmos campos, mesma conferência, mesmo registro pra desfazer
     require_once __DIR__ . '/pd-ia-lib.php';
     $loteZ = sprintf('%08x-%04x-4%03x-%04x-%012x', mt_rand(0, 0xffffffff), mt_rand(0, 0xffff), mt_rand(0, 0xfff), mt_rand(0x8000, 0xbfff), mt_rand(0, 0xffffffffffff));   // uuid: o lote fica em pd_ia_acoes, dá pra desfazer pelo chat da plataforma
