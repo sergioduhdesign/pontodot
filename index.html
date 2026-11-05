@@ -8223,15 +8223,47 @@ function htmlVendas(){
     <div class="ads-tot" style="margin-top:0"><div><small>Novos</small><b>${(d.novos||0).toLocaleString('pt-BR')}</b></div>
       <div><small>Em conversa</small><b>${d.engajados||0}</b></div>
       <div><small>Ganhos</small><b>${d.ganhos||0}</b></div></div>
+    ${(d.entregas || []).length ? '<div class="ads-sec">Entregas do Tumi</div>' + d.entregas.slice(0, 5).map(e => `<div class="ads-linha" style="cursor:default;align-items:flex-start">${av({ logo:e.logo, cor:e.cor, nome:e.cliente })}
+      <div class="c" style="min-width:0"><div class="n" style="cursor:pointer" onclick="abrirVendas('${e.cart || ''}','${e.lote}')">${esc(e.cliente)} · <b>${e.n} empresa${e.n === 1 ? '' : 's'}</b></div><div class="d">${esc(e.motivo)} · ${new Date(e.em).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>
+        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><button class="btn cp-b" style="min-height:26px;padding:3px 10px;font-size:11px" onclick="abrirVendas('${e.cart || ''}','${e.lote}')">Ver</button><button class="btn cp-b" style="min-height:26px;padding:3px 10px;font-size:11px" onclick="venExporta('${e.lote}','xlsx')">Excel</button><button class="btn cp-b" style="min-height:26px;padding:3px 10px;font-size:11px" onclick="venExporta('${e.lote}','pdf')">PDF</button></div></div></div>`).join('') : ''}
     ${linhas ? '<div class="ads-sec">Carteiras</div>' + linhas : '<div class="nota" style="margin:8px 0 0;line-height:1.5">Nenhum lead ainda. Suba uma base ou peça pra IA achar.</div>'}
     ${d.sem_sql ? '<div class="nota" style="margin-top:6px">Falta rodar o SQL v147.</div>' : ''}`,
     ['Abrir o Dig', 'abrirVendas()']);
 }
-function abrirVendas(carteira){
+async function venExporta(lote, fmt){
+  toast('Preparando…');
+  try { const { data:{ session } } = await sbR.auth.getSession();
+    const r = await fetch('/pd-vendas.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'exportar', lote, cart:'todas' }) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || 'servidor ' + r.status);
+    const L = j.linhas || []; if (!L.length){ toast('Nenhuma empresa neste lote.'); return; }
+    const nome = ('Dig — ' + (j.cliente || '') + ' — ' + new Date().toLocaleDateString('pt-BR')).replace(/[\/:*?"<>|]/g, '-');
+    if (fmt === 'xlsx'){
+      if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+      const H = ['Empresa','Site','Cidade','Segmento','Porte','Nota','Estágio','Por que é um bom lead','Próximo passo','Contato','Cargo','E-mail','WhatsApp','Instagram'];
+      const rows = L.map(x => [x.empresa, x.site, x.cidade, x.segmento, x.porte, x.nota, x.estagio, x.por_que, x.proximo_passo, x.contato, x.cargo, x.email, x.zap, x.instagram]);
+      const ws = XLSX.utils.aoa_to_sheet([[j.cliente || 'Dig'], [j.titulo || ''], [], H, ...rows]); ws['!cols'] = [28, 28, 16, 18, 10, 6, 11, 50, 30, 20, 16, 26, 16, 18].map(w => ({ wch:w }));
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Empresas'); XLSX.writeFile(wb, nome + '.xlsx'); return; }
+    // PDF bonito: página própria da casa, pronta pra imprimir/salvar
+    const w = window.open('', '_blank'); const cor = v => v == null ? '#999' : v >= 60 ? '#11BA98' : v >= 40 ? '#E0B342' : '#E6557A';
+    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(nome)}</title><style>
+      @page{size:A4 landscape;margin:14mm}body{font:12px/1.45 "Inter Tight",Inter,system-ui,sans-serif;color:#15161A;margin:0;padding:28px 34px}
+      .top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1.5px solid #15161A;padding-bottom:12px;margin-bottom:18px}.top img{height:26px}
+      h1{font-size:26px;font-weight:300;letter-spacing:-.02em;margin:6px 0 2px}.sub{font-size:12px;color:#666;max-width:720px}
+      .it{display:grid;grid-template-columns:44px 1fr 1.2fr 220px;gap:14px;padding:12px 0;border-bottom:.5px solid #ddd;break-inside:avoid}
+      .nota{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:600;font-size:14px}
+      .nm{font-size:15px;font-weight:600}.meta{color:#666;font-size:11.5px;margin-top:2px}.pq{font-size:12px}.ct{font-size:11.5px;color:#333}.ct b{display:block}
+      .rod{margin-top:22px;font-size:10.5px;color:#888;display:flex;justify-content:space-between}
+      @media print{button{display:none}}</style></head><body>
+      <div class="top"><div><img src="${location.origin}/assets/logo-pontodot.svg" alt="pontodot"><h1>Dig · ${esc(j.cliente || '')}</h1><div class="sub">${esc(j.titulo || '')}</div></div><div style="text-align:right;font-size:11.5px;color:#666">${L.length} empresas<br>${new Date().toLocaleDateString('pt-BR')}<br><button onclick="print()" style="margin-top:8px;font:inherit;padding:6px 14px;border-radius:999px;border:.5px solid #15161A;background:#15161A;color:#fff;cursor:pointer">Salvar em PDF</button></div></div>
+      ${L.map(x => `<div class="it"><div class="nota" style="background:${cor(x.nota)}">${x.nota ?? '–'}</div><div><div class="nm">${esc(x.empresa)}</div><div class="meta">${esc([x.segmento, x.porte, x.cidade].filter(Boolean).join(' · '))}${x.site ? '<br>' + esc(x.site) : ''}</div></div><div class="pq">${esc(x.por_que || '')}${x.proximo_passo ? '<div class="meta">Próximo passo: ' + esc(x.proximo_passo) + '</div>' : ''}</div><div class="ct">${x.contato ? '<b>' + esc(x.contato) + (x.cargo ? ' · ' + esc(x.cargo) : '') + '</b>' : ''}${x.email ? esc(x.email) + '<br>' : ''}${x.zap ? esc(x.zap) + '<br>' : ''}${x.instagram ? esc(x.instagram) : ''}</div></div>`).join('')}
+      <div class="rod"><span>Pontodot · Dig · garimpo do Tumi</span><span>confidencial</span></div></body></html>`); w.document.close();
+  } catch(e){ toast(e.message); }
+}
+function abrirVendas(carteira, lote){
   // abre DENTRO do site (a janela da casa), com o chat e o resto da plataforma por perto — nada de tela por cima
   abrirJanela(`<div class="caixa painel invertida" data-sem-fio style="padding:0;display:flex;flex-direction:column;overflow:hidden;background:#0e100f;color:#fff;border-color:rgba(255,255,255,.28)">
     <div class="tc-topo" style="padding:10px 12px 0"><span class="tc-id" style="align-self:center;color:rgba(255,255,255,.6)">PD · Dig</span><button class="fechar" style="color:#fff" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <iframe title="Dig" src="vendas.html?v=${encodeURIComponent(window.SD_VERSAO || Date.now())}${carteira !== undefined ? '&cart=' + encodeURIComponent(carteira) : ''}" style="flex:1;border:0;width:100%;min-height:0;background:transparent" allowtransparency="true"></iframe></div>`, true);
+    <iframe title="Dig" src="vendas.html?v=${encodeURIComponent(window.SD_VERSAO || Date.now())}${carteira !== undefined ? '&cart=' + encodeURIComponent(carteira || '') : ''}${lote ? '&lote=' + encodeURIComponent(lote) : ''}" style="flex:1;border:0;width:100%;min-height:0;background:transparent" allowtransparency="true"></iframe></div>`, true);
 }
 function abrirEscolaBastidores(){ popupIframe('/escola-bastidores.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()), 'Escola — bastidores'); }
 function abrirSala(){

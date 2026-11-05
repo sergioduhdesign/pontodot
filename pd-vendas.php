@@ -25,7 +25,18 @@ switch ($acao) {
         $r = sd_supabase('/rest/v1/rpc/pd_vendas_resumo', 'POST', new stdClass()); $d = (($r['code'] ?? 500) < 300 && is_array($r['body'])) ? $r['body'] : ['total' => 0, 'novos' => 0, 'engajados' => 0, 'ganhos' => 0, 'caixa' => 0, 'respostas' => 0, 'carteiras' => [], 'sem_sql' => true];
         $cl = []; foreach (vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color')) as $c) $cl[$c['id']] = $c;
         $d['carteiras'] = array_map(fn($x) => $x + ['nome' => $x['id'] ? ($cl[$x['id']]['name'] ?? 'Cliente') : 'Casa', 'logo' => $x['id'] ? ($cl[$x['id']]['logo_url'] ?? null) : null, 'cor' => $x['id'] ? ($cl[$x['id']]['color'] ?? null) : null], (array)($d['carteiras'] ?? []));
+        // ENTREGAS DO TUMI (últimos 14 dias): cada garimpo = um lote "Descoberta …", com o cliente e quantas empresas
+        $lts = vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . rawurlencode(gmdate('c', time() - 14 * 86400)) . '&select=id,nome,motivo,carteira_id,created_at&order=created_at.desc&limit=12')); $ent = [];
+        foreach ($lts as $l) { $n = count(vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=eq.' . $l['id'] . '&select=id&limit=500'))); if (!$n) continue; $c = $l['carteira_id'] ? ($cl[$l['carteira_id']] ?? null) : null;
+            $ent[] = ['lote' => $l['id'], 'cart' => $l['carteira_id'], 'cliente' => $c['name'] ?? 'SD / Stratesign', 'logo' => $c['logo_url'] ?? null, 'cor' => $c['color'] ?? null, 'n' => $n, 'motivo' => mb_substr((string)$l['motivo'], 0, 160), 'em' => $l['created_at']]; }
+        $d['entregas'] = $ent;
         $out($d); break;
+    case 'exportar':   // as empresas de um lote (ou do filtro atual), prontas para Excel / PDF
+        $qs = vdFiltroQs($b, $cart); $rows = vdLinhas(vdSup('/rest/v1/pd_prospects?select=nome,site,cidade,uf,segmento,porte,estagio,nota,angulo,proximo_passo,instagram,zap,lote_id,pd_prospect_contatos(nome,cargo,email,zap)&order=nota.desc.nullslast' . $qs . '&limit=500'));
+        $o = []; foreach ($rows as $r) { $ct = (array)($r['pd_prospect_contatos'] ?? []); $c0 = $ct[0] ?? [];
+            $o[] = ['empresa' => $r['nome'], 'site' => $r['site'], 'cidade' => trim(($r['cidade'] ?? '') . ($r['uf'] ? '/' . $r['uf'] : '')), 'segmento' => $r['segmento'], 'porte' => $r['porte'], 'nota' => $r['nota'], 'estagio' => $r['estagio'], 'por_que' => $r['angulo'], 'proximo_passo' => $r['proximo_passo'], 'contato' => $c0['nome'] ?? '', 'cargo' => $c0['cargo'] ?? '', 'email' => $c0['email'] ?? '', 'zap' => $c0['zap'] ?? ($r['zap'] ?? ''), 'instagram' => $r['instagram']]; }
+        $lt = vdUuid($b['lote'] ?? ''); $lnome = ''; if ($lt) { $lr = vdLinhas(vdSup('/rest/v1/pd_lotes?id=eq.' . $lt . '&select=nome,motivo,carteira_id')); $lnome = $lr[0]['motivo'] ?? ($lr[0]['nome'] ?? ''); $cc = $lr[0]['carteira_id'] ?? null; }
+        $out(['linhas' => $o, 'titulo' => $lnome, 'cliente' => isset($cc) && $cc ? (vdLinhas(vdSup('/rest/v1/clients?id=eq.' . $cc . '&select=name'))[0]['name'] ?? '') : 'SD / Stratesign']); break;
     case 'lotes': $out(['lotes' => vdLinhas(vdSup('/rest/v1/pd_lotes?select=id,nome,motivo,created_at' . ($cart === 'todas' ? '' : '&carteira_id=' . ($cart ? 'eq.' . $cart : 'is.null')) . '&order=created_at.desc&limit=30'))]); break;
     case 'importar_linhas':   // pedaço de planilha grande (o navegador manda de 400 em 400)
         $rows = array_slice((array)($b['rows'] ?? []), 0, 500); $lote = vdUuid($b['lote_id'] ?? '');
