@@ -149,7 +149,7 @@ function pdCorrecaoComoComentario($taskId, $set, $clienteNome) {
 if ($acao === 'cliente_decidiu') {
     $tok = (string)($d['token'] ?? '');
     if (!preg_match('/^[0-9a-fA-F-]{36}$/', $tok)) sd_fail('Link inválido.', 400);
-    $r = sd_supabase('/rest/v1/approval_sets?share_token=eq.' . urlencode($tok) . '&select=id,task_id,title,client_id');
+    $r = sd_supabase('/rest/v1/approval_sets?share_token=eq.' . urlencode($tok) . '&select=id,task_id,title,client_id,created_by');
     $set = $r['body'][0] ?? null;
     if (!$set) sd_fail('Lote não encontrado.', 404);
     $ok = (int)($d['aprovadas'] ?? 0); $aj = (int)($d['ajustes'] ?? 0);
@@ -169,6 +169,20 @@ if ($acao === 'cliente_decidiu') {
     if ($ok) pdAvisarRespDecisao($t, $set, '✓ ' . pdClienteNome($t, $set) . ' aprovou ' . $ok . ' peça(s) em ' . $set['title'], 'aprovacao_ok');
     if (!empty($set['task_id']) && $ok) pdEvento($set['task_id'], 'aprovacao', 'Cliente aprovou ' . $ok . ' peça(s)',
         $aj ? $aj . ' com pedido de ajuste' : null, 'Cliente', 'cliente', ['set_id' => $set['id']]);
+    // AULA DE ARTE EM SEGUNDO PLANO: copy aprovada (lote do pd-copy) → a PD produz a arte em paralelo com o designer. Nunca trava a aprovação.
+    if ($ok && !empty($set['client_id'])) {
+        try {
+            $cpy = sd_supabase('/rest/v1/pd_copys?set_id=eq.' . urlencode($set['id']) . '&select=id,client_id,task_id,criativo_task_id&limit=1')['body'][0] ?? null;
+            if ($cpy) {
+                $its = sd_supabase('/rest/v1/approval_items?set_id=eq.' . urlencode($set['id']) . '&status=eq.aprovado&kind=in.(feed,carrossel,stories,reels)&select=id,kind,title,caption,hashtags&order=position')['body'] ?? [];
+                $cards = []; foreach ((array)$its as $it) { $cap = (string)($it['caption'] ?? ''); $cta = preg_match('/^CTA:\s*(.+)$/mu', $cap, $m) ? trim($m[1]) : ''; $cap = trim(preg_replace('/\n\n\[direção visual\].*$/su', '', preg_replace('/^CTA:.*$/mu', '', $cap)));
+                    $cards[] = ['item_id' => $it['id'], 'kind' => $it['kind'], 'titulo' => preg_replace('/^Dia \d+ · /u', '', (string)$it['title']), 'texto' => $cap, 'cta' => $cta, 'hashtags' => (string)($it['hashtags'] ?? '')]; }
+                if ($cards) { require_once __DIR__ . '/pd-aula-arte-lib.php';
+                    $ra = pdAulaArteCriar($set['created_by'] ?? null, $set['client_id'], $cards, $cpy['criativo_task_id'] ?: ($set['task_id'] ?: null), $set['id']);
+                    if (empty($ra['ok']) && ($ra['msg'] ?? '') !== 'desligada') error_log('aula arte: ' . ($ra['msg'] ?? '?')); }
+            }
+        } catch (Throwable $e) { error_log('aula arte (cliente_decidiu): ' . $e->getMessage()); }
+    }
     echo json_encode(['ok' => true]);
     exit;
 }

@@ -1503,6 +1503,16 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5"><b>WordPress:</b> endereço + senha de aplicativo no cofre + "publica sozinho" = post de blog e capa aprovados vão pro ar sozinhos. <b>HTML / bloco:</b> "Copiar bloco do site" e colar uma vez no site: os posts aprovados aparecem lá sozinhos. Peça kind <b>blog</b> aprovada em lote liberado = post no ar no site do cliente, sozinho. A senha de aplicativo fica no cofre: só o servidor lê.</div>
         </div>
+        <div id="mc-aula-arte" style="display:none">
+          <div class="field-label" style="margin-bottom:8px">Aula de arte (segundo plano)</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="mc-aula-arte-on"> <b>A PD produz a arte em paralelo com o designer</b></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <input id="mc-aula-arte-refs" placeholder="Pasta do Drive com referências (link)" style="flex:2;min-width:180px;height:34px">
+            <input id="mc-aula-arte-tipo" placeholder="Tipologia (loteamento, apartamento…)" style="flex:1;min-width:140px;height:34px">
+            <button class="btn btn-secondary btn-sm" onclick="pdAulaArteSalvar()">Salvar</button>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">Copy aprovada pelo cliente = a PD gera a mesma peça à parte, a professora corrige à noite e de manhã entra um lote <b>AULA</b> (chapéu de aula) para comparar master × PD. O designer não é interrompido. Vale só com a chave geral ligada na Escola (SQL v165).</div>
+        </div>
         <div>
           <div class="field-label" style="margin-bottom:8px">Zap do cliente</div>
           <div style="display:flex;gap:8px">
@@ -7384,6 +7394,12 @@ async function pdPainelCliente(cid){
   document.getElementById('mc-email-aviso').value = (cli&&cli.email_aviso)||'';
   document.getElementById('mc-zap-ativo').checked = !!(cli&&cli.zap_ativo);
   document.getElementById('mc-ia-zap').checked = !!(cli&&cli.ia_zap);
+  // aula de arte em segundo plano (só admin; precisa do SQL v165)
+  try { const aw = document.getElementById('mc-aula-arte'); const temCol = !!(cli && Object.prototype.hasOwnProperty.call(cli, 'aula_arte'));
+    aw.style.display = (profile.role === 'admin' && temCol) ? 'block' : 'none';
+    document.getElementById('mc-aula-arte-on').checked = !!(cli && cli.aula_arte);
+    document.getElementById('mc-aula-arte-refs').value = (cli && cli.aula_arte_refs) || '';
+    document.getElementById('mc-aula-arte-tipo').value = (cli && cli.aula_arte_tipologia) || ''; } catch(e) {}
   // site
   const { data: site } = await sb.from('pd_sites').select('*').eq('client_id', cid).maybeSingle()
     .then(r=>r, ()=>({data:null}));
@@ -7401,6 +7417,17 @@ async function pdPainelCliente(cid){
         onchange="sb.from('pd_esteiras').update({ativa:this.checked}).eq('id',${e.id}).then(()=>showToast('Esteira ${e.ativa?'pausada':'ligada'}.','success'))"> roda</label>
       <button class="btn btn-secondary btn-sm" onclick="pdEsteiraNova(${e.id})">editar</button>
     </div>`).join('') || '<span style="color:var(--text3)">Nenhuma — programe uma vez e ela roda toda semana.</span>';
+}
+async function pdAulaArteSalvar(){
+  if (profile.role !== 'admin') { showToast('Só admin liga a aula de arte.', 'warn'); return; }
+  try {
+    const r = await sdFetch('/pd-escola.php', { acao: 'arte_cliente_salvar', client_id: currentClientId,
+      aula_arte: document.getElementById('mc-aula-arte-on').checked,
+      refs: document.getElementById('mc-aula-arte-refs').value.trim(),
+      tipologia: document.getElementById('mc-aula-arte-tipo').value.trim() });
+    if (!r || !r.ok) throw new Error((r && (r.erro || r.error || r.msg)) || 'não salvou');
+    showToast('Aula de arte salva.', 'success');
+  } catch (e) { showToast('Não salvei: ' + (e.message || e), 'error'); }
 }
 async function pdSiteSalvar(){
   const tipo = document.getElementById('mc-site-tipo').value || null;

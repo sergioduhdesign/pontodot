@@ -821,7 +821,7 @@ function cardHTML(it){
   <div class="ap-card" data-id="${it.id}" data-status="${internoEquipe ? (it.interno_ok ? 'aprovado' : 'pendente') : it.status}">
     <div class="ap-card-top">
       <div class="ap-tags">
-        <span class="ap-kind">${KIND_LABEL[it.kind] || 'Material'}</span>
+        <span class="ap-kind">${KIND_LABEL[it.kind] || 'Material'}</span>${it.aula ? '<span class="ap-kind" style="background:#7c3aed;color:#fff" title="Chapéu de aula: arte feita pela PD na escola">🎓 Aula</span>' : ''}
         <span>${(it.version||1) > 1 ? `<span class="ap-ver" title="Corrigida ${(it.version||1)-1}x">V${it.version}</span>` : ''}<span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span>
       </div>
       ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}

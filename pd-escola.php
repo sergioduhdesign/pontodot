@@ -128,16 +128,26 @@ if ($acao === 'aula_documento') {   // {persona, texto, client_id, task_id, doc_
 }
 if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por persona/habilidade. Só admin e quem tem "acompanhar".
     if (!$perm['admin'] && !$perm['acompanhar']) sd_fail('Sem permissão para acompanhar as aulas.', 403);
-    $as = pdAulaSup('/rest/v1/pd_aulas?tipo=eq.documento&select=id,personagem,skill_id,status,rodada,max_rodadas,entregas,correcoes,nota_final,task_id,client_id,origem,prazo,entregue_em,pendencias,criada_em,parecer_humano,clients(name)&order=criada_em.desc&limit=80')['body'] ?? [];
+    $as = pdAulaSup('/rest/v1/pd_aulas?or=(tipo.eq.documento,and(tipo.eq.arte,modo.eq.job))&select=id,tipo,modo,personagem,skill_id,status,rodada,max_rodadas,entregas,correcoes,nota_final,task_id,client_id,origem,prazo,entregue_em,pendencias,criada_em,parecer_humano,contexto,clients(name)&order=criada_em.desc&limit=80')['body'] ?? [];
     $lista = []; $pl = [];
+    // aulas de arte: as miniaturas da PD (peças do lote de aula) e a "master" (peças aprovadas do designer humano na mesma tarefa, sem chapéu de aula)
+    $arteIds = []; $arteTasks = []; foreach ((array)$as as $a) if (is_array($a) && ($a['tipo'] ?? '') === 'arte') { $arteIds[] = $a['id']; if (!empty($a['task_id'])) $arteTasks[] = $a['task_id']; }
+    $pdThumbs = []; $masterThumbs = [];
+    if ($arteIds) { try { $its = pdAulaSup('/rest/v1/approval_items?aula=eq.true&aula_id=in.(' . implode(',', array_map('urlencode', array_unique($arteIds))) . ')&select=aula_id,media,title,kind,status&order=position&limit=400')['body'] ?? [];
+        foreach ((array)$its as $it) foreach ((array)($it['media'] ?? []) as $m) if (!empty($m['url'])) $pdThumbs[$it['aula_id']][] = ['url' => $m['thumb'] ?? $m['url'], 'titulo' => $it['title'], 'kind' => $it['kind'], 'status' => $it['status']]; } catch (Throwable $e) {} }
+    if ($arteTasks) { try { $its = pdAulaSup('/rest/v1/approval_items?aula=eq.false&status=eq.aprovado&media=not.is.null&approval_sets!inner(task_id)&approval_sets.task_id=in.(' . implode(',', array_map('urlencode', array_unique($arteTasks))) . ')&select=title,kind,media,approval_sets!inner(task_id)&order=position&limit=400')['body'] ?? [];
+        foreach ((array)$its as $it) { $tid = $it['approval_sets']['task_id'] ?? null; if (!$tid) continue; foreach ((array)($it['media'] ?? []) as $m) if (!empty($m['url']) || !empty($m['thumb'])) $masterThumbs[$tid][] = ['url' => $m['thumb'] ?? $m['url'], 'titulo' => $it['title'], 'kind' => $it['kind']]; } } catch (Throwable $e) {} }
     foreach ((array)$as as $a) { if (!is_array($a)) continue;
-        $ent = (array)$a['entregas']; $cor = (array)$a['correcoes']; $r1 = null; $ok = null;
+        $ent = (array)$a['entregas']; $cor = (array)$a['correcoes']; $r1 = null; $ok = null; $ehArte = ($a['tipo'] ?? 'documento') === 'arte';
         foreach ($cor as $c) { if ((int)($c['rodada'] ?? 0) === 1) $r1 = (float)($c['nota'] ?? 0); if (!empty($c['aprovado']) || (float)($c['nota'] ?? 0) >= 85) { $ok = (int)$c['rodada']; break; } }
         $k = $a['personagem'] . '|' . $a['skill_id']; $pl[$k] = $pl[$k] ?? ['personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'aulas' => 0, 'notas_r1' => [], 'rodadas_ok' => [], 'ultimas_r1' => []];
         $pl[$k]['aulas']++; if ($r1 !== null) { $pl[$k]['notas_r1'][] = $r1; } if ($ok) $pl[$k]['rodadas_ok'][] = $ok;
         $lista[] = ['id' => $a['id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'status' => $a['status'], 'rodada' => $a['rodada'], 'max' => $a['max_rodadas'], 'versoes' => count($ent), 'pareceres' => count($cor), 'nota_r1' => $r1, 'nota_final' => $a['nota_final'],
             'task_id' => $a['task_id'], 'cliente' => $a['clients']['name'] ?? '', 'origem' => $a['origem'], 'prazo' => $a['prazo'], 'entregue_em' => $a['entregue_em'], 'pendencias' => $a['pendencias'], 'criada_em' => $a['criada_em'], 'decisao' => $a['parecer_humano'],
-            'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 600)]; }
+            'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 600),
+            'tipo' => $ehArte ? 'arte' : 'documento', 'set_aula_id' => $ehArte ? ($a['contexto']['set_aula_id'] ?? null) : null, 'pecas' => $ehArte ? count((array)($a['contexto']['pecas'] ?? [])) : null,
+            'thumbs_pd' => $ehArte ? ($pdThumbs[$a['id']] ?? array_values(array_map(fn($pc) => ['url' => $pc['url'], 'titulo' => $pc['titulo'] ?? '', 'kind' => $pc['kind'] ?? ''], (array)((end($ent) ?: [])['pecas'] ?? [])))) : null,
+            'thumbs_master' => $ehArte && !empty($a['task_id']) ? ($masterThumbs[$a['task_id']] ?? []) : null]; }
     $placar = [];
     foreach ($pl as $x) { $n = count($x['notas_r1']); $m = $n ? array_sum($x['notas_r1']) / $n : null; $rec = array_slice($x['notas_r1'], 0, 5); $ant = array_slice($x['notas_r1'], 5, 5);   // lista vem do mais novo
         $placar[] = ['personagem' => $x['personagem'], 'skill_id' => $x['skill_id'], 'aulas' => $x['aulas'], 'nota_r1_media' => $m !== null ? round($m, 1) : null, 'nota_r1_recente' => $rec ? round(array_sum($rec) / count($rec), 1) : null, 'nota_r1_anterior' => $ant ? round(array_sum($ant) / count($ant), 1) : null,
@@ -187,6 +197,18 @@ if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_i
 }
 if ($acao === 'masters_salvar') { if (!$ehAdmin) sd_fail('Só admin.', 403); $m = is_array($b['masters'] ?? null) ? array_map(fn($v) => strtolower(preg_replace('/[^a-z]/i', '', (string)$v)), $b['masters']) : []; pdAulaSup('/rest/v1/app_settings?id=eq.1', 'PATCH', ['area_masters' => $m]); echo json_encode(['ok' => true]); exit; }
 if (!$ehAdmin) sd_fail('Só admin.', 403);
+if ($acao === 'arte_clientes') {   // aula de arte em segundo plano: quais clientes entram, referências e tipologia
+    $r = pdAulaSup('/rest/v1/clients?select=id,name,aula_arte,aula_arte_refs,aula_arte_tipologia&order=name&limit=400');
+    if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v165 no Supabase.', 500);
+    $cfg = pdIncub() ?: []; echo json_encode(['ok' => true, 'ligada' => !empty($cfg['aula_arte_ligada']), 'clientes' => array_values(array_filter((array)$r['body'], 'is_array'))], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'arte_cliente_salvar') {   // {client_id, aula_arte, refs, tipologia}
+    $cid = (string)($b['client_id'] ?? ''); if (!preg_match('/^[0-9a-f-]{36}$/i', $cid)) sd_fail('Cliente inválido.');
+    $d = ['aula_arte' => !empty($b['aula_arte']), 'aula_arte_refs' => mb_substr(trim((string)($b['refs'] ?? '')), 0, 500) ?: null, 'aula_arte_tipologia' => mb_substr(trim((string)($b['tipologia'] ?? '')), 0, 80) ?: null];
+    $r = pdAulaSup('/rest/v1/clients?id=eq.' . urlencode($cid), 'PATCH', $d, ['Prefer: return=representation']);
+    if (($r['code'] ?? 500) >= 300) sd_fail('Não salvei (rode o SQL v165 no Supabase): ' . mb_substr((string)($r['raw'] ?? ''), 0, 200), 500);
+    echo json_encode(['ok' => true, 'cliente' => $r['body'][0] ?? null], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'perm_lista') {
     $pf = pdAulaSup('/rest/v1/profiles?active=eq.true&client_id=is.null&select=id,name,role&order=name&limit=100')['body'] ?? [];
     $pm = pdAulaSup('/rest/v1/pd_escola_perm?select=*&limit=200'); if (($pm['code'] ?? 500) >= 300) sd_fail('Rode o SQL v113 no Supabase.', 500);
