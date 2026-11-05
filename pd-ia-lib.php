@@ -416,6 +416,7 @@ function iaClienteEditar($args, $u, $lote) {
 
 // ---- lembrete, recado, produção (mesmas rotinas do zap) ----
 function iaLembrete($args, $u, $lote) { $a = $args; $a['tipo'] = 'lembrete'; return ['texto' => pdZapLembrete($a, $u), 'ids' => []]; }
+function iaEscolaStatus($args, $u, $lote) { return ['texto' => pdEscolaStatus($args, $u), 'ids' => []]; }
 function iaStatusPedidos($args, $u, $lote) { return ['texto' => pdPedidosStatus($args, $u), 'ids' => []]; }
 function iaDelegar($args, $u, $lote) { return ['texto' => pdDelegar($args, $u), 'ids' => []]; }
 function iaRecado($args, $u, $lote) { return ['texto' => pdZapRecado(['para' => $args['para'] ?? '', 'texto' => $args['texto'] ?? ''], $u), 'ids' => []]; }
@@ -471,6 +472,7 @@ function iaCatalogo($u) {
         'input_schema' => $S(['op' => $str, 'texto' => $str, 'quando' => $str, 'recorrencia' => $str, 'hora' => $str, 'id' => ['type' => 'integer']])];
     $T[] = ['name' => 'delegar', 'description' => 'Passa um pedido a outra IA da casa (tumi = captação e pesquisa de mercado; sumi = campanhas; muru = social; gigi = cliente) ou à IA parceira de alguém. Use quando o trabalho cabe no papel dela.', 'input_schema' => $S(['para' => $str, 'pedido' => $str, 'cliente' => $str, 'quantos' => ['type' => 'integer']], ['para', 'pedido'])];
     $T[] = ['name' => 'status_pedidos', 'description' => 'CONFIRMA a solicitação: mostra o estado real dos pedidos passados a outras IAs da casa (na fila, rodando, feito ou erro) e a resposta. Use SEMPRE que alguém perguntar se a Tumi/Sumi/Muru recebeu ou está fazendo algo, em vez de dizer que não tem retorno. para = nome da IA (opcional).', 'input_schema' => $S(['para' => $str])];
+    $T[] = ['name' => 'escola_status', 'description' => 'Estado REAL da Escola das IAs: aulas recentes (status, rodada, nota da professora/GPT) e quantos pedidos de aula nova a professora já entregou ou ainda deve. Use SEMPRE que perguntarem se a professora/GPT voltou, se as aulas rolaram ou como está a escola; nunca diga que não há registro sem consultar.', 'input_schema' => $S(['filtro' => $str])];
     $T[] = ['name' => 'orientar', 'description' => 'Guarda uma orientação temporária que passa a valer para TODAS as IAs da casa (ou só para um cliente): regra de período, sócio que saiu, campanha sazonal. ate = AAAA-MM-DD (opcional).', 'input_schema' => $S(['texto' => $str, 'ate' => $str, 'cliente' => $str], ['texto'])];
     $T[] = ['name' => 'recado', 'description' => 'Leva um recado a um colega da equipe pelo WhatsApp (via a IA dele).', 'input_schema' => $S(['para' => $str, 'texto' => $str], ['para', 'texto'])];
     $T[] = ['name' => 'producao', 'description' => 'Fala com a IA de produção da tarefa. op: play (dá start), pausar, retomar, mensagem (texto pra IA aplicar no trabalho), nota (anota na tarefa).', 'input_schema' => $S(['op' => $str, 'id' => $str, 'texto' => $str], ['op', 'id'])];
@@ -518,6 +520,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'recado':          return iaRecado($args, $u, $lote);
         case 'delegar':         return iaDelegar($args, $u, $lote);
         case 'status_pedidos':  return iaStatusPedidos($args, $u, $lote);
+        case 'escola_status':   return iaEscolaStatus($args, $u, $lote);
         case 'orientar':        return ['texto' => pdOrientar($args['texto'] ?? '', $u['id'] ?? null, 'chat', $args['ate'] ?? null, (string)($args['cliente'] ?? '')), 'ids' => []];
         case 'producao':        return iaProducao($args, $u, $lote);
         case 'cliente_criar':   return iaClienteCriar($args, $u, $lote);

@@ -608,6 +608,17 @@ function pdAcordaRelogio() {
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_NOSIGNAL => 1, CURLOPT_TIMEOUT_MS => 1200, CURLOPT_CONNECTTIMEOUT_MS => 1000]);
         curl_exec($ch); curl_close($ch); } catch (\Throwable $e) {}
 }
+/** ESTADO DA ESCOLA: aulas (professora/GPT), pedidos de currículo abertos/entregues e notas recentes — para a IA responder "a professora voltou?" com fato. */
+function pdEscolaStatus($a, $p) {
+    require_once __DIR__ . '/pd-aula-lib.php';
+    $o = [];
+    $au = pdAulaSup('/rest/v1/pd_aulas?select=personagem,skill_id,status,rodada,nota_final,atualizada_em&order=atualizada_em.desc&limit=8');
+    foreach ((array)($au['body'] ?? []) as $x) $o[] = '• Aula ' . ucfirst((string)$x['personagem']) . ' · ' . $x['skill_id'] . ' · ' . $x['status'] . ' (rodada ' . (int)$x['rodada'] . (isset($x['nota_final']) ? ', nota ' . $x['nota_final'] : '') . ') · ' . date('d/m H:i', strtotime((string)$x['atualizada_em']) - 3 * 3600);
+    $cu = pdAulaSup('/rest/v1/pd_curriculo_pedidos?select=titulo,status,erro,criado_em,entregue_em&order=criado_em.desc&limit=40'); $c = ['pedido' => 0, 'entregue' => 0, 'rejeitado' => 0]; $ult = [];
+    foreach ((array)($cu['body'] ?? []) as $x) { $c[$x['status']] = ($c[$x['status']] ?? 0) + 1; if ($x['status'] === 'entregue' && count($ult) < 4) $ult[] = $x['titulo']; }
+    $o[] = '• Currículo (aulas novas pedidas à professora): ' . $c['pedido'] . ' aguardando, ' . $c['entregue'] . ' entregues' . ($ult ? ' (' . implode(', ', $ult) . ')' : '') . ($c['rejeitado'] ? ', ' . $c['rejeitado'] . ' rejeitadas' : '');
+    return "🎓 Estado da escola agora:\n" . implode("\n", $o) . "\nObs.: pedido aguardando = e-mail enviado ao GPT, sem AULA.json de volta ainda. A PD reenvia todo dia cedo e confere a cada 5 min.";
+}
 /** CONFIRMAR SOLICITAÇÃO: estado real dos pedidos entre IAs (novo → em andamento → feito/erro), com a resposta. */
 function pdPedidosStatus($a, $p) {
     $para = pdElencoBusca(trim((string)($a['para'] ?? ''))) ?: '';
@@ -1034,6 +1045,7 @@ function pdZapAcao($a, $p, $statusValidos) {
     if (($a['tipo'] ?? '') === 'recado') return pdZapRecado($a, $p);
     if (($a['tipo'] ?? '') === 'delegar') return pdDelegar($a, $p);
     if (($a['tipo'] ?? '') === 'status_pedidos') return pdPedidosStatus($a, $p);
+    if (($a['tipo'] ?? '') === 'escola_status') return pdEscolaStatus($a, $p);
     if (($a['tipo'] ?? '') === 'orientar') return pdOrientar($a['texto'] ?? '', $p['id'] ?? null, 'zap', $a['ate'] ?? null, (string)($a['cliente'] ?? ''));
     // mesmo motor do chat da plataforma (pd-ia-lib.php): mesmos campos, mesma conferência, mesmo registro pra desfazer
     require_once __DIR__ . '/pd-ia-lib.php';
