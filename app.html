@@ -3647,6 +3647,7 @@ function escMitologia(){
       <div class="mt-tit"><h2>Catum</h2><small>Universo Monema · ficção</small></div></div>
     <div class="mt-c">
       <div>
+        <h3 style="margin:0 0 12px;font-size:36px;font-weight:400;line-height:1.1">Monema</h3>
         <p class="mt-lead">Monema é o universo. Ele abriga três mundos construídos para existir em relação: Amae, Yorrum e Catum. A nossa história começa em Catum.</p>
         <p>Cada mundo é uma esfera, como uma câmara de experimento, protegida por uma bolha de energia impenetrável. Lá dentro a gravidade é invertida: o chão fica na face de dentro, e o céu é o que se vê olhando para o centro.</p>
         <p>Do céu de Catum, Amae e Yorrum aparecem como suas <b>duas luas</b>. São os outros dois mundos, vistos de longe.</p>
@@ -3666,9 +3667,9 @@ function escMitologia(){
       <p class="mt-fic">Catum é ficção. As cenas, os personagens e as conversas não existem fora da escola.</p>
     </div>
   </article>`;
-  document.body.appendChild(d);
+  document.body.appendChild(d); document.documentElement.style.overflow = 'hidden';
 }
-function escFecharMito(){ document.getElementById('esc-mito')?.remove(); }
+function escFecharMito(){ document.getElementById('esc-mito')?.remove(); document.documentElement.style.overflow = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharMito(); });
 function escFecharZoom(){ const d = document.getElementById('esc-zoom'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharZoom(); });
