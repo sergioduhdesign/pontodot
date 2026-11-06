@@ -60,6 +60,10 @@
     .cm .cm-it:hover,.cm .cm-esc:hover{background:rgba(255,255,255,.08)}
     .cm textarea,.cm input[type=text],.cm .cm-busca input{background:rgba(255,255,255,.07)!important;color:#F2F2EE!important;border-color:rgba(242,242,238,.25)!important}
     .cm-pilha .cm-av{border-color:#17191a}
+    .cm-tit{display:flex;align-items:center;gap:10px;min-width:0;flex:1;cursor:pointer;padding:2px 4px;border-radius:12px}.cm-tit:hover{background:rgba(255,255,255,.06)}
+    .cm-tit .cm-pilha{flex:0 0 auto}.cm-tit .t{min-width:0;display:block}.cm-tit h3{font-size:18px;margin:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cm-tit small{display:block;font-size:12px;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cm-gridp{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px 8px;margin:6px 0 8px}.cm-gridp .gp{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:none;border:0;color:inherit;font:inherit;cursor:default;padding:4px 0}.cm-gridp .gp b{font-weight:500;font-size:13px}.cm-gridp .gp small{font-size:11px;opacity:.55;margin-top:-3px}.cm-gridp .gp.add{cursor:pointer}
+    .cm-lin{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 4px;border:0;border-top:.5px solid rgba(242,242,238,.1);background:none;color:inherit;font:inherit;font-size:14.5px;cursor:pointer}.cm-lin>svg,.cm-lin>:first-child{width:22px;text-align:center;flex:0 0 22px}.cm-lin span{flex:1}.cm-lin em{font-style:normal;font-size:12px;opacity:.5}.cm-lin:hover{background:rgba(255,255,255,.05)}
     .cm-grade{flex:1;min-height:0;display:grid;grid-template-columns:150px minmax(0,1fr) 216px}
     .cm-gente{overflow-y:auto;padding:6px 8px 10px 14px;border-right:.5px solid rgba(242,242,238,.1);scrollbar-width:thin}
     .cm-gente .p{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px;opacity:.92}.cm-gente .p small{display:block;font-size:10.5px;opacity:.5;line-height:1.1}.cm-gente .p span.t{min-width:0}
@@ -68,7 +72,8 @@
     .cm-ad-img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.04);display:block}
     .cm-ad-tx b{display:block;font-weight:600;font-size:15px;line-height:1.25}.cm-ad-tx p{margin:6px 0 4px;font-size:13px;opacity:.85}.cm-ad-tx u{text-decoration:none;color:#ffc83d}.cm-ad-tx small{display:block;opacity:.55;font-size:11px;margin-bottom:10px}
     .cm-ad-tx button{width:100%;height:38px;border-radius:999px;border:0;background:#F2F2EE;color:#111;font:inherit;font-weight:600;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 12px;box-sizing:border-box}
-    @media(max-width:1000px){.cm-grade{grid-template-columns:minmax(0,1fr)}.cm-curso{display:none}.cm-gente{display:flex;flex-wrap:wrap;gap:4px 12px;border-right:0;padding:0 16px 6px;overflow:visible}.cm-gente .p small{display:none}.cm-gente .p{font-size:12px}}
+    @media(max-width:1000px){.cm-grade{grid-template-columns:minmax(0,1fr)}.cm-curso{display:none}.cm-gente{display:none}}
+    @media(max-width:700px){.cm-tit .cm-pilha .cm-av:nth-child(n+2){display:none}}
     @media(max-width:700px){.cm-m{max-width:94%}.cm-cab h3{font-size:19px}}`;
     document.head.appendChild(s);
   }
@@ -134,11 +139,10 @@
   function chat(){
     const R = raiz(); if (!R) return; const d = CM.dados, c = d.comit, fechado = c.status === 'fechado';
     const dono = c.criado_por === meuId() || d.admin;
-    R.innerHTML = `<div class="cm-cab"><button class="cm-ib" onclick="CMvolta()" aria-label="Voltar">‹</button><h3>${E(c.titulo)}${fechado ? ' · fechado' : ''}</h3>
-        <button class="cm-ib" title="Buscar nesta conversa" onclick="CMbuscaAqui()">⌕</button>
-        ${dono ? `<button class="cm-ib" title="${c.publico ? 'Pública — tornar particular' : 'Particular — tornar pública'}" onclick="CMpublico()">${c.publico ? GLOBO : CADEADO}</button>` : ''}
-        ${d.admin ? `<button class="cm-ib" title="Histórico de ações" onclick="CMlog()">⟲</button>` : ''}
-        ${d.admin ? (fechado ? `<button class="cm-ib" title="Reabrir" onclick="CMfecharAbrir('reabrir')">↺</button>` : `<button class="cm-ib" title="Fechar comit (o histórico fica)" onclick="CMfecharAbrir('fechar')">✓</button>`) : ''}
+    CM.info = false; const nomes = d.membros.map(m => String(m.nome).split(' ')[0]).join(', ');
+    R.innerHTML = `<div class="cm-cab"><button class="cm-ib" onclick="CMvolta()" aria-label="Voltar">‹</button>
+        <div class="cm-tit" role="button" tabindex="0" onclick="CMinfo()" title="Dados do comit"><span class="cm-pilha">${d.membros.slice(0, 3).map(m => bolinha(m.nome, m.tipo, 32)).join('')}</span><span class="t"><h3>${E(c.titulo)}${fechado ? ' · fechado' : ''}</h3><small>${E(nomes)}</small></span></div>
+        <button class="cm-ib" title="Buscar nesta conversa" aria-label="Buscar" onclick="CMbuscaAqui()">⌕</button>
         <button class="cm-ib" onclick="CMfechaJanela()" aria-label="Fechar janela">✕</button></div>
       <div class="cm-busca" id="cmBA" style="display:none"><input id="cmQa" placeholder="buscar nesta conversa…" oninput="CMachar(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();CMpula(event.shiftKey?-1:1)}"><span class="cm-nav"><button class="cm-ib" style="width:30px;height:30px" onclick="CMpula(-1)">↑</button><button class="cm-ib" style="width:30px;height:30px" onclick="CMpula(1)">↓</button><span id="cmCt"></span></span></div>
       <div class="cm-grade">
@@ -162,7 +166,24 @@
     try { SOM.envia(); await api({ acao:'enviar', id:CM.sel, texto:txt }); await puxa(); setTimeout(puxa, 2500); setTimeout(puxa, 7000); setTimeout(puxa, 15000); } catch(e){ toast(e.message); t.value = txt; }
     t.disabled = false; t.focus();
   };
-  window.CMpublico = async function(){ try { const j = await api({ acao:'publico', id:CM.sel }); CM.dados.comit.publico = j.publico; chat(); toast(j.publico ? 'Pública: a equipe encontra este comit.' : 'Particular: só os participantes.'); } catch(e){ toast(e.message); } };
+  window.CMbuscaDaInfo = async function(){ await CMver(CM.sel); CMbuscaAqui(); };
+  window.CMinfo = function(){
+    const R = raiz(); if (!R || !CM.dados) return; CM.info = true; const d = CM.dados, c = d.comit, fechado = c.status === 'fechado', dono = c.criado_por === meuId() || d.admin;
+    const linha = (ic, txt, fn, extra) => `<button class="cm-lin" onclick="${fn}">${ic}<span>${txt}</span>${extra || ''}</button>`;
+    R.innerHTML = `<div class="cm-cab"><button class="cm-ib" onclick="CMver('${c.id}')" aria-label="Voltar">‹</button><h3>Dados do comit</h3><button class="cm-ib" onclick="CMfechaJanela()" aria-label="Fechar janela">✕</button></div>
+      <div class="cm-corpo" style="padding:0 16px 16px">
+        <div style="font-size:19px;margin:4px 0 2px">${E(c.titulo)}</div>${c.assunto ? `<div style="opacity:.65;font-size:13.5px;margin-bottom:6px">${E(c.assunto)}</div>` : ''}
+        <div class="cm-sec" style="padding-left:0">${d.membros.length} participantes</div>
+        <div class="cm-gridp">${d.membros.map(m => `<div class="gp" title="${E(m.nome)}">${bolinha(m.nome, m.tipo, 52)}<b>${E(String(m.nome).split(' ')[0])}</b><small>${m.tipo === 'ia' ? 'IA' : m.tipo === 'cliente' ? 'cliente' : 'equipe'}</small></div>`).join('')}
+          ${fechado ? '' : `<button class="gp add" onclick="CMadd()"><span class="cm-ib" style="width:52px;height:52px;font-size:22px">＋</span><b>Adicionar</b></button>`}</div>
+        <div class="cm-sec" style="padding-left:0">Ações</div>
+        ${linha('⌕', 'Buscar na conversa', 'CMbuscaDaInfo()')}
+        ${dono ? linha(c.publico ? GLOBO : CADEADO, c.publico ? 'Pública — a equipe encontra e entra' : 'Particular — só os participantes', 'CMpublico()', '<em>tornar ' + (c.publico ? 'particular' : 'pública') + '</em>') : ''}
+        ${d.admin ? linha('⟲', 'Histórico de ações', 'CMlog()') : ''}
+        ${d.admin ? (fechado ? linha('↺', 'Reabrir o comit', "CMfecharAbrir('reabrir')") : linha('✓', 'Encerrar o comit (o histórico fica)', "CMfecharAbrir('fechar')")) : ''}
+      </div>`;
+  };
+  window.CMpublico = async function(){ try { const j = await api({ acao:'publico', id:CM.sel }); CM.dados.comit.publico = j.publico; CM.info ? CMinfo() : chat(); toast(j.publico ? 'Pública: a equipe encontra este comit.' : 'Particular: só os participantes.'); } catch(e){ toast(e.message); } };
   window.CMfecharAbrir = async function(op){
     if (op === 'fechar' && !(await perguntar('Fechar este comit?\nNada é apagado: o histórico fica guardado e dá para reabrir.', { ok:'Fechar comit' }))) return;
     try { await api({ acao:op, id:CM.sel }); toast(op === 'fechar' ? 'Comit fechado. O histórico fica guardado.' : 'Comit reaberto.'); CMver(CM.sel); } catch(e){ toast(e.message); } };
