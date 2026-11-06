@@ -16,7 +16,8 @@
   const raiz = () => document.getElementById('cmRoot');
   const avatar = (m, t) => m.tipo === 'ia' ? `<img src="${E(typeof fotoDe === 'function' ? '' : '')}" alt="">` : '';
   const ini = n => String(n || '?').split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
-  const bolinha = (nome, tipo, t) => `<span class="cm-av" style="--c:${cor(nome)};${t ? 'width:' + t + 'px;height:' + t + 'px;' : ''}" title="${E(nome)}">${tipo === 'ia' ? `<img src="/icone-ia.php?p=${encodeURIComponent(String(nome).toLowerCase())}&s=64" alt="" onerror="this.remove()">` : ''}<i>${E(ini(nome))}</i></span>`;
+  const AVN = {};   // nome → foto das pessoas
+  const bolinha = (nome, tipo, t) => { const foto = tipo !== 'ia' ? (AVN[String(nome).toLowerCase()] || (typeof perfil !== 'undefined' && perfil && perfil.name === nome ? perfil.avatar_url : '')) : ''; return `<span class="cm-av" style="--c:${cor(nome)};${t ? 'width:' + t + 'px;height:' + t + 'px;' : ''}" title="${E(nome)}">${tipo === 'ia' ? `<img src="/icone-ia.php?p=${encodeURIComponent(String(nome).toLowerCase())}&s=64" alt="" onerror="this.remove()">` : (foto ? `<img src="${E(foto)}" alt="" onerror="this.remove()">` : '')}<i>${E(ini(nome))}</i></span>`; };
 
   function css(){
     if (document.getElementById('cmCss')) return;
@@ -58,7 +59,7 @@
     lista();
   };
   const fechar = () => { clearInterval(CM.timer); CM.timer = null; fecharJanela(); };
-  async function carregaLista(){ try { const j = await api({ acao:'listar', status:CM.aba }); CM.lista = j.comits; CM.admin = j.admin; } catch(e){ toast(e.message); } }
+  async function carregaLista(){ try { carregaPessoas().then(() => { try { if (typeof CMlistaCorpo === 'function' && document.querySelector('.cm-it')) CMlistaCorpo(); } catch(e){} }); } catch(e){} try { const j = await api({ acao:'listar', status:CM.aba }); CM.lista = j.comits; CM.admin = j.admin; } catch(e){ toast(e.message); } }
 
   function linhaComit(c){
     const ms = (c.membros || []).slice(0, 4);
@@ -162,11 +163,11 @@
   window.CMpula = function(d){ if (!CM.acharEm.length) return; CM.acharI = (CM.acharI + d + CM.acharEm.length) % CM.acharEm.length; CMmarca(); };
 
   /* ---------- novo comit / adicionar ---------- */
-  async function carregaPessoas(){ if (!CM.pessoas){ try { CM.pessoas = await api({ acao:'pessoas' }); } catch(e){ toast(e.message); CM.pessoas = { humanos:[], ias:[] }; } } return CM.pessoas; }
+  async function carregaPessoas(){ if (!CM.pessoas){ try { CM.pessoas = await api({ acao:'pessoas' }); (CM.pessoas.humanos || []).forEach(x => { if (x.avatar) AVN[String(x.nome).toLowerCase()] = x.avatar; }); } catch(e){ toast(e.message); CM.pessoas = { humanos:[], ias:[] }; } } return CM.pessoas; }
   function seletor(p, jaTem){
     const g = (tit, L) => L.length ? `<div class="cm-sec">${tit}</div>` + L.map(x => `<label class="cm-esc" data-n="${E((x.nome + ' ' + x.sub).toLowerCase())}"><input type="checkbox" value="${x.tipo}|${E(x.ref)}">${bolinha(x.nome, x.tipo, 30)}<span class="t" style="flex:1"><b style="font-weight:500;font-size:14px">${E(x.nome)}</b><small style="display:block;opacity:.6;font-size:11.5px">${E(x.sub)}</small></span></label>`).join('') : '';
     const eu = meuId(); const tem = new Set(jaTem || []);
-    return g('Equipe', p.humanos.filter(x => x.tipo === 'humano' && x.ref !== eu && !tem.has(x.ref))) + g('IAs da casa', p.ias.filter(x => !tem.has(x.ref))) + g('Clientes', p.humanos.filter(x => x.tipo === 'cliente' && x.ref !== eu && !tem.has(x.ref)));
+    return g('Equipe', p.humanos.filter(x => x.tipo === 'humano' && x.ref !== eu && !tem.has(x.ref))) + g('IAs da equipe e das ferramentas', p.ias.filter(x => !tem.has(x.ref))) + g('Clientes', p.humanos.filter(x => x.tipo === 'cliente' && x.ref !== eu && !tem.has(x.ref)));
   }
   window.CMfiltra = q => { q = String(q || '').toLowerCase(); document.querySelectorAll('#cmSel .cm-esc').forEach(l => { l.style.display = !q || l.dataset.n.includes(q) ? '' : 'none'; }); };
   const marcados = () => [...document.querySelectorAll('#cmSel input:checked')].map(i => { const [tipo, ref] = i.value.split('|'); return { tipo, ref }; });

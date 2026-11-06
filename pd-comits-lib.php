@@ -9,10 +9,18 @@ function cmtLog($id, $acao, $quem, $det = null) { try { sd_supabase('/rest/v1/pd
 
 /** quem pode entrar numa conversa: gente da casa, clientes e as IAs (personagens) */
 function cmtPessoas() {
-    $pf = (array)(sd_supabase('/rest/v1/profiles?active=eq.true&select=id,name,role,client_id,clients(name)&order=name.asc&limit=400')['body'] ?? []);
-    $h = [];
-    foreach ($pf as $p) { if (empty($p['id'])) continue; $h[] = ['tipo' => $p['client_id'] ? 'cliente' : 'humano', 'ref' => $p['id'], 'nome' => $p['name'], 'sub' => $p['client_id'] ? ('cliente · ' . ($p['clients']['name'] ?? '')) : ($p['role'] === 'admin' ? 'admin' : 'equipe')]; }
-    $ia = []; foreach (pdPersonagens() as $k => $v) $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $v[0], 'sub' => 'IA · ' . $v[2]];
+    $pf = (array)(sd_supabase('/rest/v1/profiles?active=eq.true&select=id,name,role,client_id,avatar_url,clients(name)&order=name.asc&limit=400')['body'] ?? []);
+    $h = []; $nomeDe = []; $equipe = [];
+    foreach ($pf as $p) { if (empty($p['id'])) continue; $ehCli = !empty($p['client_id']); if (!$ehCli) { $nomeDe[$p['id']] = $p['name']; $equipe[$p['id']] = true; }
+        $h[] = ['tipo' => $ehCli ? 'cliente' : 'humano', 'ref' => $p['id'], 'nome' => $p['name'], 'avatar' => $p['avatar_url'] ?? '', 'sub' => $ehCli ? ('cliente · ' . ($p['clients']['name'] ?? '')) : ($p['role'] === 'admin' ? 'admin' : 'equipe')]; }
+    $cat = pdPersonagens(); $ia = []; $usadas = [];
+    // 1) a IA de cada pessoa da equipe (quem já fez o teste e tem personagem)
+    $jr = sd_supabase('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=400')['body'] ?? [];
+    foreach ((is_array($jr) && isset($jr[0]['user_id']) ? $jr : []) as $j) {
+        $k = strtolower(trim((string)($j['personagem'] ?? ''))); if ($k === '' || !isset($cat[$k]) || empty($equipe[$j['user_id']]) || isset($usadas[$k])) continue;
+        $usadas[$k] = true; $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $cat[$k][0], 'sub' => 'IA de ' . $nomeDe[$j['user_id']] . ' · ' . $cat[$k][2]]; }
+    // 2) as IAs das ferramentas (Dig, campanhas, social)
+    foreach (['tumi' => 'Dig · captação e pesquisa', 'sumi' => 'campanhas', 'muru' => 'social'] as $k => $fn) { if (!isset($cat[$k]) || isset($usadas[$k])) continue; $usadas[$k] = true; $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $cat[$k][0], 'sub' => 'IA da ferramenta · ' . $fn]; }
     return ['humanos' => $h, 'ias' => $ia];
 }
 function cmtComit($id) { $r = sd_supabase('/rest/v1/pd_comits?id=eq.' . urlencode((string)$id) . '&select=*&limit=1')['body'][0] ?? null; return $r; }
