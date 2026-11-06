@@ -234,24 +234,27 @@
   const SOM = (() => { let ac = null; const ok = () => { try { return localStorage.getItem('pd_comit_som') !== 'off'; } catch(e){ return true; } };
     const ctx = () => { if (!ok()) return null; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch(e){ return null; } };
     const nota = (f, t0, d, vol, tipo) => { const a = ctx(); if (!a) return; const t = a.currentTime + t0, o = a.createOscillator(), g = a.createGain(); o.type = tipo || 'sine'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(a.destination); o.start(t); o.stop(t + d + .03); };
+    const destrava = () => { ctx(); try { if (ac && ac.state === 'running'){ removeEventListener('pointerdown', destrava, true); removeEventListener('keydown', destrava, true); } } catch(e){} };
+    addEventListener('pointerdown', destrava, true); addEventListener('keydown', destrava, true);   // o navegador só libera som depois de um toque: libera no primeiro
     return { ping(){ nota(880, 0, .22, .16); nota(1318, .11, .3, .13); }, envia(){ nota(520, 0, .09, .08, 'triangle'); nota(780, .05, .1, .06, 'triangle'); } }; })();
-  const visto = id => { try { localStorage.setItem('cm_visto_' + id, String(Date.now())); } catch(e){} };
+  const visto = id => { try { localStorage.setItem('cm_visto_' + id, String(Date.now())); } catch(e){} try { window.clBadgeAtualiza && clBadgeAtualiza(); } catch(e){} };
   const jaVisto = c => { try { return +(localStorage.getItem('cm_visto_' + c.id) || 0) >= new Date(c.ultima_em).getTime() - 1500; } catch(e){ return true; } };
 
   /* ---------- comits como grupos na barra de Conversas ---------- */
+  window.CMnaoLidos = () => (CM.side || []).filter(c => (c.sou_membro || c.publico) && !jaVisto(c) && !(CM.sel === c.id && raiz())).length;
   CM.side = []; let sideSig = '', sidePrimeira = true;
   window.CMsideHtml = function(fechaSe){
     const L = (CM.side || []).filter(c => c.sou_membro || c.publico).slice(0, 12); if (!L.length) return '';
     return `<div class="hist-sec">COMITS · GRUPOS</div>` + L.map(c => { const ms = (c.membros || []).slice(0, 3), nv = !jaVisto(c);
-      return `<div class="hist-item" role="button" onclick="${fechaSe || ''}CMver('${c.id}')"><span class="hq" style="width:auto;min-width:36px;display:flex">${ms.map((m, i) => bolinha(m.nome, m.tipo, 26).replace('class="cm-av"', 'class="cm-av" data-i="' + i + '"')).join('')}</span><span class="ht"><span class="h1">${E(c.titulo)} ${nv ? '<b style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#16A34A;vertical-align:1px"></b>' : ''}</span><span class="h2">${E(c.ultima || c.assunto || 'sem mensagens')}</span></span></div>`; }).join(''); };
+      return `<div class="hist-item" role="button" onclick="${fechaSe || ''}CMver('${c.id}')"><span class="hq" style="width:auto;min-width:36px;display:flex">${ms.map((m, i) => bolinha(m.nome, m.tipo, 26).replace('class="cm-av"', 'class="cm-av" data-i="' + i + '"')).join('')}</span><span class="ht"><span class="h1">${E(c.titulo)} ${nv ? '<b style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;vertical-align:1px"></b>' : ''}</span><span class="h2">${E(c.ultima || c.assunto || 'sem mensagens')}</span></span></div>`; }).join(''); };
   window.CMsideRefresh = async function(){
     try { await carregaPessoas(); const j = await api({ acao:'listar', status:'aberto' }); CM.side = j.comits || [];
       const novas = CM.side.filter(c => (c.sou_membro || c.publico) && !jaVisto(c) && !(CM.sel === c.id && raiz()));
       const sig = JSON.stringify(CM.side.map(c => [c.id, c.ultima_em, c.titulo, jaVisto(c)]));
       if (!sidePrimeira && novas.length && sig !== sideSig) { SOM.ping(); try { toast('Comit: ' + novas[0].titulo + ' — ' + (novas[0].ultima || 'novidade')); } catch(e){} }
       if (sig !== sideSig){ sideSig = sig; try { if (typeof pintarHist === 'function' && typeof histAberto !== 'undefined' && histAberto) pintarHist(); } catch(e){} }
-      sidePrimeira = false;
+      sidePrimeira = false; try { window.clBadgeAtualiza && clBadgeAtualiza(); } catch(e){}
     } catch(e){}
   };
-  setTimeout(() => { if (window.REAL !== false) CMsideRefresh(); }, 4000); setInterval(() => { if (!document.hidden) CMsideRefresh(); }, 20000);
+  setTimeout(() => { if (window.REAL !== false) CMsideRefresh(); }, 4000); setInterval(() => { if (!document.hidden) CMsideRefresh(); }, 8000);
 })();
