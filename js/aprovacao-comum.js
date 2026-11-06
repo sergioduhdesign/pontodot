@@ -1117,55 +1117,146 @@ AP.imagemLeve = async function(f){
   } catch(e) { return f; }
 };
 
-// MÁQUINA DE ENTRADA DE VÍDEO: vídeo pesado (> 45 MB) é regravado aqui no navegador, em MP4 (H.264),
-// no máximo 1080p, com bitrate calculado pra ficar abaixo de ~38 MB. Roda em tempo real (45 s de vídeo = ~45 s).
-// Um vídeo por vez; só mexe no que passa do limite; se o navegador não consegue gravar MP4, devolve o original.
+// MÁQUINA DE ENTRADA DE VÍDEO: vídeo pesado (> 45 MB) é regravado aqui, em MP4 (H.264), no máximo 1080p,
+// com bitrate calculado pra ficar perto de 38 MB. Roda ao vivo (60 s de vídeo ≈ 60 s) por trás de um popup com barra.
+// É uma OTIMIZAÇÃO, nunca um bloqueio: se o aparelho não consegue, sobe o original e pronto — sem aviso técnico pro usuário.
+// Um vídeo por vez. Se a pessoa troca de aba, pausa sozinho e continua quando ela volta (nunca grava vídeo cortado).
 AP.VIDEO_LIMITE = 45 * 1024 * 1024;
-AP._vq = Promise.resolve();
-AP.videoLeve = function(f, onMsg){ const rodar = () => AP._videoLeve(f, onMsg); return (AP._vq = AP._vq.then(rodar, rodar)); };
+AP.VIDEO_MAX_SEG = 60;           // acima disso: botão "Arquivos grandes", fora do upload comum
+AP._vq = Promise.resolve(); AP._vfila = 0;
+AP.videoLeve = function(f, onMsg){ AP._vfila++; const rodar = () => AP._videoLeve(f, onMsg).finally(() => { AP._vfila--; if (!AP._vfila) AP._ovVideo(null); }); return (AP._vq = AP._vq.then(rodar, rodar)); };
+AP._ovVideo = function(est){
+  let o = document.getElementById('apOvVideo');
+  if (!est) { if (o) o.remove(); return; }
+  if (!o) {
+    o = document.createElement('div'); o.id = 'apOvVideo';
+    o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,10,12,.62);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px';
+    o.innerHTML = '<div style="background:#fff;color:#111;border-radius:18px;padding:26px 24px 22px;width:min(440px,100%);box-shadow:0 24px 70px rgba(0,0,0,.35);font-family:inherit">'
+      + '<div style="font-size:19px;font-weight:600;letter-spacing:-.01em">Otimizando o vídeo</div>'
+      + '<div id="apOvNome" style="font-size:12.5px;opacity:.6;margin:4px 0 16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>'
+      + '<div style="height:10px;border-radius:6px;background:rgba(0,0,0,.1);overflow:hidden"><div id="apOvBarra" style="height:100%;width:0;border-radius:6px;background:#111;transition:width .4s"></div></div>'
+      + '<div id="apOvPct" style="font-size:13px;margin-top:8px;font-variant-numeric:tabular-nums"></div>'
+      + '<div id="apOvAviso" style="font-size:13px;line-height:1.5;margin-top:14px;padding-top:12px;border-top:1px solid rgba(0,0,0,.1)">Não feche nem troque esta página até terminar, ou o vídeo não conclui a otimização.</div></div>';
+    document.body.appendChild(o);
+  }
+  const q = (i) => document.getElementById(i);
+  q('apOvNome').textContent = est.nome || ''; q('apOvBarra').style.width = (est.pct || 0) + '%';
+  q('apOvPct').textContent = est.pausado ? 'Pausado — volte para esta página para continuar' : (est.pct || 0) + '%' + (AP._vfila > 1 ? ' · mais ' + (AP._vfila - 1) + ' na fila' : '');
+};
+// duração em segundos, ou null se não deu pra ler (aí não barra ninguém)
+AP.duracaoVideo = function(f){
+  return new Promise(ok => { const u = URL.createObjectURL(f), v = document.createElement('video'); let fim = false;
+    const sai = d => { if (fim) return; fim = true; try { URL.revokeObjectURL(u); } catch(e){} ok(d); };
+    v.preload = 'metadata'; v.onloadedmetadata = () => sai(isFinite(v.duration) ? v.duration : null); v.onerror = () => sai(null); setTimeout(() => sai(null), 8000); v.src = u; });
+};
 AP._videoLeve = async function(f, onMsg){
-  const say = m => { try { (onMsg || AP.onVideo || function(){})(m); } catch(e){} };
   if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) return f;
   const mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m));
-  if (!mime) { say('Este navegador não grava MP4 — use o Chrome atualizado para o vídeo ser otimizado.'); return f; }
+  if (!mime) return f;   // este aparelho não regrava: o original segue como está
+  const nome = f.name.length > 38 ? f.name.slice(0, 35) + '…' : f.name;
   const url = URL.createObjectURL(f), v = document.createElement('video');
-  v.src = url; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
-  let ac = null;
-  const limpa = () => { try { v.pause(); } catch(e){} try { URL.revokeObjectURL(url); } catch(e){} try { ac && ac.close(); } catch(e){} };
+  v.src = url; v.playsInline = true; v.preload = 'auto'; v.muted = false;
+  let ac = null, rec = null, vivo = true, pausadoAba = false;
+  const aba = () => { if (!rec) return;
+    if (document.hidden) { pausadoAba = true; try { v.pause(); rec.state === 'recording' && rec.pause(); } catch(e){} AP._ovVideo({ nome, pct: ultimoPct, pausado: true }); }
+    else if (pausadoAba) { pausadoAba = false; try { rec.state === 'paused' && rec.resume(); v.play(); } catch(e){} AP._ovVideo({ nome, pct: ultimoPct }); } };
+  let ultimoPct = 0;
+  const limpa = () => { vivo = false; document.removeEventListener('visibilitychange', aba); try { v.pause(); } catch(e){} try { URL.revokeObjectURL(url); } catch(e){} try { ac && ac.close(); } catch(e){} };
   try {
-    await new Promise((ok, err) => { v.onloadedmetadata = ok; v.onerror = () => err(new Error('vídeo ilegível')); });
+    AP._ovVideo({ nome, pct: 0 });
+    await new Promise((ok, err) => { v.onloadedmetadata = ok; v.onerror = () => err(new Error('ilegível')); });
     const dur = v.duration || 0; if (!dur || !isFinite(dur)) { limpa(); return f; }
-    const lado = Math.max(v.videoWidth, v.videoHeight), k = Math.min(1, 1920 / lado);
+    const k = Math.min(1, 1920 / Math.max(v.videoWidth, v.videoHeight));
     const w = Math.max(2, Math.round(v.videoWidth * k / 2) * 2), h = Math.max(2, Math.round(v.videoHeight * k / 2) * 2);
-    const alvoBytes = 38 * 1024 * 1024, audioBps = 128000;
-    const bps = Math.max(1.2e6, Math.min(9e6, Math.floor((alvoBytes * 8 / dur) * 0.9) - audioBps));
+    const audioBps = 128000, bps = Math.max(1.2e6, Math.min(9e6, Math.floor((38 * 1048576 * 8 / dur) * 0.9) - audioBps));
     const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const ctx = cv.getContext('2d');
     const stream = cv.captureStream(30);
-    try { ac = new (window.AudioContext || window.webkitAudioContext)(); const src = ac.createMediaElementSource(v), dest = ac.createMediaStreamDestination(); src.connect(dest); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t)); } catch(e){ /* sem áudio capturável: segue só com a imagem */ }
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: audioBps });
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); const src = ac.createMediaElementSource(v), dest = ac.createMediaStreamDestination(); src.connect(dest); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t)); } catch(e){}
+    rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: audioBps });
     const partes = []; rec.ondataavailable = e => { if (e.data && e.data.size) partes.push(e.data); };
     const fim = new Promise(ok => { rec.onstop = ok; });
-    const nome = f.name.length > 28 ? f.name.slice(0, 25) + '…' : f.name;
-    let vivo = true, ultimoPct = -1;
-    const desenha = () => { if (!vivo) return; ctx.drawImage(v, 0, 0, w, h);
-      const pct = Math.min(99, Math.floor(v.currentTime / dur * 100)); if (pct !== ultimoPct) { ultimoPct = pct; say(`Otimizando o vídeo ${nome}… ${pct}% — mantenha esta aba aberta e visível`); }
+    document.addEventListener('visibilitychange', aba);
+    const desenha = () => { if (!vivo) return; if (!document.hidden) ctx.drawImage(v, 0, 0, w, h);
+      const pct = Math.min(99, Math.floor(v.currentTime / dur * 100)); if (pct !== ultimoPct) { ultimoPct = pct; if (!pausadoAba) AP._ovVideo({ nome, pct }); }
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(desenha); else requestAnimationFrame(desenha); };
     v.onended = () => { vivo = false; setTimeout(() => { try { rec.state !== 'inactive' && rec.stop(); } catch(e){} }, 250); };
-    rec.start(1000); await v.play(); desenha();
-    const limite = setTimeout(() => { vivo = false; try { rec.state !== 'inactive' && rec.stop(); } catch(e){} }, (dur * 1.6 + 30) * 1000);
-    await fim; clearTimeout(limite); limpa();
+    rec.start(1000); if (document.hidden) aba(); else { await v.play(); desenha(); }
+    // trava de segurança: só conta tempo com a aba visível
+    let visSeg = 0, semProgresso = 0, ult = -1;
+    const vigia = setInterval(() => { if (document.hidden) return; visSeg++; if (v.currentTime === ult && !v.paused) semProgresso++; else semProgresso = 0; ult = v.currentTime;
+      if (semProgresso > 25 || visSeg > dur * 3 + 60) { vivo = false; try { rec.state !== 'inactive' && rec.stop(); } catch(e){} } }, 1000);
+    await fim; clearInterval(vigia); limpa();
     const blob = new Blob(partes, { type: 'video/mp4' });
-    if (v.currentTime < dur - 1) { say('A otimização foi interrompida — subindo o vídeo original.'); return f; }   // aba em segundo plano/travou: não manda vídeo cortado
+    if (v.currentTime < dur - 1) return f;   // não terminou: nunca manda vídeo cortado — segue o original
     if (!blob.size || blob.size >= f.size) return f;
-    say(`Vídeo ${nome} otimizado: ${(f.size / 1048576).toFixed(0)} MB → ${(blob.size / 1048576).toFixed(0)} MB`);
+    AP._ovVideo({ nome, pct: 100 });
     return new File([blob], f.name.replace(/\.[^.]+$/, '') + '.mp4', { type: 'video/mp4' });
   } catch (e) { limpa(); console.warn('[SD] videoLeve:', e && e.message); return f; }
 };
 
+// SUBIDA EM LOTE COM RELATÓRIO: roda a fila (6 por vez); no primeiro erro NÃO começa mais nenhum arquivo.
+// Ao terminar, se algo ficou de fora, mostra o que entrou e o que não entrou — com ↻ por arquivo, "tentar todos de novo",
+// descartar um a um, ou seguir só com o que já subiu. Devolve { ok:[…], fora:[…] }.
+//   itens: [{ nome, rodar: async () => resultado }]     (cada item guarda .res / .erro / .estado)
+AP.subirLote = async function(itens, opt){
+  opt = opt || {}; const par = opt.paralelo || 6, onProg = opt.onProg || function(){};
+  itens.forEach(i => { i.estado = i.estado || 'espera'; });
+  const rodar = async (lista) => {
+    let prox = 0, parar = false;
+    const trab = async () => { while (!parar && prox < lista.length) { const it = lista[prox++]; it.estado = 'subindo'; it.erro = null;
+      try { it.res = await it.rodar(); it.estado = 'ok'; } catch (e) { it.estado = 'falhou'; it.erro = (e && e.message) || String(e); parar = true; }
+      onProg(itens.filter(x => x.estado === 'ok').length, itens.length); } };
+    await Promise.all(Array.from({ length: Math.min(par, lista.length) }, trab));
+    lista.forEach(it => { if (it.estado === 'subindo' || it.estado === 'espera') it.estado = 'parado'; });   // não chegou a começar
+  };
+  await rodar(itens.filter(i => i.estado !== 'ok' && i.estado !== 'descartado'));
+  while (true) {
+    const fora = itens.filter(i => i.estado === 'falhou' || i.estado === 'parado');
+    if (!fora.length) break;
+    const acao = await AP._painelFalhas(itens);
+    if (acao === 'seguir') break;
+    if (acao === 'cancelar') throw new Error('Envio cancelado — o que já subiu ficou salvo no lote.');
+    const alvo = Array.isArray(acao) ? acao : fora;   // ↻ de um arquivo ou de todos
+    alvo.forEach(i => { i.estado = 'espera'; });
+    await rodar(alvo);
+  }
+  return { ok: itens.filter(i => i.estado === 'ok'), fora: itens.filter(i => i.estado !== 'ok') };
+};
+AP._painelFalhas = function(itens){
+  return new Promise(ok => {
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(10,10,12,.62);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+    const nOk = itens.filter(i => i.estado === 'ok').length;
+    const bt = 'border:0;border-radius:10px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:inherit;';
+    o.innerHTML = '<div style="background:#fff;color:#111;border-radius:18px;width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.35)">'
+      + '<div style="padding:22px 22px 10px"><div style="font-size:19px;font-weight:600;letter-spacing:-.01em">Nem tudo subiu</div>'
+      + '<div style="font-size:13px;margin-top:6px;line-height:1.5"><b style="color:#15803D">✓ ' + nOk + ' salvo' + (nOk === 1 ? '' : 's') + '</b> · <b style="color:#B91C1C">' + itens.filter(i => i.estado === 'falhou' || i.estado === 'parado').length + ' não subiu</b> (de ' + itens.length + ')</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button data-a="todos" style="' + bt + 'background:#111;color:#fff">↻ Tentar todos de novo</button><button data-a="seguir" style="' + bt + 'background:#eee">Seguir só com o que subiu</button><button data-a="cancelar" style="' + bt + 'background:#fff;border:1px solid #ddd">Cancelar</button></div></div>'
+      + '<div style="overflow-y:auto;padding:4px 22px 18px;scrollbar-width:thin">'
+      + itens.map((it, n) => it.estado === 'ok' ? '<div style="display:flex;gap:8px;padding:7px 0;border-top:1px solid #eee;font-size:12.5px;color:#15803D"><span>✓</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(it.nome) + '</span><span>salvo</span></div>'
+        : it.estado === 'descartado' ? ''
+        : '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid #eee;font-size:12.5px"><span style="color:#B91C1C">✕</span><span style="flex:1;min-width:0"><b style="word-break:break-all">' + esc(it.nome) + '</b><br><span style="opacity:.65">' + esc(it.estado === 'parado' ? 'Não chegou a subir (o envio parou antes).' : (it.erro || 'Erro')) + '</span></span><button data-n="' + n + '" data-a="um" title="Tentar de novo" style="' + bt + 'background:#eee;padding:6px 10px">↻</button><button data-n="' + n + '" data-a="tirar" title="Tirar do lote" style="' + bt + 'background:#fff;border:1px solid #ddd;padding:6px 10px">✕</button></div>').join('')
+      + '</div></div>';
+    o.onclick = e => { const b = e.target.closest('button'); if (!b) return; const a = b.dataset.a, it = itens[+b.dataset.n];
+      if (a === 'tirar') { it.estado = 'descartado'; o.remove(); return ok(itens.some(i => i.estado === 'falhou' || i.estado === 'parado') ? AP._painelFalhas(itens) : 'seguir'); }
+      o.remove(); ok(a === 'um' ? [it] : a === 'todos' ? null : a); };
+    document.body.appendChild(o);
+  }).then(r => r === null ? itens.filter(i => i.estado === 'falhou' || i.estado === 'parado') : r);
+};
+
 // Sobe um arquivo pro storage do lote e devolve o objeto de mídia.
 // Arquivo que veio do Drive leva junto o link do original.
+// Porta de entrada única: imagem pesada vira leve; vídeo pesado é regravado (popup com barra); vídeo > 60 s só entra por "Arquivos grandes".
+AP.otimizar = async function(f, extra){
+  if (/^image\//.test(f.type) && !/gif$/i.test(f.type)) return AP.imagemLeve(f);
+  if (!/\.(mp4|mov|m4v|webm)$/i.test(f.name)) return f;
+  const grande = !!(extra && extra.grande), d = await AP.duracaoVideo(f);
+  if (d && d > AP.VIDEO_MAX_SEG + 1 && !grande) throw new Error(f.name + ' tem ' + Math.round(d) + ' s — o upload comum aceita vídeos de até ' + AP.VIDEO_MAX_SEG + ' s. Use o botão "Arquivos grandes".');
+  if (f.size > AP.VIDEO_LIMITE && !(grande && d && d > AP.VIDEO_MAX_SEG + 1)) return AP.videoLeve(f);
+  return f;
+};
 AP.subirMidia = async function(f, clientId, setId, extra){
-  if (/\.(mp4|mov|m4v)$/i.test(f.name) && f.size > AP.VIDEO_LIMITE && !(f._drive && f._drive.soLink)) f = await AP.videoLeve(f);   // vídeo pesado é otimizado na entrada
+  if (!(f._drive && f._drive.soLink)) f = await AP.otimizar(f, extra);   // regra dos 60 s + compressão de vídeo pesado
   const meta = Object.assign({}, extra || {});
   if (f._drive) { meta.drive_id = f._drive.id; meta.drive_url = f._drive.url; }
   if (f._drive && f._drive.soLink) {

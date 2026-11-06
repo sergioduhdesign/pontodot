@@ -221,9 +221,11 @@ body.carregando .nl-skel{display:block}
     <div class="nl-drop" id="dropSoltas">
       <div class="ic">▣</div>
       <b id="dropSoltasLabel">Arraste os mockups aqui</b>
-      <small>JPG, PNG, WEBP, MP4, MOV ou PDF · até 50 MB cada</small>
+      <small>JPG, PNG, WEBP, MP4, MOV ou PDF · vídeos de até 60 s (imagens e vídeos pesados são otimizados sozinhos)</small>
     </div>
+    <div style="margin-top:8px"><button type="button" class="btn btn-secondary btn-sm" id="btnGrandes" title="Vídeo acima de 60 s ou arquivo pesado">⬆ Arquivos grandes</button></div>
     <input type="file" id="inSoltas" multiple accept="image/*,video/*,.pdf" class="hide">
+    <input type="file" id="inGrandes" multiple accept="video/*,image/*,.pdf" class="hide">
     <div class="nl-prog" id="progSoltas"><i id="progSoltasBar"></i></div>
   </div>
 
@@ -460,6 +462,8 @@ function dropzone(zone, input, cb){
 }
 
 dropzone(el('dropSoltas'), el('inSoltas'), f => receberSoltas(f));
+el('btnGrandes').onclick = () => el('inGrandes').click();
+el('inGrandes').onchange = () => { const f = [...el('inGrandes').files]; el('inGrandes').value = ''; if (f.length) receberSoltas(f, true); };
 dropzone(el('dropZip'), el('inZip'), f => { if (f[0]) receberZip(f[0]); });
 el('btnLerDrive').onclick = receberDrive;
 
@@ -593,14 +597,15 @@ function renderZipPecas(){
     </div>`).join('');
 }
 
-function receberSoltas(lista){
+function receberSoltas(lista, grande){
   const unica = MODO === 'peca_unica' || MODO === 'post_unico';
   if (unica && soltas.length) soltas = [];        // peça única: só um mockup
   const usar = unica ? lista.slice(0,1) : lista;
 
   usar.forEach(f => {
-    if (f.size > 52428800) { showToast(f.name + ' passa de 50 MB.', 'warn'); return; }
+    if (f.size > 314572800) { showToast(f.name + ' passa de 300 MB — coloque no Drive e cole o link em "Arquivo final" de outra peça.', 'warn'); return; }
     soltas.push({
+      grande: !!grande,
       file: f,
       url: URL.createObjectURL(f),
       titulo: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
@@ -760,25 +765,20 @@ el('btnSave').onclick = async () => {
       const totalArtes = zipPecas.reduce((t,p)=>t+p.files.length,0);
       let subidas = 0;
 
-      // sobe tudo em paralelo (6 por vez) e remonta na ordem certa
-      const fila = []; zipPecas.forEach((p, pi) => p.files.forEach((f, fi) => fila.push({ pi, fi, f })));
+      // sobe tudo em paralelo (6 por vez); se algo falhar, para a fila e mostra o relatório (salvos × não salvos, ↻ por arquivo)
+      const fila = []; zipPecas.forEach((p, pi) => p.files.forEach((f, fi) => fila.push({ pi, fi, nome: f.path || f.file.name,
+        rodar: () => AP.subirMidia(f.file, clientId, setId, { path: f.path }) })));
       const subiu = zipPecas.map(p => new Array(p.files.length));
-      let prox = 0;
       AP.onVideo = m => { el('status').textContent = m; };
-      const trabalhador = async () => {
-        while (prox < fila.length) {
-          const j = fila[prox++];
-          subiu[j.pi][j.fi] = await AP.subirMidia(j.f.file, clientId, setId, { path: j.f.path });
-          subidas++;
-          el('progBar').style.width = Math.round(subidas/totalArtes*100) + '%';
-          el('status').textContent = `Subindo artes… ${subidas} de ${totalArtes}`;
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(6, fila.length) }, trabalhador));
+      await AP.subirLote(fila, { paralelo: 6, onProg: (n, tot) => {
+        el('progBar').style.width = Math.round(n / tot * 100) + '%'; el('status').textContent = `Subindo artes… ${n} de ${tot}`; } });
+      fila.forEach(j => { if (j.estado === 'ok') subiu[j.pi][j.fi] = j.res; });
+      zipPecas.forEach((p, pi) => { subiu[pi] = subiu[pi].filter(Boolean); });
 
       for (let i = 0; i < zipPecas.length; i++) {
         const p = zipPecas[i];
         const media = subiu[i];
+        if (!media.length) continue;   // peça cujos arquivos ficaram de fora não entra vazia
         itens.push({
           set_id: setId, position: i,
           kind: p.kind,
@@ -809,29 +809,30 @@ el('btnSave').onclick = async () => {
       el('prog').classList.add('on');
       const itens = [];
 
-      for (let i = 0; i < soltas.length; i++) {
-        const p = soltas[i];
+      // sobe todos primeiro (relatório de salvos × não salvos, ↻ por arquivo); só então monta as peças
+      AP.onVideo = m => { el('status').textContent = m; };
+      const filaS = soltas.map(p => ({ p, nome: p.file.name, rodar: async () => {
         // Mesma regra do resto da casa: a arte nasce no Drive. Se a ponte
         // estiver fora, cai no Supabase — ninguém fica sem mandar aprovação.
         let midia = null;
-        try { midia = await AP.subirNoDrive(p.file, clientId, setId); }
+        const arq = p.file;
+        let ar = arq;
+        if (/\.(mp4|mov|m4v)$/i.test(arq.name) || /^image\//.test(arq.type)) ar = await AP.otimizar(arq, { grande: p.grande });
+        try { midia = await AP.subirNoDrive(ar, clientId, setId); }
         catch(e){ console.warn('[SD] Drive recusou, caindo no Supabase:', e && e.message); }
+        if (!midia) midia = await AP.subirMidia(ar, clientId, setId, { grande: p.grande });
+        midia.path = p.file.name; return midia; } }));
+      await AP.subirLote(filaS, { paralelo: 1, onProg: (n, tot) => { el('progBar').style.width = Math.round(n / tot * 100) + '%'; el('status').textContent = `Subindo… ${n} de ${tot}`; } });
 
-        if (!midia) {
-          const ext = p.file.name.split('.').pop().toLowerCase();
-          const caminho = `${clientId}/${setId}/${crypto.randomUUID()}.${ext}`;
-          const { error:eu } = await sb.storage.from('aprovacao')
-            .upload(caminho, p.file, { contentType: p.file.type });
-          if (eu) throw new Error('Falha ao subir ' + p.file.name + ': ' + eu.message);
-          const { data:pub } = sb.storage.from('aprovacao').getPublicUrl(caminho);
-          midia = { name: p.file.name, url: pub.publicUrl, thumb: pub.publicUrl,
-                    mime: p.file.type, source: 'storage' };
-        }
-        midia.path = p.file.name;
+      let pos = 0;
+      for (let i = 0; i < soltas.length; i++) {
+        const p = soltas[i];
+        if (filaS[i].estado !== 'ok') continue;
+        const midia = filaS[i].res;
 
         const ehPost = MODO === 'post_unico';
         itens.push({
-          set_id: setId, position: i,
+          set_id: setId, position: pos++,
           // Post único é um item de REDE: mesma anatomia dos que vêm da
           // planilha (kind post + legenda + hashtags + publish_at) — por
           // isso, depois de aprovado, o "Agendar aprovadas" o trata
@@ -848,9 +849,6 @@ el('btnSave').onclick = async () => {
           media: [midia]
         });
 
-        const pct = Math.round((i+1)/soltas.length*100);
-        el('progBar').style.width = pct + '%';
-        el('status').textContent = `Subindo… ${i+1} de ${soltas.length}`;
       }
 
       const { error:ei } = await sb.from('approval_items').insert(itens);
