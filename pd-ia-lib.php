@@ -506,6 +506,7 @@ function iaCatalogo($u) {
     $T[] = ['name' => 'status_pedidos', 'description' => 'CONFIRMA a solicitação: mostra o estado real dos pedidos passados a outras IAs da casa (na fila, rodando, feito ou erro) e a resposta. Use SEMPRE que alguém perguntar se a Tumi/Sumi/Muru recebeu ou está fazendo algo, em vez de dizer que não tem retorno. para = nome da IA (opcional).', 'input_schema' => $S(['para' => $str])];
     $T[] = ['name' => 'escola_status', 'description' => 'Estado REAL da Escola das IAs: aulas recentes (status, rodada, nota da professora/GPT) e quantos pedidos de aula nova a professora já entregou ou ainda deve. Use SEMPRE que perguntarem se a professora/GPT voltou, se as aulas rolaram ou como está a escola; nunca diga que não há registro sem consultar.', 'input_schema' => $S(['filtro' => $str])];
     $T[] = ['name' => 'orientar', 'description' => 'Guarda uma orientação temporária que passa a valer para TODAS as IAs da casa (ou só para um cliente): regra de período, sócio que saiu, campanha sazonal. ate = AAAA-MM-DD (opcional).', 'input_schema' => $S(['texto' => $str, 'ate' => $str, 'cliente' => $str], ['texto'])];
+    $T[] = ['name' => 'chat_a_parte', 'description' => 'Abre uma conversa SÓ com uma pessoa (e a IA dela ou outra IA), fora do grupo: para assunto delicado, rápido ou que não interessa a todos. Use quando pedirem conversa à parte.', 'input_schema' => $S(['com' => $str, 'assunto' => $str, 'abertura' => $str, 'ia' => $str], ['com', 'assunto'])];
     $T[] = ['name' => 'recado', 'description' => 'Leva um recado a um colega da equipe pelo WhatsApp (via a IA dele).', 'input_schema' => $S(['para' => $str, 'texto' => $str], ['para', 'texto'])];
     $T[] = ['name' => 'producao', 'description' => 'Fala com a IA de produção da tarefa. op: play (dá start), pausar, retomar, mensagem (texto pra IA aplicar no trabalho), nota (anota na tarefa).', 'input_schema' => $S(['op' => $str, 'id' => $str, 'texto' => $str], ['op', 'id'])];
     if (iaEhAdmin($u) || iaPode($u, 'cliente.criar')) $T[] = ['name' => 'cliente_criar', 'description' => 'Cria um cliente (empresa), com produtos, zap, e-mail de aviso e Gigi (IA de atendimento no zap do cliente).',
@@ -551,6 +552,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'ver_tarefa':      if (!empty($GLOBALS['PD_IA_CLIENTE']) && !iaClienteTarefaDele($args['id'] ?? '')) return ['texto' => '⚠️ essa tarefa não é da sua empresa', 'ids' => []]; return iaVerTarefa($args);
         case 'lembrete':        return iaLembrete($args, $u, $lote);
         case 'comit':           return iaComit($args, $u, $lote);
+        case 'chat_a_parte':    require_once __DIR__ . '/pd-comits-lib.php'; $jr = strtolower(trim((string)(sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode((string)($u['id'] ?? '')) . '&select=personagem&limit=1')['body'][0]['personagem'] ?? ''))); return ['texto' => cmtChatAParte($args, $u, $jr ?: 'zumi', null, [])];
         case 'recado':          return iaRecado($args, $u, $lote);
         case 'delegar':         return iaDelegar($args, $u, $lote);
         case 'status_pedidos':  return iaStatusPedidos($args, $u, $lote);

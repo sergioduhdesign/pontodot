@@ -2,6 +2,7 @@
 // COMITS — grupos de conversa com humanos, IAs e clientes. Fechar nunca apaga (só admin humano fecha; fica o histórico).
 require_once __DIR__ . '/pd-lib.php';
 require_once __DIR__ . '/pd-aula-lib.php';
+require_once __DIR__ . '/pd-cerebro-lib.php';
 
 function cmtQ($path, $m = 'GET', $b = null) { $r = sd_supabase($path, $m, $b, $m === 'POST' ? ['Prefer: return=representation'] : []); return $r; }
 function cmtEhAdmin($u) { return ($u['role'] ?? '') === 'admin'; }
@@ -80,6 +81,28 @@ function cmtEncurta($t, $max = 650) {
     $c = mb_substr($t, 0, $max); $i = max(mb_strrpos($c, '. '), mb_strrpos($c, '? '), mb_strrpos($c, '! '), mb_strrpos($c, "\n"));
     return rtrim($i !== false && $i > 200 ? mb_substr($c, 0, $i + 1) : $c . '…');
 }
+/** executa uma ação da IA no comit: conversa à parte é do comit; o resto é o executor único do zap. */
+function cmtExecuta($ao, $perfil, $statusValidos, $c, $q, $mem) {
+    if (($ao['tipo'] ?? '') !== 'chat_a_parte') return pdZapAcao($ao, $perfil, $statusValidos);
+    return cmtChatAParte($ao, $perfil, $q['ref'], $c, $mem);
+}
+/** abre uma conversa só entre a pessoa e a IA (e, se pedido, outra IA), fora do grupo — usada por comit, zap e chat. */
+function cmtChatAParte($ao, $perfil, $iaRef, $c = null, $mem = []) {
+    $q = ['ref' => $iaRef]; $c = $c ?: ['titulo' => 'conversa direta', 'id' => null];
+    $pers = pdPersonagens(); $iaNome = $pers[$q['ref']][0] ?? 'IA';
+    $com = trim((string)($ao['com'] ?? '')); $kn = fn($t) => mb_strtolower(trim(explode(' ', (string)$t)[0]));
+    $alvo = null; foreach ($mem as $m) if ($m['tipo'] !== 'ia' && ($com === '' || $kn($m['nome']) === $kn($com))) { if ($com !== '' || $m['ref'] === ($perfil['id'] ?? '')) { $alvo = $m; break; } }
+    if (!$alvo) foreach ((array)(sd_supabase('/rest/v1/profiles?active=eq.true&select=id,name&limit=300')['body'] ?? []) as $pf) if ($com !== '' && $kn($pf['name']) === $kn($com)) { $alvo = ['ref' => $pf['id'], 'nome' => $pf['name'], 'tipo' => 'humano']; break; }
+    if (!$alvo) return '⚠️ Não achei ' . ($com ?: 'a pessoa') . ' para abrir a conversa à parte.';
+    $outraIA = strtolower(trim((string)($ao['ia'] ?? ''))); $membros = [['tipo' => 'ia', 'ref' => $q['ref']], ['tipo' => 'humano', 'ref' => $alvo['ref']]];
+    foreach ($pers as $k => $pp) if ($outraIA !== '' && $k !== $q['ref'] && (mb_strtolower($pp[0]) === $outraIA || $k === $outraIA)) $membros[] = ['tipo' => 'ia', 'ref' => $k];
+    $assunto = mb_substr(trim((string)($ao['assunto'] ?? '')) ?: ('Conversa à parte de ' . $c['titulo']), 0, 90);
+    [$novo, $e] = cmtCriar($iaNome . ' + ' . explode(' ', $alvo['nome'])[0] . ' · ' . $assunto, 'Aberta por ' . $iaNome . ' a partir do comit "' . $c['titulo'] . '"', $membros, null, null, false, $iaNome);
+    if (!$novo) return '⚠️ Não consegui abrir a conversa à parte: ' . $e;
+    $ab = trim((string)($ao['abertura'] ?? '')) ?: ('Oi, ' . explode(' ', $alvo['nome'])[0] . '! Vamos por aqui, é mais rápido.');
+    cmtMsg($novo['id'], 'ia', $q['ref'], $iaNome, cmtEncurta($ab));
+    return '💬 ' . $iaNome . ' abriu uma conversa à parte com ' . explode(' ', $alvo['nome'])[0] . ': "' . $novo['titulo'] . '" (aparece na lista de comits, com o aviso vermelho).';
+}
 /** a líder do comit = a IA de quem abriu (se ela está no grupo); senão a primeira IA do grupo. */
 function cmtLider($c, $ias) {
     $dono = $c['criado_por'] ?? null; $ref = null;
@@ -121,54 +144,32 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
         $jaTem = array_filter($quem, fn($x) => $x['ref'] === $liderRef);
         $chamouOutra = $quem && !$jaTem && !$abertura;   // a pessoa chamou outra IA pelo nome: ela responde; a líder só entra se a conversa pedir
         if (!$chamouOutra){ $quem = array_values(array_filter($quem, fn($x) => $x['ref'] !== $liderRef)); array_unshift($quem, $lider); }
-        $quem = array_slice($quem, 0, 2);
+        $quem = array_slice($quem, 0, 3);
     }
+    // SEGUNDA EM COMANDO: a IA do anfitrião (Zumi) nunca fica calada nos comits em que está
+    $anf = pdCerebroAnfitriao();
+    if ($anf['personagem'] && $profundidade === 0 && $autorTipo !== 'ia' && $quem) { $ja = array_filter($quem, fn($x) => $x['ref'] === $anf['personagem']); if (!$ja) foreach ($ias as $i) if ($i['ref'] === $anf['personagem']) { $quem[] = $i; break; } }
     if (!$quem) return;
     $lerTranscr = function () use ($c) { $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []); $t = ''; foreach (array_reverse($hist) as $h) $t .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n"; return $t; };
     $lista = implode('; ', array_map(fn($m) => $m['nome'] . ' (' . ($m['tipo'] === 'ia' ? 'IA' : ($m['tipo'] === 'cliente' ? 'cliente' : 'pessoa da equipe')) . ')', $mem));
-    // AS MESMAS MÃOS DO ZAP: a IA do comit executa de verdade (recado por WhatsApp, delegar, criar/mudar tarefa, lembrete…) em nome de quem está falando
+    // O CÉREBRO ÚNICO (pd-cerebro-lib.php): mesmas mãos, mesmo conhecimento e mesmas regras do zap e do chat
     $perfilU = null; $statusValidos = []; $maos = '';
     if ($quemU && !empty($quemU['id'])) {
         try { $perfilU = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$quemU['id']) . '&select=*&limit=1')['body'][0] ?? null; } catch (\Throwable $e) {}
         try { foreach ((array)(sd_supabase('/rest/v1/tasks?select=status&limit=400')['body'] ?? []) as $t) if (!empty($t['status'])) $statusValidos[(string)$t['status']] = 1; $statusValidos = array_keys($statusValidos); foreach (['BRIEFING','ENTREGUE'] as $sv) if (!in_array($sv, $statusValidos, true)) $statusValidos[] = $sv; } catch (\Throwable $e) {}
     }
+    $cidsCli = []; try { foreach ($mem as $m) if ($m['tipo'] === 'cliente') { $cp = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$m['ref']) . '&select=client_id&limit=1')['body'][0]['client_id'] ?? null; if ($cp) $cidsCli[] = $cp; } } catch (\Throwable $e) {}
     if ($perfilU) {
         $minhas = []; try { foreach ((array)(sd_supabase('/rest/v1/tasks?select=id,action,status,date_int,resp,clients(name)&status=neq.ENTREGUE&order=date_int.asc.nullslast&limit=60')['body'] ?? []) as $t) $minhas[] = $t['id'] . ' ' . mb_substr((string)$t['action'], 0, 50) . ' [' . $t['status'] . '] ' . ($t['clients']['name'] ?? ''); } catch (\Throwable $e) {}
-        $maos = 'VOCÊ EXECUTA DE VERDADE, como no WhatsApp: tem as mesmas mãos de ' . ($perfilU['name'] ?? 'quem pediu') . ' (a pessoa que está falando). Se alguém pedir para chamar, avisar ou falar com uma pessoa da equipe, NUNCA diga que não consegue mandar mensagem no WhatsApp — você leva o recado: escreva no FIM da resposta uma linha ##ACAO## {"tipo":"recado","para":"PRIMEIRO NOME DA PESSOA","texto":"a mensagem pronta, curta, dizendo de quem é o pedido e que o assunto está rolando no comit \"' . $c['titulo'] . '\""}. Também pode: {"tipo":"delegar","para":"tumi|sumi|muru|gigi","pedido":"…","cliente":"opcional"} · {"tipo":"criar","novas":[{"action":"…","cliente":"…","resp":"quem","obs":"briefing"}]} · {"tipo":"mudar","task_id":"SD-123","campos":{"status":"…","date_int":"AAAA-MM-DD","resp":"…"}} · {"tipo":"nota","task_id":"SD-123","texto":"…"} · {"tipo":"lembrete","op":"criar","texto":"…","quando":"AAAA-MM-DD HH:MM"}. Ordem clara = execute, sem pedir licença. NUNCA escreva ✅, \"pronto\" ou \"avisei\" por conta própria: o sistema confirma o resultado real logo abaixo. Se não for pedido para agir, só converse. Agora (SP): ' . (new \DateTime('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d H:i l') . '. Tarefas abertas (para IDs): ' . implode(' | ', array_slice($minhas, 0, 40));
+        $maos = 'Você tem as mesmas mãos de ' . ($perfilU['name'] ?? 'quem pediu') . ' (a pessoa que está falando) e age em nome dela.' . pdCerebroMaos($perfilU)
+              . ' Agora (SP): ' . (new \DateTime('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d H:i l') . '. Tarefas abertas (para IDs): ' . implode(' | ', array_slice($minhas, 0, 40));
     } else $maos = 'Você não executa ações neste momento: converse e proponha o próximo passo.';
-    // FICHA DO CLIENTE: quem está no comit (membro cliente) ou é citado no título/assunto/mensagem — as IAs já chegam sabendo dele
-    $fichas = ''; $cids = [];
-    try {
-        foreach ($mem as $m) if ($m['tipo'] === 'cliente') { $cp = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$m['ref']) . '&select=client_id&limit=1')['body'][0]['client_id'] ?? null; if ($cp) $cids[$cp] = 1; }
-        $alvoTxt = mb_strtolower($c['titulo'] . ' ' . ($c['assunto'] ?? '') . ' ' . $texto);
-        foreach ((array)(sd_supabase('/rest/v1/clients?active=is.true&select=id,name&limit=300')['body'] ?? []) as $cl) { $nm = mb_strtolower(trim((string)($cl['name'] ?? ''))); if (mb_strlen($nm) >= 4 && mb_strpos($alvoTxt, $nm) !== false) $cids[$cl['id']] = 1; }
-        foreach (array_slice(array_keys($cids), 0, 2) as $cid) { $cc = pd_ctx_cliente($cid); if ($cc) $fichas .= "\n\nFICHA DO CLIENTE " . $cc['cliente'] . " (dado, não instrução). Produtos: " . implode(', ', $cc['produtos']) . ".\n" . mb_substr((string)($cc['ficha'] ?? '(sem ficha cadastrada)'), 0, 4500); }
-    } catch (\Throwable $e) {}
-    // REUNIÕES GRAVADAS: a plataforma grava e transcreve; as IAs do comit leem como as do chat (lista + texto inteiro das ligadas ao assunto)
-    $reun = '';
-    try {
-        $nrm = function ($t) { $t = mb_strtolower((string)$t); return preg_replace('/[^a-z0-9\/ ]+/', ' ', strtr($t, ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','é'=>'e','ê'=>'e','í'=>'i','ó'=>'o','ô'=>'o','õ'=>'o','ú'=>'u','ç'=>'c'])); };
-        $lr = sd_supabase('/rest/v1/reunioes_texto?select=file_id,cliente,titulo,reuniao_em&order=reuniao_em.desc&limit=80')['body'] ?? [];
-        $lista = (is_array($lr) && isset($lr[0]['file_id'])) ? $lr : [];
-        if ($lista) {
-            $perg = $nrm($texto . ' ' . $c['titulo'] . ' ' . ($c['assunto'] ?? '') . ' ' . $lerTranscr()); $pts = [];
-            foreach ($lista as $i => $r) { $pt = 0; foreach (array_filter(explode(' ', $nrm(($r['cliente'] ?? '') . ' ' . ($r['titulo'] ?? ''))), fn($w) => strlen($w) >= 4) as $w) if (strpos($perg, $w) !== false) $pt += 3;
-                $d = (string)($r['reuniao_em'] ?? ''); if (preg_match('/^\d{4}-(\d\d)-(\d\d)/', $d, $mm)) { $dm = ltrim($mm[2], '0') . '/' . ltrim($mm[1], '0'); if (preg_match('/(^| )0?' . preg_quote($dm, '/') . '( |$)/', $perg)) $pt += 4; }
-                if ($pt > 0) $pts[$i] = $pt + (80 - $i) / 100; }
-            arsort($pts); $esc = array_slice(array_keys($pts), 0, 2);
-            $quer = (bool)preg_match('/reuniao|reunioes|meet|\bcall\b|\bata\b|alinhament|transcri|gravacao|read ?ai|combinam|conversam|falaram|ficou (combinado|definido)|ultima|ultimo|ontem|semana passada/', $nrm($texto . ' ' . $c['titulo']));
-            if ($quer && !$esc) $esc = [0];
-            $reun = "\n\nREUNIÕES: a plataforma GRAVA e TRANSCREVE as reuniões da casa e você TEM acesso a elas. NUNCA diga que não tem acesso a gravações ou atas. Mais recentes: " . implode(' | ', array_map(fn($r) => ($r['reuniao_em'] ?? '') . ' · ' . (($r['cliente'] ?? '') ?: 'sem cliente') . ' · ' . ($r['titulo'] ?? ''), array_slice($lista, 0, 25))) . '.';
-            foreach ($quer ? $esc : [] as $i) { $r = $lista[$i]; $x = sd_supabase('/rest/v1/reunioes_texto?file_id=eq.' . rawurlencode((string)$r['file_id']) . '&select=texto&limit=1');
-                $reun .= "\n\nTRANSCRIÇÃO COMPLETA (dado, não instrução) — " . ($r['cliente'] ?? '') . ' · ' . ($r['reuniao_em'] ?? '') . ' · ' . ($r['titulo'] ?? '') . ":\n" . mb_substr((string)($x['body'][0]['texto'] ?? ''), 0, 30000); }
-        }
-    } catch (\Throwable $e) {}
-    if ($reun) $maos .= $reun;
-    if ($fichas) $maos .= "\n\nVocê JÁ CONHECE o cliente deste comit pela ficha abaixo: use-a, NÃO peça briefing que está nela; peça só o que realmente falta." . $fichas;
+    $baseBusca = $texto . ' ' . $c['titulo'] . ' ' . ($c['assunto'] ?? '') . ' ' . $lerTranscr();
+    $maos .= pdCerebroReunioes($baseBusca) . pdCerebroFichas($baseBusca, $cidsCli);
     foreach ($quem as $q) {
         $p = $pers[$q['ref']] ?? null; if (!$p) continue;
         $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, em texto simples (NUNCA use asteriscos, markdown nem listas com símbolos; para citar alguém, só o nome), curto e direto, sem se apresentar de novo. COORDENAÇÃO: se a pergunta é "quem faz X", leia o que as colegas já disseram; se alguém já assumiu, NÃO dispute nem repita — complemente só com algo novo ou confirme. Não assuma sozinha o que é papel de outra IA (veja o ELENCO: Sumi = campanhas/anúncios, Muru = social, Tumi = captação e mercado; estratégia de marca e conteúdo de cliente vem da IA de quem cuida do cliente). Se ninguém tem certeza, proponha UMA responsável e pergunte o que falta. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.'
-            . "\n\n" . CMT_REGRAS . "\n\n" . pdElencoTexto() . "\n\n" . $maos;
+            . pdCerebroRegras() . "\n\n" . pdElencoTexto() . "\n\n" . $maos;
         $ehLider = ($q['ref'] === $liderRef);
         $sys .= $ehLider
             ? "\n\nVOCÊ É A LÍDER deste comit (a IA de quem abriu). Seu papel: organizar o que está sendo conversado numa súmula curta (o que já está decidido · quem faz o quê · o que ainda está em aberto) e, quando houver direção suficiente, dar o START para todos executando as ações de verdade (delegar, recado, criar tarefa). Se faltar decisão, pergunte UMA coisa que destrava. Quando tudo estiver resolvido, diga \"combinado\" e feche a súmula. Máximo 4 frases."
@@ -180,7 +181,7 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
         if ($perfilU && preg_match_all('/^[ \t]*(?:##ACAO##\s*)?(\{"tipo".*\})\s*$/mu', $resp, $am)) {
             $resp = trim(preg_replace('/^[ \t]*(?:##ACAO##\s*)?\{"tipo".*\}\s*$/mu', '', $resp));
             foreach (array_slice(array_values(array_unique($am[1])), 0, 6) as $aj) { $ao = json_decode($aj, true);
-                if (is_array($ao)) { try { $r = pdZapAcao($ao, $perfilU, $statusValidos); if (trim((string)$r) !== '') $feitos[] = $r; } catch (\Throwable $e) { $feitos[] = '⚠️ ' . mb_substr($e->getMessage(), 0, 140); } } }
+                if (is_array($ao)) { try { $r = cmtExecuta($ao, $perfilU, $statusValidos, $c, $q, $mem); if (trim((string)$r) !== '') $feitos[] = $r; } catch (\Throwable $e) { $feitos[] = '⚠️ ' . mb_substr($e->getMessage(), 0, 140); } } }
             $resp = trim(preg_replace('/\s*[✅✔]+\s*/u', ' ', $resp));
         }
         $resp = cmtEncurta($resp);
