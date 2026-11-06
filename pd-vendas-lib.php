@@ -277,6 +277,7 @@ function vdEntrada($pid, $canal, $texto, $contatoId = null) {
         if (in_array($p['estagio'], ['novo', 'abordado'], true)) $up['estagio'] = 'engajado';
         $rr = vdEscrever($pid, $canal === 'zap' ? 'zap' : 'email', 2, $texto);
         if (!empty($rr['ok'])) $rascunho = $rr;
+        if ($int === 'interessado' && $canal !== 'zap') { try { if (!function_exists('digPassarGigi')) require_once __DIR__ . '/pd-dig-lib.php'; digPassarGigi($p, $texto); } catch (Throwable $e) {} }   // Dig "aquecer": a Gigi segue no zap
     }
     vdSup('/rest/v1/pd_prospects?id=eq.' . $pid, 'PATCH', $up);
     if (in_array($int, ['interessado', 'pergunta', 'objecao', 'juridico'], true)) {

@@ -69,6 +69,18 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 #app{min-height:52vh}
 .map{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;align-items:center;margin:10px 0}.map label{color:var(--branco2);font-size:12.5px}
 code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
+
+.dg-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;flex-wrap:wrap}.dg-top .btn.nova{font-size:15px;padding:13px 24px;border-radius:16px;font-weight:600}
+.dg{display:flex;gap:14px;align-items:flex-start;cursor:pointer}.dg:hover{border-color:rgba(255,255,255,.7)}.dg .t{flex:1;min-width:0}.dg .t b{display:block;font-weight:500;font-size:14.5px}
+.dg-st{font-size:11px;padding:2px 10px;border-radius:999px;border:.5px solid var(--linha);color:var(--branco2);white-space:nowrap}.dg-st.rodando,.dg-st.fila{color:#cdb8ff;border-color:rgba(124,58,237,.7)}.dg-st.pronto{color:#7ee2a2;border-color:rgba(22,163,74,.7)}.dg-st.erro,.dg-st.parcial{color:#ffb4b4;border-color:rgba(220,38,38,.6)}
+.dg-n{display:flex;gap:18px;margin-top:8px;flex-wrap:wrap}.dg-n div{font-size:11px;color:var(--branco3)}.dg-n b{display:block;font-size:20px;font-weight:300;color:var(--branco);letter-spacing:-.02em}
+.wz{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow-y:auto}
+.wz>div{width:min(720px,100%);background:rgba(18,20,19,.96);border:.5px solid var(--linha);border-radius:22px;padding:22px 22px 20px}
+.wz h2{margin:0 0 4px;font-size:22px;font-weight:300;letter-spacing:-.02em}.wz .pas{display:flex;gap:6px;margin:10px 0 16px}.wz .pas i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.14)}.wz .pas i.on{background:var(--branco)}
+.opc{display:flex;flex-direction:column;gap:8px}.opc button{text-align:left;font:inherit;color:inherit;border:.5px solid var(--linha);background:rgba(255,255,255,.04);border-radius:16px;padding:13px 15px;cursor:pointer}.opc button:hover{border-color:rgba(255,255,255,.6)}
+.opc button.on{border-color:var(--branco);background:rgba(255,255,255,.12)}.opc button b{display:block;font-weight:500;font-size:14px}.opc button small{display:block;color:var(--branco2);font-size:12px;margin-top:3px;line-height:1.4}
+.avs{background:rgba(245,158,11,.12);border:.5px solid rgba(245,158,11,.55);border-radius:14px;padding:11px 13px;margin:10px 0;font-size:12.5px;line-height:1.5}.avs.ruim{background:rgba(220,38,38,.12);border-color:rgba(220,38,38,.5)}
+.pas-j{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:11.5px;color:var(--branco2)}
 </style></head><body><div class="w">
 <div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
   <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div class="row" style="gap:14px;align-items:center;margin-top:8px"><div><div class="eyebrow">garimpo de leads</div><h1>Dig</h1></div><span class="tumi" style="width:58px;height:58px;border-width:1.5px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></div></div>
@@ -84,7 +96,7 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ESTS=['novo','abordado','engajado','qualificando','proposta','negociando','ganho','perdido'];
 const SINAL={RODA_META_ADS:'anuncia na Meta',RODA_GOOGLE_ADS:'anuncia no Google',SEM_WHATSAPP:'sem WhatsApp no site',SEM_SCHEMA:'sem SEO estruturado',LANCAMENTO:'lançamento em curso',CONTRATANDO:'contratando',SITE_FORA:'site não abriu'};
-let AUTOMSG='',TETOG=null,AUTO=[],AUTOHOJE=null,TERMO=null,CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'funil',EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0,lote:new URLSearchParams(location.search).get('lote')||''},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
+let AUTOMSG='',TETOG=null,AUTO=[],AUTOHOJE=null,TERMO=null,CX=[],CXED=null,CXRES=null,ses,CART=new URLSearchParams(location.search).has('cart')?new URLSearchParams(location.search).get('cart'):'todas',TAB=new URLSearchParams(location.search).get('aba')||'digs',DIGS=[],W=null,EST='',FUN={},CARTS=[],LEADS=[],TOTAL=0,PAG=0,FIL={q:'',uf:'',segmento:'',nota_min:0,lote:new URLSearchParams(location.search).get('lote')||''},CAIXA=[],HOJE=0,TETO=40,LOG='',FILA=0,IMAP=false,PLAN=null;
 async function api(b){const r=await fetch('/pd-vendas.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify({carteira:CART,...b})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('servidor '+r.status));return j;}
 async function boot(){const sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#app').innerHTML='<div class="msg">Entre na plataforma para abrir o Dig.</div>';return;}
@@ -116,8 +128,8 @@ function faixa(){const f=$('#faixa');if(!f)return;
 async function troca(id){AUTOMSG='';CART=id;EST='';PAG=0;chips();faixa();await carrega();}
 async function carrega(){
   $('#app')&&($('#app').style.opacity='.55');
-  try{const[f,l,c]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'})]);
-    FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;PROC=f.pedidos||[];proc();}
+  try{const[f,l,c,dg]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'}),api({acao:'dig_listar'}).catch(()=>({digs:[]}))]);
+    DIGS=dg.digs||[];if(!JOR.length)api({acao:'dig_catalogo'}).then(r=>{JOR=r.jornadas||[];if(TAB==='digs')draw();}).catch(()=>{});FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;PROC=f.pedidos||[];proc();}
   catch(e){$('#app').style.opacity='';$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
   $('#app').style.opacity='';draw();extras();}
 let _ex=0;
@@ -134,8 +146,8 @@ function barra(){const el=$('#fb');if(!el)return;
   el.innerHTML=`<div class="fb-msg ${cls}" title="${esc(m)}">${esc(String(m).split('\n')[0])}</div><div class="fb-ac">${ac}</div>`;}
 function draw(){
   chips();
-  $('#tabs').innerHTML=[['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';LOG='';AUTOMSG='';draw()">${n}</button>`).join('');
-  $('#app').innerHTML=TAB==='funil'?vFunil():TAB==='caixa'?vCaixa():vEntrar();barra();}
+  $('#tabs').innerHTML=[['digs','Digs'],['funil','Leads'],['caixa','Caixa de saída'+(CAIXA.length?' ('+CAIXA.length+')':'')],['entrar','Adicionar leads']].map(([k,n])=>`<button class="${TAB===k?'on':''}" onclick="TAB='${k}';LOG='';AUTOMSG='';draw()">${n}</button>`).join('');
+  $('#app').innerHTML=TAB==='digs'?vDigs():TAB==='funil'?vFunil():TAB==='caixa'?vCaixa():vEntrar();barra();}
 function vFunil(){
   const tot=Object.values(FUN).reduce((a,b)=>a+b,0);
   const f=`<div class="fun"><button class="${EST===''?'on':''}" onclick="EST='';PAG=0;carrega()"><b>${tot.toLocaleString('pt-BR')}</b><small>todos</small></button>${ESTS.map(e=>`<button class="${EST===e?'on':''}" onclick="EST='${e}';PAG=0;carrega()"><b>${(FUN[e]||0).toLocaleString('pt-BR')}</b><small>${e}</small></button>`).join('')}</div>`;
@@ -252,6 +264,71 @@ function envTodos(b){run(b,'Enviando…',async()=>{const r=(await api({acao:'env
 async function rej(id){await api({acao:'rejeitar',conversa:id});await carrega();}
 // ---- ficha do lead
 async function abre(id){$('#dr').style.display='block';$('#drc').innerHTML='<div class="msg">…</div>';await ficha(id);}
+
+/* ================= DIG · lista de resultados + "Nova Dig" ================= */
+const MODOS={achar:['Só achar','Caça profunda de empresas, instituições e pessoas jurídicas. Entrega a lista com o porquê de cada uma.'],abordar:['Achar e abordar','Acha e já escreve a abordagem por e-mail dentro da jornada que você escolher. Nada sai sem você aprovar.'],aquecer:['Achar, abordar e aquecer','Tudo isso + quando o lead responde com interesse, a Gigi segue no WhatsApp, amarrada na narrativa de venda daquele cliente.']};
+const DST={fila:'na fila',rodando:'garimpando agora',pronto:'pronta',parcial:'achou, sem mensagens',erro:'não deu',rascunho:'rascunho'};
+function dtCurta(t){try{return new Date(t).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
+function vDigs(){
+  const top=`<div class="dg-top"><button class="btn p nova" onclick="wzAbre()">＋ Nova Dig</button><span class="sub">${CART==='todas'?'Resultados das Digs de todos os clientes, da mais recente para a mais antiga.':'Resultados das Digs deste cliente, da mais recente para a mais antiga.'}</span></div>`;
+  if(!DIGS.length)return top+`<div class="card"><b>Nenhuma Dig ainda.</b><div class="sub" style="margin-top:6px">Clique em <b>＋ Nova Dig</b>, escolha o cliente, conte o que procura e o Tumi vai garimpar. Os resultados aparecem aqui.</div></div>`;
+  return top+DIGS.map(d=>{const c=CARTS.find(x=>x.id===d.client_id)||{name:'',color:'#555'};const velha=(d.status==='rodando'&&Date.now()-new Date(d.iniciado_em||d.created_at).getTime()>7*6e4);
+    return`<div class="card dg" onclick="digAbre('${d.id}')">${avDe(c)}<div class="t"><div class="row" style="justify-content:space-between;gap:8px"><b>${esc(d.titulo)}</b><span class="dg-st ${d.status}">${DST[d.status]||d.status}</span></div>
+      <div class="sub">${esc(c.name)} · ${esc((MODOS[d.modo]||[d.modo])[0])}${d.jornada?' · '+esc((JOR.find(j=>j.id===d.jornada)||{nome:d.jornada}).nome):''} · ${dtCurta(d.created_at)}</div>
+      <div class="dg-n"><div><b>${d.achados}</b>achados</div>${d.duplicados?`<div><b>${d.duplicados}</b>já tínhamos</div>`:''}${d.modo!=='achar'?`<div><b>${d.mensagens}</b>mensagens p/ aprovar</div>`:''}</div>
+      ${d.erro?`<div class="sub" style="margin-top:8px;color:#ffb4b4">${esc(d.erro)}</div>`:''}
+      ${(d.status==='fila'||d.status==='erro'||velha)?`<div class="row" style="margin-top:10px"><button class="btn ia s" onclick="event.stopPropagation();digRoda('${d.id}',this)">${d.status==='erro'?'Tentar de novo':'Rodar agora'}</button></div>`:''}</div></div>`;}).join('');
+}
+function digAbre(id){const d=DIGS.find(x=>x.id===id);if(!d)return;
+  if(d.status==='pronto'&&d.modo!=='achar'&&d.mensagens){TAB='caixa';}else{FIL={q:'',uf:'',segmento:'',nota_min:0,lote:d.lote_id||''};TAB='funil';}
+  PAG=0;EST='';carrega();}
+async function digRoda(id,b){b.disabled=true;b.textContent='O Tumi está garimpando… (pode levar alguns minutos, deixe esta página aberta)';try{await api({acao:'dig_rodar',dig:id});}catch(e){alert(e.message)}await carrega();}
+let JOR=[];
+/* ---- assistente */
+function wzAbre(){W={passo:1,client:CART==='todas'?'':CART,titulo:'',briefing:'',quantos:10,modo:'',jornada:'',cfg:{link:'',modelo_email:'',narrativa:''},v:null,pend:[],busy:false,msg:''};
+  if(!JOR.length)api({acao:'dig_catalogo'}).then(r=>{JOR=r.jornadas||[];if(W&&W.passo===4)wzDraw();}).catch(()=>{});
+  let o=$('#wz');if(!o){o=document.createElement('div');o.id='wz';o.className='wz';document.body.appendChild(o);}o.style.display='flex';wzDraw();}
+function wzFecha(){const o=$('#wz');if(o)o.style.display='none';W=null;}
+function wzLe(){if(!W)return;const g=i=>document.getElementById(i);if(g('wzT'))W.titulo=g('wzT').value;if(g('wzB'))W.briefing=g('wzB').value;if(g('wzN'))W.quantos=+g('wzN').value||10;
+  ['link','modelo_email','narrativa'].forEach(k=>{if(g('wz_'+k))W.cfg[k]=g('wz_'+k).value;});}
+function wzDraw(){const o=$('#wz');if(!o||!W)return;wzLe();const P=W.modo==='achar'?4:5,n=W.passo;
+  const pas=`<div class="pas">${Array.from({length:P},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}</div>`;
+  const cab=`<div class="row" style="justify-content:space-between;align-items:center"><h2>${['','1 · Para qual cliente?','2 · O que você procura?','3 · O que a Dig faz?','4 · Como abordar?','5 · Revisar e rodar'][n]}</h2><button class="btn s" onclick="wzFecha()">✕</button></div>${pas}`;
+  let c='',ac='';
+  if(n===1){c=`<div class="opc">${CARTS.map(x=>`<button class="${W.client===x.id?'on':''}" onclick="W.client='${x.id}';wzDraw()"><span class="row" style="gap:10px">${avDe(x)}<b>${esc(x.name)}</b></span></button>`).join('')}</div>`;
+    ac=`<button class="btn p" ${W.client?'':'disabled'} onclick="wzVai(2)">Avançar</button>`;}
+  if(n===2){c=`<div class="sub" style="margin-bottom:6px">Pode ser bem aberto ou bem específico — escreva do jeito que você falaria com o Tumi. Se a ferramenta não conseguir algo, ela avisa e sugere o que dá.</div>
+      <textarea id="wzB" rows="7" placeholder="ex.: incorporadoras médias de Campinas e região, com lançamento nos últimos 12 meses, site sem WhatsApp e sem rastreio de campanha. Quero o nome do sócio quando for público.">${esc(W.briefing)}</textarea>
+      <div class="row" style="margin-top:10px"><label class="sub">Nome da Dig (opcional)<br><input id="wzT" value="${esc(W.titulo)}" placeholder="ex.: Incorporadoras Campinas" style="width:260px"></label><label class="sub">Quantas empresas<br><input id="wzN" type="number" min="3" max="20" value="${W.quantos}" style="width:90px"></label></div>${W.msg?`<div class="avs ruim">${esc(W.msg)}</div>`:''}`;
+    ac=`<button class="btn s" onclick="wzVolta(1)">Voltar</button><button class="btn p" ${W.busy?'disabled':''} onclick="wzViab()">${W.busy?'Checando se dá pra fazer…':'Avançar'}</button>`;}
+  if(n===3){const v=W.v;c=(v&&v.aviso?`<div class="avs ${v.nivel==='nao'?'ruim':''}"><b>${v.nivel==='nao'?'Não dá pra fazer assim.':'Dá, mas em parte.'}</b><br>${esc(v.aviso)}${v.sugestao?`<br><br><b>Sugestão:</b> ${esc(v.sugestao)}<div class="row" style="margin-top:8px"><button class="btn s" onclick="W.briefing=W.v.sugestao;W.v.aviso='';wzDraw()">Usar a sugestão</button><button class="btn s" onclick="wzVolta(2)">Editar o pedido</button></div>`:''}</div>`:'')
+      +`<div class="opc">${Object.entries(MODOS).map(([k,[t,d]])=>`<button class="${W.modo===k?'on':''}" onclick="W.modo='${k}';wzDraw()"><b>${t}</b><small>${d}</small></button>`).join('')}</div>`
+      +W.pend.filter(x=>W.modo&&((x.id==='email'&&W.modo!=='achar')||(x.id==='zap'&&W.modo==='aquecer'))).map(x=>`<div class="avs ${x.aviso?'':'ruim'}"><b>${esc(x.titulo)}</b><div class="pas-j">${x.passos.map((s,i)=>`<span>${i+1}. ${esc(s)}</span>`).join('')}</div>${x.aba?`<div class="row" style="margin-top:8px"><button class="btn s" onclick="wzFecha();TAB='${x.aba}';carrega()">Ir configurar agora</button></div>`:''}</div>`).join('');
+    ac=`<button class="btn s" onclick="wzVolta(2)">Voltar</button><button class="btn p" ${W.modo&&!W.pend.some(x=>!x.aviso&&x.id==='email'&&W.modo!=='achar')?'':'disabled'} onclick="wzVai(W.modo==='achar'?5:4)">Avançar</button>`;}
+  if(n===4){const J=JOR.filter(j=>j.modos.includes(W.modo));
+    c=`<div class="sub" style="margin-bottom:8px">Escolha a jornada. Você pode ajustar os textos depois, na Caixa de saída, antes de qualquer envio.</div><div class="opc">${J.map(j=>`<button class="${W.jornada===j.id?'on':''}" onclick="W.jornada='${j.id}';wzDraw()"><b>${esc(j.nome)}</b><small>${esc(j.quando)}</small>${W.jornada===j.id?`<div class="pas-j">${j.passos.map((s,i)=>`<span>${i+1}. ${esc(s)}</span>`).join('')}</div>`:''}</button>`).join('')||'<div class="sub">Carregando jornadas…</div>'}</div>`;
+    if(W.jornada){c+=`<div class="sub" style="margin:14px 0 4px"><b>Link</b> — onde o lead clica (página da oferta, agenda, WhatsApp…)</div><input id="wz_link" style="width:100%" value="${esc(W.cfg.link)}" placeholder="https://…">
+      <div class="sub" style="margin:12px 0 4px"><b>E-mail padrão</b> (opcional) — cole um e-mail que já funciona; a IA imita estrutura e tom</div><textarea id="wz_modelo_email" rows="4">${esc(W.cfg.modelo_email)}</textarea>
+      <div class="sub" style="margin:12px 0 4px"><b>Narrativa de abordagem</b> (opcional) — o que dizer e como: ângulo, promessa, tom, o que evitar</div><textarea id="wz_narrativa" rows="4">${esc(W.cfg.narrativa)}</textarea>`;}
+    ac=`<button class="btn s" onclick="wzVolta(3)">Voltar</button><button class="btn p" ${W.jornada?'':'disabled'} onclick="wzVai(5)">Avançar</button>`;}
+  if(n===5){const cl=CARTS.find(x=>x.id===W.client)||{name:''},jr=JOR.find(j=>j.id===W.jornada);
+    c=`<div class="card" style="margin:0"><div class="row" style="gap:10px">${avDe(cl)}<b>${esc(cl.name)}</b></div><div class="sub" style="margin:10px 0 2px"><b>Procura:</b> ${esc(W.briefing)}</div><div class="sub"><b>Tipo:</b> ${esc(MODOS[W.modo][0])} · até ${W.quantos} empresas</div>${jr?`<div class="sub"><b>Jornada:</b> ${esc(jr.nome)}${W.cfg.link?' · '+esc(W.cfg.link):''}</div>`:''}</div>
+      <div class="sub" style="margin-top:10px">${W.modo==='achar'?'O Tumi garimpa e entrega a lista aqui nas Digs.':'O Tumi garimpa, escreve as abordagens e deixa tudo na Caixa de saída para você aprovar. '+(W.modo==='aquecer'?'Quem responder com interesse e tiver zap passa para a Gigi.':'')}<br>Pode levar alguns minutos: deixe esta página aberta.</div>${W.msg?`<div class="avs ruim">${esc(W.msg)}</div>`:''}`;
+    ac=`<button class="btn s" onclick="wzVolta(W.modo==='achar'?3:4)">Voltar</button><button class="btn ia" ${W.busy?'disabled':''} onclick="wzRoda()">${W.busy?'O Tumi está garimpando…':'Rodar a Dig'}</button>`;}
+  o.innerHTML=`<div>${cab}${c}<div class="row" style="justify-content:flex-end;margin-top:18px">${ac}</div></div>`;}
+function wzVai(p){wzLe();W.passo=p;W.msg='';wzDraw();}
+function wzVolta(p){wzLe();W.passo=p;wzDraw();}
+async function wzViab(){wzLe();if(W.briefing.trim().length<15){W.msg='Conte um pouco mais do que você procura (pelo menos uma frase).';wzDraw();return;}
+  W.busy=true;W.msg='';wzDraw();
+  try{const r=await api({acao:'dig_viabilidade',briefing:W.briefing,modo:'aquecer',client_id:W.client});W.v=r.v;W.pend=r.pendencias||[];}catch(e){W.v=null;}
+  W.busy=false;W.passo=3;wzDraw();}
+async function wzRoda(){wzLe();W.busy=true;W.msg='';wzDraw();
+  try{const c=await api({acao:'dig_criar',client_id:W.client,titulo:W.titulo,briefing:W.briefing,modo:W.modo,jornada:W.jornada,jornada_cfg:W.cfg,quantos:W.quantos,viabilidade:W.v});
+    if(c.erro==='pendencia'){W.busy=false;W.msg='Falta configurar: '+c.pendencias.map(x=>x.titulo).join('; ')+'. Volte ao passo 3.';wzDraw();return;}
+    await carrega();TAB='digs';draw();
+    await api({acao:'dig_rodar',dig:c.dig.id});wzFecha();}
+  catch(e){if(W){W.busy=false;W.msg=e.message+' — a Dig ficou salva na lista; você pode rodar de novo por lá.';wzDraw();}}
+  await carrega();}
 function fecha(){$('#dr').style.display='none';carrega();}
 async function ficha(id){const d=await api({acao:'ver',id}),l=d.lead,s=l.sinais||{};
   const tags=Object.entries(s).filter(([k,v])=>v&&SINAL[k]).map(([k])=>`<span class="tag">${SINAL[k]}</span>`).join('')+(s.TECNOLOGIA?`<span class="tag">${esc(s.TECNOLOGIA)}</span>`:'')+(s.INSTAGRAM?`<span class="tag">${esc(s.INSTAGRAM)}</span>`:'')+(s.AGENCIA_ATUAL?`<span class="tag">site por ${esc(s.AGENCIA_ATUAL)}</span>`:'');

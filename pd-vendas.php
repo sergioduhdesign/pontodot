@@ -4,6 +4,7 @@
 require_once __DIR__ . '/sd-base.php';
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-vendas-lib.php';
+require_once __DIR__ . '/pd-dig-lib.php';
 require_once __DIR__ . '/pd-lib.php';
 header('Content-Type: application/json; charset=utf-8');
 @set_time_limit(240);
@@ -103,6 +104,15 @@ switch ($acao) {
         if ($at) { $r = vdSup('/rest/v1/pd_vendas_caixas?client_id=eq.' . $cli, 'PATCH', $row); } else { $row['ultimo_uid'] = 0; $r = vdSup('/rest/v1/pd_vendas_caixas', 'POST', $row); }
         if (($r['code'] ?? 500) >= 300) sd_fail('não consegui salvar: ' . mb_substr(json_encode($r['body'] ?? $r['raw'] ?? '', JSON_UNESCAPED_UNICODE), 0, 200), 500);
         $cx = vdCaixaDe($cli); $out(['salva' => true, 'teste' => ($cx && empty($b['sem_teste'])) ? vdCaixaTestar($cx) : null]); break;
+    case 'dig_catalogo': $out(['jornadas' => digJornadas()]); break;
+    case 'dig_viabilidade':
+        $out(['v' => digViabilidade((string)($b['briefing'] ?? ''), (string)($b['modo'] ?? 'achar')), 'pendencias' => digPendencias((string)($b['modo'] ?? 'achar'), vdUuid($b['client_id'] ?? '') ?: vdCasaId())]); break;
+    case 'dig_criar': $r = digCriar($b, $u['id']); if (!empty($r['erro']) && ($r['erro'] !== 'pendencia')) sd_fail($r['erro'], 422); $out($r); break;
+    case 'dig_rodar': $did = vdUuid($b['dig'] ?? ''); if (!$did) sd_fail('falta a Dig'); $r = digExecutar($did, $u['id']); if (!empty($r['erro'])) sd_fail($r['erro'], 422); $out(['r' => $r]); break;
+    case 'dig_listar':
+        $q = '/rest/v1/pd_digs?select=*&order=created_at.desc&limit=60' . ($cart === 'todas' ? '' : '&client_id=eq.' . $cart);
+        $out(['digs' => vdLinhas(vdSup($q))]); break;
+    case 'dig_apagar': $did = vdUuid($b['dig'] ?? ''); if ($did) vdSup('/rest/v1/pd_digs?id=eq.' . $did, 'DELETE'); $out([]); break;
     case 'ver':
         if (!$pid) sd_fail('falta o lead');
         $out(['lead' => vdLinhas(vdSup('/rest/v1/pd_prospects?id=eq.' . $pid . '&select=*'))[0] ?? null,
