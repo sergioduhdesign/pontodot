@@ -16,6 +16,7 @@
   const raiz = () => document.getElementById('cmRoot');
   const avatar = (m, t) => m.tipo === 'ia' ? `<img src="${E(typeof fotoDe === 'function' ? '' : '')}" alt="">` : '';
   const ini = n => String(n || '?').split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
+  const FMT = t => E(t).replace(/\*\*([^*\n][^*]*?)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>');   // **negrito** e *itálico* viram formatação, sem asteriscos soltos
   const AVN = {};   // nome → foto das pessoas
   const bolinha = (nome, tipo, t) => { const foto = tipo !== 'ia' ? (AVN[String(nome).toLowerCase()] || (typeof perfil !== 'undefined' && perfil && perfil.name === nome ? perfil.avatar_url : '')) : ''; return `<span class="cm-av" style="--c:${cor(nome)};${t ? 'width:' + t + 'px;height:' + t + 'px;' : ''}" title="${E(nome)}">${tipo === 'ia' ? `<img src="/icone-ia.php?p=${encodeURIComponent(String(nome).toLowerCase())}&s=64" alt="" onerror="this.remove()">` : (foto ? `<img src="${E(foto)}" alt="" onerror="this.remove()">` : '')}<i>${E(ini(nome))}</i></span>`; };
 
@@ -119,7 +120,7 @@
     if (m.autor_tipo === 'sistema') return `<div class="cm-sis">${E(m.texto)} · ${hora(m.created_at)}</div>`;
     const eu = m.autor_ref && m.autor_ref === meuId();
     return `<div class="cm-m ${eu ? 'eu' : ''} ${m.importante ? 'imp' : ''}" data-id="${m.id}">${eu ? '' : bolinha(m.autor_nome, m.autor_tipo === 'ia' ? 'ia' : 'h', 30)}
-      <div class="cm-bl">${eu ? '' : `<small style="color:${cor(m.autor_nome)}">${E(m.autor_nome)}${m.autor_tipo === 'ia' ? ' · IA' : m.autor_tipo === 'cliente' ? ' · cliente' : ''}</small>`}<span class="tx">${E(m.texto)}</span><span class="h">${hora(m.created_at)}</span></div></div>`;
+      <div class="cm-bl">${eu ? '' : `<small style="color:${cor(m.autor_nome)}">${E(m.autor_nome)}${m.autor_tipo === 'ia' ? ' · IA' : m.autor_tipo === 'cliente' ? ' · cliente' : ''}</small>`}<span class="tx">${FMT(m.texto)}</span><span class="h">${hora(m.created_at)}</span></div></div>`;
   }
   function chat(){
     const R = raiz(); if (!R) return; const d = CM.dados, c = d.comit, fechado = c.status === 'fechado';
