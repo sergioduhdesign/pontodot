@@ -26,9 +26,11 @@ switch ($acao) {
         $cl = []; foreach (vdLinhas(vdSup('/rest/v1/clients?select=id,name,logo_url,color')) as $c) $cl[$c['id']] = $c;
         $d['carteiras'] = array_map(fn($x) => $x + ['nome' => $x['id'] ? ($cl[$x['id']]['name'] ?? 'Cliente') : 'Casa', 'logo' => $x['id'] ? ($cl[$x['id']]['logo_url'] ?? null) : null, 'cor' => $x['id'] ? ($cl[$x['id']]['color'] ?? null) : null], (array)($d['carteiras'] ?? []));
         // ENTREGAS DO TUMI (últimos 14 dias): cada garimpo = um lote "Descoberta …", com o cliente e quantas empresas
-        $lts = vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . rawurlencode(gmdate('c', time() - 14 * 86400)) . '&select=id,nome,motivo,carteira_id,created_at&order=created_at.desc&limit=12')); $ent = [];
+        $lts = vdLinhas(vdSup('/rest/v1/pd_lotes?nome=like.Descoberta*&created_at=gte.' . rawurlencode(gmdate('c', time() - 14 * 86400)) . '&select=id,nome,motivo,carteira_id,created_at&order=created_at.desc&limit=80')); $ent = [];
         foreach ($lts as $l) { $n = count(vdLinhas(vdSup('/rest/v1/pd_prospects?lote_id=eq.' . $l['id'] . '&select=id&limit=500'))); if (!$n) continue; $c = $l['carteira_id'] ? ($cl[$l['carteira_id']] ?? null) : null;
             $ent[] = ['lote' => $l['id'], 'cart' => $l['carteira_id'], 'cliente' => $c['name'] ?? 'SD / Stratesign', 'logo' => $c['logo_url'] ?? null, 'cor' => $c['color'] ?? null, 'n' => $n, 'motivo' => mb_substr((string)$l['motivo'], 0, 160), 'em' => $l['created_at']]; }
+        // garimpos de MUITA carteira não escondem os de outra: guarda os 3 mais recentes de cada cliente e limita o total
+        $cont = []; $ent = array_values(array_filter($ent, function ($e) use (&$cont) { $k = (string)$e['cart']; $cont[$k] = ($cont[$k] ?? 0) + 1; return $cont[$k] <= 3; })); $ent = array_slice($ent, 0, 24);
         $d['entregas'] = $ent;
         $out($d); break;
     case 'exportar':   // as empresas de um lote (ou do filtro atual), prontas para Excel / PDF
