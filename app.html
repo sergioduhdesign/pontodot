@@ -1407,6 +1407,14 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
         <p style="margin-top:5px">SD_ID preenchido = atualiza · SD_ID vazio = cria</p>
       </div>
       <div id="imp-results" style="display:none"></div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border,rgba(128,128,128,.25))">
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-bottom:8px">Planilhas para baixar</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Vistoria semanal de social</div><div style="font-size:11.5px;opacity:.65">A planilha da Camila, versão de agora (do Drive)</div></div><button class="btn btn-ghost" id="vs-baixar" onclick="baixarVistoriaSocial(this)">⬇ Baixar</button></div>
+          <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Modelo de importação de tarefas</div><div style="font-size:11.5px;opacity:.65">Cria e atualiza tarefas em lote</div></div><a class="btn btn-ghost" href="STUDIO_DESIGN_modelo_importacao.xlsx" download style="text-decoration:none">⬇ Baixar</a></div>
+          <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Modelo de lote de aprovação</div><div style="font-size:11.5px;opacity:.65">Peças e legendas para o cliente aprovar</div></div><a class="btn btn-ghost" href="SD_modelo_lote_aprovacao.xlsx" download style="text-decoration:none">⬇ Baixar</a></div>
+        </div>
+      </div>
     </div>
     <div class="modal-foot"><button class="btn btn-secondary" onclick="closeModal('modal-import')">Fechar</button><a href="STUDIO_DESIGN_modelo_importacao.xlsx" download class="btn btn-ghost" style="text-decoration:none">⬇ Baixar Modelo</a></div>
   </div>
@@ -1799,6 +1807,17 @@ if (typeof respAvatarHTML !== 'function') {
 // responde 401 (é assim que a plataforma deixou de aceitar requisição
 // de qualquer pessoa).
 // ================================================================
+
+async function baixarVistoriaSocial(btn){
+  const t0 = btn.textContent; btn.disabled = true; btn.textContent = 'Buscando…';
+  try {
+    const { data:{ session } } = await sb.auth.getSession();
+    const r = await fetch('/pd-modelos.php', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'baixar' }) });
+    if (!r.ok) { let m = ''; try { m = (await r.json()).erro || ''; } catch(e){} throw new Error(m || ('HTTP ' + r.status)); }
+    const blob = await r.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'SD_Vistoria_Social_Semanal.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  } catch(e){ alert('Não consegui baixar: ' + e.message); }
+  btn.disabled = false; btn.textContent = t0;
+}
 async function sdFetch(url, body, _retry){
   let { data:{ session } } = await sb.auth.getSession();
 

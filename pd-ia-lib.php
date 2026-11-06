@@ -193,6 +193,7 @@ function iaExecutar($nome, $args, $u, $lote, $podeEscrever) {
     if ($nome === 'ver_tarefa') return iaVerTarefa($args);
     if (!$podeEscrever) return ['texto' => '⚠️ este usuário só consulta; não executa', 'ids' => []];
     switch ($nome) {
+        case 'serie_semanal':   require_once __DIR__ . '/pd-series-lib.php'; return iaSerieSemanal($args, $u);
         case 'alterar_tarefas': return iaAlterar($args, $u, $lote);
         case 'criar_tarefas':   return iaCriar($args, $u, $lote);
         case 'excluir_tarefas': return iaExcluir($args, $u, $lote);
@@ -462,6 +463,8 @@ function iaCatalogo($u) {
         'input_schema' => $S(['mudancas' => ['type' => 'array', 'items' => $S(['id' => $str, 'status' => $str, 'resp' => $str, 'projeto' => $str, 'cliente' => $str, 'produto' => $str, 'date_int' => $str, 'date_cli' => $str, 'action' => $str, 'obs' => $str, 'obs_acrescenta' => $str, 'tarefa_mae' => $str], ['id'])]], ['mudancas'])];
     $T[] = ['name' => 'criar_tarefas', 'description' => 'Cria tarefas (até 40). Por item: action (título objetivo), cliente, produto, projeto, resp, status (padrão BRIEFING), date_int, date_cli, obs, depois_de (posição 1..n do item que vem antes) ou tarefa_mae (id existente).',
         'input_schema' => $S(['novas' => ['type' => 'array', 'items' => $S(['action' => $str, 'cliente' => $str, 'produto' => $str, 'projeto' => $str, 'resp' => $str, 'status' => $str, 'date_int' => $str, 'date_cli' => $str, 'obs' => $str, 'depois_de' => ['type' => 'integer'], 'tarefa_mae' => $str], ['action'])]], ['novas'])];
+    $T[] = ['name' => 'serie_semanal', 'description' => 'SÉRIE SEMANAL RECORRENTE (ex.: "toda sexta, concluir até quinta"): vistoria de redes sociais etc. Use ESTA ferramenta (e NÃO criar_tarefas) quando o pedido tiver recorrência/semanal/toda sexta, mesmo com 12 linhas coladas: UMA chamada com todos os itens. A plataforma cria a tarefa da semana sozinha toda sexta (prazo quinta seguinte), lê a planilha de gestão do Drive e lembra a responsável todo dia pelo zap. op: criar (itens[{cliente, produto, resp, titulo, obs, inicio AAAA-MM-DD, em_espera (true se "em espera até liberar acesso"), motivo}] + descricao comum a todas) | listar | liberar (cliente, produto: tira da espera e cria a tarefa da semana) | pausar | encerrar | planilha (link: liga a planilha de gestão) | lembrar_agora. Se a resposta trouxer SEM_PLANILHA, peça o link da planilha de gestão ao usuário.',
+        'input_schema' => $S(['op' => $str, 'itens' => ['type' => 'array', 'items' => $S(['cliente' => $str, 'produto' => $str, 'resp' => $str, 'titulo' => $str, 'obs' => $str, 'inicio' => $str, 'em_espera' => ['type' => 'boolean'], 'motivo' => $str], ['cliente'])], 'descricao' => $str, 'titulo' => $str, 'resp' => $str, 'inicio' => $str, 'cliente' => $str, 'produto' => $str, 'motivo' => $str, 'link' => $str, 'id' => $str], ['op'])];
     $T[] = ['name' => 'excluir_tarefas', 'description' => 'Exclui tarefas de vez (fica cópia pra desfazer).', 'input_schema' => $S(['ids' => $arrS, 'motivo' => $str], ['ids'])];
     $T[] = ['name' => 'comentar', 'description' => 'Comenta numa tarefa, assinado pela pessoa.', 'input_schema' => $S(['id' => $str, 'texto' => $str], ['id', 'texto'])];
     $T[] = ['name' => 'novo_produto', 'description' => 'Cria um produto/empreendimento num cliente.', 'input_schema' => $S(['cliente' => $str, 'nome' => $str], ['cliente', 'nome'])];
@@ -508,6 +511,7 @@ function iaCatalogo($u) {
 }
 function iaExecutarTudo($nome, $args, $u, $lote) {
     switch ($nome) {
+        case 'serie_semanal':   require_once __DIR__ . '/pd-series-lib.php'; return iaSerieSemanal($args, $u);
         case 'alterar_tarefas': return iaAlterar($args, $u, $lote);
         case 'pedir_trabalho':  return iaPedirTrabalho($args, $u, $lote);
         case 'criar_tarefas':   return iaCriar($args, $u, $lote);

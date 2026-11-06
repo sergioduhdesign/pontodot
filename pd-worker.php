@@ -673,6 +673,7 @@ $n1 = w_derivadas();                 echo "Derivadas acordadas: $n1\n";
 $e  = w_esteiras();                  echo "Esteiras rodadas: " . ($e['rodadas'] ?? 0) . (!empty($e['sem_tabela']) ? ' (rode o SQL da v62)' : '') . "\n";
 $n3 = w_copias();                    echo "Artes copiadas pro Drive: $n3\n";
 $n4 = w_faxina();                    echo "Faxina do mês: " . ($n4 ? 'alarme criado' : 'nada a fazer') . "\n";
+try { require_once __DIR__ . '/pd-series-lib.php'; if (!vsSemTabela()) { $sg = vsGerar(); $sl = vsLembrar(); echo "Séries semanais: " . ($sg['criadas'] ?? 0) . " tarefa(s) criada(s), lembretes " . ($sl['enviados'] ?? 0) . (!empty($sl['motivo']) ? ' (' . $sl['motivo'] . ')' : '') . "\n"; } } catch (Throwable $e) { echo "Séries semanais: erro " . mb_substr($e->getMessage(), 0, 120) . "\n"; }
 $z  = w_zap();                       echo "Zap: " . ($z['enviados'] ?? 0) . " enviado(s), " . ($z['manuais'] ?? 0) . " manual(is)" . (!empty($z['sem_tabela']) ? ' (rode o SQL da v62)' : '') . "\n";
 $n6 = w_relatorios();                echo "Relatórios de campanha: $n6\n";
 $n7 = w_sites();                     echo "Posts publicados em site de cliente: $n7\n";
