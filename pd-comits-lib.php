@@ -92,8 +92,7 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
         }
     }
     if (!$quem) return;
-    $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []);
-    $transcr = ''; foreach (array_reverse($hist) as $h) $transcr .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n";
+    $lerTranscr = function () use ($c) { $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []); $t = ''; foreach (array_reverse($hist) as $h) $t .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n"; return $t; };
     $lista = implode('; ', array_map(fn($m) => $m['nome'] . ' (' . ($m['tipo'] === 'ia' ? 'IA' : ($m['tipo'] === 'cliente' ? 'cliente' : 'pessoa da equipe')) . ')', $mem));
     // AS MESMAS MÃOS DO ZAP: a IA do comit executa de verdade (recado por WhatsApp, delegar, criar/mudar tarefa, lembrete…) em nome de quem está falando
     $perfilU = null; $statusValidos = []; $maos = '';
@@ -107,8 +106,9 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
     } else $maos = 'Você não executa ações neste momento: converse e proponha o próximo passo.';
     foreach ($quem as $q) {
         $p = $pers[$q['ref']] ?? null; if (!$p) continue;
-        $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, curto e direto (até 5 linhas), sem se apresentar de novo. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.'
+        $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, curto e direto (até 5 linhas), sem se apresentar de novo. COORDENAÇÃO: se a pergunta é "quem faz X", leia o que as colegas já disseram; se alguém já assumiu, NÃO dispute nem repita — complemente só com algo novo ou confirme. Não assuma sozinha o que é papel de outra IA (veja o ELENCO: Sumi = campanhas/anúncios, Muru = social, Tumi = captação e mercado; estratégia de marca e conteúdo de cliente vem da IA de quem cuida do cliente). Se ninguém tem certeza, proponha UMA responsável e pergunte o que falta. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.'
             . "\n\n" . pdElencoTexto() . "\n\n" . $maos;
+        $transcr = $lerTranscr();   // cada IA lê o que as anteriores acabaram de dizer
         [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 1100);
         if (!$resp) continue;
         $feitos = [];
