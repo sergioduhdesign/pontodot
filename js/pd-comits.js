@@ -40,6 +40,7 @@
     .cm-bl small{display:block;font-size:11px;opacity:.6;margin-bottom:2px}.cm-bl .h{opacity:.45;font-size:10.5px;margin-left:6px}
     .cm-m.imp .cm-bl{outline:1.5px solid #e0b342}.cm-sis{align-self:center;font-size:11.5px;opacity:.55;text-align:center;padding:2px 10px}
     .cm-in{display:flex;gap:8px;padding:10px 14px 14px;align-items:flex-end}.cm-in textarea{flex:1;min-height:40px;max-height:120px;border-radius:14px;border:.5px solid rgba(127,127,127,.4);background:rgba(127,127,127,.1);color:inherit;padding:10px 12px;font:inherit;font-size:14px;resize:none}
+    html.dia .cm-btn:not(.s),html.dia .cm-in button{color:#fff}.cm-btn:disabled,.cm-in button:disabled{opacity:.5}
     .cm-in button{height:40px;border-radius:999px;padding:0 18px;border:0;background:var(--branco);color:#111;font:inherit;font-weight:500;cursor:pointer}
     .cm mark{background:var(--mc,#e0b342);color:#111;border-radius:3px;padding:0 1px}.cm mark.at{outline:2px solid #fff}
     .cm-ach{padding:6px 8px 10px 56px;font-size:13px;opacity:.9;cursor:pointer;border-radius:8px}.cm-ach:hover{background:rgba(127,127,127,.12)}.cm-ach small{opacity:.55;display:block}
