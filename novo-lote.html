@@ -764,6 +764,7 @@ el('btnSave').onclick = async () => {
       const fila = []; zipPecas.forEach((p, pi) => p.files.forEach((f, fi) => fila.push({ pi, fi, f })));
       const subiu = zipPecas.map(p => new Array(p.files.length));
       let prox = 0;
+      AP.onVideo = m => { el('status').textContent = m; };
       const trabalhador = async () => {
         while (prox < fila.length) {
           const j = fila[prox++];

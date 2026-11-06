@@ -2139,6 +2139,7 @@ async function czAplicar(){
                  + novas.reduce((n, p) => n + p.files.length, 0);
   let feitos = 0, ok = 0;
   const aplicados = new Set();
+  AP.onVideo = m => { info.textContent = m; };
   const passo = (t) => { feitos++; bar.style.width = Math.round(feitos / Math.max(1,totalArq) * 100) + '%'; info.textContent = t; };
 
   try {

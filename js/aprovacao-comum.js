@@ -312,8 +312,9 @@ AP.lerPacote = async function(files, opts){
       for (let k = 0; k < g.lista.length; k += 6) {
         const parte = await Promise.all(g.lista.slice(k, k + 6).map(async m => {
           const blob = await m.e.blob();
-          const f2 = (blob instanceof File && blob.name === m.nome) ? blob
+          let f2 = (blob instanceof File && blob.name === m.nome) ? blob
                    : new File([blob], m.nome, { type: AP.mime(m.nome) });
+          if (IMG.test(m.nome)) f2 = await AP.imagemLeve(f2);   // MÁQUINA DE ENTRADA: imagem pesada já nasce leve (antes subia do tamanho original)
           lidas++; st(`Extraindo artes… ${lidas} de ${totalMidia}`);
           return { file: f2, url: URL.createObjectURL(f2), nome: m.nome, path: m.e.path };
         }));
@@ -1099,20 +1100,72 @@ AP.imagemLeve = async function(f){
   try {
     const bmp = await createImageBitmap(f);
     const k = Math.min(1, 2160 / Math.max(bmp.width, bmp.height));
-    if (f.type === 'image/jpeg' && k === 1 && f.size < 2.5 * 1024 * 1024) return f;
-    const c = document.createElement('canvas');
-    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+    if (f.type === 'image/jpeg' && k === 1 && f.size < 1.5 * 1024 * 1024) { bmp.close && bmp.close(); return f; }
+    const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k); let blob;
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const c = new OffscreenCanvas(w, h), ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+      blob = await c.convertToBlob({ type: 'image/jpeg', quality: 0.88 });
+    } else {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+      blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.88));
+    }
+    bmp.close && bmp.close();
+    if (!blob || (blob.size >= f.size && f.type === 'image/jpeg')) return f;   // não piora
     return new File([blob], f.name, { type: 'image/jpeg' });
   } catch(e) { return f; }
+};
+
+// MÁQUINA DE ENTRADA DE VÍDEO: vídeo pesado (> 45 MB) é regravado aqui no navegador, em MP4 (H.264),
+// no máximo 1080p, com bitrate calculado pra ficar abaixo de ~38 MB. Roda em tempo real (45 s de vídeo = ~45 s).
+// Um vídeo por vez; só mexe no que passa do limite; se o navegador não consegue gravar MP4, devolve o original.
+AP.VIDEO_LIMITE = 45 * 1024 * 1024;
+AP._vq = Promise.resolve();
+AP.videoLeve = function(f, onMsg){ const rodar = () => AP._videoLeve(f, onMsg); return (AP._vq = AP._vq.then(rodar, rodar)); };
+AP._videoLeve = async function(f, onMsg){
+  const say = m => { try { (onMsg || AP.onVideo || function(){})(m); } catch(e){} };
+  if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) return f;
+  const mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m));
+  if (!mime) { say('Este navegador não grava MP4 — use o Chrome atualizado para o vídeo ser otimizado.'); return f; }
+  const url = URL.createObjectURL(f), v = document.createElement('video');
+  v.src = url; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
+  let ac = null;
+  const limpa = () => { try { v.pause(); } catch(e){} try { URL.revokeObjectURL(url); } catch(e){} try { ac && ac.close(); } catch(e){} };
+  try {
+    await new Promise((ok, err) => { v.onloadedmetadata = ok; v.onerror = () => err(new Error('vídeo ilegível')); });
+    const dur = v.duration || 0; if (!dur || !isFinite(dur)) { limpa(); return f; }
+    const lado = Math.max(v.videoWidth, v.videoHeight), k = Math.min(1, 1920 / lado);
+    const w = Math.max(2, Math.round(v.videoWidth * k / 2) * 2), h = Math.max(2, Math.round(v.videoHeight * k / 2) * 2);
+    const alvoBytes = 38 * 1024 * 1024, audioBps = 128000;
+    const bps = Math.max(1.2e6, Math.min(9e6, Math.floor((alvoBytes * 8 / dur) * 0.9) - audioBps));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const ctx = cv.getContext('2d');
+    const stream = cv.captureStream(30);
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); const src = ac.createMediaElementSource(v), dest = ac.createMediaStreamDestination(); src.connect(dest); dest.stream.getAudioTracks().forEach(t => stream.addTrack(t)); } catch(e){ /* sem áudio capturável: segue só com a imagem */ }
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps, audioBitsPerSecond: audioBps });
+    const partes = []; rec.ondataavailable = e => { if (e.data && e.data.size) partes.push(e.data); };
+    const fim = new Promise(ok => { rec.onstop = ok; });
+    const nome = f.name.length > 28 ? f.name.slice(0, 25) + '…' : f.name;
+    let vivo = true, ultimoPct = -1;
+    const desenha = () => { if (!vivo) return; ctx.drawImage(v, 0, 0, w, h);
+      const pct = Math.min(99, Math.floor(v.currentTime / dur * 100)); if (pct !== ultimoPct) { ultimoPct = pct; say(`Otimizando o vídeo ${nome}… ${pct}% — mantenha esta aba aberta e visível`); }
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(desenha); else requestAnimationFrame(desenha); };
+    v.onended = () => { vivo = false; setTimeout(() => { try { rec.state !== 'inactive' && rec.stop(); } catch(e){} }, 250); };
+    rec.start(1000); await v.play(); desenha();
+    const limite = setTimeout(() => { vivo = false; try { rec.state !== 'inactive' && rec.stop(); } catch(e){} }, (dur * 1.6 + 30) * 1000);
+    await fim; clearTimeout(limite); limpa();
+    const blob = new Blob(partes, { type: 'video/mp4' });
+    if (v.currentTime < dur - 1) { say('A otimização foi interrompida — subindo o vídeo original.'); return f; }   // aba em segundo plano/travou: não manda vídeo cortado
+    if (!blob.size || blob.size >= f.size) return f;
+    say(`Vídeo ${nome} otimizado: ${(f.size / 1048576).toFixed(0)} MB → ${(blob.size / 1048576).toFixed(0)} MB`);
+    return new File([blob], f.name.replace(/\.[^.]+$/, '') + '.mp4', { type: 'video/mp4' });
+  } catch (e) { limpa(); console.warn('[SD] videoLeve:', e && e.message); return f; }
 };
 
 // Sobe um arquivo pro storage do lote e devolve o objeto de mídia.
 // Arquivo que veio do Drive leva junto o link do original.
 AP.subirMidia = async function(f, clientId, setId, extra){
+  if (/\.(mp4|mov|m4v)$/i.test(f.name) && f.size > AP.VIDEO_LIMITE && !(f._drive && f._drive.soLink)) f = await AP.videoLeve(f);   // vídeo pesado é otimizado na entrada
   const meta = Object.assign({}, extra || {});
   if (f._drive) { meta.drive_id = f._drive.id; meta.drive_url = f._drive.url; }
   if (f._drive && f._drive.soLink) {
