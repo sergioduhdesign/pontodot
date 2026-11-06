@@ -2279,8 +2279,8 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
 <style id="fade-blur-e-barras">
 /* o blur ACOMPANHA o fade (o navegador do celular não esmaece o blur junto com a opacidade): entra e sai em degradê */
 /* caixas de canto arredondado: sem barra de rolar aparecendo nas pontas (rola igual, só não mostra a barra) */
-.caixa,.j-caixa,.tc-caixa,.det-pop,.menu-ctx,.gad-corpo,.historico,#janela,#janela *,.picker-pop,.mc-corpo,.board-rolo{scrollbar-width:none}
-.caixa::-webkit-scrollbar,.j-caixa::-webkit-scrollbar,.tc-caixa::-webkit-scrollbar,.det-pop::-webkit-scrollbar,.menu-ctx::-webkit-scrollbar,.gad-corpo::-webkit-scrollbar,.historico::-webkit-scrollbar,#janela *::-webkit-scrollbar,.picker-pop::-webkit-scrollbar,.mc-corpo::-webkit-scrollbar,.board-rolo::-webkit-scrollbar{display:none;width:0;height:0}
+.caixa,.j-caixa,.tc-caixa,.det-pop,.menu-ctx,.gad-corpo,.historico,#janela,#janela *,.picker-pop,.mc-corpo,.board-rolo{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.5) transparent}
+.caixa::-webkit-scrollbar,.j-caixa::-webkit-scrollbar,.tc-caixa::-webkit-scrollbar,.det-pop::-webkit-scrollbar,.menu-ctx::-webkit-scrollbar,.gad-corpo::-webkit-scrollbar,.historico::-webkit-scrollbar,#janela *::-webkit-scrollbar,.picker-pop::-webkit-scrollbar,.mc-corpo::-webkit-scrollbar,.board-rolo::-webkit-scrollbar{width:6px;height:6px}.caixa::-webkit-scrollbar-thumb,.j-caixa::-webkit-scrollbar-thumb,.tc-caixa::-webkit-scrollbar-thumb,.det-pop::-webkit-scrollbar-thumb,.menu-ctx::-webkit-scrollbar-thumb,.gad-corpo::-webkit-scrollbar-thumb,.historico::-webkit-scrollbar-thumb,#janela *::-webkit-scrollbar-thumb,.picker-pop::-webkit-scrollbar-thumb,.mc-corpo::-webkit-scrollbar-thumb,.board-rolo::-webkit-scrollbar-thumb{background:rgba(128,128,128,.5);border-radius:6px}
 @media(max-width:999px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
 </style>
 <style id="lote-161">
@@ -2564,7 +2564,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v423 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v424 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -6053,17 +6053,18 @@ async function ccmpDirecao(){
 }
 function ccmpToggle(id){ CCMP_SALVA(); if (CCMP.sel[0] === id) return; if (ALVO && ALVO.client_id !== id) ALVO = null; CCMP.sel = [id]; CCMP.players = null; CCMP.dados = {}; CCMP.resp = null; CCMP.ctx = null; CCMP.msg = ''; CCMP.fora = {}; ccmpPinta(); }
 // PDF: relatório limpo (logo do cliente + ícone da PD) → imprimir / Salvar como PDF. Usa as informações escolhidas.
-function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
-  document.getElementById('pdfFrame')?.remove();
-  const fr = document.createElement('iframe'); fr.id = 'pdfFrame'; fr.setAttribute('aria-hidden', 'true');
-  fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none'; document.body.appendChild(fr);
-  const w = fr.contentWindow; toast('Preparando o PDF… escolha "Salvar como PDF" na janela de impressão.');
+function pdfEscopa(css){ return css.replace(/@page\{[^}]*\}/g,'').replace(/(^|\})\s*([^{}@]+)\{/g,(m,a,sel)=>a+sel.split(',').map(x=>{x=x.trim();return x==='*'?'.pdx,.pdx *':x==='body'?'.pdx':'.pdx '+x;}).join(',')+'{'); }
+const PDF_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+// REGRA DA CASA: todo PDF leva a identidade da PD + a do cliente no cabeçalho, copia o visual da tela e sai com Baixar/Compartilhar/Copiar link.
+// opts.a4 = material de lista (A4); padrão = material de tela (proporção 1920×1080).
+async function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
+  toast('Preparando o PDF…');
   const cli = clientesReais.find(x => x.name === clienteNome);
-  const agNome = (typeof AGENCIA_NOME !== 'undefined' && AGENCIA_NOME) || 'SD Studio Design', clienteNome0 = clienteNome;
+  const agNome = (typeof AGENCIA_NOME !== 'undefined' && AGENCIA_NOME) || 'SD Studio Design';
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-  const logo = cli && cli.logo_url ? `<img class="lg" src="${esc(cli.logo_url)}" alt="">` : (clienteNome ? `<span class="lg ini">${esc(clienteNome.slice(0,2).toUpperCase())}</span>` : '');
-  w.document.write(`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(titulo)} · relatório</title>
-  <style>${opts.wide ? '@page{size:A4 landscape;margin:8mm 9mm}' : '@page{margin:13mm 12mm}'}*{box-sizing:border-box}body{font:13px/1.5 -apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0;padding:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  const logo = cli && cli.logo_url ? `<img class="lg" crossorigin="anonymous" src="${esc(cli.logo_url)}" alt="">` : (clienteNome ? `<span class="lg ini">${esc(clienteNome.slice(0,2).toUpperCase())}</span>` : '');
+  const CSS = `*{box-sizing:border-box}body{font:13px/1.5 -apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0;padding:6px;}
+
   .cab{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1.5px solid #15161A;margin-bottom:20px}
   .lg{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:0 0 56px;display:block}.ini{display:grid;place-items:center;background:#15161A;color:#fff;font-weight:700;font-size:18px}.bol{display:flex;gap:10px;flex:0 0 auto}
   .cab h1{font-size:23px;line-height:1.15;margin:0;font-weight:600;letter-spacing:-.01em}.cab .sub{color:#6B6D75;font-size:12px;margin-top:3px}.cab .t{flex:1;min-width:0}.pd{width:56px;height:56px;flex:0 0 56px;border-radius:50%;object-fit:cover;display:block}
@@ -6073,17 +6074,21 @@ function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
   .row .c{flex:1;min-width:0}.row b.n{font-size:13.5px}.row p{margin:3px 0 0;color:#55575F}.row .kk{margin-top:9px;grid-template-columns:repeat(auto-fit,minmax(88px,1fr))}.row .k{padding:7px 10px}.row .k b{font-size:14px}
   .cp{font-size:10px;padding:2px 8px;border-radius:99px;background:#15161A;color:#fff;margin-left:6px;vertical-align:2px}.cp.p{background:#E4E3DE;color:#15161A}
   table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-top:1px solid #ECEBE6}td:last-child{text-align:right}
-  .rod{margin-top:30px;padding-top:12px;border-top:1px solid #E4E3DE;display:flex;align-items:flex-start;gap:10px;color:#6B6D75;font-size:10.5px;line-height:1.5}.rod img{width:22px;height:22px;margin-top:1px}.rod b{color:#15161A;font-weight:600}.rod .leg{display:block;margin-top:4px;color:#8A8C94;font-size:9.5px}
-  ${opts.css || ''}
-  </style>
-  <div class="cab"><div class="t"><h1>${esc(titulo)}</h1><div class="sub">${sub}</div></div><div class="bol">${logo}<img class="pd" src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt="pontodot"></div></div>
+  .rod{margin-top:30px;padding-top:12px;border-top:1px solid #E4E3DE;display:flex;align-items:flex-start;gap:10px;color:#6B6D75;font-size:10.5px;line-height:1.5}.rod img{width:22px;height:22px;margin-top:1px}.rod b{color:#15161A;font-weight:600}.rod .leg{display:block;margin-top:4px;color:#8A8C94;font-size:9.5px}`;
+  const a4 = !!opts.a4, W = a4 ? 1060 : 1440;
+  const el = document.createElement('div'); el.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + W + 'px;background:#fff';
+  el.innerHTML = `<style>${pdfEscopa(CSS)}${pdfEscopa(opts.css || '')}.pdx{width:${W}px;background:#fff;padding:18px 22px;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
+  <div class="pdx"><div class="cab"><div class="t"><h1>${esc(titulo)}</h1><div class="sub">${sub}</div></div><div class="bol">${logo}<img class="pd" crossorigin="anonymous" src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt="pontodot"></div></div>
   ${corpo}
-  <div class="rod"><img src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt=""><div><b>Gerado pela pontodot para a ${esc(agNome)}${clienteNome ? ' · Cliente ' + esc(clienteNome) : ''}</b><br>${esc(dataLonga)}<br><span class="leg">Dados obtidos da Meta (Facebook, Instagram e Meta Ads) por conexão autorizada pelo titular das contas, por meio das APIs oficiais da Meta, apenas para leitura e somente para as contas vinculadas a este cliente. Informações confidenciais, de uso restrito à agência e ao cliente indicados; a plataforma não publica, altera nem compartilha esses dados com terceiros. Números sujeitos à atualização e à apuração da própria Meta.</span></div></div>
-  </html>`);
-  w.document.close();
-  const imprime = () => { try { w.focus(); w.print(); } catch(e){ toast('Não consegui abrir a impressão: ' + e.message); } setTimeout(() => fr.remove(), 60000); };
-  let feito = false; const go = () => { if (feito) return; feito = true; setTimeout(imprime, 400); };
-  w.addEventListener('load', go); setTimeout(go, 3500);
+  <div class="rod"><img src="${location.origin}/assets/logo-pontodot-bolinha.svg" alt=""><div><b>Gerado pela pontodot para a ${esc(agNome)}${clienteNome ? ' · Cliente ' + esc(clienteNome) : ''}</b><br>${esc(dataLonga)}<br><span class="leg">Dados obtidos da Meta (Facebook, Instagram e Meta Ads) por conexão autorizada pelo titular das contas, por meio das APIs oficiais da Meta, apenas para leitura e somente para as contas vinculadas a este cliente. Informações confidenciais, de uso restrito à agência e ao cliente indicados; a plataforma não publica, altera nem compartilha esses dados com terceiros. Números sujeitos à atualização e à apuração da própria Meta.</span></div></div></div>`;
+  document.body.appendChild(el);
+  try {
+    await venCarregaLib(PDF_LIB, () => window.html2pdf);
+    await Promise.all([...el.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; setTimeout(r, 4000); })));
+    const pw = a4 ? 297 : 297, ph = a4 ? 210 : 167;
+    const blob = await html2pdf().set({ margin:[6, 6, 6, 6], image:{ type:'jpeg', quality:.96 }, html2canvas:{ scale:2, useCORS:true, backgroundColor:'#ffffff', windowWidth:W }, jsPDF:{ unit:'mm', format:[pw, ph], orientation:'landscape' }, pagebreak:{ mode:['css','legacy'], avoid:'.row,.k,tr,h2' } }).from(el.querySelector('.pdx')).outputPdf('blob');
+    venEntrega(blob, (titulo + (clienteNome ? ' — ' + clienteNome : '') + ' — ' + new Date().toLocaleDateString('pt-BR')).replace(/[\/:*?"<>|]/g, '-') + '.pdf', 'application/pdf');
+  } catch(e){ toast('Não consegui gerar o PDF: ' + (e.message || e)); } finally { el.remove(); }
 }
 const pdfSel = () => MET.filter(m => metSel().includes(m[0]));
 const pdfKpis = o => `<div class="kk">${pdfSel().map(m => `<div class="k"><small>${m[1]}</small><b>${esc(m[2](o))}</b></div>`).join('')}</div>`;
@@ -8367,6 +8372,7 @@ async function venExporta(lote, fmt){
       venEntrega(new Blob([bin], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), nome + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); return; }
     // PDF de verdade, com o mesmo visual da tela (cores, notas, tipografia)
     await venCarregaLib('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', () => window.html2pdf);
+    const clLogo = ((typeof clientesReais !== 'undefined' && clientesReais.find(x => x.name === j.cliente)) || {}).logo_url || '';
     const cor = v => v == null ? '#999' : v >= 60 ? '#11BA98' : v >= 40 ? '#E0B342' : '#E6557A';
     const el = document.createElement('div'); el.style.cssText = 'position:fixed;left:-99999px;top:0;width:1060px;background:#fff';
     el.innerHTML = `<style>
@@ -8377,7 +8383,7 @@ async function venExporta(lote, fmt){
       .vx .nota{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px}
       .vx .nm{font-size:15px;font-weight:600}.vx .meta{color:#666;font-size:11.5px;margin-top:2px}.vx .pq{font-size:12px}.vx .ct{font-size:11.5px;color:#333}.vx .ct b{display:block}
       .vx .rod{margin-top:16px;font-size:10.5px;color:#888;display:flex;justify-content:space-between}</style>
-      <div class="vx"><div class="top"><div><img src="${location.origin}/assets/logo-pontodot.svg" alt="pontodot" crossorigin="anonymous"><h1>Dig · ${esc(j.cliente || '')}</h1><div class="sub">${esc(j.titulo || '')}</div></div><div style="text-align:right;font-size:11.5px;color:#666">${L.length} empresas<br>${new Date().toLocaleDateString('pt-BR')}</div></div>
+      <div class="vx"><div class="top"><div><img src="${location.origin}/assets/logo-pontodot.svg" alt="pontodot" crossorigin="anonymous"><h1>Dig · ${esc(j.cliente || '')}</h1><div class="sub">${esc(j.titulo || '')}</div></div><div style="display:flex;align-items:center;gap:12px"><div style="text-align:right;font-size:11.5px;color:#666">${L.length} empresas<br>${new Date().toLocaleDateString('pt-BR')}</div>${clLogo ? '<img src="' + esc(clLogo) + '" crossorigin="anonymous" style="height:44px;width:44px;border-radius:50%;object-fit:cover">' : ''}<img src="${location.origin}/assets/logo-pontodot-bolinha.svg" crossorigin="anonymous" style="height:44px;width:44px"></div></div>
       ${L.map(x => `<div class="it"><div class="nota" style="background:${cor(x.nota)}">${x.nota ?? '–'}</div><div><div class="nm">${esc(x.empresa)}</div><div class="meta">${esc([x.segmento, x.porte, x.cidade].filter(Boolean).join(' · '))}${x.site ? '<br>' + esc(x.site) : ''}</div></div><div class="pq">${esc(x.por_que || '')}${x.proximo_passo ? '<div class="meta" style="margin-top:4px">Próximo passo: ' + esc(x.proximo_passo) + '</div>' : ''}</div><div class="ct">${[x.contato && x.cargo ? x.contato + ' · ' + x.cargo : x.contato, x.email, x.zap, x.instagram].filter(Boolean).map(t => '<b>' + esc(t) + '</b>').join('')}</div></div>`).join('')}
       <div class="rod"><span>Pontodot · Dig · garimpo do Tumi</span><span>confidencial</span></div></div>`;
     document.body.appendChild(el);

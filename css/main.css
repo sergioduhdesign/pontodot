@@ -1363,7 +1363,7 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 /* ===== v420 — caixas da Escola: medidas certas, centradas, rolagem só no texto ===== */
 #esc-pop .esc-pop-caixa{display:flex;flex-direction:column;width:min(560px,calc(100vw - 24px));max-height:min(84vh,780px);padding:0!important;overflow:hidden;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
 #esc-pop.larga .esc-pop-caixa{width:min(940px,calc(100vw - 24px));height:min(84vh,720px)}
-#esc-pop img.esc-barrado{flex:0 0 auto;display:block;width:100%!important;max-width:100%!important;height:clamp(78px,13vh,118px)!important;object-fit:cover;object-position:center 40%;margin:0!important;border-radius:0;border-bottom:1px solid var(--border)}
+#esc-pop img.esc-barrado{flex:0 0 auto;display:block;width:100%!important;max-width:100%!important;height:auto!important;object-fit:contain;margin:0!important;border-radius:0;border-bottom:1px solid var(--border)}
 #esc-pop .esc-pop-corpo{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto;overscroll-behavior:contain;padding:20px 26px 22px;scrollbar-width:thin}
 #esc-pop .esc-pop-x{top:12px;right:12px;width:32px;height:32px;display:grid;place-items:center;padding:0;line-height:1;z-index:3}
 #esc-pop .esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow:hidden!important;padding:0!important;display:flex}
@@ -1378,3 +1378,8 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
   #esc-pop .esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow-y:auto!important;display:block}
   #esc-pop .esc-pop-corpo{padding:16px 18px 20px}
 }
+
+/* v424 barra de rolagem fina e visível onde o conteúdo cresce (Escola, caixas de texto); só aparece quando há mais conteúdo */
+.esc-pop-corpo,.esc-cur-tx,#esc-pop .esc-pop-caixa,.view-feed,#view-feed,textarea,.tc-obs,.modal-client{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.55) transparent}
+textarea{overflow-y:auto}
+.esc-pop-corpo::-webkit-scrollbar,.esc-cur-tx::-webkit-scrollbar,textarea::-webkit-scrollbar{width:6px}.esc-pop-corpo::-webkit-scrollbar-thumb,.esc-cur-tx::-webkit-scrollbar-thumb,textarea::-webkit-scrollbar-thumb{background:rgba(128,128,128,.55);border-radius:6px}
