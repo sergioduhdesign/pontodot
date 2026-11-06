@@ -331,10 +331,13 @@ function ajudaBotaoCanto(){
 }
 function ajudaTourChave(){ const uid = (window.perfil && window.perfil.id) || ''; return 'sd_tour_v1' + (uid ? ':' + uid : ''); }   // por pessoa, não por aparelho
 function ajudaPrimeiraVez(){
-  ajudaBotaoCanto();
+  // o botão do canto só existe pra quem ainda NÃO criou a IA e ainda não viu o tour; depois, mora no menu do botão direito
   let visto = null; try { visto = localStorage.getItem(ajudaTourChave()); } catch(e){}
-  if (!visto) setTimeout(tourPlataforma, 1200);
+  const semIA = (typeof temIA === 'function') ? !temIA() : true;
+  if (!visto && semIA){ ajudaBotaoCanto(); setTimeout(tourPlataforma, 1200); }
+  else { const b = document.querySelector('.entenda-pd'); if (b) b.remove(); }
 }
+window.abrirTour = function(){ tourPlataforma(); };
 function tourPlataforma(){
   // sem IA ainda: o segundo passo do tour é "crie a sua IA" (e some quando ela já nasceu)
   const semIA = (typeof temIA === 'function') ? !temIA() : false;

@@ -391,7 +391,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <div class="user-dropdown-item" onclick="openMyProfile()">✎ Meu perfil</div>
             <div class="user-dropdown-item" id="ud-equipe" style="display:none" onclick="closeUserMenu();abrirEquipeFuncoes()">👥 Equipe e funções</div>
             <div class="user-dropdown-item" id="menu-minha-empresa" style="display:none" onclick="closeUserMenu();openClientDetail(profile.client_id)">🏢 Minha empresa</div>
-            <div class="user-dropdown-item" onclick="closeUserMenu();abrirSobreApp()">Sobre este app</div>
+            <div class="user-dropdown-item" onclick="closeUserMenu();abrirSobreApp()">Sobre a PD</div>
             <div class="user-dropdown-item danger" onclick="Auth.signOut()">↩ Sair</div>
           </div>
         </div>
@@ -13252,7 +13252,7 @@ function fluxoDiagnostico(){
       <div style="font-size:11.5px;color:var(--text3);margin-top:3px">
         De onde vem cada número da tela</div></div>
     <div style="overflow-y:auto;padding:14px 18px">
-      ${linha('Tarefas carregadas no app', T.length)}
+      ${linha('Tarefas carregadas na PD', T.length)}
       ${linha('Visíveis no filtro atual', b.length)}
       ${linha('Com tarefa mãe definida (total)', comMae.length, comMae.length?'#16a34a':'#dc2626')}
       ${linha('Aparecendo no Fluxo agora', noQuadro.length, noQuadro.length?'#16a34a':'#dc2626')}

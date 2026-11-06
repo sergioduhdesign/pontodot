@@ -287,8 +287,14 @@ html.dia .frente{background:#F4F3EF}
 .pf-d{min-width:0}.pf-d small{display:block;font-size:11.5px;opacity:.6}
 .pf-d span{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pf-d a{color:inherit;text-decoration:underline;text-underline-offset:3px}
-.pf-cancelar{margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08);text-align:center}
-.pf-cancelar button{font:inherit;font-size:12px;color:#b91c1c;opacity:.75;background:none;border:0;cursor:pointer}.pf-cancelar button:hover{opacity:1;text-decoration:underline}
+.pf-ia{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;margin-left:auto;padding:4px 11px 4px 4px;border-radius:999px;border:.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:var(--branco);font:inherit;font-size:12px;cursor:pointer}
+.pf-ia i{width:26px;height:26px;border-radius:50%;overflow:hidden;display:block}.pf-ia img{width:100%;height:100%;object-fit:cover}
+.pf .mia-tarefas{padding-top:6px}
+.pf-zap{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.pf-zap>*{min-width:0}.pf-zap .faixa-fixa,.pf-zap small#pfZapMsg,.pf-zap label:has(textarea),.pf-zap label:has(#pfZap){grid-column:1/-1}
+.pf-zap label{text-align:center}.pf-zap input,.pf-zap textarea{text-align:center}
+@media(max-width:560px){.pf-zap{grid-template-columns:1fr}}
+.pf-cancelar{margin-top:10px;padding-top:8px;border-top:1px solid rgba(127,127,127,.18);text-align:left}
+.pf-cancelar button{font:inherit;font-size:11.5px;color:#8a8a8a;opacity:.85;background:none;border:0;cursor:pointer}.pf-cancelar button:hover{opacity:1;text-decoration:underline}
 .pf-bio{margin:8px 2px 4px;font-size:13.5px;line-height:1.45;opacity:.8}
 @media(max-width:600px){.pf .mia-cara{width:104px;height:104px}.pf .mia-nome{font-size:21px}.pf-dados{gap:8px 12px}}
 /* ===== MINHA IA — o print do Sérgio ===== */
@@ -914,6 +920,7 @@ html.dia .frente .tarefa-cheia{background:rgba(244,243,239,.3)}
 .mi-acoes{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
 .mi-acoes .btn{font-size:12.5px;padding:9px 13px;min-height:40px}
 .cab-painel{display:flex;align-items:center;cursor:pointer}
+.fechar-painel{display:inline-grid;place-items:center;line-height:1;width:38px;height:38px;padding:0;flex-shrink:0;margin-left:auto}
 .on-ponto{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0;
   margin-right:7px;vertical-align:middle;background:var(--verde);
   box-shadow:0 0 0 2.5px color-mix(in srgb,var(--verde) 22%,transparent)}
@@ -2490,6 +2497,7 @@ pdAbertura(false);
     <i class="cl-badge" id="clBadge"></i></button>
   <button class="cl-b cl-mob" id="clConv" onclick="alternarHist()" title="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg></button>
   <button class="cl-b cl-mob" id="clHist" onclick="abrirHistoricoDoApp()" title="Histórico de ações" aria-label="Histórico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></button>
+  <button class="cl-b" id="clSom" onclick="alternarSom()" title="Som das respostas" aria-label="Som das respostas"></button>
   <button class="cl-b" id="clTema" onclick="alternarTema()" title="Dia / noite" aria-label="Inverter dia e noite"></button>
   <button class="cl-b" id="clAdmin" onclick="clAdmin(event)" title="Administração" aria-label="Administração" style="display:none">
     <svg class="cl-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><svg class="cl-ham" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
@@ -2523,7 +2531,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v400 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v420 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2669,9 +2677,10 @@ function render(){
   document.querySelectorAll('.fundo').forEach(f=>f.classList.toggle('fumado',
     (usando || !$('#tarefaCheia').classList.contains('oculto')) && !fundoForcado));
   $('#telaHome').classList.toggle('em-chat', chat);
-  $('#palco').innerHTML = chat ? htmlConversa() : htmlFrase(usando);
-  if (chat) { const c=$('#rolo'); if(c) requestAnimationFrame(()=>c.scrollTop = c.scrollHeight); }
-  else requestAnimationFrame(()=>{ const f=$('#fraseEl'); if(f) f.classList.add('on'); });
+  { const chaveP = chat ? 'chat' : ('frase:' + frase + ':' + (usando?1:0) + ':' + (fraseDesligada?1:0) + ':' + new Date().toDateString());
+    if (chat || chaveP !== window._chavePalco || !$('#fraseEl,#dataDiaEl')){ window._chavePalco = chaveP; $('#palco').innerHTML = chat ? htmlConversa() : htmlFrase(usando); }   // sem reescrever a cada render: a frase não pisca
+    if (chat) { const c=$('#rolo'); if(c) requestAnimationFrame(()=>c.scrollTop = c.scrollHeight); }
+    else requestAnimationFrame(()=>{ const f=$('#fraseEl'); if(f) f.classList.add('on'); }); }
   renderBoard();
   renderDetalheDesk();
   const vc = $('#vConversa');
@@ -3031,8 +3040,8 @@ function htmlFrase(usando){
   const d = new Date();
   const dia = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'][d.getDay()];
   const mes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'][d.getMonth()];
-  return `<h1 class="frase ${usando?'apagada':''} ${FRASES_LG[frase]?'longa':''}" id="fraseEl">${FRASES[frase]}</h1>
-    <div class="data-dia ${usando?'apagada':''}">${dia}, ${d.getDate()} de ${mes}</div>`;
+  return (fraseDesligada ? '' : `<h1 class="frase ${usando?'apagada':''} ${FRASES_LG[frase]?'longa':''}" id="fraseEl">${FRASES[frase]}</h1>`) +
+    `<div class="data-dia ${usando?'apagada':''}" id="dataDiaEl">${dia}, ${d.getDate()} de ${mes}</div>`;
 }
 
 function rotuloConversa(){
@@ -3602,7 +3611,7 @@ function abrirFiltro(){ if (window.REAL){ abrirTarefasTodas(); return; } alterna
 function htmlFiltro(){
   return `<div class="caixa painel invertida">
     ${cabPainel('Cada carinha é um humor da tarefa','filtro')}
-    <div class="nota">Toque num humor pra filtrar a lista por ele (no app de verdade).</div>
+    <div class="nota">Toque num humor pra filtrar a lista por ele (na PD de verdade).</div>
     <div class="rolo-interno">${Object.entries(HUMOR).map(([k,v])=>`<button class="ia-linha" style="width:100%" onclick="toast('Filtra a lista: só tarefas ${v}.')"><span>${cara(k,26)}</span><div class="c"><div class="d" style="color:var(--branco)">${v}</div></div></button>`).join('')}</div>
   </div>`;
 }
@@ -3866,6 +3875,7 @@ function proximaUrlFundo(){
 let ladoBg = false, tentativasFundo = 0;
 function trocarFundo(){
   if (typeof fundoDesligado!=='undefined' && fundoDesligado) return;
+  if (fundoCfg.cor) return;   // fundo de cor lisa: não baixa imagem nenhuma
   const fd = document.querySelector('.fundo');
   if (fd && fd.classList.contains('fumado')) return;   // escondido: não gasta rede nem memória
   const A = $('#bgA'), B = $('#bgB');
@@ -3937,9 +3947,14 @@ window.addEventListener('resize', atualizarBarra);
 })();
 
 // ---------- botão direito: menu da área de trabalho ----------
-let fundoDesligado = false;
-try { fundoDesligado = localStorage.getItem('sd_fundo_off')==='1'; } catch(e){}
-function aplicarFundoFlag(){ const f=document.querySelector('.fundo'); if (f) f.style.display = fundoDesligado ? 'none' : ''; }
+let fundoDesligado = false, fraseDesligada = false;
+try { fundoDesligado = localStorage.getItem('sd_fundo_off')==='1'; fraseDesligada = localStorage.getItem('sd_frase_off')==='1'; } catch(e){}
+function alternarFrases(){ fraseDesligada = !fraseDesligada; try{ localStorage.setItem('sd_frase_off', fraseDesligada?'1':'0'); }catch(e){} window._chavePalco = ''; try { render(); } catch(e){} }
+// fundo de COR lisa (terceira opção dos Fundos): guardado em fundoCfg.cor
+function aplicarCorFundo(){ const f = document.querySelector('.fundo'); if (!f) return;
+  if (fundoCfg.cor){ f.style.background = fundoCfg.cor; f.querySelectorAll('.img').forEach(i => i.style.display = 'none'); }
+  else { f.style.background = ''; f.querySelectorAll('.img').forEach(i => i.style.display = ''); } }
+function aplicarFundoFlag(){ const f=document.querySelector('.fundo'); if (f) f.style.display = fundoDesligado ? 'none' : ''; aplicarCorFundo(); }
 aplicarFundoFlag();
 function proximoFundo(){
   fundoDesligado = false; try{localStorage.setItem('sd_fundo_off','0');}catch(e){}
@@ -3958,18 +3973,18 @@ function abrirMenuCtx(x,y){
     <div class="puxador"></div>
     <div class="mini">APARÊNCIA</div>
     ${ehDesk()&&!ehCliente()?'<button onclick="fecharMenuCtx();abrirPicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>Configurar área de trabalho…</button>':''}
-    <button onclick="fecharMenuCtx();abrirFundos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>Trocar a imagem de fundo…</button>
-    <button onclick="fecharMenuCtx();alternarFotos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${fundoDesligado?'Ligar':'Desligar'} as fotos de fundo</button>
+    <button onclick="fecharMenuCtx();abrirFundos()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>Fundos…</button>
+    <button onclick="fecharMenuCtx();alternarFrases()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10M7 12h10M7 17h6"/></svg>${fraseDesligada?'Ligar':'Desligar'} frases inspiracionais</button>
     <button onclick="fecharMenuCtx();alternarTema()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Inverter dia e noite</button>
     <div class="sep"></div>
     <div class="mini">A IA</div>
     <button onclick="fecharMenuCtx();abrirHabilidades()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.6 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>Habilidades…</button>
-    <button onclick="fecharMenuCtx();abrirCarinhas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.4 2.2 2 3.5 2s2.5-.6 3.5-2M9 9.5h.01M15 9.5h.01"/></svg>Trocar a carinha dela…</button>
-    <button onclick="fecharMenuCtx();alternarSom()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>${somLigado?'Desligar':'Ligar'} o som das respostas</button>
-    <button onclick="fecharMenuCtx();avisosSituacao()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Avisos de prazo…</button>
+    <button onclick="fecharMenuCtx();alternarSom()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>${somLigado?'Desligar':'Ligar'} som</button>
+    <button onclick="fecharMenuCtx();avisosSituacao()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Avisos (Push)…</button>
+    ${(window.REAL && typeof temIA==='function' && aindaNao(()=>temIA(),false)) ? '<button onclick="fecharMenuCtx();abrirTour(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5M12 17h.01"/></svg>Entenda a plataforma</button>' : ''}
     <div class="sep"></div>
     <button onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Atualizar o navegador</button>
-    ${window.REAL?'<button onclick="fecharMenuCtx();sairConta()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair da conta</button>':''}
+    ${window.REAL?'<button onclick="fecharMenuCtx();sairConta()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Log Off PD</button>':''}
     <div class="sep"></div>
     <button onclick="fecharMenuCtx();toast('pontodot '+(window.SD_VERSAO||'')+' — o estúdio inteiro numa tela.')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Ver versão · ${(window.SD_VERSAO||'').split(' ')[0]}</button>`;
   m.classList.remove('oculto');
@@ -4055,10 +4070,10 @@ function abrirAtendimento(){
 function avisarVersoMobile(){
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:26px 22px 20px;text-align:center">
     <h3 style="margin:0 0 8px;font-size:21px;font-weight:400">Desculpe, esse lado fica no desktop</h3>
-    <p style="margin:0 0 6px;font-size:14px;line-height:1.55">No app, o seu acesso é restrito à gestão essencial da pontodot.</p>
+    <p style="margin:0 0 6px;font-size:14px;line-height:1.55">Na PD, o seu acesso é restrito à gestão essencial da pontodot.</p>
     <p style="margin:0 0 16px;font-size:14px;line-height:1.55;opacity:.8">O verso, com o fluxo, os quadros e o admin, é muito melhor no seu computador.</p>
     <button class="btn" style="width:100%;min-height:46px;justify-content:center" onclick="fecharJanela()">Entendi</button>
-    <p style="margin:14px 0 0;font-size:12.5px;opacity:.65">Aqui no app, peça no campo o que você precisa: a sua IA resolve.</p></div>`);
+    <p style="margin:14px 0 0;font-size:12.5px;opacity:.65">Aqui na PD, peça no campo o que você precisa: a sua IA resolve.</p></div>`);
 }
 async function liberarVersoMobile(abrir){
   try { await sbR.from('profiles').update({ verso_mobile: true }).eq('id', perfil.id); perfil.verso_mobile = true; }
@@ -4308,6 +4323,7 @@ function htmlPerfilPessoa(){
         <small>Natureza</small><span class="mia-up">Humano terrestre</span>
         ${funcao ? `<small>Função</small><span class="mia-up">${esc(funcao)}</span>` : ''}
       </div>
+      ${IA ? `<button class="pf-ia" onclick="fecharJanela();abrirFicha('${esc(IA.id)}','minhaia')" title="Minha IA"><i><img src="${fotoDe(IA,'avatar')}" alt=""></i><span>${esc(nomeDaIA())}</span></button>` : ''}
       <button class="acao-cab" style="color:var(--branco);align-self:flex-start" onclick="fecharJanela()" aria-label="Fechar">✕</button>
     </div>
     <div class="mia-tarefas">
@@ -4318,7 +4334,7 @@ function htmlPerfilPessoa(){
         ${abertas != null ? dado('Tarefas abertas', String(abertas)) : ''}
         ${dado('Redes', [p.social1, p.social2].filter(Boolean).join(' · '))}${site}
       </div>
-      <div class="pf-zap" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12);max-height:42vh;overflow:auto">
+      <div class="pf-zap" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12)">
         <label style="display:block;font-size:12px;margin-top:8px">Nome<input id="pfNome" type="text" value="${esc(p.name||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Bio<textarea id="pfBio" rows="3" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px">${esc(p.bio||'')}</textarea></label>
         <label style="display:block;font-size:12px;margin-top:8px">Aniversário<input id="pfAniv" type="date" value="${esc(String(p.birthday||"").slice(0,10)||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
@@ -4333,14 +4349,13 @@ function htmlPerfilPessoa(){
         </div>
         <small id="pfZapMsg" style="display:block;margin-top:6px"></small>
       </div>
-      ${IA ? `<button class="mia-t" style="margin-top:6px" onclick="fecharJanela();abrirFicha('${esc(IA.id)}','minhaia')"><i aria-hidden="true" style="overflow:hidden;border:0"><img src="${fotoDe(IA,'avatar')}" alt="" style="width:100%;height:100%;object-fit:cover"></i><span>Minha IA · ${esc(nomeDaIA())}</span></button>` : ''}
       <div class="mia-acoes">
         <button onclick="fecharJanela();verTodasMinhas()">Minhas tarefas</button>
-        <button onclick="fecharJanela();abrirFundos()">Fundo do app</button>
+        <button onclick="fecharJanela();abrirFundos()">Fundos</button>
         <button onclick="fecharJanela();abrirLembretes()" title="Lembretes" aria-label="Lembretes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> Lembretes</button>
-        <button onclick="sairConta()" style="margin-left:auto;opacity:1;font-weight:500">Desconectar PD</button>
+        <button onclick="sairConta()" style="margin-left:auto;opacity:1;font-weight:500">Log Off PD</button>
       </div>
-      <div class="pf-cancelar"><button onclick="abrirCancelarConta()">Cancelar minha conta…</button></div>
+      <div class="pf-cancelar"><button onclick="abrirCancelarConta()">Cancelar minha conta</button></div>
     </div>
   </div></div>`;
 }
@@ -4439,7 +4454,7 @@ async function salvarPerfilInline(){
 }
 function editarPerfil(){
   fecharJanela();
-  const vai = () => { try { const w = $('#appFrame')?.contentWindow; if (w && typeof w.openMyProfile === 'function') w.openMyProfile(); else toast('Abre o app e tenta de novo.'); } catch(e){} };
+  const vai = () => { try { const w = $('#appFrame')?.contentWindow; if (w && typeof w.openMyProfile === 'function') w.openMyProfile(); else toast('Abre a PD e tenta de novo.'); } catch(e){} };
   if (!$('#mundo').classList.contains('virado')){ virarJa(); setTimeout(vai, 250); } else vai();
 }
 /** "Minha IA" no perfil: quem é, quanto já te conhece, e onde mexer. */
@@ -7781,21 +7796,30 @@ function proximaImagemFundo(){
   const atual = fundoCfg.modo === 'fixo' ? (fundoCfg.idx||0) : (L.indexOf(_fundoAtual) >= 0 ? L.indexOf(_fundoAtual) : fundoAlbIdx % L.length);
   fundoCfg.modo = 'fixo'; fundoCfg.idx = (atual + 1) % L.length; salvarFundo(); abrirFundos();
 }
-function salvarFundo(){ try { localStorage.setItem('sd_fundo', JSON.stringify(fundoCfg)); } catch(e){} aplicarFundo(); }
+function salvarFundo(){ try { localStorage.setItem('sd_fundo', JSON.stringify(fundoCfg)); } catch(e){} aplicarCorFundo(); if (!fundoCfg.cor) aplicarFundo(); }
 let _fundosRecarregou = false;
 function abrirFundos(){
   const albs = FUNDOS.albuns || [];
   if (!albs.length && !_fundosRecarregou){ _fundosRecarregou = true; carregarFundos().then(() => { _fundosRecarregou = false; if ((FUNDOS.albuns||[]).length) abrirFundos(); }); }
-  const alb = a => `<button class="fundo-alb ${fundoCfg.album===a.id?'on':''}" onclick="fundoCfg.album='${esc(a.id)}';fundoCfg.escolhido=1;salvarFundo();abrirFundos()">
+  const CORES = ['#0B0C0B','#15120F','#1C2230','#23301F','#2E1F2B','#3A2A17','#E9E8E2','#D9D4C7'];
+  const escolhe = (cod) => `fundoCfg.album='';fundoCfg.cor='';fundoCfg.escolhido=1;fundoDesligado=false;try{localStorage.setItem('sd_fundo_off','0')}catch(e){};${cod}salvarFundo();aplicarFundoFlag();abrirFundos()`;
+  const alb = a => `<button class="fundo-alb ${fundoCfg.album===a.id&&!fundoCfg.cor?'on':''}" onclick="${escolhe(`fundoCfg.album='${esc(a.id)}';`)}">
       <span class="fundo-pil">${(a.miniaturas||a.imagens).slice(0,3).map(u=>`<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</span><b>${esc(a.nome)}</b><small>${a.imagens.length} imagens</small></button>`;
+  const psico = `<button class="fundo-alb ${!fundoCfg.album&&!fundoCfg.cor&&!fundoDesligado?'on':''}" onclick="${escolhe('')}"><span class="fundo-pil">${[3,11,19].map(n=>`<img src="${BASE}intro-sd-${n}.webp" alt="" loading="lazy">`).join('')}</span><b>Psico</b><small>as imagens da casa · 30</small></button>`;
+  const cor = `<div class="fundo-alb ${fundoCfg.cor?'on':''}" style="cursor:default"><span class="fundo-pil" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:none">${CORES.map(c=>`<button aria-label="${c}" style="border:1.5px solid ${fundoCfg.cor===c?'currentColor':'transparent'};background:${c};border-radius:7px;cursor:pointer;min-height:28px" onclick="${escolhe(`fundoCfg.cor='${c}';`)}"></button>`).join('')}</span><b style="display:flex;align-items:center;gap:8px">Uma cor <input type="color" value="${esc(fundoCfg.cor||'#0B0C0B')}" style="width:34px;height:24px;padding:0;border:0;background:none;cursor:pointer" onchange="${escolhe('fundoCfg.cor=this.value;')}"></b><small>fundo liso, leve e rápido</small></div>`;
+  const tg = (on, cod, txt) => `<label style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(127,127,127,.18);font-size:13px"><span>${txt}</span><button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" style="position:relative;width:42px;height:24px;border-radius:999px;border:1px solid rgba(127,127,127,.4);background:${on?'#2f8f5b':'rgba(127,127,127,.18)'};cursor:pointer;padding:0;flex:0 0 auto" onclick="${cod};abrirFundos()"><i style="position:absolute;top:2px;left:${on?'20px':'2px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s"></i></button></label>`;
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:22px 18px 18px">
-    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:21px;font-weight:400">Fundo do app</h3>
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:21px;font-weight:400">Fundos</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div class="nota" style="margin:4px 0 12px">Escolha o fundo. Ele gira sozinho, bem devagar.</div>
-    <div class="fundo-grade"><button class="fundo-alb ${!fundoCfg.album?'on':''}" onclick="fundoCfg.album='';fundoCfg.escolhido=1;salvarFundo();abrirFundos()"><span class="fundo-pil" style="background:#0B0C0B"></span><b>Fotos da casa</b><small>fundo tradicional</small></button>${albs.map(alb).join('')}</div>
-    ${albs.length ? '' : `<div class="nota" style="margin-top:10px">${FUNDOS.aviso ? 'Não consegui ler o Drive agora: ' + esc(FUNDOS.aviso) + '. ' : ''}Não há fotos da sua IA nem álbuns no formato deste aparelho (${ehDesk()?'horizontal':'vertical'}).</div>`}
-    <label style="display:flex;gap:9px;align-items:center;margin-top:14px;font-size:13px"><input type="checkbox" ${fundoCfg.modo!=='fixo'?'checked':''} onchange="fundoCfg.modo=this.checked?'roda':'fixo';salvarFundo()"> Girar as imagens do álbum</label>
-    ${fundoCfg.album ? `<button class="mia-t" style="margin-top:12px;width:100%;justify-content:center" onclick="proximaImagemFundo()">Próxima imagem do álbum</button>` : ''}</div>`);
+    <div class="nota" style="margin:4px 0 12px">Escolha o fundo da PD. Imagens giram sozinhas, bem devagar.</div>
+    <div class="fundo-grade">${psico}${albs.map(alb).join('')}${cor}</div>
+    ${albs.length ? '' : `<div class="nota" style="margin-top:10px">${FUNDOS.aviso ? 'Não consegui ler o Drive agora: ' + esc(FUNDOS.aviso) + '. ' : ''}Sem álbuns da sua IA no formato deste aparelho (${ehDesk()?'horizontal':'vertical'}).</div>`}
+    <div style="margin-top:14px">
+      ${tg(fundoCfg.modo!=='fixo', "fundoCfg.modo=fundoCfg.modo==='fixo'?'roda':'fixo';salvarFundo()", 'Girar as imagens')}
+      ${tg(!fundoDesligado, 'alternarFotos()', 'Imagens de fundo')}
+      ${tg(!fraseDesligada, 'alternarFrases()', 'Frases inspiracionais')}
+    </div>
+    ${fundoCfg.album && !fundoCfg.cor ? `<button class="mia-t" style="margin-top:10px;width:100%;justify-content:center" onclick="proximaImagemFundo()">Próxima imagem do álbum</button>` : ''}</div>`);
 }
 // =====================================================================
 // A IA FALA O NOME: na 1ª abertura do dia, no login ou na volta de um turno,
@@ -8011,7 +8035,7 @@ function renderBoard(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
       ${Object.entries(GADGETS).filter(([id,g])=>!g.oculto && gadLiberado(g)).map(([id,g])=>`<button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px;${meusGadgets.includes(id)?'background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent;font-weight:700':''}" ${g.fixo?'disabled style="opacity:.55;min-height:38px;padding:7px 13px;font-size:11.5px"':''} onclick="alternarGadget('${id}')">${esc(nomeGad(id))}${meusGadgets.includes(id)?' ✓':''}</button>`).join('')}
     </div></div></div>`;
-  const pk = $('#pickerSlot .fechar-painel'); if (pk) { pk.style.display='block'; pk.onclick = (e)=>{e.stopPropagation();abrirPicker()}; }
+  const pk = $('#pickerSlot .fechar-painel'); if (pk) { pk.style.display='inline-grid'; pk.onclick = (e)=>{e.stopPropagation();abrirPicker()}; }
   requestAnimationFrame(medirMinis);     // o grid se refez: remede os quadradinhos
   const _html = [...gadgetsDaTela().filter(id=>GADGETS[id] && !GADGETS[id].oculto && gadLiberado(GADGETS[id])), ...(gadsAbertos.conversas ? ['conversas'] : [])].map(id=>`
     <div class="gad ${gadsAbertos[id]?'':'fechado'} ${id==='tarefas'&&!gadsAbertos[id]?'mini-largo':''} ${id==='minhaia'&&aindaNao(()=>temIA(),false)?'gad-ia':''} ${id==='minhaia'&&nasceuAgora?'nascendo':''}" data-fk="gad-${id}">
@@ -8521,10 +8545,14 @@ function somMandei(){
   if (!somLigado) return; const ac = acordarSom(); if (!ac) return;
   nota(ac, 520, ac.currentTime, .07, .045);
 }
-function alternarSom(){
+function pintarSom(){ const b=document.getElementById('clSom'); if(!b) return; b.innerHTML = somLigado ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>'; }
+setTimeout(pintarSom,0); document.addEventListener('DOMContentLoaded',pintarSom);
+async function alternarSom(){
+  if (!(await perguntar(somLigado ? 'Desligar o som das respostas da pontodot?' : 'Ligar o som das respostas da pontodot?', { ok: somLigado ? 'Desligar' : 'Ligar' }))) return;
   somLigado = !somLigado;
   try { localStorage.setItem('sd_som', somLigado ? '1' : '0'); } catch(e){}
   if (somLigado) somChegou();
+  pintarSom();
   toast(somLigado ? 'Som ligado — você ouve quando a pontodot responde.' : 'Som desligado.');
 }
 
@@ -8845,8 +8873,23 @@ function abrirAulasIA(){
   abrirJanela(`<div class="caixa invertida" data-sem-fio style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
     <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Habilidades</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <div style="flex:1;min-height:0;overflow-y:auto"><div class="ia-linha" style="align-items:flex-start;margin-top:8px"><div class="c"><div class="n">Situação</div><div class="d">${txt}</div></div></div>
-    <button class="btn cheio" style="background:#15803D;width:100%;margin-top:14px" onclick="fecharJanela();${et==='formada'?"irAdmin('feed')":(et?'matricularIA()':'abrirEscola()')}">${et==='formada'?'Ver a Escola':et?'Continuar as aulas':'Matricular minha IA'}</button></div></div>`, true);
+    <div style="display:flex;gap:8px;margin:8px 0 6px"><button class="btn" style="min-height:32px;padding:5px 12px;font-size:11.5px;background:#15803D;color:#fff;border-color:transparent" onclick="fecharJanela();${et==='formada'?"irAdmin('feed')":(et?'matricularIA()':'abrirEscola()')}">${et==='formada'?'Ver a Escola':et?'Continuar as aulas':'Matricular minha IA'}</button><button class="btn" style="min-height:32px;padding:5px 12px;font-size:11.5px" onclick="pintarAulasIA(true)">↻ Atualizar</button></div>
+    <div id="aulasIaCorpo" style="flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin"><div class="ia-linha" style="align-items:flex-start;margin-top:4px"><div class="c"><div class="n">Situação</div><div class="d">${txt}</div></div></div><div class="nota" style="margin-top:10px">Conferindo o que ela está estudando…</div></div></div>`, true);
+  pintarAulasIA(true);
+}
+async function pintarAulasIA(forcar){
+  const C = document.getElementById('aulasIaCorpo'); if (!C) return;
+  try { await carregarEscolaH(forcar); } catch(e){}
+  const M = ESH.d && ESH.d.minha; if (!document.getElementById('aulasIaCorpo')) return;
+  const et = aindaNao(() => etapaDaIA(), null);
+  const txt = et === 'formada' ? 'Formada na Escola Agêntica. Tudo o que ela aprendeu está valendo.' : et === 'conhecendo' ? 'Em treinamento: ainda aprendendo o seu jeito de trabalhar.' : 'Ainda não começou as aulas.';
+  if (!M){ C.innerHTML = `<div class="ia-linha" style="align-items:flex-start;margin-top:4px"><div class="c"><div class="n">Situação</div><div class="d">${txt}</div></div></div><div class="nota" style="margin-top:10px">${ESH.erro ? 'Não consegui ler a Escola agora: ' + esc(ESH.erro) : 'Ela ainda não está matriculada em nenhum curso. Matricule pela Escola das IAs.'}</div>`; return; }
+  const fs = (M.formacoes||[]).map(f => { let seg = ''; for (let i = 0; i < f.meta; i++){ const v = (f.hist||[])[i]; seg += `<i class="${v === 1 ? 'b' : v === 0 ? 'r' : ''}"></i>`; }
+    return `<div class="esc-it"><div class="esc-nm"><span><b>${esc(f.nome)}</b></span>${f.apta_em ? '<span class="esc-apta">🎓 Apta</span>' : (f.ativa ? '<small>estudando agora</small>' : '<small>pausada</small>')}</div><div class="esc-bar" style="grid-template-columns:repeat(${f.meta},1fr)">${seg}</div><div class="esc-nm"><small>${f.feitas} de ${f.meta} provas · ${f.boas} boas</small><small>seguidas ${f.seguidas}/${f.para_apto}</small></div></div>`; }).join('');
+  const marcos = (M.marcos||[]).slice(0,12).map(m => `<div class="ia-linha" style="align-items:flex-start"><div class="c"><div class="d"><small style="opacity:.6">${m.quando ? new Date(m.quando).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : ''}</small> &nbsp;${esc(m.texto)}</div></div></div>`).join('');
+  C.innerHTML = `<div class="ia-linha" style="align-items:flex-start;margin-top:4px"><div class="c"><div class="n">Situação</div><div class="d">${txt}</div></div></div>
+    <div class="ads-sec" style="margin-top:12px">Cursos de ${esc(M.ia)}</div>${fs || '<div class="nota">Nenhum curso ainda.</div>'}
+    <div class="ads-sec" style="margin-top:12px">Últimos passos</div>${marcos || '<div class="nota">Nada registrado ainda.</div>'}`;
 }
 async function abrirJeito(){
   abrirJanela(`<div class="caixa invertida" id="cxJeito" style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
@@ -9742,7 +9785,7 @@ async function testarAviso(){
 async function avisosSituacao(){
   abrirJanela(`<div class="caixa invertida" id="cxAvisos" style="padding:20px 18px 16px">
     <div style="display:flex;align-items:center;gap:12px">
-      <h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Avisos de prazo</h3>
+      <h3 style="margin:0;flex:1;font-size:23px;font-weight:400">Avisos (Push)</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharComFio('#janela .caixa',fecharJanela)" aria-label="Fechar">✕</button>
     </div>
     <div id="avCorpo" class="nota" style="margin:10px 0 0">Conferindo…</div></div>`);
@@ -10026,7 +10069,7 @@ function telaContaCancelada(){
       : 'Passaram os 30 dias e a conta está marcada para exclusão. Fale com a administração.'}</p>
     <div class="login-err" id="reaErr"></div>
     ${dentro ? `<button class="btn-entrar" onclick="reativarConta()">Reativar minha conta</button>` : ''}
-    <button class="btn-sec" onclick="sairConta()">Desconectar PD</button></div>`;
+    <button class="btn-sec" onclick="sairConta()">Log Off PD</button></div>`;
   document.body.appendChild(d);
 }
 async function reativarConta(){
@@ -10451,7 +10494,7 @@ function irParaEscola(){
     abrirJanela(`<div class="caixa invertida" style="padding:24px 22px">
       <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Escola Agêntica</h3>
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-      <p style="margin:14px 0 6px;line-height:1.5">Desculpe, a Escola Agêntica de Catum ainda não funciona no app do celular.</p>
+      <p style="margin:14px 0 6px;line-height:1.5">Desculpe, a Escola Agêntica de Catum ainda não funciona no celular ainda.</p>
       <p style="margin:0;opacity:.7;font-size:13.5px">Acesse pelo computador para ver o mural, os cursos e os alunos.</p></div>`);
     return;
   }
