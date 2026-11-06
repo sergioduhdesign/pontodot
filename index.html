@@ -2580,7 +2580,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v434 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v435 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -10849,6 +10849,7 @@ async function abrirTarefaReal(id){
       <button class="btn cp-b cp-ic" style="${rodando?'color:var(--verde);border-color:var(--verde)':''}" title="${rodando?'Pausar o cronômetro de produção':'Iniciar o cronômetro de produção (conta o tempo trabalhado nesta tarefa)'}" aria-label="cronômetro" onclick="playTarefa('${t.id}')">${icoPlay(rodando,15)}${t.total_seconds ? `<small style="margin-left:5px;font-variant-numeric:tabular-nums">${Math.floor(t.total_seconds/3600)}h${String(Math.floor(t.total_seconds%3600/60)).padStart(2,'0')}</small>` : ''}</button>
       <button class="btn cp-b cp-ic" title="Ver as peças" aria-label="peças" onclick="abrirArtesReais('${t.id}')">${icoMini('olho')}</button>
       <button class="btn cheio cp-b cp-ic" title="Subir material para aprovação" aria-label="subir material" onclick="popupIframe('/novo-lote.html?embed=1&task=${t.id}','Subir material — ${t.id}')">${icoMini('subir',14)}</button>
+      <button class="btn cp-b cp-ic" style="color:var(--rosa)" title="Excluir amostras (lotes enviados para aprovação) desta tarefa" aria-label="excluir amostras" onclick="excluirAmostras('${t.id}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/></svg></button>
       ${(driveMap[t.id] && !['produzir','corrigir'].includes(driveMap[t.id].status)) ? `<button class="btn cp-b cp-ic" title="Mandar a IA começar agora" aria-label="IA começa" onclick="fecharTarefa();forcarStart('${t.id}')">▶</button>` : ''}
       <button id="tcLike" class="btn cp-b cp-ic" onclick="curtirTarefa('${t.id}')" title="Curtir">${coracaoSvg(false)}</button>
       <button class="btn cp-b cp-ic" onclick="compartilharTarefa(event,'${t.id}')" title="Compartilhar o link da tarefa">${icoMini('compart',15)}</button>
@@ -12427,6 +12428,29 @@ async function publicarTarefa(taskId){
   } catch(e){ toast('Não consegui abrir: ' + (e.message||e)); }
 }
 // peças reais: último lote de aprovação da tarefa
+
+// excluir amostras (lotes de aprovação) da tarefa — vai para a lixeira, dá para restaurar
+async function excluirAmostras(taskId){
+  try {
+    const { data: sets, error } = await sbR.from('approval_sets').select('id,title,created_at,approval_items(count)').eq('task_id', taskId).order('created_at',{ascending:false});
+    if (error) throw error;
+    if (!sets || !sets.length){ toast('Essa tarefa não tem amostras.'); return; }
+    document.getElementById('amoDel')?.remove();
+    const d = document.createElement('div'); d.id = 'amoDel';
+    d.style.cssText = 'position:fixed;inset:0;z-index:9850;display:grid;place-items:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:16px';
+    const dt = iso => { const x = new Date(iso); return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0'); };
+    d.innerHTML = `<div style="background:#fff;color:#15161A;border-radius:18px;padding:20px;width:min(460px,100%);max-height:80vh;overflow:auto;font:14px/1.45 system-ui,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;gap:10px"><b style="flex:1;font-size:16px">Amostras de ${esc(taskId)}</b><button id="amoX" style="border:0;background:#f1f0ec;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer">✕</button></div>
+      <div style="color:#6B6D75;font-size:12.5px;margin:4px 0 12px">Cada lote vai para a lixeira (dá para restaurar). Exclua só o que for lixo.</div>
+      <div id="amoL">${sets.map(x => { const n = (x.approval_items && x.approval_items[0] && x.approval_items[0].count) || 0; return `<div data-id="${x.id}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #ecebe6"><div style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.title || 'Lote')}</b><small style="color:#6B6D75">${n} peça${n===1?'':'s'} · ${dt(x.created_at)}</small></div><button class="amo-b" style="border:0;border-radius:999px;background:#DB2777;color:#fff;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;min-height:44px">Excluir</button></div>`; }).join('')}</div></div>`;
+    document.body.appendChild(d);
+    d.addEventListener('click', e => { if (e.target === d) d.remove(); }); d.querySelector('#amoX').onclick = () => d.remove();
+    d.querySelectorAll('.amo-b').forEach(b => b.onclick = async () => { const row = b.closest('[data-id]'); b.disabled = true; b.textContent = '…';
+      const { error: e2 } = await sbR.rpc('pd_excluir_lote', { p_set: row.dataset.id });
+      if (e2){ b.disabled = false; b.textContent = 'Excluir'; toast('Não deu: ' + (e2.message || e2)); return; }
+      row.remove(); toast('Amostra excluída (está na lixeira).'); if (!d.querySelector('[data-id]')) d.remove(); });
+  } catch(e){ toast('Não consegui listar as amostras: ' + (e.message || e)); }
+}
 async function abrirArtesReais(taskId){
   if (!window.REAL){ abrirArtes(0); return; }
   try {
