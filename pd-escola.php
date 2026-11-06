@@ -274,8 +274,16 @@ if ($acao === 'curso_info') {   // {curso_id, skill?}: o que a aula ensina (skil
         $al[] = ['personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers ?: 'IA')), 'dona' => $nm[$i['user_id']] ?? '', 'desde' => $i['iniciada_em'], 'ate' => $i['termina_em'], 'eu' => $i['user_id'] === $u['id']]; }
     echo json_encode(['skill' => $h, 'skill_id' => $sk, 'alunos' => $al, 'admin' => $ehAdmin], JSON_UNESCAPED_UNICODE); exit;
 }
-if (in_array($acao, ['aula_reabrir', 'aula_passo', 'curriculo_diag'], true)) {   // admin: operação e diagnóstico do ciclo PD ↔ professora
+if (in_array($acao, ['aula_reabrir', 'aula_passo', 'curriculo_diag', 'storage_liberar'], true)) {   // admin: operação e diagnóstico do ciclo PD ↔ professora
     if (!$ehAdmin) sd_fail('Só admin.', 403);
+    if ($acao === 'storage_liberar') {   // lê o bucket de aprovação e tira o limite de tamanho por arquivo (o limite GLOBAL do projeto continua valendo)
+        $h = ['apikey: ' . SD_SECRET_KEY, 'Authorization: Bearer ' . SD_SECRET_KEY, 'Content-Type: application/json'];
+        $api = function ($m, $u, $body = null) use ($h) { $ch = curl_init(SD_SUPABASE_URL . '/storage/v1' . $u); curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => $m, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => $h] + ($body !== null ? [CURLOPT_POSTFIELDS => json_encode($body)] : []));
+            $o = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); return [$c, json_decode((string)$o, true) ?: (string)$o]; };
+        $antes = $api('GET', '/bucket/aprovacao'); $limite = $b['limite_bytes'] ?? null;
+        $res = $api('PUT', '/bucket/aprovacao', ['public' => (bool)($antes[1]['public'] ?? true), 'file_size_limit' => $limite ? (int)$limite : null, 'allowed_mime_types' => null]);
+        $dep = $api('GET', '/bucket/aprovacao');
+        echo json_encode(['antes' => $antes, 'put' => $res, 'depois' => $dep], JSON_UNESCAPED_UNICODE); exit; }
     if ($acao === 'curriculo_diag') { require_once __DIR__ . '/pd-curriculo-lib.php'; $o = [];
         foreach ((array)(pdAulaSup('/rest/v1/pd_curriculo_pedidos?status=eq.pedido&select=id,titulo,chamado&limit=40')['body'] ?? []) as $r) { $c = (array)$r['chamado']; $f = [];
             try { foreach ((array)(ponte('listar', ['folderId' => $c['saidaId'] ?? ''])['arquivos'] ?? []) as $x) $f[] = $x['name']; } catch (Throwable $e) { $f = ['ERRO ' . $e->getMessage()]; }
