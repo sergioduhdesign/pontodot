@@ -34,13 +34,27 @@ h4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray)
 .ver{display:flex;gap:10px;padding:6px 0;font-size:13px}.ver b{min-width:36px}.ver span{color:var(--gray)}
 select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 .msg{padding:60px;text-align:center;color:var(--gray)}.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;z-index:40;display:none}
-.lg{height:28px;width:auto}.lg-c{display:none}@media(prefers-color-scheme:light){.lg-e{display:none}.lg-c{display:block}}#subir.on{display:flex}.drop{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:24px 28px;max-width:440px}.drop p{color:var(--gray);margin:8px 0 16px}html.trava,html.trava body{overflow:hidden}.gav{overflow:hidden}</style></head><body>
-<div class="topo"><a href="/" style="display:flex"><img class="lg lg-e" src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot · Escola"><img class="lg lg-c" src="/assets/logo-pontodot-escola-preto.svg" alt="Pontodot · Escola"></a><h1>bastidores</h1>
+.lg{height:28px;width:auto}.lg-c{display:none}@media(prefers-color-scheme:light){.lg-e{display:none}.lg-c{display:block}}#subir.on{display:flex}.drop{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:24px 28px;max-width:440px}.drop p{color:var(--gray);margin:8px 0 16px}html.trava,html.trava body{overflow:hidden}.gav{overflow:hidden}</style><style id="emb">
+html.emb .topo>*:not(.titulo-emb):not(.sp){display:none!important}
+html.emb .topo{padding:16px 24px 6px;position:static;border:0}
+html.emb .dica,html.emb #filtro{display:none!important}
+html.emb body{overflow:hidden;height:100vh;display:flex;flex-direction:column}
+html.emb .titulo-emb{display:block!important;font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0}
+html.emb .sub-emb{display:block!important;color:var(--gray);font-size:13px;padding:0 24px 10px}
+html.emb #grid{align-content:start;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 24px 28px}
+html.emb .gav{inset:auto;top:50%;left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(820px,calc(100vw - 28px));height:min(86vh,720px);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+html.emb .gcorpo{overflow-y:auto;overscroll-behavior:contain;padding-bottom:30px}
+html.emb .gcapa{height:104px}
+html.emb .gtopo .insc{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+html.emb .gtopo .ja{color:var(--ok);border-color:var(--ok)}
+.titulo-emb,.sub-emb{display:none}
+</style></head><body>
+<div class="topo"><a href="/" style="display:flex"><img class="lg lg-e" src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot · Escola"><img class="lg lg-c" src="/assets/logo-pontodot-escola-preto.svg" alt="Pontodot · Escola"></a><h1>bastidores</h1><h1 class="titulo-emb">Cursos de Catum</h1>
   <button class="btn p" onclick="pedirVazios()">Pedir à professora o que falta</button>
   <button class="btn" onclick="baixarModelo()">Baixar planilha padrão</button>
   <button class="btn" onclick="$('#arq').click()">Subir planilha preenchida</button><input type="file" id="arq" accept=".xlsx,.xls" style="display:none" onchange="subirPlanilha(this)">
   <span class="sp"></span><select id="filtro" onchange="draw()"><option value="">Todas</option><option value="ativa">Com conteúdo</option><option value="vazia">Sem conteúdo</option><option value="parada">Paradas</option></select></div>
-<div class="dica">A professora (GPT) escreve e atualiza as aulas com base no conhecimento dela: você só pede, e a PD publica quando ela devolver. Também dá para baixar a planilha, preencher com o Claude ou o GPT e subir aqui — se a aula já existe, vira nova versão.</div>
+<div class="sub-emb">Escolha um curso e inscreva a sua IA. Ela treina com os seus trabalhos reais e, toda semana, mostramos se as correções diminuem.</div><div class="dica">A professora (GPT) escreve e atualiza as aulas com base no conhecimento dela: você só pede, e a PD publica quando ela devolver. Também dá para baixar a planilha, preencher com o Claude ou o GPT e subir aqui — se a aula já existe, vira nova versão.</div>
 <div class="fundo" id="subir" onclick="if(event.target===this)this.classList.remove('on')" style="align-items:center;justify-content:center"><div class="drop"><b>Subir aula ou skill</b><p>Use a planilha padrão preenchida. Se o ID da aula já existe, vira uma nova versão; vazio, cria.</p><button class="btn p" onclick="$('#arq').click()">Escolher planilha (.xlsx)</button> <button class="btn" onclick="baixarModelo()">Baixar modelo</button></div></div>
 <div id="grid" class="grid"><div class="msg">Carregando…</div></div>
 <div class="fundo" id="fundo" onclick="fecha()"></div><div class="gav" id="gav"></div><div class="toast" id="toast"></div>
@@ -49,17 +63,20 @@ const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // os cursos da Escola agêntica (a persona é a capa) — o conteúdo de cada um vem da planilha
 const CURSOS=[['nix','Abrir alternativas e escolher uma','Criação'],['iro','Experiências pequenas de campanha','Criação'],['zumi','Alternativas em conversa','Conteúdo'],['nami','Estrutura de landing page','Páginas e sites','LP_ESTRUTURA'],['kiro','Revisão estrutural','Estratégia','LP_REVISAO_ESTRUTURA'],['sago','Briefing sem lacuna','Atendimento'],['oru','Comparar e sintetizar critérios','Estratégia'],['sumi','Leitura de resultados de anúncios','Mídia'],['brum','Do pedido ao plano com prazos','Operação'],['taro','A próxima ação verificável','Operação'],['koda','Continuidade e riscos sem drama','Gestão'],['boku','Orçamento de produção','Operação'],['gigi','Alinhar expectativas','Atendimento'],['raku','Feedback e acordos com clareza','Atendimento'],['tumi','Conexões úteis entre pessoas e ideias','Rede'],['muru','Acompanhar no ritmo de cada um','Acompanhamento']].map(c=>({curso:c[0],titulo:c[1],area:c[2],skill:c[3]||'CURSO_'+c[0].toUpperCase()}));
-let sb,ses,SK=[],IAS=[],PED=[],SEL=null;
+const EMB=new URLSearchParams(location.search).get('modo')==='cursos';if(EMB)document.documentElement.classList.add('emb');
+let sb,ses,SK=[],IAS=[],PED=[],SEL=null,PODE=false;
 const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',3500)};
 async function api(b){const r=await fetch('/pd-escola.php',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
 async function boot(){sb=window.supabase.createClient(SB_URL,SB_KEY);ses=(await sb.auth.getSession()).data.session;
   if(!ses){$('#grid').innerHTML='<div class="msg">Entre na plataforma para abrir os bastidores.</div>';return;}
   await carrega();const U=new URLSearchParams(location.search);if(U.get('subir'))$('#subir').classList.add('on');if(U.get('modelo'))setTimeout(()=>baixarModelo(),400);const qc=U.get('curso');if(qc){const c=CURSOS.find(x=>x.curso===qc);if(c)abre(c.skill);}}
-async function carrega(){try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;try{const q=(await api({acao:'curriculo_lista'})).pedidos;PED=Array.isArray(q)?q:[];}catch(e){PED=[];}}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
+async function carrega(){if(EMB){try{const j=await api({acao:'cursos_catalogo'});PODE=!!j.pode_matricular;SK=(j.cursos||[]).map(h=>({skill_id:h.skill_id,nome:h.nome,finalidade:h.finalidade,metodo:h.metodo,criterios:h.criterios||[],limites:h.limites,entradas:h.entradas||[],versao:h.versao,pausada:false,aulas:0,validadas:0,alunos:h.alunos||[],versoes:[],exemplos:[],inscrita:!!h.inscrita}));}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();return;}
+  try{SK=(await api({acao:'esc_skills'})).skills;IAS=(await api({acao:'esc_ias'})).ias;try{const q=(await api({acao:'curriculo_lista'})).pedidos;PED=Array.isArray(q)?q:[];}catch(e){PED=[];}}catch(e){$('#grid').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}draw();}
 const face=p=>'/pd/personagens/'+encodeURIComponent(p||'')+'/avatar.jpg';
 const sk=id=>SK.find(s=>s.skill_id===id);
 // um card por curso da escola + um por skill de trabalho que não é curso
-function itens(){const usados=new Set(CURSOS.map(c=>c.skill));
+function itens(){if(EMB)return CURSOS.filter(c=>sk(c.skill)).map(c=>({id:c.skill,curso:c.curso,titulo:sk(c.skill).nome||c.titulo,area:c.area,capa:'/pd/personagens/'+c.curso+'/nascimento-p.jpg',s:sk(c.skill)}));
+  const usados=new Set(CURSOS.map(c=>c.skill));
   const a=CURSOS.map(c=>({id:c.skill,curso:c.curso,titulo:sk(c.skill)?sk(c.skill).nome:c.titulo,area:c.area,capa:'/pd/personagens/'+c.curso+'/nascimento.jpg',s:sk(c.skill)}));
   const b=SK.filter(s=>!usados.has(s.skill_id)).map(s=>({id:s.skill_id,curso:'',titulo:s.nome,area:'Skill de trabalho',capa:'',s}));return a.concat(b);}
 function pedAberto(id){return PED.find(p=>p.skill_id===id&&p.status==='pedido');}
@@ -73,7 +90,8 @@ function itemDe(id){return itens().find(i=>i.id===id);}
 function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
   const taxa=s&&s.aulas?Math.round(100*s.validadas/s.aulas)+'%':'—';
   const livres=IAS.filter(x=>!(s?s.alunos:[]).some(a=>a.ia_user_id===x.ia_user_id));
-  $('#gav').innerHTML=`<div class="gtopo"><button class="btn p" onclick="pedir('${esc(i.curso||id)}')">${pedAberto(id)?'Avisar a professora de novo':s?'Pedir melhoria à professora':'Pedir à professora'}</button><button class="btn" onclick="baixarModelo('${esc(id)}')">Baixar planilha${s?' desta aula':''}</button><button class="btn" onclick="$('#arq').click()">Subir planilha</button><span class="sp"></span>
+  $('#gav').innerHTML=EMB?`<div class="gtopo">${s&&s.inscrita?'<span class="btn ja" style="cursor:default">✓ Sua IA está inscrita</span>':PODE?`<button class="btn insc" onclick="inscrever('${esc(id)}','${esc(i.curso)}')">Inscrever a minha IA</button>`:'<span class="btn" style="cursor:default">Peça ao admin para liberar a matrícula</span>'}<span class="sp"></span><button class="btn" onclick="fecha()">✕</button></div>
+  <div class="gcorpo"><div class="gcapa" style="background-image:url(${i.capa})"><i></i><h2>${esc(i.titulo)}</h2></div><div class="pad"><h4>O que a aula ensina</h4><p class="pre">${esc(s.finalidade)}</p><h4>Como a IA faz</h4><p class="pre">${esc(s.metodo)}</p>${(s.criterios||[]).length?`<h4>Como se avalia</h4><ul>${s.criterios.map(x=>`<li>${esc(typeof x==='string'?x:x.criterio)}</li>`).join('')}</ul>`:''}${s.limites?`<h4>O que fica com a pessoa</h4><p class="pre">${esc(s.limites)}</p>`:''}<h4>Quem está estudando (${s.alunos.length})</h4>${s.alunos.map(a=>`<div class="al"><img src="${face(a.personagem)}"><div class="t"><b>${esc(a.nome)}</b>${a.dona?' · IA do '+esc(a.dona):''}</div></div>`).join('')||'<div class="vz">Ninguém inscrito ainda.</div>'}</div></div>`:`<div class="gtopo"><button class="btn p" onclick="pedir('${esc(i.curso||id)}')">${pedAberto(id)?'Avisar a professora de novo':s?'Pedir melhoria à professora':'Pedir à professora'}</button><button class="btn" onclick="baixarModelo('${esc(id)}')">Baixar planilha${s?' desta aula':''}</button><button class="btn" onclick="$('#arq').click()">Subir planilha</button><span class="sp"></span>
     ${s?`<button class="btn" onclick="pausar('${esc(id)}',${!s.pausada})">${s.pausada?'Voltar com a aula':'Parar a aula'}</button><button class="btn r" onclick="apagar('${esc(id)}')">Apagar</button>`:''}<button class="btn" onclick="fecha()">✕</button></div>
   <div class="gcorpo"><div class="gcapa" style="${i.capa?`background-image:url(${i.capa})`:'background:linear-gradient(135deg,#2a2d35,#14161a)'}"><i></i><h2>${esc(i.titulo)}</h2></div>
   ${s?`<div class="met"><div><b>${s.alunos.filter(a=>a.ativa).length}</b><small>estudando</small></div><div><b>${taxa}</b><small>aproveitamento</small></div><div><b>v${s.versao}</b><small>versão</small></div><div><b>${s.aulas}</b><small>aulas feitas</small></div></div>
@@ -112,6 +130,9 @@ async function subirPlanilha(inp){const f=inp.files[0];inp.value='';if(!f)return
     if(id&&!sk(id)){novo=id;id='';}
     const r=await api({acao:'esc_skill_salvar',skill_id:id,novo_id:novo,nome:v.NOME,finalidade:v.OBJETIVO,entradas:L(v.ENTRADAS),metodo:v.METODO,criterios:L(v.CRITERIOS),limites:v.LIMITES,exemplo_bom:v.EXEMPLO_BOM,exemplo_ruim:v.EXEMPLO_RUIM,notas:v.O_QUE_MUDOU,origem:'doc'});
     await carrega();$('#subir').classList.remove('on');toast('Pronto: '+v.NOME+' · versão '+r.versao);abre(r.skill_id);}catch(e){toast(e.message);}}
+async function inscrever(sid,curso){try{const fim=new Date(Date.now()+28*864e5).toISOString();
+  try{await sb.from('pd_inscricoes').insert({user_id:ses.user.id,curso_id:curso,termina_em:fim,base:{}});}catch(e){}
+  await api({acao:'matricular',skill_id:sid});toast('Sua IA está inscrita.');await carrega();abre(sid);try{parent.postMessage({tipo:'esc-inscrito'},'*')}catch(e){}}catch(e){toast(e.message);}}
 async function pedir(c){try{const r=await api({acao:'curriculo_pedir',cursos:[c]});toast(r.msgs.join(' '));await carrega();if(SEL)abre(SEL);}catch(e){toast(e.message);}}
 async function pedirVazios(){if(!confirm('Enviar à professora o pedido de todos os cursos que ainda estão sem conteúdo?'))return;try{const r=await api({acao:'curriculo_pedir',cursos:'vazios'});toast(r.enviados+' pedido(s) enviado(s).'+(r.msgs.some(m=>/SQL/.test(m))?' Falta rodar o SQL v167.':''));await carrega();}catch(e){toast(e.message);}}
 async function pausar(id,pz){try{await api({acao:'esc_skill_pausar',skill_id:id,pausada:pz});await carrega();abre(id);}catch(e){toast(e.message);}}

@@ -262,6 +262,21 @@ if ($acao === 'resumo_admin') {   // histórico de todas as IAs + média de apro
     echo json_encode(['cursos' => $cursos, 'ias' => $ias], JSON_UNESCAPED_UNICODE); exit;
 }
 
+if ($acao === 'cursos_catalogo') {   // para TODO mundo logado: só os cursos que têm aula aberta (dá para inscrever a IA), com quem estuda e se a minha IA já está
+    $hs = pdAulaSup('/rest/v1/pd_habilidades?ativa=eq.true&select=skill_id,versao,nome,finalidade,metodo,criterios,limites,entradas&order=skill_id.asc,versao.desc&limit=600')['body'] ?? [];
+    $uni = []; foreach ((array)$hs as $h) { if (!isset($h['skill_id']) || isset($uni[$h['skill_id']])) continue; $uni[$h['skill_id']] = $h; }
+    $forms = (array)(pdAulaSup('/rest/v1/pd_formacoes?ativa=eq.true&select=ia_user_id,personagem,skill_id&limit=2000')['body'] ?? []);
+    $jm = []; foreach ((array)(pdAulaSup('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=400')['body'] ?? []) as $j) $jm[$j['user_id']] = $j;
+    $pm = []; foreach ((array)(pdAulaSup('/rest/v1/profiles?select=id,name&limit=400')['body'] ?? []) as $p) $pm[$p['id']] = $p['name'];
+    $cat = pdPersonagens(); $out = [];
+    foreach ($uni as $sid => $h) {
+        $al = []; $minha = false;
+        foreach ($forms as $f) { if (($f['skill_id'] ?? '') !== $sid) continue; if (($f['ia_user_id'] ?? '') === $u['id']) $minha = true;
+            $j = $jm[$f['ia_user_id']] ?? null; $pers = strtolower((string)($f['personagem'] ?? ($j['personagem'] ?? ''))); $al[] = ['personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? $pers), 'dona' => $pm[$f['ia_user_id']] ?? '', 'ativa' => true]; }
+        $out[] = $h + ['alunos' => $al, 'inscrita' => $minha];
+    }
+    echo json_encode(['ok' => true, 'cursos' => $out, 'pode_matricular' => !empty($perm['matricular'])], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'curso_info') {   // {curso_id, skill?}: o que a aula ensina (skill real) e quem está estudando (IAs inscritas) — vale para todo mundo logado
     $cid = preg_replace('/[^a-z0-9_-]/i', '', (string)($b['curso_id'] ?? '')); if ($cid === '') sd_fail('Curso inválido.');
     $sk = strtoupper(preg_replace('/[^A-Za-z0-9_]/', '', (string)($b['skill'] ?? ''))) ?: ('CURSO_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $cid)));

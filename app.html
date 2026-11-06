@@ -3285,6 +3285,7 @@ function escLegendaPostal(nome){
 const escLimpaNome = n => String(n||'').replace(/^\d+[\s_\-]*/, '').replace(/[_\-]+/g, ' ').replace(/\s+/g,' ').trim();
 async function escCarregar(){
   const get = (u)=>fetch(u).then(r=>r.ok?r.json():null).catch(()=>null);
+  const social = escCarregarSocial();   // roda junto com o resto (antes esperava tudo para só então começar)
   const [u, sem, im, capas, postais, alunos] = await Promise.all([
     ESC.u||get('/pd/universo.json'), get('/pd-narrativas.php'), get('/pd-imagens.php?pasta=personagens'),
     get('/pd-imagens.php?pasta=capas'), get('/pd-imagens.php?pasta=postais'),
@@ -3295,7 +3296,7 @@ async function escCarregar(){
   if (capas && capas.imagens) ESC.capas = capas.imagens;
   if (postais && postais.imagens) ESC.postais = postais.imagens;
   if (Array.isArray(alunos) && alunos.length) ESC.alunos = alunos.map(a => a.personagem);
-  await escCarregarSocial();
+  await social;
 }
 // o que é de gente de verdade: meu personagem, minhas inscrições, comentários e curtidas (se o SQL v93 já rodou)
 async function escSkills(){
@@ -3316,17 +3317,19 @@ function escSkillAbre(i){
     ${x.link ? `<a class="esc-btn" style="display:inline-block;margin-top:12px;text-decoration:none" href="${escSafe(x.link)}" target="_blank" rel="noopener">Abrir a aula</a>` : `<p class="esc-peq" style="margin-top:12px">Esta ${aula ? 'aula' : 'skill'} já está ativa na sua IA. Use o pedido acima no chat.</p>`}</div>`, false);
 }
 async function escCarregarSocial(){
-  escSkills();
-  try { const { data } = await sb.from('pd_jeito').select('personagem,apelido').eq('user_id', profile.id).maybeSingle(); ESC.meu = data && data.personagem ? data : null; } catch(e){}
-  try { const { data } = await sb.from('pd_inscricoes').select('*').eq('user_id', profile.id).eq('status','ativa'); ESC.insc = data || []; } catch(e){}
-  try {
-    const [c, k] = await Promise.all([
-      sb.from('pd_escola_comentarios').select('id,post_key,user_id,autor,texto,criado_em').order('criado_em',{ascending:true}).limit(600),
-      sb.from('pd_escola_curtidas').select('post_key,user_id').limit(3000) ]);
-    ESC.com = {}; ESC.cur = {}; ESC.semSql = !!(c.error || k.error);
-    (c.data||[]).forEach(x => (ESC.com[x.post_key] = ESC.com[x.post_key] || []).push(x));
-    (k.data||[]).forEach(x => (ESC.cur[x.post_key] = ESC.cur[x.post_key] || []).push(x.user_id));
-  } catch(e){ ESC.semSql = true; }
+  // tudo em paralelo: eram 5 idas ao banco, uma depois da outra
+  const seg = (q, d) => Promise.resolve(q).then(r => r, e => d || { error:e });
+  const [, jeito, insc, c, k] = await Promise.all([
+    escSkills().catch(()=>{}),
+    seg(sb.from('pd_jeito').select('personagem,apelido').eq('user_id', profile.id).maybeSingle()),
+    seg(sb.from('pd_inscricoes').select('*').eq('user_id', profile.id).eq('status','ativa')),
+    seg(sb.from('pd_escola_comentarios').select('id,post_key,user_id,autor,texto,criado_em').order('criado_em',{ascending:false}).limit(400)),
+    seg(sb.from('pd_escola_curtidas').select('post_key,user_id').limit(3000)) ]);
+  ESC.meu = jeito && jeito.data && jeito.data.personagem ? jeito.data : null;
+  ESC.insc = (insc && insc.data) || [];
+  ESC.com = {}; ESC.cur = {}; ESC.semSql = !!((c && c.error) || (k && k.error));
+  ((c && c.data) || []).reverse().forEach(x => (ESC.com[x.post_key] = ESC.com[x.post_key] || []).push(x));
+  ((k && k.data) || []).forEach(x => (ESC.cur[x.post_key] = ESC.cur[x.post_key] || []).push(x.user_id));
 }
 const escKey = p => p.id + ':' + (p.data || '0');
 const escQuando = iso => { const m = Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m/60)} h` : `há ${Math.round(m/1440)} d`; };
@@ -3619,10 +3622,17 @@ async function escMeusCursos(){
 function escFecharPop(){ const d = document.getElementById('esc-pop'); if (d){ d.classList.remove('on'); setTimeout(() => d.remove(), 250); } }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') escFecharPop(); });
 function escTodosCursos(){
-  const grupos = ['Criador','Estrategista','Realizador','Conector'];
-  escPop(`<h3>Todos os cursos</h3>` + grupos.map(g => { const L = ESC_CURSOS.filter(c => escChar(c.quem)?.narrative_archetype === g); if (!L.length) return '';
-    return `<small class="esc-area">${g}es</small>` + L.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(escChar(c.quem)?.name||'')} · ${escSafe(c.area)}</small></button>`).join(''); }).join(''));
+  // a estrutura dos bastidores (cards + aula) numa janela central, só com os cursos que dá para inscrever a IA
+  document.getElementById('esc-cursos-j')?.remove();
+  const d = document.createElement('div'); d.id = 'esc-cursos-j';
+  d.style.cssText = 'position:fixed;inset:0;z-index:99800;display:grid;place-items:center;background:rgba(10,10,12,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:16px';
+  d.innerHTML = `<div style="position:relative;width:min(1100px,100%);height:min(88vh,820px);border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.5)">
+    <iframe title="Cursos de Catum" src="/escola-bastidores.html?modo=cursos&v=${Date.now()}" style="width:100%;height:100%;border:0;display:block"></iframe>
+    <button aria-label="Fechar" onclick="document.getElementById('esc-cursos-j').remove()" style="position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:15px;cursor:pointer;display:grid;place-items:center;z-index:5">✕</button></div>`;
+  d.addEventListener('click', e => { if (e.target === d) d.remove(); });
+  document.body.appendChild(d);
 }
+window.addEventListener('message', e => { if (e.data && e.data.tipo === 'esc-inscrito'){ try { escCarregarSocial().then(renderEscola); } catch(_){} } });
 function escAmpliarCapa(){ const f = document.getElementById('esc-capa-frase'); escAmpliar((escPostalDoDia()||{}).src || escCapasDoDia().cidade, f ? f.textContent.trim() : 'Catum'); }
 function escAlMais(){
   ESC.alAberto = !ESC.alAberto;

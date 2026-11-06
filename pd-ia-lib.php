@@ -415,6 +415,33 @@ function iaClienteEditar($args, $u, $lote) {
     return ['texto' => $t ? '✅ ' . $c['name'] . ' → ' . implode(' · ', $t) : 'ℹ️ nada pra mudar em ' . $c['name'], 'ids' => []];
 }
 
+// ---- comits (grupos): criar, falar, abrir, fechar (só admin humano fecha) ----
+function iaComit($args, $u, $lote) {
+    require_once __DIR__ . '/pd-comits-lib.php';
+    $op = (string)($args['op'] ?? 'listar');
+    $acha = function ($nome) { $nome = trim((string)$nome); if ($nome === '') return null; $r = (array)(sd_supabase('/rest/v1/pd_comits?titulo=ilike.' . rawurlencode('*' . $nome . '*') . '&select=*&order=ultima_em.desc&limit=3')['body'] ?? []); return $r[0] ?? null; };
+    $eu = $u['id']; $nomeU = $u['name'] ?? 'Alguém';
+    $ehMembro = function ($c) use ($eu, $u) { foreach (cmtMembros($c['id']) as $m) if ($m['ref'] === $eu) return true; return !empty($c['publico']) || ($u['role'] ?? '') === 'admin'; };
+    if ($op === 'criar') {
+        $mem = [];
+        foreach ((array)($args['participantes'] ?? []) as $nm) { $nm = trim((string)$nm); if ($nm === '') continue;
+            foreach (pdPersonagens() as $k => $v) if (mb_strtolower($v[0]) === mb_strtolower($nm)) { $mem[] = ['tipo' => 'ia', 'ref' => $k]; continue 2; }
+            $pr = sd_supabase('/rest/v1/profiles?active=eq.true&name=ilike.' . rawurlencode('*' . $nm . '*') . '&select=id&limit=1')['body'][0] ?? null; if ($pr) $mem[] = ['tipo' => 'humano', 'ref' => $pr['id']]; }
+        [$c, $e] = cmtCriar($args['titulo'] ?? '', $args['assunto'] ?? '', $mem, $eu, null, false, $nomeU);
+        if (!$c) return ['texto' => '⚠️ ' . $e, 'ids' => []];
+        cmtMsg($c['id'], 'sistema', null, 'PD', $nomeU . ' abriu o comit (via IA).');
+        return ['texto' => '✅ comit "' . $c['titulo'] . '" aberto com ' . count($mem) . ' participante(s)', 'ids' => []];
+    }
+    if ($op === 'listar') { $r = (array)(sd_supabase('/rest/v1/pd_comit_membros?ref=eq.' . urlencode($eu) . '&select=pd_comits(titulo,status)&limit=40')['body'] ?? []); $t = []; foreach ($r as $x) if (!empty($x['pd_comits']) && $x['pd_comits']['status'] === 'aberto') $t[] = $x['pd_comits']['titulo']; return ['texto' => $t ? 'Comits abertos: ' . implode(' · ', $t) : 'Nenhum comit aberto.', 'ids' => []]; }
+    $c = $acha($args['grupo'] ?? ''); if (!$c) return ['texto' => '⚠️ não achei o grupo "' . ($args['grupo'] ?? '') . '"', 'ids' => []];
+    if (!$ehMembro($c)) return ['texto' => '⚠️ você não participa desse grupo', 'ids' => []];
+    if ($op === 'abrir') { $ms = array_reverse((array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . $c['id'] . '&select=autor_nome,texto&order=id.desc&limit=12')['body'] ?? [])); $t = ''; foreach ($ms as $m) $t .= $m['autor_nome'] . ': ' . mb_substr($m['texto'], 0, 220) . "\n"; return ['texto' => 'Grupo "' . $c['titulo'] . '" (' . $c['status'] . "):\n" . ($t ?: 'sem mensagens'), 'ids' => []]; }
+    if ($op === 'enviar') { if ($c['status'] === 'fechado') return ['texto' => '⚠️ grupo fechado', 'ids' => []]; $tx = trim((string)($args['texto'] ?? '')); if ($tx === '') return ['texto' => '⚠️ falta o texto', 'ids' => []];
+        $mem = cmtMembros($c['id']); cmtMsg($c['id'], 'humano', $eu, $nomeU, $tx); cmtAvisar($c, $mem, $eu, $nomeU, $tx, false); return ['texto' => '✅ enviei no grupo "' . $c['titulo'] . '"', 'ids' => []]; }
+    if ($op === 'fechar') { if (($u['role'] ?? '') !== 'admin') return ['texto' => '⚠️ só um perfil admin fecha grupos', 'ids' => []]; cmtFechar($c, $nomeU); sd_supabase('/rest/v1/pd_comits?id=eq.' . urlencode($c['id']), 'PATCH', ['fechado_por' => $eu]); return ['texto' => '✅ grupo "' . $c['titulo'] . '" fechado (o histórico fica guardado)', 'ids' => []]; }
+    return ['texto' => '⚠️ op desconhecida', 'ids' => []];
+}
+
 // ---- lembrete, recado, produção (mesmas rotinas do zap) ----
 function iaLembrete($args, $u, $lote) { $a = $args; $a['tipo'] = 'lembrete'; return ['texto' => pdZapLembrete($a, $u), 'ids' => []]; }
 function iaEscolaStatus($args, $u, $lote) { return ['texto' => pdEscolaStatus($args, $u), 'ids' => []]; }
@@ -471,6 +498,8 @@ function iaCatalogo($u) {
     $T[] = ['name' => 'lembrar', 'description' => 'Guarda na memória da casa algo duradouro. escopo: agencia | cliente (alvo = nome) | pessoa | tarefa (alvo = id).',
         'input_schema' => $S(['memorias' => ['type' => 'array', 'items' => $S(['escopo' => $str, 'alvo' => $str, 'assunto' => $str, 'conteudo' => $str, 'natureza' => $str], ['escopo', 'assunto', 'conteudo'])]], ['memorias'])];
     $T[] = ['name' => 'ver_tarefa', 'description' => 'Lê uma tarefa completa (campos, comentários, filhas).', 'input_schema' => $S(['id' => $str], ['id'])];
+    $T[] = ['name' => 'comit', 'description' => 'Grupos de conversa (comits) com pessoas, IAs e clientes. op: listar | criar (titulo, assunto, participantes = nomes de pessoas ou IAs) | abrir (grupo) | enviar (grupo, texto) | fechar (grupo; só perfil admin, nunca apaga). Use criar quando um assunto precisar de mais de duas partes.',
+        'input_schema' => $S(['op' => $str, 'grupo' => $str, 'titulo' => $str, 'assunto' => $str, 'texto' => $str, 'participantes' => $arrS], ['op'])];
     $T[] = ['name' => 'lembrete', 'description' => 'Lembrete pra própria pessoa (plataforma + zap). op: criar|cancelar. quando "AAAA-MM-DD HH:MM"; recorrencia nenhuma|diaria|dias_uteis|semanal|mensal (com hora "HH:MM").',
         'input_schema' => $S(['op' => $str, 'texto' => $str, 'quando' => $str, 'recorrencia' => $str, 'hora' => $str, 'id' => ['type' => 'integer']])];
     $T[] = ['name' => 'delegar', 'description' => 'Passa um pedido a outra IA da casa (tumi = captação e pesquisa de mercado; sumi = campanhas; muru = social; gigi = cliente) ou à IA parceira de alguém. Use quando o trabalho cabe no papel dela.', 'input_schema' => $S(['para' => $str, 'pedido' => $str, 'cliente' => $str, 'quantos' => ['type' => 'integer'], 'task_id' => $str], ['para', 'pedido'])];
@@ -521,6 +550,7 @@ function iaExecutarTudo($nome, $args, $u, $lote) {
         case 'lembrar':         return iaLembrar($args, $u, $lote);
         case 'ver_tarefa':      if (!empty($GLOBALS['PD_IA_CLIENTE']) && !iaClienteTarefaDele($args['id'] ?? '')) return ['texto' => '⚠️ essa tarefa não é da sua empresa', 'ids' => []]; return iaVerTarefa($args);
         case 'lembrete':        return iaLembrete($args, $u, $lote);
+        case 'comit':           return iaComit($args, $u, $lote);
         case 'recado':          return iaRecado($args, $u, $lote);
         case 'delegar':         return iaDelegar($args, $u, $lote);
         case 'status_pedidos':  return iaStatusPedidos($args, $u, $lote);
