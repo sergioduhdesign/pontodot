@@ -4840,10 +4840,10 @@ function listaAprov(aba = aprovAba){
   const st = APROV_ABAS[aba][1], q = semAcento(aprovQ);
   return tasksReais.filter(t => t.status === st &&
       (!q || semAcento([t.id, t.action, t.project, t.clients && t.clients.name, t.resp].join(' ')).includes(q)))
-    .sort((a, b) => String(a.date_cli || a.date_int || '9999').localeCompare(String(b.date_cli || b.date_int || '9999')));
+    .sort((a, b) => (parseInt(String(b.id).replace(/\D/g,''),10) || 0) - (parseInt(String(a.id).replace(/\D/g,''),10) || 0));   // o mais atual primeiro, sempre
 }
-function linhasAprov(){
-  const L = listaAprov();
+function linhasAprov(todas){
+  const L0 = listaAprov(), L = todas ? L0 : L0.slice(0, 6);
   if (!L.length) return `<div class="nota">${aprovQ ? 'Nada com essa busca.' : 'Nada aqui agora.'}</div>`;
   return L.map(t => {
     const novo = eNovo('aprovacoes', t.id + ':' + t.status);
@@ -4852,20 +4852,32 @@ function linhasAprov(){
       ${logoCliente(nome, 28)}
       <div class="c" style="min-width:0"><div class="n" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${novo ? '<i class="nv-dot"></i>' : ''}${esc(String(t.action).slice(0, 48))}</div>
       <div class="d">${esc(nome)} · com ${esc(t.resp || '—')}${t.date_cli ? ' · prazo do cliente ' + fmtD(t.date_cli) : ''}</div></div></button>`;
-  }).join('');
+  }).join('') + (!todas && L0.length > L.length ? `<button class="btn" style="width:100%;margin-top:6px;min-height:32px;font-size:11.5px" onclick="abrirAprovacoesTodas()">+ ${L0.length - L.length} mais — ver todas</button>` : '');
 }
 function pintarAprov(){
   const L = $('#apLista'); if (L) L.innerHTML = linhasAprov();
+  const LJ = $('#apListaJ'); if (LJ) LJ.innerHTML = linhasAprov(true);
   document.querySelectorAll('[data-apaba]').forEach(b => { b.classList.toggle('on', b.dataset.apaba === aprovAba);
     b.firstElementChild && (b.firstElementChild.textContent = listaAprovTotal(b.dataset.apaba)); });
 }
 const listaAprovTotal = aba => tasksReais.filter(t => t.status === APROV_ABAS[aba][1]).length;
 function aprovTroca(aba){ aprovAba = aba; guardarAprov(); pintarAprov(); }
+function abrirAprovacoesTodas(){
+  const abas = Object.entries(APROV_ABAS).map(([k, v]) => `<button data-apaba="${k}" class="${k === aprovAba ? 'on' : ''}" onclick="aprovTroca('${k}')">${v[0]} <b>${listaAprovTotal(k)}</b></button>`).join('');
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="height:100%;display:flex;flex-direction:column;padding:20px 18px 14px">
+    <div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:25px;font-weight:400;letter-spacing:-.01em">Aprovações</h3><button class="acao-cab" style="color:var(--branco)" onclick="fecharComFio('#janela .caixa',fecharJanela)" aria-label="Fechar">✕</button></div>
+    <div class="nota" style="margin:2px 0 8px">Do mais atual para o mais antigo.</div>
+    <div class="ap-abas">${abas}</div>
+    <input class="ap-q" placeholder="buscar por cliente, peça, pessoa…" value="${esc(aprovQ)}" oninput="aprovQ=this.value;guardarAprov();pintarAprov()">
+    <div id="apListaJ" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;margin-top:6px">${linhasAprov(true)}</div>
+  </div>`, true);
+}
 function htmlAprovacoes(){
   const abas = Object.entries(APROV_ABAS).map(([k, v]) => `<button data-apaba="${k}" class="${k === aprovAba ? 'on' : ''}" onclick="aprovTroca('${k}')">${v[0].split(' · ')[0]} <b>${listaAprovTotal(k)}</b></button>`).join('');
   const sets = (setsReais || []).slice(0, 4);
   return gadCaixa('Aprovações',
-    `<div class="ap-abas">${abas}</div>
+    `<div style="display:flex;justify-content:flex-end;margin:0 0 6px"><button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirAprovacoesTodas()">Ver todas</button></div>
+     <div class="ap-abas">${abas}</div>
      <input class="ap-q" id="apQ" placeholder="buscar por cliente, peça, pessoa…" value="${esc(aprovQ)}" oninput="aprovQ=this.value;guardarAprov();pintarAprov()">
      <div id="apLista">${linhasAprov()}</div>
      ${sets.length ? `<div class="nota" style="margin:12px 0 4px">LOTES RECENTES NA APROVAÇÃO</div>` + sets.map(x => `<button class="ia-linha" style="width:100%" onclick="${x.task_id ? `abrirTarefaReal('${x.task_id}')` : `popupIframe('/aprovacao.html?set=${x.id}','Aprovação')`}"><div class="c"><div class="n">${esc(x.title || 'Lote')}</div><div class="d">${esc((x.created_at || '').slice(0, 10))}${x.task_id ? ' · ' + esc(x.task_id) : ''}</div></div></button>`).join('') : ''}`);
@@ -7353,8 +7365,7 @@ const GADGETS = {
       ${[['JO','Joy','▶ rodando SD-0021 · 1h12'],['LU','Luana','respondeu na SD-0019'],['JU','Juan','LP do Ápice · pausada']]
         .map(x=>`<div class="gente"><span class="av">${x[0]}</span><div class="c"><div style="font-size:12px">${x[1]}</div><div class="d" style="font-size:10px;color:var(--branco2)">${x[2]}</div></div></div>`).join('')}`); } },
   modelos:   { nome:'Modelos e padrões', html:()=> gadCaixa('Modelos e padrões',
-      `<div class="nota" style="margin:0 0 6px;line-height:1.5">${PDM.sub}</div>${PDM.listaHtml('session.access_token', 4)}`,
-      ['Ver todos os modelos', `abrirModelos()`]) },
+      `<div style="display:flex;justify-content:flex-end;margin:0 0 6px"><button class="btn" style="min-height:30px;padding:4px 11px;font-size:11.5px" onclick="abrirModelos()">Ver todas</button></div><div class="nota" style="margin:0 0 6px;line-height:1.5">${PDM.sub}</div>${PDM.listaHtml('session.access_token', 4)}`) },
   relatorios:{ nome:'Termômetro da agência', html:()=>{
       if (window.REAL){
         let cfg = 'status'; try { cfg = localStorage.getItem('sd_bi') || 'status'; } catch(e){}
