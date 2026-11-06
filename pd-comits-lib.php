@@ -64,6 +64,8 @@ function cmtMsg($comitId, $tipo, $ref, $nome, $texto, $importante = false) {
     sd_supabase('/rest/v1/pd_comits?id=eq.' . urlencode((string)$comitId), 'PATCH', ['ultima_em' => gmdate('c')]);
     return $r['body'][0] ?? null;
 }
+/** a mensagem traz arquivo (anexo do comit) ou link? */
+function cmtTemMaterial($t) { return (bool)preg_match('/\[\[arquivo\|[^\]]*\]\]|https?:\/\/\S+/iu', (string)$t); }
 function cmtMencionou($texto, $nome) { return $nome !== '' && preg_match('/(^|[^\p{L}])@?' . preg_quote(mb_strtolower($nome), '/') . '([^\p{L}]|$)/iu', mb_strtolower($texto)); }
 
 /** avisa quem é humano no grupo: msg importante, ou citou o nome da pessoa. O zap entra só nisso (e respeita o "receber alertas"). */
@@ -130,16 +132,33 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
     $quem = [];
     foreach ($ias as $i) if (cmtMencionou($texto, (string)$i['nome'])) $quem[] = $i;
     if (!$quem && $autorTipo !== 'ia' && count($ias) === 1) $quem = $ias;
+    // MATERIAL (arquivo/link) = TAREFA: uma IA "barra", a IA de quem mandou confirma com ele e abre
+    $mat = ['modo' => '']; $sIA = null; $forca = [];
+    if ($profundidade === 0 && $autorTipo === 'humano' && $quemU && !$abertura) {
+        $uidM = null; $nomeM = '';
+        if (cmtTemMaterial($texto)) { $mat['modo'] = 'chegou'; $uidM = $quemU['id'] ?? null; $nomeM = $quemU['name'] ?? ''; }
+        else { $hM = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_tipo,autor_ref,autor_nome,texto&order=id.desc&limit=7')['body'] ?? []);
+            foreach ($hM as $m) { if ($m['autor_tipo'] === 'sistema' && preg_match('/✅\s*[A-Z]+-?\d+/u', (string)$m['texto'])) break;
+                if (in_array($m['autor_tipo'], ['humano', 'cliente'], true) && cmtTemMaterial($m['texto'])) { $mat['modo'] = 'confirma'; $uidM = $m['autor_ref']; $nomeM = $m['autor_nome']; break; } } }
+        if ($mat['modo']) {
+            $mat['nome'] = $nomeM; $rM = strtolower(trim((string)(sd_supabase('/rest/v1/pd_jeito?user_id=eq.' . urlencode((string)$uidM) . '&select=personagem&limit=1')['body'][0]['personagem'] ?? '')));
+            foreach ($ias as $i) if ($i['ref'] === $rM) $sIA = $i;
+            if (!$sIA) $sIA = cmtLider($c, $ias) ?: $ias[0];
+            $quem = array_values(array_filter($quem, fn($x) => $x['ref'] !== $sIA['ref']));
+            if ($mat['modo'] === 'chegou') { $outras = array_values(array_filter($ias, fn($x) => $x['ref'] !== $sIA['ref'])); if ($outras) { $bar = $outras[array_rand($outras)]; $quem = array_values(array_filter($quem, fn($x) => $x['ref'] !== $bar['ref'])); array_unshift($quem, $bar); $forca[$bar['ref']] = true; } }
+            $quem[] = $sIA; $forca[$sIA['ref']] = true; $quem = array_slice($quem, 0, 3);
+        }
+    }
     // LÍDER: a IA de quem abriu organiza (súmula + start) e fala primeiro; as outras concordam ou abrem dúvida
     $lider = cmtLider($c, $ias); $liderRef = $lider['ref'] ?? '';
-    if ($profundidade === 0 && $autorTipo !== 'ia') {
+    if ($profundidade === 0 && $autorTipo !== 'ia' && !$mat['modo']) {
         if (!$quem) $quem = [$lider ?: $ias[0]];                       // ninguém chamado: só a líder fala (e pode ficar em silêncio)
         elseif ($abertura && $lider) { $quem = [$lider]; }             // abertura: a líder sumula e dá o start; as outras ouvem
         $quem = array_slice($quem, 0, 2);
     }
     // SEGUNDA EM COMANDO: a IA do anfitrião (Zumi) nunca fica calada nos comits em que está
     $anf = pdCerebroAnfitriao();
-    if ($anf['personagem'] && $profundidade === 0 && $autorTipo !== 'ia' && $quem && !$abertura && count($quem) < 2) { $ja = array_filter($quem, fn($x) => $x['ref'] === $anf['personagem']); if (!$ja) foreach ($ias as $i) if ($i['ref'] === $anf['personagem']) { $quem[] = $i; break; } }
+    if ($anf['personagem'] && $profundidade === 0 && $autorTipo !== 'ia' && $quem && !$abertura && !$mat['modo'] && count($quem) < 2) { $ja = array_filter($quem, fn($x) => $x['ref'] === $anf['personagem']); if (!$ja) foreach ($ias as $i) if ($i['ref'] === $anf['personagem']) { $quem[] = $i; break; } }
     if (!$quem) return;
     $lerTranscr = function () use ($c) { $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []); $t = ''; foreach (array_reverse($hist) as $h) $t .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n"; return $t; };
     $lista = implode('; ', array_map(fn($m) => $m['nome'] . ' (' . ($m['tipo'] === 'ia' ? 'IA' : ($m['tipo'] === 'cliente' ? 'cliente' : 'pessoa da equipe')) . ')', $mem));
@@ -166,6 +185,13 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
         $sys .= $ehLider
             ? "\n\nVOCÊ É A LÍDER deste comit (a IA de quem abriu). Seu papel: organizar o que está sendo conversado numa súmula curta (o que já está decidido · quem faz o quê · o que ainda está em aberto) e, quando houver direção suficiente, dar o START para todos executando as ações de verdade (delegar, recado, criar tarefa). Se faltar decisão, pergunte UMA coisa que destrava. Quando tudo estiver resolvido, diga \"combinado\" e feche a súmula. Máximo 2 frases curtas; se não há nada novo a organizar, ##SILENCIO##."
             : "\n\nA líder deste comit é " . ($lider['nome'] ?? 'a IA de quem abriu') . ": apoie, concorde ou abra uma dúvida/risco; se precisar de decisão, passe a bola para ela. Máximo 2 frases curtas. Se não foi chamada pelo nome e não tem nada novo, responda ##SILENCIO##.";
+        if ($mat['modo']) {
+            $nm = $mat['nome'] ?: 'a pessoa';
+            if ($mat['modo'] === 'chegou' && $q['ref'] !== $sIA['ref']) $sys .= "\n\nMODO BARRA: acabou de chegar material (arquivo/link) de $nm e ainda não existe tarefa para ele. Diga UMA frase curta e natural: isso é material de tarefa, a gente ainda não abriu uma, e chame a IA de $nm (" . $sIA['nome'] . ") para abrir. Não use ##SILENCIO##.";
+            else $sys .= "\n\nMODO MATERIAL — você é a IA de $nm, que mandou arquivo(s)/link(s) neste comit. Todo material vira TAREFA. Olhe as tarefas abertas: se já existe uma do mesmo assunto, anexe os links nela (ação nota) e diga isso. Se não existe: " . ($mat['modo'] === 'chegou'
+                ? "faça UMA pergunta curta a $nm confirmando o que você deduziu (cliente e produto/assunto) e se coloca a tarefa no nome dele(a) ou já passa para outra pessoa (sugira quem, pela função). Não abra ainda, a não ser que $nm já tenha dito cliente, produto e responsável na própria mensagem."
+                : "se $nm confirmou ou ajustou, EXECUTE agora: ##ACAO## {\"tipo\":\"criar\",\"novas\":[{\"action\":\"título curto\",\"cliente\":\"…\",\"produto\":\"…\",\"resp\":\"quem\",\"date_int\":\"AAAA-MM-DD\",\"obs\":\"links e arquivos EXATOS da conversa\"}]}. Prazo: use datas ou prazos que apareceram na conversa ou nas reuniões gravadas; sem dado nenhum, proponha o próximo dia útil razoável e diga qual. Depois avise em uma frase o número, o responsável e o prazo. Se a mensagem de $nm não era sobre isso, responda ao que foi dito e lembre em meia frase que o material ainda não virou tarefa.") . " Não use ##SILENCIO##.";
+        }
         $transcr = $lerTranscr();   // cada IA lê o que as anteriores acabaram de dizer
         usleep(($ordem++ === 0 ? rand(2500000, 5000000) : rand(6000000, 11000000)));   // ritmo de gente: pensa antes de falar, e a segunda espera a primeira
         [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 380);
@@ -181,7 +207,7 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
         }
         $resp = cmtEncurta($resp, 320);
         foreach ($mem as $mm) { $pn = preg_quote(mb_strtolower(explode(' ', trim((string)$mm['nome']))[0]), '/'); if ($pn !== '') $resp = trim(preg_replace('/^(?:(?:oi|olá|ola|e aí|fala|ei|opa)[ ,]+)?' . $pn . '\s*[,:!\-–]\s*/iu', '', $resp)); }
-        if ($silencio && !$feitos) continue;   // ficou quieta: nada a dizer, nada postado
+        if ($silencio && !$feitos && empty($forca[$q['ref']])) continue;   // ficou quieta: nada a dizer, nada postado
         if ($resp !== '') cmtMsg($c['id'], 'ia', $q['ref'], $p[0], $resp);
         cmtPontoEscolar($c, $q['ref'], $p[0], $quemU, $ehLider ? 'lider' : 'participante', $resp, count($feitos));
         if ($feitos) cmtMsg($c['id'], 'sistema', null, 'PD', implode("\n", $feitos));

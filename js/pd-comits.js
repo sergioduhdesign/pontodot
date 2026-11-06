@@ -16,7 +16,9 @@
   const raiz = () => document.getElementById('cmRoot');
   const avatar = (m, t) => m.tipo === 'ia' ? `<img src="${E(typeof fotoDe === 'function' ? '' : '')}" alt="">` : '';
   const ini = n => String(n || '?').split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
-  const FMT = t => E(t).replace(/\*\*([^*\n][^*]*?)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>');   // **negrito** e *itálico* viram formatação, sem asteriscos soltos
+  const FMT = t => E(t).replace(/\*\*([^*\n][^*]*?)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>')
+    const ARQ = (n, u) => { const img = /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u); return `<a class="cm-arq" href="${u}" target="_blank" rel="noopener">${img ? `<img src="${u}" alt="">` : ''}<span>📎 ${n}</span></a>`; };
+  const FMT2 = t => FMT(t).replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;word-break:break-all">$2</a>').replace(/\[\[arquivo\|([^|\]]*)\|([^\]\s]+)\]\]/g, (m, n, u) => ARQ(n, u));   // **negrito** e *itálico* viram formatação, sem asteriscos soltos
   const AVN = {};   // nome → foto das pessoas
   const bolinha = (nome, tipo, t) => { const foto = tipo !== 'ia' ? (AVN[String(nome).toLowerCase()] || (typeof perfil !== 'undefined' && perfil && perfil.name === nome ? perfil.avatar_url : '')) : ''; return `<span class="cm-av" style="--c:${cor(nome)};${t ? 'width:' + t + 'px;height:' + t + 'px;' : ''}" title="${E(nome)}">${tipo === 'ia' ? `<img src="/icone-ia.php?p=${encodeURIComponent(String(nome).toLowerCase())}&s=64" alt="" onerror="this.remove()">` : (foto ? `<img src="${E(foto)}" alt="" onerror="this.remove()">` : '')}<i>${E(ini(nome))}</i></span>`; };
 
@@ -44,6 +46,7 @@
     .cm-btn:disabled,.cm-in button:disabled{opacity:.5}
     .cm-in button.env{height:40px;border-radius:999px;padding:0 18px;border:0;background:var(--branco);color:#111;font:inherit;font-weight:500;cursor:pointer;flex:none}
     .cm-in button.ic{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:inherit;font-size:17px;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}.cm-in button.ic:hover{background:rgba(255,255,255,.16)}
+    .cm-arq{display:block;border:.5px solid rgba(242,242,238,.25);border-radius:12px;padding:8px 10px;margin:2px 0;color:inherit;text-decoration:none;background:rgba(255,255,255,.06);max-width:260px;overflow:hidden}.cm-arq img{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:6px}.cm-arq span{font-size:13px;word-break:break-all}
     .cm-emo{position:absolute;bottom:62px;left:14px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:8px;border-radius:14px;background:#24272a;border:.5px solid rgba(242,242,238,.2);box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:5}.cm-emo button{border:0;background:none;font-size:20px;line-height:1;width:34px;height:34px;border-radius:8px;cursor:pointer}.cm-emo button:hover{background:rgba(255,255,255,.1)}
     .cm-meio{position:relative}
     .cm mark{background:var(--mc,#e0b342);color:#111;border-radius:3px;padding:0 1px}.cm mark.at{outline:2px solid #fff}
@@ -136,7 +139,7 @@
     if (m.autor_tipo === 'sistema') return `<div class="cm-sis">${E(m.texto)} · ${hora(m.created_at)}</div>`;
     const eu = m.autor_ref && m.autor_ref === meuId();
     return `<div class="cm-m ${eu ? 'eu' : ''} ${m.importante ? 'imp' : ''}" data-id="${m.id}">${eu ? '' : bolinha(m.autor_nome, m.autor_tipo === 'ia' ? 'ia' : 'h', 30)}
-      <div class="cm-bl">${eu ? '' : `<small style="color:${cor(m.autor_nome)}">${E(m.autor_nome)}${m.autor_tipo === 'ia' ? ' · IA' : m.autor_tipo === 'cliente' ? ' · cliente' : ''}</small>`}<span class="tx">${FMT(m.texto)}</span><span class="h">${hora(m.created_at)}</span></div></div>`;
+      <div class="cm-bl">${eu ? '' : `<small style="color:${cor(m.autor_nome)}">${E(m.autor_nome)}${m.autor_tipo === 'ia' ? ' · IA' : m.autor_tipo === 'cliente' ? ' · cliente' : ''}</small>`}<span class="tx">${FMT2(m.texto)}</span><span class="h">${hora(m.created_at)}</span></div></div>`;
   }
   function chat(){
     const R = raiz(); if (!R) return; const d = CM.dados, c = d.comit, fechado = c.status === 'fechado';
@@ -151,7 +154,7 @@
         <aside class="cm-gente">${d.membros.map(m => `<div class="p" title="${E(m.nome)} · ${m.tipo}">${bolinha(m.nome, m.tipo, 26)}<span class="t"><b>${E(String(m.nome).split(' ')[0])}</b><small>${E(funcaoDe(m))}</small></span></div>`).join('')}
           ${fechado ? '' : '<button class="cm-ib" style="width:28px;height:28px;font-size:14px;margin-top:6px" title="Adicionar participantes" onclick="CMadd()">＋</button>'}</aside>
         <section class="cm-meio"><div class="cm-msgs" id="cmMsgs">${d.msgs.map(balao).join('')}</div>
-          ${fechado ? '<div class="cm-sis" style="padding:12px">Comit fechado — só leitura.</div>' : `<div class="cm-in"><button type="button" class="ic" title="Emoji" aria-label="Emoji" onmousedown="event.preventDefault()" onclick="CMemoji()">☺</button><textarea id="cmTx" rows="1" placeholder="escreva… (chame uma IA pelo nome)" oninput="CMcresce(this)" onkeydown="CMtecla(event)"></textarea><button type="button" class="ic" title="Pular linha" aria-label="Pular linha" onmousedown="event.preventDefault()" onclick="CMquebra()">↵</button><button type="button" class="env" onmousedown="event.preventDefault()" onclick="CMenviar()">Enviar</button></div>`}</section>
+          ${fechado ? '<div class="cm-sis" style="padding:12px">Comit fechado — só leitura.</div>' : `<div class="cm-in"><button type="button" class="ic" title="Emoji" aria-label="Emoji" onmousedown="event.preventDefault()" onclick="CMemoji()">☺</button><button type="button" class="ic" title="Enviar arquivo" aria-label="Enviar arquivo" onmousedown="event.preventDefault()" onclick="CMarquivo()">📎</button><textarea id="cmTx" rows="1" placeholder="escreva… (chame uma IA pelo nome)" oninput="CMcresce(this)" onkeydown="CMtecla(event)"></textarea><button type="button" class="ic" title="Pular linha" aria-label="Pular linha" onmousedown="event.preventDefault()" onclick="CMquebra()">↵</button><button type="button" class="env" onmousedown="event.preventDefault()" onclick="CMenviar()">Enviar</button></div>`}</section>
         <aside class="cm-curso" id="cmCurso"></aside>
       </div>`;
     const M = document.getElementById('cmMsgs'); if (M) M.scrollTop = M.scrollHeight; adMonta();
@@ -175,14 +178,25 @@
     const d = document.createElement('div'); d.className = 'cm-emo'; d.innerHTML = EMO.map(x => `<button type="button" onmousedown="event.preventDefault()" onclick="CMponEmoji('${x}')">${x}</button>`).join(''); m.appendChild(d); };
   window.CMponEmoji = x => { const t = document.getElementById('cmTx'); if (!t) return; const a = t.selectionStart, b = t.selectionEnd; t.value = t.value.slice(0, a) + x + t.value.slice(b); t.selectionStart = t.selectionEnd = a + x.length; t.focus(); CMcresce(t); };
   let puxando = false, rapido = 0;
+  window.CMarquivo = () => { const i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.onchange = async () => { for (const f of [...i.files]) await enviaArq(f); }; i.click(); };
+  async function enviaArq(f){
+    if (f.size > 15 * 1024 * 1024){ toast('Arquivo grande demais (máx. 15 MB).'); return; }
+    const seguro = (f.name || 'arquivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w.\-]+/g, '_').slice(-60);
+    const path = 'comit/' + CM.sel + '/' + Date.now() + '-' + seguro; toast('Enviando ' + (f.name || 'arquivo') + '…');
+    try { const up = await sbR.storage.from('zap-midia').upload(path, f, { contentType: f.type || 'application/octet-stream' }); if (up.error) throw up.error;
+      const sg = await sbR.storage.from('zap-midia').createSignedUrl(path, 31536000); if (sg.error) throw sg.error;
+      const t = document.getElementById('cmTx'); const legenda = (t && t.value || '').trim(); if (t){ t.value = ''; CMcresce(t); }
+      await CMenviar('[[arquivo|' + String(f.name || 'arquivo').replace(/[|\]\[]/g, ' ') + '|' + sg.data.signedUrl + ']]' + (legenda ? '\n' + legenda : ''));
+    } catch(e){ toast('Não subiu: ' + (e.message || e)); }
+  }
   window.CMenviar = async function(){
-    const t = document.getElementById('cmTx'); const txt = (t && t.value || '').trim(); if (!txt) return;
-    t.value = ''; CMcresce(t); const em = document.querySelector('.cm-emo'); if (em) em.remove(); t.focus();   // a caixa NUNCA trava: limpa, mostra a mensagem na hora e envia por trás
+    const t = document.getElementById('cmTx'); const forcado = typeof arguments[0] === 'string'; const txt = (forcado ? arguments[0] : (t && t.value || '')).trim(); if (!txt) return;
+    if (!forcado){ t.value = ''; CMcresce(t); } const em = document.querySelector('.cm-emo'); if (em) em.remove(); t.focus();   // a caixa NUNCA trava: limpa, mostra a mensagem na hora e envia por trás
     const M = document.getElementById('cmMsgs'); let tmp = null;
     if (M){ M.insertAdjacentHTML('beforeend', balao({ id:'tmp', autor_ref:meuId(), autor_tipo:'humano', autor_nome:'', texto:txt, created_at:new Date().toISOString() })); tmp = M.lastElementChild; M.scrollTop = M.scrollHeight; if (tmp) tmp.style.opacity = '.6'; }
     try { SOM.envia(); const j = await api({ acao:'enviar', id:CM.sel, texto:txt });
       if (j.msg){ if (tmp){ if (M.querySelector('[data-id="' + j.msg.id + '"]')) tmp.remove(); else { tmp.style.opacity = ''; tmp.dataset.id = j.msg.id; } } CM.dados.msgs.push(j.msg); CM.ultimoId = Math.max(CM.ultimoId || 0, j.msg.id); }
-      rapido = 6; } catch(e){ if (tmp) tmp.remove(); toast(e.message); if (t){ t.value = txt; CMcresce(t); } }
+      rapido = 6; } catch(e){ if (tmp) tmp.remove(); toast(e.message); if (t && !forcado){ t.value = txt; CMcresce(t); } }
   };
   window.CMbuscaDaInfo = async function(){ await CMver(CM.sel); CMbuscaAqui(); };
   window.CMinfo = function(){
