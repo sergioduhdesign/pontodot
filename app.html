@@ -954,6 +954,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                   <div class="entity-card-meta" style="margin-top:4px;line-height:1.5">Tarefas por Excel e a lixeira de aprovações. Links de conteúdo e acervo ficam na caixa de cada cliente (aba Drive).</div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="openImport()">⬆ Importar Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="abrirModelos()">📁 Modelos e padrões</button>
                 <button class="btn btn-secondary btn-sm" onclick="abrirLixeiraLotes()">🗑 Lixeira de aprovações</button></div>
               </div>
 
@@ -1396,6 +1397,12 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
   </div>
 </div>
 
+<div class="overlay" id="modal-modelos">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-head"><div class="modal-title" style="display:flex;align-items:center;gap:10px"><span id="mdl-ico"></span>Modelos e padrões</div><button class="btn btn-ghost" onclick="closeModal('modal-modelos')" aria-label="Fechar">✕</button></div>
+    <div class="modal-body" style="max-height:72vh;overflow-y:auto"><div style="font-size:12.5px;opacity:.7;line-height:1.5;margin-bottom:6px" id="mdl-sub"></div><div id="mdl-lista"></div></div>
+  </div>
+</div>
 <div class="overlay" id="modal-import">
   <div class="modal" style="max-width:560px">
     <div class="modal-head"><div><div class="modal-title">Importar Excel</div><div class="modal-subtitle">Cria e atualiza tarefas em lote</div></div><button class="modal-close" onclick="closeModal('modal-import')">✕</button></div>
@@ -1771,6 +1778,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 <script src="/js/pd-leve.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-ajuda.js?v=325"></script>
+<script src="/js/pd-modelos.js?v=1"></script>
 <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://js.pusher.com/beams/2.1.0/push-notifications-cdn.js"></script>
@@ -9751,6 +9759,7 @@ function initTouchDrag(){
   });
 }
 
+function abrirModelos(){document.getElementById('mdl-ico').innerHTML=PDM.svg(20);document.getElementById('mdl-sub').textContent=PDM.sub;document.getElementById('mdl-lista').innerHTML=PDM.listaHtml('session.access_token');openModal('modal-modelos');}
 function openImport(){document.getElementById('imp-zone').style.display='';document.getElementById('imp-results').style.display='none';openModal('modal-import');}
 function onImpDrop(e){e.preventDefault();document.getElementById('imp-zone').classList.remove('drag-over');if(e.dataTransfer.files[0])doImport(e.dataTransfer.files[0]);}
 function onImpFile(input){if(input.files[0])doImport(input.files[0]);}
