@@ -1,7 +1,7 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="/js/pd-ajuda.js?v=325" defer></script>
 <title>Studio Design · Copys · Pontodot</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="/pd-studio.js?v=324"></script>
+<script src="/pd-studio.js?v=324"></script><script src="/js/pd-sheet.js?v=1" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
@@ -16,8 +16,6 @@ select,input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:
   .meio{grid-template-columns:1fr}
   .so-cel{display:inline-flex}
   .top{flex-wrap:wrap;row-gap:6px;height:auto;padding:8px 10px}
-  .lado{display:none;position:fixed;inset:0;z-index:60;background:var(--soft);overflow:auto;padding:14px 14px 90px}
-  .lado.aberto{display:block}
   .cards{grid-template-columns:1fr}
   .card{min-height:0}
 }
@@ -48,7 +46,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--gray)}
   <button class="btn s so-cel" id="btnLado" onclick="document.querySelector('.lado').classList.toggle('aberto');this.textContent=document.querySelector('.lado').classList.contains('aberto')?'Fechar briefing':'Briefing'">Briefing</button><span class="sep"></span><div id="pdIA"></div><span id="ajudaCopys"></span>
 </div>
 <div class="meio">
-  <div class="lado">
+  <div class="lado" data-sheet>
     <h3>Briefing rápido</h3>
     <div class="lab">Objetivo</div><div class="row" id="bObj"></div>
     <div class="lab">Formato</div><select id="bFmt" style="width:100%" onchange="dirty=true"><option value="post">Post / legenda</option><option value="calendario">Calendário de conteúdo (N dias, posts + stories)</option><option value="anuncio">Anúncio (gancho + texto + CTA)</option><option value="email">E-mail</option><option value="landing">Landing page</option><option value="roteiro">Roteiro de vídeo</option><option value="manifesto">Manifesto</option><option value="nome">Nomes</option><option value="slogan">Slogans / frases-conceito</option></select>
