@@ -293,6 +293,21 @@ html.dia .frente{background:#F4F3EF}
 .pf-zap{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.pf-zap>*{min-width:0}.pf-zap .faixa-fixa,.pf-zap small#pfZapMsg,.pf-zap label:has(textarea),.pf-zap label:has(#pfZap){grid-column:1/-1}
 .pf-zap label{text-align:center}.pf-zap input,.pf-zap textarea{text-align:center}
 @media(max-width:560px){.pf-zap{grid-template-columns:1fr}}
+/* v420 — perfil compacto: tudo cabe sem rolagem */
+.pf{max-height:none!important;overflow:visible!important}
+.pf .mia-id{padding:12px 14px 10px;gap:12px;align-items:center}
+.pf .mia-cara{width:78px!important;height:78px!important}
+.pf .mia-nome{font-size:19px!important;line-height:1.15}
+.pf .mia-tx small{font-size:10px}.pf .mia-tx span{font-size:12.5px}
+.pf .mia-tarefas{padding:6px 14px 10px!important}
+.pf-dados{gap:2px 14px!important;padding:0 0 2px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}.pf-d small{font-size:10px}.pf-d span{font-size:12.5px}
+.pf-zap{margin:4px 0!important;padding:6px 10px 8px!important}
+.pf-zap label{margin-top:5px!important;font-size:10.5px!important}
+.pf-zap input,.pf-zap textarea{padding:5px 8px!important;font-size:13px!important;border-radius:7px!important;margin-top:1px}
+.pf-zap .faixa-fixa{margin-top:6px!important;padding:6px 0 0!important}
+.pf .mia-acoes{margin-top:6px;gap:6px}.pf .mia-acoes button{min-height:34px!important;padding:5px 11px;font-size:12px}
+.pf-cancelar{margin-top:6px;padding-top:6px}
+@media(max-width:560px){.pf-dados{grid-template-columns:1fr 1fr!important}}
 .pf-cancelar{margin-top:10px;padding-top:8px;border-top:1px solid rgba(127,127,127,.18);text-align:left}
 .pf-cancelar button{font:inherit;font-size:11.5px;color:#8a8a8a;opacity:.85;background:none;border:0;cursor:pointer}.pf-cancelar button:hover{opacity:1;text-decoration:underline}
 .pf-bio{margin:8px 2px 4px;font-size:13.5px;line-height:1.45;opacity:.8}
@@ -4328,15 +4343,14 @@ function htmlPerfilPessoa(){
     </div>
     <div class="mia-tarefas">
       <div class="pf-dados">
-        ${dado('E-mail', p.email)}${dado('Contato', p.contact)}${dado('Aniversário', aniv)}
+        ${dado('E-mail', p.email)}
         ${dado('Status', ROTULO_PRESENCA[p.presence_status] || (p.presence_status ? '' : 'Online'))}
         ${cli ? dado('Cliente', cli) : ''}${dado('Na casa desde', desde)}
         ${abertas != null ? dado('Tarefas abertas', String(abertas)) : ''}
-        ${dado('Redes', [p.social1, p.social2].filter(Boolean).join(' · '))}${site}
       </div>
       <div class="pf-zap" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12)">
         <label style="display:block;font-size:12px;margin-top:8px">Nome<input id="pfNome" type="text" value="${esc(p.name||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
-        <label style="display:block;font-size:12px;margin-top:8px">Bio<textarea id="pfBio" rows="3" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px">${esc(p.bio||'')}</textarea></label>
+        <label style="display:block;font-size:12px;margin-top:8px">Bio<textarea id="pfBio" rows="2" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px">${esc(p.bio||'')}</textarea></label>
         <label style="display:block;font-size:12px;margin-top:8px">Aniversário<input id="pfAniv" type="date" value="${esc(String(p.birthday||"").slice(0,10)||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Contato<input id="pfContato" type="text" value="${esc(p.contact||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
         <label style="display:block;font-size:12px;margin-top:8px">Rede 1<input id="pfSoc1" type="text" value="${esc(p.social1||'')}" placeholder="" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit;font:inherit;margin-top:3px"></label>
@@ -8280,6 +8294,38 @@ function htmlVendas(){
     ${d.sem_sql ? '<div class="nota" style="margin-top:6px">Falta rodar o SQL v147.</div>' : ''}`,
     ['Abrir o Dig', 'abrirVendas()']);
 }
+async function venCarregaLib(src, teste){ if (teste()) return; await new Promise((ok, no) => { const t = document.createElement('script'); t.src = src; t.onload = ok; t.onerror = () => no(new Error('Não consegui carregar a biblioteca de exportação.')); document.head.appendChild(t); }); }
+// Entrega um arquivo pronto: baixar, compartilhar (arquivo de verdade) ou copiar um link
+function venEntrega(blob, nomeArq, tipo){
+  document.getElementById('venEnt')?.remove();
+  const f = new File([blob], nomeArq, { type: blob.type || tipo });
+  const d = document.createElement('div'); d.id = 'venEnt';
+  d.style.cssText = 'position:fixed;inset:0;z-index:9800;display:grid;place-items:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:16px';
+  d.innerHTML = `<div style="background:#fff;color:#15161A;border-radius:18px;padding:22px 22px 18px;width:min(380px,100%);box-shadow:0 20px 60px rgba(0,0,0,.4);font:14px/1.45 system-ui,sans-serif;text-align:center">
+    <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#6B6D75">Arquivo pronto</div>
+    <div style="font-size:15px;font-weight:600;margin:6px 0 16px;word-break:break-word">${esc(nomeArq)}</div>
+    <div style="display:grid;gap:8px">
+      <button id="venBx" style="font:inherit;padding:12px;border-radius:12px;border:0;background:#15161A;color:#fff;cursor:pointer">Baixar</button>
+      <button id="venCp" style="font:inherit;padding:12px;border-radius:12px;border:1px solid #d6d5d0;background:#fff;color:#15161A;cursor:pointer">Compartilhar</button>
+      <button id="venLk" style="font:inherit;padding:12px;border-radius:12px;border:1px solid #d6d5d0;background:#fff;color:#15161A;cursor:pointer">Copiar link (vale 7 dias)</button>
+    </div>
+    <button id="venFx" style="margin-top:12px;font:inherit;font-size:12.5px;color:#8a8a8a;background:none;border:0;cursor:pointer">Fechar</button></div>`;
+  document.body.appendChild(d);
+  const url = URL.createObjectURL(f), fecha = () => { d.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); };
+  d.addEventListener('click', e => { if (e.target === d) fecha(); });
+  d.querySelector('#venFx').onclick = fecha;
+  d.querySelector('#venBx').onclick = () => { const a = document.createElement('a'); a.href = url; a.download = nomeArq; document.body.appendChild(a); a.click(); a.remove(); };
+  const sobe = async () => { const { data:{ session } } = await sbR.auth.getSession(); const uid = session?.user?.id || 'x';
+    const path = 'dig/' + uid + '/' + Date.now() + '-' + nomeArq.replace(/[^\w.\-]+/g, '_');
+    const up = await sbR.storage.from('zap-midia').upload(path, f, { contentType: f.type }); if (up.error) throw up.error;
+    const sg = await sbR.storage.from('zap-midia').createSignedUrl(path, 7 * 86400); if (sg.error) throw sg.error; return sg.data.signedUrl; };
+  d.querySelector('#venCp').onclick = async () => {
+    try { if (navigator.canShare && navigator.canShare({ files:[f] })){ await navigator.share({ files:[f], title: nomeArq }); return; }
+      toast('Gerando o link para compartilhar…'); const l = await sobe();
+      if (navigator.share){ await navigator.share({ title: nomeArq, url: l }); } else { await navigator.clipboard.writeText(l); toast('Link copiado.'); }
+    } catch(e){ if (e && e.name === 'AbortError') return; toast('Não consegui compartilhar: ' + (e.message || e)); } };
+  d.querySelector('#venLk').onclick = async () => { try { toast('Gerando o link…'); const l = await sobe(); await navigator.clipboard.writeText(l); toast('Link copiado.'); } catch(e){ toast('Não consegui gerar o link: ' + (e.message || e)); } };
+}
 async function venExporta(lote, fmt){
   toast('Preparando…');
   try { const { data:{ session } } = await sbR.auth.getSession();
@@ -8288,25 +8334,31 @@ async function venExporta(lote, fmt){
     const L = j.linhas || []; if (!L.length){ toast('Nenhuma empresa neste lote.'); return; }
     const nome = ('Dig — ' + (j.cliente || '') + ' — ' + new Date().toLocaleDateString('pt-BR')).replace(/[\/:*?"<>|]/g, '-');
     if (fmt === 'xlsx'){
-      if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+      await venCarregaLib('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', () => window.XLSX);
       const H = ['Empresa','Site','Cidade','Segmento','Porte','Nota','Estágio','Por que é um bom lead','Próximo passo','Contato','Cargo','E-mail','WhatsApp','Instagram'];
       const rows = L.map(x => [x.empresa, x.site, x.cidade, x.segmento, x.porte, x.nota, x.estagio, x.por_que, x.proximo_passo, x.contato, x.cargo, x.email, x.zap, x.instagram]);
       const ws = XLSX.utils.aoa_to_sheet([[j.cliente || 'Dig'], [j.titulo || ''], [], H, ...rows]); ws['!cols'] = [28, 28, 16, 18, 10, 6, 11, 50, 30, 20, 16, 26, 16, 18].map(w => ({ wch:w }));
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Empresas'); XLSX.writeFile(wb, nome + '.xlsx'); return; }
-    // PDF bonito: página própria da casa, pronta pra imprimir/salvar
-    const w = window.open('', '_blank'); const cor = v => v == null ? '#999' : v >= 60 ? '#11BA98' : v >= 40 ? '#E0B342' : '#E6557A';
-    w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(nome)}</title><style>
-      @page{size:A4 landscape;margin:14mm}body{font:12px/1.45 "Inter Tight",Inter,system-ui,sans-serif;color:#15161A;margin:0;padding:28px 34px}
-      .top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1.5px solid #15161A;padding-bottom:12px;margin-bottom:18px}.top img{height:26px}
-      h1{font-size:26px;font-weight:300;letter-spacing:-.02em;margin:6px 0 2px}.sub{font-size:12px;color:#666;max-width:720px}
-      .it{display:grid;grid-template-columns:44px 1fr 1.2fr 220px;gap:14px;padding:12px 0;border-bottom:.5px solid #ddd;break-inside:avoid}
-      .nota{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:600;font-size:14px}
-      .nm{font-size:15px;font-weight:600}.meta{color:#666;font-size:11.5px;margin-top:2px}.pq{font-size:12px}.ct{font-size:11.5px;color:#333}.ct b{display:block}
-      .rod{margin-top:22px;font-size:10.5px;color:#888;display:flex;justify-content:space-between}
-      @media print{button{display:none}}</style></head><body>
-      <div class="top"><div><img src="${location.origin}/assets/logo-pontodot.svg" alt="pontodot"><h1>Dig · ${esc(j.cliente || '')}</h1><div class="sub">${esc(j.titulo || '')}</div></div><div style="text-align:right;font-size:11.5px;color:#666">${L.length} empresas<br>${new Date().toLocaleDateString('pt-BR')}<br><button onclick="print()" style="margin-top:8px;font:inherit;padding:6px 14px;border-radius:999px;border:.5px solid #15161A;background:#15161A;color:#fff;cursor:pointer">Salvar em PDF</button></div></div>
-      ${L.map(x => `<div class="it"><div class="nota" style="background:${cor(x.nota)}">${x.nota ?? '–'}</div><div><div class="nm">${esc(x.empresa)}</div><div class="meta">${esc([x.segmento, x.porte, x.cidade].filter(Boolean).join(' · '))}${x.site ? '<br>' + esc(x.site) : ''}</div></div><div class="pq">${esc(x.por_que || '')}${x.proximo_passo ? '<div class="meta">Próximo passo: ' + esc(x.proximo_passo) + '</div>' : ''}</div><div class="ct">${x.contato ? '<b>' + esc(x.contato) + (x.cargo ? ' · ' + esc(x.cargo) : '') + '</b>' : ''}${x.email ? esc(x.email) + '<br>' : ''}${x.zap ? esc(x.zap) + '<br>' : ''}${x.instagram ? esc(x.instagram) : ''}</div></div>`).join('')}
-      <div class="rod"><span>Pontodot · Dig · garimpo do Tumi</span><span>confidencial</span></div></body></html>`); w.document.close();
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Empresas');
+      const bin = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+      venEntrega(new Blob([bin], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), nome + '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); return; }
+    // PDF de verdade, com o mesmo visual da tela (cores, notas, tipografia)
+    await venCarregaLib('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', () => window.html2pdf);
+    const cor = v => v == null ? '#999' : v >= 60 ? '#11BA98' : v >= 40 ? '#E0B342' : '#E6557A';
+    const el = document.createElement('div'); el.style.cssText = 'position:fixed;left:-99999px;top:0;width:1060px;background:#fff';
+    el.innerHTML = `<style>
+      .vx{font:12px/1.45 "Inter Tight",Inter,system-ui,sans-serif;color:#15161A;padding:10px 14px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .vx .top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1.5px solid #15161A;padding-bottom:12px;margin-bottom:14px}.vx .top img{height:26px}
+      .vx h1{font-size:26px;font-weight:300;letter-spacing:-.02em;margin:6px 0 2px}.vx .sub{font-size:12px;color:#666;max-width:720px}
+      .vx .it{display:grid;grid-template-columns:44px 1fr 1.2fr 220px;gap:14px;padding:12px 0;border-bottom:.5px solid #ddd;break-inside:avoid;page-break-inside:avoid}
+      .vx .nota{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px}
+      .vx .nm{font-size:15px;font-weight:600}.vx .meta{color:#666;font-size:11.5px;margin-top:2px}.vx .pq{font-size:12px}.vx .ct{font-size:11.5px;color:#333}.vx .ct b{display:block}
+      .vx .rod{margin-top:16px;font-size:10.5px;color:#888;display:flex;justify-content:space-between}</style>
+      <div class="vx"><div class="top"><div><img src="${location.origin}/assets/logo-pontodot.svg" alt="pontodot" crossorigin="anonymous"><h1>Dig · ${esc(j.cliente || '')}</h1><div class="sub">${esc(j.titulo || '')}</div></div><div style="text-align:right;font-size:11.5px;color:#666">${L.length} empresas<br>${new Date().toLocaleDateString('pt-BR')}</div></div>
+      ${L.map(x => `<div class="it"><div class="nota" style="background:${cor(x.nota)}">${x.nota ?? '–'}</div><div><div class="nm">${esc(x.empresa)}</div><div class="meta">${esc([x.segmento, x.porte, x.cidade].filter(Boolean).join(' · '))}${x.site ? '<br>' + esc(x.site) : ''}</div></div><div class="pq">${esc(x.por_que || '')}${x.proximo_passo ? '<div class="meta" style="margin-top:4px">Próximo passo: ' + esc(x.proximo_passo) + '</div>' : ''}</div><div class="ct">${[x.contato && x.cargo ? x.contato + ' · ' + x.cargo : x.contato, x.email, x.zap, x.instagram].filter(Boolean).map(t => '<b>' + esc(t) + '</b>').join('')}</div></div>`).join('')}
+      <div class="rod"><span>Pontodot · Dig · garimpo do Tumi</span><span>confidencial</span></div></div>`;
+    document.body.appendChild(el);
+    try { const blob = await html2pdf().set({ margin:[8, 8, 8, 8], image:{ type:'jpeg', quality:.96 }, html2canvas:{ scale:2, useCORS:true, backgroundColor:'#ffffff' }, jsPDF:{ unit:'mm', format:'a4', orientation:'landscape' }, pagebreak:{ mode:['css','legacy'], avoid:'.it' } }).from(el.querySelector('.vx')).outputPdf('blob');
+      venEntrega(blob, nome + '.pdf', 'application/pdf'); } finally { el.remove(); }
   } catch(e){ toast(e.message); }
 }
 function abrirVendas(carteira, lote){

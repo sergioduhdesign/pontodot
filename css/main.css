@@ -1359,3 +1359,22 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 /* escola agêntica: quem estuda e como funciona */
 .esc-quem h4,.esc-como h4{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin:18px 0 8px;font-weight:500}.esc-al{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px}.esc-al img{width:32px;height:32px;border-radius:50%;object-fit:cover}.esc-al em{opacity:.55;font-style:normal;font-size:12px}.esc-como p{font-size:13.5px;line-height:1.55;margin:0 0 6px}.esc-como ul{margin:0;padding-left:18px;font-size:13px;line-height:1.55}
 .esc-cur-tx{max-height:80vh;overflow-y:scroll}
+
+/* ===== v420 — caixas da Escola: medidas certas, centradas, rolagem só no texto ===== */
+#esc-pop .esc-pop-caixa{display:flex;flex-direction:column;width:min(560px,calc(100vw - 24px));max-height:min(84vh,780px);padding:0!important;overflow:hidden;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+#esc-pop.larga .esc-pop-caixa{width:min(940px,calc(100vw - 24px));height:min(84vh,720px)}
+#esc-pop img.esc-barrado{flex:0 0 auto;display:block;width:100%!important;max-width:100%!important;height:clamp(78px,13vh,118px)!important;object-fit:cover;object-position:center 40%;margin:0!important;border-radius:0;border-bottom:1px solid var(--border)}
+#esc-pop .esc-pop-corpo{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto;overscroll-behavior:contain;padding:20px 26px 22px;scrollbar-width:thin}
+#esc-pop .esc-pop-x{top:12px;right:12px;width:32px;height:32px;display:grid;place-items:center;padding:0;line-height:1;z-index:3}
+#esc-pop .esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow:hidden!important;padding:0!important;display:flex}
+#esc-pop .esc-cur{flex:1;min-height:0;width:100%;grid-template-columns:230px minmax(0,1fr);margin:0!important}
+#esc-pop .esc-cur-pf{overflow-y:auto;min-height:0}
+#esc-pop .esc-cur-tx{min-height:0;max-height:none!important;height:100%;overflow-y:auto!important;overscroll-behavior:contain;padding:24px 30px 24px}
+#esc-pop .esc-cur-foto{max-width:150px}
+@media(max-width:700px){
+  #esc-pop.larga .esc-pop-caixa{height:min(90vh,760px)}
+  #esc-pop .esc-cur{grid-template-columns:1fr;overflow-y:auto}
+  #esc-pop .esc-cur-tx{height:auto;overflow:visible!important}
+  #esc-pop .esc-pop-caixa:has(.esc-cur) .esc-pop-corpo{overflow-y:auto!important;display:block}
+  #esc-pop .esc-pop-corpo{padding:16px 18px 20px}
+}
