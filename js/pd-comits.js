@@ -256,5 +256,47 @@
       sidePrimeira = false; try { window.clBadgeAtualiza && clBadgeAtualiza(); } catch(e){}
     } catch(e){}
   };
+
+  /* ---------- propaganda lateral: cursos da Escola ao lado da janela do comit (imagens da Gigi) ---------- */
+  const AD = { cursos: null, imgs: null, i: 0, el: null, t: 0 };
+  const CURSO_DE = { CURSO_ZUMI:'zumi', CURSO_RAKU:'raku', CURSO_GIGI:'gigi', CURSO_TUMI:'tumi', CURSO_ORU:'oru', CURSO_SAGO:'sago', CURSO_BRUM:'brum' };
+  const FRASES = ['Tá com dificuldade de organizar uma ideia?', 'Seu comit não anda? Sua IA pode aprender isso.', 'Conversa boa vira decisão. Treine a sua IA.', 'Quer que sua IA discorde e feche o assunto?'];
+  async function adCarrega(){
+    if (AD.cursos) return;
+    try { const { data:{ session } } = await sbR.auth.getSession();
+      const r = await fetch('/pd-escola.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'cursos_catalogo' }) });
+      const j = await r.json(); AD.cursos = (j.cursos || []).filter(c => c.skill_id && c.nome); } catch(e){ AD.cursos = []; }
+    AD.imgs = ['/pd/personagens/gigi/nascimento-p.jpg', '/pd/personagens/gigi/vida-p.jpg'];   // as imagens da Gigi feitas para a abertura do treinamento
+  }
+  function adCard(){
+    const L = (AD.cursos || []); if (!L.length) return '';
+    const livres = L.filter(c => !c.inscrita), P = livres.length ? livres : L; const c = P[Math.floor(Math.random() * P.length)]; AD.i = c.skill_id;
+    const img = (AD.imgs && AD.imgs.length) ? AD.imgs[Math.floor(Math.random() * AD.imgs.length)] : '/pd/personagens/gigi/avatar.jpg';
+    const est = (c.alunos || []).length;
+    return `<div class="cm-ad-img" style="background-image:url('${E(img)}')"><span>Gigi · Escola</span></div>
+      <div class="cm-ad-tx"><b>${E(FRASES[Math.floor(Math.random() * FRASES.length)])}</b>
+      <p>Põe sua IA num curso de <u>${E(c.nome)}</u>.</p>${est ? `<small>${est} IA${est > 1 ? 's' : ''} estudando agora</small>` : '<small>vagas abertas</small>'}
+      <button type="button" onclick="CMabreCurso('${E(c.skill_id)}')">Ver o curso →</button></div>`;
+  }
+  window.CMabreCurso = skill => {
+    document.getElementById('cm-curso-j')?.remove();
+    const d = document.createElement('div'); d.id = 'cm-curso-j'; d.style.cssText = 'position:fixed;inset:0;z-index:99900;display:grid;place-items:center;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:16px';
+    d.innerHTML = `<div style="position:relative;width:min(1100px,100%);height:min(88vh,820px);border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.5)"><iframe title="Cursos" src="/escola-bastidores.html?modo=cursos&abrir=${encodeURIComponent(skill)}&v=${Date.now()}" style="width:100%;height:100%;border:0;display:block"></iframe>
+      <button aria-label="Fechar" onclick="document.getElementById('cm-curso-j').remove()" style="position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:15px;cursor:pointer">✕</button></div>`;
+    d.addEventListener('click', e => { if (e.target === d) d.remove(); }); document.body.appendChild(d);
+  };
+  function adPosiciona(){
+    const root = raiz(), caixa = root && root.closest('.j-caixa'); const ok = !!caixa && innerWidth >= 1180;
+    if (!ok){ if (AD.el){ AD.el.remove(); AD.el = null; clearInterval(AD.t); AD.t = 0; } return; }
+    const r = caixa.getBoundingClientRect(); if (r.right + 250 > innerWidth - 10){ if (AD.el) AD.el.style.display = 'none'; return; }
+    if (!AD.el){ adCarrega().then(() => { if (AD.el || !raiz()) return; const h = adCard(); if (!h) return; const el = document.createElement('aside'); el.className = 'cm-ad'; el.innerHTML = h; document.body.appendChild(el); AD.el = el; adPosiciona();
+        AD.t = setInterval(() => { if (!AD.el) return; const n = adCard(); if (n){ AD.el.classList.add('troca'); setTimeout(() => { if (AD.el){ AD.el.innerHTML = n; AD.el.classList.remove('troca'); } }, 350); } }, 18000); }); return; }
+    AD.el.style.display = ''; AD.el.style.left = (r.right + 14) + 'px'; AD.el.style.top = (r.top + 18) + 'px';
+  }
+  (function(){ const s = document.createElement('style'); s.textContent = `.cm-ad{position:fixed;z-index:99000;width:236px;border-radius:18px;overflow:hidden;background:#17191a;color:#F2F2EE;box-shadow:0 14px 40px rgba(0,0,0,.5);border:.5px solid rgba(242,242,238,.14);transition:opacity .35s}.cm-ad.troca{opacity:0}
+    .cm-ad-img{height:110px;background:#2a2d30 center/cover no-repeat;position:relative}.cm-ad-img span{position:absolute;left:10px;bottom:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:999px}
+    .cm-ad-tx{padding:12px 14px 14px}.cm-ad-tx b{display:block;font-weight:600;font-size:15px;line-height:1.25}.cm-ad-tx p{margin:6px 0 4px;font-size:13px;opacity:.85}.cm-ad-tx u{text-decoration:none;color:#ffc83d}.cm-ad-tx small{display:block;opacity:.55;font-size:11px;margin-bottom:10px}
+    .cm-ad-tx button{width:100%;height:36px;border-radius:999px;border:0;background:#F2F2EE;color:#111;font:inherit;font-weight:600;font-size:13px;cursor:pointer}`; document.head.appendChild(s); })();
+  setInterval(adPosiciona, 700);
   setTimeout(() => { if (window.REAL !== false) CMsideRefresh(); }, 4000); setInterval(() => { if (!document.hidden) CMsideRefresh(); }, 8000);
 })();
