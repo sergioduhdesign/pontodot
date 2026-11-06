@@ -1941,6 +1941,8 @@ html.emChat .cfg-area{display:none}
     border:.5px solid var(--linha);background:var(--vidro);color:var(--branco);margin-left:2px;overflow:hidden;padding:0}
   .user-top.oculto{display:none}
 }
+/* botão com tamanho fixo no estilo inline: texto/ícone sempre no centro (rede de segurança contra botão torto) */
+button[style*="height:"][style*="width:"]:not([style*="display"]){display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;text-align:center;box-sizing:border-box}
 </style>
 <style id="app-mobile-fino">
 /* ===== APP (celular): alvos de toque maiores, setinha de "tem mais", sem configurar área ===== */

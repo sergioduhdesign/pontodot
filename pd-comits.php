@@ -22,7 +22,9 @@ if ($acao === 'listar') {
     if (isset($L['message']) || ($L && !isset($L[0]['id']))) sd_fail('Rode o SQL v170 no Supabase.', 500);
     if ($L) { $todosIds = implode(',', array_column($L, 'id')); $mm = (array)(sd_supabase('/rest/v1/pd_comit_membros?comit_id=in.(' . $todosIds . ')&select=comit_id,tipo,ref,nome')['body'] ?? []);
         $por = []; foreach ($mm as $m) $por[$m['comit_id']][] = $m;
-        foreach ($L as &$c) { $c['membros'] = $por[$c['id']] ?? []; $c['sou_membro'] = (bool)array_filter($c['membros'], fn($m) => $m['ref'] === $eu); $ult = sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . $c['id'] . '&select=autor_nome,texto&order=id.desc&limit=1')['body'][0] ?? null; $c['ultima'] = $ult ? $ult['autor_nome'] . ': ' . mb_substr($ult['texto'], 0, 90) : ''; } unset($c); }
+        // UMA consulta só para as últimas mensagens (antes eram 200 idas ao banco, uma por comit)
+        $ult = []; foreach ((array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=in.(' . $todosIds . ')&select=comit_id,autor_nome,texto&order=id.desc&limit=' . min(1500, max(60, count($L) * 6)))['body'] ?? []) as $x) if (is_array($x) && isset($x['comit_id']) && !isset($ult[$x['comit_id']])) $ult[$x['comit_id']] = $x;
+        foreach ($L as &$c) { $c['membros'] = $por[$c['id']] ?? []; $c['sou_membro'] = (bool)array_filter($c['membros'], fn($m) => $m['ref'] === $eu); $u2 = $ult[$c['id']] ?? null; $c['ultima'] = $u2 ? $u2['autor_nome'] . ': ' . mb_substr($u2['texto'], 0, 90) : ''; } unset($c); }
     ok(['comits' => $L, 'admin' => $adm]);
 }
 if ($acao === 'criar') {

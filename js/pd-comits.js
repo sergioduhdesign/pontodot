@@ -67,7 +67,7 @@
     .cm-curso{border-left:.5px solid rgba(242,242,238,.1);padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;transition:opacity .3s;scrollbar-width:thin}.cm-curso.troca{opacity:0}
     .cm-ad-img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.04);display:block}
     .cm-ad-tx b{display:block;font-weight:600;font-size:15px;line-height:1.25}.cm-ad-tx p{margin:6px 0 4px;font-size:13px;opacity:.85}.cm-ad-tx u{text-decoration:none;color:#ffc83d}.cm-ad-tx small{display:block;opacity:.55;font-size:11px;margin-bottom:10px}
-    .cm-ad-tx button{width:100%;height:36px;border-radius:999px;border:0;background:#F2F2EE;color:#111;font:inherit;font-weight:600;font-size:13px;cursor:pointer}
+    .cm-ad-tx button{width:100%;height:38px;border-radius:999px;border:0;background:#F2F2EE;color:#111;font:inherit;font-weight:600;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 12px;box-sizing:border-box}
     @media(max-width:1000px){.cm-grade{grid-template-columns:minmax(0,1fr)}.cm-curso{display:none}.cm-gente{display:flex;flex-wrap:wrap;gap:4px 12px;border-right:0;padding:0 16px 6px;overflow:visible}.cm-gente .p small{display:none}.cm-gente .p{font-size:12px}}
     @media(max-width:700px){.cm-m{max-width:94%}.cm-cab h3{font-size:19px}}`;
     document.head.appendChild(s);
@@ -292,13 +292,13 @@
     document.getElementById('cm-curso-j')?.remove();
     const d = document.createElement('div'); d.id = 'cm-curso-j'; d.style.cssText = 'position:fixed;inset:0;z-index:99900;display:grid;place-items:center;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:16px';
     d.innerHTML = `<div style="position:relative;width:min(1100px,100%);height:min(88vh,820px);border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.5)"><iframe title="Cursos" src="/escola-bastidores.html?modo=cursos&abrir=${encodeURIComponent(skill)}&v=${Date.now()}" style="width:100%;height:100%;border:0;display:block"></iframe>
-      <button aria-label="Fechar" onclick="document.getElementById('cm-curso-j').remove()" style="position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:15px;cursor:pointer">✕</button></div>`;
+      <button aria-label="Fechar" onclick="document.getElementById('cm-curso-j').remove()" style="position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button></div>`;
     d.addEventListener('click', e => { if (e.target === d) d.remove(); }); document.body.appendChild(d);
   };
   function adMonta(){
     clearInterval(AD.t); const col = document.getElementById('cmCurso'); if (!col) return;
     adCarrega().then(() => { const el = document.getElementById('cmCurso'); if (!el) return; const h = adCard(); if (!h){ el.style.display = 'none'; return; } el.innerHTML = h;
-      AD.t = setInterval(() => { const e2 = document.getElementById('cmCurso'); if (!e2){ clearInterval(AD.t); return; } const n = adCard(); if (!n) return; e2.classList.add('troca'); setTimeout(() => { e2.innerHTML = n; e2.classList.remove('troca'); }, 300); }, 20000); });
+      AD.t = setInterval(() => { const e2 = document.getElementById('cmCurso'); if (!e2){ clearInterval(AD.t); return; } const n = adCard(); if (!n) return; e2.classList.add('troca'); setTimeout(() => { e2.innerHTML = n; e2.classList.remove('troca'); }, 300); }, 60000); });
   }
-  setTimeout(() => { if (window.REAL !== false) CMsideRefresh(); }, 4000); setInterval(() => { if (!document.hidden) CMsideRefresh(); }, 8000);
+  setTimeout(() => { if (window.REAL !== false) CMsideRefresh(); }, 4000); setInterval(() => { if (!document.hidden) CMsideRefresh(); }, 15000);
 })();
