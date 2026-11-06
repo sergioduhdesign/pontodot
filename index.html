@@ -2573,7 +2573,7 @@ pdAbertura(false);
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
 <script src="/js/pd-ajuda.js?v=327"></script>
-<script src="/js/pd-comits.js?v=10"></script>
+<script src="/js/pd-comits.js?v=11"></script>
 <script src="/js/pd-modelos.js?v=1"></script>
 <script src="/js/pd-tarefa-form.js?v=1" defer></script>
 <script>
@@ -2582,7 +2582,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v443 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v444 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -12443,7 +12443,7 @@ async function excluirAmostras(taskId){
     d.style.cssText = 'position:fixed;inset:0;z-index:9850;display:grid;place-items:center;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);padding:16px';
     const dt = iso => { const x = new Date(iso); return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0'); };
     d.innerHTML = `<div style="background:#fff;color:#15161A;border-radius:18px;padding:20px;width:min(460px,100%);max-height:80vh;overflow:auto;font:14px/1.45 system-ui,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-      <div style="display:flex;align-items:center;gap:10px"><b style="flex:1;font-size:16px">Amostras de ${esc(taskId)}</b><button id="amoX" style="border:0;background:#f1f0ec;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer">✕</button></div>
+      <div style="display:flex;align-items:center;gap:10px"><b style="flex:1;font-size:16px">Amostras de ${esc(taskId)}</b><button id="amoX" style="border:0;background:#f1f0ec;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;display:grid;place-items:center;padding:0;line-height:1">✕</button></div>
       <div style="color:#6B6D75;font-size:12.5px;margin:4px 0 12px">Cada lote vai para a lixeira (dá para restaurar). Exclua só o que for lixo.</div>
       <div id="amoL">${sets.map(x => { const n = (x.approval_items && x.approval_items[0] && x.approval_items[0].count) || 0; return `<div data-id="${x.id}" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #ecebe6"><div style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.title || 'Lote')}</b><small style="color:#6B6D75">${n} peça${n===1?'':'s'} · ${dt(x.created_at)}</small></div><button class="amo-b" style="border:0;border-radius:999px;background:#DB2777;color:#fff;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;min-height:44px">Excluir</button></div>`; }).join('')}</div></div>`;
     document.body.appendChild(d);

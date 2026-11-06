@@ -76,6 +76,13 @@ Options -Indexes
   AddOutputFilterByType DEFLATE image/svg+xml
 </IfModule>
 
+# --- Cache curto SÓ para js/css chamados com ?v= (a versão muda quando o arquivo muda): menos download a cada abertura
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=14400" "expr=%{QUERY_STRING} =~ /(^|&)v=/"
+  </FilesMatch>
+</IfModule>
+
 # --- Página HTML nunca fica presa no cache do navegador ---------------
 # O robô publica e todo mundo vê na próxima aberta, sem Ctrl+Shift+R.
 <IfModule mod_headers.c>
