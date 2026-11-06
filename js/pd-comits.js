@@ -60,6 +60,15 @@
     .cm .cm-it:hover,.cm .cm-esc:hover{background:rgba(255,255,255,.08)}
     .cm textarea,.cm input[type=text],.cm .cm-busca input{background:rgba(255,255,255,.07)!important;color:#F2F2EE!important;border-color:rgba(242,242,238,.25)!important}
     .cm-pilha .cm-av{border-color:#17191a}
+    .cm-grade{flex:1;min-height:0;display:grid;grid-template-columns:150px minmax(0,1fr) 216px}
+    .cm-gente{overflow-y:auto;padding:6px 8px 10px 14px;border-right:.5px solid rgba(242,242,238,.1);scrollbar-width:thin}
+    .cm-gente .p{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px;opacity:.92}.cm-gente .p small{display:block;font-size:10.5px;opacity:.5;line-height:1.1}.cm-gente .p span.t{min-width:0}
+    .cm-meio{display:flex;flex-direction:column;min-height:0;min-width:0}
+    .cm-curso{border-left:.5px solid rgba(242,242,238,.1);padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;transition:opacity .3s;scrollbar-width:thin}.cm-curso.troca{opacity:0}
+    .cm-ad-img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.04);display:block}
+    .cm-ad-tx b{display:block;font-weight:600;font-size:15px;line-height:1.25}.cm-ad-tx p{margin:6px 0 4px;font-size:13px;opacity:.85}.cm-ad-tx u{text-decoration:none;color:#ffc83d}.cm-ad-tx small{display:block;opacity:.55;font-size:11px;margin-bottom:10px}
+    .cm-ad-tx button{width:100%;height:36px;border-radius:999px;border:0;background:#F2F2EE;color:#111;font:inherit;font-weight:600;font-size:13px;cursor:pointer}
+    @media(max-width:1000px){.cm-grade{grid-template-columns:minmax(0,1fr)}.cm-curso{display:none}.cm-gente{display:flex;flex-wrap:wrap;gap:4px 12px;border-right:0;padding:0 16px 6px;overflow:visible}.cm-gente .p small{display:none}.cm-gente .p{font-size:12px}}
     @media(max-width:700px){.cm-m{max-width:94%}.cm-cab h3{font-size:19px}}`;
     document.head.appendChild(s);
   }
@@ -132,11 +141,14 @@
         ${d.admin ? (fechado ? `<button class="cm-ib" title="Reabrir" onclick="CMfecharAbrir('reabrir')">↺</button>` : `<button class="cm-ib" title="Fechar comit (o histórico fica)" onclick="CMfecharAbrir('fechar')">✓</button>`) : ''}
         <button class="cm-ib" onclick="CMfechaJanela()" aria-label="Fechar janela">✕</button></div>
       <div class="cm-busca" id="cmBA" style="display:none"><input id="cmQa" placeholder="buscar nesta conversa…" oninput="CMachar(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();CMpula(event.shiftKey?-1:1)}"><span class="cm-nav"><button class="cm-ib" style="width:30px;height:30px" onclick="CMpula(-1)">↑</button><button class="cm-ib" style="width:30px;height:30px" onclick="CMpula(1)">↓</button><span id="cmCt"></span></span></div>
-      <div style="display:flex;gap:6px;align-items:center;padding:0 16px 6px;flex-wrap:wrap">${d.membros.map(m => `<span title="${E(m.nome)} · ${m.tipo}" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;opacity:.85">${bolinha(m.nome, m.tipo, 20)}${E(String(m.nome).split(' ')[0])}</span>`).join('')}
-        ${fechado ? '' : '<button class="cm-ib" style="width:26px;height:26px;font-size:13px" title="Adicionar participantes" onclick="CMadd()">＋</button>'}</div>
-      <div class="cm-msgs" id="cmMsgs">${d.msgs.map(balao).join('')}</div>
-      ${fechado ? '<div class="cm-sis" style="padding:12px">Comit fechado — só leitura.</div>' : `<div class="cm-in"><textarea id="cmTx" rows="1" placeholder="escreva… (chame uma IA pelo nome)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();CMenviar()}"></textarea><button onclick="CMenviar()">Enviar</button></div>`}`;
-    const M = document.getElementById('cmMsgs'); if (M) M.scrollTop = M.scrollHeight;
+      <div class="cm-grade">
+        <aside class="cm-gente">${d.membros.map(m => `<div class="p" title="${E(m.nome)} · ${m.tipo}">${bolinha(m.nome, m.tipo, 26)}<span class="t">${E(String(m.nome).split(' ')[0])}<small>${m.tipo === 'ia' ? 'IA' : m.tipo === 'cliente' ? 'cliente' : 'equipe'}</small></span></div>`).join('')}
+          ${fechado ? '' : '<button class="cm-ib" style="width:28px;height:28px;font-size:14px;margin-top:6px" title="Adicionar participantes" onclick="CMadd()">＋</button>'}</aside>
+        <section class="cm-meio"><div class="cm-msgs" id="cmMsgs">${d.msgs.map(balao).join('')}</div>
+          ${fechado ? '<div class="cm-sis" style="padding:12px">Comit fechado — só leitura.</div>' : `<div class="cm-in"><textarea id="cmTx" rows="1" placeholder="escreva… (chame uma IA pelo nome)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();CMenviar()}"></textarea><button onclick="CMenviar()">Enviar</button></div>`}</section>
+        <aside class="cm-curso" id="cmCurso"></aside>
+      </div>`;
+    const M = document.getElementById('cmMsgs'); if (M) M.scrollTop = M.scrollHeight; adMonta();
     if (CM.termo){ CMbuscaAqui(CM.termo); }
   }
   window.CMvolta = async function(){ await carregaLista(); lista(); };
@@ -257,25 +269,23 @@
     } catch(e){}
   };
 
-  /* ---------- propaganda lateral: cursos da Escola ao lado da janela do comit (imagens da Gigi) ---------- */
-  const AD = { cursos: null, imgs: null, i: 0, el: null, t: 0 };
-  const CURSO_DE = { CURSO_ZUMI:'zumi', CURSO_RAKU:'raku', CURSO_GIGI:'gigi', CURSO_TUMI:'tumi', CURSO_ORU:'oru', CURSO_SAGO:'sago', CURSO_BRUM:'brum' };
-  const FRASES = ['Tá com dificuldade de organizar uma ideia?', 'Seu comit não anda? Sua IA pode aprender isso.', 'Conversa boa vira decisão. Treine a sua IA.', 'Quer que sua IA discorde e feche o assunto?'];
+  /* ---------- propaganda de cursos: coluna à direita DENTRO da caixa do comit (capa do próprio curso, sem cortar) ---------- */
+  const AD = { cursos: null, t: 0 };
+  const PERS_DO = sk => ({ LP_ESTRUTURA:'nami', LP_REVISAO_ESTRUTURA:'kiro' }[sk] || (/^CURSO_/.test(sk) ? sk.slice(6).toLowerCase() : null));
+  const FRASES = ['Tá com dificuldade de organizar uma ideia?', 'Seu comit não anda? Sua IA pode aprender isso.', 'Conversa boa vira decisão.', 'Quer que sua IA discorde e feche o assunto?'];
   async function adCarrega(){
     if (AD.cursos) return;
     try { const { data:{ session } } = await sbR.auth.getSession();
       const r = await fetch('/pd-escola.php', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token }, body: JSON.stringify({ acao:'cursos_catalogo' }) });
-      const j = await r.json(); AD.cursos = (j.cursos || []).filter(c => c.skill_id && c.nome); } catch(e){ AD.cursos = []; }
-    AD.imgs = ['/pd/personagens/gigi/nascimento-p.jpg', '/pd/personagens/gigi/vida-p.jpg'];   // as imagens da Gigi feitas para a abertura do treinamento
+      const j = await r.json(); AD.cursos = (j.cursos || []).filter(c => c.skill_id && c.nome && PERS_DO(c.skill_id)); } catch(e){ AD.cursos = []; }
   }
   function adCard(){
-    const L = (AD.cursos || []); if (!L.length) return '';
-    const livres = L.filter(c => !c.inscrita), P = livres.length ? livres : L; const c = P[Math.floor(Math.random() * P.length)]; AD.i = c.skill_id;
-    const img = (AD.imgs && AD.imgs.length) ? AD.imgs[Math.floor(Math.random() * AD.imgs.length)] : '/pd/personagens/gigi/avatar.jpg';
+    const L = AD.cursos || []; if (!L.length) return '';
+    const livres = L.filter(c => !c.inscrita), P = livres.length ? livres : L; const c = P[Math.floor(Math.random() * P.length)];
     const est = (c.alunos || []).length;
-    return `<div class="cm-ad-img" style="background-image:url('${E(img)}')"><span>Gigi · Escola</span></div>
+    return `<img class="cm-ad-img" src="/pd/personagens/${E(PERS_DO(c.skill_id))}/nascimento-p.jpg" alt="" onerror="this.remove()">
       <div class="cm-ad-tx"><b>${E(FRASES[Math.floor(Math.random() * FRASES.length)])}</b>
-      <p>Põe sua IA num curso de <u>${E(c.nome)}</u>.</p>${est ? `<small>${est} IA${est > 1 ? 's' : ''} estudando agora</small>` : '<small>vagas abertas</small>'}
+      <p>Põe sua IA num curso de <u>${E(c.nome)}</u>.</p><small>${est ? est + ' IA' + (est > 1 ? 's' : '') + ' estudando agora' : 'vagas abertas'}</small>
       <button type="button" onclick="CMabreCurso('${E(c.skill_id)}')">Ver o curso →</button></div>`;
   }
   window.CMabreCurso = skill => {
@@ -285,18 +295,10 @@
       <button aria-label="Fechar" onclick="document.getElementById('cm-curso-j').remove()" style="position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:15px;cursor:pointer">✕</button></div>`;
     d.addEventListener('click', e => { if (e.target === d) d.remove(); }); document.body.appendChild(d);
   };
-  function adPosiciona(){
-    const root = raiz(), caixa = root && root.closest('.j-caixa'); const ok = !!caixa && innerWidth >= 1180;
-    if (!ok){ if (AD.el){ AD.el.remove(); AD.el = null; clearInterval(AD.t); AD.t = 0; } return; }
-    const r = caixa.getBoundingClientRect(); if (r.right + 250 > innerWidth - 10){ if (AD.el) AD.el.style.display = 'none'; return; }
-    if (!AD.el){ adCarrega().then(() => { if (AD.el || !raiz()) return; const h = adCard(); if (!h) return; const el = document.createElement('aside'); el.className = 'cm-ad'; el.innerHTML = h; document.body.appendChild(el); AD.el = el; adPosiciona();
-        AD.t = setInterval(() => { if (!AD.el) return; const n = adCard(); if (n){ AD.el.classList.add('troca'); setTimeout(() => { if (AD.el){ AD.el.innerHTML = n; AD.el.classList.remove('troca'); } }, 350); } }, 18000); }); return; }
-    AD.el.style.display = ''; AD.el.style.left = (r.right + 14) + 'px'; AD.el.style.top = (r.top + 18) + 'px';
+  function adMonta(){
+    clearInterval(AD.t); const col = document.getElementById('cmCurso'); if (!col) return;
+    adCarrega().then(() => { const el = document.getElementById('cmCurso'); if (!el) return; const h = adCard(); if (!h){ el.style.display = 'none'; return; } el.innerHTML = h;
+      AD.t = setInterval(() => { const e2 = document.getElementById('cmCurso'); if (!e2){ clearInterval(AD.t); return; } const n = adCard(); if (!n) return; e2.classList.add('troca'); setTimeout(() => { e2.innerHTML = n; e2.classList.remove('troca'); }, 300); }, 20000); });
   }
-  (function(){ const s = document.createElement('style'); s.textContent = `.cm-ad{position:fixed;z-index:99000;width:236px;border-radius:18px;overflow:hidden;background:#17191a;color:#F2F2EE;box-shadow:0 14px 40px rgba(0,0,0,.5);border:.5px solid rgba(242,242,238,.14);transition:opacity .35s}.cm-ad.troca{opacity:0}
-    .cm-ad-img{height:110px;background:#2a2d30 center/cover no-repeat;position:relative}.cm-ad-img span{position:absolute;left:10px;bottom:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:999px}
-    .cm-ad-tx{padding:12px 14px 14px}.cm-ad-tx b{display:block;font-weight:600;font-size:15px;line-height:1.25}.cm-ad-tx p{margin:6px 0 4px;font-size:13px;opacity:.85}.cm-ad-tx u{text-decoration:none;color:#ffc83d}.cm-ad-tx small{display:block;opacity:.55;font-size:11px;margin-bottom:10px}
-    .cm-ad-tx button{width:100%;height:36px;border-radius:999px;border:0;background:#F2F2EE;color:#111;font:inherit;font-weight:600;font-size:13px;cursor:pointer}`; document.head.appendChild(s); })();
-  setInterval(adPosiciona, 700);
   setTimeout(() => { if (window.REAL !== false) CMsideRefresh(); }, 4000); setInterval(() => { if (!document.hidden) CMsideRefresh(); }, 8000);
 })();
