@@ -40,9 +40,12 @@
     .cm-bl{padding:8px 12px;border-radius:14px;background:rgba(127,127,127,.2);font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}.cm-m.eu .cm-bl{background:rgba(127,127,127,.34)}
     .cm-bl small{display:block;font-size:11px;opacity:.6;margin-bottom:2px}.cm-bl .h{opacity:.45;font-size:10.5px;margin-left:6px}
     .cm-m.imp .cm-bl{outline:1.5px solid #e0b342}.cm-sis{align-self:center;font-size:11.5px;opacity:.55;text-align:center;padding:2px 10px}
-    .cm-in{display:flex;gap:8px;padding:10px 14px 14px;align-items:flex-end}.cm-in textarea{flex:1;min-height:40px;max-height:120px;border-radius:14px;border:.5px solid rgba(127,127,127,.4);background:rgba(127,127,127,.1);color:inherit;padding:10px 12px;font:inherit;font-size:14px;resize:none}
+    .cm-in{display:flex;gap:6px;padding:10px 14px 14px;align-items:flex-end}.cm-in textarea{flex:1;min-height:40px;max-height:120px;border-radius:14px;border:.5px solid rgba(127,127,127,.4);background:rgba(127,127,127,.1);color:inherit;padding:10px 12px;font:inherit;font-size:14px;resize:none}
     .cm-btn:disabled,.cm-in button:disabled{opacity:.5}
-    .cm-in button{height:40px;border-radius:999px;padding:0 18px;border:0;background:var(--branco);color:#111;font:inherit;font-weight:500;cursor:pointer}
+    .cm-in button.env{height:40px;border-radius:999px;padding:0 18px;border:0;background:var(--branco);color:#111;font:inherit;font-weight:500;cursor:pointer;flex:none}
+    .cm-in button.ic{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:inherit;font-size:17px;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}.cm-in button.ic:hover{background:rgba(255,255,255,.16)}
+    .cm-emo{position:absolute;bottom:62px;left:14px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:8px;border-radius:14px;background:#24272a;border:.5px solid rgba(242,242,238,.2);box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:5}.cm-emo button{border:0;background:none;font-size:20px;line-height:1;width:34px;height:34px;border-radius:8px;cursor:pointer}.cm-emo button:hover{background:rgba(255,255,255,.1)}
+    .cm-meio{position:relative}
     .cm mark{background:var(--mc,#e0b342);color:#111;border-radius:3px;padding:0 1px}.cm mark.at{outline:2px solid #fff}
     .cm-ach{padding:6px 8px 10px 56px;font-size:13px;opacity:.9;cursor:pointer;border-radius:8px}.cm-ach:hover{background:rgba(127,127,127,.12)}.cm-ach small{opacity:.55;display:block}
     .cm-form{padding:4px 16px 14px;display:flex;flex-direction:column;gap:9px;overflow-y:auto}.cm-form input[type=text],.cm-form textarea{border-radius:10px;border:.5px solid rgba(127,127,127,.4);background:rgba(127,127,127,.1);color:inherit;padding:9px 12px;font:inherit;font-size:14px;width:100%;box-sizing:border-box}
@@ -66,7 +69,7 @@
     .cm-lin{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 4px;border:0;border-top:.5px solid rgba(242,242,238,.1);background:none;color:inherit;font:inherit;font-size:14.5px;cursor:pointer}.cm-lin>svg,.cm-lin>:first-child{width:22px;text-align:center;flex:0 0 22px}.cm-lin span{flex:1}.cm-lin em{font-style:normal;font-size:12px;opacity:.5}.cm-lin:hover{background:rgba(255,255,255,.05)}
     .cm-grade{flex:1;min-height:0;display:grid;grid-template-columns:150px minmax(0,1fr) 216px}
     .cm-gente{overflow-y:auto;padding:6px 8px 10px 14px;border-right:.5px solid rgba(242,242,238,.1);scrollbar-width:thin}
-    .cm-gente .p{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px;opacity:.92}.cm-gente .p small{display:block;font-size:10.5px;opacity:.5;line-height:1.1}.cm-gente .p span.t{min-width:0}
+    .cm-gente .p{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px;opacity:.92}.cm-gente .p small{display:block;font-size:10.5px;opacity:.55;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cm-gente .p b{display:block;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cm-gente .p span.t{min-width:0;flex:1}
     .cm-meio{display:flex;flex-direction:column;min-height:0;min-width:0}
     .cm-curso{border-left:.5px solid rgba(242,242,238,.1);padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;transition:opacity .3s;scrollbar-width:thin}.cm-curso.troca{opacity:0}
     .cm-ad-img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.04);display:block}
@@ -124,10 +127,9 @@
   /* ---------- um comit ---------- */
   window.CMver = async function(id, termo){
     css(); if (!raiz()){ CM.painel = false; abrirJanela(`<div class="caixa invertida cm" id="cmRoot" data-sem-fio style="padding:0;height:100%"></div>`, true); }
-    await carregaPessoas();
-    try { const j = await api({ acao:'ver', id }); CM.dados = j; CM.sel = id; CM.ultimoId = j.msgs.length ? j.msgs[j.msgs.length - 1].id : 0; CM.admin = j.admin; }
+    try { const [, j] = await Promise.all([carregaPessoas(), api({ acao:'ver', id })]); CM.dados = j; CM.sel = id; CM.ultimoId = j.msgs.length ? j.msgs[j.msgs.length - 1].id : 0; CM.admin = j.admin; }
     catch(e){ toast(e.message); return; }
-    CM.termo = termo || ''; chat(); clearInterval(CM.timer); CM.timer = setInterval(puxa, 5000);
+    CM.termo = termo || ''; chat(); clearInterval(CM.timer); CM.timer = setInterval(() => { if (rapido > 0){ rapido--; puxa(); } else if (++CM.tick % 3 === 0) puxa(); }, 2000); CM.tick = 0;   // 2s logo após enviar (6x), depois a cada 6s
   };
   const meuId = () => (typeof perfil !== 'undefined' && perfil) ? perfil.id : null;
   function balao(m){
@@ -146,25 +148,41 @@
         <button class="cm-ib" onclick="CMfechaJanela()" aria-label="Fechar janela">✕</button></div>
       <div class="cm-busca" id="cmBA" style="display:none"><input id="cmQa" placeholder="buscar nesta conversa…" oninput="CMachar(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();CMpula(event.shiftKey?-1:1)}"><span class="cm-nav"><button class="cm-ib" style="width:30px;height:30px" onclick="CMpula(-1)">↑</button><button class="cm-ib" style="width:30px;height:30px" onclick="CMpula(1)">↓</button><span id="cmCt"></span></span></div>
       <div class="cm-grade">
-        <aside class="cm-gente">${d.membros.map(m => `<div class="p" title="${E(m.nome)} · ${m.tipo}">${bolinha(m.nome, m.tipo, 26)}<span class="t">${E(String(m.nome).split(' ')[0])}<small>${m.tipo === 'ia' ? 'IA' : m.tipo === 'cliente' ? 'cliente' : 'equipe'}</small></span></div>`).join('')}
+        <aside class="cm-gente">${d.membros.map(m => `<div class="p" title="${E(m.nome)} · ${m.tipo}">${bolinha(m.nome, m.tipo, 26)}<span class="t"><b>${E(String(m.nome).split(' ')[0])}</b><small>${E(funcaoDe(m))}</small></span></div>`).join('')}
           ${fechado ? '' : '<button class="cm-ib" style="width:28px;height:28px;font-size:14px;margin-top:6px" title="Adicionar participantes" onclick="CMadd()">＋</button>'}</aside>
         <section class="cm-meio"><div class="cm-msgs" id="cmMsgs">${d.msgs.map(balao).join('')}</div>
-          ${fechado ? '<div class="cm-sis" style="padding:12px">Comit fechado — só leitura.</div>' : `<div class="cm-in"><textarea id="cmTx" rows="1" placeholder="escreva… (chame uma IA pelo nome)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();CMenviar()}"></textarea><button onclick="CMenviar()">Enviar</button></div>`}</section>
+          ${fechado ? '<div class="cm-sis" style="padding:12px">Comit fechado — só leitura.</div>' : `<div class="cm-in"><button type="button" class="ic" title="Emoji" aria-label="Emoji" onmousedown="event.preventDefault()" onclick="CMemoji()">☺</button><textarea id="cmTx" rows="1" placeholder="escreva… (chame uma IA pelo nome)" oninput="CMcresce(this)" onkeydown="CMtecla(event)"></textarea><button type="button" class="ic" title="Pular linha" aria-label="Pular linha" onmousedown="event.preventDefault()" onclick="CMquebra()">↵</button><button type="button" class="env" onmousedown="event.preventDefault()" onclick="CMenviar()">Enviar</button></div>`}</section>
         <aside class="cm-curso" id="cmCurso"></aside>
       </div>`;
     const M = document.getElementById('cmMsgs'); if (M) M.scrollTop = M.scrollHeight; adMonta();
     if (CM.termo){ CMbuscaAqui(CM.termo); }
   }
+  function funcaoDe(m){ const P = CM.pessoas || {}; const x = (m.tipo === 'ia' ? P.ias : P.humanos || []) ; const f = (x || []).find(y => y.ref === m.ref); return (f && f.funcao) || (m.tipo === 'ia' ? 'Assistente' : m.tipo === 'cliente' ? 'Cliente' : 'Equipe'); }
   window.CMvolta = async function(){ await carregaLista(); lista(); };
   async function puxa(){
     if (!CM.sel || !raiz()) { clearInterval(CM.timer); return; }
+    if (puxando || document.hidden) return; puxando = true;
     try { const j = await api({ acao:'ver', id:CM.sel, depois:CM.ultimoId }); if (j.msgs.length){ const M = document.getElementById('cmMsgs'); if (!M) return; const fim = M.scrollHeight - M.scrollTop - M.clientHeight < 80;
-        j.msgs.forEach(m => { CM.dados.msgs.push(m); M.insertAdjacentHTML('beforeend', balao(m)); CM.ultimoId = m.id; }); if (j.msgs.some(m => m.autor_ref !== meuId() && m.autor_tipo !== 'sistema')) SOM.ping(); visto(CM.sel); if (fim) M.scrollTop = M.scrollHeight; } } catch(e){}
+        j.msgs.forEach(m => { CM.ultimoId = m.id; if (M.querySelector('[data-id="' + m.id + '"]')) return; CM.dados.msgs.push(m); M.insertAdjacentHTML('beforeend', balao(m)); }); if (j.msgs.some(m => m.autor_ref !== meuId() && m.autor_tipo !== 'sistema')) SOM.ping(); visto(CM.sel); if (fim) M.scrollTop = M.scrollHeight; } } catch(e){} finally { puxando = false; }
   }
+  const TOQUE = () => { try { return matchMedia('(pointer:coarse)').matches; } catch(e){ return false; } };
+  window.CMcresce = t => { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; };
+  window.CMtecla = e => { if (e.key !== 'Enter' || e.isComposing) return; if (e.shiftKey || e.altKey || e.ctrlKey && false) return; if (TOQUE()) return;   // celular: Enter pula linha, envia só o botão
+    e.preventDefault(); CMenviar(); };
+  window.CMquebra = () => { const t = document.getElementById('cmTx'); if (!t) return; const a = t.selectionStart, b = t.selectionEnd; t.value = t.value.slice(0, a) + '\n' + t.value.slice(b); t.selectionStart = t.selectionEnd = a + 1; CMcresce(t); t.focus(); };
+  const EMO = ['😀','😂','😊','😍','🙏','👍','👏','🔥','💡','✅','❤️','🎉','🤔','😅','😬','🙌','👀','🚀','⚠️','📌','📎','⏰','💬','✨'];
+  window.CMemoji = () => { const m = document.querySelector('.cm-meio'); if (!m) return; const ja = m.querySelector('.cm-emo'); if (ja){ ja.remove(); return; }
+    const d = document.createElement('div'); d.className = 'cm-emo'; d.innerHTML = EMO.map(x => `<button type="button" onmousedown="event.preventDefault()" onclick="CMponEmoji('${x}')">${x}</button>`).join(''); m.appendChild(d); };
+  window.CMponEmoji = x => { const t = document.getElementById('cmTx'); if (!t) return; const a = t.selectionStart, b = t.selectionEnd; t.value = t.value.slice(0, a) + x + t.value.slice(b); t.selectionStart = t.selectionEnd = a + x.length; t.focus(); CMcresce(t); };
+  let puxando = false, rapido = 0;
   window.CMenviar = async function(){
-    const t = document.getElementById('cmTx'); const txt = (t && t.value || '').trim(); if (!txt) return; t.value = ''; t.disabled = true;
-    try { SOM.envia(); await api({ acao:'enviar', id:CM.sel, texto:txt }); await puxa(); setTimeout(puxa, 2500); setTimeout(puxa, 7000); setTimeout(puxa, 15000); } catch(e){ toast(e.message); t.value = txt; }
-    t.disabled = false; t.focus();
+    const t = document.getElementById('cmTx'); const txt = (t && t.value || '').trim(); if (!txt) return;
+    t.value = ''; CMcresce(t); const em = document.querySelector('.cm-emo'); if (em) em.remove(); t.focus();   // a caixa NUNCA trava: limpa, mostra a mensagem na hora e envia por trás
+    const M = document.getElementById('cmMsgs'); let tmp = null;
+    if (M){ M.insertAdjacentHTML('beforeend', balao({ id:'tmp', autor_ref:meuId(), autor_tipo:'humano', autor_nome:'', texto:txt, created_at:new Date().toISOString() })); tmp = M.lastElementChild; M.scrollTop = M.scrollHeight; if (tmp) tmp.style.opacity = '.6'; }
+    try { SOM.envia(); const j = await api({ acao:'enviar', id:CM.sel, texto:txt });
+      if (j.msg){ if (tmp){ if (M.querySelector('[data-id="' + j.msg.id + '"]')) tmp.remove(); else { tmp.style.opacity = ''; tmp.dataset.id = j.msg.id; } } CM.dados.msgs.push(j.msg); CM.ultimoId = Math.max(CM.ultimoId || 0, j.msg.id); }
+      rapido = 6; } catch(e){ if (tmp) tmp.remove(); toast(e.message); if (t){ t.value = txt; CMcresce(t); } }
   };
   window.CMbuscaDaInfo = async function(){ await CMver(CM.sel); CMbuscaAqui(); };
   window.CMinfo = function(){

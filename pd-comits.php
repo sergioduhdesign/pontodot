@@ -4,10 +4,17 @@ require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-comits-lib.php';
 header('Content-Type: application/json; charset=utf-8');
 $u = sd_current_user(); $b = sd_body(); $acao = (string)($b['acao'] ?? 'listar');
+/** manda a resposta e solta a pessoa NA HORA (Content-Length + fechar conexão); o trabalho das IAs segue por trás */
+function soltaEContinua($arr) {
+    ignore_user_abort(true); @set_time_limit(180);
+    $o = json_encode($arr, JSON_UNESCAPED_UNICODE); header('Content-Length: ' . strlen($o)); header('Connection: close'); echo $o;
+    while (ob_get_level() > 0) @ob_end_flush(); @flush();
+    if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request();
+}
 function ok($d = []) { echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE); exit; }
 // as tabelas existem? (SQL v170) — sem isso, resposta clara em vez de erro 500
-$sonda = sd_supabase('/rest/v1/pd_comits?select=id&limit=1');
-if (($sonda['code'] ?? 500) >= 300) sd_fail('Falta rodar o SQL v170 (migration_v170_comits.sql) no Supabase.', 503);
+if (in_array($acao, ['listar', 'criar'], true)) { $sonda = sd_supabase('/rest/v1/pd_comits?select=id&limit=1');
+if (($sonda['code'] ?? 500) >= 300) sd_fail('Falta rodar o SQL v170 (migration_v170_comits.sql) no Supabase.', 503); }
 $eu = $u['id']; $nome = $u['name'] ?? ($u['email'] ?? 'Alguém'); $adm = cmtEhAdmin($u); $cliente = !empty($u['client_id']);
 
 if ($acao === 'pessoas') { $p = cmtPessoas(); if ($cliente) $p['humanos'] = array_values(array_filter($p['humanos'], fn($x) => $x['ref'] === $eu)); ok($p + ['admin' => $adm]); }
@@ -33,9 +40,7 @@ if ($acao === 'criar') {
     [$c, $e] = cmtCriar($b['titulo'] ?? '', $b['assunto'] ?? '', $mem, $eu, null, !empty($b['publico']) && !$cliente, $nome);
     if (!$c) sd_fail($e);
     cmtMsg($c['id'], 'sistema', null, 'PD', $nome . ' abriu o comit.');
-    echo json_encode(['ok' => true, 'comit' => $c], JSON_UNESCAPED_UNICODE);
-    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request(); else { @ob_flush(); @flush(); }
-    ignore_user_abort(true); @set_time_limit(180);
+    soltaEContinua(['ok' => true, 'comit' => $c]);
     try { $mm = cmtMembros($c['id']); if (array_filter($mm, fn($m) => $m['tipo'] === 'ia')) cmtIAsResponderem($c, $mm, 'ABERTURA DO COMIT "' . $c['titulo'] . '"' . ($c['assunto'] ? ': ' . $c['assunto'] : ''), 0, 'humano', true, $u); } catch (Throwable $e) {}
     exit;
 }
@@ -59,9 +64,7 @@ if ($acao === 'enviar') {
     $imp = !empty($b['importante']) || preg_match('/\b(urgente|importante)\b/iu', $t);
     $m = cmtMsg($c['id'], $cliente ? 'cliente' : 'humano', $eu, $nome, $t, $imp);
     // a pessoa já tem a resposta; avisos e respostas das IAs seguem depois de enviar a resposta
-    echo json_encode(['ok' => true, 'msg' => $m], JSON_UNESCAPED_UNICODE);
-    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request(); else { @ob_flush(); @flush(); }
-    ignore_user_abort(true); @set_time_limit(180);
+    soltaEContinua(['ok' => true, 'msg' => $m]);
     cmtAvisar($c, $mem, $eu, $nome, $t, $imp);
     cmtIAsResponderem($c, $mem, $t, 0, 'humano', false, $u);
     exit;

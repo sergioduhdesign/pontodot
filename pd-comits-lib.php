@@ -12,16 +12,18 @@ function cmtLog($id, $acao, $quem, $det = null) { try { sd_supabase('/rest/v1/pd
 function cmtPessoas() {
     $pf = (array)(sd_supabase('/rest/v1/profiles?active=eq.true&select=id,name,role,client_id,avatar_url,clients(name)&order=name.asc&limit=400')['body'] ?? []);
     $h = []; $nomeDe = []; $equipe = [];
+    $rot = ['direcao' => 'Direção criativa', 'estrategia' => 'Estratégia e planejamento', 'atendimento' => 'Atendimento', 'producao' => 'Gestão de projetos e produção', 'copy' => 'Copywriter', 'designer' => 'Designer', 'video' => 'Motion e vídeo', 'som' => 'Som e locução', 'foto3d' => 'Fotografia e 3D', 'social' => 'Social media', 'trafego' => 'Tráfego pago e campanhas', 'webdev' => 'Sites e LPs', 'gestao_equipe' => 'Gestão de equipe', 'comercial' => 'Comercial e vendas', 'prospeccao' => 'Prospecção'];
+    $jr = sd_supabase('/rest/v1/pd_jeito?select=user_id,personagem,apelido,diretas&limit=400')['body'] ?? []; $funcDe = [];
+    foreach ((is_array($jr) && isset($jr[0]['user_id']) ? $jr : []) as $j) { $d = is_array($j['diretas'] ?? null) ? $j['diretas'] : (json_decode((string)($j['diretas'] ?? ''), true) ?: []); $fp = (string)($d['funcao_principal'] ?? ''); if ($fp !== '') $funcDe[$j['user_id']] = $rot[$fp] ?? $fp; }
     foreach ($pf as $p) { if (empty($p['id'])) continue; $ehCli = !empty($p['client_id']); if (!$ehCli) { $nomeDe[$p['id']] = $p['name']; $equipe[$p['id']] = true; }
-        $h[] = ['tipo' => $ehCli ? 'cliente' : 'humano', 'ref' => $p['id'], 'nome' => $p['name'], 'avatar' => $p['avatar_url'] ?? '', 'sub' => $ehCli ? ('cliente · ' . ($p['clients']['name'] ?? '')) : ($p['role'] === 'admin' ? 'admin' : 'equipe')]; }
+        $h[] = ['tipo' => $ehCli ? 'cliente' : 'humano', 'ref' => $p['id'], 'nome' => $p['name'], 'avatar' => $p['avatar_url'] ?? '', 'funcao' => $ehCli ? ('Cliente · ' . ($p['clients']['name'] ?? '')) : ($funcDe[$p['id']] ?? ($p['role'] === 'admin' ? 'Direção' : 'Equipe')), 'sub' => $ehCli ? ('cliente · ' . ($p['clients']['name'] ?? '')) : ($p['role'] === 'admin' ? 'admin' : 'equipe')]; }
     $cat = pdPersonagens(); $ia = []; $usadas = [];
     // 1) a IA de cada pessoa da equipe (quem já fez o teste e tem personagem)
-    $jr = sd_supabase('/rest/v1/pd_jeito?select=user_id,personagem,apelido&limit=400')['body'] ?? [];
     foreach ((is_array($jr) && isset($jr[0]['user_id']) ? $jr : []) as $j) {
         $k = strtolower(trim((string)($j['personagem'] ?? ''))); if ($k === '' || !isset($cat[$k]) || empty($equipe[$j['user_id']]) || isset($usadas[$k])) continue;
-        $usadas[$k] = true; $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $cat[$k][0], 'sub' => 'IA de ' . $nomeDe[$j['user_id']] . ' · ' . $cat[$k][2]]; }
+        $usadas[$k] = true; $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $cat[$k][0], 'funcao' => $funcDe[$j['user_id']] ?? $cat[$k][2], 'sub' => 'IA de ' . $nomeDe[$j['user_id']] . ' · ' . $cat[$k][2]]; }
     // 2) as IAs das ferramentas (Dig, campanhas, social)
-    foreach (['tumi' => 'Dig · captação e pesquisa', 'sumi' => 'campanhas', 'muru' => 'social'] as $k => $fn) { if (!isset($cat[$k]) || isset($usadas[$k])) continue; $usadas[$k] = true; $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $cat[$k][0], 'sub' => 'IA da ferramenta · ' . $fn]; }
+    foreach (['tumi' => 'Dig · captação e pesquisa', 'sumi' => 'campanhas', 'muru' => 'social'] as $k => $fn) { if (!isset($cat[$k]) || isset($usadas[$k])) continue; $usadas[$k] = true; $ia[] = ['tipo' => 'ia', 'ref' => $k, 'nome' => $cat[$k][0], 'funcao' => ucfirst($fn), 'sub' => 'IA da ferramenta · ' . $fn]; }
     return ['humanos' => $h, 'ias' => $ia];
 }
 function cmtComit($id) { $r = sd_supabase('/rest/v1/pd_comits?id=eq.' . urlencode((string)$id) . '&select=*&limit=1')['body'][0] ?? null; return $r; }
@@ -122,33 +124,22 @@ function cmtPontoEscolar($c, $iaRef, $iaNome, $quemU, $papel, $texto, $acoes) {
 }
 /** as IAs do grupo respondem quando chamadas pelo nome (ou quando é a única IA e uma pessoa falou). Uma IA pode chamar outra (até 2 voltas). */
 function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'humano', $abertura = false, $quemU = null) {
-    if ($profundidade > 2) return;
+    if ($profundidade > 1) return;   // IA só responde a IA uma vez: sem ping-pong
     $ias = array_values(array_filter($mem, fn($m) => $m['tipo'] === 'ia')); if (!$ias) return;
     $pers = pdPersonagens();
     $quem = [];
     foreach ($ias as $i) if (cmtMencionou($texto, (string)$i['nome'])) $quem[] = $i;
-    if (!$quem && $autorTipo !== 'ia') {
-        if (count($ias) === 1) $quem = $ias;
-        elseif ($profundidade === 0) {   // PROATIVAS: ninguém foi chamado pelo nome — a IA mais útil entra por conta própria
-            $desc = implode("\n", array_map(fn($i) => '- ' . $i['nome'] . ': ' . (($pers[$i['ref']][2] ?? '') . ' (' . ($pers[$i['ref']][3] ?? '') . ')'), $ias));
-            [$dec] = pdClaude('Você coordena um grupo de trabalho (comit) de uma agência de branding imobiliário. Escolha quais IAs do grupo devem se manifestar AGORA (de 1 a 2), as mais úteis para esta mensagem: quem pode trazer dado, ideia, risco, próximo passo ou pergunta que destrava. Prefira contribuir a ficar calada. Responda SOMENTE JSON: {"falam":["Nome"]}.', "Grupo: " . $c['titulo'] . ($c['assunto'] ? ' — ' . $c['assunto'] : '') . "\nIAs:\n" . $desc . "\n\nMensagem: " . mb_substr($texto, 0, 1500), 120);
-            $nomes = []; if ($dec && preg_match('/\{.*\}/s', $dec, $mj)) { $jj = json_decode($mj[0], true); $nomes = array_map('mb_strtolower', (array)($jj['falam'] ?? [])); }
-            foreach ($ias as $i) if (in_array(mb_strtolower((string)$i['nome']), $nomes, true)) $quem[] = $i;
-            if (!$quem) $quem = [$ias[0]];
-            $quem = array_slice($quem, 0, 2);
-        }
-    }
+    if (!$quem && $autorTipo !== 'ia' && count($ias) === 1) $quem = $ias;
     // LÍDER: a IA de quem abriu organiza (súmula + start) e fala primeiro; as outras concordam ou abrem dúvida
     $lider = cmtLider($c, $ias); $liderRef = $lider['ref'] ?? '';
-    if ($lider && $profundidade === 0 && $autorTipo !== 'ia') {
-        $jaTem = array_filter($quem, fn($x) => $x['ref'] === $liderRef);
-        $chamouOutra = $quem && !$jaTem && !$abertura;   // a pessoa chamou outra IA pelo nome: ela responde; a líder só entra se a conversa pedir
-        if (!$chamouOutra){ $quem = array_values(array_filter($quem, fn($x) => $x['ref'] !== $liderRef)); array_unshift($quem, $lider); }
-        $quem = array_slice($quem, 0, 3);
+    if ($profundidade === 0 && $autorTipo !== 'ia') {
+        if (!$quem) $quem = [$lider ?: $ias[0]];                       // ninguém chamado: só a líder fala (e pode ficar em silêncio)
+        elseif ($abertura && $lider) { $quem = [$lider]; }             // abertura: a líder sumula e dá o start; as outras ouvem
+        $quem = array_slice($quem, 0, 2);
     }
     // SEGUNDA EM COMANDO: a IA do anfitrião (Zumi) nunca fica calada nos comits em que está
     $anf = pdCerebroAnfitriao();
-    if ($anf['personagem'] && $profundidade === 0 && $autorTipo !== 'ia' && $quem) { $ja = array_filter($quem, fn($x) => $x['ref'] === $anf['personagem']); if (!$ja) foreach ($ias as $i) if ($i['ref'] === $anf['personagem']) { $quem[] = $i; break; } }
+    if ($anf['personagem'] && $profundidade === 0 && $autorTipo !== 'ia' && $quem && !$abertura && count($quem) < 2) { $ja = array_filter($quem, fn($x) => $x['ref'] === $anf['personagem']); if (!$ja) foreach ($ias as $i) if ($i['ref'] === $anf['personagem']) { $quem[] = $i; break; } }
     if (!$quem) return;
     $lerTranscr = function () use ($c) { $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []); $t = ''; foreach (array_reverse($hist) as $h) $t .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n"; return $t; };
     $lista = implode('; ', array_map(fn($m) => $m['nome'] . ' (' . ($m['tipo'] === 'ia' ? 'IA' : ($m['tipo'] === 'cliente' ? 'cliente' : 'pessoa da equipe')) . ')', $mem));
@@ -166,25 +157,31 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
     } else $maos = 'Você não executa ações neste momento: converse e proponha o próximo passo.';
     $baseBusca = $texto . ' ' . $c['titulo'] . ' ' . ($c['assunto'] ?? '') . ' ' . $lerTranscr();
     $maos .= pdCerebroReunioes($baseBusca) . pdCerebroFichas($baseBusca, $cidsCli);
+    $ordem = 0;
     foreach ($quem as $q) {
         $p = $pers[$q['ref']] ?? null; if (!$p) continue;
         $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, em texto simples (NUNCA use asteriscos, markdown nem listas com símbolos; para citar alguém, só o nome), curto e direto, sem se apresentar de novo. COORDENAÇÃO: se a pergunta é "quem faz X", leia o que as colegas já disseram; se alguém já assumiu, NÃO dispute nem repita — complemente só com algo novo ou confirme. Não assuma sozinha o que é papel de outra IA (veja o ELENCO: Sumi = campanhas/anúncios, Muru = social, Tumi = captação e mercado; estratégia de marca e conteúdo de cliente vem da IA de quem cuida do cliente). Se ninguém tem certeza, proponha UMA responsável e pergunte o que falta. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.'
-            . pdCerebroRegras() . "\n\n" . pdElencoTexto() . "\n\n" . $maos;
+            . pdCerebroRegras('comit') . "\n\n" . pdElencoTexto() . "\n\n" . $maos;
         $ehLider = ($q['ref'] === $liderRef);
         $sys .= $ehLider
-            ? "\n\nVOCÊ É A LÍDER deste comit (a IA de quem abriu). Seu papel: organizar o que está sendo conversado numa súmula curta (o que já está decidido · quem faz o quê · o que ainda está em aberto) e, quando houver direção suficiente, dar o START para todos executando as ações de verdade (delegar, recado, criar tarefa). Se faltar decisão, pergunte UMA coisa que destrava. Quando tudo estiver resolvido, diga \"combinado\" e feche a súmula. Máximo 4 frases."
-            : "\n\nA líder deste comit é " . ($lider['nome'] ?? 'a IA de quem abriu') . ": apoie, concorde ou abra uma dúvida/risco; se precisar de decisão, passe a bola para ela. Máximo 3 frases.";
+            ? "\n\nVOCÊ É A LÍDER deste comit (a IA de quem abriu). Seu papel: organizar o que está sendo conversado numa súmula curta (o que já está decidido · quem faz o quê · o que ainda está em aberto) e, quando houver direção suficiente, dar o START para todos executando as ações de verdade (delegar, recado, criar tarefa). Se faltar decisão, pergunte UMA coisa que destrava. Quando tudo estiver resolvido, diga \"combinado\" e feche a súmula. Máximo 2 frases curtas; se não há nada novo a organizar, ##SILENCIO##."
+            : "\n\nA líder deste comit é " . ($lider['nome'] ?? 'a IA de quem abriu') . ": apoie, concorde ou abra uma dúvida/risco; se precisar de decisão, passe a bola para ela. Máximo 2 frases curtas. Se não foi chamada pelo nome e não tem nada novo, responda ##SILENCIO##.";
         $transcr = $lerTranscr();   // cada IA lê o que as anteriores acabaram de dizer
-        [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 520);
+        usleep(($ordem++ === 0 ? rand(2500000, 5000000) : rand(6000000, 11000000)));   // ritmo de gente: pensa antes de falar, e a segunda espera a primeira
+        [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 380);
         if (!$resp) continue;
         $feitos = [];
+        $silencio = (bool)preg_match('/##\s*SIL[ÊE]NCIO\s*##/iu', $resp);
+        $resp = trim(preg_replace('/##\s*SIL[ÊE]NCIO\s*##/iu', '', $resp));
         if ($perfilU && preg_match_all('/^[ \t]*(?:##ACAO##\s*)?(\{"tipo".*\})\s*$/mu', $resp, $am)) {
             $resp = trim(preg_replace('/^[ \t]*(?:##ACAO##\s*)?\{"tipo".*\}\s*$/mu', '', $resp));
             foreach (array_slice(array_values(array_unique($am[1])), 0, 6) as $aj) { $ao = json_decode($aj, true);
                 if (is_array($ao)) { try { $r = cmtExecuta($ao, $perfilU, $statusValidos, $c, $q, $mem); if (trim((string)$r) !== '') $feitos[] = $r; } catch (\Throwable $e) { $feitos[] = '⚠️ ' . mb_substr($e->getMessage(), 0, 140); } } }
             $resp = trim(preg_replace('/\s*[✅✔]+\s*/u', ' ', $resp));
         }
-        $resp = cmtEncurta($resp);
+        $resp = cmtEncurta($resp, 320);
+        foreach ($mem as $mm) { $pn = preg_quote(mb_strtolower(explode(' ', trim((string)$mm['nome']))[0]), '/'); if ($pn !== '') $resp = trim(preg_replace('/^(?:(?:oi|olá|ola|e aí|fala|ei|opa)[ ,]+)?' . $pn . '\s*[,:!\-–]\s*/iu', '', $resp)); }
+        if ($silencio && !$feitos) continue;   // ficou quieta: nada a dizer, nada postado
         if ($resp !== '') cmtMsg($c['id'], 'ia', $q['ref'], $p[0], $resp);
         cmtPontoEscolar($c, $q['ref'], $p[0], $quemU, $ehLider ? 'lider' : 'participante', $resp, count($feitos));
         if ($feitos) cmtMsg($c['id'], 'sistema', null, 'PD', implode("\n", $feitos));
