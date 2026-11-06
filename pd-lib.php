@@ -666,14 +666,14 @@ function pdZapRecado($a, $p) {
     if (!$dest) return "⚠️ Não achei o WhatsApp de " . $alvo . " na equipe.";
     $tel = pdZapNormaliza((string)$dest['zap']); $pn = explode(' ', trim((string)$dest['name']))[0];
     $ja = sd_supabase('/rest/v1/pd_avisos_log?direcao=eq.entrada&para=eq.' . $tel . '&criado_em=gte.' . rawurlencode(gmdate('c', time() - 23 * 3600)) . '&select=id&limit=1');
-    if (empty($ja['body'])) return "⚠️ " . $pn . " não falou com o número nas últimas 23h, e o WhatsApp só deixa eu puxar assunto depois que ela mandar um oi. Avise ela pra mandar um oi que eu entrego.";
+    $dentro = !empty($ja['body']);   // dentro das 24h: texto livre; fora: o modelo aprovado da casa abre a conversa (regra da Meta, não dá pra furar)
     // a cadeia fica sempre explícita, por regra do sistema (não depende da IA lembrar): humano → IA dele → IA dela → ela
     $de = explode(' ', $nome)[0]; $iaDe = pdNomeIA($p['id'] ?? ''); $iaPara = pdNomeIA($dest['id'] ?? '');
     $cadeia = '🔗 Recado do *' . $de . '*' . ($iaDe ? ', passado pela *' . $iaDe . '*' : '') . ($iaPara ? ' e entregue pela *' . $iaPara . '*' : '') . ':';
     $texto = $cadeia . "\n\n" . $texto;
-    [$code, $raw] = pdZapEnviar($tel, $texto, true);
+    [$code, $raw] = pdZapEnviar($tel, $texto, $dentro);
     pdAvisoLog('whatsapp', $tel, $dest['name'] ?? null, null, $texto, $code === 200 ? 'enviado' : 'erro', $code === 200 ? null : 'HTTP ' . $code, 'ia', 'recado:' . ($p['id'] ?? ''), null, $code === 200 ? pdWamid($raw) : null);
-    return $code === 200 ? "📨 Recado entregue pra " . $pn . "." : "⚠️ Não consegui entregar pra " . $pn . " (HTTP $code).";
+    return $code === 200 ? "📨 Recado " . ($dentro ? 'entregue' : 'enviado (abriu a conversa pelo modelo da casa; ela já pode responder)') . " pra " . $pn . "." : "⚠️ Não consegui entregar pra " . $pn . " (HTTP $code).";
 }
 // Criar tarefa(s) novas pelo WhatsApp (mesmas regras do desk: id vem do banco, cliente do cadastro, status válido).
 function pdZapCriar($a, $p) {
