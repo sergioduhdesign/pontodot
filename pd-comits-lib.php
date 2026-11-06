@@ -74,21 +74,31 @@ function cmtAvisar($c, $mem, $autorRef, $autorNome, $texto, $importante) {
     }
 }
 /** as IAs do grupo respondem quando chamadas pelo nome (ou quando é a única IA e uma pessoa falou). Uma IA pode chamar outra (até 2 voltas). */
-function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'humano') {
+function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'humano', $abertura = false) {
     if ($profundidade > 2) return;
     $ias = array_values(array_filter($mem, fn($m) => $m['tipo'] === 'ia')); if (!$ias) return;
     $pers = pdPersonagens();
     $quem = [];
     foreach ($ias as $i) if (cmtMencionou($texto, (string)$i['nome'])) $quem[] = $i;
-    if (!$quem && count($ias) === 1 && $autorTipo !== 'ia') $quem = $ias;
+    if (!$quem && $autorTipo !== 'ia') {
+        if (count($ias) === 1) $quem = $ias;
+        elseif ($profundidade === 0) {   // PROATIVAS: ninguém foi chamado pelo nome — a IA mais útil entra por conta própria
+            $desc = implode("\n", array_map(fn($i) => '- ' . $i['nome'] . ': ' . (($pers[$i['ref']][2] ?? '') . ' (' . ($pers[$i['ref']][3] ?? '') . ')'), $ias));
+            [$dec] = pdClaude('Você coordena um grupo de trabalho (comit) de uma agência de branding imobiliário. Escolha quais IAs do grupo devem se manifestar AGORA (de 1 a 2), as mais úteis para esta mensagem: quem pode trazer dado, ideia, risco, próximo passo ou pergunta que destrava. Prefira contribuir a ficar calada. Responda SOMENTE JSON: {"falam":["Nome"]}.', "Grupo: " . $c['titulo'] . ($c['assunto'] ? ' — ' . $c['assunto'] : '') . "\nIAs:\n" . $desc . "\n\nMensagem: " . mb_substr($texto, 0, 1500), 120);
+            $nomes = []; if ($dec && preg_match('/\{.*\}/s', $dec, $mj)) { $jj = json_decode($mj[0], true); $nomes = array_map('mb_strtolower', (array)($jj['falam'] ?? [])); }
+            foreach ($ias as $i) if (in_array(mb_strtolower((string)$i['nome']), $nomes, true)) $quem[] = $i;
+            if (!$quem) $quem = [$ias[0]];
+            $quem = array_slice($quem, 0, 2);
+        }
+    }
     if (!$quem) return;
     $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []);
     $transcr = ''; foreach (array_reverse($hist) as $h) $transcr .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n";
     $lista = implode('; ', array_map(fn($m) => $m['nome'] . ' (' . ($m['tipo'] === 'ia' ? 'IA' : ($m['tipo'] === 'cliente' ? 'cliente' : 'pessoa da equipe')) . ')', $mem));
     foreach ($quem as $q) {
         $p = $pers[$q['ref']] ?? null; if (!$p) continue;
-        $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, curto e direto (até 5 linhas), sem se apresentar de novo. Só afirme o que a conversa sustenta.';
-        [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . "\nResponda como " . $p[0] . ' à última mensagem.', 700);
+        $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, curto e direto (até 5 linhas), sem se apresentar de novo. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.';
+        [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 700);
         if (!$resp) continue;
         cmtMsg($c['id'], 'ia', $q['ref'], $p[0], $resp);
         cmtIAsResponderem($c, $mem, $resp, $profundidade + 1, 'ia');

@@ -31,7 +31,11 @@ if ($acao === 'criar') {
     [$c, $e] = cmtCriar($b['titulo'] ?? '', $b['assunto'] ?? '', $mem, $eu, null, !empty($b['publico']) && !$cliente, $nome);
     if (!$c) sd_fail($e);
     cmtMsg($c['id'], 'sistema', null, 'PD', $nome . ' abriu o comit.');
-    ok(['comit' => $c]);
+    echo json_encode(['ok' => true, 'comit' => $c], JSON_UNESCAPED_UNICODE);
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request(); else { @ob_flush(); @flush(); }
+    ignore_user_abort(true); @set_time_limit(180);
+    try { $mm = cmtMembros($c['id']); if (array_filter($mm, fn($m) => $m['tipo'] === 'ia')) cmtIAsResponderem($c, $mm, 'ABERTURA DO COMIT "' . $c['titulo'] . '"' . ($c['assunto'] ? ': ' . $c['assunto'] : ''), 0, 'humano', true); } catch (Throwable $e) {}
+    exit;
 }
 // daqui pra baixo: precisa de um comit que a pessoa possa ver
 $c = null; $mem = [];
