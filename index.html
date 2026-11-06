@@ -2517,7 +2517,7 @@ pdAbertura(false);
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4.5 4V5.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg>
     <i class="cl-badge" id="clBadge"></i></button>
   <button class="cl-b cl-mob" id="clConv" onclick="alternarHist()" title="Conversas" aria-label="Conversas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg></button>
-  <button class="cl-b cl-mob" id="clHist" onclick="abrirHistoricoDoApp()" title="Histórico de ações" aria-label="Histórico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></button>
+  <button class="cl-b cl-mob" id="clHist" onclick="abrirHistoricoDoApp()" title="Histórico de ações" aria-label="Histórico de ações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></button>
   <button class="cl-b" id="clSom" onclick="alternarSom()" title="Som das respostas" aria-label="Som das respostas"></button>
   <button class="cl-b" id="clTema" onclick="alternarTema()" title="Dia / noite" aria-label="Inverter dia e noite"></button>
   <button class="cl-b" id="clAdmin" onclick="clAdmin(event)" title="Administração" aria-label="Administração" style="display:none">
@@ -2530,7 +2530,7 @@ pdAbertura(false);
 <div class="tarefa-cheia oculto" id="tarefaCheia" style="position:fixed;z-index:118"></div>
 <div class="arte-view oculto" id="arteView" style="position:fixed;z-index:124" onclick="if(event.target===this)fecharArtes&&fecharArtes()"></div>
 <div class="tarefa-cheia oculto" id="janela" style="position:fixed;z-index:126" onclick="if(event.target===this)fecharJanela()"></div>
-<button class="aba-hist-frente" id="abaHistFrente" onclick="abrirHistoricoDoApp()" title="Histórico de ações da equipe">Histórico</button>
+<button class="aba-hist-frente" id="abaHistFrente" onclick="abrirHistoricoDoApp()" title="Histórico de ações da equipe">Histórico de ações</button>
 <button class="hist-handle" id="histHandle" onclick="alternarHist()">Conversas…</button>
 <div class="hist-veu oculto" id="histVeu" onclick="alternarHist()"></div>
 <div class="hist-resize" id="histResize" title="Arraste para alargar"></div>
@@ -2544,6 +2544,7 @@ pdAbertura(false);
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/js/pd-card.js?v=1"></script>
 <script src="/js/pd-ajuda.js?v=327"></script>
+<script src="/js/pd-comits.js?v=1"></script>
 <script src="/js/pd-modelos.js?v=1"></script>
 <script src="/js/pd-tarefa-form.js?v=1" defer></script>
 <script>
@@ -2809,6 +2810,7 @@ function htmlConversas(){
   return `<div class="caixa painel invertida">
     ${cabPainel('Conversas','conversas')}
     <div class="rolo-interno">
+      <div style="display:flex;gap:6px;margin:2px 0 6px"><button class="btn" style="flex:1;min-height:34px;font-size:12px" onclick="abrirNovaConversa()">＋ Nova conversa</button><button class="btn" style="flex:1;min-height:34px;font-size:12px" onclick="abrirComits()">Comits</button></div>
       <div class="hist-sec">PESSOAS & CLIENTES</div>
       ${CONVERSAS.map(c=>`
       <button class="hist-item ${presencaDe(c.quem).estado==='offline'?'fora':''}" data-fk="conv-${c.quem}" onclick="abrirChatCom('${c.quem.replace(/'/g,'’')}')">
@@ -2816,11 +2818,11 @@ function htmlConversas(){
         <span class="ht"><span class="h1">${selinhoON(c.quem)}${esc(c.quem)} <span class="h-hora">· ${c.h}</span></span>
         <span class="h2">${esc(c.ultima)}</span></span>
       </button>`).join('') || '<div class="nota">Sem conversa recente.</div>'}
-      ${salvas.length?`<div class="hist-sec">SALVAS COM ELA</div>`+salvas.map(t=>`
+      ${salvas.length?``+salvas.map(t=>`
       <div class="hist-item" role="button" onclick="abrirThreadSalva('${t.id}')">
         <span class="hq">${miniCaraIA()}</span>
         <span class="ht"><span class="h1">${esc(t.titulo||'Conversa')}</span>
-        <span class="h2">${t.user_id===(perfil&&perfil.id)?(t.publico?'sua · pública':'sua · particular'):('de '+((t.profiles?.name||'').split(' ')[0]||'equipe')+' · pública')}</span></span>
+        <span class="h2">${t.publico?'🌐 pública':'🔒 particular'}${t.user_id===(perfil&&perfil.id)?'':' · de '+((t.profiles?.name||'').split(' ')[0]||'equipe')}</span></span>
       </div>`).join(''):''}
     </div>
   </div>`;
@@ -3662,7 +3664,8 @@ async function carregarDM(quem){
     const { data } = await sbR.from('messages').select('sender_id,body,created_at')
       .or(`and(sender_id.eq.${perfil.id},receiver_id.eq.${p.id}),and(sender_id.eq.${p.id},receiver_id.eq.${perfil.id})`)
       .order('created_at',{ascending:true}).limit(80);
-    return (data||[]).map(m => {
+    let limpoEm = 0; try { limpoEm = +localStorage.getItem('sd_dm_limpo_' + quem) || 0; } catch(e){}
+    return (data||[]).filter(m => new Date(m.created_at).getTime() > limpoEm).map(m => {
       const dt = new Date(m.created_at);
       return { eu: m.sender_id === perfil.id ? 1 : 0,
         de: m.sender_id === perfil.id ? null : quem.split(' ')[0],
@@ -4131,7 +4134,7 @@ function igualarIAVerso(){
 // a aba Histórico da frente leva ao app (onde o histórico mora) e abre a gaveta
 // no celular o verso não abre: o histórico de ações vira uma folha da própria frente
 async function abrirHistoricoMobile(){
-  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:20px 16px 16px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Histórico</h3>
+  abrirJanela(`<div class="caixa invertida" data-sem-fio style="padding:20px 16px 16px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;flex:1;font-size:22px;font-weight:400">Histórico de ações</h3>
     <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div class="nota" style="margin:4px 0 10px">O que a equipe fez por último.</div><div id="histAcoes"><div class="nota">Carregando…</div></div></div>`, true);
   const alvo = () => document.getElementById('histAcoes');
@@ -4146,7 +4149,7 @@ async function abrirHistoricoMobile(){
     (t.data||[]).forEach(x => L.push({ d:x.created_at, n:x.profiles?.name||'Sistema', t:`criou “${String(x.action||'').slice(0,60)}”${x.clients?.name?' · '+x.clients.name:''}`, ic:'✅', id:x.id }));
     L.sort((a,b) => new Date(b.d) - new Date(a.d));
     alvo().innerHTML = L.length ? L.slice(0,30).map(x => `<button class="hist-item" ${x.id?`onclick="fecharJanela();abrirTarefaReal('${esc(x.id)}')"`:''}>
-      <span class="hq">${x.ic}</span><span class="ht"><span class="h1" style="white-space:normal">${esc(x.n)} ${esc(x.t)}</span><span class="h2">${ago(x.d)}</span></span></button>`).join('')
+      <span class="hq">${(() => { const pf = (PERFIS || []).find(z => z.name === x.n); return pf && pf.avatar_url ? `<img src="${esc(pf.avatar_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : esc(String(x.n || '?').split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase()); })()}</span><span class="ht"><span class="h1" style="white-space:normal">${esc(x.n)} ${esc(x.t)}</span><span class="h2">${x.ic} ${ago(x.d)}</span></span></button>`).join('')
       : '<div class="nota">Nenhuma ação registrada ainda.</div>';
   } catch(e){ if (alvo()) alvo().innerHTML = '<div class="nota">Entre na conta para ver o histórico.</div>'; }
 }
@@ -7679,11 +7682,13 @@ function abrirConversasMovel(){
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <div style="flex:1;min-height:0;overflow-y:auto;margin-top:10px">
       <button class="hist-item" onclick="fecharJanela();novoChat()"><span class="hq">${miniCaraIA()}</span><span class="ht"><span class="h1">Nova conversa com ${esc(nome)}</span><span class="h2">começar do zero</span></span></button>
+      <button class="hist-item" onclick="fecharJanela();abrirNovaConversa()"><span class="hq">＋</span><span class="ht"><span class="h1">Nova conversa</span><span class="h2">com qualquer pessoa ou IA</span></span></button>
+      <button class="hist-item" onclick="fecharJanela();abrirComits()"><span class="hq">${ico('<circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M3.5 19c.6-3 3-4.5 5.5-4.5s4.9 1.5 5.5 4.5M15 15c2.5-.3 4.7 1 5.3 4"/>')}</span><span class="ht"><span class="h1">Comits</span><span class="h2">grupos com pessoas, IAs e clientes</span></span></button>
       <button class="hist-item" onclick="fecharJanela();abrirChatEquipe()"><span class="hq">${ico('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>')}</span><span class="ht"><span class="h1">Chat da equipe ${nBadge?`<b style="background:#dc2626;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${nBadge}</b>`:''}</span><span class="h2">todo mundo da casa</span></span></button>
       ${CONVERSAS.map(c=>`<button class="hist-item" onclick="fecharJanela();abrirChatCom('${c.quem.replace(/'/g,'’')}')">
         <span class="hq">${c.av?`<img src="${c.av}" alt="">`:c.ini}</span><span class="ht"><span class="h1">${esc(c.quem)} <span style="opacity:.5;font-weight:400">· ${c.h}</span></span><span class="h2">${esc(c.ultima)}</span></span></button>`).join('')}
-      ${salvas.length ? `<div class="hist-sec" style="margin-top:14px">SALVAS COM ${esc(String(nome).toUpperCase())}</div>` + salvas.map(t=>`<button class="hist-item" onclick="fecharJanela();abrirThreadSalva('${t.id}')">
-        <span class="hq">${miniCaraIA()}</span><span class="ht"><span class="h1">${esc(t.titulo||'Conversa')}</span><span class="h2">${t.user_id===(perfil&&perfil.id)?(t.publico?'sua · pública':'sua · particular'):('de '+((t.profiles?.name||'').split(' ')[0]||'equipe'))} · ${dmini(t.updated_at)}</span></span></button>`).join('') : ''}
+      ${salvas.length ? `` + salvas.map(t=>`<button class="hist-item" onclick="fecharJanela();abrirThreadSalva('${t.id}')">
+        <span class="hq">${miniCaraIA()}</span><span class="ht"><span class="h1">${esc(t.titulo||'Conversa')}</span><span class="h2">${t.publico?'🌐 pública':'🔒 particular'}${t.user_id===(perfil&&perfil.id)?'':' · de '+((t.profiles?.name||'').split(' ')[0]||'equipe')} · ${dmini(t.updated_at)}</span></span></button>`).join('') : ''}
     </div></div>`, true);
 }
 function fixarHist(){
@@ -7707,7 +7712,7 @@ function pintarHist(){
     ? (threadsSalvas.length ? threadsSalvas.map(t=>{ const minha = t.user_id === (perfil&&perfil.id); return `
       <div class="hist-item" role="button" onclick="${fechaSe}abrirThreadSalva('${t.id}')">
         <span class="hq">${miniCaraIA()}</span><span class="ht"><span class="h1">${esc(t.titulo||'Conversa')}</span>
-        <span class="h2">${minha?(t.publico?'sua · pública':'sua · particular'):('de '+((t.profiles?.name||'').split(' ')[0]||'equipe')+' · pública')} · ${dmini(t.updated_at)}</span></span>
+        <span class="h2">${t.publico?'🌐 pública':'🔒 particular'}${minha?'':' · de '+((t.profiles?.name||'').split(' ')[0]||'equipe')} · ${dmini(t.updated_at)}</span></span>
         ${minha?`<span class="hist-mini" role="button" title="Renomear" onclick="event.stopPropagation();renomearThread('${t.id}')">✎</span>
         <span class="hist-mini" role="button" title="${t.publico?'Tornar particular':'Tornar pública (a equipe encontra)'}" onclick="event.stopPropagation();alternarPublica('${t.id}')">${t.publico?'⊙':'⊘'}</span>
         <span class="hist-mini" role="button" title="Apagar" onclick="event.stopPropagation();apagarThread('${t.id}')">✕</span>`:''}
@@ -7718,11 +7723,11 @@ function pintarHist(){
       <button class="hist-pin" onclick="fixarHist()" title="${histFixo?'Soltar a aba':'Manter a aba aberta'}">${histFixo?'✕ soltar':'manter aberta'}</button></div>
     ${aindaNao(() => temIA(), false) ? htmlVidaIA('compacto') : ''}
     <button class="btn hist-novo" onclick="${fechaSe}novoChat()">+ novo chat com ${esc(aindaNao(() => temIA(), false) ? (jeito.apelido || personagemAtual()?.name || 'ela') : 'a pontodot')}</button>
-    <div class="hist-sec">SALVAS COM ELA · ${window.REAL?'suas e as públicas da equipe':'exemplos'}</div>
+    <div style="display:flex;gap:6px;margin:6px 0 4px"><button class="btn" style="flex:1;min-height:34px;font-size:12px" onclick="${fechaSe}abrirNovaConversa()">＋ Nova conversa</button><button class="btn" style="flex:1;min-height:34px;font-size:12px" onclick="${fechaSe}abrirComits()">Comits</button></div>
     ${salvasHtml}
     <div class="hist-sec">PESSOAS & CLIENTES</div>
-    ${CONVERSAS.map(c=>`<button class="hist-item" onclick="${fechaSe}abrirChatCom('${c.quem.replace(/'/g,'’')}')">
-      <span class="hq">${c.av?`<img src="${c.av}" alt="">`:c.ini}</span><span class="ht"><span class="h1">${c.quem}</span><span class="h2">${esc(c.ultima)}</span></span></button>`).join('')}`;
+    ${CONVERSAS.map(c=>`<div class="hist-item" role="button" onclick="${fechaSe}abrirChatCom('${c.quem.replace(/'/g,'’')}')">
+      <span class="hq">${c.av?`<img src="${c.av}" alt="">`:c.ini}</span><span class="ht"><span class="h1">${c.quem}</span><span class="h2">${esc(c.ultima)}</span></span><span class="hist-mini" role="button" title="Limpar a conversa (só para mim)" onclick="event.stopPropagation();limparDM('${c.quem.replace(/'/g,'’')}')">✕</span></div>`).join('')}`;
 }
 function abrirHistSd(i){
   const h = HIST_SD[i];
@@ -8451,7 +8456,7 @@ function clAdmin(ev){
   if (m.classList.contains('on')){ m.classList.remove('on'); return; }
   $('#clRes').classList.remove('on');
   const btn = ([v,n]) => `<button class="cl-it" onclick="irAdmin('${v}')"><b>${n}</b></button>`;
-  const adm = ehAdmin() ? ITENS_ADMIN.map(btn).join('') + `<button class="cl-it" onclick="$('#clMenu')?.classList.remove('on');abrirEscolaGad()"><b>Escola das IAs</b></button>` : '';
+  const adm = ehAdmin() ? ITENS_ADMIN.map(btn).join('') + `<button class="cl-it" onclick="$('#clMenu')?.classList.remove('on');abrirEscolaGad()"><b>Escola das IAs</b></button><button class="cl-it" onclick="$('#clMenu')?.classList.remove('on');abrirComits('painel')"><b>Comits (ativos e fechados)</b></button>` : '';
   m.innerHTML = ehDesk() ? adm
     : `<div class="cl-sec">Pontodot completa</div>${ITENS_TOPO.map(btn).join('')}${adm ? `<div class="cl-sec">Admin</div>${adm}` : ''}`;
   m.classList.add('on');
