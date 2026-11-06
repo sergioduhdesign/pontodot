@@ -477,7 +477,7 @@ function pdZapEnviar($para, $texto, $livre = false) {
 function pdZapEnviarModelo($para, $modelo, $params) {
     $base = (defined('PD_META_BASE') ? PD_META_BASE : 'https://graph.facebook.com/') . 'v25.0';
     $lang = defined('SD_ZAP_TEMPLATE_LANG') && SD_ZAP_TEMPLATE_LANG ? SD_ZAP_TEMPLATE_LANG : 'pt_BR';
-    $ps = array_map(function ($t) { $t = trim(preg_replace('/\s*[\r\n\t]+\s*/u', ' · ', (string)$t)); $t = preg_replace('/ {4,}/', '   ', $t); return ['type' => 'text', 'text' => mb_substr($t !== '' ? $t : '-', 0, 400)]; }, $params);
+    $ps = array_map(function ($t) { $t = trim(preg_replace('/\s*[\r\n\t]+\s*/u', ' · ', (string)$t)); $t = preg_replace('/ {4,}/', '   ', $t); return ['type' => 'text', 'text' => mb_substr($t !== '' ? $t : '-', 0, 900)]; }, $params);
     $ch = curl_init($base . '/' . rawurlencode(SD_ZAP_PHONE_ID) . '/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
         CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SD_ZAP_TOKEN, 'Content-Type: application/json'],

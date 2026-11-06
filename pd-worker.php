@@ -221,14 +221,35 @@ function w_faxina() {
  * Template "hello_world" (o de teste da Meta) não tem parâmetro: vai sem.
  */
 function w_zap() {
-    $r = sd_supabase('/rest/v1/pd_zap?status=eq.fila&select=*&order=criado_em.asc&limit=10');
+    $r = sd_supabase('/rest/v1/pd_zap?status=eq.fila&select=*&order=criado_em.asc&limit=60');
     if ($r['code'] >= 300) return ['enviados' => 0, 'sem_tabela' => true];
     $tem = defined('SD_ZAP_TOKEN') && SD_ZAP_TOKEN && defined('SD_ZAP_PHONE_ID') && SD_ZAP_PHONE_ID;
     $enviados = 0; $manuais = 0;
-    foreach ((array)($r['body'] ?? []) as $z) {
+    // AGRUPA: vários avisos pra mesma pessoa viram UMA mensagem (ex.: um monte de correção de peça de uma vez).
+    // Se o último aviso é bem recente (rajada ainda chegando), espera o próximo ciclo pra juntar tudo — no máximo 4 min.
+    $grupos = [];
+    foreach ((array)($r['body'] ?? []) as $z) { $grupos[preg_replace('/\D/', '', (string)$z['para']) . '|' . ($z['client_id'] ?? '')][] = $z; }
+    $lote = [];
+    foreach ($grupos as $g) {
+        $novo = strtotime((string)end($g)['criado_em']); $velho = strtotime((string)$g[0]['criado_em']);
+        if ($novo && time() - $novo < 40 && time() - $velho < 240) continue;
+        $z = $g[0]; $z['_ids'] = implode(',', array_map(function ($x) { return (int)$x['id']; }, $g));
+        if (count($g) > 1) {
+            $linhas = []; $vistos = [];
+            foreach ($g as $x) {
+                $t = trim(preg_replace('/^🔔\s*/u', '', (string)$x['corpo'])); $t = preg_replace('/\s*\n+\s*/u', ' — ', $t);
+                $k = md5($t . '|' . ($x['link'] ?? '')); if (isset($vistos[$k])) continue; $vistos[$k] = 1;
+                $linhas[] = '• ' . mb_substr($t, 0, 170) . (!empty($x['link']) ? "\n  " . $x['link'] : '');
+            }
+            $z['corpo'] = '🔔 ' . count($linhas) . " avisos novos na plataforma:\n\n" . implode("\n\n", $linhas); $z['link'] = null;
+            if (count($linhas) === 1) { $z['corpo'] = (string)$g[0]['corpo']; $z['link'] = $g[0]['link'] ?? null; }
+        }
+        $lote[] = $z;
+    }
+    foreach ($lote as $z) {
         $texto = trim($z['corpo'] . (!empty($z['link']) ? "\n" . $z['link'] : ''));
         if (!$tem) {
-            sd_supabase('/rest/v1/pd_zap?id=eq.' . (int)$z['id'], 'PATCH', ['status' => 'manual']);
+            sd_supabase('/rest/v1/pd_zap?id=in.(' . $z['_ids'] . ')', 'PATCH', ['status' => 'manual']);
             $tel = preg_replace('/\D/', '', (string)$z['para']);
             pdAlarme('outro', 'Zap pra mandar na mão — ' . ($z['quem'] ?: $z['para']),
                 mb_substr($texto, 0, 180), $z['task_id'] ?? null,
@@ -240,7 +261,7 @@ function w_zap() {
         }
         [$code, $raw] = pdZapEnviar(preg_replace('/\D/', '', (string)$z['para']), $texto);
         if ($code === 200) {
-            sd_supabase('/rest/v1/pd_zap?id=eq.' . (int)$z['id'], 'PATCH', ['status' => 'enviado', 'enviado_em' => date('c')]);
+            sd_supabase('/rest/v1/pd_zap?id=in.(' . $z['_ids'] . ')', 'PATCH', ['status' => 'enviado', 'enviado_em' => date('c')]);
             if (!empty($z['task_id'])) pdEvento($z['task_id'], 'zap', 'Zap enviado', ($z['quem'] ?: $z['para']) . ': ' . mb_substr($z['corpo'], 0, 120), 'Robô', 'robo');
             $enviados++;
             $dg = preg_replace('/\D/', '', (string)$z['para']);
@@ -252,7 +273,7 @@ function w_zap() {
                 pdAvisoLog('whatsapp', $z['para'], $z['quem'] ?? null, null, $texto, 'erro', 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 200), empty($z['client_id']) ? 'equipe' : 'cliente', 'z' . $z['id'], $z['client_id'] ?? null);
                 if (empty($z['client_id'])) pdEmailEspelho(preg_replace('/\D/', '', (string)$z['para']), $texto, 'z' . $z['id']);
             }
-            sd_supabase('/rest/v1/pd_zap?id=eq.' . (int)$z['id'], 'PATCH',
+            sd_supabase('/rest/v1/pd_zap?id=in.(' . $z['_ids'] . ')', 'PATCH',
                 ['tentativas' => $t, 'status' => $t >= 3 ? 'erro' : 'fila', 'erro' => 'HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 300)]);
         }
     }
