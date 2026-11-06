@@ -48,6 +48,21 @@ html.emb .gcapa{height:104px}
 html.emb .gtopo .insc{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 html.emb .gtopo .ja{color:var(--ok);border-color:var(--ok)}
 .titulo-emb,.sub-emb{display:none}
+.capa{flex:0 0 auto}.card{min-height:0}
+html.emb .capa{height:auto;aspect-ratio:4/3;background-size:cover}
+html.emb .card{flex-shrink:0}
+html.emb .gav,html.emb #fundo{display:none!important}
+#det{display:none}html.emb #det.on{display:flex;flex-direction:column;flex:1;min-height:0}html.emb #grid.off,html.emb .sub-emb.off{display:none}
+#det .dtopo{display:flex;align-items:center;gap:10px;padding:6px 24px 12px;border-bottom:1px solid var(--line)}#det .dtopo .sp{flex:1}
+#det .dcorpo{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:20px 24px 32px;display:grid;grid-template-columns:minmax(240px,340px) 1fr;gap:28px;align-items:start}
+#det .dimg{position:sticky;top:0}#det .dimg img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;background:var(--line)}
+#det .dimg .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+#det h2{font-size:24px;line-height:1.2;margin:0 0 6px;font-weight:600;letter-spacing:-.02em}#det .lead{color:var(--gray);font-size:14.5px;margin:0 0 4px}
+#det .bloco{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}#det .bloco h4{margin:0 0 10px}
+#det ol.pas{list-style:none;margin:0;padding:0;counter-reset:p;display:grid;gap:8px}#det ol.pas li{counter-increment:p;display:flex;gap:12px;font-size:13.5px;line-height:1.5}
+#det ol.pas li::before{content:counter(p);flex:0 0 24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;display:grid;place-items:center;margin-top:1px}
+#det ul.ck{list-style:none;padding:0;margin:0;display:grid;gap:6px}#det ul.ck li{display:flex;gap:10px;font-size:13.5px}#det ul.ck li::before{content:"✓";color:var(--ok);font-weight:700}
+@media(max-width:700px){#det .dcorpo{grid-template-columns:1fr}#det .dimg{position:static}}
 </style></head><body>
 <div class="topo"><a href="/" style="display:flex"><img class="lg lg-e" src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot · Escola"><img class="lg lg-c" src="/assets/logo-pontodot-escola-preto.svg" alt="Pontodot · Escola"></a><h1>bastidores</h1><h1 class="titulo-emb">Cursos de Catum</h1>
   <button class="btn p" onclick="pedirVazios()">Pedir à professora o que falta</button>
@@ -56,7 +71,7 @@ html.emb .gtopo .ja{color:var(--ok);border-color:var(--ok)}
   <span class="sp"></span><select id="filtro" onchange="draw()"><option value="">Todas</option><option value="ativa">Com conteúdo</option><option value="vazia">Sem conteúdo</option><option value="parada">Paradas</option></select></div>
 <div class="sub-emb">Escolha um curso e inscreva a sua IA. Ela treina com os seus trabalhos reais e, toda semana, mostramos se as correções diminuem.</div><div class="dica">A professora (GPT) escreve e atualiza as aulas com base no conhecimento dela: você só pede, e a PD publica quando ela devolver. Também dá para baixar a planilha, preencher com o Claude ou o GPT e subir aqui — se a aula já existe, vira nova versão.</div>
 <div class="fundo" id="subir" onclick="if(event.target===this)this.classList.remove('on')" style="align-items:center;justify-content:center"><div class="drop"><b>Subir aula ou skill</b><p>Use a planilha padrão preenchida. Se o ID da aula já existe, vira uma nova versão; vazio, cria.</p><button class="btn p" onclick="$('#arq').click()">Escolher planilha (.xlsx)</button> <button class="btn" onclick="baixarModelo()">Baixar modelo</button></div></div>
-<div id="grid" class="grid"><div class="msg">Carregando…</div></div>
+<div id="det"></div><div id="grid" class="grid"><div class="msg">Carregando…</div></div>
 <div class="fundo" id="fundo" onclick="fecha()"></div><div class="gav" id="gav"></div><div class="toast" id="toast"></div>
 <script>
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
@@ -87,7 +102,20 @@ function draw(){const f=$('#filtro').value;$('#grid').innerHTML=itens().filter(i
   <p>${esc(s?(s.finalidade||'').slice(0,100):'Baixe a planilha, preencha e suba.')}</p>
   <div class="faces">${al.slice(0,6).map(a=>`<img src="${face(a.personagem)}" title="${esc(a.nome)} · IA do ${esc(a.dona)}">`).join('')}<span>${al.length} estudando</span></div></div></div>`}).join('');}
 function itemDe(id){return itens().find(i=>i.id===id);}
-function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
+function passos(t){const l=String(t||'').split(/\n+/).map(x=>x.replace(/^\s*(\d+[.)]|[-•*])\s*/,'').trim()).filter(Boolean);return l;}
+function abreEmb(id){const i=itemDe(id);if(!i||!i.s)return;SEL=id;const s=i.s;
+  const crit=(s.criterios||[]).map(x=>typeof x==='string'?x:x.criterio);
+  const acao=s.inscrita?'<span class="btn ja" style="cursor:default">✓ Sua IA está inscrita</span>':PODE?`<button class="btn insc" onclick="inscrever('${esc(id)}','${esc(i.curso)}')">Inscrever a minha IA</button>`:'<span class="btn" style="cursor:default">Peça ao admin para liberar a matrícula</span>';
+  $('#det').innerHTML=`<div class="dtopo"><button class="btn" onclick="fecha()">‹ Voltar aos cursos</button><span class="sp"></span>${acao}</div>
+  <div class="dcorpo"><div class="dimg"><img src="${i.capa}" alt=""><div class="meta"><span class="tag ok">v${s.versao}</span><span class="tag">${esc(i.area)}</span><span class="tag">${s.alunos.filter(a=>a.ativa).length} estudando</span></div></div>
+  <div><h2>${esc(i.titulo)}</h2><p class="lead">${esc(s.finalidade)}</p>
+  ${(s.entradas||[]).length?`<div class="bloco"><h4>O que precisa chegar</h4><ul class="ck">${s.entradas.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+  <div class="bloco"><h4>Como a IA faz</h4><ol class="pas">${passos(s.metodo).map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ol></div>
+  ${crit.length?`<div class="bloco"><h4>Como se avalia</h4><ul class="ck">${crit.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+  ${s.limites?`<div class="bloco"><h4>O que fica com a pessoa</h4><p class="pre">${esc(s.limites)}</p></div>`:''}
+  <div class="bloco"><h4>Quem está estudando (${s.alunos.length})</h4>${s.alunos.map(a=>`<div class="al"><img src="${face(a.personagem)}"><div class="t"><b>${esc(a.nome)}</b>${a.dona?' · IA do '+esc(a.dona):''}</div></div>`).join('')||'<div class="vz">Ninguém inscrito ainda.</div>'}</div></div></div>`;
+  $('#grid').classList.add('off');document.querySelector('.sub-emb').classList.add('off');$('#det').classList.add('on');$('#det .dcorpo').scrollTop=0;}
+function abre(id){if(EMB)return abreEmb(id);SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
   const taxa=s&&s.aulas?Math.round(100*s.validadas/s.aulas)+'%':'—';
   const livres=IAS.filter(x=>!(s?s.alunos:[]).some(a=>a.ia_user_id===x.ia_user_id));
   $('#gav').innerHTML=EMB?`<div class="gtopo">${s&&s.inscrita?'<span class="btn ja" style="cursor:default">✓ Sua IA está inscrita</span>':PODE?`<button class="btn insc" onclick="inscrever('${esc(id)}','${esc(i.curso)}')">Inscrever a minha IA</button>`:'<span class="btn" style="cursor:default">Peça ao admin para liberar a matrícula</span>'}<span class="sp"></span><button class="btn" onclick="fecha()">✕</button></div>
@@ -107,7 +135,7 @@ function abre(id){SEL=id;const i=itemDe(id);if(!i)return;const s=i.s;
   <h4>Histórico de versões</h4>${s.versoes.map(v=>`<div class="ver"><b>v${v.versao}</b><div>${v.notas?esc(v.notas):'<span>—</span>'}<br><span>${new Date(v.criada_em).toLocaleDateString('pt-BR')}${v.origem?' · '+esc(v.origem):''}</span></div></div>`).join('')}</div>`
   :`<div class="pad"><h4>Conteúdo</h4><div class="vz">${pedAberto(id)?'Pedido com a professora desde '+new Date(pedAberto(id).criado_em).toLocaleDateString('pt-BR')+'. Quando ela devolver o AULA.json, a PD publica sozinha.'+(pedAberto(id).erro?'<br><b>Última rejeição:</b> '+esc(pedAberto(id).erro):''):'Esta aula ainda não tem conteúdo. Peça à professora (ela escreve a partir do conhecimento dela, com as diretrizes do curso) ou baixe a planilha e suba preenchida.'}</div></div>`}</div>`;
   $('#fundo').classList.add('on');document.documentElement.classList.add('trava');$('#gav').classList.add('on');}
-function fecha(){SEL=null;$('#fundo').classList.remove('on');document.documentElement.classList.remove('trava');$('#gav').classList.remove('on');}
+function fecha(){if(EMB){SEL=null;$('#det').classList.remove('on');$('#grid').classList.remove('off');document.querySelector('.sub-emb').classList.remove('off');return;}SEL=null;$('#fundo').classList.remove('on');document.documentElement.classList.remove('trava');$('#gav').classList.remove('on');}
 // ---------- a planilha padrão ----------
 const CAMPOS=[['ID_DA_AULA','Deixe como está. Vazio = aula nova; preenchido = nova versão desta aula.'],['CURSO','Curso da Escola ao qual esta aula pertence (nix, iro, zumi, nami, kiro, sago, oru, sumi, brum, taro, koda, boku, gigi, raku, tumi, muru). Pode ficar vazio.'],['NOME','Nome curto da aula/skill. Ex.: Arte de post (feed 1080×1080).'],['OBJETIVO','Para que serve: o que a IA passa a saber fazer, em 1 ou 2 frases.'],['ENTRADAS','O que precisa chegar para a IA trabalhar. Uma por linha.'],['METODO','Passo a passo e o que a IA decide sozinha. Texto corrido, passos numerados.'],['CRITERIOS','Como se avalia o resultado: critérios observáveis, um por linha (mínimo 2).'],['LIMITES','O que exige decisão humana (publicar, preço, prometer ao cliente…).'],['EXEMPLO_BOM','Um exemplo de entrega boa (opcional).'],['EXEMPLO_RUIM','Um exemplo de entrega ruim, com o motivo (opcional).'],['O_QUE_MUDOU','Só para versão nova: o que esta versão traz de novo, em 1 frase.']];
 function baixarModelo(id){const i=id?itemDe(id):null,s=i&&i.s;
