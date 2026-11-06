@@ -1125,6 +1125,8 @@ AP.subirMidia = async function(f, clientId, setId, extra){
   // Drive e, na faxina do mês, o gestor libera a limpeza do que já tem
   // cópia conferida. O Drive vira acervo; o Supabase vira bancada.
   const ext = f.type === 'image/jpeg' ? 'jpg' : ((f.name.split('.').pop() || 'bin').toLowerCase());
+  let motivoSb = '', motivoDr = '';
+  const mb = (f.size / 1048576).toFixed(0) + ' MB';
   try {
     const caminho = `${clientId}/${setId}/${crypto.randomUUID()}.${ext}`;
     const { error } = await sb.storage.from('aprovacao').upload(caminho, f, { contentType: f.type || AP.mime(f.name) });
@@ -1134,15 +1136,19 @@ AP.subirMidia = async function(f, clientId, setId, extra){
       mime: f.type || AP.mime(f.name), source: 'storage' }, meta);
   } catch (e) {
     // bancada fora do ar não trava ninguém: cai no Drive (o caminho antigo)
-    console.warn('[SD] Supabase recusou, caindo no Drive:', e && e.message);
+    motivoSb = (e && e.message) || 'sem detalhe';
+    console.warn('[SD] Supabase recusou, caindo no Drive:', motivoSb);
   }
   try {
     const nova = await AP.subirNoDrive(f, clientId, setId);
     if (nova) return Object.assign(nova, meta);
   } catch (e) {
-    console.warn('[SD] Drive também recusou:', e && e.message);
-    if (typeof AP.aviso === 'function') AP.aviso('Nem Supabase nem Drive aceitaram a arte — confere a conexão.');
-    throw new Error('Falha ao subir ' + f.name);
+    motivoDr = (e && e.message) || 'sem detalhe';
+    console.warn('[SD] Drive também recusou:', motivoDr);
+    const grande = f.size > 45 * 1048576;
+    const dica = grande ? ' O arquivo tem ' + mb + ' — provavelmente passou do limite de envio. Comprime o vídeo (até ~40 MB) e tenta de novo.' : '';
+    if (typeof AP.aviso === 'function') AP.aviso('Nem Supabase nem Drive aceitaram a arte.' + dica);
+    throw new Error('Falha ao subir ' + f.name + ' (' + mb + ') — Supabase: ' + motivoSb + ' · Drive: ' + motivoDr + '.' + dica);
   }
 };
 
