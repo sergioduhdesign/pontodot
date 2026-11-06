@@ -12,7 +12,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.5 "Inter Tight",system-ui,sans-serif}
 .topo{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .topo h1{font-size:20px;margin:0 8px 0 0;font-weight:600;letter-spacing:-.02em}.topo .sp{flex:1}
-.btn{font:500 13px "Inter Tight";padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.r{color:var(--bad);border-color:var(--bad)}
+.btn{font:500 13px "Inter Tight",system-ui,sans-serif;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn.r{color:var(--bad);border-color:var(--bad)}
 .dica{padding:10px 22px;color:var(--gray);font-size:13px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;padding:6px 22px 60px}
 .card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--soft);cursor:pointer;display:flex;flex-direction:column}.card:hover{border-color:var(--ink)}
@@ -62,6 +62,16 @@ html.emb .gav,html.emb #fundo{display:none!important}
 #det ol.pas{list-style:none;margin:0;padding:0;counter-reset:p;display:grid;gap:8px}#det ol.pas li{counter-increment:p;display:flex;gap:12px;font-size:13.5px;line-height:1.5}
 #det ol.pas li::before{content:counter(p);flex:0 0 24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;display:grid;place-items:center;margin-top:1px}
 #det ul.ck{list-style:none;padding:0;margin:0;display:grid;gap:6px}#det ul.ck li{display:flex;gap:10px;font-size:13.5px}#det ul.ck li::before{content:"✓";color:var(--ok);font-weight:700}
+/*ec*/
+html.emb #grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:max-content;gap:18px}
+html.emb .card.ec{min-height:auto;overflow:hidden;border-radius:18px}
+html.emb .card.ec .capa{width:100%;aspect-ratio:4/3;height:auto}
+html.emb .card.ec .cc{padding:14px 16px 16px;gap:8px}
+html.emb .card.ec .area{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray)}
+html.emb .card.ec h3{font-size:17px;line-height:1.2;margin:0}
+html.emb .card.ec p{font-size:13px;line-height:1.5;color:var(--ink);opacity:.78;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+html.emb .card.ec .meta{display:flex;flex-wrap:wrap;gap:6px}
+html.emb .card.ec .ver-c{margin-top:6px;width:100%;text-align:center}
 @media(max-width:700px){#det .dcorpo{grid-template-columns:1fr}#det .dimg{position:static}}
 </style></head><body>
 <div class="topo"><a href="/" style="display:flex"><img class="lg lg-e" src="/assets/logo-pontodot-escola-white.svg" alt="Pontodot · Escola"><img class="lg lg-c" src="/assets/logo-pontodot-escola-preto.svg" alt="Pontodot · Escola"></a><h1>bastidores</h1><h1 class="titulo-emb">Cursos de Catum</h1>
@@ -96,7 +106,13 @@ function itens(){if(EMB)return CURSOS.filter(c=>sk(c.skill)).map(c=>({id:c.skill
   const b=SK.filter(s=>!usados.has(s.skill_id)).map(s=>({id:s.skill_id,curso:'',titulo:s.nome,area:'Skill de trabalho',capa:'',s}));return a.concat(b);}
 function pedAberto(id){return PED.find(p=>p.skill_id===id&&p.status==='pedido');}
 function estado(i){return !i.s?'vazia':i.s.pausada?'parada':'ativa';}
-function draw(){const f=$('#filtro').value;$('#grid').innerHTML=itens().filter(i=>!f||estado(i)===f).map(i=>{const s=i.s,e=estado(i),al=s?s.alunos.filter(a=>a.ativa):[];
+function drawEmb(){$('#grid').innerHTML=itens().map(i=>{const s=i.s,al=s.alunos.filter(a=>a.ativa);
+  return `<div class="card ec" onclick="abre('${esc(i.id)}')"><div class="capa" style="background-image:url(${i.capa})"></div>
+  <div class="cc"><span class="area">${esc(i.area)}</span><h3>${esc(i.titulo)}</h3><p>${esc(s.finalidade||'')}</p>
+  <div class="meta"><span class="tag">⏱ 4 semanas</span>${s.inscrita?'<span class="tag ok">✓ sua IA está inscrita</span>':''}</div>
+  <div class="faces">${al.slice(0,5).map(a=>`<img src="${face(a.personagem)}" title="${esc(a.nome)} · IA do ${esc(a.dona)}">`).join('')}<span>${al.length?al.length+' estudando':'ninguém ainda'}</span></div>
+  <button class="btn p ver-c">${s.inscrita?'Ver o curso':'Ver e inscrever'}</button></div></div>`}).join('');}
+function draw(){const f=$('#filtro').value;if(EMB)return drawEmb();$('#grid').innerHTML=itens().filter(i=>!f||estado(i)===f).map(i=>{const s=i.s,e=estado(i),al=s?s.alunos.filter(a=>a.ativa):[];
   return `<div class="card" onclick="abre('${esc(i.id)}')"><div class="capa" style="${i.capa?`background-image:url(${i.capa})`:'background:linear-gradient(135deg,#2a2d35,#14161a)'}"><i></i><b>${esc(i.area)}</b></div>
   <div class="cc"><h3>${esc(i.titulo)}</h3><div><span class="tag ${e==='ativa'?'ok':e==='parada'?'par':'vz'}">${e==='ativa'?'v'+s.versao:e==='parada'?'parada':'sem conteúdo'}</span>${pedAberto(i.id)?' <span class="tag par">com a professora</span>':''}</div>
   <p>${esc(s?(s.finalidade||'').slice(0,100):'Baixe a planilha, preencha e suba.')}</p>
