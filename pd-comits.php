@@ -34,7 +34,7 @@ if ($acao === 'criar') {
     echo json_encode(['ok' => true, 'comit' => $c], JSON_UNESCAPED_UNICODE);
     if (function_exists('fastcgi_finish_request')) fastcgi_finish_request(); else { @ob_flush(); @flush(); }
     ignore_user_abort(true); @set_time_limit(180);
-    try { $mm = cmtMembros($c['id']); if (array_filter($mm, fn($m) => $m['tipo'] === 'ia')) cmtIAsResponderem($c, $mm, 'ABERTURA DO COMIT "' . $c['titulo'] . '"' . ($c['assunto'] ? ': ' . $c['assunto'] : ''), 0, 'humano', true); } catch (Throwable $e) {}
+    try { $mm = cmtMembros($c['id']); if (array_filter($mm, fn($m) => $m['tipo'] === 'ia')) cmtIAsResponderem($c, $mm, 'ABERTURA DO COMIT "' . $c['titulo'] . '"' . ($c['assunto'] ? ': ' . $c['assunto'] : ''), 0, 'humano', true, $u); } catch (Throwable $e) {}
     exit;
 }
 // daqui pra baixo: precisa de um comit que a pessoa possa ver
@@ -61,7 +61,7 @@ if ($acao === 'enviar') {
     if (function_exists('fastcgi_finish_request')) fastcgi_finish_request(); else { @ob_flush(); @flush(); }
     ignore_user_abort(true); @set_time_limit(180);
     cmtAvisar($c, $mem, $eu, $nome, $t, $imp);
-    cmtIAsResponderem($c, $mem, $t);
+    cmtIAsResponderem($c, $mem, $t, 0, 'humano', false, $u);
     exit;
 }
 if ($acao === 'add') {

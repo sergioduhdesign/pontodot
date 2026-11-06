@@ -74,7 +74,7 @@ function cmtAvisar($c, $mem, $autorRef, $autorNome, $texto, $importante) {
     }
 }
 /** as IAs do grupo respondem quando chamadas pelo nome (ou quando é a única IA e uma pessoa falou). Uma IA pode chamar outra (até 2 voltas). */
-function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'humano', $abertura = false) {
+function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'humano', $abertura = false, $quemU = null) {
     if ($profundidade > 2) return;
     $ias = array_values(array_filter($mem, fn($m) => $m['tipo'] === 'ia')); if (!$ias) return;
     $pers = pdPersonagens();
@@ -95,13 +95,33 @@ function cmtIAsResponderem($c, $mem, $texto, $profundidade = 0, $autorTipo = 'hu
     $hist = (array)(sd_supabase('/rest/v1/pd_comit_msgs?comit_id=eq.' . urlencode($c['id']) . '&select=autor_nome,autor_tipo,texto&order=id.desc&limit=18')['body'] ?? []);
     $transcr = ''; foreach (array_reverse($hist) as $h) $transcr .= $h['autor_nome'] . ($h['autor_tipo'] === 'ia' ? ' (IA)' : '') . ': ' . $h['texto'] . "\n";
     $lista = implode('; ', array_map(fn($m) => $m['nome'] . ' (' . ($m['tipo'] === 'ia' ? 'IA' : ($m['tipo'] === 'cliente' ? 'cliente' : 'pessoa da equipe')) . ')', $mem));
+    // AS MESMAS MÃOS DO ZAP: a IA do comit executa de verdade (recado por WhatsApp, delegar, criar/mudar tarefa, lembrete…) em nome de quem está falando
+    $perfilU = null; $statusValidos = []; $maos = '';
+    if ($quemU && !empty($quemU['id'])) {
+        try { $perfilU = sd_supabase('/rest/v1/profiles?id=eq.' . urlencode((string)$quemU['id']) . '&select=*&limit=1')['body'][0] ?? null; } catch (\Throwable $e) {}
+        try { foreach ((array)(sd_supabase('/rest/v1/tasks?select=status&limit=400')['body'] ?? []) as $t) if (!empty($t['status'])) $statusValidos[(string)$t['status']] = 1; $statusValidos = array_keys($statusValidos); foreach (['BRIEFING','ENTREGUE'] as $sv) if (!in_array($sv, $statusValidos, true)) $statusValidos[] = $sv; } catch (\Throwable $e) {}
+    }
+    if ($perfilU) {
+        $minhas = []; try { foreach ((array)(sd_supabase('/rest/v1/tasks?select=id,action,status,date_int,resp,clients(name)&status=neq.ENTREGUE&order=date_int.asc.nullslast&limit=60')['body'] ?? []) as $t) $minhas[] = $t['id'] . ' ' . mb_substr((string)$t['action'], 0, 50) . ' [' . $t['status'] . '] ' . ($t['clients']['name'] ?? ''); } catch (\Throwable $e) {}
+        $maos = 'VOCÊ EXECUTA DE VERDADE, como no WhatsApp: tem as mesmas mãos de ' . ($perfilU['name'] ?? 'quem pediu') . ' (a pessoa que está falando). Se alguém pedir para chamar, avisar ou falar com uma pessoa da equipe, NUNCA diga que não consegue mandar mensagem no WhatsApp — você leva o recado: escreva no FIM da resposta uma linha ##ACAO## {"tipo":"recado","para":"PRIMEIRO NOME DA PESSOA","texto":"a mensagem pronta, curta, dizendo de quem é o pedido e que o assunto está rolando no comit \"' . $c['titulo'] . '\""}. Também pode: {"tipo":"delegar","para":"tumi|sumi|muru|gigi","pedido":"…","cliente":"opcional"} · {"tipo":"criar","novas":[{"action":"…","cliente":"…","resp":"quem","obs":"briefing"}]} · {"tipo":"mudar","task_id":"SD-123","campos":{"status":"…","date_int":"AAAA-MM-DD","resp":"…"}} · {"tipo":"nota","task_id":"SD-123","texto":"…"} · {"tipo":"lembrete","op":"criar","texto":"…","quando":"AAAA-MM-DD HH:MM"}. Ordem clara = execute, sem pedir licença. NUNCA escreva ✅, \"pronto\" ou \"avisei\" por conta própria: o sistema confirma o resultado real logo abaixo. Se não for pedido para agir, só converse. Agora (SP): ' . (new \DateTime('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d H:i l') . '. Tarefas abertas (para IDs): ' . implode(' | ', array_slice($minhas, 0, 40));
+    } else $maos = 'Você não executa ações neste momento: converse e proponha o próximo passo.';
     foreach ($quem as $q) {
         $p = $pers[$q['ref']] ?? null; if (!$p) continue;
-        $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, curto e direto (até 5 linhas), sem se apresentar de novo. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.';
-        [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 700);
+        $sys = 'Você é ' . $p[0] . ', ' . $p[2] . ' (' . $p[3] . '), uma IA da casa pontodot — agência de branding do mercado imobiliário. ' . $p[4] . ' Está no grupo (comit) "' . $c['titulo'] . '"' . ($c['assunto'] ? ' sobre: ' . $c['assunto'] : '') . '. Participantes: ' . $lista . '. Sabe quem é quem, e que as outras IAs da casa são suas colegas: pode chamá-las pelo nome quando o assunto for delas. Responda em português do Brasil, curto e direto (até 5 linhas), sem se apresentar de novo. SEJA PROATIVA: não espere ser chamada. Traga o que você sabe, aponte riscos e lacunas, proponha o próximo passo e quem deve fazê-lo, faça a pergunta que destrava; se o assunto é de outra IA, passe a bola chamando-a pelo nome. Só afirme o que a conversa sustenta.'
+            . "\n\n" . pdElencoTexto() . "\n\n" . $maos;
+        [$resp, , $err] = pdClaude($sys, "Conversa até agora:\n" . $transcr . ($abertura ? "\nO comit acabou de ser aberto: apresente em 2 linhas, como " . $p[0] . ', o que você traz para este assunto e proponha o primeiro passo.' : "\nResponda como " . $p[0] . ' à última mensagem.'), 1100);
         if (!$resp) continue;
-        cmtMsg($c['id'], 'ia', $q['ref'], $p[0], $resp);
-        cmtIAsResponderem($c, $mem, $resp, $profundidade + 1, 'ia');
+        $feitos = [];
+        if ($perfilU && preg_match_all('/^[ \t]*(?:##ACAO##\s*)?(\{"tipo".*\})\s*$/mu', $resp, $am)) {
+            $resp = trim(preg_replace('/^[ \t]*(?:##ACAO##\s*)?\{"tipo".*\}\s*$/mu', '', $resp));
+            foreach (array_slice(array_values(array_unique($am[1])), 0, 6) as $aj) { $ao = json_decode($aj, true);
+                if (is_array($ao)) { try { $r = pdZapAcao($ao, $perfilU, $statusValidos); if (trim((string)$r) !== '') $feitos[] = $r; } catch (\Throwable $e) { $feitos[] = '⚠️ ' . mb_substr($e->getMessage(), 0, 140); } } }
+            $resp = trim(preg_replace('/\s*[✅✔]+\s*/u', ' ', $resp));
+        }
+        if ($resp !== '') cmtMsg($c['id'], 'ia', $q['ref'], $p[0], $resp);
+        if ($feitos) cmtMsg($c['id'], 'sistema', null, 'PD', implode("\n", $feitos));
+        if ($resp === '') continue;
+        cmtIAsResponderem($c, $mem, $resp, $profundidade + 1, 'ia', false, $quemU);
     }
 }
 function cmtFechar($c, $quemNome) {
