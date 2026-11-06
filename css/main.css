@@ -1358,7 +1358,7 @@ html[data-theme="dark"] .av-bolha{background:#005c4b;color:#e9edef}html[data-the
 
 /* escola agêntica: quem estuda e como funciona */
 .esc-quem h4,.esc-como h4{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin:18px 0 8px;font-weight:500}.esc-al{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px}.esc-al img{width:32px;height:32px;border-radius:50%;object-fit:cover}.esc-al em{opacity:.55;font-style:normal;font-size:12px}.esc-como p{font-size:13.5px;line-height:1.55;margin:0 0 6px}.esc-como ul{margin:0;padding-left:18px;font-size:13px;line-height:1.55}
-.esc-cur-tx{max-height:80vh;overflow-y:scroll}
+.esc-cur-tx{max-height:80vh;overflow-y:auto}
 
 /* ===== v420 — caixas da Escola: medidas certas, centradas, rolagem só no texto ===== */
 #esc-pop .esc-pop-caixa{display:flex;flex-direction:column;width:min(560px,calc(100vw - 24px));max-height:min(84vh,780px);padding:0!important;overflow:hidden;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45)}

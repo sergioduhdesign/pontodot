@@ -5,6 +5,9 @@ require_once __DIR__ . '/pd-comits-lib.php';
 header('Content-Type: application/json; charset=utf-8');
 $u = sd_current_user(); $b = sd_body(); $acao = (string)($b['acao'] ?? 'listar');
 function ok($d = []) { echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE); exit; }
+// as tabelas existem? (SQL v170) — sem isso, resposta clara em vez de erro 500
+$sonda = sd_supabase('/rest/v1/pd_comits?select=id&limit=1');
+if (($sonda['code'] ?? 500) >= 300) sd_fail('Falta rodar o SQL v170 (migration_v170_comits.sql) no Supabase.', 503);
 $eu = $u['id']; $nome = $u['name'] ?? ($u['email'] ?? 'Alguém'); $adm = cmtEhAdmin($u); $cliente = !empty($u['client_id']);
 
 if ($acao === 'pessoas') { $p = cmtPessoas(); if ($cliente) $p['humanos'] = array_values(array_filter($p['humanos'], fn($x) => $x['ref'] === $eu)); ok($p + ['admin' => $adm]); }
@@ -12,7 +15,7 @@ if ($acao === 'pessoas') { $p = cmtPessoas(); if ($cliente) $p['humanos'] = arra
 if ($acao === 'listar') {
     $st = ($b['status'] ?? 'aberto') === 'fechado' ? 'fechado' : 'aberto';
     $meus = (array)(sd_supabase('/rest/v1/pd_comit_membros?ref=eq.' . urlencode($eu) . '&select=comit_id')['body'] ?? []);
-    $ids = array_values(array_unique(array_map(fn($x) => $x['comit_id'], $meus)));
+    $ids = array_values(array_unique(array_map(fn($x) => is_array($x) ? ($x['comit_id'] ?? '') : '', $meus)));
     $q = '/rest/v1/pd_comits?status=eq.' . $st . '&select=id,titulo,assunto,status,publico,ultima_em,created_at,fechado_em&order=ultima_em.desc&limit=200';
     if (!$adm) $q .= $cliente ? '&id=in.(' . ($ids ? implode(',', $ids) : '00000000-0000-0000-0000-000000000000') . ')' : '&or=(publico.is.true' . ($ids ? ',id.in.(' . implode(',', $ids) . ')' : '') . ')';
     $L = (array)(sd_supabase($q)['body'] ?? []);
@@ -78,7 +81,7 @@ if ($acao === 'publico') {
 if ($acao === 'buscar') {
     $q = trim((string)($b['q'] ?? '')); if (mb_strlen($q) < 2) ok(['grupos' => []]);
     $meus = (array)(sd_supabase('/rest/v1/pd_comit_membros?ref=eq.' . urlencode($eu) . '&select=comit_id')['body'] ?? []);
-    $ids = array_values(array_unique(array_map(fn($x) => $x['comit_id'], $meus)));
+    $ids = array_values(array_unique(array_map(fn($x) => is_array($x) ? ($x['comit_id'] ?? '') : '', $meus)));
     $f = '/rest/v1/pd_comit_msgs?texto=ilike.' . rawurlencode('*' . str_replace(['*', ','], ' ', $q) . '*') . '&select=id,comit_id,autor_nome,texto,created_at,pd_comits(titulo,status,publico)&order=id.desc&limit=120';
     if (!$adm) $f .= '&comit_id=in.(' . ($ids ? implode(',', $ids) : '00000000-0000-0000-0000-000000000000') . ')';
     $hits = (array)(sd_supabase($f)['body'] ?? []); $g = [];

@@ -37,7 +37,7 @@ function abrirNovaTarefa(maeId){
   ov.onclick = e => { if (e.target === ov) fecharNovaTarefa(); };
   ov.innerHTML = `<style>
     #ntfOv{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
-    #ntfOv .ntf{background:#F4F3EF;color:#15161A;width:min(720px,100%);max-height:94vh;overflow-y:scroll;border-radius:20px;padding:20px 26px 26px;font-weight:300;position:relative}
+    #ntfOv .ntf{background:#F4F3EF;color:#15161A;width:min(720px,100%);max-height:94vh;overflow-y:auto;border-radius:20px;padding:20px 26px 26px;font-weight:300;position:relative}
     #ntfOv .ntf-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}#ntfOv .ntf-top b{flex:1;font-weight:400;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.55}
     #ntfOv .ntf-ok{background:#15161A;color:#fff;border:0;border-radius:999px;padding:10px 20px;font:500 13px inherit;cursor:pointer}#ntfOv .ntf-ok:disabled{opacity:.5}
     #ntfOv .ntf-x{background:transparent;border:0;font-size:18px;cursor:pointer;color:#15161A;padding:6px 10px}
