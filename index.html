@@ -276,6 +276,17 @@ html.dia .frente{background:#F4F3EF}
 .rs-card.on{outline:2px solid #15803D;outline-offset:2px}
 
 
+/* ===== v421 — CELULAR: tudo que abre é tela escura inteira, X no mesmo lugar, texto branco (a Escola segue branca: é outra página) ===== */
+@media (max-width:700px){
+  #janela .j-caixa,#janela .j-caixa.grande{position:fixed;inset:0;width:100vw;height:100dvh;max-height:none;border-radius:0;background:#0b0c0b;color:#fff;overflow-y:auto;overscroll-behavior:contain;padding:0;z-index:2}
+  #janela .caixa{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;min-height:100%;height:auto;color:#fff;--branco:#fff;--branco2:rgba(255,255,255,.7);--branco3:rgba(255,255,255,.45);padding-top:calc(env(safe-area-inset-top) + 18px)!important}
+  #janela .caixa>div:first-child{padding-right:50px}
+  #janela .acao-cab[aria-label="Fechar"],#janela .caixa .fechar,#janela .caixa .gad-x{position:fixed!important;top:calc(env(safe-area-inset-top) + 10px);right:12px;z-index:20;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.14)!important;color:#fff!important;display:grid;place-items:center}
+  #janela iframe{background:transparent}
+  #clTema,#btnTema,#btnTemaTop{display:none!important}
+  #pdSheet,.menu-ctx.folha{background:#16181a;color:#fff}
+}
+
 /* ===== PERFIL DA PESSOA — a mesma ficha da Minha IA ===== */
 .pf .mia-ficha{border-radius:var(--r)}
 .pf-foto{background:rgba(127,127,127,.25);cursor:pointer;position:relative;overflow:hidden}
@@ -8570,12 +8581,13 @@ setInterval(()=>{ try {
 document.addEventListener('click', e => { if (!e.target.closest('#clBusca,#clRes')) { const b = $('#clBusca'); if (b && b.classList.contains('aberta')) clFecharBusca(); } });
 
 function alternarTema(){
+  if (window.matchMedia && matchMedia('(max-width:700px)').matches){ document.documentElement.classList.remove('dia'); return; }   // celular: sempre escuro
   document.documentElement.classList.toggle('dia');
   try { localStorage.setItem('sd_tema', document.documentElement.classList.contains('dia') ? 'dia' : 'noite'); } catch(e){}
   pintarBtnTema();
   toast(document.documentElement.classList.contains('dia') ? 'Modo dia.' : 'Modo noite.');
 }
-try { if (localStorage.getItem('sd_tema') === 'dia') document.documentElement.classList.add('dia'); } catch(e){}
+try { if (localStorage.getItem('sd_tema') === 'dia' && !(window.matchMedia && matchMedia('(max-width:700px)').matches)) document.documentElement.classList.add('dia'); } catch(e){}
 pintarBtnTema();
 
 // =====================================================================
