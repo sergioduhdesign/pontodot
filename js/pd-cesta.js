@@ -1,7 +1,7 @@
 /* PD · Cesta — um enviador de arquivos que é um joguinho de basquete (quebra-gelo).
    pdCesta.monta(zona) troca o visual da área de soltar; pdCesta.arremessa(arquivos, aoPontuar) joga a bola e só então entrega os arquivos.
    Sem biblioteca: física própria (gravidade, aro, tabela), canvas 2D. Respeita prefers-reduced-motion e pode ser desligada. */
-(function(){
+function pdCestaInstancia(){
   const G = 1500, R = 15;
   const REDUZ = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ON = () => { try { return localStorage.getItem('pd_cesta') !== 'off'; } catch(e){ return true; } };
@@ -34,21 +34,21 @@
   function monta(z){
     if (!z || z.dataset.cesta) return; zona = z; z.dataset.cesta = '1';
     z.classList.add('cesta'); const ic = z.querySelector('.ic'); if (ic) ic.remove();
-    const b = z.querySelector('b'), sm = z.querySelector('small');
+    const b = z.querySelector('b'), sm = z.querySelector('small'); z._b0 = b ? b.textContent : '';
     const box = document.createElement('div'); box.className = 'cesta-box'; box.innerHTML = '<canvas></canvas>';
     z.prepend(box); cv = box.querySelector('canvas'); cx = cv.getContext('2d');
     const off = document.createElement('a'); off.href = '#'; off.className = 'cesta-off'; off.textContent = 'desligar a cesta';
     off.onclick = e => { e.preventDefault(); e.stopPropagation(); try { localStorage.setItem('pd_cesta', 'off'); } catch(_){} desmonta(); };
     z.appendChild(off); const sm2 = document.createElement('a'); sm2.href = '#'; sm2.className = 'cesta-off'; sm2.style.cssText = 'display:inline-block;margin-left:12px'; const rot = () => { sm2.textContent = SOM_ON() ? 'som: ligado' : 'som: desligado'; }; rot(); sm2.onclick = e => { e.preventDefault(); e.stopPropagation(); try { localStorage.setItem('pd_cesta_som', SOM_ON() ? 'off' : 'on'); } catch(_){} rot(); }; off.style.display = 'inline-block'; z.appendChild(sm2); z._b = b; z._sm = sm;
-    const est = document.createElement('style'); est.id = 'cestaCss'; est.textContent = `.nl-drop.cesta{padding:10px 14px 12px}.cesta-box{width:100%;height:190px;position:relative;margin-bottom:6px}.cesta-box canvas{width:100%;height:100%;display:block;pointer-events:none}.cesta-off{display:block;margin-top:6px;font-size:11px;color:var(--text3);text-decoration:underline}`; document.head.appendChild(est);
+    if (!document.getElementById('cestaCss')){ const est = document.createElement('style'); est.id = 'cestaCss'; est.textContent = `.nl-drop.cesta{padding:10px 14px 12px}.cesta-box{width:100%;height:190px;position:relative;margin-bottom:6px}.cesta-box canvas{width:100%;height:100%;display:block;pointer-events:none}.cesta-off{display:block;margin-top:6px;font-size:11px;color:var(--text3);text-decoration:underline}`; document.head.appendChild(est); }
     redim(); addEventListener('resize', redim);
     z.addEventListener('dragenter', () => { S.hover = true; }); z.addEventListener('dragleave', () => { S.hover = false; }); z.addEventListener('drop', () => { S.hover = false; });
-    if (b) b.textContent = 'Jogue o arquivo na cesta';
+    if (b) b.textContent = /zip/i.test(z.id) ? 'Jogue a pasta (ZIP) na cesta' : 'Jogue o arquivo na cesta';
     if (sm) sm.innerHTML = 'Arraste aqui ou toque para escolher · ' + sm.innerHTML;
     S.bola = { x: pos().start.x, y: pos().start.y, vx: 0, vy: 0, rot: 0, parada: true };
     laco();
   }
-  function desmonta(){ cancelAnimationFrame(raf); removeEventListener('resize', redim); if (!zona) return; const b = zona.querySelector('.cesta-box'); b && b.remove(); zona.querySelectorAll('.cesta-off').forEach(x => x.remove()); zona.classList.remove('cesta'); delete zona.dataset.cesta; document.getElementById('cestaCss')?.remove(); if (zona._b) zona._b.textContent = 'Arraste os mockups aqui'; zona = null; cv = null; }
+  function desmonta(){ cancelAnimationFrame(raf); removeEventListener('resize', redim); if (!zona) return; const b = zona.querySelector('.cesta-box'); b && b.remove(); zona.querySelectorAll('.cesta-off').forEach(x => x.remove()); zona.classList.remove('cesta'); delete zona.dataset.cesta; if (!document.querySelector('.nl-drop.cesta')) document.getElementById('cestaCss')?.remove(); if (zona._b) zona._b.textContent = zona._b0 || ''; zona = null; cv = null; }
   function redim(){ if (!cv) return; dpr = Math.min(2, devicePixelRatio || 1); W = cv.parentElement.clientWidth || 400; cv.width = W * dpr; cv.height = H * dpr; if (S.bola && S.bola.parada){ S.bola.x = pos().start.x; S.bola.y = pos().start.y; } }
 
   // ---- o arremesso: resolve a parábola que passa pelo centro do aro, descendo
@@ -117,5 +117,9 @@
       for (let k = 0; k < 2; k++) passo(dt / 2);
       S.rede = Math.max(0, S.rede - dt * .8); S.msgT = Math.max(0, S.msgT - dt); S.conf = S.conf.filter(c => (c.vida -= dt) > 0); S.conf.forEach(c => { c.vy += 700 * dt; c.x += c.vx * dt; c.y += c.vy * dt; });
       desenha((now - t0) / 1000); raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); }
-  window.pdCesta = { monta: z => { if (ON()) monta(z); }, arremessa };
-})();
+  return { monta: z => { if (ON()) monta(z); }, arremessa };
+}
+window.pdCesta = {
+  monta: z => { if (!z || z._cesta) return; const i = pdCestaInstancia(); z._cesta = i; i.monta(z); },
+  arremessa: (f, cb, z) => (z && z._cesta) ? z._cesta.arremessa(f, cb) : cb()
+};
