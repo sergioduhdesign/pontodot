@@ -289,7 +289,6 @@ body.carregando .nl-skel{display:block}
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/aprovacao-comum.js?v=21"></script>
-<script src="/js/pd-cesta.js?v=3"></script>
 <script>
 let profile=null, clients=[], tasks=[], setId=null;
 let MODO = null;          // lote_zip | lote_variado | peca_unica | post_unico
@@ -462,11 +461,10 @@ function dropzone(zone, input, cb){
   });
 }
 
-if (window.pdCesta){ pdCesta.monta(el('dropSoltas')); pdCesta.monta(el('dropZip')); }
-dropzone(el('dropSoltas'), el('inSoltas'), f => window.pdCesta ? pdCesta.arremessa(f, () => receberSoltas(f), el('dropSoltas')) : receberSoltas(f));
+dropzone(el('dropSoltas'), el('inSoltas'), f => receberSoltas(f));
 el('btnGrandes').onclick = () => el('inGrandes').click();
 el('inGrandes').onchange = () => { const f = [...el('inGrandes').files]; el('inGrandes').value = ''; if (f.length) receberSoltas(f, true); };
-dropzone(el('dropZip'), el('inZip'), f => { if (!f[0]) return; window.pdCesta ? pdCesta.arremessa(f.slice(0, 1), () => receberZip(f[0]), el('dropZip')) : receberZip(f[0]); });
+dropzone(el('dropZip'), el('inZip'), f => { if (!f[0]) return; receberZip(f[0]); });
 el('btnLerDrive').onclick = receberDrive;
 
 // ============================================================
