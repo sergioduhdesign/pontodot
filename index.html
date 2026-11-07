@@ -2321,6 +2321,9 @@ html,body{overscroll-behavior-y:none}
   html:not(.emChat) .board-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:none;width:100%;margin:0;justify-content:stretch;align-items:start}
   html:not(.emChat) .board-grid>.gad.fechado{width:auto;min-width:0;margin:0}
   html:not(.emChat) .board-grid>.gad.fechado.mini-largo{grid-column:span 2}
+  .gad-ico::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.1) 1px,transparent 1.4px);background-size:9px 9px}
+  html.dia .gad-ico::before{background-image:radial-gradient(rgba(26,27,30,.09) 1px,transparent 1.4px)}
+  .gad-ico svg,.gad-ico img,.gad-ico span{position:relative;z-index:1}
   html:not(.emChat) .board-grid .gad.fechado .gad-ico{width:100%!important;height:var(--cel)!important;min-width:0!important;padding:0!important;border-radius:15px}
   html:not(.emChat) .board-grid .gad.gad-ia .gad-ico{width:100%!important;height:var(--cel)!important;border-radius:15px}
 
@@ -2629,7 +2632,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v481 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v482 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -8114,9 +8117,11 @@ function medirMinis(){
 function alternarAbertura(id){ window._gadTs = Date.now();
   // antes de a IA existir, o ovo não abre caixa: abre o convite da escola
   if (id === 'minhaia' && !gadsAbertos[id] && !aindaNao(() => temIA(), false)){ abrirEscola(); return; }
+  if (!ehDesk() && !gadsAbertos[id] && Date.now() - (window._gadFecTs || 0) < 450) return;   // celular: nada nasce enquanto outra caixa ainda está sumindo
   const gad = document.querySelector(`.gad[data-fk="gad-${id}"]`);
   const corpo = gad && gad.querySelector('.gad-corpo');
   const abrindo = !gadsAbertos[id];
+  if (abrindo && !ehDesk()) document.querySelectorAll('.gad:not(.fechado)').forEach(o => { if (o === gad) return; const oid = (o.dataset.fk || '').replace('gad-', ''); gadsAbertos[oid] = false; o.classList.add('fechado'); o.classList.remove('abrindo', 'fechando'); const oc = o.querySelector('.gad-corpo'); if (oc) oc.style.cssText = ''; });   // celular: uma caixa por vez, nunca duas empilhadas
   gadsAbertos[id] = abrindo;
   layoutChatDesk(chat);                          // o chat cede ou toma o espaço, com fluidez
   if (!gad || !corpo){ renderFlip(); return; }
@@ -8150,7 +8155,7 @@ function alternarAbertura(id){ window._gadTs = Date.now();
     });
     setTimeout(()=>{ corpo.style.cssText=''; gad.classList.remove('abrindo'); posicionarCfg(); }, 640);
   } else {
-    gad.classList.add('fechando');
+    gad.classList.add('fechando'); window._gadFecTs = Date.now();
     if (!desk){ corpo.style.overflow = 'hidden';   // a barra de rolagem é a primeira a sair
       setTimeout(()=>{ gad.classList.add('fechado','recem-fechado'); gad.classList.remove('fechando'); if (id==='tarefas') gad.classList.add('mini-largo'); corpo.style.cssText=''; posicionarCfg(); pintarBolinhas(); setTimeout(()=>gad.classList.remove('recem-fechado'), 500); }, 380); return; }
     corpo.style.height = corpo.scrollHeight + 'px';
