@@ -3,7 +3,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Poppins:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Bebas+Neue&family=Oswald:wght@400;700&family=Lora:wght@400;700&family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@400;700&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-<script src="/pd-studio.js?v=329"></script>
+<script src="/pd-studio.js?v=330"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
 @media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212;--pano:#0c0c0d}}
@@ -48,7 +48,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
 .top select,.top input,.top .btn{min-height:44px}.btn.i{width:44px;height:44px}
 .barra2 button{height:48px;padding:0 14px;font-size:12px}
 .main.aberta{grid-template-columns:1fr}
-.gaveta{position:absolute;left:0;right:0;bottom:0;height:54%;z-index:40;border-left:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;transform:translateY(108%);visibility:hidden;transition:transform .22s,visibility .22s}
+.gaveta{position:absolute;left:0;right:0;bottom:48px;height:calc(54% - 48px);z-index:40;border-left:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;transform:translateY(108%);visibility:hidden;transition:transform .22s,visibility .22s}
 .main.aberta .gaveta{transform:none;visibility:visible}
 .gaveta::before{display:none}
 .alca{position:absolute;left:0;right:0;top:0;height:34px;z-index:4;display:grid;place-items:center;touch-action:none;cursor:grab}.alca i{width:46px;height:5px;border-radius:3px;background:rgba(127,127,127,.55)}
@@ -123,7 +123,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   .top #btnPlay,.top #btnPrincipal{align-self:center;margin:0!important;line-height:0}
   .top #btnPlay svg,.top #btnPrincipal svg{display:block;margin:auto;align-self:center;position:static}
   #fxMenu .fxG{display:flex;flex-direction:column;flex-wrap:nowrap;gap:0;padding:0}
-  #fxMenu .f{flex:0 0 auto;width:52px;height:48px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0}
+  #fxMenu .f{flex:0 0 auto;width:52px;height:46px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0}
   #fxMenu .f svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}#fxMenu .f.on{background:var(--ink);color:var(--bg)}
   .barra2 .fxMais.fix svg{transform:rotate(90deg)}.barra2 .fxMais.fix{box-shadow:inset 3px 0 0 var(--ink)}
   #fxBarra{display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;min-width:0;height:32px;padding:0 2px;border-bottom:1px solid var(--line);background:var(--bg)}#fxBarra::-webkit-scrollbar{display:none}
@@ -132,8 +132,9 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   .main{grid-template-rows:minmax(0,1fr) 48px}.pano{grid-row:1;grid-column:1}
   #rodape{grid-row:2;grid-column:1;display:flex;align-items:center;gap:2px;padding:0 4px;border-top:1px solid var(--line);background:var(--bg);overflow:hidden;position:relative;z-index:5}
   #rodape .pags,#rodape .segs{position:static!important;transform:none!important;opacity:1!important;display:flex!important;border:0!important;background:transparent!important;padding:0!important;gap:0;max-width:none}
-  #rodape .segs{margin-left:auto;overflow-x:auto;scrollbar-width:none}#rodape .segs::-webkit-scrollbar{display:none}
-  #rodape .btn{width:44px;height:44px;min-height:44px;border:0;background:transparent;border-radius:0;padding:0;font-size:13px;flex:0 0 auto}
+  #rodape .segs{margin-left:0;flex:0 0 auto;overflow:visible}#rodape .segs .mgm{display:none}
+  #rodLeg{flex:1 1 0;min-width:0;padding:0 6px;font-size:11.5px;line-height:1.15;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;color:var(--ink);opacity:0;transition:opacity .2s;pointer-events:none}#rodLeg.on{opacity:.9}#rodape .segs::-webkit-scrollbar{display:none}
+  #rodape .btn{width:42px;height:44px;min-height:44px;border:0;background:transparent;border-radius:0;padding:0;font-size:13px;flex:0 0 auto}
   #rodape .pags .btn.s{width:auto;min-width:44px;padding:0 10px;font-size:14px;font-weight:600}
   #rodape .btn.on{background:var(--ink);color:var(--bg)}#rodape .btn svg{width:22px;height:22px;stroke-width:1.5}
   #rodape .pags button[onclick^="zoomAjusta"]{display:none}
@@ -341,7 +342,7 @@ function montaPaginas(docs,cb){TRAVA=true;C.clear();PECA.nPag=Math.max(1,docs.le
   Promise.all(fams.map(garanteFonte)).then(()=>{fabric.util.enlivenObjects(todos.map(([o])=>o),objs=>{objs.forEach(o=>C.add(o));objs.forEach(o=>{if(o.type==='textbox')o.initDimensions();});TRAVA=false;PECA.pag=Math.min(PECA.pag,PECA.nPag-1);C.renderAll();camadas();pags();$('#fundo').value=PECA.fundos[PECA.pag]||'#ffffff';zoomAjusta();if(cb)cb();});});}
 function pags(){const el=$('#pags');const f=FORMATOS.find(x=>x.tipo===F().tipo);const multi=!!(f&&f.paginas)||PECA.nPag>1;el.style.display='flex';
   const fam=FAM_DO_TIPO(F().tipo);const comPapel=fam&&(FAM_PAPEIS[fam]||[]).length>1;
-  el.innerHTML=Array.from({length:PECA.nPag}).map((_,i)=>`<button class="btn s ${i===PECA.pag?'on':''}" onclick="irPag(${i})" title="${esc(papelDaPag(i)||'')}">${i+1}${comPapel&&papelDaPag(i)?`<small style="opacity:.7;margin-left:4px">${esc(papelDaPag(i))}</small>`:''}</button>`).join('')+(comPapel?`<button class="btn i" title="Papel desta prancheta na família (capa, tela clara…)" onclick="papelSet(PECA.pag)"><svg viewBox="0 0 24 24"><path d="M20 12 12 20l-8-8V4h8z"/><circle cx="8" cy="8" r="1.5"/></svg></button>`:'')+(multi?`<button class="btn s" onclick="novaPag()" title="Nova prancheta">+</button>${PECA.nPag>1?`<button class="btn s" onclick="tiraPag()" title="Remover a prancheta atual">−</button>`:''}`:'')+`<button class="btn i ${VER_TUDO?'on':''}" onclick="zoomAjusta()" title="Ver todas as pranchetas (⌘0)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="7" height="14" rx="1"/><rect x="14" y="5" width="7" height="14" rx="1"/></svg></button>`;}
+  el.innerHTML=Array.from({length:PECA.nPag}).map((_,i)=>`<button class="btn s ${i===PECA.pag?'on':''}" onclick="irPag(${i})" title="Prancheta ${i+1}${papelDaPag(i)?' · '+esc(papelDaPag(i)):''}">${i+1}${comPapel&&papelDaPag(i)?`<small style="opacity:.7;margin-left:4px">${esc(papelDaPag(i))}</small>`:''}</button>`).join('')+(comPapel?`<button class="btn i" title="Papel desta prancheta na família (capa, tela clara…)" onclick="papelSet(PECA.pag)"><svg viewBox="0 0 24 24"><path d="M20 12 12 20l-8-8V4h8z"/><circle cx="8" cy="8" r="1.5"/></svg></button>`:'')+(multi?`<button class="btn s" onclick="novaPag()" title="Nova prancheta">+</button>${PECA.nPag>1?`<button class="btn s" onclick="tiraPag()" title="Remover a prancheta atual">−</button>`:''}`:'')+`<button class="btn i ${VER_TUDO?'on':''}" onclick="zoomAjusta()" title="Ver todas as pranchetas (⌘0)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="7" height="14" rx="1"/><rect x="14" y="5" width="7" height="14" rx="1"/></svg></button>`;}
 let VER_TUDO=false;
 function irPag(i){VER_TUDO=false;PECA.pag=i;const ai=$('#artInfo');if(ai)ai.textContent=' '+(i+1)+' de '+PECA.nPag+' · '+(F().nome||'');$('#fundo').value=PECA.fundos[i]||'#ffffff';zoomPara(i);pags();}
 function novaPag(){const docs=todasPaginas();PECA.papeis=PECA.papeis||[];PECA.papeis[docs.length]='';docs.push({version:'5',objects:[],background:PECA.fundos[PECA.pag]||'#ffffff'});PECA.pag=docs.length-1;montaPaginas(docs,()=>{irPag(PECA.pag);marca();});}
@@ -398,7 +399,7 @@ function desUp(){if(!DES)return;const o=DES.obj;DES=null;if(!o)return;const b=o.
 // ---------- overlay: guias, sangria, áreas, ímã, hover, máscaras, transparentes, caneta
 const SEGS=[['feed','Feed · recorte 1:1 da grade'],['stories','Stories · interface'],['reels','Reels · interface'],['wide','Wide 16:9']];
 const ICO={feed:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg>',stories:'<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M9 6h6"/><circle cx="12" cy="18" r=".8"/></svg>',reels:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16M9 4l3 5M14 4l3 5"/><path d="m11 12.5 4 2.5-4 2.5z"/></svg>',wide:'<svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="11" rx="2"/></svg>'};
-function segsUI(){const social=['feed','carrossel','stories'].includes(F().tipo);$('#segs').innerHTML=(social?SEGS.map(([k,t])=>`<button class="btn i ${SEG[k]?'on':''}" title="${t}" onclick="segToggle('${k}')">${ICO[k]}</button>`).join(''):'')+`<button class="btn i ${IMA?'on':''}" title="Ímã" onclick="IMA=!IMA;segsUI()"><svg viewBox="0 0 24 24"><path d="M6 3v8a6 6 0 0 0 12 0V3"/><path d="M6 3h4v8H6M14 3h4v8h-4"/></svg></button><button class="btn i" title="Guia vertical" onclick="guiaNova('x')"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 8h4M5 16h4M15 8h4M15 16h4"/></svg></button><button class="btn i" title="Guia horizontal" onclick="guiaNova('y')"><svg viewBox="0 0 24 24"><path d="M3 12h18M8 5v4M16 5v4M8 15v4M16 15v4"/></svg></button><button class="btn i" title="Margem interna de segurança" onclick="margemSet()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="2 2"/></svg></button><button class="btn i" title="Limpar guias" onclick="F().guias=[];desenhaSeg();dirty=true"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>`;}
+function segsUI(){const social=['feed','carrossel','stories'].includes(F().tipo);$('#segs').innerHTML=(social?SEGS.filter(x=>!MOB()||x[0]!=='wide').map(([k,t])=>`<button class="btn i ${SEG[k]?'on':''}" title="${t}" onclick="segToggle('${k}')">${ICO[k]}</button>`).join(''):'')+`<button class="btn i ${IMA?'on':''}" title="Ímã: encaixa o objeto nas guias e nas bordas" onclick="IMA=!IMA;segsUI()"><svg viewBox="0 0 24 24"><path d="M6 3v8a6 6 0 0 0 12 0V3"/><path d="M6 3h4v8H6M14 3h4v8h-4"/></svg></button><button class="btn i" title="Guia vertical" onclick="guiaNova('x')"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 8h4M5 16h4M15 8h4M15 16h4"/></svg></button><button class="btn i" title="Guia horizontal" onclick="guiaNova('y')"><svg viewBox="0 0 24 24"><path d="M3 12h18M8 5v4M16 5v4M8 15v4M16 15v4"/></svg></button><button class="btn i mgm" title="Margem interna de segurança" onclick="margemSet()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="2 2"/></svg></button><button class="btn i mgm" title="Limpar guias" onclick="F().guias=[];desenhaSeg();dirty=true"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>`;}
 function segToggle(k){SEG[k]=!SEG[k];try{localStorage.setItem('pd_est_seg',JSON.stringify(SEG));}catch(e){}segsUI();desenhaSeg();}
 async function guiaNova(eixo){const imp=ehImp();const v=+await pedir(eixo==='x'?('Guia vertical: distância da borda esquerda ('+(imp?'mm, a partir do corte':'px')+')'):('Guia horizontal: distância do topo ('+(imp?'mm':'px')+')'));if(!v&&v!==0)return;F().guias=F().guias||[];F().guias.push({eixo,pos:imp?mm2px(v)+mm2px(F().sangria||0):v});desenhaSeg();dirty=true;}
 async function margemSet(){const imp=ehImp();const v=+await pedir('Margem interna de segurança ('+(imp?'mm, a partir do corte':'px')+'). 0 tira.',F().margem||0);if(isNaN(v))return;F().margem=v;desenhaSeg();dirty=true;}
@@ -1195,7 +1196,7 @@ const _clipIv=setInterval(()=>{try{if(C){clipObjetos();C.requestRenderAll();clea
     const area=[SHOW_AREA?'Esconder excesso':'Ver excesso',toggleArea];let it;
     if(a)it=[['Copiar',copiar],['Colar',colar],['Duplicar',()=>{copiar();setTimeout(colar,30);}],['Espelhar',()=>setP('flipX',!a.flipX)],['Frente',()=>{C.bringToFront(a);marca();}],['Trás',()=>{const n=C.getObjects().filter(x=>x.pdPage!==undefined).length;C.moveTo(a,n);marca();}],
       [a.selectable===false?'Destravar':'Travar',()=>{setP('selectable',!a.selectable);C.discardActiveObject();C.renderAll();}],area,['Apagar',apaga,'x']];
-    else it=[['Colar',colar],area,['Centrar peça',()=>fitAnim()]];
+    else it=[['Colar',colar],area,['Centrar peça',()=>fitAnim()],['Margem de segurança',margemSet],['Limpar guias',()=>{F().guias=[];desenhaSeg();dirty=true;}],['Zona Wide 16:9',()=>segToggle('wide')]];
     m.innerHTML=it.map((x,i)=>`<button type="button" data-i="${i}"${x[2]?` class="${x[2]}"`:''}>${x[0]}</button>`).join('');
     m.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;const f=it[+bt.dataset.i];fecha();try{f[1]();}catch(x){}};
     m.classList.add('on');const pr=m.parentElement.getBoundingClientRect(),cv=C.upperCanvasEl.getBoundingClientRect(),larg=m.offsetWidth,alt=m.offsetHeight;let y,x;
@@ -1239,7 +1240,7 @@ const _clipIv=setInterval(()=>{try{if(C){clipObjetos();C.requestRenderAll();clea
     const menu=document.createElement('div');menu.id='fxMenu';
     const gT=document.createElement('div');gT.className='fxG';[sel,txt].forEach(e=>{if(e)gT.appendChild(comoF(e));});
     cx.querySelectorAll('button.f').forEach(e=>{if(e===sel||e===txt)return;gT.appendChild(comoF(e));});
-    ['mudaMedida','menuExport'].forEach(fn=>{const e=orig('button[onclick^="'+fn+'"]');if(e){const c=comoF(e);gT.appendChild(c);e.classList.add('mobOculto');}});
+    ['mudaMedida','menuExport'].forEach(fn=>{const e=orig('button[onclick^="'+fn+'"]');if(e)e.classList.add('mobOculto');});
     menu.append(gT);
     // faixa de menus estilo Photoshop: abas em texto apertado, numa linha só (+ tarefa no fim)
     const barra=document.createElement('div');barra.id='fxBarra';
@@ -1266,7 +1267,7 @@ const _clipIv=setInterval(()=>{try{if(C){clipObjetos();C.requestRenderAll();clea
     b2.after(barra);
     mn.appendChild(menu);pinta();
     // rodapé fixo: páginas + guias/zonas, finos como num editor de verdade
-    if(!document.getElementById('rodape')){const rd0=document.createElement('div');rd0.id='rodape';const pg=document.getElementById('pags'),sg=document.getElementById('segs');if(pg)rd0.appendChild(pg);if(sg)rd0.appendChild(sg);mn.appendChild(rd0);}
+    if(!document.getElementById('rodape')){const rd0=document.createElement('div');rd0.id='rodape';const pg=document.getElementById('pags'),sg=document.getElementById('segs');if(pg)rd0.appendChild(pg);const lg=document.createElement('div');lg.id='rodLeg';rd0.appendChild(lg);if(sg)rd0.appendChild(sg);let tl=null,th2=null;const mostra=e=>{const b=e.target.closest&&e.target.closest('#rodape button');if(!b)return;const t=b.getAttribute('title')||b.textContent.trim();if(!t)return;lg.textContent=t;lg.classList.add('on');clearTimeout(tl);tl=setTimeout(()=>lg.classList.remove('on'),3200);};rd0.addEventListener('pointerdown',e=>{mostra(e);},true);rd0.addEventListener('contextmenu',e=>e.preventDefault());mn.appendChild(rd0);}
     setTimeout(()=>{try{ajustaViewport();puxaCentro();fitAnim();}catch(e){}},200);
   }
   // números viram barrinha de arrastar
