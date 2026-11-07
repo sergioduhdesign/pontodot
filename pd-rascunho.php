@@ -2,6 +2,7 @@
 // Rascunho guiado de tarefa nova: a IA propõe assuntos e títulos COM BASE no que a PD já sabe do cliente
 // (tarefas recentes, kit de marca). Não gera imagem: só sugere texto. Falhou? o app usa as sugestões locais.
 require_once __DIR__ . '/sd-auth.php';
+require_once __DIR__ . '/pd-lib.php';
 $u = sd_current_user();
 if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) sd_fail('Sem chave da IA.', 503);
