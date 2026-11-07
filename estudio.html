@@ -76,6 +76,20 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
 .guia h4{margin:0 0 12px;font-size:16px}.guia p{margin:0;padding:10px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.35;display:flex;gap:12px;align-items:baseline}.guia p b{flex:0 0 118px;font-weight:600}
 .guia button.ok{margin-top:14px;width:100%;height:48px;border:0;border-radius:14px;background:var(--ink);color:var(--bg);font:600 14px inherit;cursor:pointer}
 }
+
+/* ===== CELULAR: voltar/refazer/copiar/colar sempre à vista + barra de comandos ao segurar o objeto ===== */
+#pdAtalho,#pdSegura{display:none}
+@media (max-width:820px){
+  #pdAtalho{display:flex;flex-direction:column;position:absolute;right:8px;top:94px;z-index:20;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.16)}
+  #pdAtalho button{width:42px;height:40px;border:0;border-radius:11px;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;touch-action:manipulation}
+  #pdAtalho button:active{background:rgba(127,127,127,.2)}#pdAtalho button[disabled]{opacity:.3}
+  #pdAtalho svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  #pdAtalho i{height:1px;background:var(--line);margin:2px 8px}
+  #pdSegura{position:absolute;z-index:40;max-width:calc(100% - 16px);overflow-x:auto;gap:2px;padding:4px;background:var(--ink);color:var(--bg);border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.35);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  #pdSegura.on{display:flex}#pdSegura::-webkit-scrollbar{display:none}
+  #pdSegura button{flex:0 0 auto;min-width:58px;height:44px;border:0;border-radius:10px;background:transparent;color:inherit;font:600 11.5px/1.1 inherit;display:grid;place-items:center;padding:0 8px;touch-action:manipulation}
+  #pdSegura button:active{background:rgba(127,127,127,.35)}#pdSegura button.x{color:#ff6b6b}
+}
 </style></head><body><div id="app">
 <div class="top">
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
@@ -1046,13 +1060,19 @@ function vtLimita(vt){const A=areaLivre(),{tw,th}=dimPeca(),z=vt[0],cw=tw*z,ch=t
   ty=ch<=A.h-2*m?A.y0+(A.h-ch)/2:Math.min(A.y0+m,Math.max(A.y0+A.h-ch-m,ty));return[z,0,0,z,tx,ty];}
 function animaVT(alvo,ms){cancelAnimationFrame(ANIM);const de=C.viewportTransform.slice(),t0=performance.now();ms=ms||280;
   const quad=()=>{const k=Math.min(1,(performance.now()-t0)/ms),e=ease(k);const z=de[0]+(alvo[0]-de[0])*e;C.setViewportTransform([z,0,0,z,de[4]+(alvo[4]-de[4])*e,de[5]+(alvo[5]-de[5])*e]);C.requestRenderAll();if(k<1)ANIM=requestAnimationFrame(quad);else fimZoom();};quad();}
-window.puxaCentro=function(){if(!MOB())return;const a=vtLimita(C.viewportTransform);const v=C.viewportTransform;if(Math.abs(a[4]-v[4])<.5&&Math.abs(a[5]-v[5])<.5)return;animaVT(a,300);};   // o zoom fica como está; só a posição volta
-window.fitAnim=function(){USER_ZOOM=false;animaVT(vtFit(),320);};
+let FOCO=null;
+// duplo toque no objeto: abre a gaveta Objeto e traz o objeto pro meio da área livre (acima da gaveta)
+function focaObj(o){if(!o||!MOB())return;const A=areaLivre(),b=o.getBoundingRect(true,true),z0=C.viewportTransform[0];
+  const z=Math.max(.05,Math.min(z0,(A.w-48)/Math.max(1,b.width),(A.h-48)/Math.max(1,b.height)));const cx=b.left+b.width/2,cy=b.top+b.height/2;
+  FOCO=o;USER_ZOOM=true;animaVT([z,0,0,z,A.x0+A.w/2-cx*z,A.y0+A.h/2-cy*z],320);}
+function abreObjeto(o){C.setActiveObject(o);C.renderAll();aba('objeto');setTimeout(()=>focaObj(C.getActiveObject()||o),420);}
+window.puxaCentro=function(){if(!MOB()||FOCO)return;const a=vtLimita(C.viewportTransform);const v=C.viewportTransform;if(Math.abs(a[4]-v[4])<.5&&Math.abs(a[5]-v[5])<.5)return;animaVT(a,300);};   // o zoom fica como está; só a posição volta
+window.fitAnim=function(){FOCO=null;USER_ZOOM=false;animaVT(vtFit(),320);};
 // duplo toque no vazio centraliza; um dedo no vazio move a tela
 window.mobDown=function(e){const ev=e.e;if(!(ev.touches||/^touch/.test(ev.type||'')))return false;cancelAnimationFrame(ANIM);
   const pt=pxToque(ev),now=Date.now(),vazio=!e.target||e.target.pdPage!==undefined;const dupl=now-TAP.t<330&&Math.hypot(pt.x-TAP.x,pt.y-TAP.y)<36;TAP={t:now,x:pt.x,y:pt.y};
-  if(dupl){TAP.t=0;if(vazio){C.discardActiveObject();fitAnim();return true;}try{duploClique(e);}catch(x){}return false;}
-  if(FERR==='sel'&&vazio&&!CROP.on&&!MASK.on&&!PENEDIT.on){if(e.target&&e.target.pdPage!==undefined)PECA.pag=e.target.pdPage;DRAG=pt;C.selection=false;C.discardActiveObject();USER_ZOOM=true;return true;}
+  if(dupl){TAP.t=0;if(vazio){FOCO=null;C.discardActiveObject();fitAnim();return true;}try{if(e.target.type!=='textbox')abreObjeto(e.target);}catch(x){}try{duploClique(e);}catch(x){}return false;}
+  if(FERR==='sel'&&vazio&&!CROP.on&&!MASK.on&&!PENEDIT.on){FOCO=null;if(e.target&&e.target.pdPage!==undefined)PECA.pag=e.target.pdPage;DRAG=pt;C.selection=false;C.discardActiveObject();USER_ZOOM=true;return true;}
   return false;};
 // dois dedos: pinça = zoom · arrastar = mover · girar = gira o objeto selecionado
 function pano2(e){const r=$('#pano').getBoundingClientRect(),a=e.touches[0],b=e.touches[1];return{d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)||1,a:Math.atan2(b.clientY-a.clientY,b.clientX-a.clientX)*180/Math.PI,x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};}
@@ -1092,4 +1112,36 @@ function mobIni(){const p=$('#pano');if(!p||!C||p._mob)return false;p._mob=1;
   if(MOB()){C.setViewportTransform(vtFit());fimZoom();try{if(!localStorage.getItem('pd_gestos_visto'))setTimeout(guiaGestos,1200);}catch(e){}}
   return true;}
 const _mi=setInterval(()=>{try{if(mobIni())clearInterval(_mi);}catch(e){}},400);
+
+// ---- voltar / refazer / copiar / colar sempre à vista no celular + comandos ao segurar o objeto
+(function(){
+  const ic={v:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',r:'<path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/>',c:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',p:'<rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2"/>'};
+  function monta(){const cx=document.getElementById('caixaF');if(!cx||document.getElementById('pdAtalho'))return;
+    const at=document.createElement('div');at.id='pdAtalho';
+    const b=(t,i,fn,id)=>`<button type="button" aria-label="${t}" title="${t}" data-a="${fn}"${id?` id="${id}"`:''}><svg viewBox="0 0 24 24">${ic[i]}</svg></button>`;
+    at.innerHTML=b('Voltar','v','v')+b('Refazer','r','r')+'<i></i>'+b('Copiar','c','c')+b('Colar','p','p');
+    at.addEventListener('click',e=>{const x=e.target.closest('button');if(!x)return;const f=x.dataset.a;if(f==='v')hist(-1);else if(f==='r')hist(1);else if(f==='c')copiar();else colar();});
+    cx.insertAdjacentElement('afterend',at);
+    const sg=document.createElement('div');sg.id='pdSegura';cx.insertAdjacentElement('afterend',sg);}
+  const fecha=()=>{const m=document.getElementById('pdSegura');if(m){m.classList.remove('on');m.innerHTML='';}};
+  function abre(o,px,py){const m=document.getElementById('pdSegura');if(!m)return;const a=o;
+    const it=[['Copiar',copiar],['Colar',colar],['Duplicar',()=>{copiar();setTimeout(colar,30);}],['Espelhar',()=>setP('flipX',!a.flipX)],['Frente',()=>{C.bringToFront(a);marca();}],['Trás',()=>{const n=C.getObjects().filter(x=>x.pdPage!==undefined).length;C.moveTo(a,n);marca();}],
+      [a.selectable===false?'Destravar':'Travar',()=>{setP('selectable',!a.selectable);C.discardActiveObject();C.renderAll();}],['Apagar',apaga,'x']];
+    m.innerHTML=it.map((x,i)=>`<button type="button" data-i="${i}"${x[2]?` class="${x[2]}"`:''}>${x[0]}</button>`).join('');
+    m.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;const f=it[+bt.dataset.i];fecha();try{f[1]();}catch(x){}};
+    m.classList.add('on');const pr=m.parentElement.getBoundingClientRect(),cv=C.upperCanvasEl.getBoundingClientRect(),br=a.getBoundingRect();
+    const topo=cv.top-pr.top+br.top,esq=cv.left-pr.left+br.left,larg=m.offsetWidth,alt=m.offsetHeight;
+    let y=topo-alt-10;if(y<96)y=cv.top-pr.top+br.top+br.height+10;if(y>pr.height-alt-8)y=Math.max(96,py-pr.top-alt-30);
+    let x=esq+br.width/2-larg/2;x=Math.max(8,Math.min(pr.width-larg-8,x));m.style.left=x+'px';m.style.top=y+'px';
+    try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}}
+  let T=null,P0=null;
+  function liga(){const p=document.getElementById('pano');if(!p||p._seg)return false;p._seg=1;
+    p.addEventListener('touchstart',e=>{fecha();clearTimeout(T);if(e.touches.length!==1||!MOB()||CROP.on||MASK.on||PENEDIT.on)return;const t=e.touches[0];P0={x:t.clientX,y:t.clientY};
+      T=setTimeout(()=>{try{const alvo=C.findTarget({clientX:P0.x,clientY:P0.y,target:C.upperCanvasEl},false);const o=alvo&&alvo.pdPage===undefined?alvo:null;if(!o)return;
+        if(C._currentTransform)C._currentTransform=null;C.setActiveObject(o);C.renderAll();abre(C.getActiveObject()||o,P0.x,P0.y);}catch(x){}},520);},{passive:true,capture:true});
+    p.addEventListener('touchmove',e=>{if(!P0||!e.touches[0])return;if(Math.hypot(e.touches[0].clientX-P0.x,e.touches[0].clientY-P0.y)>10)clearTimeout(T);},{passive:true,capture:true});
+    ['touchend','touchcancel'].forEach(n=>p.addEventListener(n,()=>clearTimeout(T),{passive:true,capture:true}));
+    document.addEventListener('pointerdown',e=>{if(!e.target.closest('#pdSegura'))setTimeout(()=>{if(!T)fecha();},0);},true);return true;}
+  const iv=setInterval(()=>{try{monta();if(typeof C!=='undefined'&&C&&liga())clearInterval(iv);}catch(e){}},500);
+})();
 </script><script src="/js/pd-sheet.js?v=2"></script><script src="/js/pd-ajuda.js?v=325"></script></body></html>
