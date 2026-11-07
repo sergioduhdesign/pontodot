@@ -18,7 +18,7 @@ window.pdGavetaArrasta = function(el, alca, o){
     else alvo = pts.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a);
     aplica(alvo); };
   alca.addEventListener('pointerup', fim); alca.addEventListener('pointercancel', fim);
-  return { abre: () => { el.classList.remove('cheia'); def(meia(), false); o.aoMudar && o.aoMudar(false); }, meia: () => aplica(meia()), cheia: () => aplica(topo()), fecha: () => aplica(0) };
+  return { abre: () => { el.classList.remove('cheia'); def(o.inicio ? (o.inicio() || meia()) : meia(), false); o.aoMudar && o.aoMudar(false); }, meia: () => aplica(meia()), cheia: () => aplica(topo()), fecha: () => aplica(0) };
 };
 (function(){
   const MQ = matchMedia('(max-width:820px)');
