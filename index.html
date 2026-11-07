@@ -2301,6 +2301,7 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
 /* X sempre chapado: sem bolinha, sem borda, em qualquer tela */
 .mc-x,.x-chat,.fechar,.gad-x,.fechar-painel,#menuCheio .mc-x,html.emChat .tela.em-chat .x-chat,.acao-cab[aria-label="Fechar"],.aba-acoes button[title="Fechar"]{background:transparent!important;border:0!important;border-radius:12px!important;box-shadow:none!important}
 html.dia #menuCheio .mc-x{background:transparent!important}
+html,body{overscroll-behavior-y:none}
 @keyframes jFadeIn{from{opacity:0}to{opacity:1}}
 #janela .j-caixa.jEntra{animation:jFadeIn .26s ease both}
 @media(max-width:999px){
@@ -2603,7 +2604,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v471 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v472 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4117,11 +4118,11 @@ function fecharMenuCtx(){ const m=$('#menuCtx'); if (m){ m.classList.add('oculto
     if (eixo===2){ raiz=null; return; }
     const dy=t.clientY-ult; ult=t.clientY;
     const topo = rolo.scrollTop<=0, fundo = rolo.scrollTop+rolo.clientHeight>=rolo.scrollHeight-1;
-    if (!el){ if ((dy>0&&topo)||(dy<0&&fundo)){ el=true; dir=dy>0?1:-1; raw=0; raiz.style.transition='none'; } else return; }
+    if (!el){ if ((dy>0&&topo)||(dy<0&&fundo)){ el=true; dir=dy>0?1:-1; raw=0; raiz.style.transition='none'; if(dir<0) raiz.style.boxShadow='0 160px 0 0 '+getComputedStyle(raiz).backgroundColor; } else return; }
     raw += dy;
     if (raw*dir<=0){ el=false; raw=0; raiz.style.transform=''; return; }       // voltou: o scroll normal assume
     const livre = raiz.matches('.menu-ctx.folha') && dir>0;                  // folha acompanha o dedo 1:1 pra fechar
-    const v = livre ? raw : dir*(raw*dir*.55/(1+raw*dir/420));
+    const v = livre ? raw : dir*(raw*dir*.4/(1+raw*dir/260));
     raiz.style.transform='translateY('+v+'px)';
     if (e.cancelable) e.preventDefault();
   },{passive:false});
@@ -4132,7 +4133,7 @@ function fecharMenuCtx(){ const m=$('#menuCtx'); if (m){ m.classList.add('oculto
       setTimeout(()=>{ fecharMenuCtx(); setTimeout(()=>{ r.style.transition=''; r.style.transform=''; },450); },240); el=false; return; }
     if (!el) return;
     r.style.transition = MOLA; r.style.transform='';
-    setTimeout(()=>{ r.style.transition=''; },600); el=false; };
+    setTimeout(()=>{ r.style.transition=''; r.style.boxShadow=''; },600); el=false; };
   document.addEventListener('touchend', fim); document.addEventListener('touchcancel', fim);
 })();
 document.addEventListener('contextmenu', e=>{
@@ -7143,23 +7144,23 @@ function abrirEstudio(params){
         #estBarra{position:absolute!important;top:0;left:0;right:0;height:56px!important;padding:0!important;gap:0;border:0!important;background:transparent!important;pointer-events:none;z-index:30;overflow:visible!important;color:#121212;transition:color .3s}
         #estBarra.escuro{color:#f2f2f0!important}
         #estBarra>*{pointer-events:auto}
-        #estBarra .marca{position:absolute;left:8px;top:8px;width:40px;height:40px;margin:0;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;z-index:3}
+        #estBarra .marca{position:absolute;left:8px;top:8px;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:50%;overflow:hidden;background:#f2f2f0;display:grid;place-items:center;cursor:pointer;z-index:3}
         #estBarra .marca img.lg-k,#estBarra .marca img.lg-w,#estBarra .marca span{display:none!important}
         #estBarra .marca .pdIco{display:block;height:40px;width:40px}#estBarra .marca .pdIcoW{display:none}
-        #estBarra.escuro .marca .pdIco{display:none}#estBarra.escuro .marca .pdIcoW{display:block!important;height:40px;width:40px}
-        #estBarra .menuPD{display:flex;position:absolute;left:8px;top:8px;height:40px;width:calc(100% - 16px);box-sizing:border-box;padding:0 52px 0 44px;align-items:center;justify-content:space-between;gap:0;background:#121212;color:#f2f2f0;border-radius:20px;overflow:hidden;z-index:2;transition:width .42s cubic-bezier(.65,0,.25,1),background .3s,color .3s}
+        #estBarra.escuro .marca{background:#121212}#estBarra.escuro .marca .pdIco{display:none}#estBarra.escuro .marca .pdIcoW{display:block!important;height:40px;width:40px}
+        #estBarra .menuPD{display:flex;position:absolute;left:8px;top:8px;height:40px;width:calc(100% - 16px);box-sizing:border-box;padding:0 48px 0 44px;align-items:center;justify-content:space-between;gap:0;background:#121212;color:#f2f2f0;border-radius:20px;overflow:hidden;z-index:2;transition:width .42s cubic-bezier(.65,0,.25,1),background .3s,color .3s}
         #estBarra.escuro .menuPD{background:#f2f2f0;color:#121212}
         #estBarra:not(.pdOn) .menuPD{width:40px;padding:0;pointer-events:none}
         #estBarra .menuPD>*{transition:opacity .22s ease .14s}
         #estBarra:not(.pdOn) .menuPD>*{opacity:0;transition-delay:0s}
-        #estBarra .menuPD .eb,#estBarra .menuPD .mini,#estBarra .menuPD .ar{width:40px;height:40px;flex:0 0 40px;padding:0;margin:0;border:0;border-radius:4px;background:transparent;color:inherit;display:inline-grid;place-items:center;position:relative;cursor:pointer}
+        #estBarra .menuPD .eb,#estBarra .menuPD .mini,#estBarra .menuPD .ar{width:auto;max-width:42px;min-width:0;height:40px;flex:1 1 0;padding:0;margin:0;border:0;border-radius:4px;background:transparent;color:inherit;display:inline-grid;place-items:center;position:relative;cursor:pointer}
         #estBarra .menuPD .eb svg,#estBarra .menuPD .mini svg,#estBarra .menuPD .ar svg{display:block;width:22px;height:22px}
         #estBarra .menuPD .eb span{display:none}
         #estBarra .menuPD .areas{display:contents}
         #estBarra .menuPD .ar{opacity:.5}#estBarra .menuPD .ar.tem{opacity:.95}#estBarra .menuPD .ar.on{opacity:1;background:rgba(128,128,128,.3)}
         #estBarra .menuPD .ar.tem::after{right:4px;top:4px}
         #estBarra .abas{display:none}
-        #estBarra .jan{position:absolute;right:8px;top:8px;height:40px;margin:0;padding:0;border:0;z-index:4;display:flex;gap:0}
+        #estBarra .jan{position:absolute;right:8px;top:8px;height:40px;margin:0;padding:0;border:0;z-index:4;display:flex;gap:0;transition:opacity .25s ease}#estBarra:not(.pdOn) .jan{opacity:0;pointer-events:none}
         #estBarra .jan button{width:40px;height:40px;border:0;border-radius:4px;background:transparent;color:inherit;display:grid;place-items:center;transition:color .3s}
         #estBarra .jan button:first-child{display:none}
         #estBarra .jan button svg{width:24px;height:24px}
@@ -7176,7 +7177,7 @@ function abrirEstudio(params){
   const f = document.createElement('iframe'); f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:none'; f.setAttribute('allow', 'clipboard-write');
   const am = /(^|&)area=(\w+)/.exec(params || ''); let area = am ? am[2] : (/(^|&)filme=1/.test(params || '') ? 'video' : 'digital'); let ehCortes = /(^|&)cortes=1/.test(params || ''); if (!estLiberada(ehCortes ? 'video' : area)){ estAviso((PD_AREAS[ehCortes ? 'video' : area] || {}).nome); area = 'copys'; params = 'area=copys'; ehCortes = false; } const ehFilme = area === 'video' && !ehCortes; const pag = ehCortes ? 'cortes.html' : { copys:'copy.html', digital:'estudio.html', grafica:'estudio.html', audio:'audio.html', video:'filme.html' }[area] || 'estudio.html';
   f.src = pag + '?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()) + '&area=' + area + (params ? '&' + params : ''); f.dataset.area = area;
-  f.addEventListener('load', () => { try { const d = f.contentDocument, st = d.createElement('style'); st.textContent = '@media(max-width:999px){.top{padding-left:58px!important;padding-right:58px!important}}'; d.head.appendChild(st); d.addEventListener('pointerdown', () => { const b = document.getElementById('estBarra'); b && b.classList.remove('pdOn'); if (EST_ARQ_ABERTO) estArquivos(); }, true); estTema(); } catch(e){} });
+  f.addEventListener('load', () => { try { const d = f.contentDocument, st = d.createElement('style'); st.textContent = '@media(max-width:999px){.top{padding-left:58px!important;padding-right:6px!important}}'; d.head.appendChild(st); d.addEventListener('pointerdown', () => { const b = document.getElementById('estBarra'); b && b.classList.remove('pdOn'); if (EST_ARQ_ABERTO) estArquivos(); }, true); estTema(); } catch(e){} });
   document.getElementById('estCorpo').appendChild(f); EST_ABAS.push({ id, nome: ehCortes ? 'Cortes' : { copys:'Nova copy', audio:'Locução', video:'Novo filme', grafica:'Nova peça (gráfica)' }[area] || 'Nova peça', iframe: f, dirty: false, area }); estAbaVai(id); const jaAberto = ov.style.display === 'flex'; ov.style.display = 'flex';
   if (!jaAberto && matchMedia('(max-width:999px)').matches){ const bb = document.getElementById('estBarra'); if (bb){ bb.classList.add('pdOn'); clearTimeout(window._estGav); window._estGav = setTimeout(() => bb.classList.remove('pdOn'), 1700); } }   // entra com a barra inteira mostrando as ferramentas; ela recolhe e vira a bolinha da PD
 }

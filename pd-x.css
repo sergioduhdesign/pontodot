@@ -15,17 +15,17 @@ html.pd-tool :is(button,select,textarea,input:not([type=range],[type=checkbox],[
 html.pd-tool :is(.card,.take,.drop,.gaveta .sec,.cx,.caixa,.lado details,#lote,#pdSegura,.guia>div){border-radius:var(--rr2)!important}
 /* cabeçalho único dentro do shell da PD: 56px, mesmos recuos (pd à esquerda, X à direita), mesma cor */
 @media(max-width:999px){
-html.pd-tool.pd-emb .top{box-sizing:border-box!important;height:56px!important;min-height:56px!important;max-height:56px!important;padding:0 58px!important;gap:6px!important;display:flex!important;flex-wrap:nowrap!important;align-items:center!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;background:var(--bg)!important;border-bottom:1px solid var(--line)!important}
+html.pd-tool.pd-emb .top{box-sizing:border-box!important;height:56px!important;min-height:56px!important;max-height:56px!important;padding:0 6px 0 58px!important;gap:4px!important;display:flex!important;flex-wrap:nowrap!important;align-items:center!important;overflow:hidden!important;scrollbar-width:none;background:var(--bg)!important;border-bottom:1px solid var(--line)!important}
 html.pd-tool.pd-emb .top::-webkit-scrollbar{display:none}
-html.pd-tool.pd-emb .top>*:not(.nome){flex:0 0 auto;align-self:center!important;margin-top:0!important;margin-bottom:0!important}
+html.pd-tool.pd-emb .top>*:not(.nome){flex:0 1 auto;min-width:0;align-self:center!important;margin-top:0!important;margin-bottom:0!important}
 html.pd-tool.pd-emb .top .sep,html.pd-tool.pd-emb .top #salvoEm{display:none!important}
-html.pd-tool.pd-emb:not(.pd-est) .top select{flex:0 0 118px!important;width:118px!important;height:40px!important;min-height:40px!important;box-sizing:border-box}
-html.pd-tool.pd-emb:not(.pd-est) .top .nome{flex:1 0 110px!important;min-width:110px!important;width:auto!important;height:40px!important;min-height:40px!important;box-sizing:border-box}
-html.pd-tool.pd-emb:not(.pd-est) .top .btn{height:40px!important;min-height:40px!important;box-sizing:border-box}
-html.pd-tool.pd-emb:not(.pd-est) .top .btn.i{width:40px!important;padding:0!important}
+html.pd-tool.pd-emb:not(.pd-est) .top select{flex:1 1 0!important;width:auto!important;max-width:118px;min-width:44px!important;height:44px!important;min-height:44px!important;box-sizing:border-box}
+html.pd-tool.pd-emb:not(.pd-est) .top .nome{flex:1 1 0!important;min-width:56px!important;width:auto!important;height:44px!important;min-height:44px!important;box-sizing:border-box}
+html.pd-tool.pd-emb:not(.pd-est) .top .btn{height:44px!important;min-height:44px!important;box-sizing:border-box}
+html.pd-tool.pd-emb:not(.pd-est) .top .btn.i{width:42px!important;padding:0!important;flex:0 0 42px!important}html.pd-tool.pd-emb:not(.pd-est) .top .btn.i svg{width:22px!important;height:22px!important;stroke-width:1.5}
 html.pd-tool.pd-emb:not(.pd-est) .top #afinacao{width:130px!important;height:40px;box-sizing:border-box}
-html.pd-tool.pd-emb .top #pdIA{width:40px!important;height:40px!important;flex:0 0 40px!important;position:relative}
+html.pd-tool.pd-emb .top #pdIA{width:42px!important;height:44px!important;flex:0 0 42px!important;position:relative}
 html.pd-tool.pd-emb .top #pdIA::after{display:none!important}
 }
 /* o conteúdo que rola por baixo do pd (esquerda) e do X (direita) some em degradê, sem ficar sobreposto */
-@media(max-width:999px){html.pd-tool.pd-emb .top{-webkit-mask-image:linear-gradient(to right,transparent 0,transparent 46px,#000 62px,#000 calc(100% - 62px),transparent calc(100% - 46px),transparent 100%);mask-image:linear-gradient(to right,transparent 0,transparent 46px,#000 62px,#000 calc(100% - 62px),transparent calc(100% - 46px),transparent 100%)}}
+

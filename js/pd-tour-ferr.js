@@ -53,7 +53,7 @@
   #pdTFcx p{margin:0 0 12px;opacity:.8}
   #pdTFcx .rd{display:flex;align-items:center;gap:8px}#pdTFcx .pt{display:flex;gap:4px;flex:1}#pdTFcx .pt i{width:5px;height:5px;border-radius:50%;background:#121212;opacity:.18}#pdTFcx .pt i.on{opacity:.9}
   #pdTFcx button{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:4px;padding:9px 16px;font:500 12px/1 inherit;font-family:inherit;cursor:pointer;min-height:38px}#pdTFcx button.p{background:#121212;color:#fff;border-color:#121212}
-  .pdTFq{flex:0 0 auto}`; document.head.appendChild(st); }
+  .pdTFq{flex:0 0 42px;width:42px;height:44px}`; document.head.appendChild(st); }
   function fecha(visto){ if (ov){ ov.remove(); ov = null; } if (visto !== false){ try { localStorage.setItem(chave, '1'); } catch(e){} } }
   function passo(){
     const p = cfg.passos[i]; if (!p) return fecha();
