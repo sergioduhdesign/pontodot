@@ -32,10 +32,19 @@ window.pdGavetaArrasta = function(el, alca, o){
     pal:'<path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-1.6-1.4-1.4-1.4-2.7 0-1 .8-1.6 1.8-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="11" r="1"/>',
     doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
     clip:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="m10 9.5 5 2.5-5 2.5z"/>',
+    brush:'<path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/>',
+    saved:'<path d="M6 3h12v18l-6-4-6 4z"/>',
+    grid:'<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
+    shapes:'<circle cx="8" cy="8" r="4"/><rect x="11" y="11" width="9" height="9" rx="1"/>',
+    layers:'<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 13 9 5 9-5"/>',
+    stamp:'<path d="M9 13V8a3 3 0 1 1 6 0v5l3 3H6z"/><path d="M5 20h14"/>',
+    folder:'<path d="M3 6h6l2 2h10v11H3z"/>',
+    file:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',
+    cut:'<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="m8 8.5 12 9M8 15.5l12-9"/>',
     dot:'<circle cx="12" cy="12" r="3"/>'
   };
   const icone = t => { t = (t || '').toLowerCase();
-    return /voz|locu/.test(t) ? 'mic' : /dire/.test(t) ? 'sliders' : /trilha|m[uú]sica/.test(t) ? 'music' : /m[ií]dia|imagem|foto/.test(t) ? 'img' : /texto|tipolog/.test(t) ? 'txt' : /setup|ferrament/.test(t) ? 'wand' : /design|cor|marca|ds/.test(t) ? 'pal' : /brief|dados|estrat/.test(t) ? 'doc' : /clipe|objeto|ajuste|propriedad/.test(t) ? 'sliders' : 'dot'; };
+    return /dire/.test(t) ? 'sliders' : /estilo|redator/.test(t) ? 'brush' : /salva|copys/.test(t) ? 'saved' : /assinatura|packshot/.test(t) ? 'stamp' : /sobreposi|camada/.test(t) ? 'layers' : /forma|m[aá]scara/.test(t) ? 'shapes' : /pe[cç]as|modelo|biblioteca|galeria|elemento/.test(t) ? 'grid' : /banco|drive|pasta/.test(t) ? 'folder' : /arquivo/.test(t) ? 'file' : /corte/.test(t) ? 'cut' : /voz|locu/.test(t) ? 'mic' : /dire/.test(t) ? 'sliders' : /trilha|m[uú]sica/.test(t) ? 'music' : /m[ií]dia|imagem|foto/.test(t) ? 'img' : /texto|tipolog/.test(t) ? 'txt' : /setup|ferrament/.test(t) ? 'wand' : /design|cor|marca|ds/.test(t) ? 'pal' : /brief|dados|estrat/.test(t) ? 'doc' : /clipe|objeto|ajuste|propriedad/.test(t) ? 'sliders' : 'dot'; };
   const svg = n => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${I[n] || I.dot}</svg>`;
   const CSS = `
   body.sh{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
