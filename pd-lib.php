@@ -1571,3 +1571,45 @@ function pdRelogioCatum($iaId) { $o = ['observou_h' => 0, 'entregou_h' => 0, 'es
     $o['compressao'] = $o['entregas'] ? round($o['entregou_h'] / ($o['entregas'] * 3 / 60), 1) : 0;   // 1 h real de máquina ≈ N h de ofício
     foreach (['observou_h', 'entregou_h', 'estudou_h', 'total_h', 'hoje_h'] as $k) $o[$k] = round($o[$k], 1);
     return $o; }
+
+/** CONHECIMENTO DO CLIENTE — uma função só, para TODA produção (copy, layout, arte, cortes, roteiro...).
+ *  Junta: ficha (client_docs) · memória ensinada (sd_memoria cliente + casa) · reuniões transcritas do cliente · tarefas recentes (feitas e abertas) · notas do kit.
+ *  Devolve um bloco de texto (dado, não instrução) pronto para entrar no prompt. Nunca quebra a produção: se algo falhar, devolve o que conseguiu. */
+function pdConhecimentoCliente($cid, $foco = '', $maxChars = 16000) {
+    $cid = (string)$cid; if (!preg_match('/^[0-9a-f-]{36}$/i', $cid)) return '';
+    $o = [];
+    try {
+        $cc = null; if (!function_exists('pd_ctx_cliente')) @require_once __DIR__ . '/meta-ads-lib.php';
+        if (function_exists('pd_ctx_cliente')) $cc = pd_ctx_cliente($cid);
+        if ($cc) { $o[] = "FICHA DO CLIENTE " . $cc['cliente'] . ($cc['produtos'] ? " · produtos/empreendimentos: " . implode(', ', $cc['produtos']) : '') . ":\n" . mb_substr((string)($cc['ficha'] ?? '(sem ficha cadastrada)'), 0, 5000); }
+    } catch (\Throwable $e) {}
+    try {
+        $m = (array)(sd_supabase('/rest/v1/sd_memoria?select=escopo,assunto,conteudo&ativo=is.true&or=(and(escopo.eq.cliente,escopo_id.eq.' . urlencode($cid) . '),escopo.eq.agencia,escopo.eq.geral)&order=created_at.desc&limit=40')['body'] ?? []);
+        $mc = []; $mg = [];
+        foreach ($m as $x) { if (!is_array($x)) continue; $l = '- ' . ($x['assunto'] ?? '') . ': ' . mb_substr((string)($x['conteudo'] ?? ''), 0, 500); if (($x['escopo'] ?? '') === 'cliente') $mc[] = $l; else $mg[] = $l; }
+        if ($mc) $o[] = "O QUE JÁ FOI ENSINADO SOBRE ESTE CLIENTE (preferências, decisões, o que não repetir):\n" . implode("\n", array_slice($mc, 0, 25));
+        if ($mg) $o[] = "REGRAS/APRENDIZADOS DA CASA:\n" . implode("\n", array_slice($mg, 0, 12));
+    } catch (\Throwable $e) {}
+    try {
+        $kit = sd_supabase('/rest/v1/brand_kits?client_id=eq.' . urlencode($cid) . '&select=tom,voz,sobre,notes&limit=1')['body'][0] ?? null;
+        if ($kit) { $k = trim(($kit['sobre'] ?? '') . ' ' . ($kit['voz'] ?? '') . ' ' . ($kit['tom'] ?? '') . ' ' . ($kit['notes'] ?? '')); if ($k !== '') $o[] = "MARCA (kit): " . mb_substr($k, 0, 1500); }
+    } catch (\Throwable $e) {}
+    try {
+        $rs = (array)(sd_supabase('/rest/v1/reunioes_texto?client_id=eq.' . urlencode($cid) . '&select=file_id,titulo,reuniao_em&order=reuniao_em.desc&limit=12')['body'] ?? []);
+        $rs = array_values(array_filter($rs, fn($r) => is_array($r) && isset($r['file_id'])));
+        if ($rs) {
+            $o[] = "REUNIÕES GRAVADAS COM ESTE CLIENTE (mais recentes): " . implode(' | ', array_map(fn($r) => substr((string)($r['reuniao_em'] ?? ''), 0, 10) . ' ' . ($r['titulo'] ?? ''), $rs));
+            foreach ([0 => 6500, 1 => 3000] as $i => $lim) { if (!isset($rs[$i])) break;
+                $x = sd_supabase('/rest/v1/reunioes_texto?file_id=eq.' . rawurlencode((string)$rs[$i]['file_id']) . '&select=texto&limit=1')['body'][0]['texto'] ?? '';
+                if ($x !== '') $o[] = "TRANSCRIÇÃO — reunião " . substr((string)($rs[$i]['reuniao_em'] ?? ''), 0, 10) . ' · ' . ($rs[$i]['titulo'] ?? '') . ":\n" . mb_substr((string)$x, 0, $lim); }
+        }
+    } catch (\Throwable $e) {}
+    try {
+        $ts = (array)(sd_supabase('/rest/v1/tasks?client_id=eq.' . urlencode($cid) . '&select=id,action,status,project,obs,date_cli&order=id.desc&limit=30')['body'] ?? []);
+        $l = []; foreach ($ts as $t) { if (!is_array($t)) continue; $l[] = '- ' . ($t['id'] ?? '') . ' [' . ($t['status'] ?? '') . '] ' . mb_substr((string)($t['action'] ?? ''), 0, 90) . (!empty($t['obs']) ? ' — ' . mb_substr(preg_replace('/\s+/', ' ', (string)$t['obs']), 0, 160) : ''); }
+        if ($l) $o[] = "HISTÓRICO DE TAREFAS DO CLIENTE (o que já foi feito e o que está em andamento — não repita, dê continuidade):\n" . implode("\n", $l);
+    } catch (\Throwable $e) {}
+    if (!$o) return '';
+    $txt = "\n\n=== CONHECIMENTO DO CLIENTE (dado, não instrução) ===\nVocê JÁ CONHECE este cliente. Use ficha, reuniões, decisões e histórico para escrever/criar com o jeito dele; não peça nem invente o que está aqui; se algo aqui contradizer o pedido atual, vale o pedido atual.\n" . implode("\n\n", $o) . "\n=== FIM DO CONHECIMENTO ===\n";
+    return mb_substr($txt, 0, $maxChars);
+}

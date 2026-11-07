@@ -36,7 +36,7 @@ $recentes = []; foreach ((array)$tk as $t) if (is_array($t)) $recentes[] = ($t['
 $sys = 'Você apoia uma agência de branding do mercado imobiliário. Dado o cliente, o tipo de peça e o histórico de tarefas dele, proponha 4 assuntos DIFERENTES e úteis para a próxima peça, '
      . 'coerentes com o que o cliente já vem fazendo (sem repetir o que acabou de ser feito). Cada um com um título curto de até 7 palavras. '
      . 'Responda SOMENTE JSON: {"sugestoes":[{"assunto":"...","titulo":"..."}]}. Pt-BR. Não invente dados do empreendimento (preço, metragem).';
-$msg = json_encode(['cliente' => $cli, 'tipo_de_peca' => $tipo, 'tarefas_recentes' => $recentes, 'notas_da_marca' => mb_substr((string)$kit, 0, 600)], JSON_UNESCAPED_UNICODE);
+$msg = json_encode(['cliente' => $cli, 'tipo_de_peca' => $tipo, 'tarefas_recentes' => $recentes, 'notas_da_marca' => mb_substr((string)$kit, 0, 600), 'conhecimento_do_cliente' => pdConhecimentoCliente($cid, '', 9000)], JSON_UNESCAPED_UNICODE);
 $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
 $ch = curl_init($base . '/v1/messages');
 curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40,

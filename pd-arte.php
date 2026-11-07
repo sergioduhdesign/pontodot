@@ -10,6 +10,7 @@ $kit = pdAulaSup('/rest/v1/brand_kits?client_id=eq.' . $cid . '&select=colors,fo
 $fmt = ['post' => ['ARTE_POST', '1080x1080'], 'carrossel' => ['ARTE_CAPA_CARROSSEL', '1080x1350'], 'story' => ['ARTE_STORY', '1080x1920'], 'video' => ['ARTE_STORY', '1080x1920'], 'anuncio' => ['ARTE_POST', '1200x628']];
 [$skill, $formato] = $fmt[(string)($b['tipo'] ?? 'post')] ?? ['ARTE_POST', '1080x1080'];
 $marca = ['cliente' => $cli, 'paleta' => $kit['colors'] ?? [], 'fontes' => array_map(fn($f) => $f['name'] ?? '', (array)($kit['fonts'] ?? [])), 'notas' => mb_substr((string)($kit['notas'] ?? $kit['notes'] ?? ''), 0, 500)];
+$marca['conhecimento_do_cliente'] = pdConhecimentoCliente($cid, (string)($b['assunto'] ?? ''), 9000);
 if (!empty($b['bg'])) $marca['cor_de_fundo_escolhida'] = (string)$b['bg']; if (!empty($b['acc'])) $marca['cor_de_destaque_escolhida'] = (string)$b['acc'];
 if (!empty($b['fonte_t'])) $marca['fonte_titulos'] = (string)$b['fonte_t']; if (!empty($b['fonte_c'])) $marca['fonte_texto'] = (string)$b['fonte_c'];
 $pj = pdAulaSup('/rest/v1/pd_jeito?user_id=eq.' . urlencode($u['id']) . '&select=personagem')['body'][0]['personagem'] ?? '';
