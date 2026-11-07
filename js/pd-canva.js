@@ -208,6 +208,9 @@ const css=document.createElement('style');css.textContent=`
 #pdFolha .fli{display:flex;flex-direction:column}#pdFolha .fli button{min-height:46px;padding:0 16px;border:0;background:transparent;color:var(--ink);font-size:17px;text-align:left;border-radius:0}#pdFolha .fli button.on{background:rgba(127,127,127,.16)}
 @media(max-width:820px){html.pdCxOn #rodape{visibility:hidden}html.pdCxOn #pdJoy{bottom:60px}}
 `;document.head.appendChild(css);
-const iv=setInterval(()=>{try{if(liga())clearInterval(iv);}catch(e){}},400);
+function ur(){const m=$('#main');if(!m||$('#pdUR'))return;const d=document.createElement('div');d.id='pdUR';
+  const mk=(t,f,p)=>{const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',t);b.innerHTML=ic(p);b.onclick=f;d.appendChild(b);};
+  mk('Desfazer',()=>hist(-1),'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>');mk('Refazer',()=>hist(1),'<path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/>');m.appendChild(d);}
+const iv=setInterval(()=>{try{ur();if(liga())clearInterval(iv);}catch(e){}},400);
 window.pdCanva={abreMais:()=>abre(m_mais()),camada,alinhaPag,fecha};
 })();

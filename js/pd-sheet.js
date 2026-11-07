@@ -14,8 +14,8 @@ window.pdGavetaArrasta = function(el, alca, o){
     const t = performance.now(); vel = vel * .5 + ((y1 - e.clientY) / Math.max(1, t - t1)) * .5; y1 = e.clientY; t1 = t; });
   const fim = () => { if (!drag) return; drag = false; const h = el.getBoundingClientRect().height; const pts = [0, meia(), topo()]; let alvo;
     if (!mexeu){ alvo = el.classList.contains('cheia') ? meia() : (h >= topo() - 4 ? meia() : topo()); }   // toque na alça: alterna meia ↔ cheia
-    else if (Math.abs(vel) > .45){ alvo = vel > 0 ? (pts.find(p => p > h + 12) || topo()) : ([...pts].reverse().find(p => p < h - 12) ?? 0); }
-    else alvo = pts.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a);
+    else if (Math.abs(vel) > 1.1){ alvo = vel > 0 ? (pts.find(p => p > h + 12) || topo()) : ([...pts].reverse().find(p => p < h - 12) ?? 0); }
+    else alvo = h < 70 ? 0 : (h > topo() - 36 ? topo() : Math.round(h));   // altura livre: fica onde o dedo soltou (só fecha perto de zero e cobre tudo perto do topo)
     aplica(alvo); };
   alca.addEventListener('pointerup', fim); alca.addEventListener('pointercancel', fim);
   return { abre: () => { el.classList.remove('cheia'); def(o.inicio ? (o.inicio() || meia()) : meia(), false); o.aoMudar && o.aoMudar(false); }, meia: () => aplica(meia()), cheia: () => aplica(topo()), fecha: () => aplica(0) };
