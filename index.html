@@ -2629,7 +2629,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v480 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v481 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3561,6 +3561,7 @@ function abrirJanela(html, grande){
 // tocar no "nada" (fundo da caixa, fora de botão/texto) volta: janela → tela anterior; caixa da home → fecha. Caixa com campo de digitar não reage (não perde o que escreveu).
 document.addEventListener('click', e => {
   const t = e.target; if (!t || !t.classList) return;
+  if (Date.now() - (window._gadTs || 0) < 700) return;      // o mesmo toque que acabou de abrir a caixa não pode fechá-la
   if (window.getSelection && String(window.getSelection()).length) return;
   const j = document.getElementById('janela');
   if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo') && j.contains(t) && (t === j || t.classList.contains('j-caixa') || t.classList.contains('caixa'))){
@@ -8110,7 +8111,7 @@ function medirMinis(){
     if (id && w > 40) larguraMini[id] = w;     // 40px: abaixo disso é medida de elemento ainda não pintado
   });
 }
-function alternarAbertura(id){
+function alternarAbertura(id){ window._gadTs = Date.now();
   // antes de a IA existir, o ovo não abre caixa: abre o convite da escola
   if (id === 'minhaia' && !gadsAbertos[id] && !aindaNao(() => temIA(), false)){ abrirEscola(); return; }
   const gad = document.querySelector(`.gad[data-fk="gad-${id}"]`);
