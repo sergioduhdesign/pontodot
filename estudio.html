@@ -381,7 +381,9 @@ function controleGiro(){const mtr=fabric.Object.prototype.controls.mtr;mtr.offse
 // ---------- histórico
 let AUTO_T=null;function autoSalvar(){clearTimeout(AUTO_T);if(!PECA.id||!dirty||CROP.on||MASK.on||PENEDIT.on||FERR==='caneta')return;AUTO_T=setTimeout(async()=>{if(PECA.id&&dirty&&!CROP.on&&!MASK.on&&!PENEDIT.on&&FERR!=='caneta'){const a=C.getActiveObject();if(a&&a.isEditing)return;await salvar(undefined,true);}},4000);}
 function marca(inicial){if(TRAVA)return;const j=JSON.stringify(C.toJSON(PROPS));if(H[HI]===j)return;H=H.slice(0,HI+1);H.push(j);if(H.length>80)H.shift();HI=H.length-1;camadas();if(!inicial){dirty=true;autoSalvar();}}
-function hist(d){const i=HI+d;if(i<0||i>=H.length)return;HI=i;TRAVA=true;C.loadFromJSON(JSON.parse(H[i]),()=>{TRAVA=false;const rects=C.getObjects().filter(o=>o.pdPage!==undefined);PECA.nPag=Math.max(1,rects.length);PECA.fundos=rects.map(r=>r.fill);C.renderAll();camadas();pags();});}
+function hist(d){const i=HI+d;if(i<0||i>=H.length)return;HI=i;TRAVA=true;C.loadFromJSON(JSON.parse(H[i]),()=>{const rects=C.getObjects().filter(o=>o.pdPage!==undefined);PECA.nPag=Math.max(1,rects.length);PECA.fundos=rects.map(r=>r.fill);C.renderAll();camadas();pags();
+  /* segura eventos tardios do carregamento e regrava o estado como o canvas realmente ficou: sem isso um marca() atrasado cortava o histórico e o voltar só funcionava uma vez */
+  clearTimeout(hist._t);hist._t=setTimeout(()=>{H[HI]=JSON.stringify(C.toJSON(PROPS));TRAVA=false;},200);});}
 
 // ---------- adicionar
 function centro(o){o.set({left:pageX(PECA.pag)+W()/2,top:Hh()/2,originX:'center',originY:'center'});C.add(o);C.setActiveObject(o);C.renderAll();}
@@ -1140,7 +1142,13 @@ const _mi=setInterval(()=>{try{if(mobIni())clearInterval(_mi);}catch(e){}},400);
       T=setTimeout(()=>{try{const alvo=C.findTarget({clientX:P0.x,clientY:P0.y,target:C.upperCanvasEl},false);const o=alvo&&alvo.pdPage===undefined?alvo:null;if(!o)return;
         if(C._currentTransform)C._currentTransform=null;C.setActiveObject(o);C.renderAll();abre(C.getActiveObject()||o,P0.x,P0.y);}catch(x){}},520);},{passive:true,capture:true});
     p.addEventListener('touchmove',e=>{if(!P0||!e.touches[0])return;if(Math.hypot(e.touches[0].clientX-P0.x,e.touches[0].clientY-P0.y)>10)clearTimeout(T);},{passive:true,capture:true});
-    ['touchend','touchcancel'].forEach(n=>p.addEventListener(n,()=>clearTimeout(T),{passive:true,capture:true}));
+    // segundo toque (parado) num objeto que já estava selecionado: abre a mesma barra
+    let ant=null,mov=false,T2=null;
+    p.addEventListener('touchstart',e=>{clearTimeout(T2);mov=false;const o=C.getActiveObject();ant=(o&&o.pdPage===undefined&&o.type!=='activeSelection'||o&&o.type==='activeSelection')?o:null;},{passive:true,capture:true});
+    p.addEventListener('touchmove',e=>{if(P0&&e.touches[0]&&Math.hypot(e.touches[0].clientX-P0.x,e.touches[0].clientY-P0.y)>10)mov=true;},{passive:true,capture:true});
+    p.addEventListener('touchend',e=>{clearTimeout(T);if(mov||!ant||!P0||!MOB()||CROP.on||MASK.on||PENEDIT.on)return;const t=e.changedTouches[0];if(!t)return;
+      T2=setTimeout(()=>{try{const alvo=C.findTarget({clientX:t.clientX,clientY:t.clientY,target:C.upperCanvasEl},false);const a=C.getActiveObject();if(a&&a===ant&&(alvo===a||(a.type==='activeSelection'&&alvo&&a.contains(alvo)))&&!document.querySelector('#pdSegura.on'))abre(a,t.clientX,t.clientY);}catch(x){}},330);},{passive:true,capture:true});
+    p.addEventListener('touchcancel',()=>clearTimeout(T),{passive:true,capture:true});
     document.addEventListener('pointerdown',e=>{if(!e.target.closest('#pdSegura'))setTimeout(()=>{if(!T)fecha();},0);},true);return true;}
   const iv=setInterval(()=>{try{monta();if(typeof C!=='undefined'&&C&&liga())clearInterval(iv);}catch(e){}},500);
 })();
