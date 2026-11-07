@@ -3,6 +3,10 @@
 require_once __DIR__ . '/sd-auth.php';
 header('Content-Type: text/plain; charset=utf-8'); header('Cache-Control: no-store');
 if (!defined('SD_CRON_KEY') || SD_CRON_KEY === '' || !hash_equals((string)SD_CRON_KEY, (string)($_GET['key'] ?? ''))) { http_response_code(403); echo 'chave'; exit; }
+$wh = __DIR__ . '/.cache-pd/wa-hits.log';
+echo "=== CHAMADAS QUE CHEGARAM NO WEBHOOK (wa-hits.log, últimas 15) ===\n";
+if (is_file($wh)) { $l = array_filter(preg_split('/\r?\n/', (string)file_get_contents($wh))); foreach (array_slice($l, -15) as $x) echo $x . "\n"; } else echo "(nenhuma chamada registrada ainda)\n";
+echo "\n";
 $f = __DIR__ . '/error_log';
 if (!is_file($f)) { echo "sem error_log nesta pasta\n"; exit; }
 $tam = filesize($f); $le = min($tam, 400 * 1024);

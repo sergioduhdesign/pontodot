@@ -7,6 +7,10 @@
 //   define('SD_ZAP_VERIFY', 'uma-senha-que-voce-inventa');   // a mesma vai no painel da Meta
 //   define('SD_ZAP_APP_SECRET', '...');   // opcional: segredo do app do WhatsApp (se não for o mesmo SD_META_APP_SECRET)
 // =====================================================================
+// DIAGNÓSTICO: anota TODA chamada que chega (antes de qualquer checagem) em .cache-pd/wa-hits.log (pasta fechada ao público). Lido por pd-log.php.
+try { $d = __DIR__ . '/.cache-pd'; if (!is_dir($d)) @mkdir($d, 0755, true); $f = $d . '/wa-hits.log';
+  if (@filesize($f) > 150000) @file_put_contents($f, '');
+  @file_put_contents($f, date('c') . ' ' . ($_SERVER['REQUEST_METHOD'] ?? '?') . ' ip=' . ($_SERVER['REMOTE_ADDR'] ?? '?') . ' ua=' . substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 60) . ' len=' . (int)($_SERVER['CONTENT_LENGTH'] ?? 0) . ' assin=' . (!empty($_SERVER['HTTP_X_HUB_SIGNATURE_256']) ? 'sim' : 'nao') . "\n", FILE_APPEND); } catch (Throwable $e) {}
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-lib.php';
 
