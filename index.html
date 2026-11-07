@@ -1318,7 +1318,7 @@ html.dia .menu-ctx .sep{background:rgba(242,242,238,.16)}
 .menu-ctx .mini{font-size:10px;opacity:.55;letter-spacing:.05em;padding:4px 12px 6px}
 .menu-ctx .puxador{display:none}
 /* no celular o menu é folha de baixo: alvo grande, polegar alcança */
-.menu-ctx.folha{left:0;right:0;bottom:0;top:auto;min-width:0;border-radius:20px 20px 0 0;
+.menu-ctx.folha{overscroll-behavior:contain;left:0;right:0;bottom:0;top:auto;min-width:0;border-radius:20px 20px 0 0;
   padding:4px 10px calc(12px + env(safe-area-inset-bottom));max-height:78dvh;overflow-y:auto;
   animation:subirFolha .26s cubic-bezier(.22,1,.36,1)}
 @keyframes subirFolha{from{transform:translateY(100%)}to{transform:none}}
@@ -2582,7 +2582,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v465 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v466 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4022,6 +4022,7 @@ function alternarFotos(){
 }
 function abrirMenuCtx(x,y){
   const m = $('#menuCtx'); if (!m) return;
+  m.style.transform=''; m.style.transition=''; m.style.animation='';
   m.innerHTML = `
     <div class="puxador"></div>
     <div class="mini">APARÊNCIA</div>
@@ -4057,7 +4058,7 @@ function fecharMenuCtx(){ const m=$('#menuCtx'); if (m){ m.classList.add('oculto
     m.addEventListener('touchstart',e=>{ if(!m.classList.contains('folha')||e.touches.length!==1) return; on=true; dy=0; y0=e.touches[0].clientY; t0=performance.now(); m.style.transition='none'; m.style.animation='none'; },{passive:true});
     m.addEventListener('touchmove',e=>{ if(!on) return; const d=e.touches[0].clientY-y0; if(d>0&&m.scrollTop<=0){ dy=d; m.style.transform='translateY('+d+'px)'; if(e.cancelable) e.preventDefault(); } else if(dy>0&&d<=0){ dy=0; m.style.transform=''; } },{passive:false});
     const fim=()=>{ if(!on) return; on=false; const v=dy/Math.max(1,performance.now()-t0); m.style.transition='transform .22s cubic-bezier(.22,.8,.24,1)';
-      if(dy>90||(dy>30&&v>.5)){ m.style.transform='translateY(110%)'; setTimeout(()=>{ fecharMenuCtx(); m.style.transition=''; m.style.transform=''; m.style.animation=''; },200); }
+      if(dy>40||(dy>14&&v>.25)){ m.style.transform='translateY(120%)'; setTimeout(()=>{ fecharMenuCtx(); setTimeout(()=>{ m.style.transition=''; m.style.transform=''; m.style.animation=''; },450); },230); }
       else { m.style.transform=''; setTimeout(()=>{ m.style.transition=''; m.style.animation=''; },230); } dy=0; };
     m.addEventListener('touchend',fim); m.addEventListener('touchcancel',fim); return true; };
   const iv=setInterval(()=>{ try{ if(ini()) clearInterval(iv); }catch(e){} },500);
