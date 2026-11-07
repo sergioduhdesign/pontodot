@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><link rel="stylesheet" href="/pd-x.css?v=1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="pt-BR"><head><link rel="stylesheet" href="/pd-x.css?v=2"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Studio Design · Filme · Pontodot</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/pd-studio.js?v=330"></script><script src="/js/pd-sheet.js?v=3" defer></script>
@@ -336,4 +336,4 @@ async function renderizar(silencio){pdStudio.observa('render',{clipes:FILME.v.le
     if(r.trabalho){const id=r.trabalho.id;const t=setInterval(async()=>{try{const j=await api('pd-oficina.php',{acao:'ver',id});const st=j.trabalho&&j.trabalho.status;if(st==='pronto'){clearInterval(t);avisa('Terminei o filme '+nome+'! Está em Saída de materiais e no Drive.');}else if(st==='erro'){clearInterval(t);avisa('Não consegui terminar o filme '+nome+': '+(j.trabalho.erro||'erro'));}}catch(e){}},40000);}}
   catch(e){msg(e.message,8000);}finally{desocupa();}}
 boot();
-</script><script src="/js/pd-ajuda.js?v=325"></script></body></html>
+</script><script src="/js/pd-ajuda.js?v=325"></script><script src="/js/pd-tour-ferr.js?v=1" defer></script></body></html>

@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><link rel="stylesheet" href="/pd-x.css?v=1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="/js/pd-ajuda.js?v=325" defer></script>
+<!doctype html><html lang="pt-BR"><head><link rel="stylesheet" href="/pd-x.css?v=2"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="/js/pd-ajuda.js?v=325" defer></script>
 <title>Studio Design · Copys · Pontodot</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/pd-studio.js?v=330"></script><script src="/js/pd-sheet.js?v=3" defer></script>
@@ -152,4 +152,4 @@ async function professora(){if(!CP.variantes.length){msg('Gere primeiro.');retur
 function exportar(){const md='# '+($('#nome').value||'Copy')+'\n\n'+(CP.leitura?'> '+CP.leitura+'\n\n':'')+CP.variantes.map((v,i)=>'## Variante '+(i+1)+' · '+(v.estilo||'')+'\n\n'+textoDe(v)+(v.por_que?'\n\n_'+v.por_que+'_':'')).join('\n\n---\n\n');const a=document.createElement('a');a.href='data:text/markdown;charset=utf-8,'+encodeURIComponent(md);a.download=($('#nome').value||'copy')+'.md';a.click();}
 async function antesDeSair(){if(!dirty)return true;return await salvar(true);}
 boot();
-</script></body></html>
+</script><script src="/js/pd-tour-ferr.js?v=1" defer></script></body></html>

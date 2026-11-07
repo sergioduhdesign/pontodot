@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><link rel="stylesheet" href="/pd-x.css?v=1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="pt-BR"><head><link rel="stylesheet" href="/pd-x.css?v=2"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Studio Design · Locução e trilha · Pontodot</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/pd-studio.js?v=330"></script><script src="/js/pd-sheet.js?v=3" defer></script>
@@ -121,4 +121,4 @@ async function bancoVer(id){const link=($('#bkLink').value||'').trim();if(!id&&!
     if(!id&&!r.salvo&&confirm('Salvar esta pasta como banco de trilhas da casa?')){const nome=prompt('Nome do banco:','Trilhas')||'Trilhas';await api('pd-estudio.php',{acao:'banco_salvar',link,nome,client_id:null});bancosUI();}}catch(e){msg(e.message,6000);}}
 async function antesDeSair(){return true;}
 boot();
-</script><script src="/js/pd-ajuda.js?v=325"></script></body></html>
+</script><script src="/js/pd-ajuda.js?v=325"></script><script src="/js/pd-tour-ferr.js?v=1" defer></script></body></html>
