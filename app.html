@@ -5699,6 +5699,11 @@ function iconeAcao(nome, size){
 }
 
 let filaLotes = [];
+let filaContasSel = new Set(); try { filaContasSel = new Set(JSON.parse(localStorage.getItem('sd_fila_contas')||'[]')); } catch(e){}
+function _salvarContasSel(){ try { localStorage.setItem('sd_fila_contas', JSON.stringify([...filaContasSel])); } catch(e){} }
+function verConta(id){ filaContasSel.has(id) ? filaContasSel.delete(id) : filaContasSel.add(id); _salvarContasSel(); desenharFila(); renderContasFila(); }
+function verContasDe(ids, liga){ ids.forEach(i => liga ? filaContasSel.add(i) : filaContasSel.delete(i)); _salvarContasSel(); desenharFila(); renderContasFila(); }
+function limparContasSel(){ filaContasSel.clear(); _salvarContasSel(); desenharFila(); renderContasFila(); }
 let filaExpandido = new Set();
 let filaSelecionados = new Set();
 let filaAba = 'ativos';   // 'ativos' | 'cancelados' | 'comentarios'
