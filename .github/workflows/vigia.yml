@@ -44,3 +44,19 @@ jobs:
             echo "::error::Publicador parado ha ${p} min (reserva acionada)."; ruim=1
           fi
           exit $ruim
+      - name: Conferir a validade dos certificados SSL
+        env:
+          URL: ${{ secrets.PD_URL }}
+        run: |
+          set -u
+          hosts="sd.sergioduh.com"
+          h=$(echo "${URL:-}" | sed -E 's#^https?://##; s#/.*$##'); [ -n "$h" ] && hosts="$hosts $h"
+          ruim=0
+          for host in $(echo $hosts | tr ' ' '\n' | sort -u); do
+            fim=$(echo | openssl s_client -servername "$host" -connect "$host:443" -verify_return_error 2>/tmp/err </dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+            if [ -z "$fim" ]; then echo "::error::Certificado de $host INVALIDO ou fora do ar ($(tr '\n' ' ' </tmp/err | cut -c1-160)). Rodar o AutoSSL no cPanel."; ruim=1; continue; fi
+            dias=$(( ( $(date -d "$fim" +%s) - $(date +%s) ) / 86400 ))
+            echo "$host: certificado vale ate $fim ($dias dias)"
+            if [ "$dias" -lt 14 ]; then echo "::error::Certificado de $host vence em $dias dias — renovar no cPanel (SSL/TLS Status > Run AutoSSL)"; ruim=1; fi
+          done
+          exit $ruim
