@@ -11010,6 +11010,34 @@ function setView(v){
 // pd_saude() do banco (SQL v63). Cada cron grava um "batimento" quando
 // roda; aqui a gente compara com o intervalo esperado e acende o alerta.
 // ================================================================
+
+/* Central de erros: toda tela que quebra no navegador avisa o servidor (aparece em Saúde). Poucos por sessão, sem repetir. */
+(function(){ let n = 0, ult = '';
+  function manda(msg, onde, linha, pilha){ try {
+    msg = String(msg || '').slice(0, 500); if (!msg || n >= 6) return; const k = msg + '|' + onde; if (k === ult) return; ult = k; n++;
+    const tk = (typeof session !== 'undefined' && session && session.access_token) ? session.access_token : ''; if (!tk) return;
+    fetch('/pd-erro.php', { method:'POST', keepalive:true, headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + tk },
+      body: JSON.stringify({ msg, onde: String(onde || '').replace(location.origin, '').slice(0, 160), linha, pilha: String(pilha || '').slice(0, 800), versao: window.SD_VERSAO || '', tela: location.pathname + location.hash }) }).catch(() => {});
+  } catch (e) {} }
+  window.addEventListener('error', e => { if (e && e.message) manda(e.message, e.filename, e.lineno, e.error && e.error.stack); });
+  window.addEventListener('unhandledrejection', e => { const r = e && e.reason; manda(r && (r.message || String(r)), 'promessa sem tratamento', null, r && r.stack); });
+})();
+
+
+async function saudeTestar(){
+  const btn = document.getElementById('btn-saude-teste'), out = document.getElementById('saude-teste'); if (!out) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Testando…'; }
+  out.innerHTML = '<div style="padding:8px 0;color:var(--text3);font-size:12.5px">Conferindo cada peça (pode levar uns 20 s)…</div>';
+  try {
+    const r = await fetch('/pd-saude-teste.php', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token }, body:'{}' });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    out.innerHTML = j.testes.map(t => `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start">
+      <span style="width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${t.ok ? '#16a34a' : '#dc2626'}"></span>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${saudeEsc(t.nome)}</div><div style="font-size:11.5px;color:${t.ok ? 'var(--text3)' : '#dc2626'};margin-top:2px;word-break:break-word">${saudeEsc(t.detalhe)}</div></div>
+      <div style="font-size:11.5px;color:var(--text3);white-space:nowrap">${t.ms} ms</div></div>`).join('');
+  } catch (e) { out.innerHTML = `<div style="color:#dc2626;font-size:12.5px;padding:8px 0">Não consegui rodar o teste: ${saudeEsc(e.message)}</div>`; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Testar tudo agora'; }
+}
 function saudeEsc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const SAUDE_CRONS = {
   'pd-worker':             { nome:'Relógio da casa (Zap, esteiras, cópias)', cada:5,    tolera:15 },
@@ -11118,6 +11146,21 @@ async function renderSaudeInner(){
   const alHTML = linha(al ? AV : OK, 'Alarmes abertos na equipe', al ? 'tem gente que precisa cuidar de algo' : 'nada pendente', String(al));
   const verHTML = linha(CI, 'Versão no ar', 'confere se o que você colou/publicou é o que está rodando', saudeEsc(window.SD_VERSAO || '—'));
 
+  // --- zap chegando (a Meta bateu no webhook?)
+  const ze = bat['zap_entrada']; const zeMin = ze ? (Date.now() - new Date(ze.ultima_em).getTime())/60000 : null;
+  const zapEntHTML = linha(ze ? (zeMin > 1440 ? AV : OK) : CI, 'WhatsApp chegando (webhook da Meta)', ze ? 'a Meta entregou algo pela última vez ' + saudeQuando(ze.ultima_em) : 'nada chegou ainda desde que esta tela passou a medir — mande uma mensagem pro número e atualize', '');
+  // --- central de erros (servidor + navegador)
+  let errosHTML = '';
+  try {
+    const er = await sb.from('pd_erros').select('id,quando,origem,onde,mensagem,quem').order('quando', { ascending:false }).limit(40);
+    if (er.error) throw er.error;
+    const L = er.data || []; const h1 = L.filter(x => Date.now() - new Date(x.quando).getTime() < 3600000).length;
+    if (h1) alertas.push(h1 + ' erro(s) na última hora (veja a lista "Erros recentes")');
+    const corO = { php:RU, webhook:RU, js:AV, teste:CI };
+    errosHTML = L.length ? L.map(x => linha(corO[x.origem] || CI, '[' + saudeEsc(x.origem) + '] ' + saudeEsc(x.onde || ''), saudeEsc(x.mensagem) + (x.quem ? '<br><span style="opacity:.7">' + saudeEsc(x.quem) + '</span>' : ''), saudeQuando(x.quando))).join('')
+                     : linha(OK, 'Nenhum erro registrado', 'o servidor e as telas estão avisando aqui quando algo quebrar', '');
+  } catch (e) { errosHTML = linha(AV, 'Central de erros ainda não ligada', 'rode o SQL <b>migration_v150_erros.sql</b> no Supabase (' + saudeEsc(e.message || e) + ')', ''); }
+  const testeHTML = `<div style="padding:10px 0"><button class="btn btn-secondary" onclick="saudeTestar()" id="btn-saude-teste" style="height:44px;padding:0 16px">Testar tudo agora</button><span style="font-size:11.5px;color:var(--text3);margin-left:10px">confere banco, IA, WhatsApp, servidor e Drive de verdade</span></div><div id="saude-teste"></div>`;
   const resumo = alertas.length
     ? `<div class="entity-card" style="flex-direction:column;align-items:stretch;border-color:${AV}66;background:${AV}12">
          <div style="font-weight:700;color:${AV};font-size:13px;margin-bottom:6px">${alertas.length} ponto(s) pedindo atenção</div>
@@ -11125,8 +11168,10 @@ async function renderSaudeInner(){
     : `<div class="entity-card" style="border-color:${OK}50;background:${OK}0d;font-weight:700;color:${OK};font-size:13px">Tudo certo agora.</div>`;
 
   box.innerHTML = resumo
+    + bloco('Testar agora', testeHTML)
+    + bloco('Erros recentes', errosHTML)
     + bloco('Relógios (crons)', relogios)
-    + bloco('Filas', zapHTML + pubHTML + lotesHTML)
+    + bloco('Filas', zapHTML + zapEntHTML + pubHTML + lotesHTML)
     + bloco('Conexões', metaHTML)
     + bloco('Equipe e versão', alHTML + verHTML);
   const sub = document.getElementById('saude-sub');

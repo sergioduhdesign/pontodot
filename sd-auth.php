@@ -130,3 +130,6 @@ function sd_require_role(array $roles) {
     }
     return $u;
 }
+
+// Central de erros: exceção/fatal em QUALQUER endpoint cai na tabela pd_erros (painel Saúde). Falha em silêncio.
+try { require_once __DIR__ . '/pd-saude-lib.php'; pdErrosLiga(); } catch (Throwable $e) {}

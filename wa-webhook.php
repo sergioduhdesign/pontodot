@@ -22,7 +22,8 @@ $segs = array_values(array_filter([defined('SD_ZAP_APP_SECRET') ? SD_ZAP_APP_SEC
 $assin = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
 $vale = false;
 foreach ($segs as $seg) if ($assin && hash_equals('sha256=' . hash_hmac('sha256', (string)$cru, $seg), $assin)) { $vale = true; break; }
-if (!$vale) { error_log('wa-webhook: assinatura não confere (confira SD_ZAP_APP_SECRET = segredo do app do WhatsApp)'); http_response_code(403); echo 'assinatura'; exit; }
+if (!$vale) { error_log('wa-webhook: assinatura não confere (confira SD_ZAP_APP_SECRET = segredo do app do WhatsApp)'); if (function_exists('pdErro')) pdErro('webhook', 'WhatsApp: a Meta chamou o webhook mas a ASSINATURA não confere (confira SD_ZAP_APP_SECRET / SD_META_APP_SECRET)', 'wa-webhook.php', ['tem_assinatura' => $assin !== '']); http_response_code(403); echo 'assinatura'; exit; }
+if (function_exists('pdBatimento')) pdBatimento('zap_entrada', ['bytes' => strlen((string)$cru)]);   // a Meta bateu aqui e a assinatura confere: o zap está CHEGANDO
 http_response_code(200); header('Content-Type: application/json'); echo '{"ok":true}';
 if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
 
