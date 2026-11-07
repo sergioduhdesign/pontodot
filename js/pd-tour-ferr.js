@@ -45,21 +45,21 @@
   function alvo(p){ for (const s of val(p.a) || []){ const el = document.querySelector(s); if (el){ try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch(e){} if (visivel(el)) return el; } } return null; }
   function css(){ if (document.getElementById('pdTFcss')) return; const st = document.createElement('style'); st.id = 'pdTFcss'; st.textContent = `
   #pdTF{position:fixed;inset:0;z-index:100050}
-  #pdTFoco{position:fixed;z-index:100051;pointer-events:none;border-radius:14px;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.5);transition:all .3s ease;animation:tfBrilho 2.6s ease-in-out infinite}
-  @keyframes tfBrilho{0%,100%{box-shadow:0 0 14px 2px rgba(255,255,255,.45),0 0 40px 10px rgba(255,255,255,.16),0 0 0 9999px rgba(0,0,0,.5)}50%{box-shadow:0 0 22px 4px rgba(255,255,255,.75),0 0 60px 16px rgba(255,255,255,.3),0 0 0 9999px rgba(0,0,0,.5)}}
-  #pdTFcx{position:fixed;z-index:100052;background:#fff;color:#121212;border-radius:14px;width:min(320px,calc(100vw - 24px));padding:16px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.4);font:13px/1.5 'Helvetica Neue',system-ui,sans-serif;text-align:left}
+  #pdTFoco{position:fixed;z-index:100051;pointer-events:none;border-radius:8px;box-shadow:0 0 10px 1px rgba(255,255,255,.5),0 0 26px 5px rgba(255,255,255,.18),0 0 0 9999px rgba(0,0,0,.5);transition:all .3s ease;animation:tfBrilho 2.6s ease-in-out infinite}
+  @keyframes tfBrilho{0%,100%{box-shadow:0 0 8px 1px rgba(255,255,255,.4),0 0 22px 4px rgba(255,255,255,.14),0 0 0 9999px rgba(0,0,0,.5)}50%{box-shadow:0 0 12px 2px rgba(255,255,255,.7),0 0 32px 8px rgba(255,255,255,.26),0 0 0 9999px rgba(0,0,0,.5)}}
+  #pdTFcx{position:fixed;z-index:100052;background:#fff;color:#121212;border-radius:6px;width:min(320px,calc(100vw - 24px));padding:16px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.4);font:13px/1.5 'Helvetica Neue',system-ui,sans-serif;text-align:left}
   #pdTFcx .kk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.45;margin-bottom:6px}
   #pdTFcx h3{margin:0 0 6px;font-size:16px;font-weight:600;line-height:1.3}
   #pdTFcx p{margin:0 0 12px;opacity:.8}
   #pdTFcx .rd{display:flex;align-items:center;gap:8px}#pdTFcx .pt{display:flex;gap:4px;flex:1}#pdTFcx .pt i{width:5px;height:5px;border-radius:50%;background:#121212;opacity:.18}#pdTFcx .pt i.on{opacity:.9}
-  #pdTFcx button{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:999px;padding:9px 16px;font:500 12px/1 inherit;font-family:inherit;cursor:pointer;min-height:38px}#pdTFcx button.p{background:#121212;color:#fff;border-color:#121212}
+  #pdTFcx button{border:1px solid rgba(0,0,0,.2);background:none;color:#121212;border-radius:4px;padding:9px 16px;font:500 12px/1 inherit;font-family:inherit;cursor:pointer;min-height:38px}#pdTFcx button.p{background:#121212;color:#fff;border-color:#121212}
   .pdTFq{flex:0 0 auto}`; document.head.appendChild(st); }
   function fecha(visto){ if (ov){ ov.remove(); ov = null; } if (visto !== false){ try { localStorage.setItem(chave, '1'); } catch(e){} } }
   function passo(){
     const p = cfg.passos[i]; if (!p) return fecha();
     const el = alvo(p), r = el ? el.getBoundingClientRect() : null;
     const f = ov.querySelector('#pdTFoco'), cx = ov.querySelector('#pdTFcx');
-    if (r){ const m = 6; Object.assign(f.style, { display: '', left: (r.left - m) + 'px', top: (r.top - m) + 'px', width: (r.width + 2 * m) + 'px', height: (r.height + 2 * m) + 'px' }); }
+    if (r){ const m = 4; let rad = 0; try { rad = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0; } catch(e){} const L = Math.max(5, r.left - m), T = Math.max(5, r.top - m), R2 = Math.min(innerWidth - 5, r.right + m), B2 = Math.min(innerHeight - 5, r.bottom + m); Object.assign(f.style, { display: '', left: L + 'px', top: T + 'px', width: (R2 - L) + 'px', height: (B2 - T) + 'px', borderRadius: Math.min(16, rad + m) + 'px' }); }
     else { Object.assign(f.style, { display: '', left: '50%', top: '50%', width: '0px', height: '0px' }); }
     const ult = i === cfg.passos.length - 1;
     cx.innerHTML = `<div class="kk">Como funciona · ${cfg.nome}</div><h3>${p.t}</h3><p>${val(p.p)}</p><div class="rd"><div class="pt">${cfg.passos.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>${ult ? '' : '<button type="button" data-a="x">Pular</button>'}<button type="button" class="p" data-a="n">${ult ? 'Entendi' : 'Próximo'}</button></div>`;

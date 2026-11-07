@@ -114,8 +114,8 @@ function ajudaCss(){
   .ajuda-q>*{line-height:15px}
   .ajuda-q{position:relative}.ajuda-q::after{content:'';position:absolute;inset:-9px}
   #pdAjudaOv{position:fixed;inset:0;z-index:100002}
-  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 16px 2px rgba(255,255,255,.5),0 0 44px 12px rgba(255,255,255,.2),0 0 0 9999px rgba(0,0,0,.45);transition:opacity .32s ease;animation:ajBrilho 2.6s ease-in-out infinite}
-  @keyframes ajBrilho{0%,100%{box-shadow:0 0 14px 2px rgba(255,255,255,.45),0 0 40px 10px rgba(255,255,255,.16),0 0 0 9999px rgba(0,0,0,.45)}50%{box-shadow:0 0 22px 4px rgba(255,255,255,.75),0 0 60px 16px rgba(255,255,255,.3),0 0 0 9999px rgba(0,0,0,.45)}}
+  #pdAjudaFoco{position:fixed;z-index:100001;pointer-events:none;border:0;border-radius:14px;opacity:1;box-shadow:0 0 10px 1px rgba(255,255,255,.5),0 0 26px 5px rgba(255,255,255,.18),0 0 0 9999px rgba(0,0,0,.45);transition:opacity .32s ease;animation:ajBrilho 2.6s ease-in-out infinite}
+  @keyframes ajBrilho{0%,100%{box-shadow:0 0 8px 1px rgba(255,255,255,.4),0 0 22px 4px rgba(255,255,255,.14),0 0 0 9999px rgba(0,0,0,.45)}50%{box-shadow:0 0 12px 2px rgba(255,255,255,.7),0 0 32px 8px rgba(255,255,255,.26),0 0 0 9999px rgba(0,0,0,.45)}}
   #pdAjudaOv .cxa{position:fixed;z-index:100002;background:#fff;color:#121212;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:18px 18px 16px;text-align:left;box-shadow:0 18px 50px rgba(0,0,0,.35);opacity:1;transition:opacity .3s ease}
   #pdAjudaOv .cxa.centro{left:50%;top:50%;transform:translate(-50%,-50%)}
   #pdAjudaOv .cxa.canto{top:auto!important;left:14px!important;bottom:74px;transform:none!important}
@@ -303,8 +303,8 @@ function ajudaMira(chave, origem, deNovo){
       let f = document.getElementById('pdAjudaFoco');
       if (!f){ f = document.createElement('div'); f.id = 'pdAjudaFoco'; f.style.opacity = '0'; document.body.appendChild(f); requestAnimationFrame(() => f.style.opacity = '1'); }
       if (f.dataset.saindo){ delete f.dataset.saindo; f.style.opacity = '1'; }
-      f.style.top = rr.top + 'px'; f.style.left = rr.left + 'px';
-      f.style.width = rr.width + 'px'; f.style.height = rr.height + 'px';
+      { const L = Math.max(5, rr.left), T = Math.max(5, rr.top), R2 = Math.min(innerWidth - 5, rr.left + rr.width), B2 = Math.min(innerHeight - 5, rr.top + rr.height);   // o brilho fica dentro da tela
+        f.style.top = T + 'px'; f.style.left = L + 'px'; f.style.width = Math.max(4, R2 - L) + 'px'; f.style.height = Math.max(4, B2 - T) + 'px'; }
       if (rr.cheia) f.style.borderRadius = '18px';
       else try { const cs = alvo.el.ownerDocument.defaultView.getComputedStyle(alvo.el);
         f.style.borderRadius = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']

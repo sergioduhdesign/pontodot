@@ -40,7 +40,7 @@ window.pdGavetaArrasta = function(el, alca, o){
   const CSS = `
   body.sh{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
   body.sh .meio{grid-template-columns:1fr!important}
-  body.sh [data-sheet]{display:none;position:fixed;top:auto;height:auto;width:auto;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));max-height:none;height:var(--shh,52vh);z-index:70;border:0!important;border-top:1px solid var(--line)!important;border-radius:20px 20px 0 0;box-shadow:0 -16px 44px rgba(0,0,0,.28);padding:0 16px 22px!important;background:var(--soft);overflow:auto;overscroll-behavior:contain}
+  body.sh [data-sheet]{display:none;position:fixed;top:auto;height:auto;width:auto;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));max-height:none;height:var(--shh,52vh);z-index:70;border:0!important;border-top:1px solid var(--line)!important;border-radius:8px 8px 0 0;box-shadow:0 -16px 44px rgba(0,0,0,.28);padding:0 16px 22px!important;background:var(--soft);overflow:auto;overscroll-behavior:contain}
   body.sh [data-sheet].sh-on{display:block}
   body.sh [data-sheet].cheia{bottom:0!important;top:0;height:100dvh!important;border-radius:0;z-index:95;padding-top:env(safe-area-inset-top)!important}
   body.sh [data-sheet] h3{display:none}
@@ -51,7 +51,7 @@ window.pdGavetaArrasta = function(el, alca, o){
   .sh-h b{flex:1}.sh-h button{display:none!important}[data-sheet].cheia .sh-h button{display:inline-block!important}
   #pdDock{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;gap:6px;align-items:stretch;overflow-x:auto;scrollbar-width:none;background:var(--bg);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
   #pdDock::-webkit-scrollbar{display:none}
-  #pdDock button{flex:1 0 auto;min-width:66px;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-radius:14px;background:transparent;color:var(--gray);font:600 10.5px/1.1 "Helvetica Neue","Inter Tight",system-ui,sans-serif;padding:4px 10px}
+  #pdDock button{flex:1 0 auto;min-width:66px;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-radius:4px;background:transparent;color:var(--gray);font:600 10.5px/1.1 "Helvetica Neue","Inter Tight",system-ui,sans-serif;padding:4px 10px}
   #pdDock button.on{background:var(--ink);color:var(--bg)}
   body.sh .top{overflow-x:auto;flex-wrap:nowrap!important;scrollbar-width:none;height:auto!important;min-height:52px;padding:0 10px!important}
   body.sh .top::-webkit-scrollbar{display:none}body.sh .top>*{flex:0 0 auto}body.sh .top .nome{min-width:130px}body.sh .top .sep{display:none}
@@ -90,15 +90,15 @@ window.pdGavetaArrasta = function(el, alca, o){
   MQ.addEventListener && MQ.addEventListener('change', aplica);
 })();
 
-/* Padrão da plataforma para "tem coisa não salva": dois botões, Salvar / Sair. Devolve 'salvar', 'sair' ou null (tocou fora = fica). */
+/* Padrão da plataforma para "tem coisa não salva": dois botões, Não / Salvar. Devolve 'salvar', 'sair' ou null (tocou fora = fica). */
 window.pdSalvarOuSair = function (titulo) {
   return new Promise(res => {
     const d = document.createElement('div');
     d.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:20px;font-family:inherit';
-    d.innerHTML = '<div style="background:var(--bg,#fff);color:var(--ink,#111);border:1px solid var(--line,#ddd);border-radius:20px;padding:22px 20px 16px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.35)">'
+    d.innerHTML = '<div style="background:var(--bg,#fff);color:var(--ink,#111);border:1px solid var(--line,#ddd);border-radius:6px;padding:22px 20px 16px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.35)">'
       + '<div style="font-size:17px;font-weight:600;text-align:center;margin-bottom:18px"></div>'
-      + '<div style="display:flex;gap:10px"><button data-r="sair" style="flex:1;height:48px;border-radius:14px;border:1px solid var(--line,#ddd);background:transparent;color:inherit;font:600 15px inherit;cursor:pointer">Sair</button>'
-      + '<button data-r="salvar" style="flex:1;height:48px;border-radius:14px;border:0;background:var(--ink,#111);color:var(--bg,#fff);font:600 15px inherit;cursor:pointer">Salvar</button></div></div>';
+      + '<div style="display:flex;gap:10px"><button data-r="sair" style="flex:1;height:48px;border-radius:4px;border:1px solid var(--line,#ddd);background:transparent;color:inherit;font:600 15px inherit;cursor:pointer">Não</button>'
+      + '<button data-r="salvar" style="flex:1;height:48px;border-radius:4px;border:0;background:var(--ink,#111);color:var(--bg,#fff);font:600 15px inherit;cursor:pointer">Salvar</button></div></div>';
     d.firstChild.firstChild.textContent = titulo || 'Salvar antes de sair?';
     const fim = r => { d.remove(); res(r); };
     d.addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if (b) fim(b.dataset.r); else if (e.target === d) fim(null); });

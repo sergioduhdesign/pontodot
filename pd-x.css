@@ -6,3 +6,26 @@
 .acao-cab[aria-label^="Fechar"]:active,.modal-close:active,.x-chat:active,.esc-pop-x:active,#amoX:active,.tst-x:active,.gx:active,.cm-ib[aria-label^="Fechar"]:active,button[aria-label="Fechar"]:active,button[aria-label="Fechar janela"]:active,button[aria-label="Fechar conversa"]:active,button.pd-x:active{transform:scale(.92)}
 .acao-cab[aria-label^="Fechar"]::before,.modal-close::before,.x-chat::before,.esc-pop-x::before,#amoX::before,.tst-x::before,.gx::before,.cm-ib[aria-label^="Fechar"]::before,button[aria-label="Fechar"]::before,button[aria-label="Fechar janela"]::before,button[aria-label="Fechar conversa"]::before,button.pd-x::before{content:""!important;display:block!important;width:18px;height:18px;background:linear-gradient(45deg,transparent 45%,currentColor 45% 55%,transparent 55%),linear-gradient(-45deg,transparent 45%,currentColor 45% 55%,transparent 55%)}
 @media (pointer:coarse){.acao-cab[aria-label^="Fechar"],.modal-close,.x-chat,.esc-pop-x,#amoX,.tst-x,.gx,.cm-ib[aria-label^="Fechar"],button[aria-label="Fechar"],button[aria-label="Fechar janela"],button[aria-label="Fechar conversa"],button.pd-x{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}}
+
+/* ===== v470 · FERRAMENTAS (Estúdio, Copys, Locução, Vídeos, Cortes): mesma cara, mesmas cores, mesmo cabeçalho ===== */
+html.pd-tool{color-scheme:light dark;--rr:4px;--rr2:6px}
+@media(prefers-color-scheme:dark){html.pd-tool{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212;--pano:#0c0c0d}}
+/* cantinhos levemente arredondados (~10%) em tudo que é botão, campo, chip, cartão */
+html.pd-tool :is(button,select,textarea,input:not([type=range],[type=checkbox],[type=radio],[type=color],[type=file]),.btn,.chip,.ic,.tag,.st,.aba,.menu,.f){border-radius:var(--rr)!important}
+html.pd-tool :is(.card,.take,.drop,.gaveta .sec,.cx,.caixa,.lado details,#lote,#pdSegura,.guia>div){border-radius:var(--rr2)!important}
+/* cabeçalho único dentro do shell da PD: 56px, mesmos recuos (pd à esquerda, X à direita), mesma cor */
+@media(max-width:999px){
+html.pd-tool.pd-emb .top{box-sizing:border-box!important;height:56px!important;min-height:56px!important;max-height:56px!important;padding:0 58px!important;gap:6px!important;display:flex!important;flex-wrap:nowrap!important;align-items:center!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;background:var(--bg)!important;border-bottom:1px solid var(--line)!important}
+html.pd-tool.pd-emb .top::-webkit-scrollbar{display:none}
+html.pd-tool.pd-emb .top>*:not(.nome){flex:0 0 auto;align-self:center!important;margin-top:0!important;margin-bottom:0!important}
+html.pd-tool.pd-emb .top .sep,html.pd-tool.pd-emb .top #salvoEm{display:none!important}
+html.pd-tool.pd-emb:not(.pd-est) .top select{flex:0 0 118px!important;width:118px!important;height:40px!important;min-height:40px!important;box-sizing:border-box}
+html.pd-tool.pd-emb:not(.pd-est) .top .nome{flex:1 0 110px!important;min-width:110px!important;width:auto!important;height:40px!important;min-height:40px!important;box-sizing:border-box}
+html.pd-tool.pd-emb:not(.pd-est) .top .btn{height:40px!important;min-height:40px!important;box-sizing:border-box}
+html.pd-tool.pd-emb:not(.pd-est) .top .btn.i{width:40px!important;padding:0!important}
+html.pd-tool.pd-emb:not(.pd-est) .top #afinacao{width:130px!important;height:40px;box-sizing:border-box}
+html.pd-tool.pd-emb .top #pdIA{width:40px!important;height:40px!important;flex:0 0 40px!important;position:relative}
+html.pd-tool.pd-emb .top #pdIA::after{display:none!important}
+}
+/* o conteúdo que rola por baixo do pd (esquerda) e do X (direita) some em degradê, sem ficar sobreposto */
+@media(max-width:999px){html.pd-tool.pd-emb .top{-webkit-mask-image:linear-gradient(to right,transparent 0,transparent 46px,#000 62px,#000 calc(100% - 62px),transparent calc(100% - 46px),transparent 100%);mask-image:linear-gradient(to right,transparent 0,transparent 46px,#000 62px,#000 calc(100% - 62px),transparent calc(100% - 46px),transparent 100%)}}
