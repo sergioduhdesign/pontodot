@@ -1044,7 +1044,7 @@ async function exportarTudo(){if(CROP.on)cropSai();if(MASK.on)maskSai();C.discar
   try{let ok=0,pasta=null,aviso=null;for(let i=0;i<arquivos.length;i+=6){const r=await api('pd-estudio.php',{acao:'exportar',id:PECA.id,client_id:PECA.client_id,nome:$('#nome').value,arquivos:arquivos.slice(i,i+6)});ok+=r.arquivos.filter(a=>!a.erro).length;pasta=pasta||r.pasta_url;aviso=aviso||r.aviso;}
     msg(pasta?`${ok} arquivo(s) no Drive: cliente › ESTÚDIO › ${$('#nome').value}.`:(aviso||`${ok} arquivo(s) exportados.`),7000);if(!pasta&&aviso)falta('[data-aba="imagens"]');}
   catch(e){msg(e.message,7000);}}
-async function antesDeSair(){if(!dirty)return true;if(PECA.id){return await salvar(undefined,true);}const r=confirm('Esta peça ainda não foi salva. Salvar antes de sair?\n\nOK = salvar · Cancelar = sair sem salvar');if(!r){dirty=false;return true;}return await salvar();}
+async function antesDeSair(){if(!dirty)return true;if(PECA.id){return await salvar(undefined,true);}const r=await pdSalvarOuSair('Salvar antes de sair?');if(r===null)return false;if(r==='sair'){dirty=false;return true;}return await salvar();}
 window.antesDeSair=antesDeSair;
 window.addEventListener('beforeunload',e=>{if(dirty&&!PECA.id){e.preventDefault();e.returnValue='';}});
 boot();
@@ -1144,4 +1144,4 @@ const _mi=setInterval(()=>{try{if(mobIni())clearInterval(_mi);}catch(e){}},400);
     document.addEventListener('pointerdown',e=>{if(!e.target.closest('#pdSegura'))setTimeout(()=>{if(!T)fecha();},0);},true);return true;}
   const iv=setInterval(()=>{try{monta();if(typeof C!=='undefined'&&C&&liga())clearInterval(iv);}catch(e){}},500);
 })();
-</script><script src="/js/pd-sheet.js?v=2"></script><script src="/js/pd-ajuda.js?v=325"></script></body></html>
+</script><script src="/js/pd-sheet.js?v=3"></script><script src="/js/pd-ajuda.js?v=325"></script></body></html>

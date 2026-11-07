@@ -89,3 +89,19 @@ window.pdGavetaArrasta = function(el, alca, o){
   (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', aplica) : aplica());
   MQ.addEventListener && MQ.addEventListener('change', aplica);
 })();
+
+/* Padrão da plataforma para "tem coisa não salva": dois botões, Salvar / Sair. Devolve 'salvar', 'sair' ou null (tocou fora = fica). */
+window.pdSalvarOuSair = function (titulo) {
+  return new Promise(res => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:20px;font-family:inherit';
+    d.innerHTML = '<div style="background:var(--bg,#fff);color:var(--ink,#111);border:1px solid var(--line,#ddd);border-radius:20px;padding:22px 20px 16px;width:min(340px,100%);box-shadow:0 20px 50px rgba(0,0,0,.35)">'
+      + '<div style="font-size:17px;font-weight:600;text-align:center;margin-bottom:18px"></div>'
+      + '<div style="display:flex;gap:10px"><button data-r="sair" style="flex:1;height:48px;border-radius:14px;border:1px solid var(--line,#ddd);background:transparent;color:inherit;font:600 15px inherit;cursor:pointer">Sair</button>'
+      + '<button data-r="salvar" style="flex:1;height:48px;border-radius:14px;border:0;background:var(--ink,#111);color:var(--bg,#fff);font:600 15px inherit;cursor:pointer">Salvar</button></div></div>';
+    d.firstChild.firstChild.textContent = titulo || 'Salvar antes de sair?';
+    const fim = r => { d.remove(); res(r); };
+    d.addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if (b) fim(b.dataset.r); else if (e.target === d) fim(null); });
+    document.body.appendChild(d);
+  });
+};
