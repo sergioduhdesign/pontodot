@@ -97,7 +97,7 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   .top,.barra2,.main{min-width:0}
   .top .nome{width:0}
   .top{overflow:visible;gap:3px;padding:0 6px;flex-wrap:nowrap;align-items:center}.top>*{flex:0 0 auto}
-  .top .sep,#salvoEm,#btnTarefa,.top .mobOculto,.top button[onclick^="hist("]{display:none!important}
+  .top .sep,#salvoEm,.top #btnTarefa,.top .mobOculto,.top button[onclick^="hist("]{display:none!important}
   .top .nome{order:2;flex:1 1 0;min-width:0;width:auto;min-height:40px;padding:0 8px;font-size:15px}
   .ic{display:grid;place-items:center;position:relative;width:40px;height:40px;border-radius:12px;background:rgba(127,127,127,.12);color:var(--ink)}
   .ic svg{display:block;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -113,15 +113,25 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
   .barra2 .f{flex:0 0 auto;width:38px;height:38px;border:0;border-radius:11px;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;min-height:0;touch-action:manipulation}
   .barra2 .f svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .barra2 .f.on{background:var(--ink);color:var(--bg)}
-  .fxSeta{flex:0 0 20px;height:38px;border:0!important;background:transparent!important;color:var(--ink);opacity:.5;font-size:20px;padding:0!important;line-height:1}
-  .fxRolo{flex:1;min-width:0;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}.fxRolo::-webkit-scrollbar{display:none}
-  .fxSet{display:flex;align-items:center;gap:2px;flex:0 0 auto;padding-right:2px}
-  .fxSet>button[data-aba],.fxSet>.btn{height:42px;white-space:nowrap}
+  .barra2{position:relative}
+  .barra2 .fxMais{flex:0 0 38px;width:38px;height:38px;border:0;border-radius:11px;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;transition:transform .2s}.barra2 .fxMais svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.barra2 .fxMais.on{background:var(--ink);color:var(--bg)}.barra2 .fxMais.on svg{transform:rotate(180deg)}
+  #fxMenu{display:none;position:absolute;left:0;right:0;top:0;z-index:60;background:var(--bg);border-bottom:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.35);padding:8px 8px 12px;max-height:70%;overflow:auto;transform-origin:top;animation:fxAbre .22s cubic-bezier(.22,.8,.24,1)}
+  #fxMenu.on{display:block}@keyframes fxAbre{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  #fxMenu .fxG{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0}#fxMenu .fxG+.fxG{border-top:1px solid var(--line);margin-top:4px;padding-top:8px}
+  #fxMenu .f{flex:0 0 auto;width:44px;height:44px;border:0;border-radius:12px;background:rgba(127,127,127,.1);color:var(--ink);display:grid;place-items:center;padding:0}
+  #fxMenu .f svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}#fxMenu .f.on{background:var(--ink);color:var(--bg)}
+  #fxMenu .fxAbas button{height:38px;padding:0 14px;border-radius:19px;border:1px solid var(--line);background:transparent;font-size:12.5px;white-space:nowrap}
+  #fxMenu .fxAcoes .btn{display:inline-flex!important;align-items:center;gap:8px;width:auto!important;height:42px!important;min-height:42px!important;padding:0 14px!important;font-size:12.5px!important;border-radius:12px}
+  #fxMenu .fxAcoes .btn svg{width:19px;height:19px}#fxMenu #btnPrincipalTxt{display:inline}
+  .main{grid-template-rows:minmax(0,1fr) 42px}.pano{grid-row:1;grid-column:1}
+  #rodape{grid-row:2;grid-column:1;display:flex;align-items:center;gap:4px;padding:0 6px;border-top:1px solid var(--line);background:var(--bg);overflow:hidden;position:relative;z-index:5}
+  #rodape .pags,#rodape .segs{position:static!important;transform:none!important;opacity:1!important;display:flex!important;border:0!important;background:transparent!important;padding:0!important;gap:0;max-width:none}
+  #rodape .segs{margin-left:auto;overflow-x:auto;scrollbar-width:none}#rodape .segs::-webkit-scrollbar{display:none}
+  #rodape .btn{width:36px;height:36px;min-height:36px;border:0;background:transparent;border-radius:9px;padding:0;font-size:13px;flex:0 0 auto}
+  #rodape .pags .btn.s{width:auto;min-width:36px;padding:0 10px;font-size:13px;font-weight:600}
+  #rodape .btn.on{background:var(--ink);color:var(--bg)}#rodape .btn svg{width:18px;height:18px;stroke-width:1.5}
+  #rodape .pags button[onclick^="zoomAjusta"]{display:none}
   .caixaF{display:none!important}
-  .pags,.segs{display:flex!important;opacity:.5;transition:opacity .35s ease}.pags.acende,.segs.acende{opacity:1}
-  .pags button[onclick^="zoomAjusta"]{display:none}
-  .segs{position:absolute;right:10px;bottom:10px;left:auto;top:auto;gap:2px;max-width:calc(100% - 120px);overflow-x:auto}.segs:empty{display:none!important}
-  .pags:empty{display:none!important}
   .pdSl{flex:1 1 100%;width:100%;height:34px;margin:4px 0 2px;accent-color:var(--ink);touch-action:pan-x}
 }
 </style></head><body><div id="app">
@@ -1089,7 +1099,7 @@ boot();
 const MOB=()=>matchMedia('(max-width:820px)').matches;
 let USER_ZOOM=false,ANIM=0,TAP={t:0,x:0,y:0},GEST=null,MORTO=false;
 const ease=t=>1-Math.pow(1-t,3);
-function areaLivre(){const p=$('#pano');let y0=MOB()?92:0,h=p.clientHeight;if(MOB()){const g=$('#gaveta'),m=$('#main');if(m&&m.classList.contains('aberta')&&g&&!g.classList.contains('cheia'))h-=Math.max(0,g.getBoundingClientRect().height);}return{x0:0,y0,w:p.clientWidth,h:Math.max(120,h-y0)};}
+function areaLivre(){const p=$('#pano');const w=p.clientWidth;let h=p.clientHeight;if(MOB()){const g=$('#gaveta'),m=$('#main');if(m&&m.classList.contains('aberta')&&g&&!g.classList.contains('cheia')){const pr=p.getBoundingClientRect(),gt=g.getBoundingClientRect().top;h=Math.min(pr.bottom,gt)-pr.top;}}return{x0:0,y0:0,w,h:Math.max(120,h)};}
 function dimPeca(){return{tw:PECA.nPag*W()+(PECA.nPag-1)*GAP(),th:Hh()};}
 function vtFit(){const A=areaLivre(),{tw,th}=dimPeca();const z=Math.min((A.w-40)/tw,(A.h-40)/th,2);return[z,0,0,z,A.x0+(A.w-tw*z)/2,A.y0+(A.h-th*z)/2];}
 function vtLimita(vt){const A=areaLivre(),{tw,th}=dimPeca(),z=vt[0],cw=tw*z,ch=th*z,m=24;let tx=vt[4],ty=vt[5];
@@ -1145,7 +1155,7 @@ function primeiraFaixa(){try{const g=$('#gaveta'),m=$('#main');const sec=[...doc
   const h=fim-g.getBoundingClientRect().top+18;const max=Math.round(m.clientHeight*.54);return h>=60?Math.max(130,Math.min(max,Math.round(h))):0;}catch(e){return 0;}}
 function gavetaAlca(){const g=$('#gaveta'),m=$('#main');if(!g||g._ga||typeof pdGavetaArrasta!=='function')return;const al=document.createElement('div');al.className='alca';al.innerHTML='<i></i>';g.prepend(al);
   g._ga=pdGavetaArrasta(g,al,{inicio:primeiraFaixa,meia:()=>Math.round(m.clientHeight*.54),topo:()=>m.clientHeight,cheio:()=>innerHeight,fecha:()=>gavetaFecha(),aoMudar:()=>setTimeout(()=>{if(!USER_ZOOM)fitAnim();else puxaCentro();},60)});
-  let ab=false;new MutationObserver(()=>{if(!MOB())return;const a=m.classList.contains('aberta');if(a&&!ab){ab=true;g._ga.abre();setTimeout(()=>{USER_ZOOM?puxaCentro():fitAnim();},40);}else if(!a&&ab){ab=false;g.style.height='';g.classList.remove('cheia');setTimeout(()=>{USER_ZOOM?puxaCentro():fitAnim();},40);}}).observe(m,{attributes:true,attributeFilter:['class']});}
+  let ab=m.classList.contains('aberta');new MutationObserver(()=>{if(!MOB())return;const a=m.classList.contains('aberta');if(a&&!ab){ab=true;g._ga.abre();setTimeout(()=>{USER_ZOOM?puxaCentro():fitAnim();},40);}else if(!a&&ab){ab=false;g.style.height='';g.classList.remove('cheia');setTimeout(()=>{USER_ZOOM?puxaCentro():fitAnim();},40);}}).observe(m,{attributes:true,attributeFilter:['class']});}
 function mobIni(){const p=$('#pano');if(!p||!C||p._mob)return false;p._mob=1;
   ['touchstart','touchmove','touchend','touchcancel'].forEach((n,i)=>p.addEventListener(n,[tIni,tMove,tFim,tFim][i],{capture:true,passive:false}));
   bandeja();gavetaAlca();
@@ -1202,48 +1212,39 @@ const _clipIv=setInterval(()=>{try{if(C){C.on('before:render',refreshClip);C.req
   const SVG={cli:'<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M3 21h18M8 7h4M8 11h4M8 15h4"/>',fmt:'<path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/>'};
   function icone(sel,id,svg,rotulo){if(!sel||sel.closest('.ic'))return null;const w=document.createElement('span');w.className='ic';w.id=id;sel.parentNode.insertBefore(w,sel);w.innerHTML='<svg viewBox="0 0 24 24">'+svg+'</svg><b></b>';w.appendChild(sel);
     if(rotulo){const atual=()=>{try{const t=(sel.options[sel.selectedIndex]||{}).text||'';const r=rotulo(t);w.classList.toggle('tem',!!r);w.querySelector('b').textContent=r||'';}catch(e){}};sel.addEventListener('change',atual);setInterval(atual,900);atual();}return w;}
-  function faixa(){const b2=document.getElementById('barra2'),cx=document.getElementById('caixaF');if(!b2||!cx||b2._fx)return;b2._fx=1;
+  // ícone de medida = retângulo na proporção da peça
+  function proporcao(t){const m=String(t).match(/(\d+[.,]?\d*)\s*[×x]\s*(\d+[.,]?\d*)/);if(!m)return null;const w=parseFloat(m[1].replace(',','.')),h=parseFloat(m[2].replace(',','.'));if(!w||!h)return null;const k=17/Math.max(w,h),rw=w*k,rh=h*k;return '<rect x="'+(12-rw/2).toFixed(1)+'" y="'+(12-rh/2).toFixed(1)+'" width="'+rw.toFixed(1)+'" height="'+rh.toFixed(1)+'" rx="1.5"/>';}
+  function faixa(){const b2=document.getElementById('barra2'),cx=document.getElementById('caixaF'),mn=document.getElementById('main');if(!b2||!cx||!mn||b2._fx)return;b2._fx=1;
     icone(document.getElementById('cli'),'icCli',SVG.cli,null);
-    icone(document.getElementById('fmt'),'icFmt',SVG.fmt,t=>{const m=t.match(/(\d+[.,]?\d*)\s*[×x]\s*(\d+[.,]?\d*)/);if(m)return m[1]+'×'+m[2];const r=t.match(/\d+\s*:\s*\d+/);return r?r[0].replace(/\s/g,''):(t&&!/^escolha|^tipo/i.test(t)?t.slice(0,6):'');});
+    const wf=icone(document.getElementById('fmt'),'icFmt',SVG.fmt,null);
+    if(wf){const sf=document.getElementById('fmt'),sv=wf.querySelector('svg');const atual=()=>{try{const t=(sf.options[sf.selectedIndex]||{}).text||'';const r=proporcao(t);sv.innerHTML=r||SVG.fmt;wf.title=t;}catch(e){}};sf.addEventListener('change',atual);setInterval(atual,900);atual();}
     const top=document.querySelector('.top');const orig=s=>top.querySelector(s);
     const comoF=(el,cls)=>{const c=el.cloneNode(true);c.removeAttribute('id');c.className='f'+(cls?' '+cls:'');return c;};
-    // fixas: seta, texto, voltar, refazer
+    // linha 2: seta, texto, voltar, refazer | medida | ▼
     const fixa=document.createElement('div');fixa.className='fxFixa';
     const sel=cx.querySelector('[data-ferr="sel"]'),txt=cx.querySelector('[data-ferr="texto"]');
     const ud=orig('button[onclick^="hist(-1"]'),rd=orig('button[onclick^="hist(1"]');
     [sel,txt,ud,rd].forEach(e=>{if(e)fixa.appendChild(comoF(e));});
-    // rolagem: demais ferramentas + medida + exportar + tarefa + abas
-    const itens=[];cx.querySelectorAll('button.f').forEach(e=>{if(e===sel||e===txt)return;itens.push(comoF(e));});
-    ['mudaMedida','menuExport'].forEach(fn=>{const e=orig('button[onclick^="'+fn+'"]');if(e){itens.push(comoF(e));e.classList.add('mobOculto');}});
-    const tf=document.getElementById('btnTarefa');
-    const tabs=[...b2.querySelectorAll('button[data-aba]')].filter(t=>t.dataset.aba!=='pauta'||true);
-    const set1=document.createElement('div');set1.className='fxSet';
-    itens.forEach(e=>set1.appendChild(e));
-    let tfClones=[];if(tf){const c=tf.cloneNode(true);c.removeAttribute('id');c.className='btn s';c.style.display='';tfClones.push(c);set1.appendChild(c);}
-    tabs.forEach(t=>set1.appendChild(t));
-    // limpa o resto da barra antiga
+    // menu que abre pra baixo: todas as ferramentas, abas e ações
+    const menu=document.createElement('div');menu.id='fxMenu';
+    const gT=document.createElement('div');gT.className='fxG';cx.querySelectorAll('button.f').forEach(e=>{if(e===sel||e===txt)return;gT.appendChild(comoF(e));});
+    ['mudaMedida','menuExport'].forEach(fn=>{const e=orig('button[onclick^="'+fn+'"]');if(e){const c=comoF(e);gT.appendChild(c);e.classList.add('mobOculto');}});
+    const gA=document.createElement('div');gA.className='fxG fxAcoes';['btnTarefa','btnPlay','btnPrincipal'].forEach(id=>{const e=document.getElementById(id);if(e)gA.appendChild(e);});
+    const gB=document.createElement('div');gB.className='fxG fxAbas';b2.querySelectorAll('button[data-aba]').forEach(t=>{if(t.dataset.aba!=='pauta')gB.appendChild(t);});
+    menu.append(gT,gB,gA);
+    const mais=document.createElement('button');mais.type='button';mais.className='fxMais';mais.setAttribute('aria-label','Todas as ferramentas');mais.innerHTML='<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+    const fecha=()=>{menu.classList.remove('on');mais.classList.remove('on');};
+    mais.onclick=e=>{e.stopPropagation();const on=!menu.classList.contains('on');menu.classList.toggle('on',on);mais.classList.toggle('on',on);};
+    menu.addEventListener('click',e=>{if(e.target.closest('button'))setTimeout(fecha,0);});
+    document.addEventListener('pointerdown',e=>{if(menu.classList.contains('on')&&!e.target.closest('#fxMenu,.fxMais'))fecha();},true);
     [...b2.children].forEach(c=>c.remove());
-    const rolo=document.createElement('div');rolo.className='fxRolo';
-    const sets=[set1,set1.cloneNode(true),set1.cloneNode(true)];
-    // clones das abas/tarefa precisam dos mesmos handlers inline (cloneNode mantém onclick); tira ids duplicados
-    sets.slice(1).forEach(st=>{st.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));st.querySelectorAll('.btn.s:not([data-aba])').forEach(x=>tfClones.push(x));});
-    if(tf){const sync=()=>tfClones.forEach(c=>{c.textContent=tf.textContent;c.className='btn s '+(tf.className.includes('on')?'on':'');});new MutationObserver(sync).observe(tf,{childList:true,characterData:true,subtree:true,attributes:true});}
-    sets.forEach(x=>rolo.appendChild(x));
-    const mkSeta=(t,d)=>{const b=document.createElement('button');b.type='button';b.className='fxSeta';b.textContent=t;b.setAttribute('aria-label',d<0?'Anterior':'Próximo');b.onclick=()=>{paus=Date.now()+6000;rolo.scrollBy({left:d*rolo.clientWidth*.6,behavior:'smooth'});};return b;};
-    let paus=0;
-    b2.append(fixa,mkSeta('‹',-1),rolo,mkSeta('›',1));
-    // laço infinito: três cópias; fica sempre na do meio
-    const larg=()=>sets[0].offsetWidth;let pos=0,meu=0;
-    const centra=()=>{const h=larg();if(!h)return;const sl=rolo.scrollLeft;if(sl<h){rolo.scrollLeft=sl+h;pos=rolo.scrollLeft;}else if(sl>=2*h){rolo.scrollLeft=sl-h;pos=rolo.scrollLeft;}};
-    requestAnimationFrame(()=>{rolo.scrollLeft=larg();pos=rolo.scrollLeft;});
-    let tm=null;rolo.addEventListener('scroll',()=>{if(Math.abs(rolo.scrollLeft-meu)>1.5){pos=rolo.scrollLeft;paus=Date.now()+5000;}clearTimeout(tm);tm=setTimeout(centra,90);},{passive:true});
-    ['touchstart','pointerdown','wheel'].forEach(n=>rolo.addEventListener(n,()=>{paus=Date.now()+5000;},{passive:true}));
-    // desliza bem devagar
-    let ult=performance.now();const VEL=11;
-    (function tick(t){const dt=Math.min(80,t-ult);ult=t;if(!document.hidden&&Date.now()>paus&&larg()){pos+=VEL*dt/1000;meu=pos;rolo.scrollLeft=pos;if(pos>=2*larg()){pos-=larg();rolo.scrollLeft=pos;meu=pos;}}requestAnimationFrame(tick);})(ult);
+    const esp=document.createElement('span');esp.style.flex='1';
+    b2.append(fixa,esp);if(wf)b2.appendChild(wf);b2.appendChild(mais);
+    mn.appendChild(menu);
+    // rodapé fixo: páginas + guias/zonas, finos como num editor de verdade
+    if(!document.getElementById('rodape')){const rd0=document.createElement('div');rd0.id='rodape';const pg=document.getElementById('pags'),sg=document.getElementById('segs');if(pg)rd0.appendChild(pg);if(sg)rd0.appendChild(sg);mn.appendChild(rd0);}
+    setTimeout(()=>{try{ajustaViewport();puxaCentro();fitAnim();}catch(e){}},200);
   }
-  // barrinhas translúcidas acendem ao toque
-  function acende(){['pags','segs'].forEach(id=>{const e=document.getElementById(id);if(!e||e._ac)return;e._ac=1;let tm=null;e.addEventListener('pointerdown',()=>{e.classList.add('acende');clearTimeout(tm);tm=setTimeout(()=>e.classList.remove('acende'),2600);},true);});}
   // números viram barrinha de arrastar
   function sliders(root){(root||document).querySelectorAll('.gaveta input[type=number]').forEach(inp=>{if(inp._sl)return;inp._sl=1;
     const v=parseFloat(inp.value)||0,st=+inp.step||1;let mn=inp.min!==''?+inp.min:null,mx=inp.max!==''?+inp.max:null;
@@ -1255,7 +1256,7 @@ const _clipIv=setInterval(()=>{try{if(C){C.on('before:render',refreshClip);C.req
     const solta=()=>{if(!window.SLD)return;window.SLD=false;if(window._sldPend){window._sldPend=false;try{marca();}catch(e){}}try{props();}catch(e){}};
     r.addEventListener('change',solta);r.addEventListener('touchend',()=>setTimeout(solta,60),{passive:true});r.addEventListener('pointerup',()=>setTimeout(solta,60));
     inp.insertAdjacentElement('afterend',r);if(inp.parentElement)inp.parentElement.style.flexWrap='wrap';});}
-  function liga(){if(!matchMedia('(max-width:820px)').matches)return false;faixa();acende();
+  function liga(){if(!matchMedia('(max-width:820px)').matches)return false;faixa();
     const g=document.getElementById('gaveta');if(g&&!g._sl){g._sl=1;let q=0;new MutationObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;sliders(g);});}).observe(g,{childList:true,subtree:true});sliders(g);}
     return !!(document.getElementById('barra2')&&document.getElementById('barra2')._fx);}
   const iv=setInterval(()=>{try{if(liga())clearInterval(iv);}catch(e){console.error(e);}},400);
