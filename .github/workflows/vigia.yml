@@ -1,0 +1,46 @@
+# VIGIA DE FORA + RELÓGIO DE RESERVA.
+# A cada 5 min pergunta à PD se o cron do servidor está batendo. Se o relógio parou, ele mesmo roda o worker (reserva)
+# e a execução fica VERMELHA — o GitHub avisa por e-mail. Não depende do cron do cPanel nem do servidor estar de pé.
+# Precisa de 2 segredos no repositório (Settings → Secrets and variables → Actions):
+#   PD_URL       = https://sd.sergioduh.com        (sem barra no fim)
+#   PD_CRON_KEY  = o valor de SD_CRON_KEY do sd-config.php
+name: Vigia e relógio de reserva
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: vigia
+  cancel-in-progress: false
+jobs:
+  vigia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Conferir o pulso e acionar a reserva se precisar
+        env:
+          URL: ${{ secrets.PD_URL }}
+          KEY: ${{ secrets.PD_CRON_KEY }}
+        run: |
+          set -u
+          if [ -z "${URL:-}" ] || [ -z "${KEY:-}" ]; then echo "::error::Faltam os segredos PD_URL e PD_CRON_KEY no GitHub"; exit 1; fi
+          r=$(curl -sS --max-time 40 -w '\n%{http_code}' "$URL/pd-ping.php?key=$KEY") || { echo "::error::A PD nao respondeu (servidor fora do ar ou sem rede)"; exit 1; }
+          code=$(echo "$r" | tail -n1); body=$(echo "$r" | sed '$d')
+          echo "HTTP $code — $body"
+          if [ "$code" != "200" ]; then echo "::error::pd-ping respondeu HTTP $code"; exit 1; fi
+          banco=$(echo "$body" | jq -r '.banco')
+          w=$(echo "$body" | jq -r '(.worker_min // 99999) | floor')
+          p=$(echo "$body" | jq -r '(.publicador_min // 99999) | floor')
+          ruim=0
+          if [ "$banco" != "true" ]; then echo "::error::Banco de dados nao responde"; ruim=1; fi
+          if [ "$w" -gt 12 ]; then
+            echo "::warning::Relogio da casa (pd-worker) parado ha ${w} min — rodando o de reserva"
+            curl -sS --max-time 170 "$URL/pd-worker.php?key=$KEY" | head -c 800 || true
+            echo "::error::Cron do servidor PARADO ha ${w} min (reserva acionada). Conferir o cPanel."; ruim=1
+          fi
+          if [ "$p" -gt 15 ]; then
+            echo "::warning::Publicador das redes parado ha ${p} min — rodando o de reserva"
+            curl -sS --max-time 120 "$URL/social-publish-worker.php?key=$KEY" | head -c 400 || true
+            echo "::error::Publicador parado ha ${p} min (reserva acionada)."; ruim=1
+          fi
+          exit $ruim
