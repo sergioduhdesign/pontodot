@@ -117,7 +117,7 @@ function pd_cache_gravar($chave, $dados) {
 // Claude com busca na web, para as IAs de campanha (Sumi/Tumi). Devolve [texto, custo_usd, erro].
 function pd_ia_campanhas($system, $msgs, $max = 1800, $usos = 4, $timeout = 110) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return [null, 0, 'Sem chave da Anthropic no servidor.'];
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . "\n\n" . pdElencoTexto(false),
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $system . (function_exists('pdBlindagem') ? pdBlindagem() : '') . "\n\n" . pdElencoTexto(false),
         'messages' => $msgs];
     if ($usos > 0) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $usos]];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';

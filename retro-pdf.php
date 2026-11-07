@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../sd-private/sd-config.php';
 require_once __DIR__ . '/retro-lib.php';
 require_once __DIR__ . '/lib/fpdf/fpdf.php';
+sd_rate_limit('retro', 30, 60);
 
 $t = preg_replace('/[^a-f0-9]/', '', (string)($_GET['t'] ?? ''));
 $c = $t ? pd_supa('/rest/v1/pd_retro_config?token=eq.' . $t . '&ativo=eq.true&select=client_id') : null;

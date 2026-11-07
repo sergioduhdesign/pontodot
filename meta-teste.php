@@ -10,7 +10,7 @@
 // =====================================================================
 require_once __DIR__ . '/sd-auth.php';
 if (!defined('SD_CRON_KEY') || SD_CRON_KEY === 'SUA_CRON_KEY_AQUI') { http_response_code(500); die('SD_CRON_KEY nao configurada.'); }
-if (($_GET['key'] ?? '') !== SD_CRON_KEY) { http_response_code(403); die('Chave invalida.'); }
+if (!hash_equals((string)SD_CRON_KEY, (string)($_GET['key'] ?? ''))) { http_response_code(403); die('Chave invalida.'); }
 header('Content-Type: text/plain; charset=utf-8');
 
 function g($path, $token, $params = []) {

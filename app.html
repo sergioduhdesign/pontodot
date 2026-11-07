@@ -3049,9 +3049,9 @@ function filterMyTasks(){
 
 function populateFilters(){
   const cs=document.getElementById('filter-client'),cur=cs.value;
-  cs.innerHTML='<option value="">Todos os clientes</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.name}</option>`).join('');
+  cs.innerHTML='<option value="">Todos os clientes</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${escSafe(c.name)}</option>`).join('');
   const ps=document.getElementById('filter-product'),curp=ps.value;
-  ps.innerHTML='<option value="">Todos os produtos</option>'+products.map(p=>`<option value="${p.id}" ${p.id===curp?'selected':''}>${p.name}</option>`).join('');
+  ps.innerHTML='<option value="">Todos os produtos</option>'+products.map(p=>`<option value="${p.id}" ${p.id===curp?'selected':''}>${escSafe(p.name)}</option>`).join('');
 }
 
 function onFilterClient(v){
@@ -3063,10 +3063,10 @@ function onFilterClient(v){
   if(v){
     const clientProducts=products.filter(p=>p.client_id===v);
     ps.innerHTML='<option value="">Todos os produtos</option>'+
-      clientProducts.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+      clientProducts.map(p=>`<option value="${p.id}">${escSafe(p.name)}</option>`).join('');
   } else {
     ps.innerHTML='<option value="">Todos os produtos</option>'+
-      products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+      products.map(p=>`<option value="${p.id}">${escSafe(p.name)}</option>`).join('');
   }
   ps.value='';
   applyClientColorIfAllowed();
@@ -3159,7 +3159,7 @@ function onGlobalSearch(val){
     if(tokens.length){tw.style.display='flex';tw.innerHTML=tokens.map(tok=>{const bg=tok.type==='#'?'rgba(99,102,241,0.12)':'rgba(37,99,235,0.12)';const col=tok.type==='#'?'#6366f1':'#2563eb';return`<span class="search-token" style="background:${bg};color:${col}">${tok.type}${tok.value}</span>`;}).join('');}else tw.style.display='none';
     const res=document.getElementById('gs-results');
     if(sug.length){res.innerHTML=sug.map(s=>{const bg=s.type==='#'?'rgba(99,102,241,0.1)':'rgba(37,99,235,0.1)';const col=s.type==='#'?'#6366f1':'#2563eb';return`<div class="search-result-item" onclick="applyTag('${s.label}')"><span class="search-result-type" style="background:${bg};color:${col}">${s.type==='#'?'TIPO':'PESSOA'}</span><span style="font-size:13.5px;font-weight:600">${s.label}</span></div>`;}).join('');}
-    else{res.innerHTML=filtered.slice(0,5).map(t=>{const cfg=STATUS_CFG[t.status]||{color:'#999'};return`<div class="search-result-item" onclick="openDetail('${t.id}');hideGsDrop()"><span class="search-result-type" style="background:${cfg.color}18;color:${cfg.color}">TAREFA</span><div style="flex:1;min-width:0"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.action}</div><div style="font-size:11px;color:var(--text3)">${t.clients?.name||''} ${t.project?'· '+t.project:''}</div></div></div>`;}).join('');}
+    else{res.innerHTML=filtered.slice(0,5).map(t=>{const cfg=STATUS_CFG[t.status]||{color:'#999'};return`<div class="search-result-item" onclick="openDetail('${t.id}');hideGsDrop()"><span class="search-result-type" style="background:${cfg.color}18;color:${cfg.color}">TAREFA</span><div style="flex:1;min-width:0"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.action}</div><div style="font-size:11px;color:var(--text3)">${escSafe(t.clients?.name||'')} ${t.project?'· '+t.project:''}</div></div></div>`;}).join('');}
     document.getElementById('gs-drop').classList.add('open');
     if(currentView==='feed')setView('kanban');
   },180);
@@ -3183,11 +3183,11 @@ function renderSidebar(){
     // Cliente só tem uma empresa (a própria) — não faz sentido mostrar um
     // agrupamento "Clientes"; mostra os projetos/produtos direto.
     const myProds=products.filter(p=>p.client_id===profile.client_id);
-    const pi=myProds.map(p=>{const pn=filtered.filter(t=>t.product_id===p.id).length;return`<div class="sidebar-item ${fProduct===p.id?'active':''}" onclick="onFilterProduct('${p.id}')">· ${p.name}<span class="sidebar-count">${pn}</span></div>`;}).join('');
+    const pi=myProds.map(p=>{const pn=filtered.filter(t=>t.product_id===p.id).length;return`<div class="sidebar-item ${fProduct===p.id?'active':''}" onclick="onFilterProduct('${p.id}')">· ${escSafe(p.name)}<span class="sidebar-count">${pn}</span></div>`;}).join('');
     document.getElementById('sidebar-content').innerHTML=`${statusBlock}<div class="sidebar-section"><div class="sidebar-label">Projetos</div><div class="sidebar-item ${!fProduct?'active':''}" onclick="onFilterProduct('')"><span>Todos</span><span class="sidebar-count">${filtered.length}</span></div>${pi}</div>`;
     return;
   }
-  const ci=clients.filter(c=>c.active!==false).map(c=>{const n=filtered.filter(t=>t.client_id===c.id).length;const prods=products.filter(p=>p.client_id===c.id);const subs=prods.map(p=>{const pn=filtered.filter(t=>t.product_id===p.id).length;return`<div class="sidebar-item sidebar-sub-item ${fProduct===p.id?'active':''}" onclick="onFilterProduct('${p.id}');if(currentView==='feed')setView('kanban')">· ${p.name}<span class="sidebar-count">${pn}</span></div>`;}).join('');return`<div class="sidebar-item ${fClient===c.id?'active':''}" onclick="onFilterClient('${c.id}');if(currentView==='feed')setView('kanban')"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span><span class="sidebar-count">${n}</span></div>${subs}`;}).join('');
+  const ci=clients.filter(c=>c.active!==false).map(c=>{const n=filtered.filter(t=>t.client_id===c.id).length;const prods=products.filter(p=>p.client_id===c.id);const subs=prods.map(p=>{const pn=filtered.filter(t=>t.product_id===p.id).length;return`<div class="sidebar-item sidebar-sub-item ${fProduct===p.id?'active':''}" onclick="onFilterProduct('${p.id}');if(currentView==='feed')setView('kanban')">· ${escSafe(p.name)}<span class="sidebar-count">${pn}</span></div>`;}).join('');return`<div class="sidebar-item ${fClient===c.id?'active':''}" onclick="onFilterClient('${c.id}');if(currentView==='feed')setView('kanban')"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escSafe(c.name)}</span><span class="sidebar-count">${n}</span></div>${subs}`;}).join('');
   document.getElementById('sidebar-content').innerHTML=`${statusBlock}<div class="sidebar-section"><div class="sidebar-label">Clientes</div><div class="sidebar-item ${!fClient?'active':''}" onclick="onFilterClient('')"><span>Todos</span><span class="sidebar-count">${tasks.length}</span></div>${ci}</div>`;
   updateClientStrip();
 }
@@ -3229,7 +3229,7 @@ function renderFeed(){
     const isFromClient=!!t.client_created;
     const pinColor=isFromClient?'#2563eb':(STATUS_CFG['BUCHA']?.color||'#dc2626');
     const pinLabel=isFromClient?'VEIO DO CLIENTE':'BUCHA';
-    html+=`<div class="feed-post pinned" style="border-color:${cfg.color};cursor:pointer" onclick="openDetail('${t.id}')"><div class="feed-post-head"><div style="width:30px;height:30px;border-radius:50%;background:${cfg.color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="white" style="width:16px;height:16px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div class="feed-post-name">${t.project} · ${t.clients?.name||''}</div><div class="feed-post-time">${t.id}</div></div><div class="feed-post-pin" style="color:${pinColor};background:${pinColor}1a">${pinLabel}</div></div>${t.cover_url?`<img class="feed-post-image" src="${t.cover_url}">`:''}<div class="feed-post-body" style="padding-top:8px">${t.action}</div><div class="feed-post-foot"><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color}">${cfg.label}</span><span style="font-size:12px;color:var(--text3);margin-left:auto">${t.week||''}</span></div></div>`;
+    html+=`<div class="feed-post pinned" style="border-color:${cfg.color};cursor:pointer" onclick="openDetail('${t.id}')"><div class="feed-post-head"><div style="width:30px;height:30px;border-radius:50%;background:${cfg.color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="white" style="width:16px;height:16px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div class="feed-post-name">${t.project} · ${escSafe(t.clients?.name||'')}</div><div class="feed-post-time">${t.id}</div></div><div class="feed-post-pin" style="color:${pinColor};background:${pinColor}1a">${pinLabel}</div></div>${t.cover_url?`<img class="feed-post-image" src="${t.cover_url}">`:''}<div class="feed-post-body" style="padding-top:8px">${t.action}</div><div class="feed-post-foot"><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color}">${cfg.label}</span><span style="font-size:12px;color:var(--text3);margin-left:auto">${t.week||''}</span></div></div>`;
   });
   [].forEach(p=>{   // posts humanos agora moram no mural (renderEscola)
     const name=p.profiles?.name||(p.user_id===profile.id?profile.name:'Equipe');
@@ -3259,7 +3259,7 @@ function renderFeed(){
 // determinística (a mesma semana mostra sempre a mesma conversa); a narrativa de verdade vem da pasta do GPT.
 let ESC = { u:null, sem:null, imgs:null, capas:[], postais:[], alunos:null, com:{}, cur:{}, meu:null, insc:[] };
 const ESC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
-const escSafe = x => String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function escSafe(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 const escHash = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 function escRng(seed){ let a = escHash(seed); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const escPick = (arr, r) => arr[Math.floor(r() * arr.length)];
@@ -4057,7 +4057,7 @@ async function loadPostCommentsPreview(postId){
       return`<div style="display:flex;gap:7px;align-items:flex-start">
         ${av}
         <div style="background:var(--surface2);padding:6px 10px;border-radius:8px;flex:1">
-          <span style="font-size:12px;font-weight:600">${c.profiles?.name||'Usuário'}</span>
+          <span style="font-size:12px;font-weight:600">${escSafe(c.profiles?.name||'Usuário')}</span>
           <span style="font-size:12.5px;color:var(--text2);margin-left:6px">${linkify(c.body)}</span>
         </div>
       </div>`;
@@ -4083,7 +4083,7 @@ async function togglePostComments(postId){
       const av=c.profiles?.avatar_url
         ?`<img src="${c.profiles.avatar_url}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0">`
         :avatarHTML(c.profiles?.name||'?','',22);
-      return`<div style="display:flex;gap:7px;align-items:flex-start">${av}<div style="background:var(--surface2);padding:7px 10px;border-radius:8px;flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:2px">${c.profiles?.name||'Usuário'}</div><div style="font-size:12.5px;color:var(--text2);line-height:1.5">${linkify(c.body)}</div></div></div>`;
+      return`<div style="display:flex;gap:7px;align-items:flex-start">${av}<div style="background:var(--surface2);padding:7px 10px;border-radius:8px;flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:2px">${escSafe(c.profiles?.name||'Usuário')}</div><div style="font-size:12.5px;color:var(--text2);line-height:1.5">${linkify(c.body)}</div></div></div>`;
     }).join('');
     el.innerHTML=(list||'<div style="font-size:12px;color:var(--text3)">Sem comentários ainda.</div>')+
       `<div style="display:flex;gap:8px;align-items:center;margin-top:4px">
@@ -4469,7 +4469,7 @@ function renderLista(){
       ? `<span style="display:inline-flex;margin-right:6px;vertical-align:-2px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="${corCad}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>`
       : (t.tarefa_mae_id ? `<span style="display:inline-flex;margin-right:6px;vertical-align:-2px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="${corCad}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>` : '');
 
-    let html=`<tr onclick="openDetail('${t.id}')" style="background:${rowBg};cursor:pointer">${selCell}<td style="font-size:11px;color:var(--text3)">${t.id}</td><td style="font-size:13px;font-weight:600;white-space:nowrap">${t.clients?.name||'—'}</td><td style="font-size:12px;color:var(--text3)">${t.products?.name||'—'}</td><td style="font-size:12px;color:var(--text2)">${t.project}</td><td style="font-size:13px">${indent}${chevron}${eloIcone}${t.recurrence?.enabled?'🔁 ':''}${t.action}${clientActionBadge(t)}${clientCreatedBadge(t)}</td><td><div style="display:flex;align-items:center;gap:6px">${respAvatarHTML(resp,t.resp,20)}<span style="font-size:12px;color:var(--text2)">${resp.label}</span></div></td><td><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color}">${cfg.label}</span></td><td style="font-size:12px;color:var(--text3)">${t.week||'—'}</td><td style="font-size:12px;color:var(--text3)">${t.date_int||t.date_cli||'—'}</td><td style="font-size:11.5px;color:var(--text3);white-space:nowrap">${
+    let html=`<tr onclick="openDetail('${t.id}')" style="background:${rowBg};cursor:pointer">${selCell}<td style="font-size:11px;color:var(--text3)">${t.id}</td><td style="font-size:13px;font-weight:600;white-space:nowrap">${escSafe(t.clients?.name||'—')}</td><td style="font-size:12px;color:var(--text3)">${escSafe(t.products?.name||'—')}</td><td style="font-size:12px;color:var(--text2)">${t.project}</td><td style="font-size:13px">${indent}${chevron}${eloIcone}${t.recurrence?.enabled?'🔁 ':''}${t.action}${clientActionBadge(t)}${clientCreatedBadge(t)}</td><td><div style="display:flex;align-items:center;gap:6px">${respAvatarHTML(resp,t.resp,20)}<span style="font-size:12px;color:var(--text2)">${resp.label}</span></div></td><td><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color}">${cfg.label}</span></td><td style="font-size:12px;color:var(--text3)">${t.week||'—'}</td><td style="font-size:12px;color:var(--text3)">${t.date_int||t.date_cli||'—'}</td><td style="font-size:11.5px;color:var(--text3);white-space:nowrap">${
   t.created_at?new Date(t.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>${ctaCell}</tr>`;
 
     if (temFilhas && aberto && !ordenando) filhas.forEach(f => { html += linha(f, nivel+1); });
@@ -4507,9 +4507,9 @@ function openBulkEdit(){
   document.getElementById('bulk-edit-count').textContent=listaSelection.size+' tarefa(s) selecionada(s)';
   document.getElementById('bulk-edit-status').textContent='';
   const clientSel=document.getElementById('bulk-client');
-  clientSel.innerHTML='<option value="">Não alterar</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  clientSel.innerHTML='<option value="">Não alterar</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${escSafe(c.name)}</option>`).join('');
   const productSel=document.getElementById('bulk-product');
-  productSel.innerHTML='<option value="">Não alterar</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  productSel.innerHTML='<option value="">Não alterar</option>'+products.map(p=>`<option value="${p.id}">${escSafe(p.name)}</option>`).join('');
   const respSel=document.getElementById('bulk-resp');
   respSel.innerHTML='<option value="">Não alterar</option>'+Object.entries(RESP_CFG).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
   document.getElementById('bulk-project').value='';
@@ -4545,7 +4545,7 @@ async function applyBulkEdit(){
   await loadTasks();
 }
 
-function renderClientes(){const wrap=document.getElementById('client-content');const ids=[...new Set(filtered.map(t=>t.client_id))].filter(Boolean);if(!ids.length){wrap.innerHTML='<div class="empty-state" style="padding:40px"><div class="empty-state-icon">○</div><div>Nenhuma tarefa</div></div>';return;}wrap.innerHTML=ids.map(cid=>{const c=clients.find(x=>x.id===cid);if(!c)return'';const ct=filtered.filter(t=>t.client_id===cid),prods=[...new Set(ct.map(t=>t.product_id))];return`<div class="client-group"><div class="client-group-head" onclick="openClientDetail('${c.id}')"><div class="client-logo" style="background:${c.color||'#64748b'}">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover">`:c.name.substring(0,2).toUpperCase()}</div><div><div class="client-name">${c.name}</div><div class="client-meta">${prods.length} produto${prods.length!==1?'s':''}</div></div><div class="client-tasks-count">${ct.length} tarefas</div><button class="briefing-center-btn" title="Central de Briefings" onclick="event.stopPropagation();openBriefingCenter('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="briefing-center-btn-label">Central de Briefings</span></button></div><div>${prods.map(pid=>{const prod=products.find(p=>p.id===pid),pts=ct.filter(t=>t.product_id===pid),uid=c.id.substring(0,8)+'-'+(pid?pid.substring(0,8):'np');return`<div class="product-group"><div class="product-head" onclick="toggleProd('pg-${uid}','ar-${uid}')"><span class="product-arrow" id="ar-${uid}">▶</span>${prod?.name||'Sem produto'}<span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:auto">${pts.length} tarefas</span></div><div class="product-tasks" id="pg-${uid}">${pts.map(t=>{const cfg=STATUS_CFG[t.status]||{color:'#999',label:t.status},resp=getTaskResp(t);return`<div class="pt-row" onclick="openDetail('${t.id}')"><span style="font-size:11px;color:var(--text3)">${t.id}</span><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color};font-size:10px">${cfg.label}</span><div style="display:flex;align-items:center;gap:4px">${respAvatarHTML(resp,t.resp,18)}<span style="font-size:12px;color:var(--text2)">${resp.label}</span></div><span style="font-size:13px">${t.action}</span><span style="font-size:11.5px;color:var(--text3)">${t.week||'—'}</span></div>`;}).join('')}</div></div>`;}).join('')}</div></div>`;}).join('');}
+function renderClientes(){const wrap=document.getElementById('client-content');const ids=[...new Set(filtered.map(t=>t.client_id))].filter(Boolean);if(!ids.length){wrap.innerHTML='<div class="empty-state" style="padding:40px"><div class="empty-state-icon">○</div><div>Nenhuma tarefa</div></div>';return;}wrap.innerHTML=ids.map(cid=>{const c=clients.find(x=>x.id===cid);if(!c)return'';const ct=filtered.filter(t=>t.client_id===cid),prods=[...new Set(ct.map(t=>t.product_id))];return`<div class="client-group"><div class="client-group-head" onclick="openClientDetail('${c.id}')"><div class="client-logo" style="background:${c.color||'#64748b'}">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover">`:c.name.substring(0,2).toUpperCase()}</div><div><div class="client-name">${escSafe(c.name)}</div><div class="client-meta">${prods.length} produto${prods.length!==1?'s':''}</div></div><div class="client-tasks-count">${ct.length} tarefas</div><button class="briefing-center-btn" title="Central de Briefings" onclick="event.stopPropagation();openBriefingCenter('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="briefing-center-btn-label">Central de Briefings</span></button></div><div>${prods.map(pid=>{const prod=products.find(p=>p.id===pid),pts=ct.filter(t=>t.product_id===pid),uid=c.id.substring(0,8)+'-'+(pid?pid.substring(0,8):'np');return`<div class="product-group"><div class="product-head" onclick="toggleProd('pg-${uid}','ar-${uid}')"><span class="product-arrow" id="ar-${uid}">▶</span>${prod?.name||'Sem produto'}<span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:auto">${pts.length} tarefas</span></div><div class="product-tasks" id="pg-${uid}">${pts.map(t=>{const cfg=STATUS_CFG[t.status]||{color:'#999',label:t.status},resp=getTaskResp(t);return`<div class="pt-row" onclick="openDetail('${t.id}')"><span style="font-size:11px;color:var(--text3)">${t.id}</span><span class="st-badge" style="background:${cfg.color}18;color:${cfg.color};font-size:10px">${cfg.label}</span><div style="display:flex;align-items:center;gap:4px">${respAvatarHTML(resp,t.resp,18)}<span style="font-size:12px;color:var(--text2)">${resp.label}</span></div><span style="font-size:13px">${t.action}</span><span style="font-size:11.5px;color:var(--text3)">${t.week||'—'}</span></div>`;}).join('')}</div></div>`;}).join('')}</div></div>`;}).join('');}
 function toggleProd(id,arrId){document.getElementById(id)?.classList.toggle('open');document.getElementById(arrId)?.classList.toggle('open');}
 
 const MONTHS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -4888,7 +4888,7 @@ function renderGantt(){
       :`<span style="display:inline-flex;align-items:center;justify-content:center;width:${avSize}px;height:${avSize}px;border-radius:50%;background:rgba(255,255,255,0.28);color:${ctTxt};font-size:${gfs(13)}px;font-weight:900;line-height:1;vertical-align:middle;margin-right:10px;flex-shrink:0">${initials}</span>`;
     tbodyRows+=`<tr>
       <td colspan="${cols.length+1}" style="background:${tc};color:${ctTxt};padding:5px 12px;font-size:${gfs(13.5)}px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;position:sticky;left:0;cursor:pointer" onclick="onFilterClient('${c.id}');setView('kanban')">
-        <span style="display:inline-flex;align-items:center">${clientAvatar}${c.name} <span style="font-weight:400;opacity:0.75;font-size:${gfs(11)}px;margin-left:8px;text-transform:none">${ft.length} tarefa${ft.length!==1?'s':''}</span></span>
+        <span style="display:inline-flex;align-items:center">${clientAvatar}${escSafe(c.name)} <span style="font-weight:400;opacity:0.75;font-size:${gfs(11)}px;margin-left:8px;text-transform:none">${ft.length} tarefa${ft.length!==1?'s':''}</span></span>
       </td>
     </tr>`;
 
@@ -5535,14 +5535,14 @@ async function renderAdmin(){
   if(uerr)console.warn('Profiles RLS error:', uerr.message);
   loadDesignModuleToggle();
   const activeClients=clients.filter(c=>c.active!==false&&!ADM_OCULTOS.has(c.id));const pausedClients=clients.filter(c=>c.active===false&&!ADM_OCULTOS.has(c.id));
-  document.getElementById('admin-clients').innerHTML=activeClients.map(c=>{const bg=c.color||'#64748b';const isLight=isLightColorHex(bg);const fg=isLight?'#0a0a0a':'#ffffff';const fgMeta=isLight?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.65)';return`<div class="entity-card client-entity-card" style="background:${bg}" onclick="openClientDetail('${c.id}')"><div style="display:flex;align-items:center;gap:10px"><div class="entity-card-logo" style="background:rgba(255,255,255,0.2)">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:${fg}">${c.name.substring(0,2).toUpperCase()}</span>`}</div><div><div style="font-size:14px;font-weight:700;color:${fg}">${c.name}</div><div style="font-size:12px;color:${fgMeta}">${tasks.filter(t=>t.client_id===c.id).length} tarefas · ${products.filter(p=>p.client_id===c.id).length} produtos</div></div></div></div>`;}).join('');
+  document.getElementById('admin-clients').innerHTML=activeClients.map(c=>{const bg=c.color||'#64748b';const isLight=isLightColorHex(bg);const fg=isLight?'#0a0a0a':'#ffffff';const fgMeta=isLight?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.65)';return`<div class="entity-card client-entity-card" style="background:${bg}" onclick="openClientDetail('${c.id}')"><div style="display:flex;align-items:center;gap:10px"><div class="entity-card-logo" style="background:rgba(255,255,255,0.2)">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:${fg}">${c.name.substring(0,2).toUpperCase()}</span>`}</div><div><div style="font-size:14px;font-weight:700;color:${fg}">${escSafe(c.name)}</div><div style="font-size:12px;color:${fgMeta}">${tasks.filter(t=>t.client_id===c.id).length} tarefas · ${products.filter(p=>p.client_id===c.id).length} produtos</div></div></div></div>`;}).join('');
   document.getElementById('admin-users').innerHTML=(users||[]).filter(u=>u.active!==false&&!ADM_OCULTOS.has(u.id)).map(u=>{
     const roleBadge=u.role==='admin'?'#dc2626':u.role==='team'?'#2563eb':'#64748b';
     const roleLabel=u.role==='admin'?'Admin':u.role==='team'?'Equipe':'Cliente';
-    return`<div class="entity-card"><div onclick="openUserProfile('${u.id}')" style="display:flex;gap:12px;align-items:flex-start;flex:1;cursor:pointer">${u.avatar_url?`<img src="${u.avatar_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:avatarHTML(u.name,'',44)}<div style="flex:1"><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div>${(u.role!=='client' && !(u.zap||'').replace(/\D/g,'')) ? '<div style="font-size:10px;font-weight:700;color:#e5484d;margin-top:2px">⚠ sem WhatsApp cadastrado</div>' : ''}<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${roleBadge}18;color:${roleBadge}">${roleLabel}</span></div>${u.bio?`<div class="entity-card-meta" style="font-style:italic;margin-top:2px">${u.bio}</div>`:''}</div></div>${profile.role==='admin'?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${u.id!==profile.id?acessoToggle(u.id,true):''}${u.role!=='client'?`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirEquipeFuncoes()">Funções${(u.funcoes||[]).length?' ('+u.funcoes.length+')':''}</button>`:''}<select style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer" onchange="changeUserRole('${u.id}',this.value)" onclick="event.stopPropagation()"><option value="team" ${u.role==='team'?'selected':''}>Equipe</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="client" ${u.role==='client'?'selected':''}>Cliente</option></select>${u.role!=='client'?`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirPermissoes('${u.id}','${String(u.name||'').replace(/'/g,'’')}','${u.role}')">Permissões</button>`:''}${u.id!==profile.id?`<button onclick="event.stopPropagation();openDeleteUserModal('${u.id}','${u.name}','${u.team_key}')" style="font-size:10px;padding:3px 8px;border:1px solid #dc262630;border-radius:5px;background:#dc262608;color:#dc2626;cursor:pointer">Remover</button>`:''}</div>`:''}</div>`;
+    return`<div class="entity-card"><div onclick="openUserProfile('${u.id}')" style="display:flex;gap:12px;align-items:flex-start;flex:1;cursor:pointer">${u.avatar_url?`<img src="${u.avatar_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:avatarHTML(u.name,'',44)}<div style="flex:1"><div class="entity-card-name">${escSafe(u.name)}</div><div class="entity-card-meta">${escSafe(u.email)}</div>${(u.role!=='client' && !(u.zap||'').replace(/\D/g,'')) ? '<div style="font-size:10px;font-weight:700;color:#e5484d;margin-top:2px">⚠ sem WhatsApp cadastrado</div>' : ''}<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${roleBadge}18;color:${roleBadge}">${roleLabel}</span></div>${u.bio?`<div class="entity-card-meta" style="font-style:italic;margin-top:2px">${u.bio}</div>`:''}</div></div>${profile.role==='admin'?`<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${u.id!==profile.id?acessoToggle(u.id,true):''}${u.role!=='client'?`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirEquipeFuncoes()">Funções${(u.funcoes||[]).length?' ('+u.funcoes.length+')':''}</button>`:''}<select style="font-size:11px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer" onchange="changeUserRole('${u.id}',this.value)" onclick="event.stopPropagation()"><option value="team" ${u.role==='team'?'selected':''}>Equipe</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="client" ${u.role==='client'?'selected':''}>Cliente</option></select>${u.role!=='client'?`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirPermissoes('${u.id}','${String(u.name||'').replace(/'/g,'’')}','${u.role}')">Permissões</button>`:''}${u.id!==profile.id?`<button onclick="event.stopPropagation();openDeleteUserModal('${u.id}','${escSafe(u.name)}','${u.team_key}')" style="font-size:10px;padding:3px 8px;border:1px solid #dc262630;border-radius:5px;background:#dc262608;color:#dc2626;cursor:pointer">Remover</button>`:''}</div>`:''}</div>`;
   }).join('');
-  document.getElementById('admin-clients-paused').innerHTML=pausedClients.length?pausedClients.map(c=>`<div class="entity-card" style="opacity:0.65"><div class="entity-card-logo" style="background:${c.color||'#64748b'}">${c.name.substring(0,2).toUpperCase()}</div><div><div class="entity-card-name">${c.name}</div><div class="entity-card-meta">Encerrado</div></div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="reactivateClient('${c.id}')">Reativar</button><button class="btn btn-danger btn-sm" onclick="excluirClienteAbrir('${c.id}')">Excluir</button></div></div>`).join(''):'<div class="empty-state"><div class="empty-state-text">Nenhum encerrado</div></div>';
-  document.getElementById('admin-users-paused').innerHTML=(users||[]).filter(u=>u.active===false&&!ADM_OCULTOS.has(u.id)).map(u=>`<div class="entity-card" style="opacity:0.65"><div>${avatarHTML(u.name,'',44)}</div><div><div class="entity-card-name">${u.name}</div><div class="entity-card-meta">${u.email}</div></div>${profile.role==='admin'&&u.id!==profile.id?`<div style="display:flex;gap:10px;align-items:center">${acessoToggle(u.id,false)}<button class="btn btn-danger btn-sm" onclick="openDeleteUserModal('${u.id}','${String(u.name).replace(/'/g,'')}','${u.team_key}')">Excluir</button></div>`:''}</div>`).join('')||'<div class="empty-state"><div class="empty-state-text">Nenhum inativo</div></div>';
+  document.getElementById('admin-clients-paused').innerHTML=pausedClients.length?pausedClients.map(c=>`<div class="entity-card" style="opacity:0.65"><div class="entity-card-logo" style="background:${c.color||'#64748b'}">${c.name.substring(0,2).toUpperCase()}</div><div><div class="entity-card-name">${escSafe(c.name)}</div><div class="entity-card-meta">Encerrado</div></div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="reactivateClient('${c.id}')">Reativar</button><button class="btn btn-danger btn-sm" onclick="excluirClienteAbrir('${c.id}')">Excluir</button></div></div>`).join(''):'<div class="empty-state"><div class="empty-state-text">Nenhum encerrado</div></div>';
+  document.getElementById('admin-users-paused').innerHTML=(users||[]).filter(u=>u.active===false&&!ADM_OCULTOS.has(u.id)).map(u=>`<div class="entity-card" style="opacity:0.65"><div>${avatarHTML(u.name,'',44)}</div><div><div class="entity-card-name">${escSafe(u.name)}</div><div class="entity-card-meta">${escSafe(u.email)}</div></div>${profile.role==='admin'&&u.id!==profile.id?`<div style="display:flex;gap:10px;align-items:center">${acessoToggle(u.id,false)}<button class="btn btn-danger btn-sm" onclick="openDeleteUserModal('${u.id}','${String(u.name).replace(/'/g,'')}','${u.team_key}')">Excluir</button></div>`:''}</div>`).join('')||'<div class="empty-state"><div class="empty-state-text">Nenhum inativo</div></div>';
   renderRedesSociais();
 }
 
@@ -5752,9 +5752,9 @@ async function popularContasComentarios(){
   const resto = fClient ? (contas||[]).filter(c => c.client_id !== fClient) : [];
 
   sel.innerHTML = '<option value="">Escolha uma conta…</option>' +
-    lista.map(c => `<option value="${c.id}">${c.clients?.name||'—'} · @${c.account_name}</option>`).join('') +
+    lista.map(c => `<option value="${c.id}">${escSafe(c.clients?.name||'—')} · @${c.account_name}</option>`).join('') +
     (resto.length ? '<option disabled>──────────</option>' +
-      resto.map(c => `<option value="${c.id}">${c.clients?.name||'—'} · @${c.account_name}</option>`).join('') : '');
+      resto.map(c => `<option value="${c.id}">${escSafe(c.clients?.name||'—')} · @${c.account_name}</option>`).join('') : '');
 
   if (lista.length === 1) { sel.value = lista[0].id; carregarComentariosConta(); }
   else document.getElementById('com-grid').innerHTML =
@@ -6326,7 +6326,7 @@ function postitHTML(p){
     <textarea onblur="salvarPostitTexto('${p.id}',this.value)" onmousedown="event.stopPropagation()"
       placeholder="Escreve aqui…"
       style="flex:1;background:transparent;border:none;outline:none;resize:none;width:100%;min-height:110px;
-             font-family:'Comic Sans MS','Segoe Print',cursive;font-size:13.5px;line-height:1.45;color:#232326">${p.texto||''}</textarea>
+             font-family:'Comic Sans MS','Segoe Print',cursive;font-size:13.5px;line-height:1.45;color:#232326">${escSafe(p.texto||'')}</textarea>
     ${p.task_ref ? `
       <div onclick="event.stopPropagation();openDetail('${p.task_ref}')" onmousedown="event.stopPropagation()"
         title="Abrir a tarefa marcada"
@@ -6386,7 +6386,7 @@ function filtrarTagPostit(postitId, termo){
       style="padding:9px 11px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px"
       onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.action}</div>
-      <div style="font-size:10.5px;color:var(--text3)">${t.clients?.name||'—'} · ${t.project||''}</div>
+      <div style="font-size:10.5px;color:var(--text3)">${escSafe(t.clients?.name||'—')} · ${t.project||''}</div>
     </div>`;
   }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Nada encontrado.</div>';
 }
@@ -6489,7 +6489,7 @@ async function renderFilaCore(){
   const selClienteEl = document.getElementById('fila-filter-client');
   if (selClienteEl && selClienteEl.options.length <= 1) {
     selClienteEl.innerHTML = '<option value="">Todos os clientes</option>' +
-      clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${escSafe(c.name)}</option>`).join('');
   }
 
   // 1) Todos os posts agendados que vieram de um lote de aprovação
@@ -6615,10 +6615,10 @@ function desenharFila(){
         <td onclick="filaToggle('${g.setId}')">${thumb
           ? `<img src="${thumb}" style="width:40px;height:40px;border-radius:7px;object-fit:cover;display:block">`
           : `<div style="width:40px;height:40px;border-radius:7px;background:var(--surface3)"></div>`}</td>
-        <td onclick="filaToggle('${g.setId}')" style="font-size:12.5px;font-weight:600;white-space:nowrap">${cliente?.name || '—'}</td>
+        <td onclick="filaToggle('${g.setId}')" style="font-size:12.5px;font-weight:600;white-space:nowrap">${escSafe(cliente?.name || '—')}</td>
         <td onclick="filaToggle('${g.setId}')" style="font-size:12px;color:var(--text2);white-space:nowrap">${g.task?.project || '—'}</td>
         <td onclick="filaToggle('${g.setId}')">${resp ? `<div style="display:flex;align-items:center;gap:6px">${respAvatarHTML(resp,g.task.resp,20)}<span style="font-size:12px;color:var(--text2)">${resp.label}</span></div>` : '—'}</td>
-        <td onclick="filaToggle('${g.setId}')" style="font-size:12.5px;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.titulo}</td>
+        <td onclick="filaToggle('${g.setId}')" style="font-size:12.5px;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escSafe(g.titulo)}</td>
         <td onclick="filaToggle('${g.setId}')" style="white-space:nowrap">${iconesRedeHTML}</td>
         <td onclick="filaToggle('${g.setId}')" style="font-size:12px;color:var(--text3);white-space:nowrap">${g.posts.length} peça(s)</td>
         <td onclick="filaToggle('${g.setId}')" style="white-space:nowrap">${badges}</td>
@@ -7019,13 +7019,13 @@ async function renderContasFila(){
   const icone = x => x.foto ? avatarConta(x.foto, x.nome, 26, false)
       : x.tipo==='anuncios' ? `<span style="width:26px;height:26px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-size:12px">📣</span>` : iconeRedeSocial(x.tipo, 22);
   const linha = (x, cli) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border)">
-      ${icone(x)}<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.nome||'—'}</div>
+      ${icone(x)}<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escSafe(x.nome||'—')}</div>
       <div style="font-size:10.5px;color:var(--text3)">${rotulo(x.tipo)}</div></div>
       ${cli && x.social ? `<button onclick="verConta('${x.id}')" title="${filaContasSel.has(x.id)?'Tirar da lista':'Ver na lista'}" style="padding:2px 9px;font-size:10.5px;border-radius:20px;cursor:pointer;border:1px solid ${filaContasSel.has(x.id)?'var(--accent)':'var(--border)'};background:${filaContasSel.has(x.id)?'var(--accent)':'transparent'};color:${filaContasSel.has(x.id)?'var(--accent-fg)':'var(--text2)'}">${filaContasSel.has(x.id)?'✓ vendo':'ver'}</button>` : ''}
       ${cli ? `<span title="${x.ok?'Conectada':'Precisa reconectar'}" style="font-size:10.5px;color:${x.ok?'#16a34a':'#dc2626'};white-space:nowrap">● ${x.ok?'ok':'reconectar'}</span>
         ${x.social ? (x.ok ? `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:10.5px" onclick="desvincularContaSocial('${x.id}').then(renderContasFila)">Desvincular</button>`
                            : `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:10.5px;color:#dc2626" onclick="reconectarContaSocial()">Reconectar</button>`) : ''}`
-      : x.social ? `<select id="sel-conta-${x.id}" class="field-select" style="max-width:140px;font-size:11.5px"><option value="">Cliente…</option>${clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+      : x.social ? `<select id="sel-conta-${x.id}" class="field-select" style="max-width:140px;font-size:11.5px"><option value="">Cliente…</option>${clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${escSafe(c.name)}</option>`).join('')}</select>
         <button class="btn btn-primary btn-sm" style="padding:2px 9px;font-size:10.5px" onclick="vincularContaSocial('${x.id}').then(renderContasFila)">Vincular</button>` : ''}
     </div>`;
   const cartao = (cid, lista) => {
@@ -7035,7 +7035,7 @@ async function renderContasFila(){
     return `<div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;align-self:start">
       <div style="display:flex;align-items:center;gap:10px;padding:11px 14px">
         <div class="client-logo" style="background:${c.color||'#64748b'};width:30px;height:30px;font-size:11px;flex-shrink:0">${logo}</div>
-        <div style="flex:1;font-size:13.5px;font-weight:700">${c.name||'—'}</div>
+        <div style="flex:1;font-size:13.5px;font-weight:700">${escSafe(c.name||'—')}</div>
         <span style="font-size:10.5px;color:var(--text3)">${lista.length} ativo${lista.length>1?'s':''}</span>
         ${ids.length ? `<button onclick="verContasDe(${JSON.stringify(ids).replace(/"/g,'&quot;')}, ${!todasVendo})" style="padding:2px 9px;font-size:10.5px;border-radius:20px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2)">${todasVendo?'tirar todas':'ver todas'}</button>` : ''}</div>
       ${lista.map(x=>linha(x,true)).join('')}</div>`; };
@@ -7125,7 +7125,7 @@ async function pintarDetalheRede(){
         <div style="display:flex;gap:6px;align-items:center">
           <select id="sel-conta-${c.id}" class="field-select" style="flex:1;min-width:0;font-size:12px" onchange="trocaClienteConta('${c.id}',this.value)">
             <option value="">Escolher cliente…</option>
-            ${clients.filter(cl=>cl.active!==false).map(cl => `<option value="${cl.id}" ${sugestao && sugestao.id===cl.id ? 'selected':''}>${cl.name}</option>`).join('')}
+            ${clients.filter(cl=>cl.active!==false).map(cl => `<option value="${cl.id}" ${sugestao && sugestao.id===cl.id ? 'selected':''}>${escSafe(cl.name)}</option>`).join('')}
           </select>
           <button class="btn btn-primary btn-sm" style="${btn}" onclick="vincularContaSocial('${c.id}')">Vincular</button></div>
         ${temProd ? `<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:var(--text3);white-space:nowrap">Produto</span>
@@ -7160,7 +7160,7 @@ async function pintarDetalheRede(){
 function opcoesProdutosConta(cid, sel){
   const lista = (products || []).filter(p => p.client_id === cid);
   return '<option value="">Toda a empresa</option>'
-    + lista.map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${p.name}</option>`).join('')
+    + lista.map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${escSafe(p.name)}</option>`).join('')
     + (cid ? '<option value="__novo">＋ Novo produto…</option>' : '');
 }
 function trocaClienteConta(contaId, cid){
@@ -7377,7 +7377,7 @@ async function abrirPermissoes(userId, userName, userRole){
 
         ${grupos.map(g => `
           <div style="margin-bottom:18px">
-            <div class="field-label" style="margin-bottom:8px">${g.nome}</div>
+            <div class="field-label" style="margin-bottom:8px">${escSafe(g.nome)}</div>
             ${g.itens.map(p => `
               <label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;
                      border:1px solid var(--border);border-radius:9px;margin-bottom:7px;
@@ -7585,7 +7585,7 @@ function openClientDetail(id){
   document.getElementById('mc-website').innerHTML=c.website?`<a href="${c.website}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline">${c.website}</a>`:'—';
   document.getElementById('mc-tasks').textContent=taskCount;
   if(c.notes){document.getElementById('mc-notes').textContent=c.notes;document.getElementById('mc-notes-wrap').style.display='block';}else document.getElementById('mc-notes-wrap').style.display='none';
-  document.getElementById('mc-products').innerHTML=prods.length?prods.map(p=>`<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 6px 3px 11px;font-size:13px"><span style="cursor:pointer;flex:1" onclick="closeModal('modal-client');onFilterProduct('${p.id}')">${p.name}</span><button title="Renomear" onclick="renameProduct('${p.id}',event)" style="background:none;border:none;cursor:pointer;padding:2px 5px;color:var(--text3);font-size:12px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">✎</button><button title="Excluir" onclick="deleteProduct('${p.id}',event)" style="background:none;border:none;cursor:pointer;padding:2px 5px;color:var(--text3);font-size:15px;line-height:1" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--text3)'">×</button></div>`).join(''):'<span style="font-size:13px;color:var(--text3)">Nenhum produto</span>';document.getElementById('mc-products').insertAdjacentHTML('beforeend',`<button class="btn-inline-add" title="Novo produto / empreendimento" onclick="quickAddProductCliente('${id}')">＋ novo produto</button>`);
+  document.getElementById('mc-products').innerHTML=prods.length?prods.map(p=>`<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 6px 3px 11px;font-size:13px"><span style="cursor:pointer;flex:1" onclick="closeModal('modal-client');onFilterProduct('${p.id}')">${escSafe(p.name)}</span><button title="Renomear" onclick="renameProduct('${p.id}',event)" style="background:none;border:none;cursor:pointer;padding:2px 5px;color:var(--text3);font-size:12px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">✎</button><button title="Excluir" onclick="deleteProduct('${p.id}',event)" style="background:none;border:none;cursor:pointer;padding:2px 5px;color:var(--text3);font-size:15px;line-height:1" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--text3)'">×</button></div>`).join(''):'<span style="font-size:13px;color:var(--text3)">Nenhum produto</span>';document.getElementById('mc-products').insertAdjacentHTML('beforeend',`<button class="btn-inline-add" title="Novo produto / empreendimento" onclick="quickAddProductCliente('${id}')">＋ novo produto</button>`);
   // Cliente pode ver e editar os dados/detalhes da própria empresa (logo, cor) —
   // só não encerra nem apaga tarefas em lote, isso é exclusivo da equipe/admin.
   const isClient=profile.role==='client';
@@ -7896,7 +7896,7 @@ async function updateClientColor(color){
   await loadClients();
   showToast('Cor atualizada!','success');
 }
-function pauseClient(){const c=clients.find(x=>x.id===currentClientId);if(!c)return;document.getElementById('pause-client-name').textContent=c.name;const sel=document.getElementById('pause-move-to');sel.innerHTML='<option value="">Manter no cliente encerrado</option>'+clients.filter(x=>x.id!==currentClientId&&x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');openModal('modal-pause-client');}
+function pauseClient(){const c=clients.find(x=>x.id===currentClientId);if(!c)return;document.getElementById('pause-client-name').textContent=c.name;const sel=document.getElementById('pause-move-to');sel.innerHTML='<option value="">Manter no cliente encerrado</option>'+clients.filter(x=>x.id!==currentClientId&&x.active!==false).map(x=>`<option value="${x.id}">${escSafe(x.name)}</option>`).join('');openModal('modal-pause-client');}
 async function confirmPauseClient(){const moveTo=document.getElementById('pause-move-to').value;if(moveTo)await sb.from('tasks').update({client_id:moveTo}).eq('client_id',currentClientId);await sb.from('clients').update({active:false}).eq('id',currentClientId);showToast('Cliente encerrado.','success');closeModal('modal-pause-client');closeModal('modal-client');await loadClients();await loadTasks();}
 setTimeout(()=>{ window._telaLivre=true; },3000);   // a abertura do app não sobrescreve a tela guardada
 let _delClienteId=null;
@@ -8172,7 +8172,7 @@ async function excluirLote(setId, taskId){
 async function abrirLixeiraLotes(){
   const { data, error } = await sb.rpc('pd_lixeira_lista');
   const lista = (data||[]).map(l => `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border)">
-      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">${l.titulo||'Lote'}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">${escSafe(l.titulo||'Lote')}</div>
         <div style="font-size:11px;color:var(--text3)">${l.task_id||''} · ${l.pecas} peça${l.pecas===1?'':'s'} · excluído ${new Date(l.excluido_em).toLocaleDateString('pt-BR')}</div></div>
       <button class="btn btn-secondary btn-sm" onclick="restaurarLote('${l.id}')">↩ Restaurar</button></div>`).join('');
   let m = document.getElementById('modal-lixeira-lotes');
@@ -8243,7 +8243,7 @@ async function loadTaskApproval(taskId){
       <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:180px">
           <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:2px">Envio anterior não completou</div>
-          <div style="font-size:12px;color:#7f1d1d;line-height:1.45">"${ap.title}" foi criado mas nenhuma peça chegou a subir — provável falha no meio do envio. Apaga esse lote vazio e tenta de novo.</div>
+          <div style="font-size:12px;color:#7f1d1d;line-height:1.45">"${escSafe(ap.title)}" foi criado mas nenhuma peça chegou a subir — provável falha no meio do envio. Apaga esse lote vazio e tenta de novo.</div>
         </div>
         <button class="btn btn-secondary" onclick="apagarLoteVazio('${ap.set_id}','${taskId}')">Apagar e tentar de novo</button>
       </div>`;
@@ -8280,7 +8280,7 @@ async function loadTaskApproval(taskId){
     <div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${cor};border-radius:var(--radius);padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap">
         <div style="flex:1;min-width:160px">
-          <div style="font-size:13px;font-weight:700">${ap.title}${interno ? ` <span style="font-size:10px;font-weight:800;color:#6d28d9;letter-spacing:.05em;border:1px dashed #7c3aed;padding:1px 6px;border-radius:5px;margin-left:4px">REVISÃO INTERNA</span>` : ''}</div>
+          <div style="font-size:13px;font-weight:700">${escSafe(ap.title)}${interno ? ` <span style="font-size:10px;font-weight:800;color:#6d28d9;letter-spacing:.05em;border:1px dashed #7c3aed;padding:1px 6px;border-radius:5px;margin-left:4px">REVISÃO INTERNA</span>` : ''}</div>
           <div style="font-size:12px;color:${cor};font-weight:600;margin-top:2px">${resumo}</div>
         </div>
         ${!isClient ? `<button class="btn btn-secondary btn-sm" onclick="baixarExcelLote('${ap.set_id}', this)"
@@ -8667,7 +8667,7 @@ function abrirPopup(url, titulo, taskId){
         ${logo}
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;
-                      overflow:hidden;text-overflow:ellipsis">${cli?.name || 'Cliente'}</div>
+                      overflow:hidden;text-overflow:ellipsis">${escSafe(cli?.name || 'Cliente')}</div>
           <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;
                       text-overflow:ellipsis">${titulo || ''}${t ? ' · ' + (t.project || 'Geral') + ' · ' + t.id : ''}</div>
         </div>
@@ -9355,7 +9355,7 @@ function populateTaskModal(t=null){
   // Reconstrói as opções toda vez que o modal abre.
   const respSel=document.getElementById('t-resp');
   respSel.innerHTML=[...Object.keys(window.RESP_CFG||{}).filter(k=>k!=='CLIENTE'&&k!=='OUTROS'),'CLIENTE','OUTROS'].map(k=>`<option value="${k}">${(window.RESP_CFG&&RESP_CFG[k]?.label)||k}</option>`).join('');
-  const cs=document.getElementById('t-client');cs.innerHTML='<option value="">Selecione...</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}" ${t?.client_id===c.id?'selected':''}>${c.name}</option>`).join('');
+  const cs=document.getElementById('t-client');cs.innerHTML='<option value="">Selecione...</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}" ${t?.client_id===c.id?'selected':''}>${escSafe(c.name)}</option>`).join('');
   if(t){document.getElementById('t-action').value=t.action||'';document.getElementById('t-project').value=t.project||'';document.getElementById('t-resp').value=t.resp||'SERGIO';document.getElementById('t-status').value=t.status||'EM ANDAMENTO';document.getElementById('t-week').value=t.week||'SEM DATA';document.getElementById('t-date-int').value=t.date_int||'';document.getElementById('t-date-cli').value=t.date_cli||'';document.getElementById('t-obs').value=t.obs||'';document.getElementById('t-featured').checked=t.featured||false;onTaskClientChange(t.client_id,t.product_id);if(t.cover_url){document.getElementById('cover-preview').src=t.cover_url;document.getElementById('cover-preview-wrap').style.display='block';document.getElementById('cover-ph').style.display='none';document.getElementById('cover-area').classList.add('has-image');delete document.getElementById('cover-preview').dataset.remove;}
     limparCatalogo();
     if(t.service_task_id){
@@ -9418,7 +9418,7 @@ function getFreqFromForm(){
   return{enabled:true,days,count:Math.max(1,parseInt(document.getElementById('t-freq-count').value)||4),unit:document.getElementById('t-freq-unit').value||'semanas'};
 }
 function _onTaskClientChangeSugestoes(){ try{ popularSugestoesProjeto(); }catch(e){} }
-function onTaskClientChange(clientId,productId=null){const ps=document.getElementById('t-product');ps.innerHTML='<option value="">—</option>'+products.filter(p=>p.client_id===clientId).map(p=>`<option value="${p.id}" ${p.id===productId?'selected':''}>${p.name}</option>`).join('');setTimeout(_onTaskClientChangeSugestoes,0);}
+function onTaskClientChange(clientId,productId=null){const ps=document.getElementById('t-product');ps.innerHTML='<option value="">—</option>'+products.filter(p=>p.client_id===clientId).map(p=>`<option value="${p.id}" ${p.id===productId?'selected':''}>${escSafe(p.name)}</option>`).join('');setTimeout(_onTaskClientChangeSugestoes,0);}
 function onCoverFile(input){if(!input.files[0])return;openCropModal(input.files[0],false,blob=>{coverBlob=blob;const url=URL.createObjectURL(blob);document.getElementById('cover-preview').src=url;document.getElementById('cover-preview-wrap').style.display='block';document.getElementById('cover-ph').style.display='none';document.getElementById('cover-area').classList.add('has-image');});}
 
 function removeCoverPhoto(e){
@@ -9431,7 +9431,7 @@ function removeCoverPhoto(e){
   // Se editando tarefa existente, marcar para remover
   if(activeTaskId) document.getElementById('cover-preview').dataset.remove='1';
 }
-async function quickAddClient(){const name=prompt('Nome do novo cliente:');if(!name)return;const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now();const{data:c,error}=await sb.from('clients').insert({name,slug,color:'#2563eb'}).select().single();if(error){showToast('Erro.','error');return;}await loadClients();document.getElementById('t-client').innerHTML='<option value="">Selecione...</option>'+clients.filter(x=>x.active!==false).map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${x.name}</option>`).join('');onTaskClientChange(c.id);showToast(`"${name}" criado!`,'success');}
+async function quickAddClient(){const name=prompt('Nome do novo cliente:');if(!name)return;const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now();const{data:c,error}=await sb.from('clients').insert({name,slug,color:'#2563eb'}).select().single();if(error){showToast('Erro.','error');return;}await loadClients();document.getElementById('t-client').innerHTML='<option value="">Selecione...</option>'+clients.filter(x=>x.active!==false).map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${escSafe(x.name)}</option>`).join('');onTaskClientChange(c.id);showToast(`"${name}" criado!`,'success');}
 async function quickAddProductCliente(clientId){const name=prompt('Nome do produto / empreendimento:');if(!name||!name.trim())return;const{error}=await sb.from('products').insert({client_id:clientId,name:name.trim()});if(error){showToast('Erro: '+error.message,'error');return;}await loadClients();try{openClientDetail(clientId);}catch(e){}showToast(`"${name.trim()}" criado!`,'success');}
 async function quickAddProduct(){const clientId=document.getElementById('t-client').value||profile.client_id;if(!clientId){showToast('Selecione um cliente.','warn');return;}const name=prompt('Nome do produto:');if(!name)return;const{data:p,error}=await sb.from('products').insert({client_id:clientId,name}).select().single();if(error){showToast('Erro: '+error.message,'error');return;}await loadClients();onTaskClientChange(clientId,p.id);showToast(`"${name}" criado!`,'success');}
 
@@ -9796,7 +9796,7 @@ let _salvandoCliente=false;
 async function saveClient(){if(_salvandoCliente)return;const name=document.getElementById('cl-name').value.trim();if(!name){showToast('Nome obrigatório.','warn');return;}if(clients.some(x=>String(x.name||'').trim().toLowerCase()===name.toLowerCase())){showToast('Já existe um cliente com esse nome.','warn');return;}_salvandoCliente=true;try{await saveClientGo(name);}finally{_salvandoCliente=false;}}
 async function saveClientGo(name){const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now();let logo_url=null;if(clLogoBlob){const fname=`clients/${slug}.jpg`;const{error:ue}=await sb.storage.from('task-covers').upload(fname,clLogoBlob,{contentType:'image/jpeg'});if(!ue){const{data:{publicUrl}}=sb.storage.from('task-covers').getPublicUrl(fname);logo_url=publicUrl;}}const{data:c,error}=await sb.from('clients').insert({name,slug,logo_url,color:document.getElementById('cl-color').value,website:document.getElementById('cl-website').value||null,notes:document.getElementById('cl-notes').value||null}).select().single();if(error){showToast('Erro: '+error.message,'error');return;}if(clProds.length)await sb.from('products').insert(clProds.map(p=>({client_id:c.id,name:p})));showToast('Cliente criado!','success');closeModal('modal-new-client');clProds=[];clLogoBlob=null;document.getElementById('cl-name').value='';document.getElementById('cl-prods-list').innerHTML='';await loadClients();}
 
-function onUserRole(role){document.getElementById('u-teamkey-wrap').style.display=(role==='team'||role==='admin')?'':'none';document.getElementById('u-client-wrap').style.display=role==='client'?'':'none';if(role==='client')document.getElementById('u-client-sel').innerHTML='<option value="">Selecione...</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');}
+function onUserRole(role){document.getElementById('u-teamkey-wrap').style.display=(role==='team'||role==='admin')?'':'none';document.getElementById('u-client-wrap').style.display=role==='client'?'':'none';if(role==='client')document.getElementById('u-client-sel').innerHTML='<option value="">Selecione...</option>'+clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${escSafe(c.name)}</option>`).join('');}
 function uChip(i){ const l=i.parentElement; l.style.background=i.checked?'var(--text)':'transparent'; l.style.color=i.checked?'var(--bg,#fff)':'inherit'; }
 async function saveUser(){
   const name=document.getElementById('u-name').value.trim();
@@ -9870,7 +9870,7 @@ async function openMyProfile(){closeUserMenu();editingUserId=null;if(document.ge
   document.getElementById('prof-aparencia-section').style.display='block';
   renderThemePanel();
   document.getElementById('prof-name').value=profile.name||'';document.getElementById('prof-email').value=profile.email||'';document.getElementById('prof-bio').value=profile.bio||'';const sectorLabels={'JOY':'Atendimento / Fluxo','LUANA':'Design / Produção','JUAN':'Web / Campanha','SERGIO':'Brand / Conceito / Design','OUTROS':'Outros','CLIENTE':'Cliente','admin':'Administrador','team':'Equipe','client':'Cliente'};
-  document.getElementById('prof-role-lbl').textContent=(profile.funcoes||[]).length?(profile.funcoes||[]).map(k=>(window.FUNCOES_CAT&&FUNCOES_CAT[k])||k).join(' · '):(sectorLabels[profile.role]||profile.role);document.getElementById('prof-birthday').value=profile.birthday||'';document.getElementById('prof-contact').value=profile.contact||'';pdZapPerfilCarregar(profile);document.getElementById('prof-social1').value=profile.social1||'';document.getElementById('prof-social2').value=profile.social2||'';document.getElementById('prof-site').value=profile.site||'';const img=document.getElementById('prof-av-img'),ph=document.getElementById('prof-av-ph');if(profile.avatar_url){img.src=profile.avatar_url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';ph.style.cssText=`width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;background:${['#2563eb','#7c3aed','#dc2626'][profile.name.charCodeAt(0)%3]}`;ph.textContent=profile.name.substring(0,2).toUpperCase();}const myClients=[...new Set(tasks.filter(t=>t.resp===profile.team_key).map(t=>t.client_id))].filter(Boolean).map(id=>clients.find(c=>c.id===id)).filter(Boolean);if(myClients.length){document.getElementById('prof-clients-section').style.display='block';document.getElementById('prof-clients-list').innerHTML=myClients.map(c=>`<span style="background:${c.color||'#64748b'}18;border:1px solid ${c.color||'#64748b'}30;padding:3px 10px;border-radius:20px;font-size:12.5px;color:${c.color||'var(--text2)'}">${c.name}</span>`).join('');}openModal('modal-profile');}
+  document.getElementById('prof-role-lbl').textContent=(profile.funcoes||[]).length?(profile.funcoes||[]).map(k=>(window.FUNCOES_CAT&&FUNCOES_CAT[k])||k).join(' · '):(sectorLabels[profile.role]||profile.role);document.getElementById('prof-birthday').value=profile.birthday||'';document.getElementById('prof-contact').value=profile.contact||'';pdZapPerfilCarregar(profile);document.getElementById('prof-social1').value=profile.social1||'';document.getElementById('prof-social2').value=profile.social2||'';document.getElementById('prof-site').value=profile.site||'';const img=document.getElementById('prof-av-img'),ph=document.getElementById('prof-av-ph');if(profile.avatar_url){img.src=profile.avatar_url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';ph.style.cssText=`width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;background:${['#2563eb','#7c3aed','#dc2626'][profile.name.charCodeAt(0)%3]}`;ph.textContent=profile.name.substring(0,2).toUpperCase();}const myClients=[...new Set(tasks.filter(t=>t.resp===profile.team_key).map(t=>t.client_id))].filter(Boolean).map(id=>clients.find(c=>c.id===id)).filter(Boolean);if(myClients.length){document.getElementById('prof-clients-section').style.display='block';document.getElementById('prof-clients-list').innerHTML=myClients.map(c=>`<span style="background:${c.color||'#64748b'}18;border:1px solid ${c.color||'#64748b'}30;padding:3px 10px;border-radius:20px;font-size:12.5px;color:${c.color||'var(--text2)'}">${escSafe(c.name)}</span>`).join('');}openModal('modal-profile');}
 async function openUserProfile(userId){const{data:u}=await sb.from('profiles').select('*').eq('id',userId).single();if(!u)return;editingUserId=userId;document.getElementById('prof-modal-title')?document.getElementById('prof-modal-title').textContent=u.name+' — Perfil':'';
   // Status de presença é pessoal — só o próprio usuário pode mudar o dele.
   document.getElementById('prof-presence-section').style.display='none';
@@ -10093,7 +10093,7 @@ function exportExcel(){
 function openPdfModal() {
   const sel = document.getElementById('pdf-client');
   sel.innerHTML = '<option value="">Todos os clientes</option>' +
-    clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    clients.filter(c=>c.active!==false).map(c=>`<option value="${c.id}">${escSafe(c.name)}</option>`).join('');
   openModal('modal-pdf');
 }
 
@@ -10338,7 +10338,7 @@ function mostrarAlertaOperacao(n){
         <span style="margin-left:auto;font-size:11px;color:#8a8a92">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
         <button class="x" style="background:none;border:none;color:#8a8a92;font-size:15px;cursor:pointer;padding:0 0 0 6px">✕</button>
       </div>
-      <div style="font-size:15px;font-weight:800;line-height:1.3;margin-bottom:4px">${n.title || ''}</div>
+      <div style="font-size:15px;font-weight:800;line-height:1.3;margin-bottom:4px">${escSafe(n.title || '')}</div>
       ${n.body ? `<div style="font-size:12.5px;color:#c9c9cf;line-height:1.45">${n.body}</div>` : ''}
       ${n.link ? `<button class="ir" style="margin-top:12px;width:100%;height:38px;border:none;border-radius:7px;background:${cfg.cor};
         color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">${cfg.acao} →</button>` : ''}
@@ -10368,7 +10368,7 @@ function showNotifBalloon(n){
   el.innerHTML=`
     <div style="width:8px;height:8px;border-radius:50%;background:#2563eb;margin-top:5px;flex-shrink:0"></div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35">${n.title}</div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35">${escSafe(n.title)}</div>
       ${n.body?`<div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.4">${n.body}</div>`:''}
     </div>
     <button class="notif-balloon-close" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0">✕</button>`;
@@ -10918,7 +10918,7 @@ async function loadActivityLog(){
         onclick="activityActions[${i}]()">
         <div style="flex-shrink:0">${av}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12.5px;font-weight:700;margin-bottom:2px;color:#fff">${item.name}</div>
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:2px;color:#fff">${escSafe(item.name)}</div>
           <div style="font-size:12px;color:#eee;line-height:1.4">${icon} ${item.text}</div>
           <div style="font-size:10.5px;color:#aaa;margin-top:4px">${timeAgo}</div>
         </div>
@@ -12509,9 +12509,9 @@ function headHTML(g){
         <span style="width:3px;height:3px;border-radius:50%;background:#fff"></span></span>
     </div>
     <div style="font-size:13px;font-weight:800;line-height:1.2;
-         overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.clients?.name||'Sem cliente'}</div>
+         overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escSafe(t.clients?.name||'Sem cliente')}</div>
     <div style="font-size:11px;font-weight:600;opacity:.92;margin-top:2px;
-         overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.products?.name||'—'}</div>
+         overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escSafe(t.products?.name||'—')}</div>
     <div style="font-size:10px;opacity:.75;margin-top:1px;
          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.project||'—'}</div>
     <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:7px;
@@ -12619,7 +12619,7 @@ function notaHTML(n){
       oninput="fluxoSalvarNota('${n.id}',this.value);this.style.height='auto';this.style.height=this.scrollHeight+'px'"
       style="width:100%;min-height:${alt-28}px;border:none;background:none;resize:none;outline:none;
              font-size:10.5px;line-height:1.42;color:#33290c;font-family:inherit;overflow:hidden"
-      placeholder="Escreva aqui…">${n.body||''}</textarea>
+      placeholder="Escreva aqui…">${escSafe(n.body||'')}</textarea>
     <div style="position:absolute;left:8px;bottom:4px;display:flex;gap:3px;align-items:center"
          onmousedown="event.stopPropagation()">
       ${CORES_NOTA.map(cor=>`<span onclick="fluxoCorNota('${n.id}','${cor}')" title="Cor"

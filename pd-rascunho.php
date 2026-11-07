@@ -19,7 +19,7 @@ if (($b['modo'] ?? '') === 'interpretar') {
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode(['model' => 'claude-haiku-4-5', 'max_tokens' => 700, 'system' => $sys, 'messages' => [['role' => 'user', 'content' => $msg]]])]);
+        CURLOPT_POSTFIELDS => json_encode(['model' => 'claude-haiku-4-5', 'max_tokens' => 700, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''), 'messages' => [['role' => 'user', 'content' => $msg]]])]);
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     if ($code !== 200) sd_fail('A IA não respondeu agora.', 502);
     $t = ''; foreach ((array)(json_decode((string)$raw, true)['content'] ?? []) as $c) if (($c['type'] ?? '') === 'text') $t .= $c['text'];
@@ -41,7 +41,7 @@ $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://
 $ch = curl_init($base . '/v1/messages');
 curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40,
     CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-    CURLOPT_POSTFIELDS => json_encode(['model' => 'claude-haiku-4-5', 'max_tokens' => 600, 'system' => $sys, 'messages' => [['role' => 'user', 'content' => $msg]]])]);
+    CURLOPT_POSTFIELDS => json_encode(['model' => 'claude-haiku-4-5', 'max_tokens' => 600, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''), 'messages' => [['role' => 'user', 'content' => $msg]]])]);
 $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
 if ($code !== 200) sd_fail('A IA não respondeu agora.', 502);
 $t = ''; foreach ((array)(json_decode((string)$raw, true)['content'] ?? []) as $c) if (($c['type'] ?? '') === 'text') $t .= $c['text'];

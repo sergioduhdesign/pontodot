@@ -11,6 +11,8 @@
 </head>
 <body>
 <script>
+function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
   const _t=localStorage.getItem('sd_theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
   document.documentElement.setAttribute('data-theme',_t);
 </script>
@@ -403,7 +405,7 @@ function fatalDesignError(msg){
     // admin passa por aqui; religar só em app.html → Admin → Módulos).
     const{data:settings,error:serr}=await sb.from('app_settings').select('design_module_enabled').eq('id',1).maybeSingle();
     if(serr){
-      fatalDesignError(`Erro ao ler configuração do módulo: ${serr.message}. Provavelmente falta rodar o <b>migration_client_v7.sql</b> no Supabase (SQL Editor).`);
+      fatalDesignError(`Erro ao ler configuração do módulo: ${escX(serr.message)}. Provavelmente falta rodar o <b>migration_client_v7.sql</b> no Supabase (SQL Editor).`);
       return;
     }
     document.getElementById('app').style.display='flex';
@@ -419,7 +421,7 @@ function fatalDesignError(msg){
       await openBrandKit(profile.client_id);
     } else {
       const{data:cdata,error:cerr}=await sb.from('clients').select('*').order('name');
-      if(cerr){document.getElementById('design-content').innerHTML=`<div style="padding:20px;color:#dc2626;font-size:13px">Erro ao carregar clientes: ${cerr.message}</div>`;return;}
+      if(cerr){document.getElementById('design-content').innerHTML=`<div style="padding:20px;color:#dc2626;font-size:13px">Erro ao carregar clientes: ${escX(cerr.message)}</div>`;return;}
       clients=cdata||[];
       renderDesignClientList();
     }
@@ -437,7 +439,7 @@ function renderDesignClientList(){
     const initials=(c.name||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
     return`<div class="client-group"><div class="client-group-head" style="cursor:default">
       <div class="client-logo" style="background:${c.color||'#64748b'}">${c.logo_url?`<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:cover">`:initials}</div>
-      <div><div class="client-name">${c.name}</div><div class="client-meta">Kit de marca · peças</div></div>
+      <div><div class="client-name">${escX(c.name)}</div><div class="client-meta">Kit de marca · peças</div></div>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="openBrandKit('${c.id}')">Kit de marca →</button>
         <button class="btn btn-secondary btn-sm" onclick="openProductionGallery('${c.id}')">📦 Produções</button>
@@ -522,8 +524,8 @@ function renderBrandKit(){
   fontsEl.innerHTML=(k.fonts||[]).map((f,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
     <span style="font-size:18px;flex-shrink:0">🔤</span>
     <div style="flex:1;min-width:0">
-      <div style="font-size:13px;font-weight:600">${f.name}</div>
-      <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.file_name||''}</div>
+      <div style="font-size:13px;font-weight:600">${escX(f.name)}</div>
+      <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escX(f.file_name||'')}</div>
     </div>
     <a href="${f.file_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Baixar ↓</a>
     ${canEdit?`<button onclick="removeBrandFont(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>`:''}
@@ -536,7 +538,7 @@ function renderBrandKit(){
     return`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
       <div style="width:36px;height:36px;border-radius:6px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${l?`<img src="${l.file_url}" style="width:100%;height:100%;object-fit:contain">`:'<span style="font-size:16px;opacity:0.35">▢</span>'}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600">${slot.label}</div>
+        <div style="font-size:13px;font-weight:600">${escX(slot.label)}</div>
         <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l?l.file_name:'Nenhum arquivo ainda'}</div>
       </div>
       ${l?`<a href="${l.file_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Baixar ↓</a>`:''}
@@ -549,8 +551,8 @@ function renderBrandKit(){
   elementsEl.innerHTML=(k.elements||[]).map((el,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
     <div style="width:32px;height:32px;border-radius:6px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${/\.(png|jpe?g|webp|svg)$/i.test(el.file_name||'')?`<img src="${el.file_url}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:15px">🎨</span>'}</div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:13px;font-weight:600">${el.name}</div>
-      <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${el.file_name||''}</div>
+      <div style="font-size:13px;font-weight:600">${escX(el.name)}</div>
+      <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escX(el.file_name||'')}</div>
     </div>
     <a href="${el.file_url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;font-weight:700;flex-shrink:0">Baixar ↓</a>
     ${canEdit?`<button onclick="removeBrandElement(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>`:''}
@@ -733,7 +735,7 @@ function renderWizardStep(){
   const nav=document.getElementById('pw-steps-nav');
   nav.innerHTML=PW_STEPS.map((s,i)=>{
     const n=i+1,active=n===pw.step,done=n<pw.step;
-    return `<div style="flex:1;text-align:center;padding:6px 4px;border-radius:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:${active?'var(--accent)':done?'var(--border2)':'transparent'};color:${active?'#fff':'var(--text3)'}">${n}. ${s.label}</div>`;
+    return `<div style="flex:1;text-align:center;padding:6px 4px;border-radius:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:${active?'var(--accent)':done?'var(--border2)':'transparent'};color:${active?'#fff':'var(--text3)'}">${n}. ${escX(s.label)}</div>`;
   }).join('');
 
   document.getElementById('pw-back-btn').style.visibility=pw.step===1?'hidden':'visible';
@@ -1128,7 +1130,7 @@ function renderBoard(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="min-width:0">
           <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em">Peça ${p.seq}</div>
-          <div style="font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.texts?.titulo||'(sem título)'}</div>
+          <div style="font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escX(p.texts?.titulo||'(sem título)')}</div>
           <div style="font-size:11.5px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.texts?.texto_legenda||''}</div>
         </div>
         <span style="flex-shrink:0;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--border2);color:var(--text3)">${statusLabel[p.status]||p.status}</span>
@@ -1233,7 +1235,7 @@ async function mpLoadFolder(folder){
   q=scopeClientId?q.eq('client_id',scopeClientId):q.is('client_id',null);
   const{data,error}=await q.order('created_at',{ascending:false});
   const grid=document.getElementById('mp-library-grid');
-  if(error){grid.innerHTML=`<div style="font-size:12px;color:#dc2626">Erro: ${error.message}</div>`;return;}
+  if(error){grid.innerHTML=`<div style="font-size:12px;color:#dc2626">Erro: ${escX(error.message)}</div>`;return;}
   const all=data||[];
   const prefix=folder?folder+'/':'';
   const subfolders=[...new Set(all
@@ -1252,7 +1254,7 @@ async function mpLoadFolder(folder){
       ${f.file_type==='video'
         ?`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:26px">🎬</div>`
         :`<img src="${f.file_url}" style="width:100%;height:100%;object-fit:cover">`}
-      <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:9.5px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.file_name}</div>
+      <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:9.5px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escX(f.file_name)}</div>
     </div>`).join('');
 }
 
@@ -1311,7 +1313,7 @@ async function mpSearchUnsplash(){
     const data=await resp.json();
     if(data.error)throw new Error(data.error);
     status.textContent=(data.results||[]).length?'':'Nenhum resultado.';
-    grid.innerHTML=(data.results||[]).map(p=>`<div onclick='mpChooseUnsplash(${JSON.stringify(p).replace(/'/g,"&#39;")})' style="cursor:pointer;border:1px solid var(--border);border-radius:8px;overflow:hidden;aspect-ratio:1" title="Foto de ${p.credit_name||''} no Unsplash">
+    grid.innerHTML=(data.results||[]).map(p=>`<div onclick='mpChooseUnsplash(${JSON.stringify(p).replace(/'/g,"&#39;")})' style="cursor:pointer;border:1px solid var(--border);border-radius:8px;overflow:hidden;aspect-ratio:1" title="Foto de ${escX(p.credit_name||'')} no Unsplash">
       <img src="${p.thumb}" style="width:100%;height:100%;object-fit:cover">
     </div>`).join('');
   }catch(err){
@@ -1346,7 +1348,7 @@ async function loadGallery(){
   const wrap=document.getElementById('gallery-content');
   wrap.innerHTML='<div style="padding:30px;text-align:center;color:var(--text3)">Carregando...</div>';
   const{data:batches,error:be}=await sb.from('piece_batches').select('*').eq('client_id',galleryClientId).order('created_at',{ascending:false});
-  if(be){wrap.innerHTML=`<div style="color:#dc2626;padding:20px">Erro: ${be.message}</div>`;return;}
+  if(be){wrap.innerHTML=`<div style="color:#dc2626;padding:20px">Erro: ${escX(be.message)}</div>`;return;}
   galleryBatches=batches||[];
   if(!galleryBatches.length){
     galleryPieces=[];
@@ -1354,7 +1356,7 @@ async function loadGallery(){
     return;
   }
   const{data:pieces,error:pe}=await sb.from('pieces').select('*').in('batch_id',galleryBatches.map(b=>b.id)).order('seq');
-  if(pe){wrap.innerHTML=`<div style="color:#dc2626;padding:20px">Erro: ${pe.message}</div>`;return;}
+  if(pe){wrap.innerHTML=`<div style="color:#dc2626;padding:20px">Erro: ${escX(pe.message)}</div>`;return;}
   galleryPieces=pieces||[];
   renderGallery();
 }
@@ -1366,7 +1368,7 @@ function renderGallery(){
     const bp=galleryPieces.filter(p=>p.batch_id===b.id);
     return`<div style="margin-bottom:24px">
       <div style="margin-bottom:10px">
-        <div style="font-weight:700;font-size:14px">${b.name}</div>
+        <div style="font-weight:700;font-size:14px">${escX(b.name)}</div>
         <div style="font-size:11px;color:var(--text3)">${bp.length} peça(s) · ${new Date(b.created_at).toLocaleDateString('pt-BR')}</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
@@ -1458,7 +1460,7 @@ function updateBigEditorPanel(){
   if(obj.type==='textbox'||obj.type==='text'){
     props.innerHTML=`
       <div class="field" style="margin-bottom:12px"><div class="field-label">Texto</div>
-        <textarea class="field-input" rows="3" oninput="bigEditorSetText(this.value)">${obj.text}</textarea></div>
+        <textarea class="field-input" rows="3" oninput="bigEditorSetText(this.value)">${escX(obj.text)}</textarea></div>
       <div class="field" style="margin-bottom:12px"><div class="field-label">Fonte</div>
         <select class="field-input" onchange="bigEditorSetProp('fontFamily',this.value)">
           ${['Arial','Georgia','Helvetica','system-ui','Times New Roman'].map(f=>`<option value="${f}" ${obj.fontFamily===f?'selected':''}>${f}</option>`).join('')}
@@ -1584,7 +1586,7 @@ function schSetTab(tab){
 async function loadSchAccounts(){
   const{data,error}=await sb.from('social_accounts').select('*').eq('client_id',schClientId).order('connected_at',{ascending:false});
   const wrap=document.getElementById('sch-accounts-list');
-  if(error){wrap.innerHTML=`<div style="color:#dc2626;font-size:12px">Erro: ${error.message}</div>`;return;}
+  if(error){wrap.innerHTML=`<div style="color:#dc2626;font-size:12px">Erro: ${escX(error.message)}</div>`;return;}
   schAccounts=data||[];
   const sel=document.getElementById('sch-batch-account');
   if(sel)sel.innerHTML=schAccounts.map(a=>`<option value="${a.id}">${a.platform==='instagram'?'📷':'📘'} ${a.account_name||a.external_account_id}</option>`).join('')||'<option value="">Nenhuma conta conectada ainda</option>';
@@ -1719,7 +1721,7 @@ async function loadSchQueue(){
   const wrap=document.getElementById('sch-queue-list');
   wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Carregando...</div>';
   const{data,error}=await sb.from('scheduled_posts').select('*').eq('client_id',schClientId).order('scheduled_at',{ascending:true});
-  if(error){wrap.innerHTML=`<div style="color:#dc2626;padding:16px">Erro: ${error.message}</div>`;return;}
+  if(error){wrap.innerHTML=`<div style="color:#dc2626;padding:16px">Erro: ${escX(error.message)}</div>`;return;}
   const posts=data||[];
   if(!posts.length){wrap.innerHTML='<div class="empty-state" style="padding:30px"><div class="empty-state-icon">○</div><div>Nenhum post agendado ainda.</div></div>';return;}
   const statusLabel={agendado:'Agendado',publicando:'Publicando...',publicado:'Publicado',erro:'Erro',cancelado:'Cancelado'};
@@ -1727,7 +1729,7 @@ async function loadSchQueue(){
   wrap.innerHTML=posts.map(p=>`<div class="entity-card" style="flex-direction:row;align-items:center;gap:10px">
     <div style="flex:1;min-width:0">
       <div style="font-size:11px;color:var(--text3)">${new Date(p.scheduled_at).toLocaleString('pt-BR')} · ${p.post_type}</div>
-      <div style="font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.caption||'(sem legenda)'}</div>
+      <div style="font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escX(p.caption||'(sem legenda)')}</div>
       ${p.error_message?`<div style="font-size:11px;color:#dc2626;margin-top:4px">${p.error_message}</div>`:''}
     </div>
     <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${statusColor[p.status]}18;color:${statusColor[p.status]};flex-shrink:0">${statusLabel[p.status]||p.status}</span>

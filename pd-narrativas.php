@@ -110,7 +110,7 @@ function pdn_voz(array &$blocos, array $personagens) {
     $sys = 'Você escreve posts de rede social (estilo Instagram) para personagens fictícios de Catum. Cada personagem posta sobre a própria semana, SEMPRE em primeira pessoa ("eu"), como uma pessoa de verdade: curto (1 a 3 frases, até 220 caracteres), voz falada, direta, com um detalhe concreto e algum humor ou sentimento. '
          . 'PROIBIDO: terceira pessoa, tom de relatório ou ata, enumerar o que fez, frases como "ainda escolhe", "resta decidir", "falta escolher", explicar a lógica. Não inicie com o próprio nome. No máximo um emoji, e só se for natural. Não invente fatos além do que aconteceu; pode escolher UM momento e ignorar o resto. '
          . 'Imite o tom de "como_ja_posta" de cada um. Responda SOMENTE um JSON {"id":"texto do post", ...}, sem comentários.';
-    $corpo = ['model' => defined('SD_NARRATIVAS_MODEL') ? SD_NARRATIVAS_MODEL : 'claude-haiku-4-5', 'max_tokens' => 3000, 'system' => $sys,
+    $corpo = ['model' => defined('SD_NARRATIVAS_MODEL') ? SD_NARRATIVAS_MODEL : 'claude-haiku-4-5', 'max_tokens' => 3000, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
               'messages' => [['role' => 'user', 'content' => json_encode($itens, JSON_UNESCAPED_UNICODE)]]];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');

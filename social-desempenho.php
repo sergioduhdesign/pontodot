@@ -136,7 +136,7 @@ function sdp_alvo_txt($a) {
          . (!empty($a['metricas']) ? ' · NÚMEROS: ' . json_encode($a['metricas'], JSON_UNESCAPED_UNICODE) : '') . '. Compare tudo contra ESSE item, não contra o cliente em geral.' . "\n";
 }
 function sdp_ia($sys, $msgs, $max = 1800, $busca = 4) {
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $sys . "\n\n" . pdElencoTexto(false), 'messages' => $msgs];
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => $max, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : '') . "\n\n" . pdElencoTexto(false), 'messages' => $msgs];
     if ($busca) $body['tools'] = [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => $busca]];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
@@ -219,7 +219,7 @@ if ($acao === 'perguntar') {
          . 'deixe claro o que veio da web. Não fale de outros clientes da casa. Português do Brasil, curto, números com unidade. '
          . 'No fim, quando fizer sentido, uma linha "Próximo passo:".';
     $t0 = microtime(true);
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 1800, 'system' => $sys,
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 1800, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
         'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 4]], 'messages' => $msgs];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');

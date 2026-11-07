@@ -442,7 +442,7 @@ function vdDescobrir($consulta, $quantos, $carteira, $uid) {
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 240,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 6000, 'system' => $sys,
+        CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_ALUNA_MODEL') ? SD_ALUNA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 6000, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
             'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 10]], 'messages' => [['role' => 'user', 'content' => 'PEDIDO (' . $quantos . ' empresas novas): ' . mb_substr($consulta, 0, 1800)]]])]);
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     if ($code !== 200) { $m = json_decode((string)$raw, true); return ['erro' => 'a busca na web não respondeu (HTTP ' . $code . ')' . (!empty($m['error']['message']) ? ': ' . mb_substr($m['error']['message'], 0, 160) : '') . ($code === 400 ? ' — confira se a busca na web está habilitada na sua conta da Anthropic' : '')]; }

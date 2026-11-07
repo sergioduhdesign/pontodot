@@ -34,7 +34,7 @@ require_once __DIR__ . '/pd-aula-lib.php';
 
 ignore_user_abort(true); @set_time_limit(280);
 if (!defined('SD_CRON_KEY') || SD_CRON_KEY === 'SUA_CRON_KEY_AQUI') { http_response_code(500); die('SD_CRON_KEY nao configurada.'); }
-if (($_GET['key'] ?? '') !== SD_CRON_KEY) { http_response_code(403); die('Chave invalida.'); }
+if (!hash_equals((string)SD_CRON_KEY, (string)($_GET['key'] ?? ''))) { http_response_code(403); die('Chave invalida.'); }
 @set_time_limit(280);
 require_once __DIR__ . '/pd-saude-lib.php'; pdBatimento('pd-worker');
 header('Content-Type: text/plain; charset=utf-8');
@@ -347,7 +347,7 @@ function w_alunos() {
             $c = $chars[$al]; $chamadas++;
             $sys = 'Você é ' . $c['name'] . ', ' . ($c['profile_title'] ?? 'aluno') . ' da escola de Catum (um mundo fictício de IAs). ' . ($c['bio'] ?? '')
                 . ' Comente, em pt-BR, no máximo 20 palavras, de forma calorosa e específica, um post de uma pessoa da equipe de uma agência. Sem aspas, sem hashtags, no máximo um emoji.';
-            $body = ['model' => defined('SD_ALUNOS_MODEL') ? SD_ALUNOS_MODEL : 'claude-haiku-4-5', 'max_tokens' => 120, 'system' => $sys,
+            $body = ['model' => defined('SD_ALUNOS_MODEL') ? SD_ALUNOS_MODEL : 'claude-haiku-4-5', 'max_tokens' => 120, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
                 'messages' => [['role' => 'user', 'content' => "Post:\n" . mb_substr((string)$post['body'], 0, 600)]]];
             $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
             $ch = curl_init($base . '/v1/messages');
@@ -473,7 +473,7 @@ function w_rotina_ia($slot, $nome, $tasks, $reun, $hoje) {
     $sys = 'Você é a IA de trabalho da Pontodot, colega de uma agência de branding do mercado imobiliário. Escreva UMA mensagem de WhatsApp em pt-BR para ' . $nome . ', '
         . 'tom de colega próximo e direto, no máximo 700 caracteres, sem markdown (sem asteriscos nem #), até 2 emojis, quebras de linha simples. Use SOMENTE os dados fornecidos: '
         . 'não invente tarefa, prazo, reunião nem cliente. Cite tarefas pelo ID e nome curto. Hoje é ' . $hoje . '. ' . $foco;
-    $body = ['model' => defined('SD_ROTINA_MODEL') ? SD_ROTINA_MODEL : 'claude-haiku-4-5', 'max_tokens' => 500, 'system' => $sys,
+    $body = ['model' => defined('SD_ROTINA_MODEL') ? SD_ROTINA_MODEL : 'claude-haiku-4-5', 'max_tokens' => 500, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
         'messages' => [['role' => 'user', 'content' => json_encode(['tarefas_abertas' => array_slice($tasks, 0, 25), 'reunioes' => $reun], JSON_UNESCAPED_UNICODE)]]];
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
@@ -581,7 +581,7 @@ function w_analisar($cliente, $corpo) {
         . 'comportamento de lead imobiliário). Pesquise na web quando ajudar a ancorar o cenário. '
         . 'Responda em pt-BR, 5 a 8 frases curtas, direto, sem enrolação, sem markdown pesado.';
     $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5',
-        'max_tokens' => 1200, 'system' => $sys,
+        'max_tokens' => 1200, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
         'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 3]],
         'messages' => [['role' => 'user', 'content' => 'Cliente: ' . $cliente . "\nNúmeros de ontem e 7 dias:\n"
             . json_encode($corpo, JSON_UNESCAPED_UNICODE)]]];

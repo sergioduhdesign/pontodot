@@ -213,7 +213,7 @@ function retro_analise($d) {
         . 'Compare sempre com o mercado quando houver faixa. Pt-BR, direto, sem markdown pesado, sem emoji, no máximo 900 caracteres.';
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $enxuto = $d; unset($enxuto['alertas']);
-    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 900, 'system' => $sys,
+    $body = ['model' => defined('SD_ANALISTA_MODEL') ? SD_ANALISTA_MODEL : 'claude-sonnet-4-5', 'max_tokens' => 900, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
         'messages' => [['role' => 'user', 'content' => json_encode($enxuto, JSON_UNESCAPED_UNICODE)]]];
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 90,

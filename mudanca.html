@@ -90,6 +90,8 @@ a{color:var(--br);text-decoration:underline;text-underline-offset:3px}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 <script>
+function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co';
 const SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 let sb=null, total=0, parar=false;
@@ -119,7 +121,7 @@ async function contar(){
     $('#porCliente').innerHTML = Object.entries(j.por_cliente||{}).slice(0,12)
       .map(([c,n])=>`<div class="linha"><span>${c}</span><b>${n}</b></div>`).join('');
     pintarBarra(j.arquivos);
-  }catch(e){ $('#cont').innerHTML=`—<small style="color:var(--laranja)">${e.message}</small>`; }
+  }catch(e){ $('#cont').innerHTML=`—<small style="color:var(--laranja)">${escX(e.message)}</small>`; }
   $('#bConta').disabled=false;
 }
 

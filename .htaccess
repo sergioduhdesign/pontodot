@@ -31,10 +31,18 @@ ErrorDocument 503 /500.html
   Require all denied
 </FilesMatch>
 
+# Log de erro do PHP (não tem extensão, então o bloco acima não pega)
+<Files "error_log">
+  Require all denied
+</Files>
+
 # Arquivo de configuração, caso um dia acabe aqui por engano
 <Files "sd-config.php">
   Require all denied
 </Files>
+
+# Pastas internas de cache/controle nunca abrem pelo navegador
+RedirectMatch 404 ^/\.cache-(pd|artes)/
 
 # Bloqueia listagem de pastas sem index
 Options -Indexes
@@ -50,6 +58,8 @@ Options -Indexes
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   # Bloqueia acesso a câmera, microfone e localização
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  # Só HTTPS (o navegador lembra por 1 ano)
+  Header always set Strict-Transport-Security "max-age=31536000"
 </IfModule>
 
 

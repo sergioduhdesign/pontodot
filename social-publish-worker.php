@@ -14,7 +14,7 @@ if (!defined('SD_CRON_KEY') || SD_CRON_KEY === 'SUA_CRON_KEY_AQUI') {
     http_response_code(500);
     die('SD_CRON_KEY nao configurada no sd-config.php.');
 }
-if (($_GET['key'] ?? '') !== SD_CRON_KEY) {
+if (!hash_equals((string)SD_CRON_KEY, (string)($_GET['key'] ?? ''))) {
     http_response_code(403);
     die('Chave invalida.');
 }

@@ -290,6 +290,8 @@ body.carregando .nl-skel{display:block}
 <script src="/js/auth.js"></script>
 <script src="/js/aprovacao-comum.js?v=21"></script>
 <script>
+function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 let profile=null, clients=[], tasks=[], setId=null;
 let MODO = null;          // lote_zip | lote_variado | peca_unica | post_unico
 let soltas = [];          // [{file, url, titulo, pitch, link}]
@@ -323,7 +325,7 @@ if (EMBED) document.documentElement.style.background = 'transparent';
   const { data:c } = await sb.from('clients').select('id,name').eq('active',true).order('name');
   clients = c || [];
   el('fClient').innerHTML = '<option value="">Selecione…</option>' +
-    clients.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+    clients.map(x => `<option value="${x.id}">${escX(x.name)}</option>`).join('');
   el('fClient').onchange = () => { loadTasks(); atualizar(); };
 
   // O lote nasce DA TAREFA. Vindo de lá, cliente e vínculo já vêm
@@ -353,7 +355,7 @@ if (EMBED) document.documentElement.style.background = 'transparent';
 
       el('lockedInfo').innerHTML = `<div class="nl-from">${av}
         <div class="tx">
-          <div class="t1">${c.name || 'Cliente'}</div>
+          <div class="t1">${escX(c.name || 'Cliente')}</div>
           <div class="t2">${t.id} · ${t.action}</div>
         </div>
         <span style="font-size:10.5px;color:var(--text3);text-transform:uppercase;

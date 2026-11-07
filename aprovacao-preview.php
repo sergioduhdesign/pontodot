@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/sd-base.php';
+sd_rate_limit('apv', 90, 60);
 // =====================================================================
 // SD Workflow — preview do link de aprovação (SEO / WhatsApp / iMessage)
 //

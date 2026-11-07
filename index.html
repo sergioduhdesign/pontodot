@@ -2582,7 +2582,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v461 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v462 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2773,7 +2773,7 @@ function htmlTarefas(){
   const tudo = vTarefas==='tudo';
   const linhas = TAREFAS.map((t,i)=>`
     <button class="t-linha ${i===selecionada?'sel':''}" data-fk="${t.id}" style="${i===selecionada?`background:${COR_SEL[t.cara]}`:''}"
-      onclick="selecionar(${i})">${cara(t.cara,32, i===selecionada ? '#fff' : null)}${temNovo('tarefas', t.id) ? '<i class="nv-dot"></i>' : ''}<span class="nome">${t.nome}</span>${t.ia && !ehCliente()?'<span class="ia-chip">IA</span>':''}${ehCliente() ? '' : `${t.resp?`<span class="t-resp">${t.resp}</span>`:''}<span class="t-play ${t.play?'rodando':''}" role="button" aria-label="${t.play?'Pausar':'Dar play'}" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span>`}</button>`).join('')
+      onclick="selecionar(${i})">${cara(t.cara,32, i===selecionada ? '#fff' : null)}${temNovo('tarefas', t.id) ? '<i class="nv-dot"></i>' : ''}<span class="nome">${esc(t.nome)}</span>${t.ia && !ehCliente()?'<span class="ia-chip">IA</span>':''}${ehCliente() ? '' : `${t.resp?`<span class="t-resp">${t.resp}</span>`:''}<span class="t-play ${t.play?'rodando':''}" role="button" aria-label="${t.play?'Pausar':'Dar play'}" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span>`}</button>`).join('')
     + (tudo ? TAREFAS_MAIS.map(t=>`
     <button class="t-linha" data-fk="${t[0]}" onclick="toast('Abre ${t[0]} — mesmo padrão da caixa acima.')">${cara(t[2],32)}<span class="nome">${t[1]}</span></button>`).join('') : '');
   const ferramentas = `<div class="t-ferr">
@@ -2817,7 +2817,7 @@ function htmlDetalhe(t){
     <i class="bico" style="left:34px"></i>
     <button class="acao-cab" style="position:absolute;top:10px;right:14px;color:var(--branco)" onclick="const al=document.querySelector('#detPop:not(.oculto) .caixa')?'#detPop .caixa':document.querySelector('#janela .caixa')?'#janela .caixa':'#slotDetalhe .caixa';fecharComFio(al,()=>{if(al==='#janela .caixa')fecharJanela();else{selecionada=-1;render()}})" aria-label="Fechar">✕</button>
     <div class="idzinho">${t.id}</div>
-    <h3>${t.nome}</h3>
+    <h3>${esc(t.nome)}</h3>
     <div class="sub">${t.proj}</div>
     ${t.resp||t.st||t.ia?`<div class="det-meta">${t.resp?`com <b>${t.resp}</b>`:''}${t.st?`${t.resp?' · ':''}${t.st.toLowerCase()}`:''}${t.ia?' · <span class="ia-chip">IA produzindo</span>':''}</div>`:''}
     <div class="prazo">No prazo ${t.prazo}</div>
@@ -3102,7 +3102,7 @@ function rotuloConversa(){
   const c = CONVERSAS.find(c => c.quem === atual);
   return c ? `conversa na tarefa ${c.tarefa} · ${c.tnome}` : 'conversa com ' + String(atual).split(' ')[0];
 }
-const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function chipQuem(){
   return atual === 'sd' ? 'você está falando com a IA da casa agora'
     : String(atual).startsWith('zap:') ? 'isto vai para o WhatsApp dela agora — gente de verdade, a IA fica de fora'
@@ -3536,7 +3536,7 @@ function abrirTarefasTodas(){
   }
   const linha = (t,i) => `
     <button class="t-linha" data-fk="tds-${t.id}" onclick="irPraTarefa(${i})">
-      ${cara(t.cara,30)}<span class="nome">${t.nome}</span>
+      ${cara(t.cara,30)}<span class="nome">${esc(t.nome)}</span>
       <span style="font-size:11px;color:var(--branco2);flex-shrink:0">${t.prazo||''}</span>
       <span class="t-play ${t.play?'rodando':''}" role="button" onclick="event.stopPropagation();alternarPlay(${i})">${icoPlay(t.play)}</span>
     </button>`;
@@ -9045,7 +9045,7 @@ function pintarJeito(){
     const pos = n === null ? 50 : n;
     const misto = n !== null && n >= mi && n <= ma;
     return `<div class="pil">
-      <div class="pil-cab"><b>${p.nome}</b>${misto?`<i class="pil-misto">varia com o contexto</i>`:''}</div>
+      <div class="pil-cab"><b>${esc(p.nome)}</b>${misto?`<i class="pil-misto">varia com o contexto</i>`:''}</div>
       <div class="pil-linha">
         <button class="pil-b" onclick="moverPilar('${eixo}', ${Math.max(0,pos-10)})" aria-label="Mais ${esc(p.esq)}">−</button>
         <div class="pil-tri" role="img" aria-label="${n===null?'sem resposta ainda':p.nome+': '+n+' de 100'}">
@@ -11010,7 +11010,7 @@ function filtrarOrelha(q){
   const fil = tasksReais.filter(x => x.id !== id &&
     (!q || (x.action+' '+x.id+' '+(x.clients?.name||'')).toLowerCase().includes(q))).slice(0,30);
   L.innerHTML = fil.map(x=>`<button class="t-linha" onclick="ligarOrelha('${x.id}')">
-    <span class="t-clichip">${x.clients?.name||'SD'}</span>
+    <span class="t-clichip">${esc(x.clients?.name||'SD')}</span>
     <div class="t-main"><span class="nome" style="flex:none">${esc(x.action)}</span><small>${x.id}</small></div>
   </button>`).join('') || '<div class="nota">Nada com esse nome nas abertas.</div>';
 }
@@ -12286,7 +12286,7 @@ async function responder(txt){
     const at = tasksReais.filter(ehAtrasada);
     if (!at.length) return { t:'<b>Nada atrasado.</b> Hoje a casa tá em dia.' };
     return { t:`<b>${at.length} atrasada${at.length>1?'s':''}:</b><br>` +
-      at.slice(0,6).map(x=>`• ${x.id} — ${x.action.slice(0,42)} <i style="opacity:.6">(${x.clients?.name||'SD'}, interna ${fmtD(x.date_int)})</i>`).join('<br>') };
+      at.slice(0,6).map(x=>`• ${x.id} — ${x.action.slice(0,42)} <i style="opacity:.6">(${esc(x.clients?.name||'SD')}, interna ${fmtD(x.date_int)})</i>`).join('<br>') };
   }
   if (!querAcao && (/(tarefas?|jobs?|o que).{0,16}\b(ias?|dot|claude)\b.{0,16}(fazendo|rodando|produzindo)|\b(ias?|dot)\b (estão|está|tão|tá) fazendo/.test(t))){
     const rodando = tasksReais.filter(x => driveMap[x.id] && driveMap[x.id].status !== 'pausado');

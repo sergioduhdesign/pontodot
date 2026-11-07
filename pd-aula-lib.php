@@ -18,7 +18,7 @@ function pdClaude($system, $user, $max = 3500, $model = null) {
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120,
         CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode(['model' => $model, 'max_tokens' => $max, 'system' => $system, 'messages' => [['role' => 'user', 'content' => $user]]])]);
+        CURLOPT_POSTFIELDS => json_encode(['model' => $model, 'max_tokens' => $max, 'system' => $system . (function_exists('pdBlindagem') ? pdBlindagem() : ''), 'messages' => [['role' => 'user', 'content' => $user]]])]);
     $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     if ($code !== 200) return [null, 0, 'Anthropic HTTP ' . $code];
     $j = json_decode((string)$raw, true); $t = '';

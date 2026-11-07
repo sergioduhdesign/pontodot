@@ -12,6 +12,8 @@
 // =====================================================================
 
 require_once __DIR__ . '/../sd-private/sd-config.php';
+require_once __DIR__ . '/sd-base.php';
+sd_rate_limit('share', 60, 60);
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');

@@ -244,8 +244,8 @@ function avatarHTML(name, extraStyle='', size=28) {
 function linkify(text) {
   if (!text) return '';
   return String(text)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;text-decoration:underline">$1</a>')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+    .replace(/(https?:\/\/[^\s<"']+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;text-decoration:underline">$1</a>')
     // @Nome — vira chip clicável, igual menção de Slack. Só marca nomes que
     // batem com alguém de verdade (a lista vem de window.MENCIONAVEIS,
     // montada a partir dos profiles ativos), pra não grifar um "@" solto
