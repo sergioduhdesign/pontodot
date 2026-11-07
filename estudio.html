@@ -3,7 +3,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Poppins:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Bebas+Neue&family=Oswald:wght@400;700&family=Lora:wght@400;700&family=DM+Sans:wght@400;700&family=Space+Grotesk:wght@400;700&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-<script src="/pd-studio.js?v=327"></script>
+<script src="/pd-studio.js?v=328"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--bg:#fff;--pano:#e9e9e6;--ok:#1f8a55;--bad:#c63d32}
 @media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212;--pano:#0c0c0d}}
@@ -93,36 +93,42 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
 /* ===== CELULAR (v458): cabeçalho numa linha só, faixa infinita com ferramentas, barrinhas translúcidas ===== */
 .ic{display:contents}.ic svg,.ic b{display:none}
 @media (max-width:820px){
-  #app{grid-template-rows:56px 56px 1fr;grid-template-columns:minmax(0,1fr)}
+  #app{grid-template-rows:56px 56px 32px 1fr;grid-template-columns:minmax(0,1fr)}
   .top,.barra2,.main{min-width:0}
   .top .nome{width:0}
   .top{overflow:visible;gap:3px;padding:0 6px;flex-wrap:nowrap;align-items:center}.top>*{flex:0 0 auto}
   .top .sep,#salvoEm,.top #btnTarefa,.top .mobOculto,.top button[onclick^="hist("]{display:none!important}
-  .top .nome{order:2;flex:1 1 0;min-width:0;width:auto;min-height:40px;padding:0 8px;font-size:15px}
-  .ic{display:grid;place-items:center;position:relative;width:46px;height:46px;border-radius:0;background:transparent;color:var(--ink)}
+  .top .nome{order:2;flex:1 1 0;min-width:48px;width:auto;min-height:40px;padding:0 6px;font-size:15px;text-overflow:ellipsis}
+  .ic{display:grid;place-items:center;position:relative;width:42px;height:46px;border-radius:0;background:transparent;color:var(--ink)}
   .ic svg{display:block;width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .ic b{display:block;font-weight:700;font-size:11px;line-height:1.05;letter-spacing:-.4px;text-align:center;max-width:44px;overflow:hidden;white-space:nowrap}.ic.tem svg{display:none}.ic:not(.tem) b{display:none}
   .ic select{position:absolute;inset:0;width:100%!important;height:100%;min-height:0!important;opacity:0;font-size:16px;flex:none!important;padding:0;border:0}
   #icCli{order:1}#icFmt{order:4}#pdIA{order:3}
   .top button[onclick^="salvar"]{order:5}#btnPlay{order:6}#btnPrincipal{order:7}
-  .top .btn.i,#btnPlay,#btnPrincipal{width:46px!important;height:46px!important;min-height:46px!important;padding:0!important;font-size:0!important;display:grid;place-items:center;border-radius:0!important;border:0!important;background:transparent!important;color:var(--ink)!important}
+  .top .btn.i,#btnPlay,#btnPrincipal{width:42px!important;height:46px!important;min-height:46px!important;padding:0!important;font-size:0!important;display:grid;place-items:center;border-radius:0!important;border:0!important;background:transparent!important;color:var(--ink)!important;flex:0 0 42px}
   #btnPlay svg,#btnPrincipal svg,.top .btn.i svg{width:26px;height:26px}
   #btnPrincipalTxt{display:none}
   .barra2{overflow:hidden;padding:0 2px 0 6px;gap:0}
-  .fxFixa{display:flex;gap:2px;flex:0 0 auto;padding-right:4px;margin-right:2px;border-right:1px solid var(--line)}
-  .barra2 .f{flex:0 0 auto;width:46px;height:46px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;min-height:0;touch-action:manipulation}
+  .fxFixa{display:flex;gap:0;flex:0 0 auto;padding:0;margin:0;border:0}
+  .barra2 .f{flex:0 0 auto;width:44px;height:46px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;min-height:0;touch-action:manipulation}
   .barra2 .f svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .barra2 .f.on{background:var(--ink);color:var(--bg)}
   .barra2{position:relative}
   .barra2 .fxMais{flex:0 0 46px;width:46px;height:46px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0;transition:transform .2s}.barra2 .fxMais svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.barra2 .fxMais.on{background:var(--ink);color:var(--bg)}.barra2 .fxMais.on svg{transform:rotate(180deg)}
-  #fxMenu{display:none;position:absolute;left:0;right:0;top:0;z-index:60;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 8px 12px;max-height:70%;overflow:auto;transform-origin:top;animation:fxAbre .22s cubic-bezier(.22,.8,.24,1)}
-  #fxMenu.on{display:block}@keyframes fxAbre{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-  #fxMenu .fxG{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0}#fxMenu .fxG+.fxG{border-top:1px solid var(--line);margin-top:4px;padding-top:8px}
-  #fxMenu .f{flex:0 0 auto;width:50px;height:50px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0}
-  #fxMenu .f svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}#fxMenu .f.on{background:var(--ink);color:var(--bg)}
-  #fxMenu .fxAbas button{height:44px;padding:0 14px;border-radius:0;border:0;background:transparent;color:var(--ink)!important;font-size:14px;white-space:nowrap}#fxMenu button,.barra2 button,.top button,#rodape button{color:var(--ink)}#fxMenu .f.on,.barra2 .f.on,#rodape .btn.on{color:var(--bg)!important}
-  #fxMenu .fxAcoes .btn{display:inline-flex!important;align-items:center;gap:8px;width:auto!important;height:46px!important;min-height:46px!important;padding:0 14px!important;font-size:14px!important;border-radius:0!important;border:0!important;background:transparent!important;color:var(--ink)!important}
-  #fxMenu .fxAcoes .btn svg{width:19px;height:19px}#fxMenu #btnPrincipalTxt{display:inline}
+  #fxMenu{display:none;position:absolute;left:0;top:0;width:52px;z-index:60;background:var(--bg);border-right:1px solid var(--line);border-bottom:1px solid var(--line);max-height:100%;overflow-y:auto;scrollbar-width:none;animation:fxAbre .2s ease-out}
+  #fxMenu::-webkit-scrollbar{display:none}
+  #fxMenu.on{display:block}#fxMenu.fixo{bottom:48px;max-height:none;border-bottom:0;animation:none}@keyframes fxAbre{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  .main.dock .pano{margin-left:52px}
+  .main.dock .gaveta{left:52px}
+  .top #btnPlay,.top #btnPrincipal{align-self:center;margin:0!important;line-height:0}
+  .top #btnPlay svg,.top #btnPrincipal svg{display:block;margin:auto;align-self:center;position:static}
+  #fxMenu .fxG{display:flex;flex-direction:column;flex-wrap:nowrap;gap:0;padding:0}
+  #fxMenu .f{flex:0 0 auto;width:52px;height:48px;border:0;border-radius:0;background:transparent;color:var(--ink);display:grid;place-items:center;padding:0}
+  #fxMenu .f svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}#fxMenu .f.on{background:var(--ink);color:var(--bg)}
+  .barra2 .fxMais.fix svg{transform:rotate(90deg)}.barra2 .fxMais.fix{box-shadow:inset 3px 0 0 var(--ink)}
+  #fxBarra{display:flex;align-items:center;overflow-x:auto;scrollbar-width:none;min-width:0;height:32px;padding:0 2px;border-bottom:1px solid var(--line);background:var(--bg)}#fxBarra::-webkit-scrollbar{display:none}
+  #fxBarra button{flex:0 0 auto;height:32px;min-height:0;padding:0 8px;border:0!important;border-radius:0!important;background:transparent!important;color:var(--ink)!important;font-size:12px;letter-spacing:-.2px;white-space:nowrap;box-shadow:none}
+  #fxBarra button.on,#fxBarra button[aria-selected=true]{font-weight:700;box-shadow:inset 0 -2px 0 var(--ink)}
   .main{grid-template-rows:minmax(0,1fr) 48px}.pano{grid-row:1;grid-column:1}
   #rodape{grid-row:2;grid-column:1;display:flex;align-items:center;gap:2px;padding:0 4px;border-top:1px solid var(--line);background:var(--bg);overflow:hidden;position:relative;z-index:5}
   #rodape .pags,#rodape .segs{position:static!important;transform:none!important;opacity:1!important;display:flex!important;border:0!important;background:transparent!important;padding:0!important;gap:0;max-width:none}
@@ -659,9 +665,9 @@ function filtroFixo(n){const o=C.getActiveObject();if(!o||o.type!=='image')retur
 
 // ---------- abas
 let ABA=null;
-function gavetaFecha(){$('#main').classList.remove('aberta');ABA=null;document.querySelectorAll('#barra2 button[data-aba]').forEach(x=>x.classList.remove('on'));setTimeout(()=>{ajustaViewport();C.requestRenderAll();},180);}
+function gavetaFecha(){$('#main').classList.remove('aberta');ABA=null;document.querySelectorAll('button[data-aba]').forEach(x=>x.classList.remove('on'));setTimeout(()=>{ajustaViewport();C.requestRenderAll();},180);}
 function abaAbre(n){if(ABA===n&&$('#main').classList.contains('aberta'))return;ABA=null;aba(n);}
-function aba(n){if(n!=='pauta')PA.fixa=false;ABA=n;$('#main').classList.add('aberta');document.querySelectorAll('#gTopo .sec').forEach(s=>s.style.display='none');$('#p-'+n).style.display='';document.querySelectorAll('#barra2 button[data-aba]').forEach(x=>x.classList.toggle('on',x.dataset.aba===n));setTimeout(()=>{ajustaViewport();C.requestRenderAll();},180);if(n==='camadas')camadas();if(n==='objeto')props();if(n==='video')videoUI();if(n==='texto')fontesLista();if(n==='imagens'){if(!$('#gal').innerHTML)galeria();if(!$('#mlib').innerHTML){fontes();biblioteca();}}
+function aba(n){if(n!=='pauta')PA.fixa=false;ABA=n;$('#main').classList.add('aberta');document.querySelectorAll('#gTopo .sec').forEach(s=>s.style.display='none');$('#p-'+n).style.display='';document.querySelectorAll('button[data-aba]').forEach(x=>x.classList.toggle('on',x.dataset.aba===n));setTimeout(()=>{ajustaViewport();C.requestRenderAll();},180);if(n==='camadas')camadas();if(n==='objeto')props();if(n==='video')videoUI();if(n==='texto')fontesLista();if(n==='imagens'){if(!$('#gal').innerHTML)galeria();if(!$('#mlib').innerHTML){fontes();biblioteca();}}
   if(n==='pauta')pautaUI();if(n==='texto')tipologiaUI();if(n==='imagens'&&!BK.lista)bancosUI();if(n==='formas')vetoresUI();if(n==='pecas'){arquivoUI();listaPecas(false);}if(n==='efeitos')filtrosUI();}
 
 // ---------- render de página (exportação, miniatura, IA) — independente do zoom
@@ -1224,27 +1230,41 @@ const _clipIv=setInterval(()=>{try{if(C){clipObjetos();C.requestRenderAll();clea
     if(wf){const sf=document.getElementById('fmt'),sv=wf.querySelector('svg');const atual=()=>{try{const t=(sf.options[sf.selectedIndex]||{}).text||'';const r=proporcao(t);sv.innerHTML=r||SVG.fmt;wf.title=t;}catch(e){}};sf.addEventListener('change',atual);setInterval(atual,900);atual();}
     const top=document.querySelector('.top');const orig=s=>top.querySelector(s);
     const comoF=(el,cls)=>{const c=el.cloneNode(true);c.removeAttribute('id');c.className='f'+(cls?' '+cls:'');return c;};
-    // linha 2: seta, texto, voltar, refazer | medida | ▼
+    // linha 2: ▼ (esquerda) ........ voltar, refazer, medida (direita)
     const fixa=document.createElement('div');fixa.className='fxFixa';
     const sel=cx.querySelector('[data-ferr="sel"]'),txt=cx.querySelector('[data-ferr="texto"]');
     const ud=orig('button[onclick^="hist(-1"]'),rd=orig('button[onclick^="hist(1"]');
-    [sel,txt,ud,rd].forEach(e=>{if(e)fixa.appendChild(comoF(e));});
-    // menu que abre pra baixo: todas as ferramentas, abas e ações
+    [ud,rd].forEach(e=>{if(e)fixa.appendChild(comoF(e));});
+    // coluna de ícones que desce da setinha (e pode ficar fixa na lateral esquerda): seta, texto e todas as ferramentas
     const menu=document.createElement('div');menu.id='fxMenu';
-    const gT=document.createElement('div');gT.className='fxG';cx.querySelectorAll('button.f').forEach(e=>{if(e===sel||e===txt)return;gT.appendChild(comoF(e));});
+    const gT=document.createElement('div');gT.className='fxG';[sel,txt].forEach(e=>{if(e)gT.appendChild(comoF(e));});
+    cx.querySelectorAll('button.f').forEach(e=>{if(e===sel||e===txt)return;gT.appendChild(comoF(e));});
     ['mudaMedida','menuExport'].forEach(fn=>{const e=orig('button[onclick^="'+fn+'"]');if(e){const c=comoF(e);gT.appendChild(c);e.classList.add('mobOculto');}});
-    const gA=document.createElement('div');gA.className='fxG fxAcoes';['btnTarefa','btnPlay','btnPrincipal'].forEach(id=>{const e=document.getElementById(id);if(e)gA.appendChild(e);});
-    const gB=document.createElement('div');gB.className='fxG fxAbas';b2.querySelectorAll('button[data-aba]').forEach(t=>{if(t.dataset.aba!=='pauta')gB.appendChild(t);});
-    menu.append(gT,gB,gA);
-    const mais=document.createElement('button');mais.type='button';mais.className='fxMais';mais.setAttribute('aria-label','Todas as ferramentas');mais.innerHTML='<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
-    const fecha=()=>{menu.classList.remove('on');mais.classList.remove('on');};
-    mais.onclick=e=>{e.stopPropagation();const on=!menu.classList.contains('on');menu.classList.toggle('on',on);mais.classList.toggle('on',on);};
-    menu.addEventListener('click',e=>{if(e.target.closest('button'))setTimeout(fecha,0);});
-    document.addEventListener('pointerdown',e=>{if(menu.classList.contains('on')&&!e.target.closest('#fxMenu,.fxMais'))fecha();},true);
+    menu.append(gT);
+    // faixa de menus estilo Photoshop: abas em texto apertado, numa linha só (+ tarefa no fim)
+    const barra=document.createElement('div');barra.id='fxBarra';
+    b2.querySelectorAll('button[data-aba]').forEach(t=>{if(t.dataset.aba!=='pauta')barra.appendChild(t);});
+    const tf=document.getElementById('btnTarefa');if(tf)barra.appendChild(tf);
+    // ver derivações e gerar saída voltam pro cabeçalho, ao lado do salvar
+    ['btnPlay','btnPrincipal'].forEach(id=>{const e=document.getElementById(id);if(e)top.appendChild(e);});
+    const mais=document.createElement('button');mais.type='button';mais.className='fxMais';mais.setAttribute('aria-label','Ferramentas (segure para fixar na lateral)');mais.innerHTML='<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+    let FIXO=false;try{FIXO=localStorage.getItem('pd_est_dock')==='1';}catch(e){}
+    const reajusta=()=>setTimeout(()=>{try{ajustaViewport();puxaCentro();fitAnim();}catch(e){}},260);
+    const pinta=()=>{menu.classList.toggle('on',FIXO||menu.classList.contains('aberto'));menu.classList.toggle('fixo',FIXO);mais.classList.toggle('on',menu.classList.contains('aberto')&&!FIXO);mais.classList.toggle('fix',FIXO);mn.classList.toggle('dock',FIXO);};
+    const abre=on=>{menu.classList.toggle('aberto',on);pinta();};
+    const fixar=v=>{FIXO=v;try{localStorage.setItem('pd_est_dock',v?'1':'0');}catch(e){}menu.classList.remove('aberto');pinta();reajusta();try{navigator.vibrate&&navigator.vibrate(14);}catch(e){}};
+    let th=null,seg=false;
+    mais.addEventListener('pointerdown',()=>{seg=false;clearTimeout(th);th=setTimeout(()=>{seg=true;fixar(!FIXO);},800);});
+    ['pointerup','pointerleave','pointercancel'].forEach(n=>mais.addEventListener(n,()=>clearTimeout(th)));
+    mais.addEventListener('contextmenu',e=>e.preventDefault());
+    mais.onclick=e=>{e.stopPropagation();if(seg){seg=false;return;}if(FIXO){fixar(false);return;}abre(!menu.classList.contains('aberto'));};
+    menu.addEventListener('click',e=>{if(!FIXO&&e.target.closest('button'))setTimeout(()=>abre(false),0);});
+    document.addEventListener('pointerdown',e=>{if(!FIXO&&menu.classList.contains('aberto')&&!e.target.closest('#fxMenu,.fxMais'))abre(false);},true);
     [...b2.children].forEach(c=>c.remove());
     const esp=document.createElement('span');esp.style.flex='1';
-    b2.append(fixa,esp);if(wf)b2.appendChild(wf);b2.appendChild(mais);
-    mn.appendChild(menu);
+    b2.append(mais,esp,fixa);if(wf)b2.appendChild(wf);
+    b2.after(barra);
+    mn.appendChild(menu);pinta();
     // rodapé fixo: páginas + guias/zonas, finos como num editor de verdade
     if(!document.getElementById('rodape')){const rd0=document.createElement('div');rd0.id='rodape';const pg=document.getElementById('pags'),sg=document.getElementById('segs');if(pg)rd0.appendChild(pg);if(sg)rd0.appendChild(sg);mn.appendChild(rd0);}
     setTimeout(()=>{try{ajustaViewport();puxaCentro();fitAnim();}catch(e){}},200);
