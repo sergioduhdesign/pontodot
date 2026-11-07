@@ -2582,7 +2582,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v464 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v465 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4050,6 +4050,18 @@ function abrirMenuCtx(x,y){
   m.style.top  = Math.min(y, innerHeight - mh - 10) + 'px';
 }
 function fecharMenuCtx(){ const m=$('#menuCtx'); if (m){ m.classList.add('oculto'); } }
+// folha de baixo: arrastar pra baixo de qualquer ponto dela fecha (só quando a lista está no topo)
+(function(){
+  let y0=0,dy=0,t0=0,on=false;
+  const ini=()=>{ const m=document.getElementById('menuCtx'); if(!m||m._sw) return !!(m&&m._sw); m._sw=1;
+    m.addEventListener('touchstart',e=>{ if(!m.classList.contains('folha')||e.touches.length!==1) return; on=true; dy=0; y0=e.touches[0].clientY; t0=performance.now(); m.style.transition='none'; m.style.animation='none'; },{passive:true});
+    m.addEventListener('touchmove',e=>{ if(!on) return; const d=e.touches[0].clientY-y0; if(d>0&&m.scrollTop<=0){ dy=d; m.style.transform='translateY('+d+'px)'; if(e.cancelable) e.preventDefault(); } else if(dy>0&&d<=0){ dy=0; m.style.transform=''; } },{passive:false});
+    const fim=()=>{ if(!on) return; on=false; const v=dy/Math.max(1,performance.now()-t0); m.style.transition='transform .22s cubic-bezier(.22,.8,.24,1)';
+      if(dy>90||(dy>30&&v>.5)){ m.style.transform='translateY(110%)'; setTimeout(()=>{ fecharMenuCtx(); m.style.transition=''; m.style.transform=''; m.style.animation=''; },200); }
+      else { m.style.transform=''; setTimeout(()=>{ m.style.transition=''; m.style.animation=''; },230); } dy=0; };
+    m.addEventListener('touchend',fim); m.addEventListener('touchcancel',fim); return true; };
+  const iv=setInterval(()=>{ try{ if(ini()) clearInterval(iv); }catch(e){} },500);
+})();
 document.addEventListener('contextmenu', e=>{
   if (!ehDesk()) return;
   if (e.target.closest('input,textarea,a,.menu-ctx,.conversa')) return;
