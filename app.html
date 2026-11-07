@@ -6463,7 +6463,18 @@ function postitDragStart(ev, id){
   document.addEventListener('mouseup', up);
 }
 
+// busca por lista de ids em pedaços pequenos: 300 ids numa URL só estouravam o limite do servidor e a tela ficava em "Carregando…"
+async function inLotes(tab, sel, col, ids, tam = 60){
+  ids = [...new Set((ids || []).filter(Boolean))]; const partes = []; for (let i = 0; i < ids.length; i += tam) partes.push(ids.slice(i, i + tam));
+  const rs = await Promise.all(partes.map(p => sb.from(tab).select(sel).in(col, p))); const out = [];
+  for (const r of rs){ if (r.error) throw new Error(tab + ': ' + r.error.message); out.push(...(r.data || [])); } return out;
+}
 async function renderFila(){
+  const body = document.getElementById('fila-body');
+  try { await Promise.race([renderFilaCore(), new Promise((_, rj) => setTimeout(() => rj(new Error('o servidor demorou demais para responder')), 25000))]); }
+  catch(e){ console.error('renderFila', e); if (body) body.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:#dc2626">Não consegui carregar as redes sociais: ${escSafe(e.message || String(e))}<br><button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="renderFila()">tentar de novo</button></td></tr>`; }
+}
+async function renderFilaCore(){
   const body = document.getElementById('fila-body');
   if (!body) return;
   body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">Carregando…</td></tr>`;
@@ -6491,25 +6502,19 @@ async function renderFila(){
 
   // 2) Alvos (destino/status) de todos esses posts, numa tacada só
   const postIds = posts.map(p => p.id);
-  const { data: targets } = await sb.from('scheduled_post_targets')
-    .select('id,post_id,social_account_id,platform,placement,status,error_message,permalink,scheduled_at_override')
-    .in('post_id', postIds);
+  const targets = await inLotes('scheduled_post_targets', 'id,post_id,social_account_id,platform,placement,status,error_message,permalink,scheduled_at_override', 'post_id', postIds);
 
   // 3) Sobe a cadeia até o lote: peça → set → tarefa
   const itemIds = posts.map(p => (p.batch_name||'').replace('ap:','')).filter(Boolean);
-  const { data: itens } = await sb.from('approval_items')
-    .select('id,set_id,title').in('id', itemIds);
+  const itens = await inLotes('approval_items', 'id,set_id,title', 'id', itemIds);
   const itemToSet = Object.fromEntries((itens||[]).map(i => [i.id, i]));
 
   const setIds = [...new Set((itens||[]).map(i => i.set_id))];
-  const { data: sets } = await sb.from('approval_sets')
-    .select('id,title,client_id,task_id').in('id', setIds);
+  const sets = await inLotes('approval_sets', 'id,title,client_id,task_id', 'id', setIds);
   const setById = Object.fromEntries((sets||[]).map(s => [s.id, s]));
 
   const taskIds = [...new Set((sets||[]).map(s => s.task_id).filter(Boolean))];
-  const { data: tarefas } = taskIds.length
-    ? await sb.from('tasks').select('id,resp,project,action,client_id').in('id', taskIds)
-    : { data: [] };
+  const tarefas = await inLotes('tasks', 'id,resp,project,action,client_id', 'id', taskIds);
   const taskById = Object.fromEntries((tarefas||[]).map(t => [t.id, t]));
 
   // 4) Agrupa tudo por lote (set_id)
