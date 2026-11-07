@@ -212,6 +212,9 @@ input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);
     <div id="p-formas" class="sec" style="display:none"><h3>Formas</h3><div id="formas" class="row"></div>
       <h3>Máscara</h3><div class="row"><button class="btn s" onclick="mascara()" title="Selecione o vetor (por cima) e a imagem ou texto que vai dentro"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="5" fill="currentColor"/></svg> Usar como máscara</button><span class="vazio" style="flex:1">qualquer forma ou traço da caneta vira máscara de imagem ou texto</span></div>
       <h3>Elementos do cliente <small class="vazio" style="display:inline;text-transform:none;letter-spacing:0">· vetores das peças dele</small></h3><div id="elemCli" class="grade"></div>
+      <h3>Ícones e vetores <small class="vazio" style="display:inline;text-transform:none;letter-spacing:0">· Iconify, só coleções livres para uso comercial</small></h3>
+      <div class="row"><input id="icoQ" placeholder="Buscar ícone: casa, chave, mapa, piscina…" style="flex:1;min-width:120px" oninput="icoBuscaSoon()" onkeydown="if(event.key==='Enter')icoBusca()"><button class="ico" onclick="icoBusca()" title="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button></div>
+      <div class="vazio" id="icoMsg">Digite para buscar. Clique no ícone para colocar na peça (vetor editável: cor em Objeto).</div><div id="icoGrade" class="grade"></div>
       <div class="vazio" style="margin-top:8px;line-height:1.4">Tudo é vetor: cor editável em Objeto, vira curva no PDF. Caneta (P): clique marca ponto, arrastar puxa alças; clique no 1º ponto fecha; duplo clique edita os pontos.</div></div>
     <div id="p-marca" class="sec" style="display:none"><div class="vazio">Escolha um cliente para carregar o kit.</div></div>
     <div id="p-imagens" class="sec" style="display:none">
@@ -513,6 +516,14 @@ function formasUI(){$('#formas').innerHTML=Object.entries(FORMAS).map(([k,[n,mk]
 function addArquivos(inp){[...inp.files].forEach(f=>{const r=new FileReader();r.onload=e=>addImagemUrl(e.target.result,f.name);r.readAsDataURL(f);});inp.value='';}
 function ehSvg(url,nome){return /\.svg(\?|$)/i.test(url)||/\.svg$/i.test(nome||'')||/^data:image\/svg/i.test(url);}
 function addVetor(url,nome){fabric.loadSVGFromURL(url,(objs,opts)=>{if(!objs||!objs.length){msg('Não consegui ler esse SVG.');return;}const g=fabric.util.groupSVGElements(objs,opts);const s=Math.min(W()*.5/g.width,Hh()*.5/g.height,1);g.set({scaleX:s,scaleY:s,name:nome||'vetor',pdFonte:url,pdTipo:'vetor'});centro(g);});}
+// ---- ícones e vetores (Iconify): busca aberta, sem chave; só coleções de licença livre (MIT/Apache/ISC), sem exigir atribuição
+const ICO_SETS='lucide,tabler,mdi,ph,heroicons,ri,carbon,bi,fluent,material-symbols';let icoT=null,icoSeq=0;
+function icoBuscaSoon(){clearTimeout(icoT);icoT=setTimeout(icoBusca,350);}
+async function icoBusca(){const q=($('#icoQ').value||'').trim(),g=$('#icoGrade'),m=$('#icoMsg');if(q.length<2){g.innerHTML='';m.textContent='Digite para buscar. Clique no ícone para colocar na peça (vetor editável: cor em Objeto).';return;}const n=++icoSeq;m.textContent='Buscando…';
+  try{const r=await fetch('https://api.iconify.design/search?query='+encodeURIComponent(q)+'&limit=60&prefixes='+ICO_SETS);const d=await r.json();if(n!==icoSeq)return;const L=(d.icons||[]);m.textContent=L.length?'':'Nada com esse termo. Tente em inglês (house, key, map, pool).';
+    g.innerHTML=L.map(id=>{const [p,nm]=id.split(':');return `<button class="ico" style="width:100%;height:56px;padding:6px" title="${esc(nm)}" onclick="icoAdd('${p}','${nm}')"><img src="https://api.iconify.design/${p}/${nm}.svg?height=36&color=%23888888" alt="${esc(nm)}" style="max-width:100%;max-height:100%" loading="lazy"></button>`;}).join('');}
+  catch(e){if(n===icoSeq){m.textContent='Não consegui buscar agora (sem conexão com o Iconify).';}}}
+function icoAdd(p,nm){const cor=encodeURIComponent((typeof corKit==='function'&&corKit(0,'#111111'))||'#111111');addVetor('https://api.iconify.design/'+p+'/'+nm+'.svg?height=512&color='+cor,nm);}
 function addImagemUrl(url,nome){if(ehSvg(url,nome)){addVetor(url,nome);return;}fabric.Image.fromURL(url,img=>{if(!img||!img.width){msg('Não consegui carregar essa imagem.');return;}const s=Math.min(W()*.9/img.width,Hh()*.9/img.height,1);img.set({scaleX:s,scaleY:s,name:nome||'imagem',pdFonte:url.startsWith('data:')?'':url});centro(img);},{crossOrigin:'anonymous'});}
 function overlay(t){const w=W(),h=Hh(),ox=pageX(PECA.pag),cor=corKit(0,'#000000');let o;
   if(t==='escuro-baixo'||t==='escuro-cima'){o=new fabric.Rect({width:w,height:h,name:'sobreposição',fill:new fabric.Gradient({type:'linear',coords:{x1:0,y1:t==='escuro-baixo'?0:h,x2:0,y2:t==='escuro-baixo'?h:0},colorStops:[{offset:0,color:'rgba(0,0,0,0)'},{offset:.45,color:'rgba(0,0,0,0)'},{offset:1,color:'rgba(0,0,0,.75)'}]})});}
