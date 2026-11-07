@@ -2309,6 +2309,17 @@ html,body{overscroll-behavior-y:none}
   .gad.fechando{opacity:0;transition:opacity .36s ease}
   .gad.fechando .gad-aba,.gad.fechando .gad-corpo{opacity:1!important;transition:none!important}
   .gad.recem-fechado .gad-ico{animation:gadTela .45s ease both}
+  /* grade da home no celular: 4 colunas iguais, mesma margem do cabeçalho, mesmo vão entre todas */
+  html:not(.emChat){--lado:16px;--cel:calc((100vw - 2 * var(--lado) - 3 * 14px) / 4)}
+  html:not(.emChat) .board{justify-content:flex-start;padding:0 var(--lado);top:calc(var(--faixa,68px) + env(safe-area-inset-top) + 24px);bottom:auto}
+  html:not(.emChat) .board-cab{display:none}
+  .cl-busca:not(.aberta){width:44px!important;flex:0 0 44px!important;padding:0!important;gap:0!important;justify-content:flex-start}.cl-busca:not(.aberta) input{display:none!important}.cl-busca:not(.aberta) .cl-b{margin:0!important;flex:0 0 44px!important}
+  html:not(.emChat) .board-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:none;width:100%;margin:0;justify-content:stretch;align-items:start}
+  html:not(.emChat) .board-grid>.gad.fechado{width:auto;min-width:0;margin:0}
+  html:not(.emChat) .board-grid>.gad.fechado.mini-largo{grid-column:span 2}
+  html:not(.emChat) .board-grid .gad.fechado .gad-ico{width:100%!important;height:var(--cel)!important;min-width:0!important;padding:0!important;border-radius:15px}
+  html:not(.emChat) .board-grid .gad.gad-ia .gad-ico{width:100%!important;height:var(--cel)!important;border-radius:15px}
+
   .gad:not(.fechado) .gad-corpo{scrollbar-width:none}
   .gad:not(.fechado):not(.abrindo):not(.fechando) .gad-corpo{scrollbar-width:thin}
 }
@@ -2614,7 +2625,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v473 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v474 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
