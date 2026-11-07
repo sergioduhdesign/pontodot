@@ -1647,7 +1647,7 @@ html.dia .faixa-legal{color:rgba(23,24,27,.6)}
 .cl-mais{font-size:24px;font-weight:300;line-height:1}
 .cl-av{border-radius:50%;overflow:hidden;font-size:10.5px;font-weight:700;letter-spacing:.02em}
 .cl-av img{width:100%;height:100%;object-fit:cover;display:block}
-.cl-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#dc2626;color:#fff;
+.cl-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#16a34a;color:#fff;
   font-weight:700;font-size:10px;line-height:17px;font-style:normal;text-align:center;padding:0 4px;display:none}
 .cl-badge.on{display:block}
 .cl-busca{display:flex;align-items:center;gap:8px}
@@ -1704,7 +1704,7 @@ html.dia .faixa-fixa{background:rgba(255,255,255,.8)}
 /* bolinha de novidade: canto alto da caixa fechada */
 .gad{position:relative}
 .gad:not(.fechado){position:relative}
-.gad-bol{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#dc2626;color:#fff;
+.gad-bol{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#16a34a;color:#fff;
   font-weight:700;font-size:11px;line-height:20px;text-align:center;padding:0 5px;z-index:4;display:none;
   box-shadow:0 3px 10px rgba(220,38,38,.55);pointer-events:none;font-variant-numeric:tabular-nums}
 .gad.fechado .gad-bol.on{display:block}
@@ -2302,6 +2302,16 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
 .mc-x,.x-chat,.fechar,.gad-x,.fechar-painel,#menuCheio .mc-x,html.emChat .tela.em-chat .x-chat,.acao-cab[aria-label="Fechar"],.aba-acoes button[title="Fechar"]{background:transparent!important;border:0!important;border-radius:12px!important;box-shadow:none!important}
 html.dia #menuCheio .mc-x{background:transparent!important}
 html,body{overscroll-behavior-y:none}
+@keyframes gadTela{from{opacity:0}to{opacity:1}}
+@media(max-width:999px){
+  .gad.abrindo{animation:gadTela .42s ease both}
+  .gad.abrindo .gad-aba,.gad.abrindo .gad-corpo{animation:none!important}
+  .gad.fechando{opacity:0;transition:opacity .36s ease}
+  .gad.fechando .gad-aba,.gad.fechando .gad-corpo{opacity:1!important;transition:none!important}
+  .gad.recem-fechado .gad-ico{animation:gadTela .45s ease both}
+  .gad:not(.fechado) .gad-corpo{scrollbar-width:none}
+  .gad:not(.fechado):not(.abrindo):not(.fechando) .gad-corpo{scrollbar-width:thin}
+}
 @keyframes jFadeIn{from{opacity:0}to{opacity:1}}
 #janela .j-caixa.jEntra{animation:jFadeIn .26s ease both}
 @media(max-width:999px){
@@ -2604,7 +2614,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v472 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v473 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4069,6 +4079,15 @@ function alternarFotos(){
   try{localStorage.setItem('sd_fundo_off', fundoDesligado?'1':'0');}catch(e){}
   aplicarFundoFlag();
 }
+// versão nova no ar = o app se atualiza sozinho (uma vez por versão), sem depender de limpar cache
+(function(){
+  const checa = async () => { try {
+    const r = await fetch('index.html?_=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const m = (await r.text()).match(/window\.SD_VERSAO\s*=\s*'([^']+)'/); if (!m || m[1] === window.SD_VERSAO) return;
+    const k = 'sd_auto_upd'; if (sessionStorage.getItem(k) === m[1]) return; sessionStorage.setItem(k, m[1]); location.reload();
+  } catch(e){} };
+  setTimeout(checa, 4000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checa(); });
+})();
 function abrirMenuCtx(x,y){
   const m = $('#menuCtx'); if (!m) return;
   m.style.transform=''; m.style.transition=''; m.style.animation=''; m.classList.remove('entra');
@@ -6833,7 +6852,7 @@ function eshNovidade(D){
     const prontos = (D.cursos || []).filter(c => c.status === 'ativo' && (c.skill_ids || []).some(k => (D.habilidades || []).some(h => h.skill_id === k)));
     if (!prontos.length) return '';
     const c = prontos[Math.floor(dia / 2) % prontos.length];
-    return `<div class="nota" style="display:flex;gap:10px;align-items:center;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(229,57,53,.14);cursor:pointer" onclick="eshFechaBanner();eshAbre('${esc(c.slug)}')"><i style="width:9px;height:9px;border-radius:50%;background:#E53935;flex-shrink:0;box-shadow:0 0 0 3px rgba(229,57,53,.25)"></i><span style="flex:1;line-height:1.4"><b>Novo curso acabou de chegar:</b> ${esc(c.titulo || c.nome)}.<br><small style="opacity:.75">Inscreva a sua IA e veja como ela evolui.</small></span><button class="btn" style="min-height:28px;padding:3px 9px;font-size:11px" onclick="event.stopPropagation();eshFechaBanner();renderBoard()" aria-label="Dispensar">✕</button></div>`;
+    return `<div class="nota" style="display:flex;gap:10px;align-items:center;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(34,168,90,.16);cursor:pointer" onclick="eshFechaBanner();eshAbre('${esc(c.slug)}')"><i style="width:9px;height:9px;border-radius:50%;background:#22a85a;flex-shrink:0;box-shadow:0 0 0 3px rgba(34,168,90,.28)"></i><span style="flex:1;line-height:1.4"><b>Novo curso acabou de chegar:</b> ${esc(c.titulo || c.nome)}.<br><small style="opacity:.75">Inscreva a sua IA e veja como ela evolui.</small></span><button class="btn" style="min-height:28px;padding:3px 9px;font-size:11px" onclick="event.stopPropagation();eshFechaBanner();renderBoard()" aria-label="Dispensar">✕</button></div>`;
   } catch(e){ return ''; }
 }
 function eshFechaBanner(){ try { localStorage.setItem('pd_esc_banner', new Date().toISOString().slice(0, 10)); } catch(e){} }
@@ -8081,6 +8100,7 @@ function alternarAbertura(id){
     if (medido > 40) larguraMini[id] = medido;   // nasce do tamanho real do quadradinho
     const w0 = larguraMini[id] || medido;
     gad.classList.remove('fechado','mini-largo');
+    if (!desk){ corpo.style.overflow = 'hidden'; setTimeout(()=>{ corpo.style.cssText=''; gad.classList.remove('abrindo'); posicionarCfg(); }, 760); return; }   // celular: tela cheia só com fade; a barra de rolagem é a última a entrar
     let h;
     if (desk){                                  // mede a altura já na largura final
       // a Minha IA abre larga (ficha + vida lado a lado) e não corta a altura
@@ -8100,6 +8120,8 @@ function alternarAbertura(id){
     setTimeout(()=>{ corpo.style.cssText=''; gad.classList.remove('abrindo'); posicionarCfg(); }, 640);
   } else {
     gad.classList.add('fechando');
+    if (!desk){ corpo.style.overflow = 'hidden';   // a barra de rolagem é a primeira a sair
+      setTimeout(()=>{ gad.classList.add('fechado','recem-fechado'); gad.classList.remove('fechando'); if (id==='tarefas') gad.classList.add('mini-largo'); corpo.style.cssText=''; posicionarCfg(); pintarBolinhas(); setTimeout(()=>gad.classList.remove('recem-fechado'), 500); }, 380); return; }
     corpo.style.height = corpo.scrollHeight + 'px';
     // sem medida confiável, não force largura nenhuma: melhor fechar sem
     // animar a largura do que encolher pro tamanho errado e dar o estouro
