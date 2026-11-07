@@ -77,6 +77,15 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
         if (!$expirado) {
             $cliente = $set['clients']['name'] ?? 'Pontodot';
             $titulo  = $set['title'] ?? $titulo;
+            // O NOME importa: usa o nome da tarefa (ex.: "social - quarta semana de novembro"); o título do lote costuma ser genérico ("Social RHLA")
+            if (!empty($set['task_id'])) {
+                $ct = curl_init();
+                curl_setopt_array($ct, [CURLOPT_URL => SD_SUPABASE_URL . '/rest/v1/tasks?id=eq.' . urlencode($set['task_id']) . '&select=action&limit=1',
+                    CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4, CURLOPT_HTTPHEADER => ['apikey: ' . SD_SECRET_KEY]]);
+                $rt = json_decode((string)curl_exec($ct), true); curl_close($ct);
+                $nomeTarefa = trim((string)($rt[0]['action'] ?? ''));
+                if ($nomeTarefa !== '') $titulo = $nomeTarefa;
+            }
 
             $itens = $set['approval_items'] ?? [];
             $totalPecas = is_array($itens) ? count($itens) : 0;
@@ -87,11 +96,11 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
 
             // Imagem de capa: a primeira peça do lote. Se for peça única
             // (mockup), é exatamente essa imagem que deve aparecer.
-            $primeiraMedia = $itens[0]['media'][0] ?? null;
-            if (!empty($primeiraMedia['thumb']) || !empty($primeiraMedia['url'])) {
-                $imagem = $primeiraMedia['thumb'] ?? $primeiraMedia['url'];
-                $imagemQuad = false;
-            }
+            foreach ((array)$itens as $it) { foreach ((array)($it['media'] ?? []) as $m) {
+                $u = (string)($m['thumb'] ?? '');
+                if ($u === '') { $cand = (string)($m['url'] ?? ''); $ehVid = (strpos((string)($m['mime'] ?? ''), 'video') === 0) || preg_match('/\.(mp4|mov|webm|m4v)(\?|$)/i', $cand); if (!$ehVid) $u = $cand; }
+                if ($u !== '' && preg_match('#^https://#i', $u)) { $imagem = preg_replace_callback('#[^A-Za-z0-9\-._~:/?\#\[\]@!$&\'()*+,;=%]#', fn($x) => rawurlencode($x[0]), $u); $imagemQuad = false; break 2; }
+            } }
         }
     }
 }
@@ -111,6 +120,7 @@ $tituloCompleto = $titulo . ' — ' . $cliente;
 <meta property="og:title" content="<?= h($tituloCompleto) ?>">
 <meta property="og:description" content="<?= h($descricao) ?>">
 <meta property="og:image" content="<?= h($imagem) ?>">
+<meta property="og:image:secure_url" content="<?= h($imagem) ?>">
 <?php if ($imagemQuad): ?>
 <meta property="og:image:width" content="512">
 <meta property="og:image:height" content="512">
