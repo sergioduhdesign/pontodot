@@ -2582,7 +2582,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v459 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v460 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -7053,19 +7053,24 @@ function abrirEstudio(params){
       #estBarra .jan{display:flex;align-items:center;gap:4px;height:44px;margin-left:4px;padding-left:10px;border-left:1px solid rgba(128,128,128,.35)}#estBarra .jan button{width:30px;height:30px;border:1px solid rgba(128,128,128,.35);border-radius:7px;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center}#estBarra .jan button:hover{background:rgba(128,128,128,.14)}
       .gad .gad-ico.est-aceso{box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 22px rgba(255,255,255,.55);animation:estPulsa 1.6s ease-in-out infinite}html.dia .frente .gad .gad-ico.est-aceso{box-shadow:0 0 0 2px rgba(26,27,30,.6),0 0 18px rgba(26,27,30,.35)}
       @keyframes estPulsa{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-      #estBarra .menuPD{display:contents}#estBarra .eb svg,#estBarra .mini,#estBarra .pdIco{display:none}
+      #estBarra .menuPD{display:contents}#estBarra .eb svg,#estBarra .mini,#estBarra .pdIco,#estBarra .pdIcoW{display:none}
       @media (max-width:999px){
-        #estBarra{position:absolute;top:0;left:0;right:0;height:54px;padding:0;gap:0;border:0;background:transparent;pointer-events:none;z-index:30;overflow:visible}
+        #estBarra{position:absolute!important;top:0;left:0;right:0;height:56px!important;padding:0!important;gap:0;border:0!important;background:transparent!important;pointer-events:none;z-index:30;overflow:visible!important;color:#121212}
+        #estBarra.escuro{color:#f2f2f0}
         #estBarra>*{pointer-events:auto}
-        #estBarra .marca{position:absolute;left:7px;top:7px;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:12px;background:#e6e4de;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer}
-        #estBarra .marca img.lg-k,#estBarra .marca img.lg-w{display:none!important}#estBarra .pdIco{display:block;height:26px;width:26px}
-        #estBarra .jan{position:absolute;right:7px;top:7px;height:40px;margin:0;padding:0;border:0}
-        #estBarra .jan button{width:40px;height:40px;border:0;border-radius:12px;background:#e6e4de;color:#121212;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-        #estBarra .menuPD{display:none;position:absolute;left:7px;top:52px;flex-wrap:wrap;align-items:center;gap:2px;max-width:calc(100vw - 14px);padding:6px;background:#e6e4de;border-radius:14px;box-shadow:0 14px 36px rgba(0,0,0,.35)}
+        #estBarra .marca{position:absolute;left:0;top:0;width:56px;height:56px;margin:0;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
+        #estBarra .marca img.lg-k,#estBarra .marca img.lg-w,#estBarra .pdIcoW{display:none!important}
+        #estBarra .pdIco{display:block;height:38px;width:38px}
+        #estBarra.escuro .pdIco{display:none}#estBarra.escuro .pdIcoW{display:block!important;height:38px;width:38px}
+        #estBarra .jan{position:absolute;right:0;top:0;height:56px;margin:0;padding:0;border:0}
+        #estBarra .jan button{width:56px;height:56px;border:0;border-radius:0;background:transparent;color:inherit}#estBarra .jan button svg{width:26px;height:26px}
+        #estBarra .menuPD{display:none;position:absolute;left:0;top:56px;flex-wrap:wrap;align-items:center;gap:0;max-width:100vw;padding:0;background:#e6e4de;color:#121212;border-radius:0;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+        #estBarra.escuro .menuPD{background:#1b1c1e;color:#f2f2f0}
         #estBarra.pdOn .menuPD{display:flex}
-        #estBarra .menuPD .eb{width:40px;height:40px;padding:0;margin:0;border-radius:10px;justify-content:center}#estBarra .eb svg{display:block;width:20px;height:20px}#estBarra .eb span{display:none}
-        #estBarra .menuPD .areas{display:contents}#estBarra .menuPD .ar{width:40px;height:40px;flex:0 0 40px}
-        #estBarra .menuPD .mini{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:0;border-radius:10px;background:transparent;color:#121212}
+        #estBarra .menuPD button{color:inherit!important;border-radius:0!important;margin:0!important;background:transparent}
+        #estBarra .menuPD .eb{width:52px;height:52px;padding:0;justify-content:center}#estBarra .eb svg{display:block;width:24px;height:24px}#estBarra .eb span{display:none}
+        #estBarra .menuPD .areas{display:contents}#estBarra .menuPD .ar{width:52px;height:52px;flex:0 0 52px}#estBarra .menuPD .ar svg{width:24px;height:24px}
+        #estBarra .menuPD .mini{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border:0;color:inherit}#estBarra .mini svg{width:24px;height:24px}
         #estBarra .abas{display:none}
         #estBarra .marca{padding-right:8px;margin-right:2px;border-right:0}#estBarra .eb{margin:0 2px 0 0;padding:6px 7px}
         #estBarra .areas{flex:1 1 auto;min-width:0;margin-left:0;padding:0 2px;border-left:0;gap:0;justify-content:flex-end}
@@ -7086,7 +7091,7 @@ function abrirEstudio(params){
   const f = document.createElement('iframe'); f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:none'; f.setAttribute('allow', 'clipboard-write');
   const am = /(^|&)area=(\w+)/.exec(params || ''); let area = am ? am[2] : (/(^|&)filme=1/.test(params || '') ? 'video' : 'digital'); let ehCortes = /(^|&)cortes=1/.test(params || ''); if (!estLiberada(ehCortes ? 'video' : area)){ estAviso((PD_AREAS[ehCortes ? 'video' : area] || {}).nome); area = 'copys'; params = 'area=copys'; ehCortes = false; } const ehFilme = area === 'video' && !ehCortes; const pag = ehCortes ? 'cortes.html' : { copys:'copy.html', digital:'estudio.html', grafica:'estudio.html', audio:'audio.html', video:'filme.html' }[area] || 'estudio.html';
   f.src = pag + '?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()) + '&area=' + area + (params ? '&' + params : ''); f.dataset.area = area;
-  f.addEventListener('load', () => { try { const d = f.contentDocument, st = d.createElement('style'); st.textContent = '@media(max-width:999px){.top{padding-left:54px!important;padding-right:54px!important}}'; d.head.appendChild(st); d.addEventListener('pointerdown', () => { const b = document.getElementById('estBarra'); b && b.classList.remove('pdOn'); }, true); } catch(e){} });
+  f.addEventListener('load', () => { try { const d = f.contentDocument, st = d.createElement('style'); st.textContent = '@media(max-width:999px){.top{padding-left:58px!important;padding-right:58px!important}}'; d.head.appendChild(st); d.addEventListener('pointerdown', () => { const b = document.getElementById('estBarra'); b && b.classList.remove('pdOn'); if (EST_ARQ_ABERTO) estArquivos(); }, true); estTema(); } catch(e){} });
   document.getElementById('estCorpo').appendChild(f); EST_ABAS.push({ id, nome: ehCortes ? 'Cortes' : { copys:'Nova copy', audio:'Locução', video:'Novo filme', grafica:'Nova peça (gráfica)' }[area] || 'Nova peça', iframe: f, dirty: false, area }); estAbaVai(id); ov.style.display = 'flex';
 }
 // leve: só a aba ativa (e com o Studio à vista) trabalha; as outras ficam abertas mas em pausa (sem polling, sem fila de observação) — retomam na hora
@@ -7095,7 +7100,7 @@ function estAbaVai(id){ EST_ABAS.forEach(a => a.iframe.style.display = a.id === 
 let EST_ATUAL = null;
 function estAbasRender(){ const el = document.getElementById('estBarra'); if (!el) return;
   const I = d => `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-  el.innerHTML = `<div class="marca" title="PD Studio" onclick="estPdMenu()"><img src="assets/logo-pontodot-white.svg" alt="pontodot" class="lg-w"><img src="assets/logo-pontodot.svg" alt="pontodot" class="lg-k" style="display:none"><img src="assets/logo-pontodot-bolinha.svg" alt="PD" class="pdIco"><span>studio design</span></div>
+  el.innerHTML = `<div class="marca" title="PD Studio" onclick="estPdMenu()"><img src="assets/logo-pontodot-white.svg" alt="pontodot" class="lg-w"><img src="assets/logo-pontodot.svg" alt="pontodot" class="lg-k" style="display:none"><img src="assets/logo-pontodot-bolinha.svg" alt="PD" class="pdIco"><img src="assets/logo-pontodot-bolinha-white.svg" alt="PD" class="pdIcoW"><span>studio design</span></div>
     <div class="menuPD"><button class="eb ${EST_ARQ_ABERTO ? 'on' : ''}" onclick="estArquivos()" title="Todos os arquivos — abrem em abas, sem sair daqui">${I('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}<span>Arquivos</span></button>
     <div class="abas">${EST_ABAS.map(a => `<span class="aba ${a.id === EST_ATUAL ? 'on' : ''}" onclick="estAbaVai('${a.id}')" title="${esc(a.nome)} · ${(PD_AREAS[a.area] || {}).nome || ''}"><span style="opacity:.55;display:inline-flex">${I((PD_AREAS[a.area] || PD_AREAS.digital).ico)}</span><span class="nm">${esc(a.nome)}</span>${a.dirty ? '<small style="opacity:.6">•</small>' : ''}<button class="x" title="Fechar esta peça" onclick="event.stopPropagation();estAbaFecha('${a.id}')">×</button></span>`).join('')}<button class="mais" title="Nova aba (na área que estiver aberta)" onclick="abrirEstudio('area=' + ((EST_ABAS.find(x => x.id === EST_ATUAL) || {}).area || 'digital'))">+</button></div>
     <div class="areas">${Object.entries(PD_AREAS).filter(([k]) => ehDesk() || estLiberada(k)).map(([k, a]) => `<button class="ar ${EST_ABAS.some(x => x.id === EST_ATUAL && x.area === k) ? 'on' : ''} ${EST_ABAS.some(x => x.area === k) ? 'tem' : ''}" style="${estLiberada(k) ? '' : 'opacity:.28;filter:grayscale(1)'}" title="${a.nome}${estLiberada(k) ? (EST_ABAS.some(x => x.area === k) ? ' · aberta' : '') : ' · ainda não liberada para você'}" onclick="estIrArea('${k}')">${I(a.ico)}</button>`).join('')}</div>
@@ -7104,7 +7109,9 @@ function estAbasRender(){ const el = document.getElementById('estBarra'); if (!e
   el.querySelector('.lg-w').style.display = 'none'; el.querySelector('.lg-k').style.display = ''; }
 let EST_ARQ_ABERTO = false, EST_MIN = false;
 function estPdMenu(){ const b = document.getElementById('estBarra'); if (b) b.classList.toggle('pdOn'); }
-document.addEventListener('click', e => { const b = document.getElementById('estBarra'); if (!b || !b.classList.contains('pdOn') || e.target.closest('#estBarra .marca')) return; b.classList.remove('pdOn'); }, true);
+document.addEventListener('click', e => { const b = document.getElementById('estBarra'); if (!b) return; if (EST_ARQ_ABERTO && !e.target.closest('#estArq, #estBarra .eb')) estArquivos(); if (!b.classList.contains('pdOn') || e.target.closest('#estBarra .marca')) return; b.classList.remove('pdOn'); }, true);
+function estTema(){ const b = document.getElementById('estBarra'); if (!b) return; const a = EST_ABAS.find(x => x.id === EST_ATUAL); let esc = false; try { const m = (getComputedStyle(a.iframe.contentDocument.body).backgroundColor || '').match(/\d+/g); if (m) esc = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) < 110; } catch(e){} b.classList.toggle('escuro', esc); }
+setInterval(estTema, 1200);
 const PD_AREAS = {
   copys:   { nome:'Copys', ico:'<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.6 7.6"/>' },
   digital: { nome:'Arte digital', ico:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-.8-.5-1.2-1-1.7-.5-.6-.6-1.5.5-1.5h1.8A4.7 4.7 0 0 0 20 11.3C20 6.7 16.4 3 12 3z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>' },
