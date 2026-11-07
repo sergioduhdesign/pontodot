@@ -11044,6 +11044,7 @@ const SAUDE_CRONS = {
   'social-publish-worker': { nome:'Publicador das redes',                     cada:5,    tolera:20 },
   'lembretes':             { nome:'Lembretes (de hora em hora)',              cada:60,   tolera:150 },
   'lembrete-prazo':        { nome:'Aviso de prazo (1x por dia)',              cada:1440, tolera:1560 },
+  'vigia':                 { nome:'Vigia de fora (GitHub, confere de 5 em 5 min)', cada:5, tolera:25 },
 };
 function saudeQuando(iso){
   if(!iso) return '—';
