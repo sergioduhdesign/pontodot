@@ -1321,7 +1321,8 @@ html.dia .menu-ctx .sep{background:rgba(242,242,238,.16)}
 /* no celular o menu é folha de baixo: alvo grande, polegar alcança */
 .menu-ctx.folha{overscroll-behavior:contain;left:0;right:0;bottom:0;top:auto;min-width:0;border-radius:20px 20px 0 0;
   padding:4px 10px calc(12px + env(safe-area-inset-bottom));max-height:78dvh;overflow-y:auto;
-  animation:subirFolha .26s cubic-bezier(.22,1,.36,1)}
+  }
+.menu-ctx.folha.entra{animation:subirFolha .3s cubic-bezier(.22,1,.36,1)}
 @keyframes subirFolha{from{transform:translateY(100%)}to{transform:none}}
 .menu-ctx.folha .puxador{display:block;width:38px;height:4px;border-radius:2px;margin:8px auto 6px;
   background:rgba(29,30,34,.25)}
@@ -2295,6 +2296,25 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
 #janela.saindo{animation:veuSai .3s ease both!important;pointer-events:none}
 #janela.saindo .j-caixa{opacity:0;transform:translateY(8px) scale(.985);transition:opacity .28s ease,transform .28s ease}
 </style>
+<style id="v471-navegacao">
+/* v471 — fade em toda entrada/saída, caixa aberta no celular = tela cheia sem poluição */
+/* X sempre chapado: sem bolinha, sem borda, em qualquer tela */
+.mc-x,.x-chat,.fechar,.gad-x,.fechar-painel,#menuCheio .mc-x,html.emChat .tela.em-chat .x-chat,.acao-cab[aria-label="Fechar"],.aba-acoes button[title="Fechar"]{background:transparent!important;border:0!important;border-radius:12px!important;box-shadow:none!important}
+html.dia #menuCheio .mc-x{background:transparent!important}
+@keyframes jFadeIn{from{opacity:0}to{opacity:1}}
+#janela .j-caixa.jEntra{animation:jFadeIn .26s ease both}
+@media(max-width:999px){
+  html:has(.gad:not(.fechado)) .v-pe,html:has(.gad:not(.fechado)) .rodape,html:has(.gad:not(.fechado)) .cluster,html:has(.gad:not(.fechado)) .barra-chat,html:has(.gad:not(.fechado)) #palco{opacity:0!important;pointer-events:none!important;transition:opacity .25s ease}
+  .gad:not(.fechado){position:fixed!important;inset:0!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:auto!important;border-radius:0!important;box-shadow:none!important;border:0!important;background:#0b0c0b!important;color:#fff;display:flex!important;flex-direction:column;z-index:100;
+    --branco:#fff;--branco2:rgba(255,255,255,.7);--branco3:rgba(255,255,255,.45);--linha:rgba(255,255,255,.14)}
+  .gad:not(.fechado)::after{display:none!important}
+  .gad:not(.fechado) .gad-aba{flex:0 0 auto;border:0!important;border-radius:0!important;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:env(safe-area-inset-top) 8px 0 18px;min-height:calc(56px + env(safe-area-inset-top))}
+  .gad:not(.fechado) .gad-corpo{flex:1 1 auto;min-height:0;max-height:none!important;border-radius:0!important;overflow-y:auto;overscroll-behavior:contain}
+  .gad:not(.fechado) .gad-corpo .caixa,.gad:not(.fechado) .gad-corpo .caixa.invertida{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;min-height:100%;margin:0!important;color:#fff}
+  .gad:not(.fechado) .aba-acoes button{background:transparent!important;border:0!important;border-radius:12px!important}
+  .gad:not(.fechado) .gad-aba .gad-x,.gad:not(.fechado) .aba-acoes button[title="Fechar"]{width:48px;height:48px}
+}
+</style>
 <style id="fade-blur-e-barras">
 /* o blur ACOMPANHA o fade (o navegador do celular não esmaece o blur junto com a opacidade): entra e sai em degradê */
 /* caixas de canto arredondado: sem barra de rolar aparecendo nas pontas (rola igual, só não mostra a barra) */
@@ -2583,7 +2603,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v470 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v471 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3488,15 +3508,42 @@ let _tJan = '';   // nome da janela aberta (vai pro meio do topo)
 function perguntar(texto, opts){ opts = opts || {}; return new Promise(res => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;z-index:9700;display:grid;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(3px)';
   d.innerHTML = `<div class="vida" style="width:min(420px,calc(100vw - 32px));padding:18px 18px 14px;text-align:center"><div style="font-size:14px;line-height:1.5;white-space:pre-wrap;margin-bottom:14px">${esc(texto)}</div><div style="display:flex;gap:8px;justify-content:center"><button class="btn" data-r="0" style="min-height:40px;padding:8px 16px">${esc(opts.cancelar || 'Cancelar')}</button><button class="btn" data-r="1" style="min-height:40px;padding:8px 16px;background:rgba(255,255,255,.92);color:#0B0C0B;border-color:transparent">${esc(opts.ok || 'OK')}</button></div></div>`;
   d.addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if (b){ d.remove(); res(b.dataset.r === '1'); } else if (e.target === d){ d.remove(); res(false); } }); document.body.appendChild(d); d.querySelector('button[data-r="1"]').focus(); }); }
+// PILHA: abrir algo por cima de outra janela guarda a de baixo; fechar (✕) devolve a anterior, não o início.
+let _pilha = [], _janSai = null;
+const _fechaPorToque = () => { const ev = window.event; return !!(ev && ev.type === 'click' && ev.target && ev.target.closest && (ev.target.id === 'janela' || ev.target.closest('#janela [aria-label="Fechar"],#janela .fechar,#janela .gad-x'))); };
+function _jFade(cx){ if (!cx) return; cx.classList.remove('jEntra'); void cx.offsetWidth; cx.classList.add('jEntra'); setTimeout(() => cx.classList.remove('jEntra'), 320); }
 function abrirJanela(html, grande){
+  const antes = _tJan;
   { const mt = String(html).match(/<h3[^>]*>([^<]+)</); _tJan = mt ? mt[1].trim() : ''; }
   document.documentElement.classList.add('comJanela');
-  const j = $('#janela'); clearTimeout(_janSai); j.classList.remove('saindo'); j.innerHTML = `<div class="j-caixa ${grande?'grande':''}">${html}</div>`;
+  const j = $('#janela'); clearTimeout(_janSai);
+  const aberta = !j.classList.contains('oculto') && !j.classList.contains('saindo');
+  const velha = aberta ? j.querySelector('.j-caixa') : null;
+  let nav = !aberta;
+  if (!aberta) _pilha = [];
+  else if (velha && antes && _tJan && antes !== _tJan){
+    const k = _pilha.findIndex(p => p.tit === _tJan);          // voltou por um botão "‹ Social": desempilha até lá
+    if (k >= 0) _pilha.length = k;
+    else { const cx0 = velha.querySelector('.caixa'); _pilha.push({ inner: velha.innerHTML, cls: velha.className, tit: antes, r1: velha.scrollTop, r2: cx0 ? cx0.scrollTop : 0 }); if (_pilha.length > 8) _pilha.shift(); }
+    nav = true;
+  }
+  j.classList.remove('saindo'); j.innerHTML = `<div class="j-caixa ${grande?'grande':''}">${html}</div>`;
   j.classList.remove('oculto');
   const cx = j.querySelector('.caixa'); if (cx && !cx.hasAttribute('data-sem-fio')){ cx.classList.add('surge'); delete cx.dataset.fio; fio(cx); }
+  if (nav) _jFade(j.querySelector('.j-caixa'));
 }
-let _janSai = null;
-function fecharJanela(){ const j=$('#janela'); if (!j) return; _tJan = '';
+function voltarJanela(p){
+  const j = $('#janela'), c = j.querySelector('.j-caixa'); if (!c) return;
+  c.style.transition = 'opacity .14s ease'; c.style.opacity = '0';
+  setTimeout(() => {
+    c.className = p.cls; c.innerHTML = p.inner; _tJan = p.tit; c.style.transition = ''; c.style.opacity = '';
+    c.scrollTop = p.r1; const cx = c.querySelector('.caixa'); if (cx) cx.scrollTop = p.r2;
+    _jFade(c);
+  }, 150);
+}
+function fecharJanela(){ const j=$('#janela'); if (!j) return;
+  if (_pilha.length && !j.classList.contains('oculto') && _fechaPorToque()){ voltarJanela(_pilha.pop()); return; }
+  _pilha = []; _tJan = '';
   document.documentElement.classList.remove('comJanela');
   if (j.classList.contains('oculto')) return;
   j.classList.add('saindo'); clearTimeout(_janSai);
@@ -4023,7 +4070,7 @@ function alternarFotos(){
 }
 function abrirMenuCtx(x,y){
   const m = $('#menuCtx'); if (!m) return;
-  m.style.transform=''; m.style.transition=''; m.style.animation='';
+  m.style.transform=''; m.style.transition=''; m.style.animation=''; m.classList.remove('entra');
   m.innerHTML = `
     <div class="puxador"></div>
     <div class="mini">APARÊNCIA</div>
@@ -4044,7 +4091,7 @@ function abrirMenuCtx(x,y){
     <button onclick="fecharMenuCtx();toast('pontodot '+(window.SD_VERSAO||'')+' — o estúdio inteiro numa tela.')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Ver versão · ${(window.SD_VERSAO||'').split(' ')[0]}</button>`;
   m.classList.remove('oculto');
   if (!ehDesk()){                       // folha de baixo: o CSS manda, não as coordenadas
-    m.classList.add('folha'); m.style.left=''; m.style.top=''; return;
+    m.classList.add('folha'); m.style.left=''; m.style.top=''; void m.offsetWidth; m.classList.add('entra'); setTimeout(()=>m.classList.remove('entra'),340); return;
   }
   m.classList.remove('folha');
   const mw = m.offsetWidth, mh = m.offsetHeight;
@@ -4052,17 +4099,41 @@ function abrirMenuCtx(x,y){
   m.style.top  = Math.min(y, innerHeight - mh - 10) + 'px';
 }
 function fecharMenuCtx(){ const m=$('#menuCtx'); if (m){ m.classList.add('oculto'); } }
-// folha de baixo: arrastar pra baixo de qualquer ponto dela fecha (só quando a lista está no topo)
+// ELÁSTICO UNIVERSAL (celular): qualquer caixa/folha que rola cede ao dedo nas pontas e volta com mola — sem pulo seco.
+// Folha do menu: puxar pra baixo no topo acompanha o dedo e fecha se for o caso.
 (function(){
-  let y0=0,dy=0,t0=0,on=false;
-  const ini=()=>{ const m=document.getElementById('menuCtx'); if(!m||m._sw) return !!(m&&m._sw); m._sw=1;
-    m.addEventListener('touchstart',e=>{ if(!m.classList.contains('folha')||e.touches.length!==1) return; on=true; dy=0; y0=e.touches[0].clientY; t0=performance.now(); m.style.transition='none'; m.style.animation='none'; },{passive:true});
-    m.addEventListener('touchmove',e=>{ if(!on) return; const d=e.touches[0].clientY-y0; if(d>0&&m.scrollTop<=0){ dy=d; m.style.transform='translateY('+d+'px)'; if(e.cancelable) e.preventDefault(); } else if(dy>0&&d<=0){ dy=0; m.style.transform=''; } },{passive:false});
-    const fim=()=>{ if(!on) return; on=false; const v=dy/Math.max(1,performance.now()-t0); m.style.transition='transform .22s cubic-bezier(.22,.8,.24,1)';
-      if(dy>40||(dy>14&&v>.25)){ m.style.transform='translateY(120%)'; setTimeout(()=>{ fecharMenuCtx(); setTimeout(()=>{ m.style.transition=''; m.style.transform=''; m.style.animation=''; },450); },230); }
-      else { m.style.transform=''; setTimeout(()=>{ m.style.transition=''; m.style.animation=''; },230); } dy=0; };
-    m.addEventListener('touchend',fim); m.addEventListener('touchcancel',fim); return true; };
-  const iv=setInterval(()=>{ try{ if(ini()) clearInterval(iv); }catch(e){} },500);
+  const SEL = '.menu-ctx,#janela .j-caixa,.gad:not(.fechado) .gad-corpo,.historico,.det-pop,.tc-caixa,.mc-corpo,.picker-pop,#pdSheet';
+  const MOLA = 'transform .55s cubic-bezier(.34,1.5,.5,1),opacity .3s ease';
+  let raiz=null, rolo=null, x0=0, y0=0, ult=0, raw=0, el=false, dir=0, eixo=0, t0=0;
+  const rolavel = n => { for (; n && n!==document.body; n=n.parentElement){ const o=getComputedStyle(n).overflowY; if ((o==='auto'||o==='scroll') && n.scrollHeight>n.clientHeight+1) return n; if (n.matches && n.matches(SEL)) break; } return null; };
+  document.addEventListener('touchstart', e=>{
+    raiz=null; if (e.touches.length!==1 || ehDesk()) return;
+    const r=e.target.closest(SEL); if (!r || e.target.closest('input,textarea,[contenteditable],canvas')) return;
+    raiz=r; rolo=rolavel(e.target) || r; x0=e.touches[0].clientX; y0=ult=e.touches[0].clientY; raw=0; el=false; eixo=0; t0=performance.now();
+  },{passive:true});
+  document.addEventListener('touchmove', e=>{
+    if (!raiz) return; const t=e.touches[0];
+    if (!eixo){ const ax=Math.abs(t.clientX-x0), ay=Math.abs(t.clientY-y0); if (ax<6 && ay<6) return; eixo = ay>=ax ? 1 : 2; }
+    if (eixo===2){ raiz=null; return; }
+    const dy=t.clientY-ult; ult=t.clientY;
+    const topo = rolo.scrollTop<=0, fundo = rolo.scrollTop+rolo.clientHeight>=rolo.scrollHeight-1;
+    if (!el){ if ((dy>0&&topo)||(dy<0&&fundo)){ el=true; dir=dy>0?1:-1; raw=0; raiz.style.transition='none'; } else return; }
+    raw += dy;
+    if (raw*dir<=0){ el=false; raw=0; raiz.style.transform=''; return; }       // voltou: o scroll normal assume
+    const livre = raiz.matches('.menu-ctx.folha') && dir>0;                  // folha acompanha o dedo 1:1 pra fechar
+    const v = livre ? raw : dir*(raw*dir*.55/(1+raw*dir/420));
+    raiz.style.transform='translateY('+v+'px)';
+    if (e.cancelable) e.preventDefault();
+  },{passive:false});
+  const fim=()=>{ const r=raiz; raiz=null; if (!r) return;
+    const dt=Math.max(1,performance.now()-t0);
+    if (el && r.matches('.menu-ctx.folha') && dir>0 && (raw>40 || (raw>14 && raw/dt>.25))){
+      r.style.transition='transform .24s cubic-bezier(.22,.8,.24,1)'; r.style.transform='translateY(120%)';
+      setTimeout(()=>{ fecharMenuCtx(); setTimeout(()=>{ r.style.transition=''; r.style.transform=''; },450); },240); el=false; return; }
+    if (!el) return;
+    r.style.transition = MOLA; r.style.transform='';
+    setTimeout(()=>{ r.style.transition=''; },600); el=false; };
+  document.addEventListener('touchend', fim); document.addEventListener('touchcancel', fim);
 })();
 document.addEventListener('contextmenu', e=>{
   if (!ehDesk()) return;
