@@ -2314,7 +2314,6 @@ html,body{overscroll-behavior-y:none}
   html:not(.emChat){--lado:16px;--cel:calc((100vw - 2 * var(--lado) - 3 * 14px) / 4)}
   html:not(.emChat) .board{justify-content:flex-start;padding:0 var(--lado);top:calc(var(--faixa,68px) + env(safe-area-inset-top) + 24px);bottom:auto}
   html:not(.emChat) .board-cab{display:none}
-  html:has(.gad:not(.fechado)) #clTitulo{display:none!important}
   .gad:not(.fechado) .gad-fechar{display:grid;place-items:center;width:48px;height:48px;background:transparent!important;border:0!important;border-radius:12px!important;color:#fff;font-size:18px;opacity:1!important}
   .gad:not(.fechado) .gad-x{display:none!important}
   .cl-busca:not(.aberta){width:44px!important;flex:0 0 44px!important;padding:0!important;gap:0!important;justify-content:flex-start}.cl-busca:not(.aberta) input{display:none!important}.cl-busca:not(.aberta) .cl-b{margin:0!important;flex:0 0 44px!important}
@@ -2333,7 +2332,7 @@ html,body{overscroll-behavior-y:none}
 @keyframes jFadeIn{from{opacity:0}to{opacity:1}}
 #janela .j-caixa.jEntra{animation:jFadeIn .26s ease both}
 @media(max-width:999px){
-  html:has(.gad:not(.fechado)) .v-pe,html:has(.gad:not(.fechado)) .rodape,html:has(.gad:not(.fechado)) .cluster,html:has(.gad:not(.fechado)) .barra-chat,html:has(.gad:not(.fechado)) #palco{opacity:0!important;pointer-events:none!important;transition:opacity .25s ease}
+  html:has(.gad:not(.fechado)) .v-pe,html:has(.gad:not(.fechado)) .rodape,html:has(.gad:not(.fechado)) .barra-chat,html:has(.gad:not(.fechado)) #palco{opacity:0!important;pointer-events:none!important;transition:opacity .25s ease}
   .gad:not(.fechado){position:fixed!important;inset:0!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:auto!important;border-radius:0!important;box-shadow:none!important;border:0!important;background:#0b0c0b!important;color:#fff;display:flex!important;flex-direction:column;z-index:100;
     --branco:#fff;--branco2:rgba(255,255,255,.7);--branco3:rgba(255,255,255,.45);--linha:rgba(255,255,255,.14)}
   .gad:not(.fechado)::after{display:none!important}
@@ -2383,6 +2382,29 @@ html,body{overscroll-behavior-y:none}
     color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.5);pointer-events:none;transition:opacity .3s ease}
   html.dia #clTitulo{color:#111;text-shadow:none}
   html:has(.cl-busca.aberta) #clTitulo{opacity:0}
+}
+/* v483 — celular: fade único ao fechar; cabeçalho universal (lupa · título · menu) em TODA tela; seta de voltar sempre no mesmo lugar, logo abaixo do botão de menu */
+.gad-ph-m{visibility:hidden;pointer-events:none}
+#btnVolta{display:none}
+@media(max-width:999px){
+  /* FECHAR = uma opacidade só, do cheio ao nada, sem animação de filhos, sem transform */
+  .gad.fechando{opacity:0;transition:opacity .4s ease!important}
+  .gad.fechando,.gad.fechando *{animation:none!important}
+  .gad.fechando .gad-aba,.gad.fechando .gad-corpo,.gad.fechando .gad-corpo *{opacity:1!important;transition:none!important;transform:none!important}
+  /* cabeçalho sempre à vista, acima de caixa e janela; o menu cheio (z 99800) continua por cima de tudo */
+  html:has(.gad:not(.fechado)) .cluster,html:has(#janela:not(.oculto)) .cluster,html:has(.gad:not(.fechado)) #clTitulo,html:has(#janela:not(.oculto)) #clTitulo{z-index:400}
+  html:has(.gad:not(.fechado)) .cluster,html:has(#janela:not(.oculto)) .cluster{opacity:1!important;pointer-events:auto!important}
+  html:has(.gad:not(.fechado):not(.fechando)) #btnVolta,html:has(#janela:not(.oculto):not(.saindo)) #btnVolta{display:grid}
+  #btnVolta{position:fixed;z-index:400;right:var(--lado,16px);top:calc(var(--vf,12px) + env(safe-area-inset-top) + 52px);width:44px;height:44px;place-items:center;padding:0;margin:0;background:transparent;border:0;border-radius:12px;color:#fff;-webkit-tap-highlight-color:transparent;animation:gadTela .3s ease both}
+  #btnVolta svg{width:26px;height:26px}
+  /* a caixa aberta começa abaixo do cabeçalho + seta; a aba (título/✕/arrastar) some: o título está no topo e o voltar é a seta */
+  .gad:not(.fechado){padding-top:calc(var(--vf,12px) + env(safe-area-inset-top) + 100px)}
+  .gad:not(.fechado) .gad-aba,.gad:not(.fechado) .gad-fechar{display:none!important}
+  /* janelas (tarefa, ver tudo, perfil...): mesma regra; os ✕ antigos saem */
+  #janela .acao-cab[aria-label="Fechar"],#janela .caixa .gad-x,#janela .caixa>div:first-child .fechar{display:none!important}
+  #janela .caixa{padding-top:calc(var(--vf,12px) + env(safe-area-inset-top) + 100px)!important}
+  #janela::before{content:'';position:fixed;left:0;right:0;top:0;height:calc(var(--vf,12px) + env(safe-area-inset-top) + 100px);background:#0b0c0b;z-index:3;pointer-events:none}
+  #janela:not(.oculto) .j-caixa{z-index:2}
 }
 /* ícones no menu de botão direito */
 .menu-ctx button svg{width:18px;height:18px;flex:none;opacity:.8}
@@ -2585,6 +2607,7 @@ pdAbertura(false);
 
 <!-- globais: valem na frente e no verso -->
 <div id="clTitulo" aria-live="polite"></div>
+<button id="btnVolta" type="button" aria-label="Voltar" title="Voltar" onclick="voltarTela()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
 <nav class="cluster" id="cluster" aria-label="Atalhos">
   <div class="cl-busca" id="clBusca">
     <input id="clInput" type="text" placeholder="Buscar tarefa, cliente, pessoa…" autocomplete="off" spellcheck="false"
@@ -2632,7 +2655,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v483 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v484 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -8114,14 +8137,27 @@ function medirMinis(){
     if (id && w > 40) larguraMini[id] = w;     // 40px: abaixo disso é medida de elemento ainda não pintado
   });
 }
+function gadPhTira(){ document.querySelectorAll('.gad-ph-m').forEach(e => e.remove()); }
+function gadPhPoe(gad){   // celular: a caixa aberta sai do fluxo (tela cheia); este espaço invisível segura o lugar dela na grade, e nada pula quando ela fecha
+  gadPhTira(); if (ehDesk() || !gad.parentNode) return;
+  const r = gad.getBoundingClientRect(); const ph = document.createElement('div'); ph.className = 'gad-ph-m';
+  ph.style.height = Math.round(r.height) + 'px'; if (gad.classList.contains('mini-largo')) ph.style.gridColumn = 'span 2';
+  gad.parentNode.insertBefore(ph, gad);
+}
+// seta de voltar (universal no celular): fecha a janela do topo; sem janela, fecha a caixa aberta
+function voltarTela(){
+  const j = document.getElementById('janela');
+  if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo')){ window._toqueNada = true; try { fecharJanela(); } finally { window._toqueNada = false; } return; }
+  const g = document.querySelector('.gad:not(.fechado):not(.fechando)'); if (g){ const id = (g.dataset.fk || '').replace('gad-', ''); if (id){ gadsAbertos[id] = true; alternarAbertura(id); } }   // a tela está aberta de fato: fecha, mesmo que o estado tenha ficado para trás
+}
 function alternarAbertura(id){ window._gadTs = Date.now();
   // antes de a IA existir, o ovo não abre caixa: abre o convite da escola
   if (id === 'minhaia' && !gadsAbertos[id] && !aindaNao(() => temIA(), false)){ abrirEscola(); return; }
-  if (!ehDesk() && !gadsAbertos[id] && Date.now() - (window._gadFecTs || 0) < 450) return;   // celular: nada nasce enquanto outra caixa ainda está sumindo
+  if (!ehDesk() && !gadsAbertos[id] && Date.now() - (window._gadFecTs || 0) < 520) return;   // celular: nada nasce enquanto outra caixa ainda está sumindo
   const gad = document.querySelector(`.gad[data-fk="gad-${id}"]`);
   const corpo = gad && gad.querySelector('.gad-corpo');
   const abrindo = !gadsAbertos[id];
-  if (abrindo && !ehDesk()) document.querySelectorAll('.gad:not(.fechado)').forEach(o => { if (o === gad) return; const oid = (o.dataset.fk || '').replace('gad-', ''); gadsAbertos[oid] = false; o.classList.add('fechado'); o.classList.remove('abrindo', 'fechando'); const oc = o.querySelector('.gad-corpo'); if (oc) oc.style.cssText = ''; });   // celular: uma caixa por vez, nunca duas empilhadas
+  if (abrindo && !ehDesk()) document.querySelectorAll('.gad:not(.fechado)').forEach(o => { if (o === gad) return; const oid = (o.dataset.fk || '').replace('gad-', ''); gadsAbertos[oid] = false; gadPhTira(); o.classList.add('fechado'); o.classList.remove('abrindo', 'fechando'); const oc = o.querySelector('.gad-corpo'); if (oc) oc.style.cssText = ''; });   // celular: uma caixa por vez, nunca duas empilhadas
   gadsAbertos[id] = abrindo;
   layoutChatDesk(chat);                          // o chat cede ou toma o espaço, com fluidez
   if (!gad || !corpo){ renderFlip(); return; }
@@ -8131,6 +8167,7 @@ function alternarAbertura(id){ window._gadTs = Date.now();
   if (abrindo){
     gad.classList.add('sem-toque'); setTimeout(() => gad.classList.remove('sem-toque'), 600);   // o dedo que abriu não pode clicar no que acabou de nascer embaixo dele
     corpo.innerHTML = gadSeguro(id);             // conteúdo fresco já na abertura: sem recarregar a grade depois
+    gadPhPoe(gad);
     gad.classList.add('abrindo');
     const medido = Math.round(gad.getBoundingClientRect().width);
     if (medido > 40) larguraMini[id] = medido;   // nasce do tamanho real do quadradinho
@@ -8157,7 +8194,7 @@ function alternarAbertura(id){ window._gadTs = Date.now();
   } else {
     gad.classList.add('fechando'); window._gadFecTs = Date.now();
     if (!desk){ corpo.style.overflow = 'hidden';   // a barra de rolagem é a primeira a sair
-      setTimeout(()=>{ gad.classList.add('fechado','recem-fechado'); gad.classList.remove('fechando'); if (id==='tarefas') gad.classList.add('mini-largo'); corpo.style.cssText=''; posicionarCfg(); pintarBolinhas(); setTimeout(()=>gad.classList.remove('recem-fechado'), 500); }, 380); return; }
+      setTimeout(()=>{ gadPhTira(); gad.classList.add('fechado','recem-fechado'); gad.classList.remove('fechando'); if (id==='tarefas') gad.classList.add('mini-largo'); corpo.style.cssText=''; posicionarCfg(); pintarBolinhas(); setTimeout(()=>gad.classList.remove('recem-fechado'), 500); }, 440); return; }
     corpo.style.height = corpo.scrollHeight + 'px';
     // sem medida confiável, não force largura nenhuma: melhor fechar sem
     // animar a largura do que encolher pro tamanho errado e dar o estouro
@@ -12698,6 +12735,7 @@ setTimeout(ofiSonda, 6000); setInterval(() => { if (!document.hidden) ofiSonda()
     if (R.classList.contains('app-menu')) return 'Menu';
     const j = document.getElementById('janela');
     if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo') && _tJan) return _tJan;
+    { const gt = document.querySelector('.gad:not(.fechado):not(.fechando) .gad-tit'); if (gt && gt.textContent.trim()) return gt.textContent.trim(); }
     if (R.classList.contains('app-movel')) return NOMES[viewApp()] || 'Pontodot';
     try { if (chat) return 'Conversa'; } catch(e){}
     return 'Início';
