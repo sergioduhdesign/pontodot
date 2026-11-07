@@ -2303,6 +2303,7 @@ html.dia .mc-esc{border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.04)}
 html.dia #menuCheio .mc-x{background:transparent!important}
 html,body{overscroll-behavior-y:none}
 @keyframes gadTela{from{opacity:0}to{opacity:1}}
+.gad-fechar{display:none}
 @media(max-width:999px){
   .gad.abrindo{animation:gadTela .42s ease both}
   .gad.abrindo .gad-aba,.gad.abrindo .gad-corpo{animation:none!important}
@@ -2313,6 +2314,9 @@ html,body{overscroll-behavior-y:none}
   html:not(.emChat){--lado:16px;--cel:calc((100vw - 2 * var(--lado) - 3 * 14px) / 4)}
   html:not(.emChat) .board{justify-content:flex-start;padding:0 var(--lado);top:calc(var(--faixa,68px) + env(safe-area-inset-top) + 24px);bottom:auto}
   html:not(.emChat) .board-cab{display:none}
+  html:has(.gad:not(.fechado)) #clTitulo{display:none!important}
+  .gad:not(.fechado) .gad-fechar{display:grid;place-items:center;width:48px;height:48px;background:transparent!important;border:0!important;border-radius:12px!important;color:#fff;font-size:18px;opacity:1!important}
+  .gad:not(.fechado) .gad-x{display:none!important}
   .cl-busca:not(.aberta){width:44px!important;flex:0 0 44px!important;padding:0!important;gap:0!important;justify-content:flex-start}.cl-busca:not(.aberta) input{display:none!important}.cl-busca:not(.aberta) .cl-b{margin:0!important;flex:0 0 44px!important}
   html:not(.emChat) .board-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:none;width:100%;margin:0;justify-content:stretch;align-items:start}
   html:not(.emChat) .board-grid>.gad.fechado{width:auto;min-width:0;margin:0}
@@ -2625,7 +2629,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v475 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v476 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3532,7 +3536,7 @@ function perguntar(texto, opts){ opts = opts || {}; return new Promise(res => { 
   d.addEventListener('click', e => { const b = e.target.closest('button[data-r]'); if (b){ d.remove(); res(b.dataset.r === '1'); } else if (e.target === d){ d.remove(); res(false); } }); document.body.appendChild(d); d.querySelector('button[data-r="1"]').focus(); }); }
 // PILHA: abrir algo por cima de outra janela guarda a de baixo; fechar (✕) devolve a anterior, não o início.
 let _pilha = [], _janSai = null;
-const _fechaPorToque = () => { const ev = window.event; return !!(ev && ev.type === 'click' && ev.target && ev.target.closest && (ev.target.id === 'janela' || ev.target.closest('#janela [aria-label="Fechar"],#janela .fechar,#janela .gad-x'))); };
+const _fechaPorToque = () => { if (window._toqueNada) return true; const ev = window.event; return !!(ev && ev.type === 'click' && ev.target && ev.target.closest && (ev.target.id === 'janela' || ev.target.closest('#janela [aria-label="Fechar"],#janela .fechar,#janela .gad-x'))); };
 function _jFade(cx){ if (!cx) return; cx.classList.remove('jEntra'); void cx.offsetWidth; cx.classList.add('jEntra'); setTimeout(() => cx.classList.remove('jEntra'), 320); }
 function abrirJanela(html, grande){
   const antes = _tJan;
@@ -3554,6 +3558,21 @@ function abrirJanela(html, grande){
   const cx = j.querySelector('.caixa'); if (cx && !cx.hasAttribute('data-sem-fio')){ cx.classList.add('surge'); delete cx.dataset.fio; fio(cx); }
   if (nav) _jFade(j.querySelector('.j-caixa'));
 }
+// tocar no "nada" (fundo da caixa, fora de botão/texto) volta: janela → tela anterior; caixa da home → fecha. Caixa com campo de digitar não reage (não perde o que escreveu).
+document.addEventListener('click', e => {
+  const t = e.target; if (!t || !t.classList) return;
+  if (window.getSelection && String(window.getSelection()).length) return;
+  const j = document.getElementById('janela');
+  if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo') && j.contains(t) && (t === j || t.classList.contains('j-caixa') || t.classList.contains('caixa'))){
+    if (j.querySelector('input:not([type=hidden]),textarea,select,iframe')) return;
+    window._toqueNada = true; try { fecharJanela(); } finally { window._toqueNada = false; } return; }
+  if (!ehDesk()){
+    const g = t.closest && t.closest('.gad:not(.fechado)'); if (!g) return;
+    if (t === g || t.classList.contains('gad-corpo') || (t.classList.contains('caixa') && g.contains(t))){
+      if (g.querySelector('input:not([type=hidden]),textarea,select,iframe')) return;
+      const id = (g.dataset.fk || '').replace('gad-', ''); if (id) alternarAbertura(id); }
+  }
+});
 function voltarJanela(p){
   const j = $('#janela'), c = j.querySelector('.j-caixa'); if (!c) return;
   c.style.transition = 'opacity .14s ease'; c.style.opacity = '0';
@@ -8268,6 +8287,7 @@ function renderBoard(){
         <span class="gad-mini-ico ${id==='tarefas'?'larga':''}">${id==='tarefas' ? TAREFAS.slice(0,3).map(t=>cara(t.cara,24)).join('') : id==='minhaia' ? caraDaIA() : icoGad(id)}</span>
         <h3 class="gad-tit">${nomeGad(id)}</h3>
         <span class="aba-acoes">
+          <button class="gad-fechar" title="Fechar" aria-label="Fechar" onclick="event.stopPropagation();alternarAbertura('${id}')">✕</button>
           <button title="Arrastar" aria-label="Arrastar" onpointerdown="event.stopPropagation();abaDown(event,'${id}',true)">⠿</button>
           ${GADGETS[id].fixo?'':`<button class="gad-x" title="Tirar da área" aria-label="Tirar da área" onclick="event.stopPropagation();tirarGadget('${id}')">✕</button>`}
         </span>

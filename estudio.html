@@ -1312,6 +1312,10 @@ const _clipIv=setInterval(()=>{try{if(C){clipObjetos();C.requestRenderAll();clea
   const _marca=window.marca;window.marca=function(){if(window.SLD){window._sldPend=true;return;}return _marca.apply(this,arguments);};
   const _props=window.props;window.props=function(){if(window.SLD)return;return _props.apply(this,arguments);};
 })();
+// tocar no "nada" da área de trabalho fecha qualquer gaveta ligada (padrão de editor)
+(function(){const iv=setInterval(()=>{if(typeof C==='undefined'||!C||!C.on)return;clearInterval(iv);let p0=null;
+  C.on('mouse:down',e=>{p0=(!e.target&&FERR==='sel'&&MOB()&&!CROP.on&&!MASK.on&&!PENEDIT.on&&$('#main').classList.contains('aberta'))?{x:e.e.clientX,y:e.e.clientY}:null;});
+  C.on('mouse:up',e=>{if(!p0)return;const q=(e.e.changedTouches&&e.e.changedTouches[0])||e.e;if(Math.hypot((q.clientX||p0.x)-p0.x,(q.clientY||p0.y)-p0.y)<8&&!C.getActiveObject())gavetaFecha();p0=null;});},400);})();
 </script><script src="/js/pd-sheet.js?v=5"></script><script src="/js/pd-ajuda.js?v=328"></script><script>
 // ---- joystick — celular: disco translúcido que aparece com um objeto selecionado; arrasta o "polegar" e o objeto anda (quanto mais longe do centro, mais rápido); convive com as alças
 (function(){
