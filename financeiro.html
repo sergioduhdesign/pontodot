@@ -196,6 +196,25 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 #veu{animation:fadeIn .25s ease}
 #veu.saindo{opacity:0;transition:opacity .22s ease}
 #veu.saindo #folha{transform:translateY(24px);transition:transform .22s ease}
+
+.hero{position:relative}.hdest{position:absolute;top:12px;right:12px;width:30px;height:30px;opacity:.7}.hdest:hover{opacity:1}
+.hero .rot{padding-right:36px}
+.corpo{touch-action:pan-y}
+#hero,#cont,#mesTxt{will-change:transform}
+#mesTxt{cursor:pointer;display:inline-block;border-bottom:1px dashed var(--lin);padding-bottom:1px}
+.mesbar .ic{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.dsec{margin:14px 2px 7px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.dsec span{text-transform:none;letter-spacing:0;opacity:.8}
+.dchips{display:flex;flex-wrap:wrap;gap:7px}
+.dchip{border:1px solid var(--lin);background:transparent;color:var(--tx);border-radius:999px;padding:8px 13px;font-size:13.5px;display:inline-flex;align-items:center;gap:7px;transition:background .2s,color .2s,border-color .2s,transform .15s}
+.dchip:active{transform:scale(.96)}
+.dchip.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
+.dchip i{font-style:normal;font-size:11px;font-weight:700;width:17px;height:17px;border-radius:50%;background:var(--acc-tx);color:var(--acc);display:inline-flex;align-items:center;justify-content:center}
+.calh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.calh b{font-size:22px;font-weight:400;font-variant-numeric:tabular-nums}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cmes{position:relative;height:60px;border-radius:16px;border:1px solid var(--lin);background:transparent;color:var(--tx);font-size:15px;transition:background .2s,transform .15s}
+.cmes:active{transform:scale(.95)}.cmes.hj{border-color:var(--acc2)}
+.cmes.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
+.cmes i{position:absolute;bottom:9px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:currentColor;opacity:.55}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -318,6 +337,125 @@ async function entrar(){
   desenha(); carregaAv(); garanteRetiradas().catch(() => {});
 }
 
+
+// ---------- destaques (o que aparece no topo) ----------
+const ICDEST = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>';
+const catSoma = (c, m) => soma(doMes(m).filter(l => l.conta && l.sentido === 'saida' && l.grupo !== 'retirada' && l.grupo !== 'saldo' && catDe(l) === c));
+const METR = {
+  total:   { rot: 'Total do mês', curto: 'Total', f: t => t.sobra },
+  caixa:   { rot: 'No caixa agora', curto: 'No caixa', f: t => t.caixa },
+  ent:     { rot: 'Entradas', curto: 'Entradas', f: t => t.e },
+  sai:     { rot: 'Saídas', curto: 'Saídas', f: t => t.s },
+  res:     { rot: 'Entradas − saídas', curto: 'Resultado', f: t => t.e - t.s },
+  sdant:   { rot: 'Saldo anterior', curto: 'Saldo anterior', f: t => t.sd },
+  fent:    { rot: 'Falta entrar', curto: 'Falta entrar', f: t => t.e - t.ep },
+  fpag:    { rot: 'Falta pagar', curto: 'Falta pagar', f: t => t.s - t.sp },
+  ret:     { rot: 'Retirada', curto: 'Retirada', emp: true, f: t => t.retirada },
+  segue:   { rot: 'Saldo que segue', curto: 'Saldo que segue', f: t => t.saldoFim },
+  inv:     { rot: 'Investimentos', curto: 'Investimentos', f: (t, m) => catSoma('inv', m) },
+  imp:     { rot: 'Impostos', curto: 'Impostos', f: (t, m) => catSoma('imp', m) }
+};
+const mv = (k, t) => { const v = METR[k].f(t, MES); return v == null || isNaN(v) ? null : v; };
+const DEST0 = { gr: 'total', trio: ['ent', 'sai', 'sdant'], prog: true, div: true };
+function dest(){
+  let d = {}; try { d = JSON.parse(localStorage.getItem('fin_dest_' + AMB) || '{}'); } catch(_){}
+  const o = Object.assign({}, DEST0, d);
+  if (!METR[o.gr] || (METR[o.gr].emp && AMB !== 'empresa')) o.gr = 'total';
+  o.trio = (o.trio || []).filter(k => METR[k] && !(METR[k].emp && AMB !== 'empresa')).slice(0, 3);
+  while (o.trio.length < 3) { const k = DEST0.trio.find(x => !o.trio.includes(x)); o.trio.push(k); }
+  return o;
+}
+function folhaDest(draft){
+  const d = FOLHA_D = draft || dest(), ks = Object.keys(METR).filter(k => !(METR[k].emp && AMB !== 'empresa'));
+  const chips = (sel, tipo) => ks.map(k => { const n = tipo === 'trio' ? sel.indexOf(k) : -1; return '<button class="dchip ' + ((tipo === 'gr' ? sel === k : n >= 0) ? 'on' : '') + '" data-dk="' + k + '" data-dt="' + tipo + '">' + (n >= 0 ? '<i>' + (n + 1) + '</i>' : '') + METR[k].rot + '</button>'; }).join('');
+  folha('<h3>O que destacar</h3><div class="nota" style="padding:0 0 8px">Vale só para a ' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + ', neste aparelho.</div>' +
+    '<div class="dsec">Número grande</div><div class="dchips">' + chips(d.gr, 'gr') + '</div>' +
+    '<div class="dsec">Os três de baixo <span>(toque para trocar; a ordem é a da contagem)</span></div><div class="dchips">' + chips(d.trio, 'trio') + '</div>' +
+    '<div class="dsec">Mostrar</div><label class="chk"><input type="checkbox" id="dProg"' + (d.prog ? ' checked' : '') + '> Barras de quanto já entrou e já foi pago</label><label class="chk"><input type="checkbox" id="dDiv"' + (d.div ? ' checked' : '') + '> Divisão do total (retirada e saldo que segue)</label>' +
+    '<div class="bts"><button class="bt sec" data-dreset="1">Voltar ao padrão</button><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt" data-dsalva="1">Aplicar</button></div>');
+}
+let FOLHA_D = null;
+function salvaDest(){
+  const d = FOLHA_D; d.prog = $('#dProg').checked; d.div = $('#dDiv').checked;
+  try { localStorage.setItem('fin_dest_' + AMB, JSON.stringify(d)); } catch(_){}
+  fecha(); ANIM = true; desenha();
+}
+
+// ---------- navegação entre meses (setas que seguram, arrastar, calendário) ----------
+let NAV = { busy: false };
+const slideEls = () => [$('#hero'), $('#cont')].filter(Boolean);
+const mexeu = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// vai para o mês `novo`; dir = +1 (futuro, entra pela direita) ou -1 (passado, entra pela esquerda); rapido = durante o segurar
+function irMes(novo, dir, opt){
+  opt = opt || {};
+  if (novo === (NAV.alvo || MES)) return;
+  NAV.alvo = novo; dir = dir || (novo > MES ? 1 : -1);
+  if (mexeu()) { MES = novo; NAV.alvo = null; desenha(); return; }
+  const el = slideEls(), W = Math.min(innerWidth * 0.5, 220), d1 = opt.rapido ? 110 : 190, d2 = opt.rapido ? 150 : 320;
+  const sai = opt.jaFora ? Promise.resolve() : Promise.all(el.map(e => e.animate([{ transform: 'translateX(' + (opt.de || 0) + 'px)', opacity: opt.de ? 1 - Math.min(.8, Math.abs(opt.de) / 260) : 1 }, { transform: 'translateX(' + (-dir * W * .6) + 'px)', opacity: 0 }], { duration: d1, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' }).finished.catch(() => {})));
+  sai.then(() => {
+    MES = novo; if (NAV.alvo === novo) NAV.alvo = null; ANIM = false; desenha();
+    if (!opt.rapido) contaTudo();
+    const m = $('#mesTxt'); m.animate([{ transform: 'translateX(' + (dir * 26) + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: d2, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    slideEls().forEach((e, i) => { e.getAnimations().forEach(a => a.cancel()); e.animate([{ transform: 'translateX(' + (dir * W) + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: d2, delay: opt.rapido ? 0 : i * 40, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }); });
+  });
+}
+const mudaMes = (n, opt) => irMes(somaMes(NAV.alvo || MES, n), n > 0 ? 1 : -1, opt);
+
+// segurar a seta: primeiro passo na hora, depois repete cada vez mais rápido
+function ligaSeta(btn, n){
+  let t = null, passo = 0, ativo = false;
+  const tick = () => { if (!ativo) return; passo++; mudaMes(n, { rapido: true }); t = setTimeout(tick, Math.max(120, 260 - passo * 18)); };
+  const para = () => { ativo = false; clearTimeout(t); };
+  btn.addEventListener('pointerdown', e => { if (e.button) return; ativo = true; passo = 0; mudaMes(n, {}); t = setTimeout(tick, 420); try { btn.setPointerCapture(e.pointerId); } catch(_){} });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => btn.addEventListener(ev, para));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+  btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mudaMes(n, {}); } });
+}
+
+// arrastar para o lado: o conteúdo acompanha o dedo; solto, completa a troca ou volta
+let ARRASTOU = 0;
+document.addEventListener('click', e => { if (Date.now() - ARRASTOU < 350) { e.stopPropagation(); e.preventDefault(); } }, true);
+function ligaArrasto(){
+  const area = document.querySelector('.corpo'); if (!area) return;
+  let x0 = 0, y0 = 0, dx = 0, modo = 0, t0 = 0, id = null;   // modo: 0 esperando, 1 horizontal, -1 vertical/ignorar
+  const ignora = t => t.closest && t.closest('.abas, input, textarea, select, table, .anog, .kmsgs, #veu, [data-noswipe]');
+  area.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' || e.button || ignora(e.target) || !$('#veu').classList.contains('hid')) { modo = -1; return; } x0 = e.clientX; y0 = e.clientY; dx = 0; modo = 0; t0 = performance.now(); id = e.pointerId; });
+  area.addEventListener('pointermove', e => {
+    if (modo === -1 || e.pointerId !== id) return;
+    const ax = e.clientX - x0, ay = e.clientY - y0;
+    if (modo === 0) { if (Math.abs(ax) < 9 && Math.abs(ay) < 9) return; modo = Math.abs(ax) > Math.abs(ay) * 1.4 ? 1 : -1; if (modo === -1) return; }
+    dx = ax; const el = slideEls(), k = Math.abs(dx) / 260, r = dx * .55;     // resistência: segue o dedo, mas com peso
+    el.forEach(e2 => { e2.style.transition = 'none'; e2.style.transform = 'translateX(' + r + 'px)'; e2.style.opacity = String(1 - Math.min(.55, k * .55)); });
+    const m = $('#mesTxt'); m.style.transform = 'translateX(' + (r * .25) + 'px)';
+  });
+  const solta = e => {
+    if (e.pointerId !== id) return; const era = modo; modo = -1; id = null;
+    const el = slideEls(), m = $('#mesTxt'); m.style.transform = '';
+    if (era === 1) ARRASTOU = Date.now();
+    if (era !== 1) { el.forEach(e2 => { e2.style.transform = ''; e2.style.opacity = ''; e2.style.transition = ''; }); return; }
+    const v = Math.abs(dx) / Math.max(1, performance.now() - t0), vai = Math.abs(dx) > 70 || v > .5;   // distância ou "arremesso"
+    const de = dx * .55;
+    el.forEach(e2 => { e2.style.transform = ''; e2.style.opacity = ''; e2.style.transition = ''; });
+    if (vai) irMes(somaMes(MES, dx < 0 ? 1 : -1), dx < 0 ? 1 : -1, { de });
+    else el.forEach(e2 => e2.animate([{ transform: 'translateX(' + de + 'px)' }, { transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.2,1.2,.3,1)' }));
+  };
+  area.addEventListener('pointerup', solta); area.addEventListener('pointercancel', solta);
+}
+// teclado: ← e → trocam de mês fora de campos e janelas
+document.addEventListener('keydown', e => { if (!ACC || !$('#veu').classList.contains('hid')) return; const t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return; if (e.key === 'ArrowLeft') mudaMes(-1, { rapido: e.repeat }); else if (e.key === 'ArrowRight') mudaMes(1, { rapido: e.repeat }); });
+
+// calendário: toque no mês para escolher qualquer um
+let CALANO = null;
+function folhaCalendario(ano, dir){
+  CALANO = ano = ano || mesDe(MES).getFullYear();
+  const tem = new Set(dados().map(l => l.mes)), hoje = iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const cel = MN.map((nm, i) => { const m = ano + '-' + String(i + 1).padStart(2, '0') + '-01'; return '<button class="cmes ' + (m === MES ? 'on' : '') + (m === hoje ? ' hj' : '') + '" data-cmes="' + m + '"><span>' + nm.slice(0, 3) + '</span>' + (tem.has(m) ? '<i></i>' : '') + '</button>'; }).join('');
+  const corpo = '<div class="cal"><div class="calh"><button class="ic" data-cano="-1">‹</button><b>' + ano + '</b><button class="ic" data-cano="1">›</button></div><div class="cgrid">' + cel + '</div></div>';
+  if (dir == null) folha('<h3>Escolher mês</h3>' + corpo + '<div class="nota" style="padding:10px 0 0">O ponto marca os meses que já têm lançamentos.</div><div class="bts"><button class="bt sec" data-cmes="' + hoje + '">Este mês</button><button class="bt sec" data-fechar="1">Fechar</button></div>');
+  else { const c = document.querySelector('#folha .cal'); c.outerHTML = corpo; const n = document.querySelector('#folha .cal'); n.animate([{ transform: 'translateX(' + (dir * 36) + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
+}
+
 // ---------- desenho ----------
 function desenha(){
   const ps = areasPermitidas();
@@ -353,16 +491,16 @@ function fluxo(m, a){
   return Object.assign(t, { tem, saldoFim: tem ? p.sd : (rr ? Math.round((t.sobra - rr.valor) * 100) / 100 : null), retirada: (a || AMB) === 'empresa' ? ret : null, temRet: !!rr });
 }
 function hero(){
-  const t = fluxo(MES), vazio = !doMes(MES).length;
+  const DS = dest(), t = fluxo(MES), vazio = !doMes(MES).length;
   const pe = t.e ? Math.min(100, t.ep / t.e * 100) : 0, ps = t.s ? Math.min(100, t.sp / t.s * 100) : 0;
-  $('#hero').innerHTML = '<div class="hero"><div class="rot">TOTAL do mês <span style="opacity:.8">(saldo anterior + entradas − saídas)</span></div>' +
-    '<div class="gr ' + (t.sobra < 0 ? 'neg' : 'pos') + '">' + BRL(t.sobra) + '</div>' +
-    '<div class="trio"><div><small>Entradas</small><b>' + BRL0(t.e) + '</b></div><div><small>Saídas</small><b>' + BRL0(t.s) + '</b></div><div><small>Saldo anterior</small><b>' + BRL0(t.sd) + '</b></div></div>' +
-    '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
+  $('#hero').innerHTML = '<div class="hero"><button class="ic hdest" data-dest="1" title="O que destacar">' + ICDEST + '</button>' + (DS.gr === 'total' ? '<div class="rot">TOTAL do mês <span style="opacity:.8">(saldo anterior + entradas − saídas)</span></div>' : '<div class="rot">' + METR[DS.gr].rot + ' · ' + MN[mesDe(MES).getMonth()] + '</div>') +
+    '<div class="gr ' + (mv(DS.gr, t) < 0 ? 'neg' : 'pos') + '">' + (mv(DS.gr, t) == null ? '—' : BRL(mv(DS.gr, t))) + '</div>' +
+    '<div class="trio">' + DS.trio.map(k => '<div><small>' + METR[k].curto + '</small><b>' + (mv(k, t) == null ? '—' : BRL0(mv(k, t))) + '</b></div>').join('') + '</div>' +
+    (DS.prog ? '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
     '<div><div class="ln"><span>Pago <b>' + BRL0(t.sp) + '</b> de ' + BRL0(t.s) + '</span><span>falta ' + BRL0(t.s - t.sp) + '</span></div><div class="bar"><i style="width:' + ps + '%"></i></div></div>' +
     '<div class="ln" style="margin:0"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div>' +
-    '</div>' +
-    ((t.tem || (AMB === 'empresa' && t.temRet)) ? '<div class="comp"><div class="ln" style="margin:0"><span>O total se divide em' + (AMB === 'empresa' ? ' retirada e ' : ' ') + 'saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span></div>' + (AMB === 'empresa' ? '<div class="lc ed" data-retirada="1"><span>RETIRADA · toque para mudar</span><b>' + BRL(t.retirada) + ' ' + ICL + '</b></div>' : '') + '<div class="lc"><span>SALDO (vai para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + ')</span><b>' + BRL(t.saldoFim) + '</b></div></div>' : (AMB === 'empresa' && podeEditar() ? '<div class="comp"><div class="lc ed" data-retirada="1"><span>RETIRADA deste mês</span><b>definir ' + ICL + '</b></div></div>' : '')) +
+    '</div>' : '') +
+    (!DS.div ? '' : (t.tem || (AMB === 'empresa' && t.temRet)) ? '<div class="comp"><div class="ln" style="margin:0"><span>O total se divide em' + (AMB === 'empresa' ? ' retirada e ' : ' ') + 'saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span></div>' + (AMB === 'empresa' ? '<div class="lc ed" data-retirada="1"><span>RETIRADA · toque para mudar</span><b>' + BRL(t.retirada) + ' ' + ICL + '</b></div>' : '') + '<div class="lc"><span>SALDO (vai para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + ')</span><b>' + BRL(t.saldoFim) + '</b></div></div>' : (AMB === 'empresa' && podeEditar() ? '<div class="comp"><div class="lc ed" data-retirada="1"><span>RETIRADA deste mês</span><b>definir ' + ICL + '</b></div></div>' : '')) +
     (vazio ? '<div class="nota" style="padding:12px 0 0">Este mês ainda não tem lançamentos.</div>' : '') + '</div>';
 }
 
@@ -855,6 +993,12 @@ document.addEventListener('click', e => {
   const t = e.target, q = s => t.closest(s);
   let el;
   if ((el = q('[data-pago]'))) { e.stopPropagation(); alternaPago(el.dataset.pago); return; }
+  if ((el = q('[data-dest]'))) { folhaDest(); return; }
+  if ((el = q('[data-dk]'))) { const d = FOLHA_D, k = el.dataset.dk; if (el.dataset.dt === 'gr') d.gr = k; else { const i = d.trio.indexOf(k); if (i >= 0) { if (d.trio.length > 1) d.trio.splice(i, 1); } else { d.trio.push(k); if (d.trio.length > 3) d.trio.shift(); } } d.prog = $('#dProg').checked; d.div = $('#dDiv').checked; folhaDest(d); return; }
+  if ((el = q('[data-dsalva]'))) { salvaDest(); return; }
+  if ((el = q('[data-dreset]'))) { try { localStorage.removeItem('fin_dest_' + AMB); } catch(_){} fecha(); ANIM = true; desenha(); return; }
+  if ((el = q('[data-cano]'))) { const n = Number(el.dataset.cano); folhaCalendario(CALANO + n, n); return; }
+  if ((el = q('[data-cmes]'))) { const m = el.dataset.cmes; fecha(); irMes(m, m > MES ? 1 : -1); return; }
   if ((el = q('[data-amb]'))) { ANIM = true; AMB = el.dataset.amb; try { localStorage.setItem('fin_amb', AMB); } catch(_){} BUSCA = ''; ABA = 'mes'; const ms = [...new Set(dados().map(l => l.mes))]; if (!ms.includes(MES)) MES = ms.sort().pop() || MES; desenha(); return; }
   if ((el = q('[data-aba]'))) { ANIM = true; ABA = el.dataset.aba; BUSCA = ''; desenha(); return; }
   if ((el = q('[data-novo]'))) { folhaLanc(null, el.dataset.novo); return; }
@@ -898,8 +1042,8 @@ document.addEventListener('change', async e => {
   }
   if (t.id === 'modArq' && t.files[0]) { const f = t.files[0], tx = await f.text(); folhaModelo(null, { titulo: f.name.replace(/\.[^.]+$/, ''), texto: tx }); t.value = ''; }
 });
-$('#mAnt').onclick = () => { ANIM = true; MES = somaMes(MES, -1); desenha(); };
-$('#mProx').onclick = () => { ANIM = true; MES = somaMes(MES, 1); desenha(); };
+ligaSeta($('#mAnt'), -1); ligaSeta($('#mProx'), 1); ligaArrasto();
+$('#mesTxt').onclick = () => folhaCalendario();
 $('#btTrancar').onclick = async () => { if (!ACC.admin) await sb.rpc('fin_trancar'); D = { casa: null, empresa: null }; CIA = null; NOTAS = {}; MOD = null; KIRO = []; if (ACC.admin) { porta('<h2>Trancado</h2><p>Os números saíram da tela.</p><button class="bt" onclick="location.reload()">Abrir de novo</button>'); } else pedirSenha(); };
 $('#btFechar').onclick = () => { try { parent.postMessage({ tipo: 'fin-fechar' }, '*'); } catch(e){} };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecha(); });
