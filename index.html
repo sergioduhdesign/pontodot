@@ -2088,6 +2088,27 @@ html.dia .frente .zap-barra button{background:rgba(26,27,30,.06)}html.dia .frent
   html.emChat .board{top:0;bottom:auto;height:0;padding:0}
   html.emChat .gad.fechado,html.emChat .board-cab{display:none!important}
 }
+
+/* APP (celular): tudo preto, sem tela clara — o claro é só do desktop */
+@media(max-width:999px){
+  .verso{--vb:#0b0c0b;--vcard:#17181A;--vtx:#F2F2EE;--vtx2:rgba(242,242,238,.62);--vtx3:rgba(242,242,238,.5);--vln:rgba(242,242,238,.17);--vln2:rgba(242,242,238,.15);--vsom:rgba(0,0,0,.3)}
+  .caixa.invertida{--branco:#F2F2EE;--branco2:rgba(242,242,238,.74);--branco3:rgba(242,242,238,.5);--linha:rgba(242,242,238,.4);--sep:rgba(242,242,238,.14);background:#0b0c0b;color:#F2F2EE;box-shadow:none}
+  .caixa.invertida .btn{background:rgba(255,255,255,.07)}
+  .caixa.invertida .btn.cheio{color:#0b0c0b}
+  .caixa.invertida .ia-linha{border-top-color:rgba(242,242,238,.14)}
+  .caixa.invertida .liga:not(.on){border-color:rgba(242,242,238,.4)}
+  .caixa.invertida .liga:not(.on) i{background:#F2F2EE}
+  .caixa.invertida ::placeholder{color:rgba(242,242,238,.45)}
+  html.noVerso .hist-handle{background:#1B1C1F;color:#F2F2EE;border-color:rgba(242,242,238,.17);box-shadow:none}
+  html.noVerso .historico{background:rgba(11,12,11,.97);color:#F2F2EE;border-right-color:rgba(242,242,238,.17)}
+  html.noVerso .historico .hist-item{color:#F2F2EE}
+  html.noVerso .historico .hist-item:hover{background:rgba(255,255,255,.07)}
+  html.noVerso .historico .h2,html.noVerso .historico .hist-sec{color:rgba(242,242,238,.5)}
+  html.noVerso .historico .hist-item .hq,html.noVerso .historico .hist-pin{border-color:rgba(242,242,238,.2);color:#F2F2EE}
+  html.noVerso .hist-veu{background:rgba(0,0,0,.5)}
+  .esc-janela{--esc-fundo:#0b0c0b;--esc-tinta:#F2F2EE;--esc-suave:rgba(242,242,238,.78);--esc-linha:rgba(242,242,238,.16)}
+  #janela .j-caixa{background:#0b0c0b;color:#F2F2EE}
+}
 </style>
 <style id="fundo-app">
 html.com-fundo body{background-image:linear-gradient(rgba(8,9,8,.52),rgba(8,9,8,.52)),var(--fundo-app);background-size:cover;background-position:center;background-repeat:no-repeat}
@@ -2392,9 +2413,9 @@ html,body{overscroll-behavior-y:none}
   .gad.fechando,.gad.fechando *{animation:none!important}
   .gad.fechando .gad-aba,.gad.fechando .gad-corpo,.gad.fechando .gad-corpo *{opacity:1!important;transition:none!important;transform:none!important}
   /* cabeçalho sempre à vista, acima de caixa e janela; o menu cheio (z 99800) continua por cima de tudo */
-  html:has(.gad:not(.fechado)) .cluster,html:has(#janela:not(.oculto)) .cluster,html:has(.gad:not(.fechado)) #clTitulo,html:has(#janela:not(.oculto)) #clTitulo{z-index:400}
-  html:has(.gad:not(.fechado)) .cluster,html:has(#janela:not(.oculto)) .cluster{opacity:1!important;pointer-events:auto!important}
-  html:has(.gad:not(.fechado):not(.fechando)) #btnVolta,html:has(#janela:not(.oculto):not(.saindo)) #btnVolta{display:grid}
+  html:has(.gad:not(.fechado)) .cluster,html:has(#janela:not(.oculto)) .cluster,html:has(.gad:not(.fechado)) #clTitulo,html:has(#janela:not(.oculto)) #clTitulo,html.comWallet .cluster,html.comWallet #clTitulo{z-index:400}
+  html:has(.gad:not(.fechado)) .cluster,html:has(#janela:not(.oculto)) .cluster,html.comWallet .cluster{opacity:1!important;pointer-events:auto!important}
+  html:has(.gad:not(.fechado):not(.fechando)) #btnVolta,html:has(#janela:not(.oculto):not(.saindo)) #btnVolta,html.comWallet #btnVolta{display:grid}
   #btnVolta{position:fixed;z-index:400;right:var(--lado,16px);top:calc(var(--vf,12px) + env(safe-area-inset-top) + 52px);width:44px;height:44px;place-items:center;padding:0;margin:0;background:transparent;border:0;border-radius:12px;color:#fff;-webkit-tap-highlight-color:transparent;animation:gadTela .3s ease both}
   #btnVolta svg{width:26px;height:26px}
   /* a caixa aberta começa abaixo do cabeçalho + seta; a aba (título/✕/arrastar) some: o título está no topo e o voltar é a seta */
@@ -2405,14 +2426,6 @@ html,body{overscroll-behavior-y:none}
   #janela .caixa{padding-top:calc(var(--vf,12px) + env(safe-area-inset-top) + 100px)!important}
   #janela::before{content:'';position:fixed;left:0;right:0;top:0;height:calc(var(--vf,12px) + env(safe-area-inset-top) + 100px);background:#0b0c0b;z-index:3;pointer-events:none}
   #janela:not(.oculto) .j-caixa{z-index:2}
-  /* segunda tela CLARA (como no desktop: marfim + grafite) — só as telas "invertidas"; as demais seguem escuras */
-  #janela .j-caixa:has(.caixa.invertida){background:#E4E3DE;color:#1D1E22}
-  #janela .caixa.invertida{--branco:#1D1E22;--branco2:rgba(29,30,34,.76);--branco3:rgba(29,30,34,.54);--linha:rgba(29,30,34,.45);color:#1D1E22!important}
-  #janela .caixa.invertida .btn.cheio{color:#fff}
-  #janela .j-caixa,#janela .caixa.invertida{border:0!important;box-shadow:none!important;border-radius:0!important}
-  html:has(#janela:not(.oculto) .caixa.invertida) #janela::before{background:#E4E3DE}
-  html:has(#janela:not(.oculto):not(.saindo) .caixa.invertida) .cluster .cl-b,html:has(#janela:not(.oculto):not(.saindo) .caixa.invertida) #btnVolta{color:#1D1E22;--linha:rgba(29,30,34,.35);background:transparent}
-  html:has(#janela:not(.oculto):not(.saindo) .caixa.invertida) #clTitulo{color:#1D1E22;text-shadow:none}
 }
 /* ícones no menu de botão direito */
 .menu-ctx button svg{width:18px;height:18px;flex:none;opacity:.8}
@@ -2663,7 +2676,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v499 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v500 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -7199,23 +7212,93 @@ function htmlSaudeGad(){
 // Só admin vê a caixa; quem o admin liberar precisa confirmar a senha de novo
 // (conferido no banco). Os números não passam pelo shell: ficam dentro do iframe.
 // =====================================================================
-function htmlFinanceiroGad(){
-  if (!window.REAL) return gadCaixa('Financeiro', `<div class="nota">Entre na sua conta.</div>`);
-  if (!ehAdmin()) return gadCaixa('Financeiro', `<div class="nota">Só o admin vê.</div>`);
-  return gadCaixa('Financeiro', `<div class="nota" style="line-height:1.5">Casa e Empresa: entradas, saídas, parcelas, clientes, equipe e fornecedores, custos de IA.</div>`, ['Abrir o Financeiro', 'abrirFinanceiro()']);
+// ----- a caixinha da home: o que importa agora, clicável; a Wallet completa abre por cima -----
+const FING = { d:null, erro:'', carregando:false, em:0, m0:'', m1:'' };
+async function carregarFinGad(){
+  if (FING.carregando || !window.REAL || !sbR || !ehAdmin()) return; FING.carregando = true;
+  try {
+    const h = new Date(), mk = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
+    FING.m0 = mk(h); FING.m1 = mk(new Date(h.getFullYear(), h.getMonth() + 1, 1));
+    const r = await sbR.from('fin_lancamentos').select('ambiente,mes,sentido,grupo,dia,descricao,valor,pago,conta').in('mes', [FING.m0, FING.m1]).limit(1000);
+    if (r.error) { FING.erro = /fin_lancamentos/.test(r.error.message) ? 'Rode o migration_v171 (Financeiro) no Supabase.' : r.error.message; FING.d = null; }
+    else { FING.d = (r.data || []).map(x => Object.assign(x, { valor:Number(x.valor) })); FING.erro = ''; }
+  } catch(e){ FING.erro = String(e && e.message || e); }
+  FING.carregando = false; FING.em = Date.now(); try { renderBoard(); } catch(e){}
 }
-function abrirFinanceiro(){
+function finTot(a, m){
+  const R = FING.d.filter(l => l.ambiente === a && l.mes === m && l.conta), S = (x, f) => x.reduce((t, l) => t + (!f || f(l) ? l.valor : 0), 0);
+  const ent = R.filter(l => l.sentido === 'entrada' && l.grupo !== 'saldo'), sai = R.filter(l => l.sentido === 'saida'), sd = S(R.filter(l => l.grupo === 'saldo'));
+  const e = S(ent), s2 = S(sai);
+  return { tem:R.length > 0, e, s:s2, sd, total:sd + e - s2, aRec:S(ent, l => !l.pago), aPag:S(sai, l => !l.pago) };
+}
+function finAv(nome, sentido){
+  const n = String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase(), pal = n.split(/[^A-Z0-9]+/).filter(Boolean);
+  const ini = (n.replace(/[^A-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('') || '·');
+  let url = null;
+  try {
+    const sa = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+    const pes = () => (typeof PERFIS !== 'undefined' ? PERFIS : []).find(p => p.name && sa(p.name).split(/[^A-Z0-9]+/).some(w => w.length >= 3 && pal.includes(w)));
+    const cli = () => (typeof clientesReais !== 'undefined' ? clientesReais : []).find(c => { const cn = sa(c.name), w = cn.split(/[^A-Z0-9]+/).filter(x => x.length >= 3); return c.name && ((cn.length >= 3 && n.includes(cn)) || (w[0] && w[0].length >= 4 && pal.includes(w[0]))); });
+    const r = sentido === 'entrada' ? (cli() || pes()) : (pes() || cli()); url = r ? (r.logo_url || r.avatar_url || null) : null;
+  } catch(e){}
+  return `<span style="position:relative;width:34px;height:34px;border-radius:50%;border:1px solid var(--linha);display:grid;place-items:center;font-size:11px;font-weight:600;flex-shrink:0;overflow:hidden">${esc(ini)}${url ? `<img src="${esc(url)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}</span>`;
+}
+function htmlFinanceiroGad(){
+  if (!window.REAL) return gadCaixa('PD Wallet', `<div class="nota">Entre na sua conta.</div>`);
+  if (!ehAdmin()) return gadCaixa('PD Wallet', `<div class="nota">Só o admin vê.</div>`);
+  if (!FING.d && !FING.erro) { carregarFinGad(); return gadCaixa('PD Wallet', `<div class="nota">Olhando os números…</div>`); }
+  if (FING.erro && !FING.d) return gadCaixa('PD Wallet', `<div class="nota" style="line-height:1.5">${esc(FING.erro)}</div>`, ['Tentar de novo', 'FING.erro="";FING.d=null;renderBoard()']);
+  if (Date.now() - FING.em > 60000 && !FING.carregando) setTimeout(carregarFinGad, 0);
+  const hoje = new Date().getDate(), emp = finTot('empresa', FING.m0), cas = finTot('casa', FING.m0), brl = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+  const saldoProx = FING.d.filter(l => l.ambiente === 'empresa' && l.mes === FING.m1 && l.grupo === 'saldo' && l.conta).reduce((t, l) => t + l.valor, 0), temProx = FING.d.some(l => l.ambiente === 'empresa' && l.mes === FING.m1 && l.grupo === 'saldo');
+  const retirada = temProx ? Math.round((emp.total - saldoProx) * 100) / 100 : null;
+  const nomeAmb = a => a === 'casa' ? 'Casa' : 'Empresa';
+  const go = (a, aba) => `abrirFinanceiro('${a}','${FING.m0}','${aba || 'mes'}')`;
+  const resumo = (nome, t, a) => `<div class="ia-linha" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="${go(a)}"><div class="c" style="flex:1;min-width:0"><div class="n">${nome}</div><div class="d">entra ${brl(t.e)} · sai ${brl(t.s)} · falta pagar ${brl(t.aPag)}</div></div><b style="font-size:15px;font-weight:500;white-space:nowrap">${t.total < 0 ? '−' : ''}${brl(Math.abs(t.total))}</b></div>`;
+  const pend = FING.d.filter(l => l.mes === FING.m0 && l.conta && !l.pago && l.grupo !== 'saldo');
+  const vencem = pend.filter(l => l.sentido === 'saida').sort((x, y) => (x.dia || 99) - (y.dia || 99)).filter(l => !l.dia || l.dia <= hoje + 7).slice(0, 5);
+  const chegam = pend.filter(l => l.sentido === 'entrada').sort((x, y) => (x.dia || 99) - (y.dia || 99)).filter(l => !l.dia || l.dia <= hoje + 7).slice(0, 3);
+  const lin = (l, sent) => `<div class="ia-linha" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="${go(l.ambiente)}">${finAv(l.descricao, sent)}<div class="c" style="flex:1;min-width:0"><div class="n" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(String(l.descricao).replace(/\b\d+\s*de\s*\d+\b/gi, '').trim())}</div><div class="d">${l.dia ? 'dia ' + l.dia : 'sem dia'} · ${nomeAmb(l.ambiente)}${l.dia && l.dia < hoje ? ' · <span style="color:var(--laranja)">atrasado</span>' : ''}</div></div><b style="font-size:13px;font-weight:500;white-space:nowrap">${sent === 'saida' ? '−' : ''}${brl(l.valor)}</b></div>`;
+  const ib = 'style="min-height:30px;padding:4px 11px;font-size:11.5px"';
+  const topo = `<div style="display:flex;justify-content:flex-end;gap:6px;margin:0 0 6px"><button class="btn" ${ib} onclick="baixarFinGad()" title="Baixar o mês (Excel)">Baixar</button><button class="btn" ${ib} onclick="abrirFinanceiro()">Ver todas</button></div>`;
+  return gadCaixa('PD Wallet', topo + resumo('Empresa', emp, 'empresa') + resumo('Casa', cas, 'casa') +
+    (retirada != null ? `<div class="nota" style="margin:6px 0 2px">Retirada do mês: <b>${brl(retirada)}</b> · saldo que segue ${brl(saldoProx)}</div>` : '') +
+    (vencem.length ? `<div class="nota" style="margin:10px 0 2px">O que vence logo</div>` + vencem.map(l => lin(l, 'saida')).join('') : '') +
+    (chegam.length ? `<div class="nota" style="margin:10px 0 2px">O que chega logo</div>` + chegam.map(l => lin(l, 'entrada')).join('') : '') +
+    (!vencem.length && !chegam.length ? `<div class="nota" style="margin-top:8px">Nada pendente nos próximos 7 dias.</div>` : ''));
+}
+function baixarFinGad(){
+  if (!FING.d) return;
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"', L = [['Ambiente','Mês','Tipo','Grupo','Dia','Descrição','Valor','Pago'].map(q).join(';')];
+  FING.d.slice().sort((a, b) => a.ambiente.localeCompare(b.ambiente) || a.mes.localeCompare(b.mes) || (a.dia || 0) - (b.dia || 0)).forEach(l => L.push([l.ambiente, l.mes.slice(0, 7), l.sentido, l.grupo, l.dia, l.descricao, String(l.valor).replace('.', ','), l.pago ? 'sim' : 'não'].map(q).join(';')));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + L.join('\r\n')], { type:'text/csv;charset=utf-8' })); a.download = 'PD-Wallet-' + FING.m0.slice(0, 7) + '.csv'; a.click();
+}
+function abrirFinanceiro(amb, mes, aba){
   if (!ehAdmin()) return;
+  // caixa da home aberta (celular: tela cheia) fecha antes: a Wallet entra no lugar dela, com o mesmo menu do topo
+  try { document.querySelectorAll('.gad:not(.fechado):not(.fechando)').forEach(g => { const id = (g.dataset.fk || '').replace('gad-', ''); if (id){ gadsAbertos[id] = true; alternarAbertura(id); } }); } catch(e){}
   let v = document.getElementById('finVeu');
   if (!v){
-    v = document.createElement('div'); v.id = 'finVeu'; v.style.cssText = 'position:fixed;inset:0;z-index:99990;background:#0B0C0B';
-    const f = document.createElement('iframe'); f.id = 'finFrame'; f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0'; f.src = 'financeiro.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now());
-    v.appendChild(f); document.body.appendChild(v);
-    window.addEventListener('message', e => { if (e.data && e.data.tipo === 'fin-fechar') fecharFinanceiro(); });
+    const cel = window.matchMedia && matchMedia('(max-width:999px)').matches, dia = document.documentElement.classList.contains('dia') && !cel;
+    let safe = 0; try { const t = document.createElement('div'); t.style.cssText = 'position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top);visibility:hidden'; document.body.appendChild(t); safe = t.offsetHeight || 0; t.remove(); } catch(e){}
+    v = document.createElement('div'); v.id = 'finVeu';
+    // z 40: ABAIXO do menu do topo (z 41/400), que continua à vista e funcionando; clicar nele fecha a Wallet e segue para onde foi
+    v.style.cssText = 'position:fixed;inset:0;z-index:40;opacity:0;transition:opacity .45s ease;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);background:' + (dia ? 'rgba(244,243,239,.82)' : 'rgba(6,7,6,.84)');
+    const q = new URLSearchParams({ v: String(window.SD_VERSAO || Date.now()), safe: String(safe) }); if (amb) q.set('amb', amb); if (mes) q.set('mes', mes); if (aba) q.set('aba', aba);
+    const f = document.createElement('iframe'); f.id = 'finFrame'; f.setAttribute('allowtransparency', 'true'); f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent'; f.src = 'financeiro.html?' + q.toString();
+    v.appendChild(f); document.body.appendChild(v); document.documentElement.classList.add('comWallet');
+    if (!window._finMsg){ window._finMsg = true; window.addEventListener('message', e => { if (e.data && e.data.tipo === 'fin-fechar') fecharFinanceiro(); }); }
+    window._finMenu = ev => { if (ev.target.closest && ev.target.closest('.cluster, #clMenu, .cl-menu, #btnVolta')) fecharFinanceiro(); };   // clicou no menu da PD: a Wallet sai e o menu faz o que pediu
+    document.addEventListener('click', window._finMenu, true);
+    requestAnimationFrame(() => requestAnimationFrame(() => { v.style.opacity = '1'; }));
   }
   v.style.display = 'block';
 }
-function fecharFinanceiro(){ const v = document.getElementById('finVeu'); if (v) v.remove(); }   // remove o iframe: os números saem da memória
+function fecharFinanceiro(){
+  const v = document.getElementById('finVeu'); document.documentElement.classList.remove('comWallet');
+  if (window._finMenu){ document.removeEventListener('click', window._finMenu, true); window._finMenu = null; }
+  if (!v) return; v.id = 'finVeuSai'; v.style.opacity = '0'; v.style.pointerEvents = 'none'; setTimeout(() => v.remove(), 450);   // remove o iframe: os números saem da memória
+}
 function htmlOficina(){
   if (!window.REAL) return gadCaixa('Saída de materiais', `<div class="nota">Entre na sua conta.</div>`);
   if (!perfil || !['admin', 'team'].includes(perfil.role)) return gadCaixa('Saída de materiais', `<div class="nota">Disponível para a equipe.</div>`);
@@ -7733,6 +7816,7 @@ const GADGETS = {
   anuncios:  { nome:'Campanhas', html:()=>htmlAnuncios() },
   escola:    { nome:'Escola das IAs', admin:true, html:()=>htmlEscola() },   // só o admin vê, por enquanto
   saude:     { nome:'Saúde da plataforma', admin:true, html:()=>htmlSaudeGad() },   // só o admin: relógios, zap e erros num olhar
+  financeiro:{ nome:'PD Wallet', admin:true, html:()=>htmlFinanceiroGad() },   // só o admin: resumo Casa e Empresa; abre a Wallet completa
   oficina:   { nome:'Saída de materiais', html:()=>htmlOficina() },
   estudio:   { nome:'Trabalho', html:()=>htmlEstudio() },
   ias:       { nome:'Inteligências da casa', html:()=>htmlIAs() },
@@ -7882,7 +7966,7 @@ meusGadgets = meusGadgets.filter(id => id !== 'banco');   // o banco de mídia m
 // antes de ela existir (quem tirou de propósito não ganha de volta).
 try {
   const visto = JSON.parse(localStorage.getItem('sd_gadgets_vistos')||'[]');
-  for (const nova of ['minhaia','anuncios','publicacao','oficina','estudio','ias','saude']) {
+  for (const nova of ['minhaia','anuncios','publicacao','oficina','estudio','ias','saude','financeiro']) {
     if (!visto.includes(nova)) {
       if (!meusGadgets.includes(nova)) meusGadgets = [...meusGadgets, nova];
       visto.push(nova);
@@ -8057,7 +8141,7 @@ const ICONE_GAD = {
   ias:'<text x="12" y="16.6" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor" stroke="none" font-family="-apple-system,Helvetica,Arial,sans-serif" letter-spacing="-.3">IA</text>',
   anuncios:'<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M22.5 11.4 22.3 11.3 21.4 11.3 21.2 11.4 19.9 11.5 19.6 11.7 19.6 12.1 19.9 12.3 20.1 12.3 20.2 12.2 21.1 12.2 21.2 12.1 22.0 12.1 22.1 12.0 22.3 12.0 22.5 11.8zM20.8 9.0 20.5 8.7 20.1 8.7 19.5 9.1 19.3 9.1 19.0 9.4 19.0 9.7 19.1 9.9 19.5 9.9 19.6 9.8 19.9 9.8 20.4 9.5 20.8 9.1zM20.3 5.9 20.0 5.6 19.8 5.6 19.4 6.0 19.3 6.0 19.0 6.2 18.5 6.5 18.2 6.9 18.0 6.9 17.6 7.3 17.7 7.6 18.1 7.8 18.5 7.5 18.9 7.2 19.0 7.2 19.3 6.9 19.8 6.7 20.3 6.2zM17.4 4.3 17.0 4.3 16.0 5.3 16.0 5.5 16.3 5.8 16.6 5.8 17.6 4.8 17.6 4.4zM10.5 3.2 10.3 3.3 10.0 3.3 9.6 3.9 9.6 4.4 9.5 4.6 9.5 4.9 9.4 5.0 9.4 5.3 9.3 5.4 9.3 5.7 9.1 5.8 9.1 6.0 9.0 6.2 8.9 6.8 8.6 7.1 8.6 7.4 7.5 9.6 7.3 9.8 7.3 10.0 7.0 10.2 7.0 10.3 6.8 10.6 6.5 11.1 6.1 11.6 6.1 11.7 4.2 13.5 4.2 13.8 4.3 14.0 4.6 14.3 4.8 14.8 5.2 15.1 5.4 15.6 5.8 16.0 5.8 16.1 6.1 16.4 6.3 16.9 6.7 17.2 6.7 17.4 6.9 17.6 6.9 17.8 5.5 18.9 5.2 19.0 5.0 19.0 4.9 19.2 4.2 19.2 4.1 19.0 3.8 19.0 3.5 18.9 2.7 18.1 2.3 17.4 2.3 16.4 2.4 16.2 2.4 16.0 2.6 15.8 3.3 15.1 3.4 15.1 3.8 14.7 3.9 14.4 3.7 14.1 3.4 14.1 3.1 14.2 2.2 14.9 1.9 15.4 1.6 15.9 1.6 16.2 1.5 16.4 1.5 17.4 1.6 17.5 1.6 17.7 1.9 18.2 2.1 18.5 2.4 19.0 2.8 19.4 2.9 19.4 3.4 19.7 3.6 19.7 3.8 19.9 4.2 19.9 4.4 20.0 4.6 20.0 4.7 19.9 5.2 19.9 5.4 19.7 5.6 19.7 5.8 19.6 7.3 18.5 7.6 18.5 9.9 20.8 9.9 20.9 9.4 21.2 9.0 21.4 8.8 21.1 8.7 21.1 7.0 19.9 6.6 19.9 6.4 20.1 6.4 20.4 6.8 20.8 7.0 20.8 7.2 21.1 7.3 21.1 9.0 22.3 9.4 22.2 10.2 21.6 10.6 21.3 10.9 21.0 10.9 20.7 8.3 18.1 8.4 17.9 9.2 17.5 9.4 17.5 9.8 17.3 10.0 17.3 10.2 17.1 10.4 17.1 10.5 17.0 10.8 17.0 11.3 16.8 12.1 16.7 12.2 16.5 12.9 16.5 13.0 16.4 13.7 16.4 13.8 16.3 15.4 16.3 15.5 16.2 15.7 16.3 17.9 16.3 18.0 16.4 18.9 16.4 19.1 16.3 19.4 15.9 19.4 15.4 19.3 15.1 19.1 14.9 18.8 14.4 18.4 14.0 18.2 13.5 17.8 13.2 17.8 13.0 17.6 12.8 17.3 12.3 16.7 11.6 17.1 10.8 17.1 9.5 17.0 9.4 17.0 9.1 16.8 8.9 16.6 8.6 16.3 8.1 15.4 7.3 15.2 7.3 15.1 7.2 14.7 7.2 14.6 7.1 14.1 7.1 14.0 7.2 13.7 7.2 13.1 6.5 12.9 6.0 12.5 5.7 12.5 5.5 12.3 5.3 12.0 4.8 11.7 4.4 11.7 4.3 11.4 4.1 11.2 3.6 10.9 3.3 10.6 3.3zM5.4 13.6 5.5 13.6 5.8 13.9 5.8 14.0 6.1 14.3 6.3 14.8 6.7 15.1 6.9 15.6 7.3 16.0 7.3 16.1 8.0 17.1 7.9 17.3 7.7 17.3 7.5 17.1 7.5 17.0 7.1 16.6 6.9 16.1 6.5 15.8 6.5 15.6 6.3 15.4 6.0 14.9 5.6 14.5 5.6 14.4 5.2 13.8zM14.4 7.9 14.7 7.9 15.2 8.2 16.0 9.0 16.3 9.5 16.3 9.7 16.4 9.8 16.4 10.5 16.2 10.6 15.9 10.3 15.9 10.2 15.5 9.8 15.5 9.7 15.2 9.5 15.0 9.0 14.6 8.6 14.6 8.5 14.3 8.0zM10.5 4.1 10.7 4.3 10.7 4.4 11.3 5.2 11.3 5.3 11.6 5.5 11.8 6.0 12.2 6.4 12.2 6.5 12.8 7.3 12.8 7.4 13.1 7.6 13.3 8.1 13.7 8.5 13.7 8.6 14.3 9.4 14.3 9.5 14.5 9.7 14.8 10.2 15.2 10.6 15.2 10.7 15.4 11.0 15.7 11.4 16.0 11.8 16.0 11.9 16.6 12.7 16.6 12.8 16.9 13.0 17.1 13.5 17.5 13.9 17.7 14.4 18.1 14.8 18.1 14.9 18.6 15.5 18.5 15.6 17.8 15.6 17.7 15.5 14.2 15.5 14.1 15.6 13.2 15.6 13.1 15.7 12.5 15.7 12.4 15.8 11.3 16.0 11.1 16.1 10.9 16.1 10.8 16.2 10.5 16.2 10.4 16.3 10.2 16.3 10.0 16.5 9.8 16.5 9.7 16.6 9.4 16.6 9.3 16.7 9.0 16.7 8.8 16.8 8.5 16.5 8.5 16.4 8.2 16.1 8.0 15.6 7.6 15.3 7.6 15.1 7.4 14.9 7.1 14.4 6.8 14.0 6.5 13.5 6.1 13.2 6.0 12.8 6.8 12.1 6.8 11.9 7.1 11.6 7.1 11.4 7.4 11.1 7.6 11.1 8.0 11.6 8.0 11.7 8.3 11.9 8.5 12.4 8.9 12.8 8.9 12.9 9.5 13.7 9.5 13.8 9.7 14.0 10.0 14.5 10.4 14.9 10.4 15.0 10.8 15.4 11.0 15.4 11.3 15.1 11.1 14.5 10.7 14.2 10.4 13.7 10.1 13.3 10.1 13.2 9.8 12.9 9.6 12.4 9.2 12.1 9.2 11.9 8.6 11.2 8.6 11.1 8.3 10.8 8.3 10.7 8.0 10.3 9.3 7.8 9.3 7.5 9.6 7.1 9.6 6.9 9.7 6.8 9.7 6.5 9.8 6.4 9.8 6.2 9.9 6.0 9.9 5.8 10.2 5.3 10.2 4.9 10.3 4.8 10.3 4.3zM15.6 1.7 15.2 1.7 15.0 1.8 14.7 2.7 14.4 3.0 14.0 4.0 14.1 4.4 14.3 4.4 14.6 4.4 14.7 4.2 15.0 3.6 15.2 3.3 15.7 2.3 15.7 1.8z"/>',
   publicacao:'<path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/>',
-  financeiro:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-2.4 5-2.4 5 0s-5 1.4-5 4c0 2.4 5 2.4 5 0"/>',
+  financeiro:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 15h2"/>',
 };
 const icoGad = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${ICONE_GAD[id]||ICONE_GAD.tarefas}</svg>`;
 // O quadradinho da SD mostra a CARINHA dela, com o mesmo canto arredondado
@@ -8210,6 +8294,7 @@ function gadPhPoe(gad){   // celular: a caixa aberta sai do fluxo (tela cheia); 
 }
 // seta de voltar (universal no celular): fecha a janela do topo; sem janela, fecha a caixa aberta
 function voltarTela(){
+  if (document.getElementById('finVeu')){ fecharFinanceiro(); return; }
   const j = document.getElementById('janela');
   if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo')){ window._toqueNada = true; try { fecharJanela(); } finally { window._toqueNada = false; } return; }
   const g = document.querySelector('.gad:not(.fechado):not(.fechando)'); if (g){ const id = (g.dataset.fk || '').replace('gad-', ''); if (id){ gadsAbertos[id] = true; alternarAbertura(id); } }   // a tela está aberta de fato: fecha, mesmo que o estado tenha ficado para trás
@@ -8354,7 +8439,7 @@ function novoChat(){
 }
 function novaTarefa(){ novoChat(); }
 // No app (celular) o conjunto é FIXO: não dá para pôr nem tirar. Só o que importa no dia a dia.
-const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','vendas','escola'];
+const GADGETS_APP = ['tarefas','estudio','aprovacoes','social','publicacao','anuncios','minhaia','cronograma','zap','vendas','escola','financeiro'];
 // o que cada pessoa pode ver: admin tudo; 'admin' só admin; 'libera' = ferramenta liberada no perfil (studio_areas)
 function gadLiberado(g){ if (!g) return false; if (g.admin) return aindaNao(()=>ehAdmin(), false); if (g.libera) return aindaNao(()=>ehAdmin() || ((perfil && perfil.studio_areas) || []).includes(g.libera), false); return true; }
 function zapLiberado(){ return gadLiberado(GADGETS.zap); }
@@ -12801,6 +12886,7 @@ setTimeout(ofiSonda, 6000); setInterval(() => { if (!document.hidden) ofiSonda()
   function titulo(){
     const R = document.documentElement;
     if (R.classList.contains('app-menu')) return 'Menu';
+    if (document.getElementById('finVeu')) return 'PD Wallet';
     const j = document.getElementById('janela');
     if (j && !j.classList.contains('oculto') && !j.classList.contains('saindo') && _tJan) return _tJan;
     { const gt = document.querySelector('.gad:not(.fechado):not(.fechando) .gad-tit'); if (gt && gt.textContent.trim()) return gt.textContent.trim(); }
