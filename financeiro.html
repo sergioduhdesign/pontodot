@@ -85,7 +85,7 @@ input,select,textarea{font:inherit;color:inherit}
 .chip{display:inline-block;background:var(--bg);border-radius:8px;padding:1px 7px;font-size:11px;margin-right:5px;color:var(--tx)}
 .val{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .val.e{color:var(--verde)}
-.ck{width:26px;height:26px;border-radius:50%;border:1.8px solid var(--lin);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;color:#fff;font-size:14px}
+.ck{width:26px;height:26px;border-radius:50%;border:1px solid var(--lin);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;color:#fff}
 .ck.on{background:var(--verde);border-color:var(--verde)}
 .lin.memo{opacity:.55}
 .vazio{padding:18px;text-align:center;color:var(--mut);font-size:13.5px}
@@ -139,8 +139,8 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
     <div class="l1">
       <div class="marca"><img src="assets/logo-pontodot-bolinha-white.svg" alt="pd"><h1>Wallet</h1></div>
       <div class="seg" id="segAmb"></div>
-      <button class="ic" id="btTrancar" title="Trancar">🔒</button>
-      <button class="ic hid" id="btFechar" title="Fechar">✕</button>
+      <button class="ic" id="btTrancar" title="Trancar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+      <button class="ic hid" id="btFechar" title="Fechar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="mesbar"><button class="ic" id="mAnt">‹</button><b id="mesTxt"></b><button class="ic" id="mProx">›</button></div>
   </div>
@@ -182,6 +182,7 @@ function parseValor(t){ let s = String(t == null ? '' : t).replace(/[R$\s]/g,'')
 function parcelaDe(t){ const m = /^\s*(\d+)\s*de\s*(\d+)/i.exec(t || ''); return m ? [Number(m[1]), Number(m[2])] : [null, null]; }
 const normNome = d => String(d || '').replace(/\b\d+\s*de\s*\d+\b/gi,'').replace(/[-–·]+\s*$/,'').replace(/\s+/g,' ').trim().toUpperCase() || '—';
 const soma = (arr, f) => arr.reduce((a, l) => a + (f ? (f(l) ? Number(l.valor) : 0) : Number(l.valor)), 0);
+const ICK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
 const dados = () => D[AMB] || [];
 const doMes = (m, a) => (D[a || AMB] || []).filter(l => l.mes === m);
 const podeEditar = () => ACC && (ACC.admin || (ACC.areas || []).some(a => a.area === AMB && a.editar));
@@ -278,7 +279,7 @@ function linha(l){
   const sub = [l.parcela ? '<span class="chip">' + esc(l.parcela) + '</span>' : '', esc([l.forma, l.vendedor, l.obs].filter(Boolean).join(' · '))].join('');
   return '<div class="lin ' + (l.conta ? '' : 'memo') + '" data-id="' + l.id + '"><div class="dia">' + (l.dia || '·') + '</div><div class="m"><b>' + esc(l.descricao) + '</b><small>' + (l.conta ? '' : '<span class="chip">anotação</span>') + sub + '</small></div>' +
     '<div class="val ' + (l.sentido === 'entrada' ? 'e' : '') + '">' + (l.sentido === 'entrada' ? '' : '−') + BRL(l.valor) + '</div>' +
-    '<button class="ck ' + (l.pago ? 'on' : '') + '" data-pago="' + l.id + '" title="' + (l.sentido === 'entrada' ? 'Recebido' : 'Pago') + '">' + (l.pago ? '✓' : '') + '</button></div>';
+    '<button class="ck ' + (l.pago ? 'on' : '') + '" data-pago="' + l.id + '" title="' + (l.sentido === 'entrada' ? 'Recebido' : 'Pago') + '">' + (l.pago ? ICK : '') + '</button></div>';
 }
 function colunaMes(sentido){
   const R = doMes(MES).filter(l => l.sentido === sentido).sort((a, b) => (a.dia || 99) - (b.dia || 99));
@@ -287,7 +288,7 @@ function colunaMes(sentido){
   let h = '<div class="cx"><div class="cab"><h3>' + (sentido === 'entrada' ? 'Entradas' : 'Saídas') + '</h3><span class="tt ' + (sentido === 'entrada' ? 'pos' : '') + '">' + BRL(tt) + '</span></div>';
   GR_ORDEM.forEach(g => { if (porG[g]) h += (Object.keys(porG).length > 1 || g !== 'outro' ? '<div class="gp">' + GRUPOS[g] + ' · ' + BRL0(soma(porG[g], l => l.conta)) + '</div>' : '') + porG[g].map(linha).join(''); });
   if (!R.length) h += '<div class="vazio">Nada por aqui.</div>';
-  if (podeEditar()) h += '<button class="add" data-novo="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Nova entrada' : 'Nova saída') + '</button>';
+  if (podeEditar()) h += '<button class="add" data-novo="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Nova entrada' : 'Nova saída') + '</button><button class="add" style="margin-top:0" data-contrato="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Novo contrato (várias parcelas)' : 'Novo parcelamento') + '</button>';
   return h + '</div>';
 }
 function vMes(){
@@ -312,7 +313,7 @@ function vPessoas(sentido){
   const F = G.filter(g => !q || g.nome.toLowerCase().includes(q));
   const t12 = G.reduce((a, g) => a + g.doze, 0);
   const tit = AMB === 'empresa' ? (sentido === 'entrada' ? 'Clientes' : 'Equipe e fornecedores') : (sentido === 'entrada' ? 'De quem entra' : 'Para onde vai');
-  let h = '<input class="busca" id="busca" placeholder="Buscar…" value="' + esc(BUSCA) + '"><div class="cx"><div class="cab"><h3>' + tit + '</h3><span class="tt">' + BRL0(t12) + ' <small style="color:var(--mut);font-weight:400">em 12 meses</small></span></div>';
+  let h = '<input class="busca" id="busca" placeholder="Buscar…" value="' + esc(BUSCA) + '">' + (podeEditar() ? '<button class="add" style="width:100%;margin:0 0 12px" data-contrato="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Novo contrato' : 'Novo parcelamento') + '</button>' : '') + '<div class="cx"><div class="cab"><h3>' + tit + '</h3><span class="tt">' + BRL0(t12) + ' <small style="color:var(--mut);font-weight:400">em 12 meses</small></span></div>';
   h += F.map(g => {
     const ult = g.itens.filter(x => x.mes === g.ult).sort((a, b) => (b.dia || 0) - (a.dia || 0))[0], pa = ult && ult.parcela_de ? ' · parcela ' + ult.parcela_n + ' de ' + ult.parcela_de : '';
     return '<div class="pes" data-pes="' + esc(g.nome) + '" data-sent="' + sentido + '"><div class="av">' + esc(g.nome.replace(/[^A-Z0-9À-Ú]/gi,'').slice(0,2) || '·') + '</div><div class="m"><b>' + esc(g.nome) + '</b><small>' + g.meses.size + ' meses · último em ' + rotCurto(g.ult) + pa + '</small></div><div class="val ' + (sentido === 'entrada' ? 'e' : '') + '">' + BRL0(g.doze) + '</div></div>';
@@ -325,7 +326,7 @@ function abrePessoa(nome, sentido){
   const tot = soma(R), ult = R[0], pr = ult && ult.parcela_de ? ult.parcela_n / ult.parcela_de * 100 : null;
   folha('<h3>' + esc(nome) + '</h3><div class="trio" style="margin-bottom:12px"><div><small>Total</small><b>' + BRL0(tot) + '</b></div><div><small>Lançamentos</small><b>' + R.length + '</b></div><div><small>Último</small><b>' + (ult ? rotCurto(ult.mes) : '—') + '</b></div></div>' +
     (pr != null ? '<div class="prog" style="margin:0 0 12px"><div><div class="ln"><span>Parcelas <b>' + ult.parcela_n + ' de ' + ult.parcela_de + '</b></span><span>faltam ' + (ult.parcela_de - ult.parcela_n) + '</span></div><div class="bar"><i style="width:' + pr + '%"></i></div></div></div>' : '') +
-    '<div style="max-height:46vh;overflow:auto">' + R.map(l => '<div class="lin" data-id="' + l.id + '" data-fecha="1"><div class="dia">' + (l.dia || '·') + '</div><div class="m"><b>' + rotMes(l.mes) + '</b><small>' + esc([l.parcela, l.forma, l.obs].filter(Boolean).join(' · ')) + '</small></div><div class="val">' + BRL(l.valor) + '</div><div class="ck ' + (l.pago ? 'on' : '') + '">' + (l.pago ? '✓' : '') + '</div></div>').join('') + '</div><div class="bts"><button class="bt sec" data-fechar="1">Fechar</button></div>');
+    '<div style="max-height:46vh;overflow:auto">' + R.map(l => '<div class="lin" data-id="' + l.id + '" data-fecha="1"><div class="dia">' + (l.dia || '·') + '</div><div class="m"><b>' + rotMes(l.mes) + '</b><small>' + esc([l.parcela, l.forma, l.obs].filter(Boolean).join(' · ')) + '</small></div><div class="val">' + BRL(l.valor) + '</div><div class="ck ' + (l.pago ? 'on' : '') + '">' + (l.pago ? ICK : '') + '</div></div>').join('') + '</div><div class="bts"><button class="bt sec" data-fechar="1">Fechar</button></div>');
 }
 
 // ---------- ano ----------
@@ -470,6 +471,52 @@ async function alternaPago(id){
   if (r.error) { l.pago = !novo; desenha(); toast(r.error.message); }
 }
 
+
+// ---------- novo contrato / parcelamento: lança todas as parcelas de uma vez ----------
+let CTR = null;
+function folhaContrato(sentido){
+  CTR = sentido; const ent = sentido === 'entrada';
+  const nomes = [...new Set(dados().filter(l => l.sentido === sentido && l.grupo !== 'saldo').map(l => normNome(l.descricao)))].sort();
+  folha('<h3>' + (ent ? 'Novo contrato' : 'Novo parcelamento') + '</h3>' +
+    '<label class="fl"><span>' + (ent ? 'Cliente' : 'O que é') + '</span><input id="cNome" list="cNomes" autocomplete="off"><datalist id="cNomes">' + nomes.map(n => '<option value="' + esc(n) + '">').join('') + '</datalist></label>' +
+    '<div class="f2"><label class="fl"><span>Valor da parcela (R$)</span><input id="cPar" inputmode="decimal"></label><label class="fl"><span>ou valor total (R$)</span><input id="cTot" inputmode="decimal"></label></div>' +
+    '<div class="f2"><label class="fl"><span>Nº de parcelas</span><input id="cN" inputmode="numeric" placeholder="vazio = mensal sem fim"></label><label class="fl"><span>Dia do mês</span><input id="cDia" inputmode="numeric" value="5"></label></div>' +
+    '<div class="f2"><label class="fl"><span>Primeiro mês</span><input id="cMes" type="month" value="' + MES.slice(0, 7) + '"></label><label class="fl"><span>' + (ent ? 'Tipo' : 'Grupo') + '</span><select id="cGru">' + (ent ? '<option value="com_nf">Com NF</option><option value="sem_nf">Sem NF</option>' : '<option value="fixo">Fixo</option><option value="variavel">Variável</option>') + '</select></label></div>' +
+    (ent ? '<div class="f2"><label class="fl"><span>Entrada / sinal (R$, opcional)</span><input id="cSin" inputmode="decimal"></label><label class="fl"><span>Dia do sinal</span><input id="cSiD" inputmode="numeric"></label></div>' : '') +
+    '<div class="f2"><label class="fl"><span>Como</span><input id="cFor" placeholder="transf, PJ, cartão…"></label>' + (ent ? '<label class="fl"><span>Vendedor(a)</span><input id="cVen"></label>' : '<div></div>') + '</div>' +
+    '<label class="fl"><span>Observação</span><input id="cObs"></label><div class="nota" id="cPrev" style="padding:2px 4px 10px"></div>' +
+    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt" data-salvacontrato="1">Lançar parcelas</button></div>');
+  previaContrato();
+}
+function lerContrato(){
+  const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const n = parseInt(g('cN'), 10) || 0, tot = parseValor(g('cTot')), dia = Math.min(31, Math.max(1, parseInt(g('cDia'), 10) || 1)), mes = (g('cMes') || '').length === 7 ? g('cMes') + '-01' : null;
+  let par = parseValor(g('cPar')); const L = [];
+  if (!(par > 0) && tot > 0 && n > 0) par = Math.round(tot / n * 100) / 100;
+  const nome = g('cNome').trim(), sin = parseValor(g('cSin')), sinDia = parseInt(g('cSiD'), 10) || dia;
+  if (nome && par > 0 && mes) {
+    const total = n > 0 ? n : 12;
+    for (let i = 1; i <= total; i++) {
+      let v = par; if (n > 0 && tot > 0 && !(parseValor(g('cPar')) > 0) && i === n) v = Math.round((tot - par * (n - 1)) * 100) / 100;
+      L.push({ mes: somaMes(mes, i - 1), dia, parcela: n > 0 ? i + 'de' + n : 'mensal', parcela_n: n > 0 ? i : null, parcela_de: n > 0 ? n : null, valor: v });
+    }
+    if (sin > 0) L.unshift({ mes, dia: sinDia, parcela: 'entrada', parcela_n: null, parcela_de: null, valor: sin });
+  }
+  return { nome, par, n, L, tot: L.reduce((a, x) => a + x.valor, 0) };
+}
+function previaContrato(){
+  const e = document.getElementById('cPrev'); if (!e) return; const c = lerContrato();
+  e.innerHTML = c.L.length ? 'Vai lançar <b>' + c.L.length + '</b> ' + (c.n > 0 ? 'parcelas' : 'meses (mensal; dá para estender depois)') + ' · total <b>' + BRL(c.tot) + '</b> · de ' + rotCurto(c.L[0].mes) + ' a ' + rotCurto(c.L[c.L.length - 1].mes) : 'Preencha o nome, o valor e o primeiro mês.';
+}
+async function salvaContrato(){
+  const c = lerContrato(); if (!c.L.length) return toast('Falta nome, valor ou mês.');
+  const g = id => (document.getElementById(id) || {}).value || '', ent = CTR === 'entrada';
+  const base = { ambiente: AMB, sentido: CTR, grupo: g('cGru'), descricao: c.nome, forma: g('cFor').trim() || null, obs: g('cObs').trim() || null, vendedor: ent ? (g('cVen').trim() || null) : null, pago: false, conta: true };
+  const rows = c.L.map(x => Object.assign({}, base, x));
+  const r = await sb.from('fin_lancamentos').insert(rows).select(); if (r.error) return toast(r.error.message);
+  D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); fecha(); desenha(); toast(rows.length + ' lançamentos criados.');
+}
+
 // ---------- eventos ----------
 document.addEventListener('click', e => {
   const t = e.target, q = s => t.closest(s);
@@ -479,6 +526,8 @@ document.addEventListener('click', e => {
   if ((el = q('[data-aba]'))) { ABA = el.dataset.aba; BUSCA = ''; desenha(); return; }
   if ((el = q('[data-novo]'))) { folhaLanc(null, el.dataset.novo); return; }
   if ((el = q('[data-virar]'))) { virarMes(); return; }
+  if ((el = q('[data-contrato]'))) { folhaContrato(el.dataset.contrato); return; }
+  if (q('[data-salvacontrato]')) { salvaContrato(); return; }
   if ((el = q('[data-pes]'))) { abrePessoa(el.dataset.pes, el.dataset.sent); return; }
   if ((el = q('[data-ir]'))) { MES = el.dataset.ir; ABA = 'mes'; desenha(); scrollTo(0, 0); return; }
   if ((el = q('[data-novoia]'))) { folhaIA(null); return; }
@@ -492,6 +541,7 @@ document.addEventListener('click', e => {
   if (t.id === 'veu') { fecha(); return; }
   if ((el = q('.lin[data-id]'))) { const l = dados().find(x => x.id === el.dataset.id); if (!l) return; if (!podeEditar()) return toast('Você só pode ver.'); fecha(); folhaLanc(l, l.sentido); return; }
 });
+document.addEventListener('input', e => { if (e.target.closest && e.target.closest('#folha') && document.getElementById('cPrev')) previaContrato(); });
 document.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.ac) mudaAcesso(t.dataset.u, t.dataset.ac, t.checked); });
 $('#mAnt').onclick = () => { MES = somaMes(MES, -1); desenha(); };
 $('#mProx').onclick = () => { MES = somaMes(MES, 1); desenha(); };
