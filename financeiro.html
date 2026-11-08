@@ -246,15 +246,20 @@ function totais(m){
   const e = soma(ent), s = soma(sai), sd = soma(sal), ep = soma(ent, l => l.pago), sp = soma(sai, l => l.pago);
   return { e, s, sd, ep, sp, sobra: e + sd - s, caixa: sd + ep - sp };
 }
+function fluxo(m){
+  const t = totais(m), pm = somaMes(m, 1), tem = doMes(pm).some(l => l.grupo === 'saldo' && l.conta), p = tem ? totais(pm) : null;
+  return Object.assign(t, { tem, saldoFim: tem ? p.sd : null, retirada: tem ? Math.round((t.sobra - p.sd) * 100) / 100 : null });
+}
 function hero(){
-  const t = totais(MES), vazio = !doMes(MES).length;
+  const t = fluxo(MES), vazio = !doMes(MES).length;
   const pe = t.e ? Math.min(100, t.ep / t.e * 100) : 0, ps = t.s ? Math.min(100, t.sp / t.s * 100) : 0;
   $('#hero').innerHTML = '<div class="hero"><div class="rot">Sobra prevista do mês</div>' +
     '<div class="gr ' + (t.sobra < 0 ? 'neg' : 'pos') + '">' + BRL(t.sobra) + '</div>' +
     '<div class="trio"><div><small>Entradas</small><b>' + BRL0(t.e) + '</b></div><div><small>Saídas</small><b>' + BRL0(t.s) + '</b></div><div><small>Saldo anterior</small><b>' + BRL0(t.sd) + '</b></div></div>' +
     '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
     '<div><div class="ln"><span>Pago <b>' + BRL0(t.sp) + '</b> de ' + BRL0(t.s) + '</span><span>falta ' + BRL0(t.s - t.sp) + '</span></div><div class="bar"><i style="width:' + ps + '%"></i></div></div>' +
-    '<div class="ln" style="margin:0"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div></div>' +
+    '<div class="ln" style="margin:0"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div>' +
+    (t.tem ? (AMB === 'empresa' ? '<div class="ln" style="margin:0"><span>Retirada do mês (sobra − saldo que seguiu)</span><b>' + BRL(t.retirada) + '</b></div>' : '') + '<div class="ln" style="margin:0"><span>Saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span><b>' + BRL(t.saldoFim) + '</b></div>' : '') + '</div>' +
     (vazio ? '<div class="nota" style="padding:12px 0 0">Este mês ainda não tem lançamentos.</div>' : '') + '</div>';
 }
 
@@ -316,14 +321,14 @@ function abrePessoa(nome, sentido){
 // ---------- ano ----------
 function vAno(){
   const meses = [...new Set(dados().map(l => l.mes))].sort(), ate = meses.indexOf(MES) >= 0 ? meses.indexOf(MES) : meses.length - 1;
-  const jan = meses.slice(Math.max(0, ate - 11), ate + 1), T = jan.map(m => Object.assign({ m }, totais(m)));
+  const jan = meses.slice(Math.max(0, ate - 11), ate + 1), T = jan.map(m => Object.assign({ m }, fluxo(m)));
   const mx = Math.max(1, ...T.map(x => Math.max(x.e + x.sd, x.s)));
-  const y = MES.slice(0, 4), A = meses.filter(m => m.startsWith(y)).map(totais);
-  const ae = A.reduce((a, x) => a + x.e, 0), as = A.reduce((a, x) => a + x.s, 0);
+  const y = MES.slice(0, 4), A = meses.filter(m => m.startsWith(y)).map(fluxo);
+  const ae = A.reduce((a, x) => a + x.e, 0), as = A.reduce((a, x) => a + x.s, 0), ar = A.reduce((a, x) => a + (x.tem ? x.retirada : 0), 0);
   $('#cont').innerHTML = '<div class="cx"><div class="cab"><h3>Últimos 12 meses</h3><span class="tt"><span class="pos">■</span> entra &nbsp;<span style="color:var(--roxo)">■</span> sai</span></div><div class="anog">' +
     T.map(x => '<div class="c ' + (x.m === MES ? 'on' : '') + '" data-ir="' + x.m + '"><div class="bb"><i class="e" style="height:' + (x.e / mx * 100) + '%"></i><i class="s" style="height:' + (x.s / mx * 100) + '%"></i></div><small>' + rotCurto(x.m).slice(0, 3) + '</small></div>').join('') + '</div></div>' +
-    '<div class="cx"><div class="cab"><h3>' + y + ' até aqui</h3><span class="tt ' + (ae - as < 0 ? 'neg' : 'pos') + '">' + BRL0(ae - as) + '</span></div><div class="trio" style="padding:0 10px 10px"><div><small>Entrou</small><b>' + BRL0(ae) + '</b></div><div><small>Saiu</small><b>' + BRL0(as) + '</b></div><div><small>Sobrou</small><b>' + BRL0(ae - as) + '</b></div></div></div>' +
-    '<div class="cx" style="padding:8px"><table class="tb"><tr><th>Mês</th><th>Entradas</th><th>Saídas</th><th>Sobra</th></tr>' + T.slice().reverse().map(x => '<tr data-ir="' + x.m + '" style="cursor:pointer"><td>' + rotCurto(x.m) + '</td><td>' + BRL0(x.e) + '</td><td>' + BRL0(x.s) + '</td><td class="' + (x.sobra < 0 ? 'neg' : 'pos') + '">' + BRL0(x.sobra) + '</td></tr>').join('') + '</table></div>';
+    '<div class="cx"><div class="cab"><h3>' + y + ' mês a mês, somado</h3><span class="tt ' + (ae - as < 0 ? 'neg' : 'pos') + '">' + BRL0(ae - as) + '</span></div><div class="trio" style="padding:0 10px 10px"><div><small>Entrou</small><b>' + BRL0(ae) + '</b></div><div><small>Saiu</small><b>' + BRL0(as) + '</b></div><div><small>' + (AMB === 'empresa' ? 'Retirou' : 'Resultado') + '</small><b>' + BRL0(AMB === 'empresa' ? ar : ae - as) + '</b></div></div></div>' +
+    '<div class="cx" style="padding:8px"><div class="nota" style="padding:4px 6px 8px">Um mês entra no outro: o saldo final de um é o saldo inicial do próximo' + (AMB === 'empresa' ? ', já descontada a retirada' : '') + '.</div><table class="tb"><tr><th>Mês</th><th>Saldo ini.</th><th>Entradas</th><th>Saídas</th>' + (AMB === 'empresa' ? '<th>Retirada</th>' : '') + '<th>Saldo final</th></tr>' + T.slice().reverse().map(x => '<tr data-ir="' + x.m + '" style="cursor:pointer"><td>' + rotCurto(x.m) + '</td><td>' + BRL0(x.sd) + '</td><td>' + BRL0(x.e) + '</td><td>' + BRL0(x.s) + '</td>' + (AMB === 'empresa' ? '<td>' + (x.tem ? BRL0(x.retirada) : '—') + '</td>' : '') + '<td class="' + ((x.tem ? x.saldoFim : x.sobra) < 0 ? 'neg' : 'pos') + '"><b>' + BRL0(x.tem ? x.saldoFim : x.sobra) + '</b>' + (x.tem ? '' : '*') + '</td></tr>').join('') + '</table><div class="nota" style="padding:8px 6px 0">* previsto (o mês seguinte ainda não tem saldo lançado).</div></div>';
 }
 
 // ---------- custos de IA ----------
@@ -442,7 +447,8 @@ async function virarMes(){
     else if (!fixa && !l.parcela && l.grupo !== 'fixo' && l.grupo !== 'com_nf') return;
     novos.push({ ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: true });
   });
-  const t = totais(MES); if (Math.abs(t.sobra) >= 0.01) novos.push({ ambiente: AMB, mes: prox, sentido: 'entrada', grupo: 'saldo', descricao: 'SALDO', obs: 'mês anterior', valor: Math.round(t.sobra * 100) / 100, pago: true, conta: true });
+  const t = fluxo(MES); let ret = 0; if (AMB === 'empresa') { ret = t.tem ? t.retirada : (() => { const a = fluxo(somaMes(MES, -1)); return a.tem ? a.retirada : 0; })(); }
+  const sg = Math.round((t.sobra - ret) * 100) / 100; if (Math.abs(sg) >= 0.01) novos.push({ ambiente: AMB, mes: prox, sentido: 'entrada', grupo: 'saldo', descricao: 'SALDO', obs: 'mês anterior' + (ret ? ' − retirada ' + BRL0(ret) : ''), valor: sg, pago: true, conta: true });
   if (!novos.length) return toast('Nada para copiar.');
   const r = await sb.from('fin_lancamentos').insert(novos).select(); if (r.error) return toast(r.error.message);
   D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); MES = prox; desenha(); toast(novos.length + ' lançamentos criados — confira os valores.');
