@@ -28,7 +28,6 @@ input,select,textarea{font:inherit;color:inherit}
 .bt{border:0;border-radius:999px;padding:12px 20px;font-weight:600;background:var(--acc);color:var(--acc-tx)}
 .bt.sec{background:transparent;color:var(--tx);border:1px solid var(--lin)}
 .bt.mini{padding:7px 13px;font-size:12.5px}
-.bt.perigo{background:var(--verm);color:#fff}
 .bt:disabled{opacity:.5}
 /* topo */
 .topo{position:sticky;top:0;z-index:5;background:var(--veu);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--lin);color:var(--tx);display:flex;align-items:stretch;min-height:96px;padding:env(safe-area-inset-top) 18px 0}
@@ -162,7 +161,14 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 .fl select option{background:var(--card);color:var(--tx)}
 .chk{display:flex;align-items:center;gap:9px;margin:4px 2px 10px;font-size:14px}
 .chk input{width:20px;height:20px;accent-color:var(--acc)}
-.bts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}.bts .bt{flex:1}
+.bts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}.bts .bt{flex:1 1 0;min-width:0;height:46px;padding:0 14px;font-size:14px;line-height:1;white-space:nowrap;display:flex;align-items:center;justify-content:center;text-align:center}
+.bts .bt:last-child:not(.sec):not(.perigo){order:-1;flex:1 1 100%;height:50px;font-size:15px}
+.bt.perigo{background:transparent;color:var(--tx);border:1px solid var(--lin);opacity:.7}
+.bt.perigo:active{opacity:1}
+.chk input{-webkit-appearance:none;appearance:none;border:1px solid var(--lin);border-radius:7px;background:transparent;display:grid;place-content:center;flex-shrink:0;margin:0}
+.chk input:checked{background:var(--acc);border-color:var(--acc)}
+.chk input:checked::after{content:"";width:5px;height:10px;border:solid var(--acc-tx);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+@media(max-width:999px){html.emb #folha{max-height:calc(100dvh - var(--safe,0px) - 150px)}}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--acc);color:var(--acc-tx);padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 .acl{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--lin);flex-wrap:wrap}
@@ -508,7 +514,7 @@ function folhaLanc(l, sentido){
     '<label class="fl"><span>Observação</span><input id="fObs" value="' + esc(l.obs || '') + '"></label>' +
     '<label class="chk"><input type="checkbox" id="fPag"' + (l.pago ? ' checked' : '') + '> ' + (l.sentido === 'entrada' ? 'Já recebi' : 'Já paguei') + '</label>' +
     '<label class="chk"><input type="checkbox" id="fCon"' + (l.conta ? ' checked' : '') + '> Entra na soma do mês <small style="color:var(--mut)">(desmarque para só anotar)</small></label>' +
-    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button>' + (n ? '' : '<button class="bt sec" data-dup="1">Copiar p/ próximo mês</button><button class="bt perigo" data-apaga="1">Apagar</button>') + '<button class="bt" data-salva="1">Salvar</button></div>');
+    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button>' + (n ? '' : '<button class="bt sec" style="flex:1.6 1 0" data-dup="1">Copiar p/ próx. mês</button><button class="bt perigo" data-apaga="1">Apagar</button>') + '<button class="bt" data-salva="1">Salvar</button></div>');
   l.__sent = l.sentido; folhaLanc._l = l;
 }
 async function salvaLanc(){
