@@ -4,65 +4,74 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#820AD1">
-<title>Financeiro · Pontodot</title>
+<meta name="theme-color" content="#0B0C0B">
+<title>PD Wallet</title>
 <link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
 <style>
-:root{--bg:#f4f1f7;--card:#fff;--tx:#1b1620;--mut:#7a7285;--lin:rgba(60,30,90,.1);--roxo:#820AD1;--roxo2:#a64ee6;--verde:#118a4c;--verm:#d6334a;--ouro:#c98a00;--r:20px;--sombra:0 1px 2px rgba(40,10,70,.05),0 8px 28px rgba(40,10,70,.06)}
-:root[data-theme=dark]{--bg:#0e0b12;--card:#1a1521;--tx:#f3eef8;--mut:#9b92a8;--lin:rgba(255,255,255,.09);--roxo:#a64ee6;--roxo2:#820AD1;--verde:#3ccf85;--verm:#ff6b81;--ouro:#f0b429;--sombra:0 1px 2px #0006}
+:root{--bg:#0B0C0B;--card:rgba(255,255,255,.045);--tx:rgba(255,255,255,.92);--mut:rgba(255,255,255,.55);--lin:rgba(255,255,255,.16);--acc:#fff;--acc2:rgba(255,255,255,.7);--acc-tx:#0B0C0B;--verde:#16A34A;--verm:#DB2777;--ouro:#D97706;--r:20px;--sombra:none}
+:root[data-theme=light]{--bg:#F6F5F1;--card:rgba(255,255,255,.7);--tx:#1A1B1E;--mut:rgba(26,27,30,.58);--lin:rgba(26,27,30,.16);--acc:#1A1B1E;--acc2:rgba(26,27,30,.7);--acc-tx:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:400}
+b{font-weight:600}
 button{font:inherit;color:inherit;cursor:pointer}
 input,select,textarea{font:inherit;color:inherit}
 .hid{display:none!important}
 #porta{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.pcx{background:var(--card);border-radius:var(--r);box-shadow:var(--sombra);padding:28px;max-width:380px;width:100%;text-align:center}
+.pcx{background:var(--card);border:1px solid var(--lin);border-radius:var(--r);padding:28px;max-width:380px;width:100%;text-align:center}
 .pcx h2{margin:0 0 6px;font-size:21px;font-weight:600}
 .pcx p{margin:0 0 16px;color:var(--mut);font-size:13.5px;line-height:1.5}
 .pcx input{width:100%;padding:13px 15px;border-radius:14px;border:1px solid var(--lin);background:transparent;margin-bottom:10px;outline:none}
-.pcx input:focus{border-color:var(--roxo)}
+.pcx input:focus{border-color:var(--acc)}
 .erro{color:var(--verm);font-size:13px;min-height:18px;margin-bottom:6px}
-.bt{border:0;border-radius:999px;padding:12px 20px;font-weight:600;background:var(--roxo);color:#fff}
+.bt{border:0;border-radius:999px;padding:12px 20px;font-weight:600;background:var(--acc);color:var(--acc-tx)}
 .bt.sec{background:transparent;color:var(--tx);border:1px solid var(--lin)}
 .bt.mini{padding:7px 13px;font-size:12.5px}
-.bt.perigo{background:var(--verm)}
+.bt.perigo{background:var(--verm);color:#fff}
 .bt:disabled{opacity:.5}
 /* topo */
-.topo{position:sticky;top:0;z-index:5;background:var(--roxo);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 14px}
+.topo{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--lin);color:var(--tx);padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
 .topo .l1{display:flex;align-items:center;gap:10px;max-width:1080px;margin:0 auto}
-.topo h1{margin:0;font-size:17px;font-weight:600;flex:1}
-.seg{display:flex;background:rgba(255,255,255,.18);border-radius:999px;padding:3px}
-.seg button{border:0;background:transparent;color:#fff;padding:6px 16px;border-radius:999px;font-weight:600;font-size:13.5px}
-.seg button.on{background:#fff;color:var(--roxo)}
-.ic{border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:16px;line-height:1}
+.marca{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+.marca img{height:26px;width:26px;display:block}
+:root[data-theme=light] .marca img{filter:invert(1)}
+.marca h1{margin:0;font-size:17px;font-weight:400;letter-spacing:.01em}
+.seg{display:flex;border:1px solid var(--lin);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--mut);padding:6px 16px;border-radius:999px;font-weight:500;font-size:13px}
+.seg button.on{background:var(--acc);color:var(--acc-tx)}
+.ic{border:1px solid var(--lin);background:transparent;color:var(--tx);width:34px;height:34px;border-radius:50%;font-size:15px;line-height:1}
 .mesbar{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px auto 0;max-width:1080px}
-.mesbar b{font-size:19px;font-weight:600;min-width:170px;text-align:center}
+.mesbar b{font-size:18px;font-weight:400;min-width:170px;text-align:center}
 .corpo{max-width:1080px;margin:0 auto;padding:16px 16px 90px}
 /* hero */
-.hero{background:var(--card);border-radius:var(--r);box-shadow:var(--sombra);padding:22px;margin-bottom:14px}
+.hero{background:var(--card);border:1px solid var(--lin);border-radius:var(--r);padding:22px;margin-bottom:14px}
 .hero .rot{color:var(--mut);font-size:13px}
-.hero .gr{font-size:40px;font-weight:600;letter-spacing:-.02em;margin:2px 0 14px;font-variant-numeric:tabular-nums}
+.hero .gr{font-size:42px;font-weight:300;letter-spacing:-.02em;margin:2px 0 14px;font-variant-numeric:tabular-nums}
 .pos{color:var(--verde)}.neg{color:var(--verm)}
-.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.trio div{background:var(--bg);border-radius:14px;padding:10px 12px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:430px){.trio{gap:6px}.trio div{padding:9px 9px}.trio b{font-size:13.5px}}
+.trio div{background:rgba(127,127,127,.09);border-radius:14px;padding:10px 12px}
 .trio small{display:block;color:var(--mut);font-size:11.5px}
 .trio b{font-size:15.5px;font-variant-numeric:tabular-nums}
+.comp{margin-top:14px;padding-top:12px;border-top:1px solid var(--lin)}
+.comp .lc{display:flex;justify-content:space-between;padding:7px 0 0;font-size:14px}
+.comp .lc span{color:var(--mut)}
 .prog{margin-top:14px;display:grid;gap:9px}
 .prog .ln{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut);margin-bottom:4px}
 .prog .ln b{color:var(--tx);font-weight:600}
-.bar{height:8px;border-radius:6px;background:var(--bg);overflow:hidden}
-.bar i{display:block;height:100%;border-radius:6px;background:var(--roxo);transition:width .4s}
+.bar{height:6px;border-radius:6px;background:rgba(127,127,127,.2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;background:var(--acc);transition:width .4s}
 .bar.v i{background:var(--verde)}
+.bar i{background:var(--acc)}
 /* abas */
 .abas{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
 .abas::-webkit-scrollbar{display:none}
-.abas button{border:1px solid var(--lin);background:var(--card);border-radius:999px;padding:8px 15px;font-weight:600;font-size:13.5px;white-space:nowrap;color:var(--mut)}
-.abas button.on{background:var(--roxo);color:#fff;border-color:var(--roxo)}
+.abas button{border:1px solid var(--lin);background:transparent;border-radius:999px;padding:8px 15px;font-weight:600;font-size:13.5px;white-space:nowrap;color:var(--mut)}
+.abas button.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
 /* listas */
 .duas{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .duas>*{min-width:0}
 @media(min-width:900px){.duas{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
-.cx{background:var(--card);border-radius:var(--r);box-shadow:var(--sombra);padding:16px 8px 8px;margin-bottom:14px}
+.cx{background:var(--card);border:1px solid var(--lin);border-radius:var(--r);padding:16px 8px 8px;margin-bottom:14px}
 .cx>.cab{display:flex;align-items:center;gap:8px;padding:0 10px 8px}
 .cx>.cab h3{margin:0;font-size:16px;font-weight:600;flex:1}
 .cx>.cab .tt{font-variant-numeric:tabular-nums;font-weight:600}
@@ -80,21 +89,21 @@ input,select,textarea{font:inherit;color:inherit}
 .ck.on{background:var(--verde);border-color:var(--verde)}
 .lin.memo{opacity:.55}
 .vazio{padding:18px;text-align:center;color:var(--mut);font-size:13.5px}
-.add{display:block;width:calc(100% - 20px);margin:6px 10px 8px;border:1.5px dashed var(--lin);background:transparent;border-radius:14px;padding:10px;color:var(--roxo);font-weight:600}
+.add{display:block;width:calc(100% - 20px);margin:6px 10px 8px;border:1.5px dashed var(--lin);background:transparent;border-radius:14px;padding:10px;color:var(--acc);font-weight:600}
 /* pessoas */
-.busca{width:100%;padding:12px 16px;border-radius:999px;border:1px solid var(--lin);background:var(--card);margin-bottom:12px;outline:none}
+.busca{width:100%;padding:12px 16px;border-radius:999px;border:1px solid var(--lin);background:transparent;margin-bottom:12px;outline:none}
 .pes{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer}
 .pes:hover{background:var(--bg)}
-.av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--roxo),var(--roxo2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.av{width:40px;height:40px;border-radius:50%;background:transparent;border:1px solid var(--lin);color:var(--tx);display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
 .pes .m{flex:1;min-width:0}.pes .m b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pes .m small{color:var(--mut);font-size:12px}
 /* ano */
 .anog{display:flex;align-items:flex-end;gap:6px;height:170px;padding:8px 6px 0;overflow-x:auto}
 .anog .c{flex:1;min-width:34px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer}
 .anog .bb{display:flex;align-items:flex-end;gap:3px;height:130px;width:100%;justify-content:center}
 .anog .bb i{display:block;width:42%;border-radius:5px 5px 0 0;min-height:2px}
-.anog .bb i.e{background:var(--verde)}.anog .bb i.s{background:var(--roxo)}
+.anog .bb i.e{background:var(--verde)}.anog .bb i.s{background:var(--acc)}
 .anog small{font-size:11px;color:var(--mut);margin-top:5px}
-.anog .c.on small{color:var(--roxo);font-weight:700}
+.anog .c.on small{color:var(--acc);font-weight:700}
 table.tb{width:100%;border-collapse:collapse;font-size:13.5px}
 table.tb td,table.tb th{padding:9px 10px;border-bottom:1px solid var(--lin);text-align:right;font-variant-numeric:tabular-nums}
 table.tb td:first-child,table.tb th:first-child{text-align:left}
@@ -103,7 +112,7 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 .nl{font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;padding:5px 12px;border-bottom:1px solid var(--lin);word-break:break-word}
 /* folha */
 #veu{position:fixed;inset:0;background:rgba(10,5,20,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
-#folha{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:sobe .25s ease}
+#folha{background:var(--bg);border:1px solid var(--lin);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:sobe .25s ease}
 @media(min-width:700px){#veu{align-items:center}#folha{border-radius:24px}}
 @keyframes sobe{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 #folha h3{margin:0 0 14px;font-size:18px;font-weight:600}
@@ -111,24 +120,24 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 .fl{display:block;margin-bottom:10px}
 .fl span{display:block;font-size:12px;color:var(--mut);margin:0 0 4px 4px}
 .fl input,.fl select,.fl textarea{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--lin);background:transparent;outline:none}
-.fl input:focus,.fl select:focus{border-color:var(--roxo)}
+.fl input:focus,.fl select:focus{border-color:var(--acc)}
 .fl select option{background:var(--card);color:var(--tx)}
 .chk{display:flex;align-items:center;gap:9px;margin:4px 2px 10px;font-size:14px}
-.chk input{width:20px;height:20px;accent-color:var(--roxo)}
+.chk input{width:20px;height:20px;accent-color:var(--acc)}
 .bts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}.bts .bt{flex:1}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b1620;color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--acc);color:var(--acc-tx);padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 .acl{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--lin);flex-wrap:wrap}
 .acl .n{flex:1;min-width:150px}.acl label{display:flex;align-items:center;gap:5px;font-size:13px}
-.acl input{accent-color:var(--roxo);width:17px;height:17px}
+.acl input{accent-color:var(--acc);width:17px;height:17px}
 </style>
 </head>
 <body>
-<div id="porta"><div class="pcx"><h2>Financeiro</h2><p>Carregando…</p></div></div>
+<div id="porta"><div class="pcx"><h2>PD Wallet</h2><p>Carregando…</p></div></div>
 <div id="app" class="hid">
   <div class="topo">
     <div class="l1">
-      <h1>Financeiro</h1>
+      <div class="marca"><img src="assets/logo-pontodot-bolinha-white.svg" alt="pd"><h1>Wallet</h1></div>
       <div class="seg" id="segAmb"></div>
       <button class="ic" id="btTrancar" title="Trancar">🔒</button>
       <button class="ic hid" id="btFechar" title="Fechar">✕</button>
@@ -180,14 +189,14 @@ const areasPermitidas = () => ACC.admin ? ['empresa','casa'] : ['empresa','casa'
 
 // ---------- entrada ----------
 async function boot(){
-  if (!sb) return porta('<h2>Financeiro</h2><p>Não consegui carregar.</p>');
+  if (!sb) return porta('<h2>PD Wallet</h2><p>Não consegui carregar.</p>');
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return porta('<h2>Entre na PD</h2><p>O Financeiro abre com a sua conta da plataforma.</p><button class="bt" onclick="location.href=\'/\'">Ir para a PD</button>');
+  if (!session) return porta('<h2>Entre na PD</h2><p>A PD Wallet abre com a sua conta da plataforma.</p><button class="bt" onclick="location.href=\'/\'">Ir para a PD</button>');
   const r = await sb.rpc('fin_meu_acesso');
   if (r.error) return porta('<h2>Falta preparar o banco</h2><p>Rode o <b>migration_v171_financeiro.sql</b> no SQL Editor do Supabase e depois o arquivo de importação.</p>');
   ACC = r.data;
   if (ACC.admin) return entrar();
-  if (!(ACC.areas || []).length) return porta('<h2>Sem acesso</h2><p>Esta área é restrita. Peça ao administrador para liberar.</p>');
+  if (!(ACC.areas || []).length) return porta('<h2>Sem acesso</h2><p>A PD Wallet é restrita. Peça ao administrador para liberar.</p>');
   if (ACC.liberado_ate && new Date(ACC.liberado_ate) > new Date()) return entrar();
   pedirSenha();
 }
@@ -259,7 +268,8 @@ function hero(){
     '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
     '<div><div class="ln"><span>Pago <b>' + BRL0(t.sp) + '</b> de ' + BRL0(t.s) + '</span><span>falta ' + BRL0(t.s - t.sp) + '</span></div><div class="bar"><i style="width:' + ps + '%"></i></div></div>' +
     '<div class="ln" style="margin:0"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div>' +
-    (t.tem ? (AMB === 'empresa' ? '<div class="ln" style="margin:0"><span>Retirada do mês (sobra − saldo que seguiu)</span><b>' + BRL(t.retirada) + '</b></div>' : '') + '<div class="ln" style="margin:0"><span>Saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span><b>' + BRL(t.saldoFim) + '</b></div>' : '') + '</div>' +
+    '</div>' +
+    (t.tem ? '<div class="comp"><div class="ln" style="margin:0"><span>A sobra prevista é' + (AMB === 'empresa' ? ' a sua retirada' : '') + ' mais o que fica para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span></div>' + (AMB === 'empresa' ? '<div class="lc"><span>Sua retirada</span><b>' + BRL(t.retirada) + '</b></div>' : '') + '<div class="lc"><span>Fica para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + ' (saldo)</span><b>' + BRL(t.saldoFim) + '</b></div></div>' : '') +
     (vazio ? '<div class="nota" style="padding:12px 0 0">Este mês ainda não tem lançamentos.</div>' : '') + '</div>';
 }
 
@@ -325,7 +335,7 @@ function vAno(){
   const mx = Math.max(1, ...T.map(x => Math.max(x.e + x.sd, x.s)));
   const y = MES.slice(0, 4), A = meses.filter(m => m.startsWith(y)).map(fluxo);
   const ae = A.reduce((a, x) => a + x.e, 0), as = A.reduce((a, x) => a + x.s, 0), ar = A.reduce((a, x) => a + (x.tem ? x.retirada : 0), 0);
-  $('#cont').innerHTML = '<div class="cx"><div class="cab"><h3>Últimos 12 meses</h3><span class="tt"><span class="pos">■</span> entra &nbsp;<span style="color:var(--roxo)">■</span> sai</span></div><div class="anog">' +
+  $('#cont').innerHTML = '<div class="cx"><div class="cab"><h3>Últimos 12 meses</h3><span class="tt"><span class="pos">■</span> entra &nbsp;<span style="color:var(--acc)">■</span> sai</span></div><div class="anog">' +
     T.map(x => '<div class="c ' + (x.m === MES ? 'on' : '') + '" data-ir="' + x.m + '"><div class="bb"><i class="e" style="height:' + (x.e / mx * 100) + '%"></i><i class="s" style="height:' + (x.s / mx * 100) + '%"></i></div><small>' + rotCurto(x.m).slice(0, 3) + '</small></div>').join('') + '</div></div>' +
     '<div class="cx"><div class="cab"><h3>' + y + ' mês a mês, somado</h3><span class="tt ' + (ae - as < 0 ? 'neg' : 'pos') + '">' + BRL0(ae - as) + '</span></div><div class="trio" style="padding:0 10px 10px"><div><small>Entrou</small><b>' + BRL0(ae) + '</b></div><div><small>Saiu</small><b>' + BRL0(as) + '</b></div><div><small>' + (AMB === 'empresa' ? 'Retirou' : 'Resultado') + '</small><b>' + BRL0(AMB === 'empresa' ? ar : ae - as) + '</b></div></div></div>' +
     '<div class="cx" style="padding:8px"><div class="nota" style="padding:4px 6px 8px">Um mês entra no outro: o saldo final de um é o saldo inicial do próximo' + (AMB === 'empresa' ? ', já descontada a retirada' : '') + '.</div><table class="tb"><tr><th>Mês</th><th>Saldo ini.</th><th>Entradas</th><th>Saídas</th>' + (AMB === 'empresa' ? '<th>Retirada</th>' : '') + '<th>Saldo final</th></tr>' + T.slice().reverse().map(x => '<tr data-ir="' + x.m + '" style="cursor:pointer"><td>' + rotCurto(x.m) + '</td><td>' + BRL0(x.sd) + '</td><td>' + BRL0(x.e) + '</td><td>' + BRL0(x.s) + '</td>' + (AMB === 'empresa' ? '<td>' + (x.tem ? BRL0(x.retirada) : '—') + '</td>' : '') + '<td class="' + ((x.tem ? x.saldoFim : x.sobra) < 0 ? 'neg' : 'pos') + '"><b>' + BRL0(x.tem ? x.saldoFim : x.sobra) + '</b>' + (x.tem ? '' : '*') + '</td></tr>').join('') + '</table><div class="nota" style="padding:8px 6px 0">* previsto (o mês seguinte ainda não tem saldo lançado).</div></div>';
