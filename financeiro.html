@@ -29,19 +29,19 @@ input,select,textarea{font:inherit;color:inherit}
 .bt.sec{background:transparent;color:var(--tx);border:1px solid var(--lin)}
 .bt.mini{padding:7px 13px;font-size:12.5px}
 .bt:disabled{opacity:.5}
-/* topo */
-.topo{position:sticky;top:0;z-index:5;background:var(--veu);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--lin);color:var(--tx);display:flex;align-items:stretch;min-height:96px;padding:env(safe-area-inset-top) 18px 0}
-.logog{display:flex;align-items:center;gap:14px;flex-shrink:0;padding:0 26px 0 0;margin:0 20px 0 0;border-right:1px solid var(--lin)}
-.logog img{height:58px;width:58px;display:block}
-.logog .lk{display:none}
-:root[data-theme=light] .logog .lw{display:none}
-:root[data-theme=light] .logog .lk{display:block}
-.logog h1{margin:0;font-size:22px;font-weight:300;letter-spacing:.01em;font-family:'Helvetica Neue',-apple-system,Helvetica,Arial,sans-serif}
-.stk{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:8px;padding:10px 0}
-.topo .l1{display:flex;align-items:center;gap:10px}
-html.emb .topo{padding-top:calc(var(--safe,0px) + 60px)}
-@media(max-width:999px){html.emb .topo{position:relative;padding-top:calc(var(--safe,0px) + 104px)}#btFechar{display:none!important}}
-@media(max-width:600px){.topo{padding-left:12px;padding-right:12px;min-height:88px}.logog{padding-right:12px;margin-right:12px}.logog{gap:10px}.logog img{height:44px;width:44px}.logog h1{font-size:18px}.seg button{padding:6px 11px}.ic{width:32px;height:32px}.mesbar b{min-width:118px!important;font-size:16px!important}.stk{gap:6px}}
+/* cabeçalho: o mesmo das outras ferramentas da PD (barra de 56px, ícones em caixinha, separador fino, carinha da IA à direita) */
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;min-height:56px;padding:0 12px;border-bottom:1px solid var(--lin);background:var(--veu,var(--bg));-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:var(--tx)}
+.top .fl1{flex:1}
+.top .sep{width:1px;height:22px;background:var(--lin);margin:0 4px}
+.btn.i{position:relative;width:38px;height:38px;border:1px solid var(--lin);border-radius:8px;background:transparent;display:inline-flex;align-items:center;justify-content:center;padding:0;flex:0 0 auto;color:var(--tx)}
+.btn.i svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.btn.i:hover{background:rgba(127,127,127,.12)}
+#btKiro img{width:28px;height:28px;border-radius:50%;object-fit:cover;display:block}
+.kpulso{position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:#1f8a55;box-shadow:0 0 0 0 rgba(31,138,85,.6);animation:kp 2.4s ease-out infinite}
+@keyframes kp{0%{box-shadow:0 0 0 0 rgba(31,138,85,.65)}100%{box-shadow:0 0 0 9px rgba(31,138,85,0)}}
+html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
+@media(max-width:999px){.top{position:relative;flex-wrap:wrap;row-gap:0;padding:6px 10px}html.emb .top{padding:calc(var(--safe,0px) + 60px) 68px 6px 10px}#btFechar{display:none!important}.top .dk{display:none}.top .fl1{flex:1 1 0}.mesbar{order:9;flex:1 0 calc(100% + 58px);margin-right:-58px;justify-content:center}}
+@media(max-width:600px){.seg button{padding:6px 11px}.ic{width:32px;height:32px}.mesbar b{min-width:118px!important;font-size:16px!important}}
 .seg{display:flex;border:1px solid var(--lin);border-radius:999px;padding:3px}
 .seg button{border:0;background:transparent;color:var(--mut);padding:6px 16px;border-radius:999px;font-weight:500;font-size:13px}
 .seg button.on{background:var(--acc);color:var(--acc-tx)}
@@ -215,23 +215,92 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 .cmes:active{transform:scale(.95)}.cmes.hj{border-color:var(--acc2)}
 .cmes.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
 .cmes i{position:absolute;bottom:9px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:currentColor;opacity:.55}
+/* ---- v504 · seções em botões, ordenar/filtrar, grupos com cor, desktop denso ---- */
+.top .seg{border-radius:8px;padding:2px}.top .seg button{border-radius:6px}
+.secs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.sec{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:1 1 auto;padding:0 14px;height:42px;border:1px solid var(--lin);border-radius:10px;background:transparent;color:var(--mut);font-weight:600;font-size:13.5px;white-space:nowrap;transition:background-color .25s,color .25s,border-color .25s,transform .15s}
+.sec svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sec img{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none}
+.sec:hover{color:var(--tx);border-color:var(--tx)}
+.sec.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
+.vista{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+.vl{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.vsel{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--lin);border-radius:10px;padding:0 4px 0 10px;height:38px;color:var(--mut)}
+.vsel svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.vsel select{border:0;background:transparent;outline:none;height:36px;font-size:13.5px;color:var(--tx);padding:0 6px}
+.vsel select option{background:var(--bg);color:var(--tx)}
+.btn.i.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
+.seg.mini{border-radius:10px;padding:2px}.seg.mini button{padding:6px 12px;font-size:12.5px;border-radius:8px}
+.vq{flex:1 1 140px;min-width:110px;height:38px;border:1px solid var(--lin);border-radius:10px;background:transparent;padding:0 12px;outline:none}
+.vq:focus{border-color:var(--acc)}
+.vchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--lin);background:transparent;border-radius:10px;padding:6px 11px;font-size:12.5px;color:var(--tx)}
+.gd{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--gc,#8e8e93);flex:none}
+.vchip.on{background:color-mix(in srgb,var(--gc,var(--acc)) 24%,transparent);border-color:var(--gc,var(--acc))}
+.vchip.fil{color:var(--mut)}.vchip.fil.on{color:var(--tx)}
+.vchip .x{opacity:.55;padding:0 0 0 2px;font-size:14px;line-height:1}
+.lin{--gc:transparent;box-shadow:inset 3px 0 0 var(--gc);background:color-mix(in srgb,var(--gc) 7%,transparent)}
+.lin:hover{background:color-mix(in srgb,var(--gc) 15%,rgba(127,127,127,.08))}
+.gp{display:flex;align-items:center;gap:8px;break-after:avoid}
+.itens{display:block}
+.grow{display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:12px;cursor:pointer}.grow:hover{background:rgba(127,127,127,.1)}
+.grow .m{flex:1;min-width:0}.grow .m small{display:block;color:var(--mut);font-size:12px}
+.grow .gd.big{width:18px;height:18px}
+.grow .btn.i{width:32px;height:32px}.grow .btn.i svg{width:16px;height:16px}
+.paleta{display:flex;flex-wrap:wrap;gap:10px;padding:2px 2px 12px}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid transparent;padding:0;position:relative;overflow:hidden}
+.sw.on{border-color:var(--tx);box-shadow:0 0 0 2px var(--bg) inset}
+.sw input{position:absolute;inset:-6px;opacity:0;width:60px;height:60px;cursor:pointer}
+.sw.custom{background:conic-gradient(#ff7a59,#ffd60a,#34c759,#64d2ff,#0a84ff,#bf5af2,#ff7a59)}
+#kbox{position:fixed;z-index:30;width:272px;background:var(--bg);color:var(--tx);border:1px solid var(--lin);border-radius:10px;box-shadow:0 18px 44px rgba(0,0,0,.35);padding:14px 16px;font-size:12.5px;line-height:1.45;animation:sobe .2s ease}
+#kbox .kbh{display:flex;align-items:center;gap:10px;margin-bottom:8px}#kbox .kbh img{width:40px;height:40px;border-radius:50%;object-fit:cover}#kbox .kbh small{display:block;color:var(--mut)}
+#kbox p{margin:0 0 12px;color:var(--mut)}
+@media(max-width:999px){
+  .secs{display:none}
+  #app.inicio .secs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  #app.inicio .sec{flex-direction:column;height:88px;gap:8px;border-radius:12px;font-size:12.5px;white-space:normal;text-align:center;padding:0 6px;color:var(--tx)}
+  #app.inicio .sec svg{width:27px;height:27px}#app.inicio .sec img{width:30px;height:30px}
+  #app.inicio #cont{display:none}
+  #app:not(.inicio):not(.s-mes) #hero{display:none}
+}
+@media(min-width:1000px){
+  .corpo{max-width:none;padding:14px 22px 60px;display:grid;grid-template-columns:330px minmax(0,1fr);column-gap:18px;align-items:start}
+  .secs{grid-column:1/-1;grid-row:1}
+  #hero{grid-column:1;grid-row:2;position:sticky;top:76px;align-self:start}
+  html.emb #hero{top:136px}
+  #cont{grid-column:2;grid-row:2;min-width:0}
+  .hero{padding:18px;margin-bottom:0}
+  .hero .gr{font-size:36px}.trio b{font-size:14.5px}.trio div{padding:9px 10px}
+  .duas{gap:14px}
+  .itens{column-width:262px;column-gap:8px}
+  .itens .lin,.itens .gp{break-inside:avoid}
+  .lin{padding:6px 9px;gap:9px;border-radius:10px;font-size:13.5px}
+  .itens .lin .m{display:flex;align-items:center;gap:8px}.itens .lin{container-type:inline-size}.itens .lin .m b{flex:0 0 auto;max-width:72%;font-size:13.5px}@container (max-width:345px){.itens .lin .m small{display:none!important}}.itens .lin .m small{flex:1 1 0;min-width:0;font-size:11px;display:block}
+  .lin .m small{font-size:11.5px}
+  .lin .dia,.lin .av.p{width:26px;height:26px;font-size:10.5px}
+  .lin .val{font-size:13.5px}.ck{width:22px;height:22px}
+  .gp{padding:8px 9px 3px}
+  .cx{padding:14px 8px 6px;margin-bottom:14px}
+  #cont>.cx.kiro{max-width:960px;margin-left:auto;margin-right:auto}
+}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div id="porta"><div class="pcx"><h2>PD Wallet</h2><p>Carregando…</p></div></div>
 <div id="app" class="hid">
-  <div class="topo">
-    <div class="logog"><img class="lw" src="assets/logo-pontodot-bolinha-white.svg" alt="PD"><img class="lk" src="assets/logo-pontodot-bolinha.svg" alt="PD"><h1>Wallet</h1></div>
-    <div class="stk"><div class="l1"><div class="seg" id="segAmb"></div>
-      <button class="ic" id="btTrancar" title="Trancar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
-      <button class="ic hid" id="btFechar" title="Fechar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    </div>
-    <div class="mesbar"><button class="ic" id="mAnt">‹</button><b id="mesTxt"></b><button class="ic" id="mProx">›</button></div></div>
+  <div class="top">
+    <button class="btn i hid" id="btVolta" title="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="seg" id="segAmb"></div>
+    <span class="sep dk"></span>
+    <div class="mesbar"><button class="ic" id="mAnt" title="Mês anterior">‹</button><b id="mesTxt"></b><button class="ic" id="mProx" title="Próximo mês">›</button></div>
+    <span class="fl1"></span>
+    <button class="btn i hid" id="btKiro" title="Kiro · IA da grana"><img src="/icone-ia.php?p=kiro&s=88" alt="Kiro" onerror="this.style.visibility='hidden'"><i class="kpulso"></i></button>
+    <button class="btn i" id="btTrancar" title="Trancar"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+    <button class="btn i hid" id="btFechar" title="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
   <div class="corpo">
+    <div class="secs" id="secs"></div>
     <div id="hero"></div>
-    <div class="abas" id="abas"></div>
     <div id="cont"></div>
   </div>
 </div>
@@ -327,11 +396,11 @@ async function carregaAmb(a){
 async function entrar(){
   try {
     const ps = areasPermitidas(); AMB = ps.includes(localStorage.getItem('fin_amb')) ? localStorage.getItem('fin_amb') : ps[0];
-    await Promise.all(ps.map(carregaAmb));
+    await Promise.all(ps.map(carregaAmb).concat(carregaGrupos()));
   } catch(e){ return porta('<h2>Não consegui abrir</h2><p>' + esc(e.message || e) + '</p><button class="bt" onclick="location.reload()">Tentar de novo</button>'); }
   const hoje = iso(new Date()), meses = [...new Set(dados().map(l => l.mes))].sort();
   MES = meses.includes(hoje) ? hoje : (meses[meses.length - 1] || hoje);
-  try { const q = new URLSearchParams(location.search), a = q.get('amb'), m = q.get('mes'), ab = q.get('aba'); if (a && areasPermitidas().includes(a)) { AMB = a; } if (m && /^\d{4}-\d{2}-01$/.test(m)) MES = m; if (ab) ABA = ab; } catch(e){}
+  try { const q = new URLSearchParams(location.search), a = q.get('amb'), m = q.get('mes'), ab = q.get('aba'); if (a && areasPermitidas().includes(a)) { AMB = a; } if (m && /^\d{4}-\d{2}-01$/.test(m)) MES = m; if (ab) ABA = ab; else if (ehMob()) ABA = 'inicio'; } catch(e){}
   $('#porta').classList.add('hid'); $('#app').classList.remove('hid');
   if (window.self !== window.top) $('#btFechar').classList.remove('hid');
   desenha(); carregaAv(); garanteRetiradas().catch(() => {});
@@ -419,7 +488,7 @@ document.addEventListener('click', e => { if (Date.now() - ARRASTOU < 350) { e.s
 function ligaArrasto(){
   const area = document.querySelector('.corpo'); if (!area) return;
   let x0 = 0, y0 = 0, dx = 0, modo = 0, t0 = 0, id = null;   // modo: 0 esperando, 1 horizontal, -1 vertical/ignorar
-  const ignora = t => t.closest && t.closest('.abas, input, textarea, select, table, .anog, .kmsgs, #veu, [data-noswipe]');
+  const ignora = t => t.closest && t.closest('.abas, .secs, .vista, input, textarea, select, table, .anog, .kmsgs, #veu, [data-noswipe]');
   area.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' || e.button || ignora(e.target) || !$('#veu').classList.contains('hid')) { modo = -1; return; } x0 = e.clientX; y0 = e.clientY; dx = 0; modo = 0; t0 = performance.now(); id = e.pointerId; });
   area.addEventListener('pointermove', e => {
     if (modo === -1 || e.pointerId !== id) return;
@@ -456,28 +525,175 @@ function folhaCalendario(ano, dir){
   else { const c = document.querySelector('#folha .cal'); c.outerHTML = corpo; const n = document.querySelector('#folha .cal'); n.animate([{ transform: 'translateX(' + (dir * 36) + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
 }
 
+// ---------- grupos de pagamento (de fábrica + os que você cria, com cor) ----------
+const FAB = {
+  entrada: { empresa: [['saldo','Saldo','#8e8e93',0],['com_nf','Com NF','#34c759',10],['sem_nf','Sem NF','#ff9f0a',20]], casa: [['saldo','Saldo','#8e8e93',0],['fixo','Fixo','#0a84ff',10],['variavel','Variável','#bf5af2',20]] },
+  saida:   { empresa: [['fixo','Fixo','#0a84ff',10],['variavel','Variável','#bf5af2',20]], casa: [['fixo','Fixo','#0a84ff',10],['variavel','Variável','#bf5af2',20]] }
+};
+const PALETA = ['#34c759','#ff9f0a','#0a84ff','#bf5af2','#ff7a59','#64d2ff','#ffd60a','#30d5c8','#ac8e68','#8e8e93'];
+let G = { casa: [], empresa: [] }, GERRO = false, GEDIT = null, GVOLTA = null, GSENT = 'entrada';
+async function carregaGrupos(){
+  try { const r = await sb.from('fin_grupos').select('*'); if (r.error) throw r.error; G = { casa: [], empresa: [] }; r.data.forEach(g => (G[g.ambiente] = G[g.ambiente] || []).push(g)); GERRO = false; }
+  catch(e){ GERRO = true; }
+}
+function gruposDe(sentido, amb){
+  amb = amb || AMB; const mapa = new Map();
+  ((FAB[sentido] || {})[amb] || []).forEach(([k, n, c, o]) => mapa.set(k, { chave: k, nome: n, cor: c, ordem: o, fabrica: true, oculto: false }));
+  (G[amb] || []).filter(g => g.sentido === sentido).forEach(g => mapa.set(g.chave, Object.assign({ fabrica: false }, mapa.get(g.chave) || {}, { chave: g.chave, nome: g.nome, cor: g.cor, ordem: g.ordem, oculto: !!g.oculto, id: g.id })));
+  return [...mapa.values()].sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+function grupoInfo(chave, sentido){
+  chave = chave || 'outro';
+  const g = gruposDe(sentido).find(x => x.chave === chave); if (g) return g;
+  if (chave === 'retirada') return { chave, nome: GRUPOS.retirada, cor: '#ff9f0a', ordem: 950 };
+  return { chave, nome: GRUPOS[chave] || chave, cor: '#8e8e93', ordem: chave === 'outro' ? 900 : 800 };
+}
+const slug = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30) || 'grupo';
+const semAcento = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ICTAG = '<svg viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>';
+const ICSEG = '<svg viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>';
+const ICSOBE = '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>', ICDESCE = '<svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>';
+const ICORD = '<svg viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>', ICMARCA = '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
+function msgGrupo(e){ return /fin_grupos|relation|does not exist|schema cache/i.test(e.message || '') ? 'Falta rodar o migration_v174 no Supabase.' : (e.message || 'Não deu.'); }
+async function gravaGrupos(rows){
+  const r = await sb.from('fin_grupos').upsert(rows, { onConflict: 'ambiente,sentido,chave' }).select();
+  if (r.error) { toast(msgGrupo(r.error)); return false; }
+  r.data.forEach(g => { const L = G[g.ambiente] = G[g.ambiente] || [], i = L.findIndex(x => x.sentido === g.sentido && x.chave === g.chave); if (i >= 0) L[i] = g; else L.push(g); });
+  return true;
+}
+const usos = (sent, chave) => dados().filter(l => l.sentido === sent && (l.grupo || 'outro') === chave).length;
+function folhaGrupos(sent){
+  GSENT = sent || GSENT; GVOLTA = null;
+  const gs = gruposDe(GSENT);
+  folha('<h3>Grupos de pagamento</h3><div class="seg mini" style="margin:0 0 10px;width:max-content">' + [['entrada', 'Entradas'], ['saida', 'Saídas']].map(x => '<button data-gsent="' + x[0] + '" class="' + (GSENT === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
+    '<div class="nota" style="padding:0 0 8px">' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + ' · a ordem daqui é a <b>prioridade</b> na lista. Toque num grupo para mudar nome e cor.</div>' +
+    (GERRO ? '<div class="nota" style="padding:0 0 8px;color:var(--ouro)">Para criar grupos novos falta rodar o <b>migration_v174</b> no Supabase.</div>' : '') +
+    gs.map((g, i) => '<div class="grow" data-gedita="' + g.chave + '"><i class="gd big" style="--gc:' + g.cor + '"></i><div class="m"><b>' + esc(g.nome) + '</b><small>' + usos(GSENT, g.chave) + ' lançamento(s)' + (g.fabrica ? ' · de fábrica' : '') + (g.oculto ? ' · oculto' : '') + '</small></div>' +
+      (podeEditar() ? '<button class="btn i" data-gup="' + g.chave + '" title="Mais prioridade"' + (i ? '' : ' disabled style="opacity:.3"') + '>' + ICSOBE + '</button><button class="btn i" data-gdown="' + g.chave + '" title="Menos prioridade"' + (i < gs.length - 1 ? '' : ' disabled style="opacity:.3"') + '>' + ICDESCE + '</button>' : '') + '</div>').join('') +
+    '<div class="bts"><button class="bt sec" data-fechar="1">Fechar</button>' + (podeEditar() ? '<button class="bt" data-gnovo="1">+ Novo grupo</button>' : '') + '</div>');
+}
+function folhaGrupo(chave, sent){
+  const todos = gruposDe(sent), g = chave ? todos.find(x => x.chave === chave) : { nome: '', cor: (PALETA.find(c => !todos.some(x => x.cor === c)) || PALETA[todos.length % PALETA.length]), fabrica: false, oculto: false };
+  if (!g) return folhaGrupos(sent);
+  GEDIT = { chave: chave || '', sent, cor: g.cor };
+  folha('<h3>' + (chave ? 'Editar grupo' : 'Novo grupo') + '</h3><div class="nota" style="padding:0 0 8px">' + (sent === 'entrada' ? 'Entradas' : 'Saídas') + ' · ' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '</div>' +
+    '<label class="fl"><span>Nome</span><input id="gNome" value="' + esc(g.nome) + '" placeholder="ex.: Parceiros, Cartão, Mesadas…" maxlength="40"></label>' +
+    '<div class="dsec">Cor</div><div class="paleta">' + PALETA.map(c => '<button class="sw' + (c === g.cor ? ' on' : '') + '" data-gcor="' + c + '" style="background:' + c + '" title="' + c + '"></button>').join('') + '<label class="sw custom" title="Outra cor"><input type="color" id="gCorX" value="' + g.cor + '"></label></div>' +
+    '<div class="bts"><button class="bt sec" data-gcancel="1">Cancelar</button>' + (chave && g.fabrica ? '<button class="bt sec" data-gocultar="1">' + (g.oculto ? 'Mostrar de novo' : 'Ocultar') + '</button>' : '') + (chave && !g.fabrica ? '<button class="bt perigo" data-gapaga="1">Apagar</button>' : '') + '<button class="bt" data-gsalva="1">Salvar</button></div>');
+  setTimeout(() => { const i = $('#gNome'); if (i && !chave) i.focus(); }, 80);
+}
+function gCor(c){ if (!GEDIT) return; GEDIT.cor = c; document.querySelectorAll('#folha .sw[data-gcor]').forEach(b => b.classList.toggle('on', b.dataset.gcor === c)); }
+async function salvaGrupo(){
+  const e = GEDIT, nome = $('#gNome').value.trim(); if (!nome) return toast('Dê um nome ao grupo.');
+  let chave = e.chave;
+  if (!chave) { const base = 'g_' + slug(nome); chave = base; let i = 2; while (gruposDe(e.sent).some(x => x.chave === chave)) chave = base + '_' + i++; }
+  const ls = gruposDe(e.sent), atual = ls.find(x => x.chave === chave), ordem = atual ? atual.ordem : Math.max(0, ...ls.filter(x => x.ordem < 800).map(x => x.ordem)) + 10;
+  if (!(await gravaGrupos([{ ambiente: AMB, sentido: e.sent, chave, nome, cor: e.cor, ordem, oculto: atual ? atual.oculto : false }]))) return;
+  toast(e.chave ? 'Grupo salvo.' : 'Grupo criado.');
+  if (GVOLTA) { const d = GVOLTA; GVOLTA = null; d.grupo = chave; folhaLanc(d, d.sentido); }
+  else folhaGrupos(e.sent);
+  if (ABA === 'mes') vMes();
+}
+async function movGrupo(chave, d){
+  const ls = gruposDe(GSENT), i = ls.findIndex(x => x.chave === chave), j = i + d; if (i < 0 || j < 0 || j >= ls.length) return;
+  [ls[i], ls[j]] = [ls[j], ls[i]];
+  if (await gravaGrupos(ls.map((g, k) => ({ ambiente: AMB, sentido: GSENT, chave: g.chave, nome: g.nome, cor: g.cor, ordem: (k + 1) * 10, oculto: g.oculto })))) { folhaGrupos(GSENT); if (ABA === 'mes') vMes(); }
+}
+async function ocultaGrupo(){
+  const e = GEDIT, g = gruposDe(e.sent).find(x => x.chave === e.chave); if (!g) return;
+  if (await gravaGrupos([{ ambiente: AMB, sentido: e.sent, chave: g.chave, nome: g.nome, cor: g.cor, ordem: g.ordem, oculto: !g.oculto }])) { folhaGrupos(e.sent); if (ABA === 'mes') vMes(); }
+}
+async function apagaGrupo(){
+  const e = GEDIT, g = gruposDe(e.sent).find(x => x.chave === e.chave); if (!g || g.fabrica) return;
+  const n = usos(e.sent, g.chave); if (n) return toast(n + ' lançamento(s) usam este grupo. Passe-os para outro grupo antes de apagar.');
+  const r = await sb.from('fin_grupos').delete().eq('id', g.id); if (r.error) return toast(msgGrupo(r.error));
+  G[AMB] = (G[AMB] || []).filter(x => x.id !== g.id); folhaGrupos(e.sent); if (ABA === 'mes') vMes();
+}
+
+// ---------- ordenar e filtrar a lista do mês ----------
+let VISTA = null, FILT = [];
+const VISTA0 = () => ({ ord: 'grupo', dir: 1, st: 'todos', gr: [], q: '' });
+function vistaLe(){
+  if (VISTA && VISTA._a === AMB) return;
+  let v = {}; try { v = JSON.parse(localStorage.getItem('fin_vista_' + AMB) || '{}'); } catch(_){}
+  VISTA = Object.assign(VISTA0(), v, { _a: AMB, q: '' });
+  try { FILT = JSON.parse(localStorage.getItem('fin_filtros_' + AMB) || '[]'); } catch(_){ FILT = []; }
+}
+function vistaSalva(){ try { const v = Object.assign({}, VISTA); delete v._a; delete v.q; localStorage.setItem('fin_vista_' + AMB, JSON.stringify(v)); } catch(_){} }
+const filtrando = () => VISTA.st !== 'todos' || VISTA.gr.length || VISTA.q;
+function passa(l){
+  const v = VISTA;
+  if (v.st === 'aberto' && l.pago) return false;
+  if (v.st === 'feito' && !l.pago) return false;
+  if (v.gr.length && !v.gr.includes(l.grupo || 'outro')) return false;
+  if (v.q && !semAcento([l.descricao, l.forma, l.obs, l.vendedor, l.parcela].join(' ')).includes(semAcento(v.q))) return false;
+  return true;
+}
+function ordena(arr, sentido){
+  const dia = (a, b) => (a.dia || 99) - (b.dia || 99) || String(a.descricao).localeCompare(String(b.descricao), 'pt-BR');
+  const gr = l => grupoInfo(l.grupo, sentido).ordem;
+  const F = { grupo: (a, b) => gr(a) - gr(b) || dia(a, b), data: dia, pago: (a, b) => (a.pago ? 1 : 0) - (b.pago ? 1 : 0) || dia(a, b), valor: (a, b) => b.valor - a.valor, nome: (a, b) => String(a.descricao).localeCompare(String(b.descricao), 'pt-BR') }[VISTA.ord] || dia;
+  return arr.slice().sort((a, b) => VISTA.dir * F(a, b));
+}
+function barraVista(){
+  const V = VISTA, vistos = new Map();
+  ['entrada', 'saida'].forEach(s => gruposDe(s).forEach(g => { if ((!g.oculto || V.gr.includes(g.chave)) && !vistos.has(g.chave)) vistos.set(g.chave, g); }));
+  const igual = f => f.ord === V.ord && f.dir === V.dir && f.st === V.st && f.gr.slice().sort().join() === V.gr.slice().sort().join() && !V.q;
+  return '<div class="vista"><div class="vl">' +
+    '<label class="vsel" title="Ordenar por">' + ICORD + '<select id="vOrd"><option value="grupo">Grupo (prioridade)</option><option value="data">Data</option><option value="pago">Em aberto → feito</option><option value="valor">Valor</option><option value="nome">Nome</option></select></label>' +
+    '<button class="btn i' + (V.dir < 0 ? ' on' : '') + '" data-vdir="1" title="Inverter a ordem">' + (V.dir < 0 ? ICSOBE : ICDESCE) + '</button>' +
+    '<div class="seg mini">' + [['todos', 'Tudo'], ['aberto', 'Em aberto'], ['feito', 'Feito']].map(x => '<button data-vst="' + x[0] + '" class="' + (V.st === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
+    '<input class="vq" id="vQ" placeholder="Filtrar por nome, forma, obs…" autocomplete="off">' +
+    '<button class="btn i" data-vgrupos="1" title="Grupos de pagamento (criar, cor, prioridade)">' + ICTAG + '</button>' +
+    '<button class="btn i" data-vsalvar="1" title="Salvar este filtro"' + (filtrando() || V.ord !== 'grupo' || V.dir < 0 ? '' : ' style="opacity:.45"') + '>' + ICMARCA + '</button></div>' +
+    '<div class="vl">' + [...vistos.values()].map(g => '<button class="vchip' + (V.gr.includes(g.chave) ? ' on' : '') + '" style="--gc:' + g.cor + '" data-vgr="' + g.chave + '"><i class="gd"></i>' + esc(g.nome) + '</button>').join('') +
+    FILT.map((f, i) => '<span class="vchip fil' + (igual(f) ? ' on' : '') + '" data-vfil="' + i + '" title="Aplicar este filtro">' + ICMARCA.replace('<svg', '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"') + esc(f.nome) + '<span class="x" data-vfdel="' + i + '" title="Apagar este filtro">×</span></span>').join('') + '</div></div>';
+}
+function folhaSalvaFiltro(){
+  const V = VISTA, ordN = { grupo: 'grupo', data: 'data', pago: 'em aberto → feito', valor: 'valor', nome: 'nome' }[V.ord];
+  folha('<h3>Salvar este filtro</h3><div class="nota" style="padding:0 0 10px">Ordem: <b>' + ordN + (V.dir < 0 ? ' (invertida)' : '') + '</b> · ' + ({ todos: 'tudo', aberto: 'só em aberto', feito: 'só feito' }[V.st]) + (V.gr.length ? ' · grupos: ' + V.gr.map(k => esc(grupoInfo(k, 'entrada').nome)).join(', ') : '') + (V.q ? ' · texto: “' + esc(V.q) + '”' : '') + '</div>' +
+    '<label class="fl"><span>Nome do filtro</span><input id="fNomeFiltro" placeholder="ex.: Só o que falta pagar" maxlength="40"></label>' +
+    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt" data-vsalvafiltro="1">Salvar</button></div>');
+  setTimeout(() => $('#fNomeFiltro') && $('#fNomeFiltro').focus(), 80);
+}
+
 // ---------- desenho ----------
+const ehMob = () => matchMedia('(max-width:999px)').matches;
 function desenha(){
   const ps = areasPermitidas();
   $('#segAmb').innerHTML = ps.map(a => '<button data-amb="' + a + '" class="' + (a === AMB ? 'on' : '') + '">' + (a === 'casa' ? 'Casa' : 'Empresa') + '</button>').join('');
   $('#segAmb').classList.toggle('hid', ps.length < 2);
   $('#mesTxt').textContent = rotMes(MES);
   hero(); abas();
-  ({ mes: vMes, pessoas: () => vPessoas('entrada'), destinos: () => vPessoas('saida'), ano: vAno, bi: vBI, modelos: vModelos, kiro: vKiro, ia: vIA, notas: vNotas, acessos: vAcessos }[ABA] || vMes)();
+  $('#app').classList.toggle('inicio', ABA === 'inicio'); $('#app').classList.toggle('s-mes', ABA === 'mes');
+  $('#btVolta').classList.toggle('hid', !(ehMob() && ABA !== 'inicio'));
+  $('#btKiro').classList.toggle('hid', !ACC.admin);
+  ({ inicio: () => { $('#cont').innerHTML = ''; }, mes: vMes, pessoas: () => vPessoas('entrada'), destinos: () => vPessoas('saida'), ano: vAno, bi: vBI, modelos: vModelos, kiro: vKiro, ia: vIA, notas: vNotas, acessos: vAcessos }[ABA] || vMes)();
   $('#cont').classList.toggle('anim', ANIM); $('#hero').classList.toggle('anim', ANIM);
   if (ANIM) { const m = $('#mesTxt'); m.classList.remove('troca'); void m.offsetWidth; m.classList.add('troca'); contaTudo(); ANIM = false; }
 }
+const SIC = {
+  mes: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  pessoas: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.5a3 3 0 0 1 0 5.6M18 14.3c1.8.7 3 2.4 3 4.7"/>',
+  destinos: '<path d="M7 17 17 7M9 7h8v8"/>',
+  ano: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+  bi: '<path d="M3 17l5-5 4 3 8-9"/><path d="M15 6h5v5"/>',
+  modelos: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
+  ia: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+  notas: '<path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+  acessos: '<circle cx="8" cy="14" r="3.5"/><path d="M10.5 11.5 20 3M16 7l2 2"/>'
+};
 function abas(){
-  const L = [['mes','Mês']];
-  if (AMB === 'empresa') L.push(['pessoas','Clientes'], ['destinos','Equipe e fornecedores']); else L.push(['pessoas','De quem entra'], ['destinos','Para onde vai']);
-  L.push(['ano','Ano'], ['bi','BI']);
-  if (AMB === 'empresa') L.push(['modelos','Contratos']);
-  if (ACC.admin) L.push(['kiro','Kiro · IA da grana']);
-  if (AMB === 'empresa') L.push(['ia','Custos de IA']);
-  L.push(['notas','Notas da planilha']);
-  if (ACC.admin) L.push(['acessos','Acessos']);
-  if (!L.some(x => x[0] === ABA)) ABA = 'mes';
-  $('#abas').innerHTML = L.map(x => '<button data-aba="' + x[0] + '" class="' + (x[0] === ABA ? 'on' : '') + '">' + x[1] + '</button>').join('');
+  const L = [['mes', 'Mês']];
+  if (AMB === 'empresa') L.push(['pessoas', 'Clientes'], ['destinos', 'Equipe']); else L.push(['pessoas', 'De quem'], ['destinos', 'Para onde']);
+  L.push(['ano', 'Ano'], ['bi', 'BI']);
+  if (AMB === 'empresa') L.push(['modelos', 'Contratos']);
+  if (ACC.admin) L.push(['kiro', 'Kiro']);
+  if (AMB === 'empresa') L.push(['ia', 'Custos de IA']);
+  L.push(['notas', 'Notas']);
+  if (ACC.admin) L.push(['acessos', 'Acessos']);
+  if (ABA === 'inicio') { if (!ehMob()) ABA = 'mes'; } else if (!L.some(x => x[0] === ABA)) ABA = ehMob() ? 'inicio' : 'mes';
+  $('#secs').innerHTML = L.map(x => '<button class="sec ' + (x[0] === ABA ? 'on' : '') + '" data-aba="' + x[0] + '">' + (x[0] === 'kiro' ? '<img src="/icone-ia.php?p=kiro&s=64" alt="" onerror="this.style.visibility=\'hidden\'">' : '<svg viewBox="0 0 24 24">' + SIC[x[0]] + '</svg>') + '<span>' + x[1] + '</span></button>').join('');
 }
 function totais(m, a){
   const R = doMes(m, a).filter(l => l.conta);
@@ -509,26 +725,35 @@ function linha(l){
   const tav = avDe(l.descricao, l.sentido);
   const lig = l.grupo === 'retirada' ? '<span class="chip">vai para a Casa</span>' : (l.ambiente === 'casa' && l.sentido === 'entrada' && normNome(l.descricao) === 'STRAT/PD' ? '<span class="chip">ligada à retirada da Empresa</span>' : '');
   const sub = [lig, tav && l.dia ? '<span class="chip">dia ' + l.dia + '</span>' : '', l.parcela ? '<span class="chip">' + esc(l.parcela) + '</span>' : '', esc([l.forma, l.vendedor, l.obs].filter(Boolean).join(' · '))].join('');
-  return '<div class="lin ' + (l.conta ? '' : 'memo') + '" data-id="' + l.id + '">' + (tav ? avHtml(l.descricao, l.sentido, 'p') : '<div class="dia">' + (l.dia || '·') + '</div>') + '<div class="m"><b>' + esc(l.descricao) + '</b><small>' + (l.conta ? '' : '<span class="chip">anotação</span>') + sub + '</small></div>' +
+  return '<div class="lin ' + (l.conta ? '' : 'memo') + '" data-id="' + l.id + '" style="--gc:' + grupoInfo(l.grupo, l.sentido).cor + '">' + (tav ? avHtml(l.descricao, l.sentido, 'p') : '<div class="dia">' + (l.dia || '·') + '</div>') + '<div class="m"><b>' + esc(l.descricao) + '</b><small>' + (l.conta ? '' : '<span class="chip">anotação</span>') + sub + '</small></div>' +
     '<div class="val ' + (l.sentido === 'entrada' ? 'e' : '') + '">' + (l.sentido === 'entrada' ? '' : '−') + BRL(l.valor) + '</div>' +
     '<button class="ck ' + (l.pago ? 'on' : '') + '" data-pago="' + l.id + '" title="' + (l.sentido === 'entrada' ? 'Recebido' : 'Pago') + '">' + (l.pago ? ICK : '') + '</button></div>';
 }
 function colunaMes(sentido){
-  const R = doMes(MES).filter(l => l.sentido === sentido).sort((a, b) => (a.dia || 99) - (b.dia || 99));
+  const base = doMes(MES).filter(l => l.sentido === sentido), R = ordena(base.filter(passa), sentido), porGr = VISTA.ord === 'grupo';
   const tt = soma(R, l => l.conta && l.grupo !== 'retirada' && (l.grupo !== 'saldo' || sentido === 'entrada'));
-  const porG = {}; R.forEach(l => (porG[l.grupo || 'outro'] = porG[l.grupo || 'outro'] || []).push(l));
-  let h = '<div class="cx"><div class="cab"><h3>' + (sentido === 'entrada' ? 'Entradas' : 'Saídas') + '</h3><span class="tt ' + (sentido === 'entrada' ? 'pos' : '') + '">' + BRL(tt) + '</span></div>';
-  GR_ORDEM.forEach(g => { if (porG[g]) h += (Object.keys(porG).length > 1 || g !== 'outro' ? '<div class="gp">' + GRUPOS[g] + ' · ' + BRL0(soma(porG[g], l => l.conta)) + '</div>' : '') + porG[g].map(linha).join(''); });
-  if (!R.length) h += '<div class="vazio">Nada por aqui.</div>';
+  const soG = {}; R.forEach(l => (soG[l.grupo || 'outro'] = soG[l.grupo || 'outro'] || []).push(l));
+  const varios = Object.keys(soG).length > 1 || !soG.outro;
+  let h = '<div class="cx"><div class="cab"><h3>' + (sentido === 'entrada' ? 'Entradas' : 'Saídas') + '</h3>' + (filtrando() && R.length !== base.length ? '<span class="chip">' + R.length + ' de ' + base.length + '</span>' : '') + '<span class="tt ' + (sentido === 'entrada' ? 'pos' : '') + '">' + BRL(tt) + '</span></div><div class="itens">';
+  let ult = null;
+  R.forEach(l => {
+    const k = l.grupo || 'outro';
+    if (porGr && k !== ult && varios) { const g = grupoInfo(k, sentido); h += '<div class="gp" style="--gc:' + g.cor + '"><i class="gd"></i>' + esc(g.nome) + ' · ' + BRL0(soma(soG[k], x => x.conta)) + '</div>'; }
+    ult = k; h += linha(l);
+  });
+  if (!R.length) h += '<div class="vazio">' + (base.length ? 'Nada com esse filtro.' : 'Nada por aqui.') + '</div>';
+  h += '</div>';
   if (podeEditar()) h += '<button class="add" data-novo="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Nova entrada' : 'Nova saída') + '</button><button class="add" style="margin-top:0" data-contrato="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Novo contrato (várias parcelas)' : 'Novo parcelamento') + '</button>';
   return h + '</div>';
 }
+function desLista(){ const el = $('#listas'); if (el) el.innerHTML = colunaMes('entrada') + colunaMes('saida'); }
 function vMes(){
+  vistaLe();
   let h = '';
   const prox = somaMes(MES, 1);
   if (podeEditar() && doMes(MES).length && !doMes(prox).length) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + ' ainda está vazio.</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Copia fixos e mensais; avança as parcelas (5de14 → 6de14) e deixa de fora o que acabou.</div></div>';
-  h += '<div class="duas">' + colunaMes('entrada') + colunaMes('saida') + '</div>';
-  $('#cont').innerHTML = h;
+  h += barraVista() + '<div class="duas" id="listas">' + colunaMes('entrada') + colunaMes('saida') + '</div>';
+  $('#cont').innerHTML = h; $('#vOrd').value = VISTA.ord; $('#vQ').value = VISTA.q;
 }
 
 // ---------- pessoas (clientes / equipe e fornecedores / de quem entra / para onde vai) ----------
@@ -640,14 +865,14 @@ async function mudaAcesso(u, quem, on){
 function folha(h){ clearTimeout(fecha._t); $('#veu').classList.remove('saindo'); $('#folha').innerHTML = h; $('#veu').classList.remove('hid'); }
 function fecha(){ const v = $('#veu'); if (v.classList.contains('hid')) return; v.classList.add('saindo'); FOLHA = null; clearTimeout(fecha._t); fecha._t = setTimeout(() => { v.classList.add('hid'); v.classList.remove('saindo'); $('#folha').innerHTML = ''; }, 230); }
 function folhaLanc(l, sentido){
-  const n = !l; l = l || { sentido, ambiente: AMB, mes: MES, grupo: AMB === 'casa' ? 'fixo' : (sentido === 'entrada' ? 'com_nf' : 'fixo'), dia: '', descricao: '', parcela: '', forma: '', valor: '', obs: '', vendedor: '', pago: false, conta: true };
+  const n = !l || !l.id; l = l || { sentido, ambiente: AMB, mes: MES, grupo: AMB === 'casa' ? 'fixo' : (sentido === 'entrada' ? 'com_nf' : 'fixo'), dia: '', descricao: '', parcela: '', forma: '', valor: '', obs: '', vendedor: '', pago: false, conta: true };
   FOLHA = l.id || null;
-  const gs = (l.sentido === 'entrada' ? (AMB === 'empresa' ? ['com_nf', 'sem_nf', 'saldo'] : ['fixo', 'variavel', 'saldo']) : ['fixo', 'variavel']);
-  if (!gs.includes(l.grupo)) gs.push(l.grupo || 'outro');
+  const gs = gruposDe(l.sentido).filter(g => !g.oculto || g.chave === l.grupo);
+  if (l.grupo && !gs.some(g => g.chave === l.grupo)) gs.push(grupoInfo(l.grupo, l.sentido));
   folha('<h3>' + (n ? (l.sentido === 'entrada' ? 'Nova entrada' : 'Nova saída') : esc(l.descricao)) + '</h3>' +
     '<label class="fl"><span>' + (l.sentido === 'entrada' ? 'Cliente / de onde' : 'O que é') + '</span><input id="fDes" value="' + esc(l.descricao) + '"></label>' +
     '<div class="f2"><label class="fl"><span>Valor (R$)</span><input id="fVal" inputmode="decimal" value="' + esc(l.valor === '' ? '' : String(l.valor).replace('.', ',')) + '"></label><label class="fl"><span>Dia</span><input id="fDia" inputmode="numeric" value="' + esc(l.dia || '') + '"></label></div>' +
-    '<div class="f2"><label class="fl"><span>Grupo</span><select id="fGru">' + gs.map(g => '<option value="' + g + '"' + (g === l.grupo ? ' selected' : '') + '>' + (GRUPOS[g] || g) + '</option>').join('') + '</select></label><label class="fl"><span>Parcela</span><input id="fPar" value="' + esc(l.parcela || '') + '" placeholder="3de10, mensal…"></label></div>' +
+    '<div class="f2"><label class="fl"><span>Grupo</span><select id="fGru">' + gs.map(g => '<option value="' + g.chave + '"' + (g.chave === l.grupo ? ' selected' : '') + '>' + esc(g.nome) + '</option>').join('') + (podeEditar() ? '<option value="__novo">+ Novo grupo…</option>' : '') + '</select></label><label class="fl"><span>Parcela</span><input id="fPar" value="' + esc(l.parcela || '') + '" placeholder="3de10, mensal…"></label></div>' +
     '<div class="f2"><label class="fl"><span>Como</span><input id="fFor" value="' + esc(l.forma || '') + '" placeholder="transf, PJ, cartão…"></label>' + (l.sentido === 'entrada' ? '<label class="fl"><span>Vendedor(a)</span><input id="fVen" value="' + esc(l.vendedor || '') + '"></label>' : '<div></div>') + '</div>' +
     '<label class="fl"><span>Observação</span><input id="fObs" value="' + esc(l.obs || '') + '"></label>' +
     '<label class="chk"><input type="checkbox" id="fPag"' + (l.pago ? ' checked' : '') + '> ' + (l.sentido === 'entrada' ? 'Já recebi' : 'Já paguei') + '</label>' +
@@ -693,7 +918,7 @@ async function virarMes(){
     let par = l.parcela, pn = l.parcela_n;
     if (l.parcela_de) { if (l.parcela_n >= l.parcela_de) return; pn = l.parcela_n + 1; par = pn + 'de' + l.parcela_de; }
     else if (!fixa && l.grupo === 'variavel') return;
-    else if (!fixa && !l.parcela && l.grupo !== 'fixo' && l.grupo !== 'com_nf') return;
+    else if (!fixa && !l.parcela && l.grupo !== 'fixo' && l.grupo !== 'com_nf' && ['sem_nf', 'outro', '', null, undefined].includes(l.grupo)) return;
     novos.push({ ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: true });
   });
   const t = fluxo(MES); let ret = 0; if (AMB === 'empresa') { ret = t.retirada != null ? t.retirada : (() => { const a = fluxo(somaMes(MES, -1)); return a.retirada != null ? a.retirada : 0; })(); if (ret > 0) novos.push({ ambiente: 'empresa', mes: prox, sentido: 'saida', grupo: 'retirada', dia: ultimoDia(prox), descricao: 'RETIRADA', valor: ret, pago: false, conta: true, obs: 'vai para a Casa (STRAT/PD)' }); }
@@ -999,7 +1224,27 @@ document.addEventListener('click', e => {
   if ((el = q('[data-dreset]'))) { try { localStorage.removeItem('fin_dest_' + AMB); } catch(_){} fecha(); ANIM = true; desenha(); return; }
   if ((el = q('[data-cano]'))) { const n = Number(el.dataset.cano); folhaCalendario(CALANO + n, n); return; }
   if ((el = q('[data-cmes]'))) { const m = el.dataset.cmes; fecha(); irMes(m, m > MES ? 1 : -1); return; }
-  if ((el = q('[data-amb]'))) { ANIM = true; AMB = el.dataset.amb; try { localStorage.setItem('fin_amb', AMB); } catch(_){} BUSCA = ''; ABA = 'mes'; const ms = [...new Set(dados().map(l => l.mes))]; if (!ms.includes(MES)) MES = ms.sort().pop() || MES; desenha(); return; }
+  if (document.getElementById('kbox') && !t.closest('#kbox') && !t.closest('#btKiro')) document.getElementById('kbox').remove();
+  if ((el = q('[data-kabre]'))) { document.getElementById('kbox').remove(); ANIM = true; ABA = 'kiro'; desenha(); scrollTo(0, 0); return; }
+  if ((el = q('[data-vst]'))) { VISTA.st = el.dataset.vst; vistaSalva(); vMes(); return; }
+  if (q('[data-vdir]')) { VISTA.dir *= -1; vistaSalva(); vMes(); return; }
+  if ((el = q('[data-vgr]'))) { const k = el.dataset.vgr, i = VISTA.gr.indexOf(k); if (i >= 0) VISTA.gr.splice(i, 1); else VISTA.gr.push(k); vistaSalva(); vMes(); return; }
+  if ((el = q('[data-vfdel]'))) { FILT.splice(Number(el.dataset.vfdel), 1); try { localStorage.setItem('fin_filtros_' + AMB, JSON.stringify(FILT)); } catch(_){} vMes(); return; }
+  if ((el = q('[data-vfil]'))) { const f = FILT[Number(el.dataset.vfil)]; if (f) { Object.assign(VISTA, { ord: f.ord, dir: f.dir, st: f.st, gr: f.gr.slice(), q: '' }); vistaSalva(); vMes(); } return; }
+  if (q('[data-vsalvar]')) { folhaSalvaFiltro(); return; }
+  if (q('[data-vsalvafiltro]')) { const n = $('#fNomeFiltro').value.trim(); if (!n) return toast('Dê um nome ao filtro.'); FILT.push({ nome: n, ord: VISTA.ord, dir: VISTA.dir, st: VISTA.st, gr: VISTA.gr.slice() }); try { localStorage.setItem('fin_filtros_' + AMB, JSON.stringify(FILT)); } catch(_){} fecha(); vMes(); toast('Filtro salvo.'); return; }
+  if (q('[data-vgrupos]')) { folhaGrupos('entrada'); return; }
+  if ((el = q('[data-gsent]'))) { folhaGrupos(el.dataset.gsent); return; }
+  if ((el = q('[data-gup]'))) { movGrupo(el.dataset.gup, -1); return; }
+  if ((el = q('[data-gdown]'))) { movGrupo(el.dataset.gdown, 1); return; }
+  if ((el = q('[data-gedita]'))) { if (!podeEditar()) return toast('Você só pode ver.'); folhaGrupo(el.dataset.gedita, GSENT); return; }
+  if (q('[data-gnovo]')) { folhaGrupo(null, GSENT); return; }
+  if ((el = q('[data-gcor]'))) { gCor(el.dataset.gcor); return; }
+  if (q('[data-gcancel]')) { if (GVOLTA) { const d = GVOLTA; GVOLTA = null; folhaLanc(d, d.sentido); } else folhaGrupos(GEDIT && GEDIT.sent); return; }
+  if (q('[data-gsalva]')) { salvaGrupo(); return; }
+  if (q('[data-gocultar]')) { ocultaGrupo(); return; }
+  if (q('[data-gapaga]')) { apagaGrupo(); return; }
+  if ((el = q('[data-amb]'))) { ANIM = true; AMB = el.dataset.amb; try { localStorage.setItem('fin_amb', AMB); } catch(_){} BUSCA = ''; if (ABA !== 'inicio') ABA = 'mes'; const ms = [...new Set(dados().map(l => l.mes))]; if (!ms.includes(MES)) MES = ms.sort().pop() || MES; desenha(); return; }
   if ((el = q('[data-aba]'))) { ANIM = true; ABA = el.dataset.aba; BUSCA = ''; desenha(); return; }
   if ((el = q('[data-novo]'))) { folhaLanc(null, el.dataset.novo); return; }
   if ((el = q('[data-virar]'))) { virarMes(); return; }
@@ -1032,9 +1277,18 @@ document.addEventListener('click', e => {
   if (t.id === 'veu') { fecha(); return; }
   if ((el = q('.lin[data-id]'))) { const l = dados().find(x => x.id === el.dataset.id); if (!l) return; if (!podeEditar()) return toast('Você só pode ver.'); if (l.grupo === 'retirada') { folhaRetirada(l.mes); return; } fecha(); folhaLanc(l, l.sentido); return; }
 });
-document.addEventListener('input', e => { if (!(e.target.closest && e.target.closest('#folha'))) return; if (document.getElementById('cPrev')) previaContrato(); if (e.target.id === 'rVal') { const v = parseValor(e.target.value) || 0; $('#rPR').textContent = BRL0(v); $('#rPS').textContent = BRL0(folhaRetirada._sobra - v); } });
+document.addEventListener('input', e => {
+  if (e.target.id === 'vQ') { VISTA.q = e.target.value; desLista(); return; }
+  if (e.target.id === 'gCorX') { gCor(e.target.value); return; }
+  if (!(e.target.closest && e.target.closest('#folha'))) return; if (document.getElementById('cPrev')) previaContrato(); if (e.target.id === 'rVal') { const v = parseValor(e.target.value) || 0; $('#rPR').textContent = BRL0(v); $('#rPS').textContent = BRL0(folhaRetirada._sobra - v); } });
 document.addEventListener('change', async e => {
-  const t = e.target; if (t.dataset && t.dataset.ac) mudaAcesso(t.dataset.u, t.dataset.ac, t.checked);
+  const t = e.target;
+  if (t.id === 'vOrd') { VISTA.ord = t.value; vistaSalva(); vMes(); return; }
+  if (t.id === 'fGru' && t.value === '__novo') {
+    const l = folhaLanc._l, v = parseValor($('#fVal').value), dia = parseInt($('#fDia').value, 10);
+    GVOLTA = Object.assign({}, l, { descricao: $('#fDes').value, valor: isNaN(v) ? '' : v, dia: dia || '', parcela: $('#fPar').value, forma: $('#fFor').value, obs: $('#fObs').value, vendedor: $('#fVen') ? $('#fVen').value : l.vendedor, pago: $('#fPag').checked, conta: $('#fCon').checked });
+    folhaGrupo(null, l.sentido); GSENT = l.sentido; return;
+  } if (t.dataset && t.dataset.ac) mudaAcesso(t.dataset.u, t.dataset.ac, t.checked);
   if (t.id === 'catNome') {
     const ids = t.dataset.ids.split(','), v = t.value || null, r = await sb.from('fin_lancamentos').update({ categoria: v }).in('id', ids);
     if (r.error) return toast(/categoria/.test(r.error.message) ? 'Falta rodar o migration_v172 no Supabase.' : r.error.message);
@@ -1044,6 +1298,14 @@ document.addEventListener('change', async e => {
 });
 ligaSeta($('#mAnt'), -1); ligaSeta($('#mProx'), 1); ligaArrasto();
 $('#mesTxt').onclick = () => folhaCalendario();
+$('#btVolta').onclick = () => { ANIM = true; ABA = 'inicio'; BUSCA = ''; desenha(); scrollTo(0, 0); };
+$('#btKiro').onclick = () => {
+  const b = document.getElementById('kbox'); if (b) { b.remove(); return; }
+  const r = $('#btKiro').getBoundingClientRect(), d = document.createElement('div'); d.id = 'kbox'; d.style.top = (r.bottom + 8) + 'px'; d.style.right = Math.max(8, innerWidth - r.right) + 'px';
+  d.innerHTML = '<div class="kbh"><img src="/icone-ia.php?p=kiro&s=96" alt="" onerror="this.style.visibility=\'hidden\'"><div><b>Kiro</b><small>Estrategista · IA da grana</small></div></div><p>Ela conhece os números da Casa e da Empresa. Pergunte sobre o mês, o que está apertado ou quanto dá para gastar.</p><button class="bt mini" data-kabre="1" style="width:100%">Conversar com a Kiro</button>';
+  document.body.appendChild(d);
+};
+matchMedia('(max-width:999px)').addEventListener('change', () => { if (ACC && !$('#app').classList.contains('hid')) desenha(); });
 $('#btTrancar').onclick = async () => { if (!ACC.admin) await sb.rpc('fin_trancar'); D = { casa: null, empresa: null }; CIA = null; NOTAS = {}; MOD = null; KIRO = []; if (ACC.admin) { porta('<h2>Trancado</h2><p>Os números saíram da tela.</p><button class="bt" onclick="location.reload()">Abrir de novo</button>'); } else pedirSenha(); };
 $('#btFechar').onclick = () => { try { parent.postMessage({ tipo: 'fin-fechar' }, '*'); } catch(e){} };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecha(); });
