@@ -33,6 +33,7 @@
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
         <div style="font-weight:700;font-size:16px">SEO — ${E(nome)}</div>
         <button class="btn btn-primary btn-sm" id="seo-aud" style="margin-left:auto">${AUD ? 'Auditar de novo' : 'Auditar agora'}</button>
+        ${AUD ? '<button class="btn btn-secondary btn-sm" id="seo-pdf">Baixar PDF</button>' : ''}
         <button class="btn btn-secondary btn-sm" id="seo-plug" title="Instala o plugin auxiliar direto no site pela HostGator">Instalar plugin no site</button>
         <button class="btn btn-secondary btn-sm" id="seo-x">Fechar</button></div>`;
     if (!AUD) {
@@ -54,6 +55,7 @@
     ov.querySelector('#seo-x').onclick = () => { ov.remove(); ov = null; };
     ov.querySelector('#seo-aud').onclick = auditar;
     ov.querySelector('#seo-plug').onclick = baixaPlugin;
+    const bp = ov.querySelector('#seo-pdf'); if (bp) bp.onclick = relatorioPdf;
     ov.querySelectorAll('[data-sug]').forEach(b => b.onclick = () => sugerir(+b.dataset.sug));
     ov.querySelectorAll('[data-ap]').forEach(b => b.onclick = () => aplicar(+b.dataset.ap));
     ov.querySelectorAll('[data-rec]').forEach(b => b.onclick = () => recusar(+b.dataset.rec));
@@ -125,6 +127,42 @@
     try { await sdFetch('/pd-seo.php', { acao: 'reverter', client_id: CID, id }); const h = await sdFetch('/pd-seo.php', { acao: 'historico', client_id: CID }); HIST = h.propostas || []; desenha(); T('Desfeito.', 'success'); }
     catch (e) { T('Não desfez: ' + (e.message || e), 'error'); }
   }
+
+  // ---------------------------------------------------------------- relatório em PDF (impressão do navegador → Salvar como PDF)
+  const ROTULO = { sem_titulo: 'Páginas sem título', titulo_curto: 'Títulos SEO curtos', titulo_longo: 'Títulos SEO longos demais', sem_meta: 'Páginas sem meta description', meta_curta: 'Meta descriptions curtas', meta_longa: 'Meta descriptions longas demais', sem_h1: 'Páginas sem título principal (H1)', varios_h1: 'Páginas com mais de um H1', noindex: 'Páginas bloqueadas para o Google (noindex)', sem_canonical: 'Páginas sem URL canônica', sem_og: 'Páginas sem imagem de compartilhamento', sem_schema: 'Páginas sem dados estruturados (schema)', sem_viewport: 'Páginas sem configuração para celular', img_sem_alt: 'Páginas com imagens sem texto alternativo', conteudo_curto: 'Páginas com pouco conteúdo', sem_links_internos: 'Páginas sem links internos', slug_longo: 'Endereços muito longos', fora: 'Páginas que não abriram', lenta: 'Páginas lentas', titulo_repetido: 'Páginas com título repetido', meta_repetida: 'Páginas com meta description repetida' };
+  const SEV = { alta: 'Grave', media: 'Médio', baixa: 'Leve' };
+  function relatorioPdf() {
+    if (!AUD) return;
+    const R = AUD.resumo, nome = (typeof clients !== 'undefined' ? (clients.find(c => c.id === CID) || {}).name : '') || '';
+    const home = AUD.itens.find(i => i.tipo === 'home'), site = home ? home.url : (AUD.itens[0] || {}).url || '';
+    const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const agg = {}; AUD.itens.forEach(it => it.problemas.forEach(p => { const a = agg[p[0]] = agg[p[0]] || { sev: p[1], n: 0 }; a.n++; }));
+    const prio = Object.entries(agg).sort((a, b) => ({ alta: 0, media: 1, baixa: 2 }[a[1].sev] - { alta: 0, media: 1, baixa: 2 }[b[1].sev]) || b[1].n - a[1].n);
+    const cn = n => n >= 80 ? '#16a34a' : n >= 55 ? '#d97706' : '#dc2626';
+    const css = `@page{size:A4;margin:16mm 14mm}*{box-sizing:border-box}body{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;color:#1c1c1e;margin:0;font-size:12px;line-height:1.5}
+      h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}h2{font-size:14px;margin:26px 0 8px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b70}
+      .cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1c1c1e;padding-bottom:14px}.sub{color:#6b6b70;font-size:12.5px}
+      .nota{display:flex;gap:22px;align-items:center;margin:20px 0;padding:18px 22px;border:1px solid #e3e3e6;border-radius:12px}.big{font-size:56px;font-weight:800;line-height:1}
+      .tag{display:inline-block;padding:1px 9px;border-radius:20px;font-size:10.5px;font-weight:700;border:1px solid}
+      table{width:100%;border-collapse:collapse}th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b70;border-bottom:1px solid #1c1c1e;padding:6px 6px}td{padding:7px 6px;border-bottom:1px solid #ececef;vertical-align:top}tr{break-inside:avoid}
+      .rod{margin-top:28px;font-size:10.5px;color:#8e8e93;border-top:1px solid #e3e3e6;padding-top:8px}`;
+    const cor = { alta: '#dc2626', media: '#d97706', baixa: '#8e8e93' };
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Auditoria de SEO — ${E(nome)}</title><style>${css}</style></head><body>
+      <div class="cab"><div><h1>Auditoria de SEO</h1><div class="sub">${E(nome)} · ${E(site.replace(/^https?:\/\//, ''))}</div></div><div class="sub">${E(hoje)}</div></div>
+      <div class="nota"><div class="big" style="color:${cn(R.nota)}">${R.nota}<span style="font-size:18px;color:#8e8e93;font-weight:600">/100</span></div>
+        <div><div style="font-size:14px;font-weight:700;margin-bottom:4px">Nota geral de SEO do site</div>${R.paginas_lidas} páginas analisadas${R.paginas_no_site > R.paginas_lidas ? ' de ' + R.paginas_no_site : ''}.<br>
+        <span class="tag" style="color:${cor.alta}">${R.problemas.alta} graves</span> <span class="tag" style="color:${cor.media}">${R.problemas.media} médios</span> <span class="tag" style="color:${cor.baixa}">${R.problemas.baixa} leves</span></div></div>
+      ${R.site.length ? '<h2>Pontos do site inteiro</h2><table><tbody>' + R.site.map(s => '<tr><td style="width:70px"><span class="tag" style="color:' + cor[s[1]] + '">' + SEV[s[1]] + '</span></td><td>' + E(s[2]) + '</td></tr>').join('') + '</tbody></table>' : ''}
+      <h2>O que corrigir primeiro</h2><table><thead><tr><th style="width:70px">Peso</th><th>Problema</th><th style="width:70px">Páginas</th></tr></thead><tbody>${prio.map(([c, a]) => '<tr><td><span class="tag" style="color:' + cor[a.sev] + '">' + SEV[a.sev] + '</span></td><td>' + E(ROTULO[c] || c) + '</td><td>' + a.n + '</td></tr>').join('') || '<tr><td colspan="3">Nenhum problema encontrado.</td></tr>'}</tbody></table>
+      <h2>Página por página</h2><table><thead><tr><th style="width:42px">Nota</th><th>Página</th><th>Problemas</th></tr></thead><tbody>${AUD.itens.map(it => '<tr><td style="font-weight:800;color:' + cn(it.nota) + '">' + it.nota + '</td><td><b>' + E((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b><br><span style="color:#8e8e93;font-size:10.5px">' + E(it.url.replace(/^https?:\/\//, '')) + '</span></td><td>' + (it.problemas.map(p => E(p[2])).join('<br>') || '<span style="color:#16a34a">Sem problemas</span>') + '</td></tr>').join('')}</tbody></table>
+      <div class="rod">Relatório gerado pela plataforma Pontodot · SD Agência. A auditoria lê as páginas públicas do site como o Google lê; nenhuma alteração é feita sem aprovação.</div></body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) return T('O navegador bloqueou a janela. Libere pop-ups para este site e clique de novo.', 'warn');
+    w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 500);
+    T('Na janela de impressão, escolha “Salvar como PDF”.', 'info');
+  }
+
   async function baixaPlugin() {
     const b = ov.querySelector('#seo-plug'); b.disabled = true; b.textContent = 'Instalando…';
     try {
