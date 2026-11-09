@@ -322,7 +322,7 @@ function pdSeoAplicar($clientId, array $ids, array $edicoes = []) {
     foreach ($ids as $id) {
         $id = preg_replace('/[^0-9a-fA-F-]/', '', (string)$id);
         $p = sd_supabase('/rest/v1/pd_seo_propostas?id=eq.' . urlencode($id) . '&client_id=eq.' . urlencode($clientId) . '&select=*')['body'][0] ?? null;
-        if (!$p || !in_array($p['status'], ['proposta', 'erro', 'revertida'], true)) { $res[] = ['id' => $id, 'ok' => false, 'erro' => 'proposta indisponível']; continue; }
+        if (!$p || !in_array($p['status'], ['proposta', 'erro', 'revertida', 'aplicada'], true)) { $res[] = ['id' => $id, 'ok' => false, 'erro' => 'proposta indisponível']; continue; }
         $valor = isset($edicoes[$id]) ? trim((string)$edicoes[$id]) : $p['depois'];
         try {
             pdSeoEscrever($site, $cred, $plugin, $p, $valor);

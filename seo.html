@@ -373,7 +373,7 @@ async function aplicaEditor(){
     const r = await api({ acao: 'aplicar', client_id: CID, ids, edicoes: ed });
     const falhas = r.resultado.filter(x => !x.ok);
     HIST = (await api({ acao: 'historico', client_id: CID })).propostas || [];
-    if (falhas.length) { b.disabled = false; b.textContent = 'Aplicar no site'; return toast(/PLUGIN_AUXILIAR/.test(falhas[0].erro) ? 'Falta o plugin auxiliar neste site. Volte e clique em “Instalar plugin no site”.' : 'Não gravou: ' + falhas[0].erro); }
+    if (falhas.length) { b.disabled = false; b.textContent = 'Aplicar no site'; return toast(/PLUGIN_AUXILIAR/.test(falhas[0].erro) ? 'Falta o plugin auxiliar neste site. Volte e clique em “Instalar plugin no site”.' : 'Não gravou: ' + falhas.map(f => f.erro).join(' · ')); }
     ED.it.nota = estima(ED.it, ED.v); delete PROPS[ED.it.url];
     toast('Aplicado no site. Dá para desfazer na lista.'); vCliente();
   } catch(e){ b.disabled = false; b.textContent = 'Aplicar no site'; toast('SEO: ' + e.message); }
