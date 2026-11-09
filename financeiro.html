@@ -271,8 +271,9 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
   .hero{padding:18px;margin-bottom:0}
   .hero .gr{font-size:36px}.trio b{font-size:14.5px}.trio div{padding:9px 10px}
   .duas{gap:14px}
-  .itens{column-width:262px;column-gap:8px}
-  .itens .lin,.itens .gp{break-inside:avoid}
+  .itens{columns:300px;column-gap:12px}
+  .bloco{break-inside:avoid;margin:0 0 12px;display:inline-block;width:100%}
+  .bloco .gp{padding:6px 4px 6px}
   .lin{padding:6px 9px;gap:9px;border-radius:10px;font-size:13.5px}
   .itens .lin .m{display:flex;align-items:center;gap:8px}.itens .lin{container-type:inline-size}.itens .lin .m b{flex:0 0 auto;max-width:72%;font-size:13.5px}@container (max-width:345px){.itens .lin .m small{display:none!important}}.itens .lin .m small{flex:1 1 0;min-width:0;font-size:11px;display:block}
   .lin .m small{font-size:11.5px}
@@ -735,11 +736,11 @@ function colunaMes(sentido){
   const soG = {}; R.forEach(l => (soG[l.grupo || 'outro'] = soG[l.grupo || 'outro'] || []).push(l));
   const varios = Object.keys(soG).length > 1 || !soG.outro;
   let h = '<div class="cx"><div class="cab"><h3>' + (sentido === 'entrada' ? 'Entradas' : 'Saídas') + '</h3>' + (filtrando() && R.length !== base.length ? '<span class="chip">' + R.length + ' de ' + base.length + '</span>' : '') + '<span class="tt ' + (sentido === 'entrada' ? 'pos' : '') + '">' + BRL(tt) + '</span></div><div class="itens">';
-  let ult = null;
-  R.forEach(l => {
-    const k = l.grupo || 'outro';
-    if (porGr && k !== ult && varios) { const g = grupoInfo(k, sentido); h += '<div class="gp" style="--gc:' + g.cor + '"><i class="gd"></i>' + esc(g.nome) + ' · ' + BRL0(soma(soG[k], x => x.conta)) + '</div>'; }
-    ult = k; h += linha(l);
+  const blocos = [];
+  R.forEach(l => { const k = porGr && varios ? (l.grupo || 'outro') : '_'; const u = blocos[blocos.length - 1]; if (u && u.k === k) u.ls.push(l); else blocos.push({ k, ls: [l] }); });
+  blocos.forEach(B => {
+    const g = B.k === '_' ? null : grupoInfo(B.k, sentido);
+    h += '<div class="bloco"' + (g ? ' style="--gc:' + g.cor + '"' : '') + '>' + (g ? '<div class="gp"><i class="gd"></i>' + esc(g.nome) + ' · ' + BRL0(soma(B.ls, x => x.conta)) + '</div>' : '') + B.ls.map(linha).join('') + '</div>';
   });
   if (!R.length) h += '<div class="vazio">' + (base.length ? 'Nada com esse filtro.' : 'Nada por aqui.') + '</div>';
   h += '</div>';
