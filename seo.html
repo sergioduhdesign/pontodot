@@ -60,6 +60,14 @@ a{color:inherit}
 .pg .ld{position:absolute;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;color:#444;font-size:13px}
 .serp{padding:12px 14px;border-radius:12px;background:#fff;color:#202124;border:1px solid var(--lin)}
 .serp .a{font-size:12px;color:#4d5156;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.serp .b{font-size:18px;line-height:1.25;color:#1a0dab;margin:2px 0}.serp .c{font-size:13px;color:#4d5156;line-height:1.45}
+
+.tg{display:inline-block;font:600 10px/1 system-ui,sans-serif;letter-spacing:.04em;padding:3px 6px;border-radius:5px;background:#1a73e8;color:#fff;vertical-align:middle;margin-right:6px;text-transform:none}.tg.m{background:#5f6368}.tg.x{background:#d93025}
+.vit .serp{position:relative}.serp .b.on,.serp .c.on{outline:2px solid #1a73e8;outline-offset:2px;border-radius:4px}.serp .b.err,.serp .c.err{outline:2px dashed #d93025;outline-offset:2px;border-radius:4px}
+.serp .fav{display:flex;align-items:center;gap:8px;margin-bottom:4px}.serp .fav i{width:22px;height:22px;border-radius:50%;background:#e8eaed;flex:0 0 auto}
+.abaM{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px 10px 0 0;background:#2b2c2f;color:#e8eaed;font:12px system-ui,sans-serif;max-width:280px;margin-top:10px}.abaM i{width:14px;height:14px;border-radius:3px;background:#8ab4f8;flex:0 0 auto}.abaM span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zapM{display:flex;gap:0;border-radius:10px;overflow:hidden;background:#fff;color:#202124;border:1px solid var(--lin);max-width:360px;margin-top:10px;font-family:system-ui,sans-serif}.zapM .im{width:96px;min-height:80px;background:#e8eaed center/cover;flex:0 0 auto}.zapM .tx{padding:8px 10px;min-width:0}.zapM .tx b{display:block;font-size:13px;line-height:1.25}.zapM .tx small{font-size:12px;color:#5f6368;display:block;margin-top:2px;line-height:1.3}
+.vnota{font-size:11.5px;color:var(--mut);margin:6px 0 2px;line-height:1.45}
+.gradeP{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}.cardP{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:12px;display:flex;flex-direction:column;gap:8px}
 .alt{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.alt img{width:54px;height:54px;object-fit:cover;border-radius:8px;background:var(--in);flex:0 0 auto}
 .tabela{width:100%;border-collapse:collapse}.tabela td,.tabela th{padding:10px 8px;border-bottom:1px solid var(--lin);vertical-align:top;text-align:left}.tabela th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);font-weight:600}
 .risco{text-decoration:line-through;color:var(--mut);font-size:12px;margin-bottom:3px}
@@ -171,8 +179,8 @@ function vLista(){
       '<div>' + (RODA[c.id] ? pill('auditando…', 'var(--ouro)') : ERRO[c.id] ? pill('erro', 'var(--ruim,#e5484d)') : '') + (wp ? pill('WordPress', 'var(--ok)') : pill(s ? 'site ' + (s.tipo || '') : 'sem site', 'var(--mut)')) + (u ? pill(dt(u.criado_em), 'var(--mut)') : pill('nunca auditado', 'var(--ouro)')) + '</div></div>';
   }).join('') + '</div>';
   document.querySelectorAll('.cc').forEach(e => e.onclick = () => abreCliente(e.dataset.c));
-  if (g('bTodosAud')) g('bTodosAud').onclick = auditarTodos;
-  if (g('agOn')) { g('agOn').onchange = salvaAgenda; g('agDias').onchange = salvaAgenda; }
+  if ($('#bTodosAud')) $('#bTodosAud').onclick = auditarTodos;
+  if ($('#agOn')) { $('#agOn').onchange = salvaAgenda; $('#agDias').onchange = salvaAgenda; }
 }
 
 // ------------------------------------------------------------------ um cliente
@@ -201,11 +209,15 @@ function vCliente(){
       '<div class="pequeno" style="line-height:1.8"><b>' + R.paginas_lidas + '</b> páginas lidas de ' + R.paginas_no_site + ' · plugin de SEO: <b>' + ({ yoast: 'Yoast', rankmath: 'Rank Math', aioseo: 'All in One SEO', nenhum: 'nenhum' }[R.plugin] || esc(R.plugin)) + '</b> · auditado em ' + dt(FULL.criado_em) + '<br>' +
       pill(R.problemas.alta + ' graves', CS.alta) + pill(R.problemas.media + ' médios', CS.media) + pill(R.problemas.baixa + ' leves', CS.baixa) + '</div></div>';
     if (R.site.length) h += '<div class="h2">Do site inteiro</div>' + R.site.map(x => '<div class="pequeno" style="margin-bottom:5px">' + pill(SEV[x[1]], CS[x[1]]) + esc(x[2]) + '</div>').join('');
-    h += '<div class="h2">Páginas · pior primeiro</div>' + FULL.itens.map((it, i) => {
-      const fix = it.problemas.some(p => p[3]);
-      return '<div class="lin"><div class="nota" style="font-size:22px;min-width:40px;text-align:center;color:' + cor(it.nota) + '">' + it.nota + '</div><div class="m"><b>' + esc((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b><a href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.url.replace(/^https?:\/\//, '')) + '</a><div>' +
-        (it.problemas.map(p => pill(p[2], CS[p[1]])).join('') || pill('Sem problemas', 'var(--ok)')) + '</div></div>' + (fix ? '<button class="bt mini" data-ed="' + i + '">Corrigir</button>' : '') + '</div>';
-    }).join('');
+    h += '<div class="h2">Páginas · pior primeiro <span class="mut" style="font-weight:400;font-size:12px">· tracejado vermelho = o que está errado no Google</span></div><div class="gradeP">' + FULL.itens.map((it, i) => {
+      const fix = it.problemas.some(p => p[3]), cod = it.problemas.map(p => String(p[0]));
+      const fl = { t: cod.some(c => /titulo/.test(c)), m: cod.some(c => /meta/.test(c)) };
+      return '<div class="cardP"><div style="display:flex;align-items:center;gap:10px"><div class="nota" style="font-size:26px;min-width:44px;text-align:center;color:' + cor(it.nota) + '">' + it.nota + '</div>' +
+        '<div style="min-width:0;flex:1"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b></div>' +
+        (fix ? '<button class="bt mini" data-ed="' + i + '">Corrigir</button>' : '') + '</div>' +
+        vitrine(it.url, (it.analise && it.analise.titulo) || '', (it.analise && it.analise.meta) || '', '', fl, false) +
+        '<div>' + (it.problemas.map(p => pill(p[2], CS[p[1]])).join('') || pill('Sem problemas', 'var(--ok)')) + '</div></div>';
+    }).join('') + '</div>';
   }
   const ap = HIST.filter(p => p.status === 'aplicada');
   if (ap.length) h += '<div class="h2">Já aplicado · dá para desfazer</div>' + ap.slice(0, 30).map(p => '<div class="lin"><div class="m"><b>' + CAMPO[p.campo] + (p.editado ? ' <span class="mut" style="font-weight:400">· corrigido por você</span>' : '') + '</b><a>' + esc((p.url || '').replace(/^https?:\/\//, '')) + '</a><div class="pequeno" style="margin-top:3px">' + esc(p.depois) + '</div></div><button class="bt sec mini" data-undo="' + p.id + '">Desfazer</button></div>').join('');
@@ -283,6 +295,19 @@ async function abreEditor(it){
   } catch(e){ toast('SEO: ' + e.message); }
   ED.ok = true; vEditor(); atualizaPrevia();
 }
+
+const cutT = (t, m) => t.length > m ? t.slice(0, m - 1).trim() + '…' : t;
+/** Como a página aparece: Google (título azul + texto cinza), aba do navegador e cartão do WhatsApp. flag: {t:bool, m:bool} marca o que está errado. */
+function vitrine(url, titulo, meta, og, flag, rot){
+  flag = flag || {}; const host = esc(String(url || '').replace(/^https?:\/\//, '').replace(/\/$/, ''));
+  const t = (titulo || '').trim(), m = (meta || '').trim();
+  return '<div class="vit"><div class="serp"><div class="fav"><i></i><div class="a">' + host + '</div></div>' +
+    '<div class="b' + (flag.t ? ' err' : '') + '" data-v="t">' + (rot ? '<span class="tg">TÍTULO SEO</span>' : '') + esc(cutT(t || '(sem título)', 60)) + '</div>' +
+    '<div class="c' + (flag.m ? ' err' : '') + '" data-v="m">' + (rot ? '<span class="tg m">META DESCRIPTION</span>' : '') + esc(cutT(m || '(sem descrição: o Google escolhe um trecho qualquer da página)', 158)) + '</div></div>' +
+    (rot ? '<div class="vnota"><b>Título SEO</b>: a linha azul no Google e o nome da aba. <b>Meta description</b>: o texto cinza. Ela <b>não aparece no site</b>, só aqui, no resultado da busca.</div>' +
+      '<div class="abaM"><i></i><span>' + esc(cutT(t || '(sem título)', 38)) + '</span></div><div class="vnota">Aba do navegador (usa o título SEO)</div>' +
+      '<div class="zapM"><div class="im"' + (og ? ' style="background-image:url(\'' + esc(og) + '\')"' : '') + '></div><div class="tx"><b>' + esc(cutT(t || '(sem título)', 55)) + '</b><small>' + esc(cutT(m || '', 90)) + '</small><small>' + host.split('/')[0] + '</small></div></div><div class="vnota">Link colado no WhatsApp ou Instagram (imagem de compartilhamento + título + descrição)</div>' : '') + '</div>';
+}
 function vEditor(){
   const it = ED.it, v = ED.v, imgs = (it.analise.imgs_sem_alt || []).filter(i => i.id);
   $('#cont').innerHTML = cartaQuem().replace('Cuida do SEO da casa', 'Escreveu as correções abaixo') + `
@@ -291,7 +316,7 @@ function vEditor(){
       <div class="pequeno mut" style="margin-top:8px">Esta é a página real do cliente com as suas mudanças aplicadas só aqui na tela. Imagens com alt novo ficam contornadas em verde. Nada foi gravado no site.</div></div>
     <div>
       <div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><div><div class="pequeno mut">Nota estimada da página</div><div class="nota" style="font-size:40px" id="nt"></div></div><div class="pequeno mut" id="nt2"></div></div>
-      <div class="serp" id="serp" style="margin-bottom:14px"></div>
+      <div id="vitrine" style="margin-bottom:14px"></div>
       <div class="f"><label>Título SEO <span id="ct">0</span></label><textarea id="vt" rows="2">${esc(v.titulo)}</textarea></div>
       <div class="f"><label>Meta description <span id="cm">0</span></label><textarea id="vm" rows="4">${esc(v.meta)}</textarea></div>
       ${imgs.length ? '<div class="h2" style="margin-top:4px">Imagens sem texto alternativo</div>' + imgs.map(i => '<div class="alt"><img src="' + esc(i.src) + '" alt="" onerror="this.style.visibility=\'hidden\'"><div class="f" style="margin:0;flex:1"><textarea data-alt="' + i.id + '" rows="2" placeholder="Descreva a imagem">' + esc(v.alts[i.id] || '') + '</textarea></div></div>').join('') : ''}
@@ -301,6 +326,7 @@ function vEditor(){
     </div>
   </div>`;
   const ent = () => { v.titulo = $('#vt').value; v.meta = $('#vm').value; document.querySelectorAll('[data-alt]').forEach(t => v.alts[t.dataset.alt] = t.value); resumo(); clearTimeout(ED.timer); ED.timer = setTimeout(atualizaPrevia, 900); };
+  $('#vt').onfocus = () => { ED.foco = 't'; resumo(); }; $('#vm').onfocus = () => { ED.foco = 'm'; resumo(); };
   $('#vt').oninput = $('#vm').oninput = ent; document.querySelectorAll('[data-alt]').forEach(t => t.oninput = ent);
   $('#bVolta2').onclick = () => vCliente(); $('#bAp').onclick = aplicaEditor; resumo();
 }
@@ -310,8 +336,8 @@ function resumo(){
   $('#nt2').innerHTML = n > n0 ? 'era <b>' + n0 + '</b> · <b style="color:var(--ok)">+' + (n - n0) + '</b>' : 'era <b>' + n0 + '</b>';
   $('#ct').textContent = v.titulo.trim().length + ' (ideal 40–60)'; $('#ct').style.color = (v.titulo.trim().length >= 30 && v.titulo.trim().length <= 62) ? 'var(--ok)' : 'var(--ouro)';
   $('#cm').textContent = v.meta.trim().length + ' (ideal 130–155)'; $('#cm').style.color = (v.meta.trim().length >= 100 && v.meta.trim().length <= 160) ? 'var(--ok)' : 'var(--ouro)';
-  const cut = (s, m) => s.length > m ? s.slice(0, m - 1).trim() + '…' : s;
-  $('#serp').innerHTML = '<div class="a">' + esc(ED.it.url.replace(/^https?:\/\//, '')) + '</div><div class="b">' + esc(cut(v.titulo.trim() || '(sem título)', 60)) + '</div><div class="c">' + esc(cut(v.meta.trim() || '(sem descrição: o Google escolhe um trecho da página)', 158)) + '</div>';
+  const foco = (ED.foco || ''); $('#vitrine').innerHTML = vitrine(ED.it.url, v.titulo, v.meta, ED.it.analise.og_imagem, {}, true);
+  const el = $('#vitrine').querySelector('[data-v="' + foco + '"]'); if (el) el.classList.add('on');
 }
 async function atualizaPrevia(){
   if (VIEW !== 'editor' || !ED) return; const ld = $('#ld'); if (ld) ld.classList.remove('hid');
