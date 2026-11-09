@@ -23,6 +23,7 @@ $acao = (string)($d['acao'] ?? '');
 header('Content-Type: application/json; charset=utf-8');
 $J = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 
+if ($acao === 'quem') { echo json_encode(['ok' => true] + pdSeoQuem(), $J); exit; }
 if ($acao === 'plugin') { echo json_encode(['ok' => true, 'nome' => 'pontodot-seo.php', 'fonte' => pdSeoPluginFonte()], $J); exit; }
 
 $cid = (string)($d['client_id'] ?? '');
@@ -42,6 +43,15 @@ try {
     }
     if ($acao === 'instalar_plugin') { echo json_encode(['ok' => true] + pdCPInstalarSeo($cid), $J); exit; }
     if ($acao === 'testar_hostgator') { echo json_encode(['ok' => true] + pdCPTestar($cid), $J); exit; }
+    if ($acao === 'previa') {
+        $url = (string)($d['url'] ?? ''); if (!preg_match('#^https?://#', $url)) sd_fail('Endereço inválido.', 400);
+        $alts = []; foreach ((array)($d['alts'] ?? []) as $k => $v) $alts[(string)(int)$k] = (string)$v;
+        echo json_encode(['ok' => true, 'html' => pdSeoPrevia($url, trim((string)($d['titulo_seo'] ?? '')), trim((string)($d['meta'] ?? '')), $alts)], $J); exit;
+    }
+    if ($acao === 'ultima') {
+        $a = sd_supabase('/rest/v1/pd_seo_auditorias?client_id=eq.' . urlencode($cid) . '&select=id,nota,plugin,resumo,itens,criado_em&order=criado_em.desc&limit=1')['body'][0] ?? null;
+        echo json_encode(['ok' => true, 'auditoria' => $a], $J); exit;
+    }
     if ($acao === 'reverter') { pdSeoReverter($cid, (string)($d['id'] ?? '')); echo json_encode(['ok' => true]); exit; }
     if ($acao === 'recusar') {
         foreach (array_slice((array)($d['ids'] ?? []), 0, 100) as $id) {

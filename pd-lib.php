@@ -493,7 +493,7 @@ function pdZapEnviarModelo($para, $modelo, $params) {
 // =====================================================================
 // personagens da IA (espelho do sd-ia): id => [nome, sobrenome, título, arquétipo, promessa]
 /** Mestres por área do PD · Studio Design (app_settings.area_masters) e a IA que faz nessa área (a formada com esse personagem, ou o mestre fixo). */
-function pdAreaMasters() { $def = ['copys' => 'sumi', 'digital' => 'zumi', 'audio' => 'raku', 'video' => 'taro', 'grafica' => 'koda']; try { $r = sd_supabase('/rest/v1/app_settings?id=eq.1&select=area_masters'); $m = $r['body'][0]['area_masters'] ?? null; if (is_array($m)) return array_merge($def, array_filter($m)); } catch (Throwable $e) {} return $def; }
+function pdAreaMasters() { $def = ['copys' => 'sumi', 'digital' => 'zumi', 'audio' => 'raku', 'video' => 'taro', 'grafica' => 'koda', 'seo' => 'sumi']; try { $r = sd_supabase('/rest/v1/app_settings?id=eq.1&select=area_masters'); $m = $r['body'][0]['area_masters'] ?? null; if (is_array($m)) return array_merge($def, array_filter($m)); } catch (Throwable $e) {} return $def; }
 function pdQuemFazArea($area) { $cat = pdPersonagens(); $pers = strtolower((string)(pdAreaMasters()[$area] ?? 'maestro'));
     $j = null; try { $j = sd_supabase('/rest/v1/pd_jeito?personagem=ilike.' . urlencode($pers) . '&select=user_id,personagem,apelido&limit=1')['body'][0] ?? null; } catch (Throwable $e) {}
     return ['id' => $j['user_id'] ?? null, 'personagem' => $pers, 'nome' => trim((string)($j['apelido'] ?? '')) ?: ($cat[$pers][0] ?? ucfirst($pers)), 'titulo' => $cat[$pers][2] ?? '', 'area' => $area];

@@ -210,6 +210,24 @@ function pdSeoAuditar($clientId, $limite = 60) {
     return ['resumo' => $resumo, 'itens' => $itens];
 }
 
+// ------------------------------------------------------------------ quem faz o SEO na casa
+/** A IA da casa responsável pelo SEO (área "seo" → Sumi por padrão) e quantas vezes acertou de primeira. */
+function pdSeoQuem() {
+    $q = pdQuemFazArea('seo'); $cat = pdPersonagens(); $p = $q['personagem'];
+    $r = sd_supabase('/rest/v1/pd_seo_propostas?status=in.(aplicada,revertida,recusada)&select=status,editado&limit=5000')['body'] ?? [];
+    $total = 0; $acertos = 0;
+    foreach ((array)$r as $x) { $total++; if (($x['status'] ?? '') === 'aplicada' && empty($x['editado'])) $acertos++; }
+    return ['personagem' => $p, 'nome' => $q['nome'], 'titulo' => $q['titulo'], 'user_id' => $q['id'],
+            'sobre' => $cat[$p][4] ?? '', 'avatar' => '/icone-ia.php?p=' . $p . '&s=88', 'acertos' => $acertos, 'total' => $total];
+}
+/** Lições aprovadas (da casa e deste cliente) que a IA precisa seguir ao escrever SEO. */
+function pdSeoLicoes($clientId) {
+    $r = sd_supabase('/rest/v1/pd_licoes?status=eq.aprovada&skill_id=eq.SEO_TEXTOS&or=(comum.eq.true,cliente_ref.eq.' . urlencode($clientId) . ')&select=regra,exemplo_bom,exemplo_ruim&order=criada_em.desc&limit=15');
+    $t = [];
+    foreach ((array)($r['body'] ?? []) as $l) $t[] = '- ' . $l['regra'] . (!empty($l['exemplo_bom']) ? ' (bom: "' . mb_substr($l['exemplo_bom'], 0, 140) . '")' : '') . (!empty($l['exemplo_ruim']) ? ' (evitar: "' . mb_substr($l['exemplo_ruim'], 0, 140) . '")' : '');
+    return implode("\n", $t);
+}
+
 // ------------------------------------------------------------------ IA
 function pdSeoIA($system, $user, $max = 1500) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) throw new Exception('Sem chave da IA.');
@@ -249,20 +267,25 @@ function pdSeoSugerir($clientId, $tipo, $wpId, $url, $usuarioId = null) {
     $txt = trim(preg_replace('/\s+/', ' ', $d->textContent));
     $cli = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($clientId) . '&select=name')['body'][0]['name'] ?? '';
     $sem = array_slice(array_filter($a['imgs_sem_alt'], fn($i) => $i['id'] > 0), 0, 12);
-    $sys = 'Você é um especialista sênior em SEO para o mercado imobiliário brasileiro. Reescreva o SEO de UMA página existente, em pt-BR. '
+    $q = pdSeoQuem(); $t0 = microtime(true); $lic = pdSeoLicoes($clientId);
+    $sys = 'Você é ' . $q['nome'] . ', ' . mb_strtolower($q['titulo']) . ' da casa Pontodot (SD Agência), e hoje cuida do SEO. ' . $q['sobre'] . ' '
+         . 'Você é um especialista sênior em SEO para o mercado imobiliário brasileiro. Reescreva o SEO de UMA página existente, em pt-BR. '
          . 'Regras: título SEO de 40 a 60 caracteres, com o assunto principal no começo e a marca no fim quando couber; meta description de 130 a 155 caracteres, com benefício concreto e chamada para ação, sem aspas; '
          . 'texto alternativo de imagem descritivo, até 110 caracteres, sem "imagem de". NUNCA invente dados do empreendimento (preço, metragem, prazo, endereço, número de unidades) — use só o que está no conteúdo da página ou no conhecimento do cliente. '
          . 'Não use caixa alta corrida nem promessas enganosas. Responda SOMENTE JSON: {"titulo_seo":"...","meta":"...","alts":[{"id":123,"alt":"..."}],"motivo":"uma frase explicando o foco escolhido"}. '
-         . 'Se o título ou a meta atual já estiver ótimo, devolva-o igual. Só inclua em "alts" os ids recebidos.';
+         . 'Se o título ou a meta atual já estiver ótimo, devolva-o igual. Só inclua em "alts" os ids recebidos.'
+         . ($lic !== '' ? "\n\nLIÇÕES JÁ APROVADAS PELA EQUIPE (siga sempre):\n" . $lic : '');
     $msg = json_encode(['cliente' => $cli, 'url' => $url, 'titulo_atual' => $a['titulo'], 'meta_atual' => $a['meta'], 'h1' => $a['h1'],
         'conteudo_da_pagina' => mb_substr($txt, 0, 3500), 'imagens_sem_alt' => array_map(fn($i) => ['id' => $i['id'], 'arquivo' => basename(parse_url($i['src'], PHP_URL_PATH) ?? '')], $sem),
         'conhecimento_do_cliente' => function_exists('pdConhecimentoCliente') ? pdConhecimentoCliente($clientId, 'seo', 5000) : ''], JSON_UNESCAPED_UNICODE);
     $j = pdSeoIA($sys, $msg, 1500);
     $props = [];
-    $novo = function ($campo, $alvo, $antes, $depois) use (&$props, $clientId, $tipo, $wpId, $url, $usuarioId, $j) {
+    $seg = (int)round(microtime(true) - $t0);
+    $novo = function ($campo, $alvo, $antes, $depois) use (&$props, $clientId, $tipo, $wpId, $url, $usuarioId, $j, $q, $seg) {
         $depois = trim((string)$depois); if ($depois === '' || $depois === trim((string)$antes)) return;
         $props[] = ['client_id' => $clientId, 'tipo' => $tipo, 'wp_id' => $wpId, 'url' => $url, 'campo' => $campo, 'alvo' => $alvo,
-                    'antes' => (string)$antes, 'depois' => $depois, 'motivo' => (string)($j['motivo'] ?? ''), 'criado_por' => $usuarioId];
+                    'antes' => (string)$antes, 'depois' => $depois, 'sugerido' => $depois, 'motivo' => (string)($j['motivo'] ?? ''), 'criado_por' => $usuarioId,
+                    'ia_personagem' => $q['personagem'], 'ia_segundos' => $seg];
     };
     $novo('titulo_seo', null, $a['titulo'], pdSeoCorta($j['titulo_seo'] ?? '', 62));
     $novo('meta', null, $a['meta'], pdSeoCorta($j['meta'] ?? '', 158));
@@ -303,7 +326,9 @@ function pdSeoAplicar($clientId, array $ids, array $edicoes = []) {
         $valor = isset($edicoes[$id]) ? trim((string)$edicoes[$id]) : $p['depois'];
         try {
             pdSeoEscrever($site, $cred, $plugin, $p, $valor);
-            sd_supabase('/rest/v1/pd_seo_propostas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'aplicada', 'depois' => $valor, 'aplicado_em' => gmdate('c'), 'erro' => null]);
+            $editado = trim((string)($p['sugerido'] ?? $p['depois'])) !== trim($valor);
+            sd_supabase('/rest/v1/pd_seo_propostas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'aplicada', 'depois' => $valor, 'editado' => $editado, 'aplicado_em' => gmdate('c'), 'erro' => null]);
+            if ($editado) pdSeoLicaoDaEdicao($clientId, $p, $valor);
             $res[] = ['id' => $id, 'ok' => true];
         } catch (Exception $e) {
             sd_supabase('/rest/v1/pd_seo_propostas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'erro', 'erro' => mb_substr($e->getMessage(), 0, 300)]);
@@ -312,6 +337,16 @@ function pdSeoAplicar($clientId, array $ids, array $edicoes = []) {
     }
     return $res;
 }
+/** A equipe corrigiu à mão o texto da IA: vira uma lição PROPOSTA (nada vale até a equipe aprovar na aula). */
+function pdSeoLicaoDaEdicao($clientId, $p, $valor) {
+    try {
+        $campo = ['titulo_seo' => 'título SEO', 'meta' => 'meta description', 'alt' => 'texto alternativo'][$p['campo']] ?? $p['campo'];
+        sd_supabase('/rest/v1/pd_licoes', 'POST', [
+            'ia_user_id' => pdQuemFazArea('seo')['id'] ?? null, 'personagem' => $p['ia_personagem'] ?? null, 'skill_id' => 'SEO_TEXTOS', 'escopo' => 'cliente', 'cliente_ref' => $clientId,
+            'regra' => 'A equipe corrigiu um ' . $campo . ' escrito pela IA: prefira o jeito da versão corrigida (tom, tamanho e escolha de palavras).',
+            'exemplo_ruim' => mb_substr((string)($p['sugerido'] ?? ''), 0, 400), 'exemplo_bom' => mb_substr($valor, 0, 400), 'status' => 'proposta', 'comum' => false]);
+    } catch (Throwable $e) { /* a lição é bônus: nunca trava a aplicação */ }
+}
 function pdSeoReverter($clientId, $id) {
     $site = pdSiteCfg($clientId); $cred = pdCred($clientId, 'wordpress');
     $id = preg_replace('/[^0-9a-fA-F-]/', '', (string)$id);
@@ -319,6 +354,39 @@ function pdSeoReverter($clientId, $id) {
     if (!$p || $p['status'] !== 'aplicada') throw new Exception('Só dá para desfazer o que foi aplicado.');
     pdSeoEscrever($site, $cred, pdSeoPlugin($site), $p, (string)$p['antes']);
     sd_supabase('/rest/v1/pd_seo_propostas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'revertida']);
+}
+
+/** A página REAL do cliente, já com o título/meta/alts propostos aplicados (só para olhar; nada é gravado). */
+function pdSeoPrevia($url, $titulo, $meta, array $alts) {
+    $pg = pdSeoBaixar([$url], 1)[$url] ?? null;
+    if (!$pg || $pg['code'] !== 200) throw new Exception('Não consegui abrir a página (' . ($pg['code'] ?? 0) . ').');
+    libxml_use_internal_errors(true);
+    $d = new DOMDocument(); $d->loadHTML('<?xml encoding="utf-8"?>' . $pg['html']); libxml_clear_errors();
+    $x = new DOMXPath($d);
+    foreach (iterator_to_array($x->query('//script|//noscript|//iframe')) as $n) $n->parentNode->removeChild($n);
+    foreach ($x->query('//*[@*[starts-with(name(),"on")]]') as $n) foreach (iterator_to_array($n->attributes) as $a) if (stripos($a->name, 'on') === 0) $n->removeAttribute($a->name);
+    $head = $d->getElementsByTagName('head')->item(0);
+    if ($head) {
+        $b = $d->createElement('base'); $b->setAttribute('href', $url); $head->insertBefore($b, $head->firstChild);
+        $cs = $d->createElement('meta'); $cs->setAttribute('charset', 'utf-8'); $head->insertBefore($cs, $head->firstChild);
+        if ($titulo !== '') { $t = $d->getElementsByTagName('title')->item(0); if (!$t) { $t = $d->createElement('title'); $head->appendChild($t); } $t->nodeValue = ''; $t->appendChild($d->createTextNode($titulo)); }
+        if ($meta !== '') {
+            $m = $x->query("//meta[@name='description']")->item(0);
+            if (!$m) { $m = $d->createElement('meta'); $m->setAttribute('name', 'description'); $head->appendChild($m); }
+            $m->setAttribute('content', $meta);
+        }
+        $st = $d->createElement('style'); $st->appendChild($d->createTextNode('.pd-alt-novo{outline:3px solid #22c55e!important;outline-offset:-3px}'));
+        $head->appendChild($st);
+    }
+    foreach ($x->query('//img') as $im) {
+        $ds = $im->getAttribute('data-src'); if ($ds !== '') $im->setAttribute('src', $ds);
+        $dss = $im->getAttribute('data-srcset'); if ($dss !== '') $im->setAttribute('srcset', $dss);
+        $im->removeAttribute('loading');
+        if (preg_match('/wp-image-(\d+)/', $im->getAttribute('class'), $mm) && isset($alts[$mm[1]]) && trim($alts[$mm[1]]) !== '') {
+            $im->setAttribute('alt', $alts[$mm[1]]); $im->setAttribute('class', $im->getAttribute('class') . ' pd-alt-novo');
+        }
+    }
+    return preg_replace('/<\?xml[^>]*\?>\s*/', '', $d->saveHTML());
 }
 
 /** Plugin auxiliar (mu-plugin): libera os campos de SEO na API e, sem Yoast/Rank Math, publica título e meta. */
