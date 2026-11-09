@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0B0C0B">
+<title>SEO · Pontodot</title>
+<link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
+<style>
+:root{--bg:#0B0C0B;--card:rgba(255,255,255,.045);--tx:rgba(255,255,255,.92);--mut:rgba(255,255,255,.55);--lin:rgba(255,255,255,.16);--acc:#fff;--acc-tx:#0B0C0B;--ok:#2fb36d;--verm:#DB2777;--ouro:#D97706;--r:18px;--veu:rgba(11,12,11,.5);--in:rgba(255,255,255,.06)}
+:root[data-theme=light]{--bg:#F6F5F1;--card:#fff;--tx:#1A1B1E;--mut:rgba(26,27,30,.58);--lin:rgba(26,27,30,.14);--acc:#1A1B1E;--acc-tx:#fff;--ok:#16a34a;--veu:rgba(246,245,241,.7);--in:rgba(26,27,30,.04)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html.emb,html.emb body{background:transparent!important}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+b{font-weight:600}
+button{font:inherit;color:inherit;cursor:pointer;transition:background-color .2s,opacity .2s,transform .15s}
+button:active:not(:disabled){transform:scale(.97)}
+input,select,textarea{font:inherit;color:inherit}
+.hid{display:none!important}
+a{color:inherit}
+#porta{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.pcx{background:var(--card);border:1px solid var(--lin);border-radius:var(--r);padding:28px;max-width:380px;width:100%;text-align:center}
+.pcx h2{margin:0 0 6px;font-size:21px;font-weight:600}.pcx p{margin:0 0 16px;color:var(--mut);font-size:13.5px;line-height:1.5}
+.bt{border:0;border-radius:999px;padding:11px 20px;font-weight:600;background:var(--acc);color:var(--acc-tx)}
+.bt.sec{background:transparent;color:var(--tx);border:1px solid var(--lin)}
+.bt.mini{padding:7px 14px;font-size:12.5px}
+.bt:disabled{opacity:.5;cursor:default}
+/* cabeçalho no padrão das ferramentas da PD */
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;min-height:56px;padding:0 14px;border-bottom:1px solid var(--lin);background:var(--veu);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.top .fl1{flex:1}.top h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}.top .sub{font-size:12px;color:var(--mut);margin-left:2px}
+.btn.i{width:38px;height:38px;border:1px solid var(--lin);border-radius:9px;background:transparent;display:inline-flex;align-items:center;justify-content:center;padding:0;flex:0 0 auto}
+.btn.i svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.btn.i:hover{background:rgba(127,127,127,.12)}
+html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
+@media(max-width:999px){html.emb .top{padding:calc(var(--safe,0px) + 60px) 68px 8px 12px;flex-wrap:wrap}#btFechar{display:none!important}}
+.corpo{max-width:1240px;margin:0 auto;padding:18px 16px 70px}
+.quem{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--lin);border-radius:var(--r);background:var(--card);margin-bottom:18px}
+.quem img{width:46px;height:46px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--in)}
+.quem .t{font-weight:600}.quem .d{font-size:12.5px;color:var(--mut);line-height:1.4}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid currentColor;margin:2px 4px 0 0;white-space:nowrap}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.cc{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.cc:hover{border-color:var(--mut)}
+.cc .n{font-weight:600;font-size:15.5px}.cc .u{font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nota{font-weight:800;line-height:1;letter-spacing:-.02em}
+.h2{margin:22px 0 8px;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.card{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:14px 16px}
+.lin{display:flex;gap:12px;align-items:center;padding:11px 14px;border:1px solid var(--lin);border-radius:14px;background:var(--card);margin-bottom:8px;flex-wrap:wrap}
+.lin .m{flex:1;min-width:200px}.lin .m b{display:block;font-size:13.5px}.lin .m a{font-size:11.5px;color:var(--mut);text-decoration:none}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.f{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.f label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);font-weight:600;display:flex;justify-content:space-between}
+.f textarea,.f input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--lin);background:var(--in);outline:none;resize:vertical;font-size:14px;line-height:1.4}
+.f textarea:focus,.f input:focus{border-color:var(--mut)}
+.edit{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.edit{grid-template-columns:1fr}}
+.pg{border:1px solid var(--lin);border-radius:var(--r);overflow:hidden;background:#fff;position:relative}
+.pg iframe{width:100%;height:72vh;border:0;background:#fff;display:block}
+.pg .ld{position:absolute;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;color:#444;font-size:13px}
+.serp{padding:12px 14px;border-radius:12px;background:#fff;color:#202124;border:1px solid var(--lin)}
+.serp .a{font-size:12px;color:#4d5156;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.serp .b{font-size:18px;line-height:1.25;color:#1a0dab;margin:2px 0}.serp .c{font-size:13px;color:#4d5156;line-height:1.45}
+.alt{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.alt img{width:54px;height:54px;object-fit:cover;border-radius:8px;background:var(--in);flex:0 0 auto}
+.tabela{width:100%;border-collapse:collapse}.tabela td,.tabela th{padding:10px 8px;border-bottom:1px solid var(--lin);vertical-align:top;text-align:left}.tabela th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.risco{text-decoration:line-through;color:var(--mut);font-size:12px;margin-bottom:3px}
+.prog{height:6px;border-radius:6px;background:var(--in);overflow:hidden;margin:10px 0}.prog i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--acc);color:var(--acc-tx);padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.mut{color:var(--mut)}.pequeno{font-size:12.5px}
+</style>
+</head>
+<body>
+<div id="porta"><div class="pcx"><h2>SEO</h2><p>Carregando…</p></div></div>
+<div id="app" class="hid">
+  <div class="top">
+    <button class="btn i hid" id="btVolta" title="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <h1 id="tit">SEO</h1><span class="sub" id="sub"></span>
+    <span class="fl1"></span>
+    <button class="btn i" id="btFechar" title="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="corpo" id="cont"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js?v=seo1"></script>
+<script>
+(function(){
+'use strict';
+try{
+  const R = document.documentElement, emb = self !== top; if (emb) R.classList.add('emb');
+  const sf = new URLSearchParams(location.search).get('safe'); if (sf) R.style.setProperty('--safe', Number(sf) + 'px');
+  let dia = false;
+  try { dia = emb ? parent.document.documentElement.classList.contains('dia') : localStorage.getItem('sd_tema') === 'dia'; } catch(e){ dia = localStorage.getItem('sd_tema') === 'dia'; }
+  if (matchMedia('(max-width:700px)').matches) dia = false;
+  R.setAttribute('data-theme', dia ? 'light' : 'dark');
+}catch(e){}
+const $ = s => document.querySelector(s);
+const esc = x => String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+let tt; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 3600); };
+const cor = n => n >= 80 ? 'var(--ok)' : n >= 55 ? 'var(--ouro)' : 'var(--verm)';
+const CS = { alta: 'var(--verm)', media: 'var(--ouro)', baixa: 'var(--mut)' };
+const SEV = { alta: 'Grave', media: 'Médio', baixa: 'Leve' };
+const CAMPO = { titulo_seo: 'Título SEO', meta: 'Meta description', alt: 'Texto alternativo' };
+const pill = (t, c) => '<span class="pill" style="color:' + c + '">' + esc(t) + '</span>';
+const dt = d => d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';
+
+// ------------------------------------------------------------------ estado
+let QUEM = null, CLIS = [], SITES = {}, ULT = {}, CID = null, FULL = null, PROPS = {}, HIST = [], ED = null, VIEW = 'lista';
+const cli = () => CLIS.find(c => c.id === CID) || {};
+
+async function api(corpo){
+  const { data: { session } } = await sb.auth.getSession();
+  const r = await fetch('/pd-seo.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token }, body: JSON.stringify(corpo) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || ('Erro ' + r.status));
+  return j;
+}
+function porta(h){ $('#porta').classList.remove('hid'); $('#app').classList.add('hid'); $('#porta').innerHTML = '<div class="pcx">' + h + '</div>'; }
+
+async function boot(){
+  if (!sb) return porta('<h2>SEO</h2><p>Não consegui carregar.</p>');
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return porta('<h2>Entre na PD</h2><p>O SEO abre com a sua conta da plataforma.</p><button class="bt" onclick="location.href=\'/\'">Ir para a PD</button>');
+  const me = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+  if (!me.data || !['admin', 'team'].includes(me.data.role)) return porta('<h2>Só a equipe</h2><p>O SEO é uma ferramenta da equipe.</p>');
+  const [c, s, a] = await Promise.all([
+    sb.from('clients').select('id,name,active').order('name'),
+    sb.from('pd_sites').select('client_id,tipo,url,ativo'),
+    sb.from('pd_seo_auditorias').select('client_id,nota,plugin,criado_em').order('criado_em', { ascending: false }).limit(600)
+  ]);
+  CLIS = (c.data || []).filter(x => x.active !== false);
+  (s.data || []).forEach(x => SITES[x.client_id] = x);
+  (a.data || []).forEach(x => { if (!ULT[x.client_id]) ULT[x.client_id] = x; });
+  if (a.error) return porta('<h2>Falta preparar o banco</h2><p>Rode o <b>migration_v176_pd_seo.sql</b> (e o v177) no SQL Editor do Supabase.</p>');
+  try { QUEM = await api({ acao: 'quem' }); } catch(e){ QUEM = { nome: 'IA da casa', titulo: '', avatar: '', acertos: 0, total: 0, personagem: 'sumi' }; }
+  $('#porta').classList.add('hid'); $('#app').classList.remove('hid');
+  const q = new URLSearchParams(location.search).get('cid');
+  if (q && CLIS.some(x => x.id === q)) return abreCliente(q);
+  vLista();
+}
+
+// ------------------------------------------------------------------ cabeçalho
+function topo(titulo, sub, voltar){
+  $('#tit').textContent = titulo; $('#sub').textContent = sub || '';
+  const b = $('#btVolta'); b.classList.toggle('hid', !voltar); b.onclick = voltar || null;
+}
+$('#btFechar').onclick = () => { try { parent.postMessage({ tipo: 'seo-fechar' }, '*'); } catch(e){} };
+
+function cartaQuem(){
+  const q = QUEM; const taxa = q.total ? ' · acertou de primeira <b>' + q.acertos + ' de ' + q.total + '</b>' : ' · ainda sem histórico';
+  return '<div class="quem">' + (q.avatar ? '<img src="' + esc(q.avatar) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '') +
+    '<div><div class="t">' + esc(q.nome) + (q.titulo ? ' <span class="mut" style="font-weight:400">· ' + esc(q.titulo) + '</span>' : '') + '</div><div class="d">Cuida do SEO da casa' + taxa + '. O que você corrige à mão vira lição para a aula.</div></div></div>';
+}
+
+// ------------------------------------------------------------------ lista de clientes
+function vLista(){
+  VIEW = 'lista'; CID = null; FULL = null; topo('SEO', CLIS.length + ' clientes', null);
+  const ordem = CLIS.slice().sort((a, b) => (ULT[a.id] ? 0 : 1) - (ULT[b.id] ? 0 : 1) || a.name.localeCompare(b.name, 'pt-BR'));
+  $('#cont').innerHTML = cartaQuem() + '<div class="grade">' + ordem.map(c => {
+    const s = SITES[c.id], u = ULT[c.id], wp = s && s.tipo === 'wp';
+    return '<div class="cc" data-c="' + c.id + '"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="min-width:0"><div class="n">' + esc(c.name) + '</div><div class="u">' + esc(s && s.url ? s.url.replace(/^https?:\/\//, '') : 'sem site cadastrado') + '</div></div>' +
+      (u ? '<div class="nota" style="font-size:30px;color:' + cor(u.nota) + '">' + u.nota + '</div>' : '') + '</div>' +
+      '<div>' + (wp ? pill('WordPress', 'var(--ok)') : pill(s ? 'site ' + (s.tipo || '') : 'sem site', 'var(--mut)')) + (u ? pill(dt(u.criado_em), 'var(--mut)') : pill('nunca auditado', 'var(--ouro)')) + '</div></div>';
+  }).join('') + '</div>';
+  document.querySelectorAll('.cc').forEach(e => e.onclick = () => abreCliente(e.dataset.c));
+}
+
+// ------------------------------------------------------------------ um cliente
+async function abreCliente(id){
+  CID = id; VIEW = 'cliente'; FULL = null; PROPS = {};
+  topo(cli().name || 'SEO', 'SEO do site', () => vLista());
+  $('#cont').innerHTML = '<div class="mut">Carregando…</div>';
+  try {
+    const [u, h] = await Promise.all([api({ acao: 'ultima', client_id: id }), api({ acao: 'historico', client_id: id })]);
+    FULL = u.auditoria; HIST = h.propostas || [];
+  } catch(e){ FULL = null; HIST = []; }
+  vCliente();
+}
+function vCliente(){
+  VIEW = 'cliente'; topo(cli().name || 'SEO', 'SEO do site', () => vLista());
+  const s = SITES[CID], wp = s && s.tipo === 'wp';
+  let h = cartaQuem();
+  if (!wp) h += '<div class="card" style="margin-bottom:14px">Este cliente não está configurado como <b>WordPress</b>. Cadastre o endereço do site e a senha de aplicativo no perfil do cliente (Canais).</div>';
+  h += '<div class="bar"><button class="bt" id="bAud"' + (wp ? '' : ' disabled') + '>' + (FULL ? 'Auditar de novo' : 'Auditar agora') + '</button>' +
+    (FULL ? '<button class="bt sec" id="bTodos">Corrigir todos</button><button class="bt sec" id="bPdf">Baixar PDF</button>' : '') +
+    '<button class="bt sec" id="bPlug"' + (wp ? '' : ' disabled') + ' title="Instala o plugin auxiliar direto no site, pela HostGator">Instalar plugin no site</button></div>';
+  if (!FULL) h += '<div class="card mut">A auditoria lê o site como o Google lê (cada página, robots.txt e sitemap) e dá uma nota. Depois ' + esc(QUEM.nome) + ' propõe as correções; você vê o antes e o depois, edita se quiser e aprova. Nada muda no site sem a sua aprovação, e tudo pode ser desfeito.</div>';
+  else {
+    const R = FULL.resumo;
+    h += '<div class="card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><div class="nota" style="font-size:54px;color:' + cor(R.nota) + '">' + R.nota + '<span class="mut" style="font-size:16px;font-weight:600">/100</span></div>' +
+      '<div class="pequeno" style="line-height:1.8"><b>' + R.paginas_lidas + '</b> páginas lidas de ' + R.paginas_no_site + ' · plugin de SEO: <b>' + ({ yoast: 'Yoast', rankmath: 'Rank Math', aioseo: 'All in One SEO', nenhum: 'nenhum' }[R.plugin] || esc(R.plugin)) + '</b> · auditado em ' + dt(FULL.criado_em) + '<br>' +
+      pill(R.problemas.alta + ' graves', CS.alta) + pill(R.problemas.media + ' médios', CS.media) + pill(R.problemas.baixa + ' leves', CS.baixa) + '</div></div>';
+    if (R.site.length) h += '<div class="h2">Do site inteiro</div>' + R.site.map(x => '<div class="pequeno" style="margin-bottom:5px">' + pill(SEV[x[1]], CS[x[1]]) + esc(x[2]) + '</div>').join('');
+    h += '<div class="h2">Páginas · pior primeiro</div>' + FULL.itens.map((it, i) => {
+      const fix = it.problemas.some(p => p[3]);
+      return '<div class="lin"><div class="nota" style="font-size:22px;min-width:40px;text-align:center;color:' + cor(it.nota) + '">' + it.nota + '</div><div class="m"><b>' + esc((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b><a href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.url.replace(/^https?:\/\//, '')) + '</a><div>' +
+        (it.problemas.map(p => pill(p[2], CS[p[1]])).join('') || pill('Sem problemas', 'var(--ok)')) + '</div></div>' + (fix ? '<button class="bt mini" data-ed="' + i + '">Corrigir</button>' : '') + '</div>';
+    }).join('');
+  }
+  const ap = HIST.filter(p => p.status === 'aplicada');
+  if (ap.length) h += '<div class="h2">Já aplicado · dá para desfazer</div>' + ap.slice(0, 30).map(p => '<div class="lin"><div class="m"><b>' + CAMPO[p.campo] + (p.editado ? ' <span class="mut" style="font-weight:400">· corrigido por você</span>' : '') + '</b><a>' + esc((p.url || '').replace(/^https?:\/\//, '')) + '</a><div class="pequeno" style="margin-top:3px">' + esc(p.depois) + '</div></div><button class="bt sec mini" data-undo="' + p.id + '">Desfazer</button></div>').join('');
+  $('#cont').innerHTML = h;
+  const g = id => $('#' + id);
+  if (g('bAud')) g('bAud').onclick = auditar;
+  if (g('bTodos')) g('bTodos').onclick = corrigirTodos;
+  if (g('bPdf')) g('bPdf').onclick = relatorioPdf;
+  if (g('bPlug')) g('bPlug').onclick = instalaPlugin;
+  document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => abreEditor(FULL.itens[+b.dataset.ed]));
+  document.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => desfaz(b.dataset.undo));
+}
+async function auditar(){
+  const b = $('#bAud'); b.disabled = true; b.textContent = 'Lendo o site… (1–2 min)';
+  try { const r = await api({ acao: 'auditar', client_id: CID }); FULL = { resumo: r.resumo, itens: r.itens, criado_em: new Date().toISOString(), nota: r.resumo.nota, plugin: r.resumo.plugin }; ULT[CID] = { nota: r.resumo.nota, plugin: r.resumo.plugin, criado_em: FULL.criado_em }; PROPS = {}; vCliente(); }
+  catch(e){ toast('SEO: ' + e.message); vCliente(); }
+}
+async function instalaPlugin(){
+  const b = $('#bPlug'); b.disabled = true; b.textContent = 'Instalando…';
+  try { await api({ acao: 'instalar_plugin', client_id: CID }); toast('Plugin instalado no site pela HostGator.'); b.textContent = '✓ Plugin instalado'; }
+  catch(e){ b.disabled = false; b.textContent = 'Instalar plugin no site'; toast(e.message); }
+}
+async function desfaz(id){
+  if (!confirm('Voltar este campo ao valor de antes?')) return;
+  try { await api({ acao: 'reverter', client_id: CID, id }); HIST = (await api({ acao: 'historico', client_id: CID })).propostas || []; vCliente(); toast('Desfeito.'); }
+  catch(e){ toast('Não desfez: ' + e.message); }
+}
+
+// ------------------------------------------------------------------ nota estimada (ao vivo)
+const PESO = { alta: 18, media: 9, baixa: 4 };
+const DOS_CAMPOS = ['sem_titulo','titulo_curto','titulo_longo','sem_meta','meta_curta','meta_longa','img_sem_alt','titulo_repetido','meta_repetida'];
+function estima(it, v){
+  let n = 100; it.problemas.forEach(p => { if (!DOS_CAMPOS.includes(p[0])) n -= PESO[p[1]]; });
+  const t = v.titulo.trim().length, m = v.meta.trim().length;
+  if (t === 0) n -= 18; else if (t < 25 || t > 62) n -= 9;
+  if (m === 0) n -= 18; else if (m < 70 || m > 165) n -= 9;
+  const semAlt = (it.analise.imgs_sem_alt || []).filter(i => !(i.id && (v.alts[i.id] || '').trim())).length;
+  if (semAlt > 0) n -= 9;
+  return Math.max(0, Math.min(100, n));
+}
+
+// ------------------------------------------------------------------ editor: página real + campo lateral
+async function abreEditor(it){
+  VIEW = 'editor'; topo('Corrigir página', (it.analise && it.analise.titulo) || it.titulo_wp || '', () => vCliente());
+  ED = { it, rows: { titulo_seo: null, meta: null, alts: {} }, v: { titulo: it.analise.titulo || '', meta: it.analise.meta || '', alts: {} }, timer: null, ok: false };
+  $('#cont').innerHTML = cartaQuem().replace('Cuida do SEO da casa', 'Lendo a página e escrevendo as correções') + '<div class="card mut">' + esc(QUEM.nome) + ' está lendo a página… (até 1 min)</div>';
+  try {
+    let rows = PROPS[it.url];
+    if (!rows) { rows = (await api({ acao: 'sugerir', client_id: CID, tipo: it.tipo, wp_id: it.wp_id, url: it.url })).propostas || []; PROPS[it.url] = rows; }
+    rows.forEach(r => {
+      if (r.status !== 'proposta' && r.status !== 'erro') return;
+      if (r.campo === 'titulo_seo') { ED.rows.titulo_seo = r; ED.v.titulo = r.depois; }
+      else if (r.campo === 'meta') { ED.rows.meta = r; ED.v.meta = r.depois; }
+      else if (r.campo === 'alt') { ED.rows.alts[r.alvo] = r; ED.v.alts[r.alvo] = r.depois; }
+    });
+  } catch(e){ toast('SEO: ' + e.message); }
+  ED.ok = true; vEditor(); atualizaPrevia();
+}
+function vEditor(){
+  const it = ED.it, v = ED.v, imgs = (it.analise.imgs_sem_alt || []).filter(i => i.id);
+  $('#cont').innerHTML = cartaQuem().replace('Cuida do SEO da casa', 'Escreveu as correções abaixo') + `
+  <div class="edit">
+    <div><div class="pg"><iframe id="ifr" sandbox="" title="Prévia da página"></iframe><div class="ld" id="ld">Montando a prévia na página real…</div></div>
+      <div class="pequeno mut" style="margin-top:8px">Esta é a página real do cliente com as suas mudanças aplicadas só aqui na tela. Imagens com alt novo ficam contornadas em verde. Nada foi gravado no site.</div></div>
+    <div>
+      <div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><div><div class="pequeno mut">Nota estimada da página</div><div class="nota" style="font-size:40px" id="nt"></div></div><div class="pequeno mut" id="nt2"></div></div>
+      <div class="serp" id="serp" style="margin-bottom:14px"></div>
+      <div class="f"><label>Título SEO <span id="ct">0</span></label><textarea id="vt" rows="2">${esc(v.titulo)}</textarea></div>
+      <div class="f"><label>Meta description <span id="cm">0</span></label><textarea id="vm" rows="4">${esc(v.meta)}</textarea></div>
+      ${imgs.length ? '<div class="h2" style="margin-top:4px">Imagens sem texto alternativo</div>' + imgs.map(i => '<div class="alt"><img src="' + esc(i.src) + '" alt="" onerror="this.style.visibility=\'hidden\'"><div class="f" style="margin:0;flex:1"><textarea data-alt="' + i.id + '" rows="2" placeholder="Descreva a imagem">' + esc(v.alts[i.id] || '') + '</textarea></div></div>').join('') : ''}
+      ${ED.rows.titulo_seo && ED.rows.titulo_seo.motivo ? '<div class="pequeno mut" style="margin-bottom:12px">' + esc(QUEM.nome) + ': ' + esc(ED.rows.titulo_seo.motivo) + '</div>' : ''}
+      <div class="bar"><button class="bt" id="bAp">Aplicar no site</button><button class="bt sec" id="bVolta2">Voltar</button></div>
+      <div class="pequeno mut">Se você mudar um texto aqui, a ${esc(QUEM.nome)} registra a sua versão como lição para a aula. Dá para desfazer depois.</div>
+    </div>
+  </div>`;
+  const ent = () => { v.titulo = $('#vt').value; v.meta = $('#vm').value; document.querySelectorAll('[data-alt]').forEach(t => v.alts[t.dataset.alt] = t.value); resumo(); clearTimeout(ED.timer); ED.timer = setTimeout(atualizaPrevia, 900); };
+  $('#vt').oninput = $('#vm').oninput = ent; document.querySelectorAll('[data-alt]').forEach(t => t.oninput = ent);
+  $('#bVolta2').onclick = () => vCliente(); $('#bAp').onclick = aplicaEditor; resumo();
+}
+function resumo(){
+  const it = ED.it, v = ED.v, n = estima(it, v), n0 = it.nota;
+  $('#nt').innerHTML = '<span style="color:' + cor(n) + '">' + n + '</span><span class="mut" style="font-size:15px"> / 100</span>';
+  $('#nt2').innerHTML = n > n0 ? 'era <b>' + n0 + '</b> · <b style="color:var(--ok)">+' + (n - n0) + '</b>' : 'era <b>' + n0 + '</b>';
+  $('#ct').textContent = v.titulo.trim().length + ' (ideal 40–60)'; $('#ct').style.color = (v.titulo.trim().length >= 30 && v.titulo.trim().length <= 62) ? 'var(--ok)' : 'var(--ouro)';
+  $('#cm').textContent = v.meta.trim().length + ' (ideal 130–155)'; $('#cm').style.color = (v.meta.trim().length >= 100 && v.meta.trim().length <= 160) ? 'var(--ok)' : 'var(--ouro)';
+  const cut = (s, m) => s.length > m ? s.slice(0, m - 1).trim() + '…' : s;
+  $('#serp').innerHTML = '<div class="a">' + esc(ED.it.url.replace(/^https?:\/\//, '')) + '</div><div class="b">' + esc(cut(v.titulo.trim() || '(sem título)', 60)) + '</div><div class="c">' + esc(cut(v.meta.trim() || '(sem descrição: o Google escolhe um trecho da página)', 158)) + '</div>';
+}
+async function atualizaPrevia(){
+  if (VIEW !== 'editor' || !ED) return; const ld = $('#ld'); if (ld) ld.classList.remove('hid');
+  const seq = ED.seq = (ED.seq || 0) + 1;
+  try {
+    const r = await api({ acao: 'previa', client_id: CID, url: ED.it.url, titulo_seo: ED.v.titulo, meta: ED.v.meta, alts: ED.v.alts });
+    if (seq !== ED.seq || VIEW !== 'editor') return;
+    $('#ifr').srcdoc = r.html; if ($('#ld')) $('#ld').classList.add('hid');
+  } catch(e){ if ($('#ld')) $('#ld').textContent = 'Não consegui montar a prévia (' + e.message + '). Você ainda pode aplicar.'; }
+}
+async function garanteLinhas(){
+  const it = ED.it, v = ED.v, pendentes = [];
+  const quer = (campo, alvo, antes, depois, atual) => { if (atual) return atual; if (!depois.trim() || depois.trim() === (antes || '').trim()) return null; pendentes.push({ campo, alvo, antes, depois }); return 'novo'; };
+  const lista = [];
+  const tr = ED.rows.titulo_seo || null, mr = ED.rows.meta || null;
+  if (!tr && v.titulo.trim() && v.titulo.trim() !== (it.analise.titulo || '').trim()) pendentes.push({ campo: 'titulo_seo', alvo: null, antes: it.analise.titulo || '', depois: v.titulo });
+  if (!mr && v.meta.trim() && v.meta.trim() !== (it.analise.meta || '').trim()) pendentes.push({ campo: 'meta', alvo: null, antes: it.analise.meta || '', depois: v.meta });
+  (it.analise.imgs_sem_alt || []).filter(i => i.id).forEach(i => { if (!ED.rows.alts[i.id] && (v.alts[i.id] || '').trim()) pendentes.push({ campo: 'alt', alvo: String(i.id), antes: '', depois: v.alts[i.id] }); });
+  for (const p of pendentes) {
+    const r = await api({ acao: 'manual', client_id: CID, tipo: it.tipo, wp_id: it.wp_id, url: it.url, campo: p.campo, alvo: p.alvo, antes: p.antes, depois: p.depois });
+    if (r.proposta) { if (p.campo === 'titulo_seo') ED.rows.titulo_seo = r.proposta; else if (p.campo === 'meta') ED.rows.meta = r.proposta; else ED.rows.alts[p.alvo] = r.proposta; }
+  }
+}
+async function aplicaEditor(){
+  const b = $('#bAp'); b.disabled = true; b.textContent = 'Aplicando…';
+  try {
+    await garanteLinhas();
+    const ids = [], ed = {}, v = ED.v;
+    if (ED.rows.titulo_seo) { ids.push(ED.rows.titulo_seo.id); ed[ED.rows.titulo_seo.id] = v.titulo.trim(); }
+    if (ED.rows.meta) { ids.push(ED.rows.meta.id); ed[ED.rows.meta.id] = v.meta.trim(); }
+    Object.keys(ED.rows.alts).forEach(k => { const r = ED.rows.alts[k]; ids.push(r.id); ed[r.id] = (v.alts[k] || r.depois || '').trim(); });
+    if (!ids.length) { b.disabled = false; b.textContent = 'Aplicar no site'; return toast('Nada mudou para aplicar.'); }
+    const r = await api({ acao: 'aplicar', client_id: CID, ids, edicoes: ed });
+    const falhas = r.resultado.filter(x => !x.ok);
+    HIST = (await api({ acao: 'historico', client_id: CID })).propostas || [];
+    if (falhas.length) { b.disabled = false; b.textContent = 'Aplicar no site'; return toast(/PLUGIN_AUXILIAR/.test(falhas[0].erro) ? 'Falta o plugin auxiliar neste site. Volte e clique em “Instalar plugin no site”.' : 'Não gravou: ' + falhas[0].erro); }
+    ED.it.nota = estima(ED.it, ED.v); delete PROPS[ED.it.url];
+    toast('Aplicado no site. Dá para desfazer na lista.'); vCliente();
+  } catch(e){ b.disabled = false; b.textContent = 'Aplicar no site'; toast('SEO: ' + e.message); }
+}
+
+// ------------------------------------------------------------------ corrigir todos (amostra de cada página)
+let LOTE = { itens: [], feito: 0, erros: [] };
+async function corrigirTodos(){
+  const fix = FULL.itens.filter(it => it.problemas.some(p => p[3])).slice(0, 20);
+  if (!fix.length) return toast('Nada para corrigir com a IA.');
+  VIEW = 'lote'; topo('Corrigir todos', fix.length + ' páginas', () => vCliente());
+  LOTE = { itens: fix, feito: 0, erros: [] };
+  $('#cont').innerHTML = cartaQuem().replace('Cuida do SEO da casa', 'Escrevendo as correções') + '<div class="card"><div id="lt">' + esc(QUEM.nome) + ' está lendo as páginas…</div><div class="prog"><i id="pr"></i></div><div class="pequeno mut">Uma página por vez. Nada é gravado no site agora; você confere a amostra de cada uma antes.</div></div>';
+  for (const it of fix) {
+    if (VIEW !== 'lote') return;
+    $('#lt').textContent = esc(QUEM.nome) + ' está lendo: ' + (it.analise.titulo || it.titulo_wp || it.url) + ' (' + (LOTE.feito + 1) + ' de ' + fix.length + ')';
+    try { if (!PROPS[it.url]) PROPS[it.url] = (await api({ acao: 'sugerir', client_id: CID, tipo: it.tipo, wp_id: it.wp_id, url: it.url })).propostas || []; }
+    catch(e){ LOTE.erros.push([it, e.message]); }
+    LOTE.feito++; if ($('#pr')) $('#pr').style.width = Math.round(LOTE.feito / fix.length * 100) + '%';
+  }
+  vLote();
+}
+function vLote(){
+  const linhas = LOTE.itens.map((it, i) => {
+    const rows = (PROPS[it.url] || []).filter(r => r.status === 'proposta'); if (!rows.length) return '';
+    const t = rows.find(r => r.campo === 'titulo_seo'), m = rows.find(r => r.campo === 'meta'), a = rows.filter(r => r.campo === 'alt');
+    return '<tr data-i="' + i + '"><td style="width:28px"><input type="checkbox" class="ck" checked></td><td style="min-width:150px"><b style="cursor:pointer" data-abre="' + i + '">' + esc(it.analise.titulo || it.titulo_wp || '(sem título)') + '</b><div class="pequeno mut">' + esc(it.url.replace(/^https?:\/\//, '')) + '</div><div class="pequeno">nota <b>' + it.nota + '</b></div></td>' +
+      '<td style="min-width:260px">' + (t ? '<div class="f" style="margin:0 0 8px"><label>Título SEO</label>' + (t.antes ? '<div class="risco">' + esc(t.antes) + '</div>' : '') + '<textarea rows="2" data-id="' + t.id + '">' + esc(t.depois) + '</textarea></div>' : '') +
+      (m ? '<div class="f" style="margin:0"><label>Meta description</label>' + (m.antes ? '<div class="risco">' + esc(m.antes) + '</div>' : '') + '<textarea rows="3" data-id="' + m.id + '">' + esc(m.depois) + '</textarea></div>' : '') + '</td>' +
+      '<td class="pequeno">' + (a.length ? a.length + ' alt de imagem' : '') + '</td></tr>';
+  }).join('');
+  $('#cont').innerHTML = cartaQuem().replace('Cuida do SEO da casa', 'Escreveu estas correções') +
+    (LOTE.erros.length ? '<div class="card pequeno" style="margin-bottom:12px">' + LOTE.erros.length + ' página(s) não deu para ler: ' + esc(LOTE.erros[0][1]) + '</div>' : '') +
+    '<div class="card"><div class="bar"><b>Amostra de cada página</b><span class="mut pequeno">desmarque o que não quiser, edite o texto, ou clique no título para abrir a página real</span><span class="fl1" style="flex:1"></span><button class="bt" id="bApTudo">Aplicar marcadas</button></div>' +
+    (linhas ? '<table class="tabela"><thead><tr><th></th><th>Página</th><th>Proposta</th><th></th></tr></thead><tbody>' + linhas + '</tbody></table>' : '<div class="mut">A IA não achou o que mudar nessas páginas.</div>') + '</div>';
+  document.querySelectorAll('[data-abre]').forEach(b => b.onclick = () => abreEditor(LOTE.itens[+b.dataset.abre]));
+  const bt = $('#bApTudo'); if (bt) bt.onclick = aplicaLote;
+}
+async function aplicaLote(){
+  const ids = [], ed = {};
+  document.querySelectorAll('tr[data-i]').forEach(tr => {
+    if (!tr.querySelector('.ck').checked) return; const it = LOTE.itens[+tr.dataset.i];
+    (PROPS[it.url] || []).filter(r => r.status === 'proposta').forEach(r => { ids.push(r.id); const ta = tr.querySelector('textarea[data-id="' + r.id + '"]'); if (ta) ed[r.id] = ta.value.trim(); });
+  });
+  if (!ids.length) return toast('Marque ao menos uma página.');
+  if (!confirm('Gravar ' + ids.length + ' mudança(s) no site? Dá para desfazer cada uma depois.')) return;
+  const b = $('#bApTudo'); b.disabled = true; b.textContent = 'Aplicando…';
+  try {
+    let ok = 0, falhas = [];
+    for (let i = 0; i < ids.length; i += 40) {
+      const parte = ids.slice(i, i + 40), e2 = {}; parte.forEach(id => { if (ed[id] != null) e2[id] = ed[id]; });
+      const r = await api({ acao: 'aplicar', client_id: CID, ids: parte, edicoes: e2 });
+      r.resultado.forEach(x => x.ok ? ok++ : falhas.push(x.erro));
+    }
+    HIST = (await api({ acao: 'historico', client_id: CID })).propostas || [];
+    LOTE.itens.forEach(it => delete PROPS[it.url]);
+    toast(ok + ' aplicada(s)' + (falhas.length ? ' · ' + falhas.length + ' não gravou: ' + (/PLUGIN_AUXILIAR/.test(falhas[0]) ? 'falta o plugin auxiliar (use “Instalar plugin no site”)' : falhas[0]) : '.'));
+    vCliente();
+  } catch(e){ b.disabled = false; b.textContent = 'Aplicar marcadas'; toast('SEO: ' + e.message); }
+}
+
+// ------------------------------------------------------------------ PDF (impressão do navegador → Salvar como PDF)
+const ROTULO = { sem_titulo: 'Páginas sem título', titulo_curto: 'Títulos SEO curtos', titulo_longo: 'Títulos SEO longos demais', sem_meta: 'Páginas sem meta description', meta_curta: 'Meta descriptions curtas', meta_longa: 'Meta descriptions longas demais', sem_h1: 'Páginas sem título principal (H1)', varios_h1: 'Páginas com mais de um H1', noindex: 'Páginas bloqueadas para o Google (noindex)', sem_canonical: 'Páginas sem URL canônica', sem_og: 'Páginas sem imagem de compartilhamento', sem_schema: 'Páginas sem dados estruturados (schema)', sem_viewport: 'Páginas sem configuração para celular', img_sem_alt: 'Páginas com imagens sem texto alternativo', conteudo_curto: 'Páginas com pouco conteúdo', sem_links_internos: 'Páginas sem links internos', slug_longo: 'Endereços muito longos', fora: 'Páginas que não abriram', lenta: 'Páginas lentas', titulo_repetido: 'Páginas com título repetido', meta_repetida: 'Páginas com meta description repetida' };
+function relatorioPdf(){
+  if (!FULL) return; const R = FULL.resumo, nome = cli().name || '';
+  const home = FULL.itens.find(i => i.tipo === 'home'), site = home ? home.url : (FULL.itens[0] || {}).url || '';
+  const hoje = new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const agg = {}; FULL.itens.forEach(it => it.problemas.forEach(p => { const a = agg[p[0]] = agg[p[0]] || { sev: p[1], n: 0 }; a.n++; }));
+  const ord = { alta: 0, media: 1, baixa: 2 }, prio = Object.entries(agg).sort((a, b) => (ord[a[1].sev] - ord[b[1].sev]) || b[1].n - a[1].n);
+  const cn = n => n >= 80 ? '#16a34a' : n >= 55 ? '#d97706' : '#dc2626', co = { alta: '#dc2626', media: '#d97706', baixa: '#8e8e93' };
+  const css = `@page{size:A4;margin:16mm 14mm}*{box-sizing:border-box}body{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;color:#1c1c1e;margin:0;font-size:12px;line-height:1.5}h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}h2{font-size:14px;margin:26px 0 8px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b70}.cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1c1c1e;padding-bottom:14px}.sub{color:#6b6b70;font-size:12.5px}.nota{display:flex;gap:22px;align-items:center;margin:20px 0;padding:18px 22px;border:1px solid #e3e3e6;border-radius:12px}.big{font-size:56px;font-weight:800;line-height:1}.tag{display:inline-block;padding:1px 9px;border-radius:20px;font-size:10.5px;font-weight:700;border:1px solid}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b70;border-bottom:1px solid #1c1c1e;padding:6px}td{padding:7px 6px;border-bottom:1px solid #ececef;vertical-align:top}tr{break-inside:avoid}.rod{margin-top:28px;font-size:10.5px;color:#8e8e93;border-top:1px solid #e3e3e6;padding-top:8px}`;
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Auditoria de SEO — ${esc(nome)}</title><style>${css}</style></head><body>
+  <div class="cab"><div><h1>Auditoria de SEO</h1><div class="sub">${esc(nome)} · ${esc(site.replace(/^https?:\/\//, ''))}</div></div><div class="sub">${esc(hoje)}</div></div>
+  <div class="nota"><div class="big" style="color:${cn(R.nota)}">${R.nota}<span style="font-size:18px;color:#8e8e93;font-weight:600">/100</span></div><div><div style="font-size:14px;font-weight:700;margin-bottom:4px">Nota geral de SEO do site</div>${R.paginas_lidas} páginas analisadas${R.paginas_no_site > R.paginas_lidas ? ' de ' + R.paginas_no_site : ''}.<br><span class="tag" style="color:${co.alta}">${R.problemas.alta} graves</span> <span class="tag" style="color:${co.media}">${R.problemas.media} médios</span> <span class="tag" style="color:${co.baixa}">${R.problemas.baixa} leves</span></div></div>
+  ${R.site.length ? '<h2>Pontos do site inteiro</h2><table><tbody>' + R.site.map(s => '<tr><td style="width:70px"><span class="tag" style="color:' + co[s[1]] + '">' + SEV[s[1]] + '</span></td><td>' + esc(s[2]) + '</td></tr>').join('') + '</tbody></table>' : ''}
+  <h2>O que corrigir primeiro</h2><table><thead><tr><th style="width:70px">Peso</th><th>Problema</th><th style="width:70px">Páginas</th></tr></thead><tbody>${prio.map(([c, a]) => '<tr><td><span class="tag" style="color:' + co[a.sev] + '">' + SEV[a.sev] + '</span></td><td>' + esc(ROTULO[c] || c) + '</td><td>' + a.n + '</td></tr>').join('') || '<tr><td colspan="3">Nenhum problema encontrado.</td></tr>'}</tbody></table>
+  <h2>Página por página</h2><table><thead><tr><th style="width:42px">Nota</th><th>Página</th><th>Problemas</th></tr></thead><tbody>${FULL.itens.map(it => '<tr><td style="font-weight:800;color:' + cn(it.nota) + '">' + it.nota + '</td><td><b>' + esc((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b><br><span style="color:#8e8e93;font-size:10.5px">' + esc(it.url.replace(/^https?:\/\//, '')) + '</span></td><td>' + (it.problemas.map(p => esc(p[2])).join('<br>') || '<span style="color:#16a34a">Sem problemas</span>') + '</td></tr>').join('')}</tbody></table>
+  <div class="rod">Relatório gerado pela plataforma Pontodot · SD Agência. A auditoria lê as páginas públicas do site como o Google lê; nenhuma alteração é feita sem aprovação.</div></body></html>`;
+  const w = window.open('', '_blank'); if (!w) return toast('O navegador bloqueou a janela. Libere pop-ups e clique de novo.');
+  w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 500);
+  toast('Na janela de impressão, escolha “Salvar como PDF”.');
+}
+
+boot().catch(e => porta('<h2>Ops</h2><p>' + esc(e.message || e) + '</p>'));
+})();
+</script>
+</body>
+</html>

@@ -43,6 +43,10 @@ try {
     }
     if ($acao === 'instalar_plugin') { echo json_encode(['ok' => true] + pdCPInstalarSeo($cid), $J); exit; }
     if ($acao === 'testar_hostgator') { echo json_encode(['ok' => true] + pdCPTestar($cid), $J); exit; }
+    if ($acao === 'manual') {
+        $x = pdSeoManual($cid, (string)($d['tipo'] ?? 'post'), (int)($d['wp_id'] ?? 0), (string)($d['url'] ?? ''), (string)($d['campo'] ?? ''), isset($d['alvo']) ? (string)$d['alvo'] : null, (string)($d['antes'] ?? ''), (string)($d['depois'] ?? ''), $me['id'] ?? null);
+        echo json_encode(['ok' => true, 'proposta' => $x], $J); exit;
+    }
     if ($acao === 'previa') {
         $url = (string)($d['url'] ?? ''); if (!preg_match('#^https?://#', $url)) sd_fail('Endereço inválido.', 400);
         $alts = []; foreach ((array)($d['alts'] ?? []) as $k => $v) $alts[(string)(int)$k] = (string)$v;

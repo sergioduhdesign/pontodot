@@ -214,7 +214,7 @@ function pdSeoAuditar($clientId, $limite = 60) {
 /** A IA da casa responsável pelo SEO (área "seo" → Sumi por padrão) e quantas vezes acertou de primeira. */
 function pdSeoQuem() {
     $q = pdQuemFazArea('seo'); $cat = pdPersonagens(); $p = $q['personagem'];
-    $r = sd_supabase('/rest/v1/pd_seo_propostas?status=in.(aplicada,revertida,recusada)&select=status,editado&limit=5000')['body'] ?? [];
+    $r = sd_supabase('/rest/v1/pd_seo_propostas?status=in.(aplicada,revertida,recusada)&ia_personagem=not.is.null&select=status,editado&limit=5000')['body'] ?? [];
     $total = 0; $acertos = 0;
     foreach ((array)$r as $x) { $total++; if (($x['status'] ?? '') === 'aplicada' && empty($x['editado'])) $acertos++; }
     return ['personagem' => $p, 'nome' => $q['nome'], 'titulo' => $q['titulo'], 'user_id' => $q['id'],
@@ -326,7 +326,7 @@ function pdSeoAplicar($clientId, array $ids, array $edicoes = []) {
         $valor = isset($edicoes[$id]) ? trim((string)$edicoes[$id]) : $p['depois'];
         try {
             pdSeoEscrever($site, $cred, $plugin, $p, $valor);
-            $editado = trim((string)($p['sugerido'] ?? $p['depois'])) !== trim($valor);
+            $sug = trim((string)($p['sugerido'] ?? '')); $editado = $sug !== '' && $sug !== trim($valor);   // texto manual (sem sugestão da IA) não conta nem a favor nem contra
             sd_supabase('/rest/v1/pd_seo_propostas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'aplicada', 'depois' => $valor, 'editado' => $editado, 'aplicado_em' => gmdate('c'), 'erro' => null]);
             if ($editado) pdSeoLicaoDaEdicao($clientId, $p, $valor);
             $res[] = ['id' => $id, 'ok' => true];
@@ -387,6 +387,14 @@ function pdSeoPrevia($url, $titulo, $meta, array $alts) {
         }
     }
     return preg_replace('/<\?xml[^>]*\?>\s*/', '', $d->saveHTML());
+}
+
+/** Texto escrito à mão pela equipe (a IA não propôs nada neste campo): vira uma proposta para entrar no mesmo fluxo de aplicar/desfazer. */
+function pdSeoManual($clientId, $tipo, $wpId, $url, $campo, $alvo, $antes, $depois, $usuarioId = null) {
+    if (!in_array($campo, ['titulo_seo', 'meta', 'alt'], true)) throw new Exception('Campo inválido.');
+    $r = sd_supabase('/rest/v1/pd_seo_propostas', 'POST', [['client_id' => $clientId, 'tipo' => $tipo === 'page' ? 'page' : 'post', 'wp_id' => $wpId, 'url' => $url, 'campo' => $campo,
+        'alvo' => $alvo, 'antes' => (string)$antes, 'depois' => trim((string)$depois), 'sugerido' => '', 'motivo' => 'Escrito pela equipe', 'criado_por' => $usuarioId]], ['Prefer: return=representation']);
+    return $r['body'][0] ?? null;
 }
 
 /** Plugin auxiliar (mu-plugin): libera os campos de SEO na API e, sem Yoast/Rank Math, publica título e meta. */
