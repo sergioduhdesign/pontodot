@@ -256,7 +256,7 @@ async function salvaAgenda(){
 }
 async function instalaPlugin(){
   const b = $('#bPlug'); b.disabled = true; b.textContent = 'Instalando…';
-  try { await api({ acao: 'instalar_plugin', client_id: CID }); toast('Plugin instalado no site pela HostGator.'); b.textContent = '✓ Plugin instalado'; }
+  try { const r = await api({ acao: 'instalar_plugin', client_id: CID }); toast('Plugin v' + (r.versao || '?') + ' instalado e funcionando no site (' + (r.abertos || []).length + ' campos liberados).'); b.textContent = '✓ Plugin instalado'; }
   catch(e){ b.disabled = false; b.textContent = 'Instalar plugin no site'; toast(e.message); }
 }
 async function desfaz(id){
@@ -373,7 +373,7 @@ async function aplicaEditor(){
     const r = await api({ acao: 'aplicar', client_id: CID, ids, edicoes: ed });
     const falhas = r.resultado.filter(x => !x.ok);
     HIST = (await api({ acao: 'historico', client_id: CID })).propostas || [];
-    if (falhas.length) { b.disabled = false; b.textContent = 'Aplicar no site'; return toast(/PLUGIN_AUXILIAR/.test(falhas[0].erro) ? 'Falta o plugin auxiliar neste site. Volte e clique em “Instalar plugin no site”.' : 'Não gravou: ' + falhas.map(f => f.erro).join(' · ')); }
+    if (falhas.length) { b.disabled = false; b.textContent = 'Aplicar no site'; return toast(/PLUGIN_AUXILIAR/.test(falhas[0].erro) ? 'Plugin auxiliar desatualizado ou ausente. Volte ao cliente e clique em “Instalar plugin no site” (atualiza para a v1.1) e tente de novo.' : 'Não gravou: ' + falhas.map(f => f.erro).join(' · ')); }
     ED.it.nota = estima(ED.it, ED.v); delete PROPS[ED.it.url];
     toast('Aplicado no site. Dá para desfazer na lista.'); vCliente();
   } catch(e){ b.disabled = false; b.textContent = 'Aplicar no site'; toast('SEO: ' + e.message); }

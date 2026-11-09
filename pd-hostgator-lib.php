@@ -74,7 +74,15 @@ function pdCPInstalarSeo($clientId) {
     pdCPGravar($c, $mu, 'pontodot-seo.php', pdSeoPluginFonte());
     $volta = pdCPLer($c, $mu, 'pontodot-seo.php');
     if (strpos($volta, 'Pontodot SEO') === false) throw new Exception('Gravei o arquivo, mas não consegui conferir de volta.');
-    return ['pasta' => $mu, 'arquivo' => 'pontodot-seo.php'];
+    // confere de fora: o site precisa ter CARREGADO o plugin (senão a pasta é de outro site)
+    $site = pdSiteCfg($clientId); $base = rtrim((string)($site['url'] ?? ''), '/'); $ok = null;
+    foreach (['/wp-json/pontodot/v1/ping', '/?rest_route=/pontodot/v1/ping'] as $rota) {
+        $ch = curl_init($base . $rota); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => true, CURLOPT_USERAGENT => 'Pontodot-SEO']);
+        $b = curl_exec($ch); curl_close($ch); $j = json_decode((string)$b, true);
+        if (is_array($j) && !empty($j['ok'])) { $ok = $j; break; }
+    }
+    if (!$ok) throw new Exception('Gravei o plugin em ' . $mu . ', mas o site ' . $base . ' não o carregou. A pasta provavelmente é de outro site: confira o endereço do site no cofre/painel e a pasta da HostGator.');
+    return ['pasta' => $mu, 'arquivo' => 'pontodot-seo.php', 'versao' => $ok['versao'] ?? '', 'abertos' => $ok['abertos'] ?? []];
 }
 
 }

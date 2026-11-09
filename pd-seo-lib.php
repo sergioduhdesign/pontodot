@@ -404,11 +404,11 @@ function pdSeoPluginFonte() {
 /**
  * Plugin Name: Pontodot SEO
  * Description: Libera os campos de SEO (título e meta description) para a API do WordPress, para a PD ajustar com aprovação. Sem Yoast/Rank Math, ele mesmo publica o título e a meta.
- * Version: 1.0
+ * Version: 1.1
  * Instalação: envie este arquivo para wp-content/mu-plugins/pontodot-seo.php (crie a pasta se não existir).
  */
 if (!defined('ABSPATH')) exit;
-add_action('init', function () {
+function pd_seo_registrar() {
     $chaves = ['_yoast_wpseo_title', '_yoast_wpseo_metadesc', 'rank_math_title', 'rank_math_description', '_pd_seo_title', '_pd_seo_desc'];
     foreach (['post', 'page'] as $t) {
         foreach ($chaves as $k) {
@@ -418,6 +418,15 @@ add_action('init', function () {
             ]);
         }
     }
+}
+// prioridade alta: roda DEPOIS do Yoast/Rank Math, que registram os mesmos campos fechados para a API
+add_action('init', 'pd_seo_registrar', 999);
+add_action('rest_api_init', 'pd_seo_registrar', 999);
+add_action('rest_api_init', function () {
+    register_rest_route('pontodot/v1', '/ping', ['methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => function () {
+        $ab = []; foreach (get_registered_meta_keys('post', 'page') as $k => $m) if (!empty($m['show_in_rest'])) $ab[] = $k;
+        return ['ok' => true, 'versao' => '1.1', 'abertos' => $ab];
+    }]);
 });
 function pd_seo_outro_plugin() { return defined('WPSEO_VERSION') || class_exists('RankMath') || defined('AIOSEO_VERSION'); }
 add_filter('pre_get_document_title', function ($t) {
