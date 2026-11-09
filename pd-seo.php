@@ -26,6 +26,14 @@ $J = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 if ($acao === 'quem') { echo json_encode(['ok' => true] + pdSeoQuem(), $J); exit; }
 if ($acao === 'plugin') { echo json_encode(['ok' => true, 'nome' => 'pontodot-seo.php', 'fonte' => pdSeoPluginFonte()], $J); exit; }
 
+if ($acao === 'agenda_ler') { echo json_encode(['ok' => true, 'agenda' => pdSeoAgenda()], $J); exit; }
+if ($acao === 'agenda_gravar') {
+    $dias = min(90, max(1, (int)($d['dias'] ?? 7))); $ativo = !empty($d['ativo']);
+    $r = sd_supabase('/rest/v1/app_settings?id=eq.1', 'PATCH', ['seo_agenda' => ['ativo' => $ativo, 'dias' => $dias]]);
+    if (($r['code'] ?? 500) >= 300) sd_fail('Não gravou a agenda (rode a migration v178).', 500);
+    echo json_encode(['ok' => true, 'agenda' => ['ativo' => $ativo, 'dias' => $dias]], $J); exit;
+}
+
 $cid = (string)($d['client_id'] ?? '');
 if (!preg_match('/^[0-9a-fA-F-]{36}$/', $cid)) sd_fail('Cliente inválido.', 400);
 

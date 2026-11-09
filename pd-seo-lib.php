@@ -434,3 +434,24 @@ PHP;
 }
 
 }
+
+
+/** Agenda das auditorias: {ativo, dias}. */
+function pdSeoAgenda() {
+    $r = sd_supabase('/rest/v1/app_settings?id=eq.1&select=seo_agenda'); $a = $r['body'][0]['seo_agenda'] ?? null;
+    if (is_string($a)) $a = json_decode($a, true);
+    return ['ativo' => !empty($a['ativo']), 'dias' => max(1, (int)($a['dias'] ?? 7))];
+}
+
+/** Relógio: se a agenda está ligada, audita UM site por volta (o mais atrasado) — devagar, sem travar o worker. */
+function pdSeoTick() {
+    $ag = pdSeoAgenda(); if (!$ag['ativo']) return 0;
+    $sites = sd_supabase('/rest/v1/pd_sites?ativo=eq.true&tipo=eq.wp&select=client_id')['body'] ?? [];
+    if (!$sites) return 0;
+    $ult = [];
+    foreach ((array)(sd_supabase('/rest/v1/pd_seo_auditorias?select=client_id,criado_em&order=criado_em.desc&limit=1000')['body'] ?? []) as $a) if (!isset($ult[$a['client_id']])) $ult[$a['client_id']] = strtotime($a['criado_em']);
+    $limite = time() - $ag['dias'] * 86400; $alvo = null; $menor = PHP_INT_MAX;
+    foreach ($sites as $s) { $t = $ult[$s['client_id']] ?? 0; if ($t < $limite && $t < $menor) { $menor = $t; $alvo = $s['client_id']; } }
+    if (!$alvo) return 0;
+    try { pdSeoAuditar($alvo, 60); return 1; } catch (Throwable $e) { echo "SEO agendado: erro " . $e->getMessage() . "\n"; return 0; }
+}

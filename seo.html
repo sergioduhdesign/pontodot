@@ -133,6 +133,7 @@ async function boot(){
   (s.data || []).forEach(x => SITES[x.client_id] = x);
   (a.data || []).forEach(x => { if (!ULT[x.client_id]) ULT[x.client_id] = x; });
   if (a.error) return porta('<h2>Falta preparar o banco</h2><p>Rode o <b>migration_v176_pd_seo.sql</b> (e o v177) no SQL Editor do Supabase.</p>');
+  try { AGENDA = (await api({ acao: 'agenda_ler' })).agenda || AGENDA; } catch(e){}
   try { QUEM = await api({ acao: 'quem' }); } catch(e){ QUEM = { nome: 'IA da casa', titulo: '', avatar: '', acertos: 0, total: 0, personagem: 'sumi' }; }
   $('#porta').classList.add('hid'); $('#app').classList.remove('hid');
   const q = new URLSearchParams(location.search).get('cid');
@@ -154,16 +155,24 @@ function cartaQuem(){
 }
 
 // ------------------------------------------------------------------ lista de clientes
+function barraLote(){
+  const n = Object.keys(RODA).length;
+  return '<div class="quem" style="flex-wrap:wrap;gap:10px"><button class="bt" id="bTodosAud"' + (n ? ' disabled' : '') + '>' + (n ? 'Auditando ' + n + '…' : 'Auditar todos os sites') + '</button>' +
+    '<span class="fl1"></span><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="agOn"' + (AGENDA.ativo ? ' checked' : '') + '> Auditar sozinho a cada ' +
+    '<select id="agDias">' + [1, 3, 7, 15, 30].map(d => '<option value="' + d + '"' + (AGENDA.dias === d ? ' selected' : '') + '>' + d + ' dia' + (d > 1 ? 's' : '') + '</option>').join('') + '</select></label></div>';
+}
 function vLista(){
   VIEW = 'lista'; CID = null; FULL = null; topo('SEO', CLIS.length + ' clientes', null);
   const ordem = CLIS.slice().sort((a, b) => (ULT[a.id] ? 0 : 1) - (ULT[b.id] ? 0 : 1) || a.name.localeCompare(b.name, 'pt-BR'));
-  $('#cont').innerHTML = cartaQuem() + '<div class="grade">' + ordem.map(c => {
+  $('#cont').innerHTML = cartaQuem() + barraLote() + '<div class="grade">' + ordem.map(c => {
     const s = SITES[c.id], u = ULT[c.id], wp = s && s.tipo === 'wp';
     return '<div class="cc" data-c="' + c.id + '"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="min-width:0"><div class="n">' + esc(c.name) + '</div><div class="u">' + esc(s && s.url ? s.url.replace(/^https?:\/\//, '') : 'sem site cadastrado') + '</div></div>' +
       (u ? '<div class="nota" style="font-size:30px;color:' + cor(u.nota) + '">' + u.nota + '</div>' : '') + '</div>' +
-      '<div>' + (wp ? pill('WordPress', 'var(--ok)') : pill(s ? 'site ' + (s.tipo || '') : 'sem site', 'var(--mut)')) + (u ? pill(dt(u.criado_em), 'var(--mut)') : pill('nunca auditado', 'var(--ouro)')) + '</div></div>';
+      '<div>' + (RODA[c.id] ? pill('auditando…', 'var(--ouro)') : ERRO[c.id] ? pill('erro', 'var(--ruim,#e5484d)') : '') + (wp ? pill('WordPress', 'var(--ok)') : pill(s ? 'site ' + (s.tipo || '') : 'sem site', 'var(--mut)')) + (u ? pill(dt(u.criado_em), 'var(--mut)') : pill('nunca auditado', 'var(--ouro)')) + '</div></div>';
   }).join('') + '</div>';
   document.querySelectorAll('.cc').forEach(e => e.onclick = () => abreCliente(e.dataset.c));
+  if (g('bTodosAud')) g('bTodosAud').onclick = auditarTodos;
+  if (g('agOn')) { g('agOn').onchange = salvaAgenda; g('agDias').onchange = salvaAgenda; }
 }
 
 // ------------------------------------------------------------------ um cliente
@@ -209,10 +218,29 @@ function vCliente(){
   document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => abreEditor(FULL.itens[+b.dataset.ed]));
   document.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => desfaz(b.dataset.undo));
 }
-async function auditar(){
-  const b = $('#bAud'); b.disabled = true; b.textContent = 'Lendo o site… (1–2 min)';
-  try { const r = await api({ acao: 'auditar', client_id: CID }); FULL = { resumo: r.resumo, itens: r.itens, criado_em: new Date().toISOString(), nota: r.resumo.nota, plugin: r.resumo.plugin }; ULT[CID] = { nota: r.resumo.nota, plugin: r.resumo.plugin, criado_em: FULL.criado_em }; PROPS = {}; vCliente(); }
-  catch(e){ toast('SEO: ' + e.message); vCliente(); }
+const RODA = {}, ERRO = {}; let AGENDA = { ativo: false, dias: 7 };
+async function auditaBg(cid){
+  if (RODA[cid]) return; RODA[cid] = 1; delete ERRO[cid]; redesenha();
+  try {
+    const r = await api({ acao: 'auditar', client_id: cid });
+    ULT[cid] = { nota: r.resumo.nota, plugin: r.resumo.plugin, criado_em: new Date().toISOString() };
+    if (CID === cid && VIEW === 'cliente') { FULL = { resumo: r.resumo, itens: r.itens, criado_em: ULT[cid].criado_em, nota: r.resumo.nota, plugin: r.resumo.plugin }; PROPS = {}; }
+  } catch(e){ ERRO[cid] = e.message; if (CID === cid) toast('SEO: ' + e.message); }
+  finally { delete RODA[cid]; redesenha(); }
+}
+function redesenha(){ if (VIEW === 'lista') vLista(); else if (VIEW === 'cliente') vCliente(); }
+async function auditar(){ auditaBg(CID); }   // roda ao fundo: dá pra sair e abrir outro cliente
+async function auditarTodos(){
+  const fila = CLIS.filter(c => SITES[c.id] && SITES[c.id].tipo === 'wp' && !RODA[c.id]).map(c => c.id);
+  if (!fila.length) return toast('Nenhum site WordPress para auditar.');
+  toast('Auditando ' + fila.length + ' site(s), 3 por vez. Pode navegar.');
+  const lote = async () => { while (fila.length) await auditaBg(fila.shift()); };
+  Promise.all([lote(), lote(), lote()]);
+}
+async function salvaAgenda(){
+  const ativo = $('#agOn').checked, dias = +$('#agDias').value;
+  try { const r = await api({ acao: 'agenda_gravar', ativo, dias }); AGENDA = r.agenda; toast(ativo ? 'Auditoria automática a cada ' + dias + ' dia(s).' : 'Auditoria automática desligada.'); }
+  catch(e){ toast(e.message); }
 }
 async function instalaPlugin(){
   const b = $('#bPlug'); b.disabled = true; b.textContent = 'Instalando…';

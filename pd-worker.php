@@ -677,6 +677,7 @@ try { require_once __DIR__ . '/pd-series-lib.php'; if (!vsSemTabela()) { $sg = v
 $z  = w_zap();                       echo "Zap: " . ($z['enviados'] ?? 0) . " enviado(s), " . ($z['manuais'] ?? 0) . " manual(is)" . (!empty($z['sem_tabela']) ? ' (rode o SQL da v62)' : '') . "\n";
 $n6 = w_relatorios();                echo "Relatórios de campanha: $n6\n";
 $n7 = w_sites();                     echo "Posts publicados em site de cliente: $n7\n";
+try { require_once __DIR__ . '/pd-lib.php'; require_once __DIR__ . '/pd-site-lib.php'; require_once __DIR__ . '/pd-seo-lib.php'; $ns = pdSeoTick(); echo "SEO agendado: $ns auditoria(s)\n"; } catch (Throwable $e) { echo "SEO agendado: erro " . $e->getMessage() . "\n"; }
 $n8 = w_feed_casa();                 echo "Feed da casa: $n8\n";
 $n9 = w_alunos();                    echo "Alunos reagem: $n9\n";
 $n10 = w_rotina_zap();               echo "Rotina da equipe: $n10\n";
