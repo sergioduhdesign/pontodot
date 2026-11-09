@@ -455,7 +455,7 @@ function pdSeoAgenda() {
 /** Relógio: se a agenda está ligada, audita UM site por volta (o mais atrasado) — devagar, sem travar o worker. */
 function pdSeoTick() {
     $ag = pdSeoAgenda(); if (!$ag['ativo']) return 0;
-    $sites = sd_supabase('/rest/v1/pd_sites?ativo=eq.true&tipo=eq.wp&select=client_id')['body'] ?? [];
+    $sites = sd_supabase('/rest/v1/pd_sites?tipo=eq.wp&select=client_id')['body'] ?? [];
     if (!$sites) return 0;
     $ult = [];
     foreach ((array)(sd_supabase('/rest/v1/pd_seo_auditorias?select=client_id,criado_em&order=criado_em.desc&limit=1000')['body'] ?? []) as $a) if (!isset($ult[$a['client_id']])) $ult[$a['client_id']] = strtotime($a['criado_em']);
