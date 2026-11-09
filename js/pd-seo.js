@@ -33,7 +33,7 @@
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
         <div style="font-weight:700;font-size:16px">SEO — ${E(nome)}</div>
         <button class="btn btn-primary btn-sm" id="seo-aud" style="margin-left:auto">${AUD ? 'Auditar de novo' : 'Auditar agora'}</button>
-        <button class="btn btn-secondary btn-sm" id="seo-plug" title="Arquivo para colocar em wp-content/mu-plugins/">Plugin auxiliar</button>
+        <button class="btn btn-secondary btn-sm" id="seo-plug" title="Instala o plugin auxiliar direto no site pela HostGator">Instalar plugin no site</button>
         <button class="btn btn-secondary btn-sm" id="seo-x">Fechar</button></div>`;
     if (!AUD) {
       h += `<div id="seo-msg" style="font-size:13px;color:var(--text3);line-height:1.6">A auditoria lê o site como o Google lê (cada página, o robots.txt e o sitemap) e aponta título, meta description, H1, imagens sem alt, canonical, noindex, schema, conteúdo repetido e velocidade. Depois a IA propõe as correções; você vê o antes e o depois e aprova o que quiser. Nada muda no site sem a sua aprovação, e tudo pode ser desfeito.</div>`;
@@ -126,6 +126,15 @@
     catch (e) { T('Não desfez: ' + (e.message || e), 'error'); }
   }
   async function baixaPlugin() {
+    const b = ov.querySelector('#seo-plug'); b.disabled = true; b.textContent = 'Instalando…';
+    try {
+      await sdFetch('/pd-seo.php', { acao: 'instalar_plugin', client_id: CID });
+      T('Plugin instalado no site pela HostGator.', 'success'); b.textContent = '✓ Plugin instalado'; return;
+    } catch (e) {
+      b.disabled = false; b.textContent = 'Instalar plugin no site';
+      if (!/cofre|HostGator|cPanel|dom[ií]nio/i.test(e.message || '')) return T('Plugin: ' + (e.message || e), 'error');
+      T((e.message || e) + ' — guarde o acesso da HostGator no cofre (perfil do cliente → Canais). Baixando o arquivo para instalar na mão.', 'warn');
+    }
     try {
       const r = await sdFetch('/pd-seo.php', { acao: 'plugin' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.fonte], { type: 'text/x-php' })); a.download = r.nome; a.click();

@@ -13,6 +13,7 @@ require_once __DIR__ . '/sd-base.php';
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-lib.php';
 require_once __DIR__ . '/pd-seo-lib.php';
+require_once __DIR__ . '/pd-hostgator-lib.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') sd_fail('Metodo nao permitido', 405);
 $me = sd_current_user();
@@ -39,6 +40,8 @@ try {
         $ids = array_slice((array)($d['ids'] ?? []), 0, 60);
         echo json_encode(['ok' => true, 'resultado' => pdSeoAplicar($cid, $ids, (array)($d['edicoes'] ?? []))], $J); exit;
     }
+    if ($acao === 'instalar_plugin') { echo json_encode(['ok' => true] + pdCPInstalarSeo($cid), $J); exit; }
+    if ($acao === 'testar_hostgator') { echo json_encode(['ok' => true] + pdCPTestar($cid), $J); exit; }
     if ($acao === 'reverter') { pdSeoReverter($cid, (string)($d['id'] ?? '')); echo json_encode(['ok' => true]); exit; }
     if ($acao === 'recusar') {
         foreach (array_slice((array)($d['ids'] ?? []), 0, 100) as $id) {

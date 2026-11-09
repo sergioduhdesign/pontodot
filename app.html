@@ -1518,6 +1518,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <button class="btn btn-secondary btn-sm" onclick="pdSiteSalvar()">Salvar site</button>
             <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wordpress')">🔐 Senha do WordPress</button>
             <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix')">🔐 Chave do Wix</button>
+            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator')">🔐 Acesso HostGator</button>
             <button class="btn btn-secondary btn-sm" onclick="pdSiteTestar()">Testar conexão</button>
             <button class="btn btn-primary btn-sm" onclick="pdSeoAbrir(currentClientId)" title="Auditar o SEO do site e corrigir com a IA, com aprovação">SEO do site</button>
             <button class="btn btn-secondary btn-sm" onclick="pdSiteBloco()" title="Site HTML ou bloco: copia o trecho que vai no site">Copiar bloco do site</button>
@@ -7709,9 +7710,11 @@ function pdCofreAbrir(servico){
     <div style="font-weight:700;margin-bottom:4px">🔐 Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?'Wix do cliente':esc(servico)}</div>
     <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:14px">A chave vai direto pro cofre do servidor. Ninguém — nem admin — lê depois.
       ${servico==='wordpress' ? 'No WP do cliente: Usuários → Perfil → <b>Senhas de aplicativo</b> → crie uma chamada "pontodot" e cole aqui.' : ''}
+      ${servico==='hostgator' ? 'No cPanel: <b>Segurança → Gerenciar tokens de API</b> → criar "pontodot" (sem validade). Usuário = o usuário do cPanel; servidor = o endereço que aparece ao entrar no cPanel (ex.: br123.hostgator.com.br); chave = o token. Com ele a PD instala o plugin de SEO e mexe em robots.txt/.htaccess sozinha.' : ''}
       ${servico==='wix' ? 'Chave: manage.wix.com/account/api-keys → gerar chave "pontodot". O <b>ID do site</b> é o trecho longo da URL do painel (manage.wix.com/dashboard/<b>ID</b>/home). A mesma chave serve para vários sites da conta; o ID muda por site.' : ''}</div>
-    <input id="cf-user" placeholder="${servico==='wix'?'ID do site (da URL do painel Wix)':'usuário (ex.: pontodot)'}" style="width:100%;height:36px;margin-bottom:8px">
-    <input id="cf-pass" type="password" placeholder="${servico==='wix'?'chave de API do Wix':'senha de aplicativo'}" autocomplete="new-password" style="width:100%;height:36px;margin-bottom:14px">
+    <input id="cf-user" placeholder="${servico==='wix'?'ID do site (da URL do painel Wix)':servico==='hostgator'?'usuário do cPanel':'usuário (ex.: pontodot)'}" style="width:100%;height:36px;margin-bottom:8px">
+    ${servico==='hostgator' ? '<input id="cf-host" placeholder="servidor do cPanel (ex.: br123.hostgator.com.br)" style="width:100%;height:36px;margin-bottom:8px">' : ''}
+    <input id="cf-pass" type="password" placeholder="${servico==='wix'?'chave de API do Wix':servico==='hostgator'?'token da API do cPanel':'senha de aplicativo'}" autocomplete="new-password" style="width:100%;height:36px;margin-bottom:14px">
     <div style="display:flex;gap:8px"><button class="btn btn-secondary" style="flex:1" onclick="this.closest('div').parentElement.parentElement.remove()">Cancelar</button>
     <button class="btn btn-primary" style="flex:1" id="cf-ok">Guardar no cofre</button></div></div>`;
   document.body.appendChild(ov);
@@ -7721,7 +7724,7 @@ function pdCofreAbrir(servico){
     if (!seg) { showToast('Cola a senha primeiro.', 'warn'); return; }
     try {
       await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: currentClientId, servico,
-        rotulo: servico + ' · ' + (clients.find(c=>c.id===currentClientId)?.name||''), usuario: ov.querySelector('#cf-user').value.trim(), segredo: seg });
+        rotulo: servico==='hostgator' ? (ov.querySelector('#cf-host')?.value.trim()||'') : servico + ' · ' + (clients.find(c=>c.id===currentClientId)?.name||''), usuario: ov.querySelector('#cf-user').value.trim(), segredo: seg });
       ov.remove(); showToast('Guardado no cofre. Pode testar a conexão.', 'success');
     } catch(e){ showToast('Cofre: ' + e.message, 'error'); }
   };
