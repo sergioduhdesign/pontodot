@@ -312,7 +312,11 @@ function pdSeoEscrever($site, $cred, $plugin, $p, $valor) {
     if (!array_key_exists($chave, $meta)) throw new Exception('PLUGIN_AUXILIAR: o campo "' . $chave . '" não está liberado na API. Instale o plugin auxiliar do Pontodot (mu-plugin) neste site.');
     $r = pdWP($site, $cred, 'POST', "/$rota/" . (int)$p['wp_id'], ['meta' => [$chave => $valor]]);
     if (!in_array($r['code'], [200, 201], true)) throw new Exception(pdWPErro($r));
-    if (($r['body']['meta'][$chave] ?? null) !== $valor) throw new Exception('O WordPress aceitou, mas não gravou o campo. Confira o plugin auxiliar.');
+    // confere o que ficou GRAVADO (leitura nova, sem cache) com tolerância a espaços/entidades que o WP ou o Yoast normalizam
+    $norm = function ($x) { return trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string)$x), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); };
+    $conf = pdWP($site, $cred, 'GET', "/$rota/" . (int)$p['wp_id'] . '?context=edit&_fields=id,meta&_=' . time());
+    $got = $conf['code'] === 200 ? ($conf['body']['meta'][$chave] ?? null) : ($r['body']['meta'][$chave] ?? null);
+    if ($norm($got) !== $norm($valor)) throw new Exception('O WordPress aceitou, mas o campo "' . $chave . '" ficou com: «' . mb_substr((string)$got, 0, 80) . '» (esperado: «' . mb_substr($valor, 0, 80) . '»). Plugin de SEO ativo: ' . $plugin . '.');
 }
 
 function pdSeoAplicar($clientId, array $ids, array $edicoes = []) {
