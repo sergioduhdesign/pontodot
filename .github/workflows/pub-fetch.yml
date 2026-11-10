@@ -10,7 +10,7 @@ jobs:
     steps:
       - env: { U: "${{ github.event.inputs.url }}", T: "${{ github.event.inputs.termos }}" }
         run: |
-          curl -sSL --max-time 60 -A "Mozilla/5.0" "$U?nocache=$(date +%s)" -o /tmp/p.html
+          curl -sSL --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" -H "Accept: text/html,application/xhtml+xml,*/*;q=0.8" -H "Accept-Language: pt-BR,pt;q=0.9" "$U?nocache=$(date +%s)" -o /tmp/p.html
           python3 - <<'PY'
           import re,os
           h=open('/tmp/p.html',errors='ignore').read()
