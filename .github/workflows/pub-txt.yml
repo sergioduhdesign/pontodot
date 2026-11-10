@@ -1,0 +1,23 @@
+name: Página pública — termos no texto visível
+on:
+  workflow_dispatch:
+    inputs:
+      urls:  { description: "endereços separados por espaço", required: true }
+      regex: { description: "expressão regular", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { U: "${{ github.event.inputs.urls }}", R: "${{ github.event.inputs.regex }}" }
+        run: |
+          for u in $U; do curl -sSL --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" -H "Accept: text/html,*/*;q=0.8" "$u?nocache=$(date +%s)" -o "/tmp/$(echo $u | md5sum | cut -c1-8).html"; echo "$u /tmp/$(echo $u | md5sum | cut -c1-8).html" >> /tmp/idx; done
+          python3 - <<'PY'
+          import re,os
+          for l in open('/tmp/idx'):
+              u,f=l.split()
+              h=open(f,errors='ignore').read()
+              h=re.sub(r'<(script|style|noscript)[^>]*>.*?</\1>',' ',h,flags=re.S)
+              t=re.sub(r'\s+',' ',re.sub(r'<[^>]+>',' ',h))
+              for m in re.finditer(os.environ['R'],t):
+                  print('TXT',u.split('.br')[-1] or '/','::',t[max(0,m.start()-90):m.end()+90])
+          PY
