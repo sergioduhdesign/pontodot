@@ -1,0 +1,21 @@
+name: Página pública — HTML ao redor de um termo
+on:
+  workflow_dispatch:
+    inputs:
+      url:   { description: "endereço da página", required: true }
+      termo: { description: "texto a procurar no HTML", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { U: "${{ github.event.inputs.url }}", T: "${{ github.event.inputs.termo }}" }
+        run: |
+          curl -sSL --max-time 60 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" -H "Accept: text/html,*/*;q=0.8" "$U?nocache=$(date +%s)" -o /tmp/p.html
+          python3 - <<'PY'
+          import re,os
+          h=open('/tmp/p.html',errors='ignore').read()
+          t=os.environ['T']
+          for m in re.finditer(re.escape(t),h):
+              a=max(0,m.start()-500); print('@@ ',m.start(),'\n'+h[a:m.end()+300].replace('\n',' ')+'\n@@@')
+          print('TOTAL',len(re.findall(re.escape(t),h)))
+          PY
