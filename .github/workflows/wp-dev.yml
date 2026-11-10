@@ -8,10 +8,12 @@ on:
       metodo:   { description: "GET | POST | PUT | DELETE", required: true, default: "GET" }
       endpoint: { description: "ex.: /wp/v2/pages?per_page=50&context=edit", required: true }
       corpo:    { description: "JSON do corpo (POST/PUT)", required: false, default: "" }
+      arquivo:  { description: "corpo grande: arquivo JSON do repositório (ex.: hg-envio/ib_2.json)", required: false, default: "" }
 jobs:
   wp:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Chamar a API
         env:
           U: ${{ secrets[format('WP_{0}_USER', github.event.inputs.cliente)] }}
@@ -20,9 +22,11 @@ jobs:
           M: ${{ github.event.inputs.metodo }}
           E: ${{ github.event.inputs.endpoint }}
           B: ${{ github.event.inputs.corpo }}
+          ARQ: ${{ github.event.inputs.arquivo }}
         run: |
           [ -n "$U" ] && [ -n "$P" ] || { echo "Faltam os secrets WP_<CLIENTE>_USER e WP_<CLIENTE>_APP"; exit 1; }
           case "$E" in /*) ;; *) E="/$E";; esac
           URL="${S%/}/wp-json$E"
-          if [ -n "$B" ]; then printf '%s' "$B" > /tmp/corpo.json; ARG="--data-binary @/tmp/corpo.json"; else ARG=""; fi
-          curl -sS --max-time 90 -X "$M" -u "$U:$P" -H "Content-Type: application/json" $ARG -w "\nHTTP %{http_code}\n" "$URL" | head -c 60000
+          if [ -n "$ARQ" ]; then case "$ARQ" in hg-envio/*) ARG="--data-binary @$ARQ";; *) echo "arquivo precisa estar em hg-envio/"; exit 1;; esac
+          elif [ -n "$B" ]; then printf '%s' "$B" > /tmp/corpo.json; ARG="--data-binary @/tmp/corpo.json"; else ARG=""; fi
+          curl -sS --max-time 120 -X "$M" -u "$U:$P" -H "Content-Type: application/json" $ARG -w "\nHTTP %{http_code}\n" "$URL" | head -c 3000000
