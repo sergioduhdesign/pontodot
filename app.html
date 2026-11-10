@@ -7775,7 +7775,7 @@ function pdCofreAbrir(servico, escopo){
       await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: casa ? 'casa' : currentClientId, servico,
         rotulo: servico==='hostgator' ? (ov.querySelector('#cf-host')?.value.trim()||'') : servico + ' · ' + (clients.find(c=>c.id===currentClientId)?.name||''), usuario: ov.querySelector('#cf-user').value.trim(), segredo: seg });
       cfFecha(); showToast('Guardado no cofre. Pode testar a conexão.', 'success');
-    } catch(e){ showToast('Cofre: ' + e.message, 'error'); }
+    } catch(e){ let m = ov.querySelector('#cf-err'); if (!m){ m = document.createElement('div'); m.id = 'cf-err'; m.style.cssText = 'color:#b42318;font-size:13px;margin-top:10px'; ov.querySelector('#cf-ok').after(m); } m.textContent = 'Não guardou: ' + e.message; }
   };
 }
 async function pdEsteiraNova(id){

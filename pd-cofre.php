@@ -32,7 +32,7 @@ if ($acao === 'guardar') {
     $servico = strtolower(trim((string)($d['servico'] ?? '')));
     if (!preg_match('/^[a-z0-9_\-]{2,30}$/', $servico)) sd_fail('Serviço inválido (wordpress, ftp…).', 400);
     $segredo = (string)($d['segredo'] ?? '');
-    if (strlen($segredo) < 4 || strlen($segredo) > 500) sd_fail('Veio sem a senha.', 400);
+    if (strlen($segredo) < 4 || strlen($segredo) > 5000) sd_fail('Veio sem a senha.', 400);
     if ($casa) sd_supabase('/rest/v1/pd_credenciais?' . $filtro . '&servico=eq.' . urlencode($servico), 'DELETE');
     $r = sd_supabase('/rest/v1/pd_credenciais' . ($casa ? '' : '?on_conflict=client_id,servico'), 'POST', [
         'client_id' => $casa ? null : $clientId, 'servico' => $servico,
