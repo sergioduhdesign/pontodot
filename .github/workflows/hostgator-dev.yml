@@ -77,6 +77,22 @@ jobs:
           sys.exit(0 if j.get('status')==1 else 1)
           "
               ;;
+            wpinfo)
+              # só NOME do banco, USUÁRIO e prefixo das tabelas do wp-config da pasta informada. A senha e as chaves NUNCA saem.
+              cat > /tmp/wpinfo.py <<'PY'
+          import json, sys, re
+          j = json.load(sys.stdin)
+          if j.get('status') != 1:
+              print('ERRO:', j.get('errors')); sys.exit(1)
+          t = j['data']['content']
+          for k in ('DB_NAME', 'DB_USER'):
+              m = re.search(r"define\(\s*['\"]" + k + r"['\"]\s*,\s*['\"]([^'\"]+)['\"]", t)
+              print(k + ':', m.group(1) if m else '(não achei)')
+          m = re.search(r"\$table_prefix\s*=\s*['\"]([^'\"]+)['\"]", t)
+          print('prefixo das tabelas:', m.group(1) if m else '(não achei)')
+          PY
+              api get_file_content --data-urlencode "dir=$DIR" --data-urlencode "file=wp-config.php" | python3 /tmp/wpinfo.py
+              ;;
             bancos)
               curl -sS --max-time 60 -H "Authorization: cpanel $U:$T" "https://$H/execute/Mysql/list_databases" | python3 -c "
           import json,sys
