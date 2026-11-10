@@ -438,8 +438,6 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
              box-shadow:0 12px 32px rgba(0,0,0,.18);overflow:hidden;padding:4px">
           <div class="adm-mi" onclick="closeAdminMenu();setView('admin')">Painel</div>
           <div class="adm-mi" onclick="closeAdminMenu();setView('clientes')">Clientes</div>
-          <div class="adm-mi" onclick="closeAdminMenu();pdArquivosAbrir('')">Arquivos do site (raiz HostGator)</div>
-          <div class="adm-mi" onclick="closeAdminMenu();pdCofreAbrir('hostgator','casa')">Acesso HostGator da casa</div>
           <div class="adm-mi" id="adm-mi-saude" style="display:none" onclick="closeAdminMenu();setView('saude')">Saúde da plataforma</div>
         </div>
       </div>
@@ -872,6 +870,13 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 <div id="bi-resumo-body">
                   <div style="font-size:11px;color:var(--text3)">Carregando…</div>
                 </div>
+              </div>
+              <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
+                <div>
+                  <div class="entity-card-name">HostGator da casa</div>
+                  <div class="entity-card-meta">Acesso à conta inteira (todos os sites da raiz): guardar o token uma vez e editar arquivos com backup e desfazer</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">🔐 Acesso</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
               </div>
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
