@@ -1,0 +1,21 @@
+name: Página pública — conferir textos
+on:
+  workflow_dispatch:
+    inputs:
+      url:    { description: "endereço da página", required: true }
+      termos: { description: "termos separados por | (mostra se aparecem)", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { U: "${{ github.event.inputs.url }}", T: "${{ github.event.inputs.termos }}" }
+        run: |
+          curl -sSL --max-time 60 -A "Mozilla/5.0" "$U?nocache=$(date +%s)" -o /tmp/p.html
+          python3 - <<'PY'
+          import re,os
+          h=open('/tmp/p.html',errors='ignore').read()
+          h=re.sub(r'<(script|style)[^>]*>.*?</\1>',' ',h,flags=re.S)
+          t=re.sub(r'\s+',' ',re.sub(r'<[^>]+>',' ',h))
+          for k in os.environ['T'].split('|'): print(('SIM  ' if k.strip() in t else 'NAO  ')+k.strip())
+          print('--- trecho:', t[:700])
+          PY
