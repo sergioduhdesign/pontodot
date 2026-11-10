@@ -9,4 +9,4 @@ jobs:
         env: { H: "${{ secrets.FTP_SERVER }}", U: "${{ secrets.FTP_USERNAME }}", P: "${{ secrets.FTP_PASSWORD }}", D: "${{ secrets.FTP_DIR }}" }
         run: |
           echo "FTP_DIR configurado: $D"
-          lftp -u "$U","$P" -e "set ssl:verify-certificate no; set net:timeout 20; pwd; echo '--- raiz ---'; cls -1 /; echo '--- public_html ---'; cls -1 /public_html 2>/dev/null | head -80; echo '--- home ---'; cls -1 ~ 2>/dev/null | head -80; bye" "$H" 2>&1 | sed 's/'"$P"'/***/g'
+          lftp -u "$U","$P" -e "set ssl:verify-certificate no; set net:timeout 20; pwd; echo '--- raiz ---'; cls -1 /; echo '--- public_html ---'; cls -1 /public_html 2>/dev/null | head -80; echo '--- home ---'; cls -1 ~ 2>/dev/null | head -80; bye" "$H" 2>&1 | grep -v '^ftp://' | sed 's/'"$P"'/***/g'
