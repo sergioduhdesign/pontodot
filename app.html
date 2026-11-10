@@ -7722,6 +7722,7 @@ async function pdSeoAgenda(){
   } catch(e){ st.textContent = '✗ ' + e.message; }
 }
 async function pdWixSitesVer(){
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   try {
     const r = await sdFetch('/pd-wix.php', { acao:'sites' });
     const ov = document.createElement('div'); ov.id = 'wixVeu';
@@ -7745,6 +7746,7 @@ async function pdSiteTestar(){
 // cofre: a senha entra num campo de senha e vai DIRETO pro servidor
 function pdCofreAbrir(servico, escopo){
   const casa = escopo === 'casa';
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   const ov = document.createElement('div'); ov.id = 'cofreVeu';
   ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:76px 16px 24px';
   ov.innerHTML = `<style>@media(max-width:700px){#cofreVeu{padding:0!important;background:#0B0C0B!important}#cofreVeu .cfF{max-width:none!important;min-height:100%;border-radius:0!important;background:#111214!important;color:#ECECE8!important}#cofreVeu .cfF input{background:#1A1B1E!important;color:#ECECE8!important;border-color:#2A2B30!important}#cofreVeu .cfH{background:#111214!important;border-color:#2A2B30!important}#cofreVeu .cfH button{background:#1A1B1E!important;color:#ECECE8!important;border-color:#2A2B30!important}}</style>
