@@ -38,19 +38,44 @@ function pdArqProibido($p) {
 }
 function pdArqDivide($p) { $i = strrpos($p, '/'); return $i === false ? ['', $p] : [substr($p, 0, $i), substr($p, $i + 1)]; }
 
+/** Pastas fechadas (relativas à raiz da conta): padrão da casa + as que o admin cadastrou. Nem listar, nem ler, nem gravar. */
+function pdArqFechadas() {
+    $base = ['mail', '.ssh', '.cpanel', '.gnupg', 'etc', 'logs', 'ssl', 'tmp', '.trash', 'perl5', '.softaculous'];
+    $r = sd_supabase('/rest/v1/app_settings?id=eq.1&select=arquivos_fechados'); $x = $r['body'][0]['arquivos_fechados'] ?? [];
+    if (is_string($x)) $x = json_decode($x, true);
+    $extra = []; foreach ((array)$x as $p) { try { $q = pdArqCaminho($p); if ($q !== '') $extra[] = strtolower($q); } catch (Throwable $e) {} }
+    return ['padrao' => $base, 'extra' => array_values(array_unique($extra))];
+}
+function pdArqFechada($absRel, $fechadas) {   // $absRel = caminho relativo à raiz da conta
+    $a = strtolower(trim($absRel, '/'));
+    foreach (array_merge($fechadas['padrao'], $fechadas['extra']) as $f) if ($a === $f || strpos($a, $f . '/') === 0) return true;
+    return false;
+}
+
 try {
+    if ($acao === 'fechadas_ler') { echo json_encode(['ok' => true, 'fechadas' => pdArqFechadas()], $J); exit; }
+    if ($acao === 'fechadas_gravar') {
+        $lista = []; foreach ((array)($d['lista'] ?? []) as $p) { $q = pdArqCaminho($p); if ($q !== '') $lista[] = $q; }
+        $r = sd_supabase('/rest/v1/app_settings?id=eq.1', 'PATCH', ['arquivos_fechados' => array_values(array_unique($lista))]);
+        if (($r['code'] ?? 500) >= 300) throw new Exception('Não gravou (rode a migration v180).');
+        echo json_encode(['ok' => true, 'fechadas' => pdArqFechadas()], $J); exit;
+    }
     $c = pdCPCred($cid); $raiz = rtrim(pdCPPasta($cid, $c), '/');
     // escopo "conta": começa na raiz da conta (home do cPanel), onde ficam todos os sites. Só admin; cada gravação guarda o antes.
     $conta = (($d['escopo'] ?? 'site') === 'conta');
     if ($conta) { if (!preg_match('#^(/home\d*/[^/]+)#', $raiz, $mm)) throw new Exception('Não consegui descobrir a raiz da conta.'); $raiz = $mm[1]; }
     $pref = $conta ? '~/' : '';
+    $home = $raiz; if (!$conta && preg_match('#^(/home\d*/[^/]+)#', $raiz, $m2)) $home = $m2[1];
+    $fech = pdArqFechadas();
+    $relConta = function ($rel) use ($raiz, $home) { $abs = $raiz . ($rel !== '' ? '/' . $rel : ''); return ltrim(substr($abs, strlen($home)), '/'); };
     if ($acao === 'listar') {
-        $rel = pdArqCaminho($d['caminho'] ?? '');
+        $rel = pdArqCaminho($d['caminho'] ?? ''); if (pdArqFechada($relConta($rel), $fech)) throw new Exception('Pasta fechada pela PD.');
         $j = pdCP($c, 'Fileman', 'list_files', ['dir' => $raiz . ($rel !== '' ? '/' . $rel : ''), 'include_mime' => 0, 'show_hidden' => 1]);
         if (($j['status'] ?? 0) != 1) throw new Exception(pdCPErro($j));
         $it = [];
         foreach ((array)($j['data'] ?? []) as $x) {
             $nome = (string)($x['file'] ?? ''); if ($nome === '' || $nome === '.' || $nome === '..') continue;
+            if (pdArqFechada($relConta(($rel !== '' ? $rel . '/' : '') . $nome), $fech)) continue;
             $dir = ($x['type'] ?? '') === 'dir';
             $it[] = ['nome' => $nome, 'pasta' => $dir, 'tam' => (int)($x['size'] ?? 0), 'mod' => (int)($x['mtime'] ?? 0), 'editavel' => !$dir && !pdArqProibido($nome) && (int)($x['size'] ?? 0) <= PD_ARQ_MAX];
         }
@@ -58,14 +83,14 @@ try {
         echo json_encode(['ok' => true, 'escopo' => $conta ? 'conta' : 'site', 'raiz' => $raiz, 'caminho' => $rel, 'itens' => $it], $J); exit;
     }
     if ($acao === 'ler') {
-        $rel = pdArqCaminho($d['caminho'] ?? ''); if ($rel === '' || pdArqProibido($rel)) throw new Exception('Este arquivo não pode ser aberto aqui.');
+        $rel = pdArqCaminho($d['caminho'] ?? ''); if ($rel === '' || pdArqProibido($rel) || pdArqFechada($relConta($rel), $fech)) throw new Exception('Este arquivo não pode ser aberto aqui.');
         [$dir, $arq] = pdArqDivide($rel);
         $txt = pdCPLer($c, $raiz . ($dir !== '' ? '/' . $dir : ''), $arq);
         if (strlen($txt) > PD_ARQ_MAX) throw new Exception('Arquivo grande demais para editar aqui (limite 1 MB).');
         echo json_encode(['ok' => true, 'caminho' => $rel, 'conteudo' => $txt], $J); exit;
     }
     if ($acao === 'gravar') {
-        $rel = pdArqCaminho($d['caminho'] ?? ''); if ($rel === '' || pdArqProibido($rel)) throw new Exception('Este arquivo não pode ser gravado aqui.');
+        $rel = pdArqCaminho($d['caminho'] ?? ''); if ($rel === '' || pdArqProibido($rel) || pdArqFechada($relConta($rel), $fech)) throw new Exception('Este arquivo não pode ser gravado aqui.');
         $novo = (string)($d['conteudo'] ?? ''); if (strlen($novo) > PD_ARQ_MAX) throw new Exception('Conteúdo grande demais (limite 1 MB).');
         [$dir, $arq] = pdArqDivide($rel); $pasta = $raiz . ($dir !== '' ? '/' . $dir : '');
         $existia = true; $antes = null;
@@ -89,6 +114,7 @@ try {
         if (!$h['existia']) throw new Exception('Este arquivo era novo; apagar arquivo ainda não é feito aqui (o conteúdo antigo não existe).');
         $cam = (string)$h['caminho']; $base = $raiz;
         if (strpos($cam, '~/') === 0) { $cam = substr($cam, 2); if (preg_match('#^(/home\d*/[^/]+)#', $raiz, $mm)) $base = $mm[1]; }
+        if (pdArqFechada(ltrim(substr($base . '/' . $cam, strlen($home)), '/'), $fech)) throw new Exception('Pasta fechada pela PD.');
         [$dir, $arq] = pdArqDivide($cam); pdCPGravar($c, $base . ($dir !== '' ? '/' . $dir : ''), $arq, (string)$h['antes']);
         sd_supabase('/rest/v1/pd_site_arquivos_hist?id=eq.' . urlencode($id), 'PATCH', ['desfeito' => true]);
         echo json_encode(['ok' => true], $J); exit;

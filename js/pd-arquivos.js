@@ -12,6 +12,7 @@ window.pdArquivosAbrir = function (cid) {
       <button id="aV" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px">‹</button>
       <b style="font-size:16px">Arquivos do site</b><span id="aSt" style="font-size:12px;color:#6B6D75"></span><span style="flex:1"></span>
       <button id="aE" title="Alterna entre a raiz da conta (todos os sites) e só a pasta do site deste cliente" style="border:1px solid #D9D8D2;background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer"></button>
+      <button id="aF" title="Pastas que a PD nunca abre" style="border:1px solid #D9D8D2;background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer">Pastas fechadas</button>
       <button id="aH" style="border:1px solid #D9D8D2;background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer">Histórico</button>
       <button id="aS" style="border:0;background:#15161A;color:#fff;border-radius:10px;padding:8px 16px;cursor:pointer;display:none">Gravar no site</button></div>
     <div id="aC" style="padding:16px"></div></div>`;
@@ -55,6 +56,21 @@ window.pdArquivosAbrir = function (cid) {
       const r = await api({ acao: 'historico' }); st('');
       $('#aC').innerHTML = '<div style="font-weight:600;margin-bottom:8px">Últimas gravações</div>' + (r.itens.map(h => '<div style="display:flex;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #F0EFEA"><span style="flex:1">' + e(h.caminho) + (h.existia ? '' : ' <i style="color:#6B6D75">(novo)</i>') + '</span><span style="font-size:12px;color:#6B6D75">' + new Date(h.criado_em).toLocaleString('pt-BR') + '</span>' + (h.desfeito ? '<span style="font-size:12px;color:#6B6D75">desfeito</span>' : (h.existia ? '<button data-u="' + h.id + '" style="border:1px solid #D9D8D2;background:#fff;border-radius:8px;padding:5px 10px;cursor:pointer">Desfazer</button>' : '')) + '</div>').join('') || '<div style="color:#6B6D75">Nada gravado ainda.</div>');
       v.querySelectorAll('[data-u]').forEach(b => b.onclick = async () => { if (!confirm('Voltar este arquivo para o texto de antes?')) return; try { await api({ acao: 'desfazer', id: b.dataset.u }); st('✓ desfeito'); $('#aH').click(); } catch (er) { st('✗ ' + er.message); } });
+    } catch (er) { st(''); $('#aC').innerHTML = '<div style="color:#b42318">' + e(er.message) + '</div>'; }
+  };
+  $('#aF').onclick = async () => {
+    aberto = null; $('#aS').style.display = 'none'; st('lendo…');
+    try {
+      const r = await api({ acao: 'fechadas_ler' }); st(''); let ex = r.fechadas.extra.slice();
+      const desenha = () => { $('#aC').innerHTML = '<div style="font-weight:600;margin-bottom:4px">Pastas fechadas</div><div style="font-size:12.5px;color:#6B6D75;margin-bottom:10px">A PD não lista, não lê e não grava nelas, em nenhum site da conta. Caminho a partir da raiz da conta (ex.: <code>backups</code> ou <code>meusite/privado</code>). Site novo entra liberado: só fecha o que você pôr aqui.</div>' +
+        '<div style="font-size:12px;color:#6B6D75;margin-bottom:6px">Fechadas de fábrica: ' + r.fechadas.padrao.map(e).join(', ') + '</div>' +
+        ex.map((p, i) => '<div style="display:flex;gap:10px;align-items:center;padding:8px 12px;border:1px solid #E4E3DE;border-radius:10px;margin-bottom:6px"><span style="flex:1">🔒 ' + e(p) + '</span><button data-r="' + i + '" style="border:1px solid #D9D8D2;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer">Abrir</button></div>').join('') +
+        '<div style="display:flex;gap:8px;margin-top:10px"><input id="aN" placeholder="pasta a fechar (ex.: backups)" style="flex:1;border:1px solid #D9D8D2;border-radius:10px;padding:9px 12px;font:inherit"><button id="aA" style="border:0;background:#15161A;color:#fff;border-radius:10px;padding:9px 16px;cursor:pointer">Fechar pasta</button></div>';
+        v.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => { ex.splice(+b.dataset.r, 1); await salva(); });
+        $('#aA').onclick = async () => { const n = $('#aN').value.trim().replace(/^\/+|\/+$/g, ''); if (!n) return; ex.push(n); await salva(); };
+      };
+      const salva = async () => { try { const x = await api({ acao: 'fechadas_gravar', lista: ex }); ex = x.fechadas.extra.slice(); st('✓ salvo'); desenha(); } catch (er) { st('✗ ' + er.message); } };
+      desenha();
     } catch (er) { st(''); $('#aC').innerHTML = '<div style="color:#b42318">' + e(er.message) + '</div>'; }
   };
   const rot = () => $('#aE').textContent = escopo === 'conta' ? 'Raiz da conta ▾' : 'Só o site ▾';
