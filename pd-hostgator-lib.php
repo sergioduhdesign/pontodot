@@ -9,9 +9,11 @@ require_once __DIR__ . '/pd-site-lib.php';
 if (!function_exists('pdCPCred')) {
 
 function pdCPCred($clientId) {
-    $r = sd_supabase('/rest/v1/pd_credenciais?client_id=eq.' . urlencode($clientId) . '&servico=eq.hostgator&select=usuario,segredo,rotulo');
-    $c = $r['body'][0] ?? null;
-    if (!$c || empty($c['usuario']) || empty($c['segredo']) || empty($c['rotulo'])) throw new Exception('Falta o acesso da HostGator deste cliente no cofre (usuário do cPanel, servidor e token).');
+    $q = function ($f) { $r = sd_supabase('/rest/v1/pd_credenciais?' . $f . '&servico=eq.hostgator&select=usuario,segredo,rotulo'); return $r['body'][0] ?? null; };
+    // o do cliente (outra conta HostGator) vale primeiro; sem ele, vale o acesso universal da casa
+    $c = $clientId ? $q('client_id=eq.' . urlencode($clientId)) : null;
+    if (!$c || empty($c['segredo'])) $c = $q('client_id=is.null');
+    if (!$c || empty($c['usuario']) || empty($c['segredo']) || empty($c['rotulo'])) throw new Exception('Falta o acesso da HostGator no cofre (usuário do cPanel, servidor e token): Admin → Acesso HostGator da casa.');
     $h = preg_replace('#^https?://#', '', trim($c['rotulo'])); $h = rtrim($h, '/');
     if (!preg_match('/:\d+$/', $h)) $h .= ':2083';
     if (!preg_match('/^[a-z0-9.\-]+:\d+$/i', $h)) throw new Exception('O servidor do cPanel está em formato inválido.');

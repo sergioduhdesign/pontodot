@@ -438,6 +438,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
              box-shadow:0 12px 32px rgba(0,0,0,.18);overflow:hidden;padding:4px">
           <div class="adm-mi" onclick="closeAdminMenu();setView('admin')">Painel</div>
           <div class="adm-mi" onclick="closeAdminMenu();setView('clientes')">Clientes</div>
+          <div class="adm-mi" onclick="closeAdminMenu();pdArquivosAbrir('')">Arquivos do site (raiz HostGator)</div>
+          <div class="adm-mi" onclick="closeAdminMenu();pdCofreAbrir('hostgator','casa')">Acesso HostGator da casa</div>
           <div class="adm-mi" id="adm-mi-saude" style="display:none" onclick="closeAdminMenu();setView('saude')">Saúde da plataforma</div>
         </div>
       </div>
@@ -1788,7 +1790,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 <script src="/js/pd-ajuda.js?v=328"></script>
 <script src="/js/pd-modelos.js?v=1"></script>
 <script src="/js/pd-seo.js?v=4"></script>
-<script src="/js/pd-arquivos.js?v=3"></script>
+<script src="/js/pd-arquivos.js?v=4"></script>
 <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://js.pusher.com/beams/2.1.0/push-notifications-cdn.js"></script>
@@ -7722,11 +7724,12 @@ async function pdSiteTestar(){
   } catch(e){ st.textContent = '✗ ' + e.message; }
 }
 // cofre: a senha entra num campo de senha e vai DIRETO pro servidor
-function pdCofreAbrir(servico){
+function pdCofreAbrir(servico, escopo){
+  const casa = escopo === 'casa';
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(10,10,12,.55);backdrop-filter:blur(6px);padding:20px';
   ov.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:420px;width:100%;padding:22px">
-    <div style="font-weight:700;margin-bottom:4px">🔐 Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?'Wix do cliente':servico==='hostgator'?'HostGator (cPanel) do cliente':esc(servico)}</div>
+    <div style="font-weight:700;margin-bottom:4px">🔐 Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?'Wix do cliente':servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':esc(servico)}</div>
     <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:14px">A chave vai direto pro cofre do servidor. Ninguém — nem admin — lê depois.
       ${servico==='wordpress' ? 'No WP do cliente: Usuários → Perfil → <b>Senhas de aplicativo</b> → crie uma chamada "pontodot" e cole aqui.' : ''}
       ${servico==='hostgator' ? 'No cPanel: <b>Segurança → Gerenciar tokens de API</b> → criar "pontodot" (sem validade). Usuário = o usuário do cPanel; servidor = o endereço que aparece ao entrar no cPanel (ex.: br123.hostgator.com.br); chave = o token. Com ele a PD instala o plugin de SEO e mexe em robots.txt/.htaccess sozinha.' : ''}
@@ -7742,7 +7745,7 @@ function pdCofreAbrir(servico){
     const seg = ov.querySelector('#cf-pass').value.trim();
     if (!seg) { showToast('Cola a senha primeiro.', 'warn'); return; }
     try {
-      await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: currentClientId, servico,
+      await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: casa ? 'casa' : currentClientId, servico,
         rotulo: servico==='hostgator' ? (ov.querySelector('#cf-host')?.value.trim()||'') : servico + ' · ' + (clients.find(c=>c.id===currentClientId)?.name||''), usuario: ov.querySelector('#cf-user').value.trim(), segredo: seg });
       ov.remove(); showToast('Guardado no cofre. Pode testar a conexão.', 'success');
     } catch(e){ showToast('Cofre: ' + e.message, 'error'); }

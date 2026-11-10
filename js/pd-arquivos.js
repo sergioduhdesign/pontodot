@@ -1,9 +1,9 @@
 /* Arquivos do site (HostGator pelo cPanel) — só admin. Caixa branca central, seta de voltar; backup antes de cada gravação, com desfazer. */
 window.pdArquivosAbrir = function (cid) {
-  if (!cid) return;
+  cid = cid || '';   // vazio = acesso universal da casa (raiz da conta)
   const old = document.getElementById('arqVeu'); if (old) old.remove();
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const api = b => sdFetch('/pd-arquivos.php', Object.assign({ client_id: cid, escopo }, b));
+  const api = b => sdFetch('/pd-arquivos.php', Object.assign(cid ? { client_id: cid, escopo } : { escopo: 'conta' }, b));
   let rel = '', aberto = null, orig = '', escopo = 'conta';
   const v = document.createElement('div'); v.id = 'arqVeu';
   v.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:24px 16px';
@@ -75,5 +75,6 @@ window.pdArquivosAbrir = function (cid) {
   };
   const rot = () => $('#aE').textContent = escopo === 'conta' ? 'Raiz da conta ▾' : 'Só o site ▾';
   $('#aE').onclick = () => { if (aberto && $('#aT').value !== orig && !confirm('Há mudanças não gravadas. Trocar mesmo?')) return; escopo = escopo === 'conta' ? 'site' : 'conta'; rot(); lista(''); };
+  if (!cid) $('#aE').style.display = 'none';
   rot(); lista('');
 };

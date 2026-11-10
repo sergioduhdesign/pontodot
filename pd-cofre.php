@@ -22,7 +22,10 @@ if (!in_array($me['role'], ['admin', 'team'], true)) sd_fail('Só a equipe usa o
 $d = sd_body();
 $acao = $d['acao'] ?? 'listar';
 $clientId = (string)($d['client_id'] ?? '');
-if (!preg_match('/^[0-9a-fA-F-]{36}$/', $clientId)) sd_fail('Cliente inválido.', 400);
+$casa = ($clientId === '' || $clientId === 'casa');   // credencial da casa: sem cliente (só admin)
+if ($casa && $me['role'] !== 'admin') sd_fail('Só admin mexe no acesso da casa.', 403);
+if (!$casa && !preg_match('/^[0-9a-fA-F-]{36}$/', $clientId)) sd_fail('Cliente inválido.', 400);
+$filtro = $casa ? 'client_id=is.null' : 'client_id=eq.' . urlencode($clientId);
 $ok = function ($x) { header('Content-Type: application/json'); echo json_encode(['ok' => true] + $x, JSON_UNESCAPED_UNICODE); exit; };
 
 if ($acao === 'guardar') {
@@ -30,8 +33,9 @@ if ($acao === 'guardar') {
     if (!preg_match('/^[a-z0-9_\-]{2,30}$/', $servico)) sd_fail('Serviço inválido (wordpress, ftp…).', 400);
     $segredo = (string)($d['segredo'] ?? '');
     if (strlen($segredo) < 4 || strlen($segredo) > 500) sd_fail('Veio sem a senha.', 400);
-    $r = sd_supabase('/rest/v1/pd_credenciais?on_conflict=client_id,servico', 'POST', [
-        'client_id' => $clientId, 'servico' => $servico,
+    if ($casa) sd_supabase('/rest/v1/pd_credenciais?' . $filtro . '&servico=eq.' . urlencode($servico), 'DELETE');
+    $r = sd_supabase('/rest/v1/pd_credenciais' . ($casa ? '' : '?on_conflict=client_id,servico'), 'POST', [
+        'client_id' => $casa ? null : $clientId, 'servico' => $servico,
         'rotulo' => mb_substr(trim((string)($d['rotulo'] ?? '')), 0, 80) ?: null,
         'usuario' => mb_substr(trim((string)($d['usuario'] ?? '')), 0, 120) ?: null,
         'segredo' => $segredo, 'criado_por' => $me['id'], 'criado_em' => date('c'),
@@ -41,7 +45,7 @@ if ($acao === 'guardar') {
 }
 
 if ($acao === 'listar') {
-    $r = sd_supabase('/rest/v1/pd_credenciais?client_id=eq.' . urlencode($clientId)
+    $r = sd_supabase('/rest/v1/pd_credenciais?' . $filtro
         . '&select=servico,rotulo,usuario,criado_em&order=servico');
     // cinto e suspensório: mesmo que o banco devolva mais, o segredo não sai daqui
     $lista = array_map(fn($c) => ['servico' => $c['servico'] ?? '', 'rotulo' => $c['rotulo'] ?? null,
@@ -52,7 +56,7 @@ if ($acao === 'listar') {
 if ($acao === 'apagar') {
     if ($me['role'] !== 'admin') sd_fail('Só admin apaga credencial.', 403);
     $servico = strtolower(trim((string)($d['servico'] ?? '')));
-    sd_supabase('/rest/v1/pd_credenciais?client_id=eq.' . urlencode($clientId)
+    sd_supabase('/rest/v1/pd_credenciais?' . $filtro
         . '&servico=eq.' . urlencode($servico), 'DELETE');
     $ok(['apagado' => $servico]);
 }

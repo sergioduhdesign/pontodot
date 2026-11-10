@@ -21,7 +21,8 @@ $d = sd_body(); $acao = (string)($d['acao'] ?? '');
 header('Content-Type: application/json; charset=utf-8');
 $J = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 $cid = (string)($d['client_id'] ?? '');
-if (!preg_match('/^[0-9a-f-]{36}$/i', $cid)) sd_fail('Cliente inválido.', 400);
+$uni = ($cid === '');   // sem cliente = acesso universal da casa (raiz da conta)
+if (!$uni && !preg_match('/^[0-9a-f-]{36}$/i', $cid)) sd_fail('Cliente inválido.', 400);
 const PD_ARQ_MAX = 1048576;
 
 /** Caminho relativo seguro: sem "..", sem barra no começo. */
@@ -60,7 +61,12 @@ try {
         if (($r['code'] ?? 500) >= 300) throw new Exception('Não gravou (rode a migration v180).');
         echo json_encode(['ok' => true, 'fechadas' => pdArqFechadas()], $J); exit;
     }
-    $c = pdCPCred($cid); $raiz = rtrim(pdCPPasta($cid, $c), '/');
+    $c = pdCPCred($uni ? null : $cid);
+    if ($uni) {
+        $j0 = pdCP($c, 'DomainInfo', 'domains_data', ['format' => 'hash']);
+        if (($j0['status'] ?? 0) != 1) throw new Exception(pdCPErro($j0));
+        $raiz = rtrim((string)($j0['data']['main_domain']['documentroot'] ?? ''), '/'); $d['escopo'] = 'conta';
+    } else $raiz = rtrim(pdCPPasta($cid, $c), '/');
     // escopo "conta": começa na raiz da conta (home do cPanel), onde ficam todos os sites. Só admin; cada gravação guarda o antes.
     $conta = (($d['escopo'] ?? 'site') === 'conta');
     if ($conta) { if (!preg_match('#^(/home\d*/[^/]+)#', $raiz, $mm)) throw new Exception('Não consegui descobrir a raiz da conta.'); $raiz = $mm[1]; }
@@ -97,18 +103,18 @@ try {
         try { $antes = pdCPLer($c, $pasta, $arq); } catch (Throwable $e) { $existia = false; }
         if ($existia && $antes === $novo) throw new Exception('Nada mudou neste arquivo.');
         // o "antes" é guardado ANTES de gravar; se não guardar, não grava
-        $h = sd_supabase('/rest/v1/pd_site_arquivos_hist', 'POST', ['client_id' => $cid, 'caminho' => $pref . $rel, 'existia' => $existia, 'antes' => $antes, 'depois' => $novo, 'por' => $me['id'] ?? null], ['Prefer: return=representation']);
+        $h = sd_supabase('/rest/v1/pd_site_arquivos_hist', 'POST', ['client_id' => $uni ? null : $cid, 'caminho' => $pref . $rel, 'existia' => $existia, 'antes' => $antes, 'depois' => $novo, 'por' => $me['id'] ?? null], ['Prefer: return=representation']);
         if (($h['code'] ?? 500) >= 300) throw new Exception('Não consegui guardar o backup (rode a migration v179). Nada foi gravado.');
         pdCPGravar($c, $pasta, $arq, $novo);
         echo json_encode(['ok' => true, 'id' => $h['body'][0]['id'] ?? null, 'arquivo_novo' => !$existia], $J); exit;
     }
     if ($acao === 'historico') {
-        $r = sd_supabase('/rest/v1/pd_site_arquivos_hist?client_id=eq.' . urlencode($cid) . '&select=id,caminho,existia,desfeito,criado_em&order=criado_em.desc&limit=40');
+        $r = sd_supabase('/rest/v1/pd_site_arquivos_hist?' . ($uni ? 'client_id=is.null' : 'client_id=eq.' . urlencode($cid)) . '&select=id,caminho,existia,desfeito,criado_em&order=criado_em.desc&limit=40');
         echo json_encode(['ok' => true, 'itens' => $r['body'] ?? []], $J); exit;
     }
     if ($acao === 'desfazer') {
         $id = (string)($d['id'] ?? ''); if (!preg_match('/^[0-9a-f-]{36}$/i', $id)) throw new Exception('Registro inválido.');
-        $r = sd_supabase('/rest/v1/pd_site_arquivos_hist?id=eq.' . urlencode($id) . '&client_id=eq.' . urlencode($cid) . '&select=*');
+        $r = sd_supabase('/rest/v1/pd_site_arquivos_hist?id=eq.' . urlencode($id) . ($uni ? '&client_id=is.null' : '&client_id=eq.' . urlencode($cid)) . '&select=*');
         $h = $r['body'][0] ?? null; if (!$h) throw new Exception('Registro não encontrado.');
         if (!empty($h['desfeito'])) throw new Exception('Já foi desfeito.');
         if (!$h['existia']) throw new Exception('Este arquivo era novo; apagar arquivo ainda não é feito aqui (o conteúdo antigo não existe).');
