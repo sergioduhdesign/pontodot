@@ -24,7 +24,8 @@ jobs:
           set -e
           [ -n "$U" ] && [ -n "$H" ] && [ -n "$T" ] || { echo "Faltam os secrets CPANEL_USER / CPANEL_HOST / CPANEL_TOKEN"; exit 1; }
           H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
-          HOME_DIR="/home/$U"
+          HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          [ -n "$HOME_DIR" ] || { echo "Não descobri a home da conta (token/servidor?)"; exit 1; }
           CAM="${CAM#/}"; CAM="${CAM%/}"
           case "/$CAM/" in *"/../"*|*"/./"*) echo "caminho inválido"; exit 1;; esac
           # pastas e arquivos fechados (nunca listar, ler ou gravar)
