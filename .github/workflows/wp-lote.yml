@@ -1,0 +1,35 @@
+name: WordPress — lote de chamadas (Claude)
+# Roda, em ordem, as chamadas de um arquivo hg-envio/<arquivo>.json: [{"m":"PUT","e":"/wc/v3/products/1","b":{...}}, ...]. Para na primeira que falhar.
+on:
+  workflow_dispatch:
+    inputs:
+      cliente: { description: "código do site (ex.: IB)", required: true }
+      site:    { description: "endereço do site", required: true }
+      arquivo: { description: "ex.: hg-envio/lote_ib_1.json", required: true }
+jobs:
+  lote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rodar
+        env:
+          U: ${{ secrets[format('WP_{0}_USER', github.event.inputs.cliente)] }}
+          P: ${{ secrets[format('WP_{0}_APP', github.event.inputs.cliente)] }}
+          S: ${{ github.event.inputs.site }}
+          ARQ: ${{ github.event.inputs.arquivo }}
+        run: |
+          case "$ARQ" in hg-envio/*) ;; *) echo "arquivo precisa estar em hg-envio/"; exit 1;; esac
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          cham = json.load(open(os.environ['ARQ']))
+          base = os.environ['S'].rstrip('/') + '/wp-json'
+          auth = os.environ['U'] + ':' + os.environ['P']
+          for i, c in enumerate(cham):
+              corpo = c.get('b')
+              cmd = ['curl', '-sS', '--max-time', '120', '-X', c['m'], '-u', auth, '-H', 'Content-Type: application/json', '-w', '\n%{http_code}', base + c['e']]
+              if corpo is not None: cmd[1:1] = ['--data-binary', json.dumps(corpo, ensure_ascii=False)]
+              r = subprocess.run(cmd, capture_output=True, text=True)
+              corpo_r, _, code = r.stdout.rpartition('\n')
+              print('LOTE', i, c['m'], c['e'], '->', code, (corpo_r[:160].replace('\n', ' ') if not code.startswith('2') else ''))
+              if not code.startswith('2') and not c.get('tolera'): sys.exit(1)
+          PY
