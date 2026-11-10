@@ -1,0 +1,50 @@
+name: Wix — acesso de dev (Claude)
+# Secrets: WIX_API_KEY (chave de API do Wix) e WIX_ACCOUNT_ID (ID da conta, para listar os sites).
+# Use "sites" para listar todos os sites da conta; para o resto, informe site_id + endpoint (ex.: /blog/v3/posts/query).
+on:
+  workflow_dispatch:
+    inputs:
+      acao:     { description: "sites | chamar", required: true, default: "sites" }
+      site_id:  { description: "ID do site Wix (só para chamar)", required: false, default: "" }
+      metodo:   { description: "GET | POST | PATCH | PUT | DELETE", required: false, default: "GET" }
+      endpoint: { description: "caminho da API, ex.: /site-properties/v4/properties", required: false, default: "" }
+      corpo:    { description: "JSON do corpo (POST/PATCH/PUT)", required: false, default: "" }
+jobs:
+  wix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar
+        env:
+          K: ${{ secrets.WIX_API_KEY }}
+          A: ${{ secrets.WIX_ACCOUNT_ID }}
+          ACAO: ${{ github.event.inputs.acao }}
+          S: ${{ github.event.inputs.site_id }}
+          M: ${{ github.event.inputs.metodo }}
+          E: ${{ github.event.inputs.endpoint }}
+          B: ${{ github.event.inputs.corpo }}
+        run: |
+          [ -n "$K" ] || { echo "Falta o secret WIX_API_KEY"; exit 1; }
+          case "$ACAO" in
+            sites)
+              [ -n "$A" ] || { echo "Falta o secret WIX_ACCOUNT_ID"; exit 1; }
+              curl -sS --max-time 60 -X POST "https://www.wixapis.com/site-list/v2/sites/query" \
+                -H "Authorization: $K" -H "wix-account-id: $A" -H "Content-Type: application/json" -d '{"query":{"paging":{"limit":100}}}' \
+              | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin)
+          if 'sites' not in j: print('ERRO:',json.dumps(j)[:600]); sys.exit(1)
+          for s in j['sites']: print(s.get('id'),'|',s.get('displayName'),'|',(s.get('viewUrl') or s.get('editUrl') or ''))
+          "
+              ;;
+            chamar)
+              [ -n "$S" ] && [ -n "$E" ] || { echo "Informe site_id e endpoint"; exit 1; }
+              case "$E" in /*) ;; *) E="/$E";; esac
+              if [ -n "$B" ]; then
+                curl -sS --max-time 60 -X "$M" "https://www.wixapis.com$E" -H "Authorization: $K" -H "wix-site-id: $S" -H "Content-Type: application/json" -d "$B"
+              else
+                curl -sS --max-time 60 -X "$M" "https://www.wixapis.com$E" -H "Authorization: $K" -H "wix-site-id: $S" -H "Content-Type: application/json"
+              fi
+              echo
+              ;;
+            *) echo "acao inválida"; exit 1;;
+          esac
