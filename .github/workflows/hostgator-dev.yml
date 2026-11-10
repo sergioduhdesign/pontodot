@@ -90,6 +90,9 @@ jobs:
               print(k + ':', m.group(1) if m else '(não achei)')
           m = re.search(r"\$table_prefix\s*=\s*['\"]([^'\"]+)['\"]", t)
           print('prefixo das tabelas:', m.group(1) if m else '(não achei)')
+          for l in t.splitlines():
+              if 'table_prefix' in l or re.search(r"DB_NAME|DB_HOST", l) and 'define' in l:
+                  print('linha:', re.sub(r"(DB_PASSWORD|DB_USER).*", "", l).strip()[:120])
           PY
               api get_file_content --data-urlencode "dir=$DIR" --data-urlencode "file=wp-config.php" | python3 /tmp/wpinfo.py
               ;;
