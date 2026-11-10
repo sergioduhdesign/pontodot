@@ -8,3 +8,5 @@
 - Botões importantes no TOPO da janela, nunca no rodapé. Barra de rolagem fina só quando há conteúdo para rolar.
 - Caixas/gadgets da home: mesma estrutura das outras (avatar do cliente, o que é, clica e vê o detalhe), "Ver todas" no topo, download pronto em PDF/Excel.
 - Subir `SD_VERSAO` (index.html) e o `?v=` dos scripts a cada entrega.
+
+- Sem emoji/ícone colorido (cadeado, 3D, desenhinho) nos rótulos e botões: texto limpo no estilo do site.
