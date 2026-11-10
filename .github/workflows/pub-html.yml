@@ -15,7 +15,8 @@ jobs:
           import re,os
           h=open('/tmp/p.html',errors='ignore').read()
           t=os.environ['T']
-          for m in re.finditer(re.escape(t),h):
+          pat=t[3:] if t.startswith('re:') else re.escape(t)
+          for m in re.finditer(pat,h):
               a=max(0,m.start()-500); print('@@ ',m.start(),'\n'+h[a:m.end()+300].replace('\n',' ')+'\n@@@')
-          print('TOTAL',len(re.findall(re.escape(t),h)))
+          print('TOTAL',len(re.findall(pat,h)))
           PY
