@@ -1,0 +1,22 @@
+name: WordPress — diagnóstico público (sem senha)
+on:
+  workflow_dispatch:
+    inputs:
+      site: { description: "endereço, ex.: https://imovelbooks.com.br", required: true }
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { S: "${{ github.event.inputs.site }}" }
+        run: |
+          echo "== redirecionamento"; curl -sSIL --max-time 30 -o /dev/null -w "%{url_effective} (%{http_code}, %{num_redirects} redirecionamentos)\n" "$S/wp-json/"
+          echo "== /wp-json/ (senhas de aplicativo e autenticação)"
+          curl -sSL --max-time 30 "$S/wp-json/" | python3 -c "
+          import json,sys
+          try: j=json.load(sys.stdin)
+          except Exception as e: print('NÃO É JSON:', e); sys.exit(0)
+          print('nome:', j.get('name')); print('url:', j.get('url')); print('home:', j.get('home'))
+          print('senhas de aplicativo:', json.dumps(j.get('authentication')))
+          print('namespaces:', ', '.join(j.get('namespaces',[])[:12]))
+          "
+          echo "== rota de usuário sem senha"; curl -sSL --max-time 30 -w "\nHTTP %{http_code}\n" "$S/wp-json/wp/v2/users/me" | head -c 300
