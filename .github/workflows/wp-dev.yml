@@ -25,8 +25,11 @@ jobs:
           ARQ: ${{ github.event.inputs.arquivo }}
         run: |
           [ -n "$U" ] && [ -n "$P" ] || { echo "Faltam os secrets WP_<CLIENTE>_USER e WP_<CLIENTE>_APP"; exit 1; }
-          case "$E" in /*) ;; *) E="/$E";; esac
-          URL="${S%/}/wp-json$E"
-          if [ -n "$ARQ" ]; then case "$ARQ" in hg-envio/*) ARG="--data-binary @$ARQ";; *) echo "arquivo precisa estar em hg-envio/"; exit 1;; esac
-          elif [ -n "$B" ]; then printf '%s' "$B" > /tmp/corpo.json; ARG="--data-binary @/tmp/corpo.json"; else ARG=""; fi
-          curl -sS --max-time 120 -X "$M" -u "$U:$P" -H "Content-Type: application/json" $ARG -w "\nHTTP %{http_code}\n" "$URL" | head -c 3000000
+          for EP in $E; do
+            case "$EP" in /*) ;; *) EP="/$EP";; esac
+            URL="${S%/}/wp-json$EP"
+            if [ -n "$ARQ" ]; then case "$ARQ" in hg-envio/*) ARG="--data-binary @$ARQ";; *) echo "arquivo precisa estar em hg-envio/"; exit 1;; esac
+            elif [ -n "$B" ]; then printf '%s' "$B" > /tmp/corpo.json; ARG="--data-binary @/tmp/corpo.json"; else ARG=""; fi
+            echo "### $EP"
+            curl -sS --max-time 120 -X "$M" -u "$U:$P" -H "Content-Type: application/json" $ARG -w "\nHTTP %{http_code}\n" "$URL" | head -c 3000000
+          done
