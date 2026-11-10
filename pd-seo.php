@@ -49,6 +49,15 @@ try {
         $ids = array_slice((array)($d['ids'] ?? []), 0, 60);
         echo json_encode(['ok' => true, 'resultado' => pdSeoAplicar($cid, $ids, (array)($d['edicoes'] ?? []))], $J); exit;
     }
+    if ($acao === 'plugin_status') {   // o plugin de SEO está no ar neste site? (pergunta de fora, como o Google)
+        $site = pdSiteCfg($cid); $base = rtrim((string)($site['url'] ?? ''), '/'); $ok = null;
+        if ($base !== '') foreach (['/wp-json/pontodot/v1/ping', '/?rest_route=/pontodot/v1/ping'] as $rota) {
+            $ch = curl_init($base . $rota); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 12, CURLOPT_FOLLOWLOCATION => true, CURLOPT_USERAGENT => 'Pontodot-SEO']);
+            $b = curl_exec($ch); curl_close($ch); $j = json_decode((string)$b, true);
+            if (is_array($j) && !empty($j['ok'])) { $ok = $j; break; }
+        }
+        echo json_encode(['ok' => true, 'ativo' => (bool)$ok, 'versao' => $ok['versao'] ?? null], $J); exit;
+    }
     if ($acao === 'instalar_plugin') { echo json_encode(['ok' => true] + pdCPInstalarSeo($cid), $J); exit; }
     if ($acao === 'testar_hostgator') { echo json_encode(['ok' => true] + pdCPTestar($cid), $J); exit; }
     if ($acao === 'manual') {

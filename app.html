@@ -1519,6 +1519,9 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             .btn-acao{background:#1F9D55;color:#fff;border:0;font-weight:600}.btn-acao:hover{background:#188246}
             .cn-av{font-size:12px;line-height:1.55;border-radius:8px;padding:9px 12px;background:rgba(214,158,46,.14);color:#8A5A00;border:1px solid rgba(214,158,46,.35)}
             [data-theme="dark"] .cn-av,[data-theme="sdnovo"] .cn-av{color:#F0C36B}
+            .btn-on{border-color:#1F9D55!important;color:#1F9D55!important;box-shadow:inset 0 0 0 1px #1F9D55}
+            .btn-off{opacity:.55;border-style:dashed!important;filter:grayscale(1)}
+            .cn-leg{font-size:11px;color:var(--text3);margin:-4px 0 10px}
             #mc-site-st.ok{color:#1F9D55;font-weight:600}#mc-site-st.erro{color:#D64545;font-weight:600}
           </style>
           <div class="cn-g">
@@ -1535,12 +1538,13 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             </div>
             <div class="cn-fim"><button class="btn btn-acao btn-sm" onclick="pdSiteSalvar()">Salvar site</button></div>
           </div>
+          <div class="cn-leg"><span style="color:#1F9D55;font-weight:600">verde</span> = ligado · <span style="opacity:.7">cinza tracejado</span> = desligado (ainda não configurado)</div>
           <div class="cn-g">
             <div class="cn-t">Acessos guardados no cofre</div>
             <div class="cn-l">
-              <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wordpress')">Senha do WordPress</button>
-              <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix')">Chave do Wix</button>
-              <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator')">Acesso HostGator</button>
+              <button class="btn btn-secondary btn-sm" id="bt-wp" onclick="pdCofreAbrir('wordpress')">Senha do WordPress</button>
+              <button class="btn btn-secondary btn-sm" id="bt-wix" onclick="pdCofreAbrir('wix')">Chave do Wix</button>
+              <button class="btn btn-secondary btn-sm" id="bt-hg" onclick="pdCofreAbrir('hostgator')">Acesso HostGator</button>
             </div>
             <div class="cn-fim"><span id="mc-site-st" style="font-size:12px;color:var(--text3)"></span><button class="btn btn-acao btn-sm" onclick="pdSiteTestar()">Testar conexão</button></div>
           </div>
@@ -1548,8 +1552,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <div class="cn-t">Ferramentas do site</div>
             <div class="cn-l">
               <button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir(currentClientId)" title="Ver e editar os arquivos do site na HostGator (só admin, com backup e desfazer)">Arquivos do site</button>
-              <button class="btn btn-secondary btn-sm" onclick="pdSeoPlugin()" title="Instala/atualiza o plugin auxiliar de SEO no site, pela HostGator">Instalar plugin de SEO</button>
-              <button class="btn btn-secondary btn-sm" onclick="pdSeoAgenda()" title="Auditoria automática de SEO de todos os sites WordPress">Agenda de auditorias</button>
+              <button class="btn btn-secondary btn-sm" id="bt-plug" onclick="pdSeoPlugin()" title="Instala/atualiza o plugin auxiliar de SEO no site, pela HostGator">Instalar plugin de SEO</button>
+              <button class="btn btn-secondary btn-sm" id="bt-agenda" onclick="pdSeoAgenda()" title="Auditoria automática de SEO de todos os sites WordPress">Agenda de auditorias</button>
               <button class="btn btn-secondary btn-sm" onclick="pdSiteBloco()" title="Site HTML ou bloco: copia o trecho que vai no site">Copiar bloco do site</button>
             </div>
             <div class="cn-fim"><button class="btn btn-acao btn-sm" onclick="pdSeoAbrir(currentClientId)" title="Auditar o SEO do site e corrigir com a IA, com aprovação">SEO do site</button></div>
@@ -7667,6 +7671,7 @@ async function pdPainelCliente(cid){
   document.getElementById('mc-site-tipo').value = site?.tipo||'';
   document.getElementById('mc-site-url').value = site?.url||'';
   document.getElementById('mc-site-ativo').checked = !!site?.ativo;
+  try { pdCanaisEstados(cid); } catch(e) {}
   // esteiras
   const { data: es } = await sb.from('pd_esteiras').select('*').eq('client_id', cid).order('id')
     .then(r=>r, ()=>({data:null}));
@@ -7730,6 +7735,7 @@ async function pdSeoPlugin(){
   const st = document.getElementById('mc-site-st'); st.textContent = 'instalando o plugin…';
   try { const r = await sdFetch('/pd-seo.php', { acao:'instalar_plugin', client_id: currentClientId }); st.textContent = '✓ plugin v' + (r.versao||'?') + ' no ar (' + (r.abertos||[]).length + ' campos liberados)'; }
   catch(e){ st.textContent = '✗ ' + e.message; }
+  try { pdCanaisEstados(currentClientId); } catch(e) {}
 }
 async function pdSeoAgenda(){
   const st = document.getElementById('mc-site-st');
@@ -7758,6 +7764,19 @@ async function pdWixSitesVer(){
 }
 (function(){ const el = () => document.getElementById('mc-site-st'); const t = setInterval(() => { const e = el(); if (!e) return; clearInterval(t);
   new MutationObserver(() => { const x = (e.textContent || '').trim(); e.classList.toggle('ok', x[0] === '✓'); e.classList.toggle('erro', x[0] === '✗'); }).observe(e, { childList:true, characterData:true, subtree:true }); }, 500); })();
+// botão desligado = cinza tracejado; ligado = contorno verde (cofre preenchido, plugin no ar, agenda ligada)
+async function pdCanaisEstados(cid){
+  cid = cid || currentClientId; if (!cid) return;
+  const set = (id, on) => { const b = document.getElementById(id); if (!b) return; b.classList.toggle('btn-on', !!on); b.classList.toggle('btn-off', !on); };
+  ['bt-wp','bt-wix','bt-hg','bt-plug','bt-agenda'].forEach(id => set(id, false));
+  const ler = async c => { try { return ((await sdFetch('/pd-cofre.php', { acao:'listar', client_id: c })).credenciais || []).map(x => x.servico); } catch(e) { return []; } };
+  const [meus, casa] = await Promise.all([ler(cid), ler('casa')]);
+  if (cid !== currentClientId) return;
+  set('bt-wp', meus.includes('wordpress')); set('bt-wix', meus.includes('wix'));
+  set('bt-hg', meus.includes('hostgator') || casa.includes('hostgator'));
+  try { const r = await sdFetch('/pd-seo.php', { acao:'plugin_status', client_id: cid }); if (cid === currentClientId) set('bt-plug', r.ativo); } catch(e) {}
+  try { const a = (await sdFetch('/pd-seo.php', { acao:'agenda_ler' })).agenda || {}; set('bt-agenda', !!a.ativo); } catch(e) {}
+}
 async function pdSiteTestar(){
   const st = document.getElementById('mc-site-st'); st.textContent = 'testando…';
   try {
@@ -7798,7 +7817,7 @@ function pdCofreAbrir(servico, escopo){
     try {
       await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: casa ? 'casa' : currentClientId, servico,
         rotulo: servico==='hostgator' ? (ov.querySelector('#cf-host')?.value.trim()||'') : servico + ' · ' + (clients.find(c=>c.id===currentClientId)?.name||''), usuario: ov.querySelector('#cf-user').value.trim(), segredo: seg });
-      cfFecha(); showToast('Guardado no cofre. Pode testar a conexão.', 'success');
+      cfFecha(); showToast('Guardado no cofre. Pode testar a conexão.', 'success'); try { if (!casa) pdCanaisEstados(currentClientId); } catch(e) {}
     } catch(e){ let m = ov.querySelector('#cf-err'); if (!m){ m = document.createElement('div'); m.id = 'cf-err'; m.style.cssText = 'color:#b42318;font-size:13px;margin-top:10px'; ov.querySelector('#cf-ok').after(m); } m.textContent = 'Não guardou: ' + e.message; }
   };
 }
