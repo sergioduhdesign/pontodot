@@ -66,6 +66,7 @@ a{color:inherit}
 .abaM{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px 10px 0 0;background:#2b2c2f;color:#e8eaed;font:12px system-ui,sans-serif;max-width:280px;margin-top:10px}.abaM i{width:14px;height:14px;border-radius:3px;background:#8ab4f8;flex:0 0 auto}.abaM span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .zapM{display:flex;gap:0;border-radius:10px;overflow:hidden;background:#fff;color:#202124;border:1px solid var(--lin);max-width:360px;margin-top:10px;font-family:system-ui,sans-serif}.zapM .im{width:96px;min-height:80px;background:#e8eaed center/cover;flex:0 0 auto}.zapM .tx{padding:8px 10px;min-width:0}.zapM .tx b{display:block;font-size:13px;line-height:1.25}.zapM .tx small{font-size:12px;color:#5f6368;display:block;margin-top:2px;line-height:1.3}
 .vnota{font-size:11.5px;color:var(--mut);margin:6px 0 2px;line-height:1.45}
+.gradeL{display:grid;gap:14px;margin-top:12px}.cardL{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:14px 16px}.lh{display:flex;align-items:center;gap:12px;margin-bottom:10px}.lnota{display:flex;gap:8px;align-items:center;font-size:26px;font-weight:700}.rot{font-size:10.5px;letter-spacing:.09em;color:var(--mut);margin-bottom:5px}.cardL .par{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.cardL .par{grid-template-columns:1fr}}
 .gradeP{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}.cardP{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:12px;display:flex;flex-direction:column;gap:8px}
 .alt{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.alt img{width:54px;height:54px;object-fit:cover;border-radius:8px;background:var(--in);flex:0 0 auto}
 .tabela{width:100%;border-collapse:collapse}.tabela td,.tabela th{padding:10px 8px;border-bottom:1px solid var(--lin);vertical-align:top;text-align:left}.tabela th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);font-weight:600}
@@ -391,8 +392,9 @@ async function aplicaEditor(){
 
 // ------------------------------------------------------------------ corrigir todos (amostra de cada página)
 let LOTE = { itens: [], feito: 0, erros: [] };
+const NAO_INDEXAR = /\/(carrinho|cart|finalizar-compra|checkout|minha-conta|my-account|login|wp-login|pedido|order-received)(\/|$|\?)/i;   // não devem aparecer no Google: sem texto de SEO
 async function corrigirTodos(){
-  const fix = FULL.itens.filter(it => it.problemas.some(p => p[3])).slice(0, 20);
+  const fix = FULL.itens.filter(it => it.problemas.some(p => p[3]) && !NAO_INDEXAR.test(it.url)).slice(0, 20);
   if (!fix.length) return toast('Nada para corrigir com a IA.');
   VIEW = 'lote'; topo('Corrigir todos', fix.length + ' páginas', () => vCliente());
   LOTE = { itens: fix, feito: 0, erros: [] };
@@ -407,24 +409,40 @@ async function corrigirTodos(){
   vLote();
 }
 function vLote(){
-  const linhas = LOTE.itens.map((it, i) => {
+  const cards = LOTE.itens.map((it, i) => {
     const rows = (PROPS[it.url] || []).filter(r => r.status === 'proposta'); if (!rows.length) return '';
     const t = rows.find(r => r.campo === 'titulo_seo'), m = rows.find(r => r.campo === 'meta'), a = rows.filter(r => r.campo === 'alt');
-    return '<tr data-i="' + i + '"><td style="width:28px"><input type="checkbox" class="ck" checked></td><td style="min-width:150px"><b style="cursor:pointer" data-abre="' + i + '">' + esc(it.analise.titulo || it.titulo_wp || '(sem título)') + '</b><div class="pequeno mut">' + esc(it.url.replace(/^https?:\/\//, '')) + '</div><div class="pequeno">nota <b>' + it.nota + '</b></div></td>' +
-      '<td style="min-width:260px">' + (t ? '<div class="f" style="margin:0 0 8px"><label>Título SEO</label>' + (t.antes ? '<div class="risco">' + esc(t.antes) + '</div>' : '') + '<textarea rows="2" data-id="' + t.id + '">' + esc(t.depois) + '</textarea></div>' : '') +
-      (m ? '<div class="f" style="margin:0"><label>Meta description</label>' + (m.antes ? '<div class="risco">' + esc(m.antes) + '</div>' : '') + '<textarea rows="3" data-id="' + m.id + '">' + esc(m.depois) + '</textarea></div>' : '') + '</td>' +
-      '<td class="pequeno">' + (a.length ? a.length + ' alt de imagem' : '') + '</td></tr>';
+    const cod = it.problemas.map(p => String(p[0])), fl = { t: cod.some(c => /titulo/.test(c)), m: cod.some(c => /meta/.test(c)) };
+    return '<div class="cardL" data-i="' + i + '"><div class="lh"><input type="checkbox" class="ck" checked><div style="min-width:0;flex:1"><b style="cursor:pointer;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-abre="' + i + '">' + esc(it.analise.titulo || it.titulo_wp || '(sem título)') + '</b><div class="pequeno mut">' + esc(it.url.replace(/^https?:\/\//, '')) + '</div></div>' +
+      '<div class="lnota"><span style="color:' + cor(it.nota) + '">' + it.nota + '</span><span class="mut">→</span><span class="nv" data-nv></span></div></div>' +
+      '<div class="par"><div><div class="rot">ANTES · como está hoje no Google</div>' + vitrine(it.url, it.analise.titulo, it.analise.meta, '', fl, false) + '</div>' +
+      '<div><div class="rot">DEPOIS · com a sugestão ' + esc(QUEM.nome) + '</div><div data-dep></div></div></div>' +
+      '<div class="par" style="margin-top:10px"><div>' + (t ? '<div class="f" style="margin:0"><label>Título SEO <span data-ct></span></label><textarea rows="2" data-id="' + t.id + '" data-k="t">' + esc(t.depois) + '</textarea></div>' : '') + '</div>' +
+      '<div>' + (m ? '<div class="f" style="margin:0"><label>Meta description <span data-cm></span></label><textarea rows="3" data-id="' + m.id + '" data-k="m">' + esc(m.depois) + '</textarea></div>' : '') + '</div></div>' +
+      (a.length ? '<div class="pequeno mut" style="margin-top:8px">+ ' + a.length + ' texto' + (a.length > 1 ? 's' : '') + ' alternativo' + (a.length > 1 ? 's' : '') + ' de imagem</div>' : '') + '</div>';
   }).join('');
   $('#cont').innerHTML = cartaQuem().replace('Cuida do SEO da casa', 'Escreveu estas correções') +
     (LOTE.erros.length ? '<div class="card pequeno" style="margin-bottom:12px">' + LOTE.erros.length + ' página(s) não deu para ler: ' + esc(LOTE.erros[0][1]) + '</div>' : '') +
-    '<div class="card"><div class="bar"><b>Amostra de cada página</b><span class="mut pequeno">desmarque o que não quiser, edite o texto, ou clique no título para abrir a página real</span><span class="fl1" style="flex:1"></span><button class="bt" id="bApTudo">Aplicar marcadas</button></div>' +
-    (linhas ? '<table class="tabela"><thead><tr><th></th><th>Página</th><th>Proposta</th><th></th></tr></thead><tbody>' + linhas + '</tbody></table>' : '<div class="mut">A IA não achou o que mudar nessas páginas.</div>') + '</div>';
+    '<div class="bar" style="margin-top:4px"><button class="bt" id="bApTudo">Aplicar marcadas</button><span class="mut pequeno">Desmarque o que não quiser, edite o texto (a nota e o Google mudam na hora) ou clique no título para abrir a página real. Carrinho, checkout e login ficam de fora: não devem aparecer no Google.</span></div>' +
+    (cards ? '<div class="gradeL">' + cards + '</div>' : '<div class="mut">A IA não achou o que mudar nessas páginas.</div>');
+  document.querySelectorAll('.cardL').forEach(c => { c.querySelectorAll('textarea[data-k]').forEach(ta => ta.oninput = () => loteAtual(c)); loteAtual(c); });
   document.querySelectorAll('[data-abre]').forEach(b => b.onclick = () => abreEditor(LOTE.itens[+b.dataset.abre]));
   const bt = $('#bApTudo'); if (bt) bt.onclick = aplicaLote;
 }
+function loteAtual(c){
+  const it = LOTE.itens[+c.dataset.i], rows = (PROPS[it.url] || []).filter(r => r.status === 'proposta');
+  const tv = (c.querySelector('textarea[data-k=t]') || {}).value, mv = (c.querySelector('textarea[data-k=m]') || {}).value;
+  const v = { titulo: tv != null ? tv : (it.analise.titulo || ''), meta: mv != null ? mv : (it.analise.meta || ''), alts: {} };
+  rows.filter(r => r.campo === 'alt').forEach(r => v.alts[r.alvo] = r.depois);
+  c.querySelector('[data-dep]').innerHTML = vitrine(it.url, v.titulo, v.meta, '', {}, false);
+  const n = estima(it, v); const nv = c.querySelector('[data-nv]'); nv.textContent = n; nv.style.color = cor(n);
+  const ct = c.querySelector('[data-ct]'), cm = c.querySelector('[data-cm]'), lt = v.titulo.trim().length, lm = v.meta.trim().length;
+  if (ct){ ct.textContent = lt + ' (ideal 40–60)'; ct.style.color = lt >= 30 && lt <= 62 ? 'var(--ok)' : 'var(--ouro)'; }
+  if (cm){ cm.textContent = lm + ' (ideal 130–155)'; cm.style.color = lm >= 100 && lm <= 160 ? 'var(--ok)' : 'var(--ouro)'; }
+}
 async function aplicaLote(){
   const ids = [], ed = {};
-  document.querySelectorAll('tr[data-i]').forEach(tr => {
+  document.querySelectorAll('.cardL').forEach(tr => {
     if (!tr.querySelector('.ck').checked) return; const it = LOTE.itens[+tr.dataset.i];
     (PROPS[it.url] || []).filter(r => r.status === 'proposta').forEach(r => { ids.push(r.id); const ta = tr.querySelector('textarea[data-id="' + r.id + '"]'); if (ta) ed[r.id] = ta.value.trim(); });
   });

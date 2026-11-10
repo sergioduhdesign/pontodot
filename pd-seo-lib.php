@@ -251,7 +251,7 @@ function pdSeoCorta($s, $max) {
     $s = trim(preg_replace('/\s+/', ' ', (string)$s));
     if (mb_strlen($s) <= $max) return $s;
     $c = mb_substr($s, 0, $max + 1); $esp = mb_strrpos($c, ' ');
-    return rtrim(mb_substr($c, 0, $esp && $esp > $max * 0.6 ? $esp : $max), " ,;:-–—");
+    return rtrim(mb_substr($c, 0, $esp && $esp > $max * 0.6 ? $esp : $max), " ,;:-–—|·•/");
 }
 
 /** Cria propostas (antes → depois) para UMA página. Não escreve no WP. */
