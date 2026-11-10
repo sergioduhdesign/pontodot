@@ -1,6 +1,6 @@
 name: HostGator — acesso de dev (Claude)
 # Acesso à conta inteira da HostGator pelo token do cPanel (secrets CPANEL_USER, CPANEL_HOST, CPANEL_TOKEN).
-# acao: listar | ler | gravar. "gravar" lê o arquivo de hg-envio/<arquivo> do repositório e guarda o ANTES como artefato.
+# acao: listar | ler | gravar | bancos (lista nomes de bancos e usuários, nunca senhas). "gravar" lê o arquivo de hg-envio/<arquivo> do repositório e guarda o ANTES como artefato.
 on:
   workflow_dispatch:
     inputs:
@@ -75,6 +75,14 @@ jobs:
           j=json.load(sys.stdin)
           print('GRAVADO' if j.get('status')==1 else 'ERRO: '+str(j.get('errors')))
           sys.exit(0 if j.get('status')==1 else 1)
+          "
+              ;;
+            bancos)
+              curl -sS --max-time 60 -H "Authorization: cpanel $U:$T" "https://$H/execute/Mysql/list_databases" | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin)
+          if j.get('status')!=1: print('ERRO:',j.get('errors')); sys.exit(1)
+          for b in j['data']: print(b.get('database'),'| usuários:',', '.join(b.get('users') or []),'| disco:',b.get('disk_usage'))
           "
               ;;
             *) echo "acao inválida"; exit 1;;
