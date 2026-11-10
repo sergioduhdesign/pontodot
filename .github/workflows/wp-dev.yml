@@ -1,0 +1,28 @@
+name: WordPress — acesso de dev (Claude)
+# Secrets por site, com o código curto do cliente (ex.: IB = Imóvel Books): WP_IB_USER e WP_IB_APP (senha de aplicação).
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:  { description: "código curto do site (ex.: IB)", required: true }
+      site:     { description: "endereço, ex.: https://imovelbooks.com.br", required: true }
+      metodo:   { description: "GET | POST | PUT | DELETE", required: true, default: "GET" }
+      endpoint: { description: "ex.: /wp/v2/pages?per_page=50&context=edit", required: true }
+      corpo:    { description: "JSON do corpo (POST/PUT)", required: false, default: "" }
+jobs:
+  wp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar a API
+        env:
+          U: ${{ secrets[format('WP_{0}_USER', github.event.inputs.cliente)] }}
+          P: ${{ secrets[format('WP_{0}_APP', github.event.inputs.cliente)] }}
+          S: ${{ github.event.inputs.site }}
+          M: ${{ github.event.inputs.metodo }}
+          E: ${{ github.event.inputs.endpoint }}
+          B: ${{ github.event.inputs.corpo }}
+        run: |
+          [ -n "$U" ] && [ -n "$P" ] || { echo "Faltam os secrets WP_<CLIENTE>_USER e WP_<CLIENTE>_APP"; exit 1; }
+          case "$E" in /*) ;; *) E="/$E";; esac
+          URL="${S%/}/wp-json$E"
+          if [ -n "$B" ]; then printf '%s' "$B" > /tmp/corpo.json; ARG="--data-binary @/tmp/corpo.json"; else ARG=""; fi
+          curl -sS --max-time 90 -X "$M" -u "$U:$P" -H "Content-Type: application/json" $ARG -w "\nHTTP %{http_code}\n" "$URL" | head -c 60000
