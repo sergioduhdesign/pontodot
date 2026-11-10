@@ -249,7 +249,7 @@ function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g
           <option value="1080x1350">Feed retrato (1080x1350)</option>
           <option value="1080x1920">Stories (1080x1920)</option>
         </select>
-        <button class="btn btn-primary btn-sm" onclick="saveBigEditor()">💾 Salvar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveBigEditor()">Salvar</button>
         <button class="modal-close" onclick="closeModal('modal-big-editor')">✕</button>
       </div>
     </div>
@@ -287,8 +287,8 @@ function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g
     </div>
     <div class="modal-body">
       <div style="display:flex;gap:8px;margin-bottom:14px">
-        <button class="btn btn-primary" id="mp-tab-library" onclick="mpSetTab('library')" style="flex:1">📁 Biblioteca</button>
-        <button class="btn btn-secondary" id="mp-tab-unsplash" onclick="mpSetTab('unsplash')" style="flex:1">🔍 Unsplash</button>
+        <button class="btn btn-primary" id="mp-tab-library" onclick="mpSetTab('library')" style="flex:1">Biblioteca</button>
+        <button class="btn btn-secondary" id="mp-tab-unsplash" onclick="mpSetTab('unsplash')" style="flex:1">Unsplash</button>
         <label class="btn btn-secondary" style="flex:1;text-align:center;cursor:pointer">⬆ Upload
           <input type="file" accept="image/*,video/*" multiple id="mp-upload-input" onchange="mpUploadFiles(this)" style="display:none">
         </label>
@@ -340,8 +340,8 @@ function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g
       <div id="sch-panel-accounts">
         <div style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.5">Cada rede social do cliente precisa ser conectada uma vez — depois disso fica salva e reaproveitada em toda publicação. Antes da aprovação final da Meta, dá pra conectar contas de teste/desenvolvedor.</div>
         <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button class="btn btn-secondary" onclick="schConnectAccount('instagram')" style="flex:1">📷 Conectar Instagram</button>
-          <button class="btn btn-secondary" onclick="schConnectAccount('facebook')" style="flex:1">📘 Conectar Facebook</button>
+          <button class="btn btn-secondary" onclick="schConnectAccount('instagram')" style="flex:1">Conectar Instagram</button>
+          <button class="btn btn-secondary" onclick="schConnectAccount('facebook')" style="flex:1">Conectar Facebook</button>
         </div>
         <div id="sch-accounts-list"></div>
       </div>
@@ -442,8 +442,8 @@ function renderDesignClientList(){
       <div><div class="client-name">${escX(c.name)}</div><div class="client-meta">Kit de marca · peças</div></div>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="openBrandKit('${c.id}')">Kit de marca →</button>
-        <button class="btn btn-secondary btn-sm" onclick="openProductionGallery('${c.id}')">📦 Produções</button>
-        <button class="btn btn-secondary btn-sm" onclick="openScheduling('${c.id}')">📅 Agendamento</button>
+        <button class="btn btn-secondary btn-sm" onclick="openProductionGallery('${c.id}')">Produções</button>
+        <button class="btn btn-secondary btn-sm" onclick="openScheduling('${c.id}')">Agendamento</button>
         <button class="btn btn-primary btn-sm" onclick="openPieceWizard('${c.id}')">+ Peça modelo</button>
       </div>
     </div></div>`;
@@ -808,7 +808,7 @@ function renderBgDetail(){
       <div style="display:flex;gap:6px;align-items:center">
         ${pw.background.images?.[i]?`<img src="${pw.background.images[i]}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0">`:''}
         <input type="file" accept="image/*" class="field-input" onchange="pwSetBgImage(${i},this)" style="flex:1">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="openMediaPicker(pw.clientId,f=>{pw.background.images=pw.background.images||[];pw.background.images[${i}]=f.file_url;updatePreview();renderBgDetail();})">📁 Biblioteca</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openMediaPicker(pw.clientId,f=>{pw.background.images=pw.background.images||[];pw.background.images[${i}]=f.file_url;updatePreview();renderBgDetail();})">Biblioteca</button>
       </div>`).join('')}</div>`;
   }
 }
@@ -1228,7 +1228,7 @@ async function mpLoadFolder(folder){
   const scopeClientId=mp.scope==='client'?mp.clientId:null;
   const bc=document.getElementById('mp-breadcrumb');
   const parts=folder?folder.split('/'):[];
-  bc.innerHTML=`<span style="cursor:pointer;text-decoration:underline" onclick="mpLoadFolder('')">📁 Início</span>`+
+  bc.innerHTML=`<span style="cursor:pointer;text-decoration:underline" onclick="mpLoadFolder('')">Início</span>`+
     parts.map((p,i)=>` / <span style="cursor:pointer;text-decoration:underline" onclick="mpLoadFolder('${parts.slice(0,i+1).join('/')}')">${p}</span>`).join('');
 
   let q=sb.from('asset_library').select('*');

@@ -386,7 +386,7 @@ details.ap-cap[open] summary::before{content:"▾"}
   <button class="ap-chip" data-f="ajustar">Com ajustes <span class="n" id="nFix"></span></button>
   <button id="btnAgendar" style="display:none;margin-left:auto;background:#16a34a;
     color:#fff;border:none;padding:7px 16px;border-radius:20px;font-size:12.5px;
-    font-weight:700;cursor:pointer;font-family:inherit">📤 Agendar aprovadas</button>
+    font-weight:700;cursor:pointer;font-family:inherit">Agendar aprovadas</button>
   <button id="btnTudo" style="display:none;margin-left:auto;background:#16a34a;color:#fff;border:none;padding:9px 20px;
     border-radius:7px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(22,163,74,.35)">✓ Aprovar tudo</button>
   <button id="btnIA" class="ap-tool" style="display:none" title="Grava o Excel de correções na pasta ENTRADA do Drive e avisa a IA (status CORRIGIR)">⇢ Correções pra IA</button>
@@ -821,7 +821,7 @@ function cardHTML(it){
   <div class="ap-card" data-id="${it.id}" data-status="${internoEquipe ? (it.interno_ok ? 'aprovado' : 'pendente') : it.status}">
     <div class="ap-card-top">
       <div class="ap-tags">
-        <span class="ap-kind">${KIND_LABEL[it.kind] || 'Material'}</span>${it.aula ? '<span class="ap-kind" style="background:#7c3aed;color:#fff" title="Chapéu de aula: arte feita pela PD na escola">🎓 Aula</span>' : ''}
+        <span class="ap-kind">${KIND_LABEL[it.kind] || 'Material'}</span>${it.aula ? '<span class="ap-kind" style="background:#7c3aed;color:#fff" title="Chapéu de aula: arte feita pela PD na escola">Aula</span>' : ''}
         <span>${(it.version||1) > 1 ? `<span class="ap-ver" title="Corrigida ${(it.version||1)-1}x">V${it.version}</span>` : ''}<span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span>
       </div>
       ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
@@ -1298,7 +1298,7 @@ async function atualizarBotaoAgendar(){
 
   if (!postsDoLote || !postsDoLote.length) {
     // Situação 1 — nada agendado ainda, botão normal de CTA.
-    ba.innerHTML = '📤 Agendar aprovadas';
+    ba.innerHTML = 'Agendar aprovadas';
     ba.onclick = abrirAgendamento;
     ba.style.background = '#16a34a';
     ba.disabled = false;

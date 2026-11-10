@@ -391,8 +391,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </button>
           <div class="user-dropdown" id="user-dropdown">
             <div class="user-dropdown-item" onclick="openMyProfile()">✎ Meu perfil</div>
-            <div class="user-dropdown-item" id="ud-equipe" style="display:none" onclick="closeUserMenu();abrirEquipeFuncoes()">👥 Equipe e funções</div>
-            <div class="user-dropdown-item" id="menu-minha-empresa" style="display:none" onclick="closeUserMenu();openClientDetail(profile.client_id)">🏢 Minha empresa</div>
+            <div class="user-dropdown-item" id="ud-equipe" style="display:none" onclick="closeUserMenu();abrirEquipeFuncoes()">Equipe e funções</div>
+            <div class="user-dropdown-item" id="menu-minha-empresa" style="display:none" onclick="closeUserMenu();openClientDetail(profile.client_id)">Minha empresa</div>
             <div class="user-dropdown-item" onclick="closeUserMenu();abrirSobreApp()">Sobre a PD</div>
             <div class="user-dropdown-item danger" onclick="Auth.signOut()">↩ Sair</div>
           </div>
@@ -876,7 +876,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                   <div class="entity-card-name">HostGator e Wix da casa</div>
                   <div class="entity-card-meta">Acesso à conta inteira (todos os sites da raiz): guardar o token uma vez e editar arquivos com backup e desfazer</div>
                 </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">🔐 HostGator</button><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix','casa')">🔐 Wix</button><button class="btn btn-secondary btn-sm" onclick="pdWixSitesVer()">Sites do Wix</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">HostGator</button><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix','casa')">Wix</button><button class="btn btn-secondary btn-sm" onclick="pdWixSitesVer()">Sites do Wix</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
               </div>
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
@@ -963,8 +963,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                   <div class="entity-card-meta" style="margin-top:4px;line-height:1.5">Tarefas por Excel e a lixeira de aprovações. Links de conteúdo e acervo ficam na caixa de cada cliente (aba Drive).</div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="openImport()">⬆ Importar Excel</button>
-                <button class="btn btn-secondary btn-sm" onclick="abrirModelos()">📁 Modelos e padrões</button>
-                <button class="btn btn-secondary btn-sm" onclick="abrirLixeiraLotes()">🗑 Lixeira de aprovações</button></div>
+                <button class="btn btn-secondary btn-sm" onclick="abrirModelos()">Modelos e padrões</button>
+                <button class="btn btn-secondary btn-sm" onclick="abrirLixeiraLotes()">Lixeira de aprovações</button></div>
               </div>
 
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
@@ -1177,7 +1177,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <div class="field"><div class="field-label">Detalhes da tarefa</div><textarea class="field-textarea" id="t-obs" placeholder="Contexto, links, notas..."></textarea></div>
       <div class="field">
         <button type="button" id="t-freq-toggle" onclick="toggleFreqPanel()" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;width:100%;opacity:0.45;transition:all .2s;font-size:13px;color:var(--text2);font-weight:600">
-          🔁 Tarefa recorrente (repete toda semana)
+          Tarefa recorrente (repete toda semana)
         </button>
         <div id="t-freq-panel" style="display:none;margin-top:8px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
           <div class="field-label" style="margin-bottom:6px">Em qual(is) dia(s) da semana entregar?</div>
@@ -1245,8 +1245,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar
           </button>
           <div id="d-share-menu" style="display:none;position:absolute;top:26px;left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:6px;z-index:20;min-width:190px">
-            <div class="share-menu-item" onclick="shareTaskAction('copy')">📋 Copiar link</div>
-            <div class="share-menu-item" onclick="shareTaskAction('whatsapp')">🟢 Enviar no WhatsApp</div>
+            <div class="share-menu-item" onclick="shareTaskAction('copy')">Copiar link</div>
+            <div class="share-menu-item" onclick="shareTaskAction('whatsapp')">Enviar no WhatsApp</div>
             <div class="share-menu-item" onclick="shareTaskAction('open')">↗ Abrir link</div>
           </div>
         </div>
@@ -1287,7 +1287,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
     </div>
     <div class="modal-foot" style="justify-content:space-between">
       <div id="d-team-actions" style="display:flex;justify-content:space-between;width:100%;gap:8px;flex-wrap:wrap;align-items:stretch">
-        <button class="btn btn-danger" data-perm="tarefa.excluir" onclick="confirmDelete()" style="height:40px;flex:0 0 auto">🗑 Excluir</button>
+        <button class="btn btn-danger" data-perm="tarefa.excluir" onclick="confirmDelete()" style="height:40px;flex:0 0 auto">Excluir</button>
         <div style="display:flex;gap:8px;align-items:stretch;flex-wrap:nowrap;flex:0 0 auto">
           <button class="btn btn-secondary" onclick="closeModal('modal-detail')" style="height:40px;flex-shrink:0;white-space:nowrap">Fechar</button>
           <select class="field-select" id="d-status-sel" style="max-width:148px;height:40px;padding:0 8px;flex-shrink:1;min-width:0" onchange="changeStatus(this.value)">
@@ -1523,9 +1523,9 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
           </div>
           <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
             <button class="btn btn-secondary btn-sm" onclick="pdSiteSalvar()">Salvar site</button>
-            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wordpress')">🔐 Senha do WordPress</button>
-            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix')">🔐 Chave do Wix</button>
-            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator')">🔐 Acesso HostGator</button>
+            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wordpress')">Senha do WordPress</button>
+            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix')">Chave do Wix</button>
+            <button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator')">Acesso HostGator</button>
             <button class="btn btn-secondary btn-sm" onclick="pdSiteTestar()">Testar conexão</button>
             <button class="btn btn-secondary btn-sm" onclick="pdSeoPlugin()" title="Instala/atualiza o plugin auxiliar de SEO no site, pela HostGator">Instalar plugin de SEO</button>
             <button class="btn btn-secondary btn-sm" onclick="pdSeoAgenda()" title="Auditoria automática de SEO de todos os sites WordPress">Agenda de auditorias</button>
@@ -1573,7 +1573,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
       <div id="mc-admin-actions" style="display:flex;gap:6px">
         <button class="btn btn-danger" onclick="pauseClient()">Encerrar</button>
         <button class="btn btn-danger" onclick="excluirClienteAbrir(currentClientId)">Excluir cliente</button>
-        <button class="btn btn-danger" onclick="openDeleteTasksModal()">🗑 Deletar tarefas</button>
+        <button class="btn btn-danger" onclick="openDeleteTasksModal()">Deletar tarefas</button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" onclick="closeModal('modal-client')">Fechar</button>
@@ -1602,7 +1602,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
     </div>
     <div class="modal-foot" style="justify-content:space-between">
       <button class="btn btn-secondary" onclick="closeModal('modal-delete-tasks')">Cancelar</button>
-      <button class="btn btn-danger" onclick="confirmDeleteTasks()">🗑 Deletar selecionadas</button>
+      <button class="btn btn-danger" onclick="confirmDeleteTasks()">Deletar selecionadas</button>
     </div>
   </div>
 </div>
@@ -2331,7 +2331,7 @@ function checkBirthdays(){
   const key=`bday_shown_${today.getFullYear()}`;
   if(localStorage.getItem(key))return;
   const bday=localStorage.getItem(`bday_${profile.id}`);
-  if(bday){const[,bm,bd]=bday.split('-');if(bm===mm&&bd===dd){setTimeout(()=>{showToast(`🎂 Feliz aniversário, ${profile.name.split(' ')[0]}! 🎉`,'success');localStorage.setItem(key,'1');},2000);}}
+  if(bday){const[,bm,bd]=bday.split('-');if(bm===mm&&bd===dd){setTimeout(()=>{showToast(`Feliz aniversário, ${profile.name.split(' ')[0]}! 🎉`,'success');localStorage.setItem(key,'1');},2000);}}
 }
 
 async function loadData(){
@@ -2562,7 +2562,7 @@ function abrirPickerOrelha(lado, t){
         <button onclick="document.getElementById('picker-orelha').remove();criarTarefaVinculada('${lado}','${t.id}')"
           class="btn btn-primary" style="justify-content:center;padding:12px">+ Criar tarefa nova</button>
         <button onclick="abrirEscolherExistente('${lado}','${t.id}')"
-          class="btn btn-secondary" style="justify-content:center;padding:12px">🔍 Escolher uma que já existe</button>
+          class="btn btn-secondary" style="justify-content:center;padding:12px">Escolher uma que já existe</button>
       </div>
       <button class="btn btn-secondary" onclick="document.getElementById('picker-orelha').remove()"
         style="width:100%;justify-content:center;margin-top:14px;background:transparent;border-color:transparent;color:var(--text3)">Cancelar</button>
@@ -2809,7 +2809,7 @@ async function loadTasks(somenteRecentes = true){
   window._taskComFilha = new Set(tasks.filter(t => t.tarefa_mae_id).map(t => t.tarefa_mae_id));
 }
 
-// Selo flutuante "⏰ X programadas" — só equipe/admin vê, cliente não.
+// Selo flutuante "X programadas" — só equipe/admin vê, cliente não.
 // Clica, abre a lista das tarefas dormindo, com a data de cada uma.
 function atualizarSeloProgramadas(){
   let el = document.getElementById('prog-selo');
@@ -2913,7 +2913,7 @@ async function pdEnviarZap(dest, texto, taskId){
 async function avTeste(){
   const {data:eu}=await sb.from('profiles').select('zap').eq('id',profile.id).maybeSingle();
   if(!eu||!eu.zap){showToast('Salve seu número no Meu Perfil primeiro.','warn');return;}
-  await avEnviar({user_id:profile.id},'🔔 Teste Pontodot: se você recebeu isto, o aviso por WhatsApp está funcionando.');
+  await avEnviar({user_id:profile.id},'Teste Pontodot: se você recebeu isto, o aviso por WhatsApp está funcionando.');
 }
 async function avEnviar(dest,texto){
   showToast('Enviando…');
@@ -3005,7 +3005,7 @@ function avConversa(rows){
     const sep=d!==dia?`<div class="av-dia"><span>${escSafe(d)}</span></div>`:''; dia=d;
     const em=r.ref?porRef[r.ref]:null, ehZ=r.canal==='whatsapp';
     const tik=r.status==='erro'?'⚠':(r.entrega==='read'||r.entrega==='delivered')?'✓✓':'✓';
-    const rod=ehZ?`${em?`<div class="av-em">✉ também enviado por e-mail para ${escSafe(em.para)}</div>`:''}`:`<div class="av-em">✉ e-mail para ${escSafe(r.para)}${r.assunto?' · '+escSafe(r.assunto):''}</div>`;
+    const rod=ehZ?`${em?`<div class="av-em">também enviado por e-mail para ${escSafe(em.para)}</div>`:''}`:`<div class="av-em">e-mail para ${escSafe(r.para)}${r.assunto?' · '+escSafe(r.assunto):''}</div>`;
     const st=r.status==='erro'?`<div class="av-err">Não foi entregue: ${escSafe(r.erro||'erro')}</div>`:r.status==='manual'?'<div class="av-err">Sem API ativa: ficou como aviso para envio manual.</div>':'';
     if(r.direcao==='entrada') return sep+`<div class="av-bolha mail in"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div><div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}</div></div>`;
     return sep+`<div class="av-bolha ${ehZ?'':'mail'}"><div class="av-txt">${escSafe(r.corpo||'').replace(/\n/g,'<br>')}</div>${rod}${st}<div class="av-meta">${escSafe(new Date(r.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))} <span class="${r.entrega==='read'?'ok':''}" title="${escSafe(r.entrega==='read'?'Lida':r.entrega==='delivered'?'Entregue':r.entrega==='failed'?'Falhou':'Enviada ao WhatsApp (aguardando entrega)')}">${tik}</span></div></div>`;
@@ -3259,7 +3259,7 @@ function renderFeed(){
       <div class="feed-post-foot">
         <button class="feed-react-btn ${(localStorage.getItem('like_'+p.id))?'active':''}" id="like-btn-${p.id}" onclick="toggleLike('${p.id}',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> Curtir</button>
         <button class="feed-react-btn" onclick="togglePostComments('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Comentar</button>
-        ${profile.role==='admin'?`<button class="feed-react-btn" onclick="togglePin('${p.id}',${!p.pinned})">${p.pinned?'Desafixar':'📌 Fixar'}</button>`:''}
+        ${profile.role==='admin'?`<button class="feed-react-btn" onclick="togglePin('${p.id}',${!p.pinned})">${p.pinned?'Desafixar':'Fixar'}</button>`:''}
       </div>
     </div>`;
   });
@@ -3546,7 +3546,7 @@ function renderEscola(){
     document.getElementById('esc-cursos').innerHTML = dest.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(c.area)} · ${c.semanas} semanas</small></button>`).join('')
       + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
-  const lista = escPosts().concat((posts||[]).filter(h=>!/^🏠 Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
+  const lista = escPosts().concat((posts||[]).filter(h=>!/^Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
   lista.sort((a,b)=> (b.humano?1:0)-(a.humano?1:0) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));   // gente da casa primeiro; alunos de Catum em ordem aleatória
   box.innerHTML = lista.map((p, n) => {
     if (p.humano) return escHtmlHumano(p.h, n === lista.length - 1);
@@ -4644,7 +4644,7 @@ function renderGantt(){
   const now=new Date(),cols=[];
 
   if(customRangeStart&&customRangeEnd){
-    // Período customizado (escolhido no botão "📅 Período") — gera 1 coluna por
+    // Período customizado (escolhido no botão "Período") — gera 1 coluna por
     // semana, cobrindo do início ao fim escolhidos, no lugar do modo padrão.
     let cursor=new Date(customRangeStart+'T12:00:00');
     cursor.setDate(cursor.getDate()-((cursor.getDay()+6)%7)); // volta pra segunda-feira da semana
@@ -7786,7 +7786,7 @@ async function pdEsteiraNova(id){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:99700;display:flex;align-items:center;justify-content:center;background:rgba(10,10,12,.55);backdrop-filter:blur(6px);padding:20px';
   ov.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:22px;max-height:88vh;overflow:auto">
-    <div style="font-weight:700;margin-bottom:10px">🗓 Esteira semanal — programa uma vez, roda sozinha</div>
+    <div style="font-weight:700;margin-bottom:10px">Esteira semanal — programa uma vez, roda sozinha</div>
     <input id="es-nome" value="${esc(e.nome)}" placeholder="nome (ex.: Social semanal)" style="width:100%;height:36px;margin-bottom:8px">
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <select id="es-tipo" style="flex:1;height:36px"><option value="social" ${e.tipo==='social'?'selected':''}>social</option><option value="site" ${e.tipo==='site'?'selected':''}>site (capa + blog)</option><option value="misto" ${e.tipo==='misto'?'selected':''}>misto</option></select>
@@ -8346,7 +8346,7 @@ async function loadTaskApproval(taskId){
         <button class="btn btn-secondary btn-sm" onclick="abrirCorrecoesLote('${ap.set_id}')"
           title="Subir artes/textos corrigidos — uma peça ou o pacote inteiro">↻ Subir correções</button>` : ''}
         ${!isClient ? `<button class="btn btn-secondary btn-sm" onclick="excluirLote('${ap.set_id}','${taskId}')"
-          title="Manda o lote para a lixeira — dá para restaurar" style="color:#b91c1c">🗑 Excluir</button>` : ''}
+          title="Manda o lote para a lixeira — dá para restaurar" style="color:#b91c1c">Excluir</button>` : ''}
         <button class="btn btn-sm" onclick="abrirPecas('${ap.set_id}')"
           style="background:${cor}14;color:${cor};border:1.5px solid ${cor};font-weight:700">Ver peças</button>
       </div>
@@ -8436,14 +8436,14 @@ function driveConectadoHTML(taskId, d){
   const b = (txt, fn, prim, cor) => `<button class="btn btn-sm ${prim ? '' : 'btn-secondary'}" onclick="${fn}"
       ${prim ? `style="background:${cor||st.cor};border-color:${cor||st.cor};color:#fff;font-weight:700"` : ''}>${txt}</button>`;
   let acao = '', frase = '';
-  const msg = b('✉ Mensagem pra IA', `driveMensagem('${taskId}')`);
+  const msg = b('Mensagem pra IA', `driveMensagem('${taskId}')`);
   const chamado = d.ultimo_chamado ? ` Último chamado por e-mail: <b>${d.ultimo_chamado}</b> · ${quandoRel(d.ultimo_chamado_em)}.` : '';
   if (d.status === 'aguardando') {
     frase = 'Ponha os arquivos de origem na pasta (ENTRADA) e dê play. O play grava o briefing na pasta e manda o chamado por e-mail pra IA.';
     acao = b('▶ Dar play', `drivePlay('${taskId}')`, true) + b('Copiar pedido pra IA', `driveCopiarPedido('${taskId}')`);
   } else if (d.status === 'produzir' || d.status === 'corrigir') {
     frase = 'Com a IA, esperando TERMINEI na planilha. Verificação automática a cada 15 min · última ' + quandoRel(d.ultimo_check) + '.' + chamado;
-    acao = b('Verificar agora', `driveVerificar('${taskId}', this)`, true) + b('⏸ Pausar IA', `driveIAPausar('${taskId}')`) + msg
+    acao = b('Verificar agora', `driveVerificar('${taskId}', this)`, true) + b('Pausar IA', `driveIAPausar('${taskId}')`) + msg
          + b('Copiar pedido', `driveCopiarPedido('${taskId}')`);
   } else if (d.status === 'pausado') {
     frase = 'IA pausada — ela recebeu o chamado PAUSAR e não mexe na tarefa até você retomar.' + chamado;
@@ -8534,7 +8534,7 @@ async function drivePlay(taskId){
 
 // ⏸ / ▶ da IA (também usados pela janela do play)
 async function driveIAPausar(taskId){
-  const r = await driveChamar('pausar', { task_id: taskId }, '⏸ IA pausada — chamado PAUSAR enviado.');
+  const r = await driveChamar('pausar', { task_id: taskId }, 'IA pausada — chamado PAUSAR enviado.');
   if (r) { if (document.getElementById('d-drive')?.dataset.task === taskId) loadTaskDrive(taskId); else if (typeof trackerLoad === 'function') trackerLoad(); }
 }
 async function driveIARetomar(taskId){
@@ -8545,7 +8545,7 @@ function driveMensagem(taskId){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:99700;background:rgba(10,10,12,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:560px;padding:18px">
-    <b style="font-size:14px">✉ Mensagem pra IA — ${taskId}</b>
+    <b style="font-size:14px">Mensagem pra IA — ${taskId}</b>
     <div style="font-size:12px;color:var(--text3);margin:4px 0 10px">Vai como chamado por e-mail e fica gravada na pasta (00_CHAMADO_IA.txt). Use pra responder dúvidas ou ajustar o rumo.</div>
     <textarea id="dmTxt" rows="7" placeholder="Ex.: As dúvidas 1 e 3: use a foto da fachada noturna. Metragem certa: 68 m²."
       style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font:inherit;font-size:13px;resize:vertical"></textarea>
@@ -8559,7 +8559,7 @@ function driveMensagem(taskId){
     const texto = ov.querySelector('#dmTxt').value.trim();
     if (!texto) return;
     ov.querySelector('#dmOk').disabled = true;
-    const r = await driveChamar('mensagem', { task_id: taskId, texto }, '✉ Mensagem enviada pra IA.');
+    const r = await driveChamar('mensagem', { task_id: taskId, texto }, 'Mensagem enviada pra IA.');
     if (r) { ov.remove(); loadTaskDrive(taskId); } else ov.querySelector('#dmOk').disabled = false;
   };
 }
@@ -8905,7 +8905,7 @@ async function changeStatus(val){
       }
     }
   }
-  // ⚠️ STATUS E RESPONSÁVEL SÃO COISAS DIFERENTES.
+  // STATUS E RESPONSÁVEL SÃO COISAS DIFERENTES.
   // Antes, mandar a tarefa para "Com o cliente" sobrescrevia o campo
   // Responsável com CLIENTE — apagando quem da equipe era o dono dela.
   // Quando voltava, essa informação já tinha se perdido.
@@ -9540,7 +9540,7 @@ async function saveTask(criarProxima){
   const chosenStatus=document.getElementById('t-status').value;
   // "Com o cliente" sempre vira automaticamente responsabilidade do cliente,
   // mesmo quando o status é setado direto no formulário (não só no drag/drop).
-  // ⚠️ STATUS E RESPONSÁVEL SÃO COISAS DIFERENTES (regra do Sérgio):
+  // STATUS E RESPONSÁVEL SÃO COISAS DIFERENTES (regra do Sérgio):
   //   resp = CLIENTE       → tarefa que O CLIENTE tem de fazer (trazer doc, info).
   //   status = Com o cliente → peça EM APRECIAÇÃO; o dono continua sendo quem
   //                            produziu (se voltar alteração, é dessa pessoa).
@@ -9596,7 +9596,7 @@ async function saveTask(criarProxima){
   if(newTaskId){
     const c=clients.find(x=>x.id===td.client_id);
     const respIds=await getRespUserIds(td.resp);
-    const title=profile.role==='client'?`📋 Novo briefing de ${profile.name}`:'📋 Nova tarefa atribuída';
+    const title=profile.role==='client'?`Novo briefing de ${profile.name}`:'Nova tarefa atribuída';
     await notifyUsers(respIds,'task_new',title,`${c?.name||''} — ${td.project}`.trim(),`task:${newTaskId}`);
   }
 }
@@ -9880,7 +9880,7 @@ async function saveUser(){
     modal.style.zIndex='9999';
     modal.innerHTML=`<div class="modal" style="max-width:500px">
       <div class="modal-head">
-        <div class="modal-title">${result.email_enviado?'✅ Convite enviado!':'⚠️ Cadastro feito, e-mail não saiu'}</div>
+        <div class="modal-title">${result.email_enviado?'Convite enviado!':'Cadastro feito, e-mail não saiu'}</div>
       </div>
       <div class="modal-body">
         <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
@@ -10617,7 +10617,7 @@ function toggleChat() {
 
 async function showChatList() {
   chatCurrentUser = null;
-  document.getElementById('chat-header-title').textContent = '💬 Mensagens';
+  document.getElementById('chat-header-title').textContent = 'Mensagens';
   document.getElementById('chat-header-sub').textContent = 'Equipe PD';
   document.getElementById('chat-header-av').innerHTML = '';
   document.getElementById('chat-back-btn').style.display = 'none';
@@ -10681,7 +10681,7 @@ async function openChatWith(userId, userName, avatarUrl) {
 async function openChatGroup() {
   chatCurrentUser = { id: null, name: 'Geral' };
   if (unreadCounts['group']) { totalUnread -= unreadCounts['group']; unreadCounts['group'] = 0; updateChatBadge(); }
-  document.getElementById('chat-header-title').textContent = '🏢 Geral — Equipe PD';
+  document.getElementById('chat-header-title').textContent = 'Geral — Equipe PD';
   document.getElementById('chat-header-sub').textContent = 'Todos da equipe';
   document.getElementById('chat-header-av').innerHTML = '';
   document.getElementById('chat-back-btn').style.display = 'flex';
@@ -11361,7 +11361,7 @@ document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',e
     <div id="chat-back-btn" onclick="chatBack()" style="display:none;width:28px;height:28px;background:var(--surface2);border-radius:50%;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;cursor:pointer">←</div>
     <div id="chat-header-av" style="flex-shrink:0"></div>
     <div style="flex:1;min-width:0">
-      <div id="chat-header-title" style="font-size:13px;font-weight:700">💬 Mensagens</div>
+      <div id="chat-header-title" style="font-size:13px;font-weight:700">Mensagens</div>
       <div id="chat-header-sub" style="font-size:11px;color:var(--text3)">Equipe PD</div>
     </div>
     <button id="chat-search-btn" onclick="toggleChatSearch()" style="display:none;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;font-weight:700;color:var(--text3);padding:4px" title="Buscar na conversa">⌕</button>
@@ -11608,7 +11608,7 @@ async function trackerPause(taskId, auto = false){
   trackerSessions = trackerSessions.filter(x => x.task_id !== taskId);
   if (!trackerPausadas.includes(taskId)) trackerPausadas.unshift(taskId);
   trackerRender();
-  if (!auto) showToast('⏸ Pausado — continua na lista até encerrar','success');
+  if (!auto) showToast('Pausado — continua na lista até encerrar','success');
 }
 
 // --- Encerrar: pausa + move status para ENTREGUE ---

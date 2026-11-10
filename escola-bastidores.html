@@ -109,7 +109,7 @@ function estado(i){return !i.s?'vazia':i.s.pausada?'parada':'ativa';}
 function drawEmb(){$('#grid').innerHTML=itens().map(i=>{const s=i.s,al=s.alunos.filter(a=>a.ativa);
   return `<div class="card ec" onclick="abre('${esc(i.id)}')"><div class="capa" style="background-image:url(${i.capa})"></div>
   <div class="cc"><span class="area">${esc(i.area)}</span><h3>${esc(i.titulo)}</h3><p>${esc(s.finalidade||'')}</p>
-  <div class="meta"><span class="tag">⏱ 4 semanas</span>${s.inscrita?'<span class="tag ok">✓ sua IA está inscrita</span>':''}</div>
+  <div class="meta"><span class="tag">4 semanas</span>${s.inscrita?'<span class="tag ok">✓ sua IA está inscrita</span>':''}</div>
   <div class="faces">${al.slice(0,5).map(a=>`<img src="${face(a.personagem)}" title="${esc(a.nome)} · IA do ${esc(a.dona)}">`).join('')}<span>${al.length?al.length+' estudando':'ninguém ainda'}</span></div>
   <button class="btn p ver-c">${s.inscrita?'Ver o curso':'Ver e inscrever'}</button></div></div>`}).join('');}
 function draw(){const f=$('#filtro').value;if(EMB)return drawEmb();$('#grid').innerHTML=itens().filter(i=>!f||estado(i)===f).map(i=>{const s=i.s,e=estado(i),al=s?s.alunos.filter(a=>a.ativa):[];
