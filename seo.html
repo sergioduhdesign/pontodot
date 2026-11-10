@@ -454,41 +454,68 @@ async function aplicaLote(){
 const ROTULO = { sem_titulo: 'Páginas sem título', titulo_curto: 'Títulos SEO curtos', titulo_longo: 'Títulos SEO longos demais', sem_meta: 'Páginas sem meta description', meta_curta: 'Meta descriptions curtas', meta_longa: 'Meta descriptions longas demais', sem_h1: 'Páginas sem título principal (H1)', varios_h1: 'Páginas com mais de um H1', noindex: 'Páginas bloqueadas para o Google (noindex)', sem_canonical: 'Páginas sem URL canônica', sem_og: 'Páginas sem imagem de compartilhamento', sem_schema: 'Páginas sem dados estruturados (schema)', sem_viewport: 'Páginas sem configuração para celular', img_sem_alt: 'Páginas com imagens sem texto alternativo', conteudo_curto: 'Páginas com pouco conteúdo', sem_links_internos: 'Páginas sem links internos', slug_longo: 'Endereços muito longos', fora: 'Páginas que não abriram', lenta: 'Páginas lentas', titulo_repetido: 'Páginas com título repetido', meta_repetida: 'Páginas com meta description repetida' };
 function relatorioPdf(){
   if (!FULL) return;
-  try { if (self !== top && typeof parent.pdfDoc === 'function') return pdfCasa(); } catch(e){}
+  try { if ((self !== top || window.__pdfTeste) && typeof parent.pdfDoc === 'function') return pdfCasa(); } catch(e){}
   relatorioPdfSolo();
 }
 // PDF no padrão da casa (index.html pdfDoc): identidade PD + logo do cliente, wide 1920×1080, Baixar/Compartilhar/Copiar link
 function pdfCasa(){
-  const nome = cli().name || '', R = FULL.resumo, e = esc;
+  const nome = cli().name || '', R = FULL.resumo, e = esc, sumi = QUEM.nome || 'Sumi';
   const home = FULL.itens.find(i => i.tipo === 'home'), site = home ? home.url : (FULL.itens[0] || {}).url || '';
   const urlAv = QUEM && QUEM.avatar ? new URL(QUEM.avatar, location.href).href : '';
+  const av = urlAv ? '<img class="sav" crossorigin="anonymous" src="' + e(urlAv) + '" alt="">' : '<span class="sav ini">S</span>';
   const cn = n => n >= 80 ? '#16a34a' : n >= 55 ? '#d97706' : '#dc2626';
+  const cut = (x, n) => x.length > n ? x.slice(0, n - 1).trim() + '…' : x;
   const apl = {}; HIST.filter(h => h.status === 'aplicada').forEach(h => (apl[h.url] = apl[h.url] || []).push(h));
-  const vit = (url, t, m, flag) => { const host = e(String(url || '').replace(/^https?:\/\//, '').replace(/\/$/, '')), cut = (x, n) => x.length > n ? x.slice(0, n - 1).trim() + '…' : x;
-    return '<div class="serp"><div class="a">' + host + '</div><div class="b' + (flag && flag.t ? ' err' : '') + '">' + e(cut((t || '').trim() || '(sem título)', 60)) + '</div><div class="c' + (flag && flag.m ? ' err' : '') + '">' + e(cut((m || '').trim() || '(sem descrição: o Google escolhe um trecho qualquer da página)', 158)) + '</div></div>'; };
-  let somaAntes = 0, somaDepois = 0, n = 0, aplicadas = 0;
+  const vit = (url, t, m, flag) => { const host = e(String(url || '').replace(/^https?:\/\//, '').replace(/\/$/, ''));
+    return '<div class="serp"><div class="a">' + host + '</div><div class="b' + (flag && flag.t ? ' err' : '') + '">' + e(cut((t || '').trim() || '(sem título)', 60)) + '</div><div class="c' + (flag && flag.m ? ' err' : '') + '">' + e(cut((m || '').trim() || '(sem descrição: o Google escolhe um trecho qualquer da página)', 150)) + '</div></div>'; };
+  // o que a Sumi identificou, em primeira pessoa
+  const FRASE = { sem_titulo: 'a página não tem título para o Google', sem_meta: 'não existe meta description, então o Google escolhe um trecho qualquer da página para mostrar', sem_h1: 'falta o título principal (H1) dentro da página', noindex: 'a página está marcada como “noindex”', sem_og: 'não há imagem de compartilhamento (WhatsApp, Instagram, LinkedIn)', sem_schema: 'faltam dados estruturados (schema)', sem_canonical: 'falta a URL canônica', sem_viewport: 'falta a configuração para celular', conteudo_curto: 'o conteúdo é curto para o Google entender o assunto', sem_links_internos: 'não há links para outras páginas do site', slug_longo: 'o endereço da página é longo demais' };
+  const identificou = it => {
+    if (NAO_INDEXAR.test(it.url)) return 'É uma página de transação (carrinho, checkout ou conta). Ela <b>não deve aparecer no Google</b>: recomendo mantê-la como “noindex” e não investir texto de SEO nela.';
+    const fr = [], vistos = {};
+    it.problemas.forEach(p => { const c = String(p[0]); if (vistos[c]) return; vistos[c] = 1; fr.push(FRASE[c] || p[2].replace(/\.$/, '').replace(/^./, ch => ch.toLowerCase())); });
+    return fr.length ? 'Identifiquei que ' + fr.slice(0, 5).map(x => x.replace(/^./, c => c)).join('; ') + (fr.length > 5 ? '; e outros ' + (fr.length - 5) + ' pontos menores' : '') + '.' : 'Esta página está bem resolvida para o Google. Nada a corrigir agora.';
+  };
+  let somaAntes = 0, somaDepois = 0, n = 0, aplicadas = 0, num = 0; const agg = {};
+  FULL.itens.forEach(it => it.problemas.forEach(p => { const a = agg[p[0]] = agg[p[0]] || { n: 0, sev: p[1] }; a.n++; }));
   const blocos = FULL.itens.map(it => {
-    const cod = it.problemas.map(p => String(p[0])), fl = { t: cod.some(c => /titulo/.test(c)), m: cod.some(c => /meta/.test(c)) };
-    const a = apl[it.url] || [], v = { titulo: (it.analise.titulo || ''), meta: (it.analise.meta || ''), alts: {} };
+    num++; const cod = it.problemas.map(p => String(p[0])), fl = { t: cod.some(c => /titulo/.test(c)), m: cod.some(c => /meta/.test(c)) };
+    const a = apl[it.url] || [], pend = (PROPS[it.url] || []).filter(r => r.status === 'proposta');
+    const v = { titulo: (it.analise.titulo || ''), meta: (it.analise.meta || ''), alts: {} };
     a.forEach(h => { if (h.campo === 'titulo_seo') v.titulo = h.depois; else if (h.campo === 'meta') v.meta = h.depois; else if (h.campo === 'alt') v.alts[h.alvo] = h.depois; });
     const depois = a.length ? estima(it, v) : it.nota; n++; somaAntes += it.nota; somaDepois += depois; aplicadas += a.length;
-    const trocas = a.map(h => '<li><b>' + CAMPO[h.campo] + '</b>' + (h.campo === 'alt' ? ' · imagem ' + e(h.alvo) : '') + (h.motivo ? ' — ' + e(h.motivo) : '') + '</li>').join('');
-    return '<div class="pg"><div class="ph"><b>' + e((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b><span class="nn" style="color:' + cn(it.nota) + '">' + it.nota + '</span><span class="ar">→</span><span class="nn" style="color:' + cn(depois) + '">' + depois + '</span></div>' +
-      '<div class="par"><div><small>ANTES</small>' + vit(it.url, it.analise.titulo, it.analise.meta, fl) + '</div><div><small>DEPOIS' + (a.length ? '' : ' · ainda sem correção aplicada') + '</small>' + (a.length ? vit(it.url, v.titulo, v.meta, {}) : '<div class="serp vazio">Nada aplicado nesta página ainda.</div>') + '</div></div>' +
-      (trocas ? '<ul class="tr">' + trocas + '</ul>' : '') + '<div class="pl">' + (it.problemas.map(p => '<span class="pp">' + e(p[2]) + '</span>').join('') || '<span class="pp ok">Sem problemas</span>') + '</div></div>';
+    const motivo = ((a.find(h => h.campo === 'titulo_seo') || a[0] || {}).motivo) || '';
+    let fiz = '';
+    if (NAO_INDEXAR.test(it.url)) fiz = '';
+    else if (a.length) fiz = '<b>O que ajustei:</b> ' + a.map(h => CAMPO[h.campo].toLowerCase() + (h.campo === 'alt' ? ' (imagem)' : '')).filter((x, i, ar) => ar.indexOf(x) === i).join(', ') + '. ' + (motivo ? e(cut(motivo, 220)) : '');
+    else if (pend.length) fiz = '<b>Próximo passo:</b> deixei ' + pend.length + ' sugestão(ões) prontas, aguardando a aprovação.';
+    else if (it.problemas.some(p => p[3])) fiz = '<b>Próximo passo:</b> escrever título e meta description próprios para esta página.';
+    const dep = NAO_INDEXAR.test(it.url) ? '<div class="serp vazio">Sem alteração: esta página não deve ser indexada.</div>' : a.length ? vit(it.url, v.titulo, v.meta, {}) : '<div class="serp vazio">Ainda sem correção aplicada.</div>';
+    return '<div class="row pgx"><div class="ph"><span class="id">P' + String(num).padStart(2, '0') + '</span><b>' + e(cut((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)', 70)) + '</b><span class="nn" style="color:' + cn(it.nota) + '">' + it.nota + '</span><span class="ar">→</span><span class="nn" style="color:' + cn(depois) + '">' + depois + '</span></div>' +
+      '<div class="tres"><div><small>ANTES</small>' + vit(it.url, it.analise.titulo, it.analise.meta, fl) + '</div><div><small>DEPOIS</small>' + dep + '</div>' +
+      '<div class="sm"><div class="sh">' + av + '<small>' + e(sumi.toUpperCase()) + ' · DIAGNÓSTICO</small></div><p>' + identificou(it) + '</p>' + (fiz ? '<p>' + fiz + '</p>' : '') + '</div></div></div>';
   }).join('');
   const mediaA = n ? Math.round(somaAntes / n) : 0, mediaD = n ? Math.round(somaDepois / n) : 0;
-  const css = `.big{display:flex;gap:18px;align-items:stretch;margin:6px 0 4px}.bx{flex:1;background:#F4F3EF;border-radius:14px;padding:14px 18px}.bx small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6B6D75}.bx b{font-size:44px;line-height:1.1;font-weight:600}.bx i{font-style:normal;font-size:14px;color:#6B6D75}
-  .eu{display:flex;align-items:center;gap:12px;padding:10px 0}.eu img{width:48px;height:48px;border-radius:50%;object-fit:cover}.eu span{font-size:12px;color:#55575F}
-  .pg{border-top:1px solid #E4E3DE;padding:14px 0;break-inside:avoid}.ph{display:flex;align-items:center;gap:10px}.ph b{flex:1;font-size:14px}.nn{font-size:24px;font-weight:700}.ar{color:#6B6D75}
-  .par{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}.par small{display:block;font-size:9.5px;letter-spacing:.12em;color:#6B6D75;margin-bottom:4px}
-  .serp{padding:10px 13px;border-radius:10px;background:#fff;border:1px solid #DADCE0;color:#202124;font-family:Arial,sans-serif}.serp .a{font-size:11.5px;color:#4d5156}.serp .b{font-size:17px;line-height:1.25;color:#1a0dab;margin:2px 0}.serp .c{font-size:12.5px;color:#4d5156;line-height:1.4}.serp .err{outline:2px dashed #d93025;outline-offset:2px;border-radius:3px}.serp.vazio{color:#8e8e93;font-size:12px;display:flex;align-items:center;min-height:70px;background:#FAFAF8}
-  .tr{margin:8px 0 0;padding-left:18px;font-size:11.5px;color:#55575F}.pl{margin-top:8px}.pp{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:99px;background:#F4F3EF;margin:0 5px 4px 0}.pp.ok{background:#DCFCE7;color:#166534}`;
-  const corpo = `<div class="eu">${urlAv ? '<img crossorigin="anonymous" src="' + e(urlAv) + '" alt="">' : ''}<span><b>${e(QUEM.nome || 'IA da casa')}</b> · ${e(QUEM.titulo || '')} — cuida do SEO da casa. Nada foi aplicado sem aprovação; tudo dá para desfazer.</span></div>
-  <h2>Diagnóstico · antes e depois</h2><div class="big"><div class="bx"><small>Nota do site na auditoria</small><b style="color:${cn(R.nota)}">${R.nota}</b><i> /100</i></div><div class="bx"><small>Média das páginas · antes</small><b style="color:${cn(mediaA)}">${mediaA}</b><i> /100</i></div><div class="bx"><small>Média das páginas · depois</small><b style="color:${cn(mediaD)}">${mediaD}</b><i> /100 · ${aplicadas} correç${aplicadas === 1 ? 'ão aplicada' : 'ões aplicadas'}</i></div><div class="bx"><small>Páginas lidas</small><b>${R.paginas_lidas}</b><i> de ${R.paginas_no_site}</i></div></div>
-  ${R.site.length ? '<h2>Pontos do site inteiro</h2>' + R.site.map(x => '<div style="margin:3px 0"><span class="pp">' + e(SEV[x[1]]) + '</span>' + e(x[2]) + '</div>').join('') : ''}
-  <h2>Página por página · como aparece no Google</h2>${blocos}`;
-  parent.pdfDoc('Diagnóstico de SEO', e(site.replace(/^https?:\/\//, '')) + ' · auditado em ' + new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR'), nome, corpo, { css });
+  const ord = { alta: 0, media: 1, baixa: 2 }, prio = Object.entries(agg).sort((x, y) => (ord[x[1].sev] - ord[y[1].sev]) || y[1].n - x[1].n).slice(0, 6);
+  const NOME_P = { sem_titulo: 'sem título', titulo_curto: 'título SEO curto', titulo_longo: 'título SEO longo', sem_meta: 'sem meta description', meta_curta: 'meta curta', meta_longa: 'meta longa', sem_h1: 'sem H1', varios_h1: 'vários H1', noindex: 'noindex', sem_og: 'sem imagem de compartilhamento', sem_schema: 'sem schema', sem_canonical: 'sem canônica', sem_viewport: 'sem viewport', img_sem_alt: 'imagens sem alt', conteudo_curto: 'conteúdo curto', sem_links_internos: 'sem links internos', slug_longo: 'endereço longo', lenta: 'resposta lenta' };
+  const corCh = { alta: '#dc2626', media: '#d97706', baixa: '#8e8e93' };
+  const resumoTxt = 'Li <b>' + R.paginas_lidas + '</b> das <b>' + R.paginas_no_site + '</b> páginas de <b>' + e(site.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</b> como o Google lê. A nota do site é <b>' + R.nota + '/100</b>. ' +
+    (prio.length ? 'O que mais pesa: ' + prio.slice(0, 3).map(x => (NOME_P[x[0]] || x[0]) + ' (' + x[1].n + ' página' + (x[1].n > 1 ? 's' : '') + ')').join(', ') + '. ' : '') +
+    (aplicadas ? 'Já apliquei <b>' + aplicadas + '</b> correç' + (aplicadas === 1 ? 'ão' : 'ões') + ' com a sua aprovação; a média das páginas passou de <b>' + mediaA + '</b> para <b>' + mediaD + '</b>. ' : 'Ainda não apliquei nenhuma correção; cada uma passa pela sua aprovação e pode ser desfeita. ') +
+    'Abaixo, página a página: como está hoje no Google, como fica depois e o que eu identifiquei.';
+  const css = `.big{display:flex;gap:14px;margin:6px 0 4px}.bx{flex:1;background:#F4F3EF;border-radius:12px;padding:10px 16px}.bx small{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#6B6D75}.bx b{font-size:38px;line-height:1.1;font-weight:600}.bx i{font-style:normal;font-size:13px;color:#6B6D75}
+  .abre{display:flex;gap:16px;align-items:flex-start;margin:4px 0 8px}.sav{width:54px;height:54px;border-radius:50%;object-fit:cover;flex:0 0 54px;display:block}.sav.ini{display:grid;place-items:center;background:#15161A;color:#fff;font-weight:700}.abre p{margin:0;font-size:13.5px;line-height:1.55;color:#33353B}
+  .ch{display:inline-block;font-size:11px;padding:3px 10px;border-radius:99px;background:#F4F3EF;margin:0 6px 5px 0}.ch i{font-style:normal;font-weight:700;margin-left:4px}
+  .pgx{display:block!important;border-top:1px solid #E4E3DE;padding:12px 0!important}.ph{display:flex;align-items:center;gap:10px;margin-bottom:7px}.ph b{flex:1;font-size:14px}.id{font-size:10px;font-weight:700;letter-spacing:.06em;background:#15161A;color:#fff;border-radius:6px;padding:2px 7px}.nn{font-size:22px;font-weight:700}.ar{color:#6B6D75}
+  .tres{display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:14px}.tres small{display:block;font-size:9px;letter-spacing:.12em;color:#6B6D75;margin-bottom:4px}
+  .serp{padding:9px 12px;border-radius:10px;background:#fff;border:1px solid #DADCE0;color:#202124;font-family:Arial,sans-serif}.serp .a{font-size:11px;color:#4d5156}.serp .b{font-size:16px;line-height:1.25;color:#1a0dab;margin:2px 0}.serp .c{font-size:12px;color:#4d5156;line-height:1.4}.serp .err{outline:2px dashed #d93025;outline-offset:2px;border-radius:3px}.serp.vazio{color:#8e8e93;font-size:11.5px;display:flex;align-items:center;min-height:78px;background:#FAFAF8}
+  .sm{background:#F7F6F2;border-radius:10px;padding:9px 12px}.sh{display:flex;align-items:center;gap:8px;margin-bottom:4px}.sh .sav{width:26px;height:26px;flex:0 0 26px}.sh small{margin:0}.sm p{margin:0 0 5px;font-size:11.5px;line-height:1.5;color:#33353B}`;
+  const corpo = `<div class="abre">${av}<p>${resumoTxt}</p></div>
+  <div class="big"><div class="bx"><small>Nota do site</small><b style="color:${cn(R.nota)}">${R.nota}</b><i> /100</i></div><div class="bx"><small>Média das páginas · antes</small><b style="color:${cn(mediaA)}">${mediaA}</b><i> /100</i></div><div class="bx"><small>Média das páginas · depois</small><b style="color:${cn(mediaD)}">${mediaD}</b><i> /100</i></div><div class="bx"><small>Correções aplicadas</small><b>${aplicadas}</b><i> em ${n} páginas</i></div></div>
+  ${prio.length ? '<h2>O que mais pesa no site</h2><div>' + prio.map(x => '<span class="ch" style="border-left:4px solid ' + corCh[x[1].sev] + '">' + e(NOME_P[x[0]] || x[0]) + '<i>' + x[1].n + '</i></span>').join('') + '</div>' : ''}
+  ${R.site.length ? '<h2>Pontos do site inteiro</h2>' + R.site.map(x => '<div style="margin:3px 0;font-size:12.5px"><span class="ch" style="border-left:4px solid ' + corCh[x[1]] + '">' + e(SEV[x[1]]) + '</span>' + e(x[2]) + '</div>').join('') : ''}
+  <h2>Página por página · antes, depois e o que a ${e(sumi)} identificou</h2>${blocos}`;
+  parent.pdfDoc('Diagnóstico de SEO', e(site.replace(/^https?:\/\//, '')) + ' · auditado em ' + new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR'), nome, corpo, { css, avoid: '.pgx' });
 }
 function relatorioPdfSolo(){
   if (!FULL) return; const R = FULL.resumo, nome = cli().name || '';

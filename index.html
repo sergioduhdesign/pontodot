@@ -6264,7 +6264,7 @@ async function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
   const agNome = (typeof AGENCIA_NOME !== 'undefined' && AGENCIA_NOME) || 'SD Studio Design';
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
   const logo = cli && cli.logo_url ? `<img class="lg" crossorigin="anonymous" src="${esc(cli.logo_url)}" alt="">` : (clienteNome ? `<span class="lg ini">${esc(clienteNome.slice(0,2).toUpperCase())}</span>` : '');
-  const CSS = `*{box-sizing:border-box}body{font:13px/1.5 -apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0;padding:6px;}
+  const CSS = `*{box-sizing:border-box}body{font:13px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0;padding:6px;}
 
   .cab{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1.5px solid #15161A;margin-bottom:20px}
   .lg{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:0 0 56px;display:block}.ini{display:grid;place-items:center;background:#15161A;color:#fff;font-weight:700;font-size:18px}.bol{display:flex;gap:10px;flex:0 0 auto}
@@ -6287,7 +6287,8 @@ async function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
     await venCarregaLib(PDF_LIB, () => window.html2pdf);
     await Promise.all([...el.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; setTimeout(r, 4000); })));
     const pw = a4 ? 297 : 297, ph = a4 ? 210 : 167;
-    const blob = await html2pdf().set({ margin:[6, 6, 6, 6], image:{ type:'jpeg', quality:.96 }, html2canvas:{ scale:2, useCORS:true, backgroundColor:'#ffffff', windowWidth:W }, jsPDF:{ unit:'mm', format:[pw, ph], orientation:'landscape' }, pagebreak:{ mode:['css','legacy'], avoid:'.row,.k,tr,h2' } }).from(el.querySelector('.pdx')).outputPdf('blob');
+    const fixCont = document.createElement('style'); fixCont.textContent = '.html2pdf__container{margin:0!important;left:0!important;right:auto!important;width:' + W + 'px!important}'; document.head.appendChild(fixCont);   // sem isto o PDF sai cortado conforme a largura da janela
+    let blob; try { blob = await html2pdf().set({ margin:[6, 6, 6, 6], image:{ type:'jpeg', quality:.96 }, html2canvas:{ scale:2, useCORS:true, backgroundColor:'#ffffff', windowWidth:W }, jsPDF:{ unit:'mm', format:[pw, ph], orientation:'landscape' }, pagebreak:{ mode:['css','legacy'], avoid:'.row,.k,tr,h2' + (opts.avoid ? ',' + opts.avoid : '') } }).from(el.querySelector('.pdx')).outputPdf('blob'); } finally { fixCont.remove(); }
     venEntrega(blob, (titulo + (clienteNome ? ' — ' + clienteNome : '') + ' — ' + new Date().toLocaleDateString('pt-BR')).replace(/[\/:*?"<>|]/g, '-') + '.pdf', 'application/pdf');
   } catch(e){ toast('Não consegui gerar o PDF: ' + (e.message || e)); } finally { el.remove(); }
 }
