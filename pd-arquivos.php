@@ -40,6 +40,10 @@ function pdArqDivide($p) { $i = strrpos($p, '/'); return $i === false ? ['', $p]
 
 try {
     $c = pdCPCred($cid); $raiz = rtrim(pdCPPasta($cid, $c), '/');
+    // escopo "conta": começa na raiz da conta (home do cPanel), onde ficam todos os sites. Só admin; cada gravação guarda o antes.
+    $conta = (($d['escopo'] ?? 'site') === 'conta');
+    if ($conta) { if (!preg_match('#^(/home\d*/[^/]+)#', $raiz, $mm)) throw new Exception('Não consegui descobrir a raiz da conta.'); $raiz = $mm[1]; }
+    $pref = $conta ? '~/' : '';
     if ($acao === 'listar') {
         $rel = pdArqCaminho($d['caminho'] ?? '');
         $j = pdCP($c, 'Fileman', 'list_files', ['dir' => $raiz . ($rel !== '' ? '/' . $rel : ''), 'include_mime' => 0, 'show_hidden' => 1]);
@@ -51,7 +55,7 @@ try {
             $it[] = ['nome' => $nome, 'pasta' => $dir, 'tam' => (int)($x['size'] ?? 0), 'mod' => (int)($x['mtime'] ?? 0), 'editavel' => !$dir && !pdArqProibido($nome) && (int)($x['size'] ?? 0) <= PD_ARQ_MAX];
         }
         usort($it, fn($a, $b) => [!$a['pasta'], strtolower($a['nome'])] <=> [!$b['pasta'], strtolower($b['nome'])]);
-        echo json_encode(['ok' => true, 'raiz' => $raiz, 'caminho' => $rel, 'itens' => $it], $J); exit;
+        echo json_encode(['ok' => true, 'escopo' => $conta ? 'conta' : 'site', 'raiz' => $raiz, 'caminho' => $rel, 'itens' => $it], $J); exit;
     }
     if ($acao === 'ler') {
         $rel = pdArqCaminho($d['caminho'] ?? ''); if ($rel === '' || pdArqProibido($rel)) throw new Exception('Este arquivo não pode ser aberto aqui.');
@@ -68,7 +72,7 @@ try {
         try { $antes = pdCPLer($c, $pasta, $arq); } catch (Throwable $e) { $existia = false; }
         if ($existia && $antes === $novo) throw new Exception('Nada mudou neste arquivo.');
         // o "antes" é guardado ANTES de gravar; se não guardar, não grava
-        $h = sd_supabase('/rest/v1/pd_site_arquivos_hist', 'POST', ['client_id' => $cid, 'caminho' => $rel, 'existia' => $existia, 'antes' => $antes, 'depois' => $novo, 'por' => $me['id'] ?? null], ['Prefer: return=representation']);
+        $h = sd_supabase('/rest/v1/pd_site_arquivos_hist', 'POST', ['client_id' => $cid, 'caminho' => $pref . $rel, 'existia' => $existia, 'antes' => $antes, 'depois' => $novo, 'por' => $me['id'] ?? null], ['Prefer: return=representation']);
         if (($h['code'] ?? 500) >= 300) throw new Exception('Não consegui guardar o backup (rode a migration v179). Nada foi gravado.');
         pdCPGravar($c, $pasta, $arq, $novo);
         echo json_encode(['ok' => true, 'id' => $h['body'][0]['id'] ?? null, 'arquivo_novo' => !$existia], $J); exit;
@@ -83,7 +87,9 @@ try {
         $h = $r['body'][0] ?? null; if (!$h) throw new Exception('Registro não encontrado.');
         if (!empty($h['desfeito'])) throw new Exception('Já foi desfeito.');
         if (!$h['existia']) throw new Exception('Este arquivo era novo; apagar arquivo ainda não é feito aqui (o conteúdo antigo não existe).');
-        [$dir, $arq] = pdArqDivide($h['caminho']); pdCPGravar($c, $raiz . ($dir !== '' ? '/' . $dir : ''), $arq, (string)$h['antes']);
+        $cam = (string)$h['caminho']; $base = $raiz;
+        if (strpos($cam, '~/') === 0) { $cam = substr($cam, 2); if (preg_match('#^(/home\d*/[^/]+)#', $raiz, $mm)) $base = $mm[1]; }
+        [$dir, $arq] = pdArqDivide($cam); pdCPGravar($c, $base . ($dir !== '' ? '/' . $dir : ''), $arq, (string)$h['antes']);
         sd_supabase('/rest/v1/pd_site_arquivos_hist?id=eq.' . urlencode($id), 'PATCH', ['desfeito' => true]);
         echo json_encode(['ok' => true], $J); exit;
     }

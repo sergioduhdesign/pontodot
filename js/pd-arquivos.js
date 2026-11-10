@@ -3,14 +3,15 @@ window.pdArquivosAbrir = function (cid) {
   if (!cid) return;
   const old = document.getElementById('arqVeu'); if (old) old.remove();
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const api = b => sdFetch('/pd-arquivos.php', Object.assign({ client_id: cid }, b));
-  let rel = '', aberto = null, orig = '';
+  const api = b => sdFetch('/pd-arquivos.php', Object.assign({ client_id: cid, escopo }, b));
+  let rel = '', aberto = null, orig = '', escopo = 'conta';
   const v = document.createElement('div'); v.id = 'arqVeu';
   v.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:24px 16px';
   v.innerHTML = `<div style="max-width:1100px;margin:0 auto;background:#fff;color:#15161A;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden;font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif">
     <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #E4E3DE;position:sticky;top:0;background:#fff;z-index:2">
       <button id="aV" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px">‹</button>
       <b style="font-size:16px">Arquivos do site</b><span id="aSt" style="font-size:12px;color:#6B6D75"></span><span style="flex:1"></span>
+      <button id="aE" title="Alterna entre a raiz da conta (todos os sites) e só a pasta do site deste cliente" style="border:1px solid #D9D8D2;background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer"></button>
       <button id="aH" style="border:1px solid #D9D8D2;background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer">Histórico</button>
       <button id="aS" style="border:0;background:#15161A;color:#fff;border-radius:10px;padding:8px 16px;cursor:pointer;display:none">Gravar no site</button></div>
     <div id="aC" style="padding:16px"></div></div>`;
@@ -56,5 +57,7 @@ window.pdArquivosAbrir = function (cid) {
       v.querySelectorAll('[data-u]').forEach(b => b.onclick = async () => { if (!confirm('Voltar este arquivo para o texto de antes?')) return; try { await api({ acao: 'desfazer', id: b.dataset.u }); st('✓ desfeito'); $('#aH').click(); } catch (er) { st('✗ ' + er.message); } });
     } catch (er) { st(''); $('#aC').innerHTML = '<div style="color:#b42318">' + e(er.message) + '</div>'; }
   };
-  lista('');
+  const rot = () => $('#aE').textContent = escopo === 'conta' ? 'Raiz da conta ▾' : 'Só o site ▾';
+  $('#aE').onclick = () => { if (aberto && $('#aT').value !== orig && !confirm('Há mudanças não gravadas. Trocar mesmo?')) return; escopo = escopo === 'conta' ? 'site' : 'conta'; rot(); lista(''); };
+  rot(); lista('');
 };
