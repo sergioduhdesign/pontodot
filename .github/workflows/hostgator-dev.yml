@@ -1,0 +1,83 @@
+name: HostGator — acesso de dev (Claude)
+# Acesso à conta inteira da HostGator pelo token do cPanel (secrets CPANEL_USER, CPANEL_HOST, CPANEL_TOKEN).
+# acao: listar | ler | gravar. "gravar" lê o arquivo de hg-envio/<arquivo> do repositório e guarda o ANTES como artefato.
+on:
+  workflow_dispatch:
+    inputs:
+      acao:    { description: "listar | ler | gravar", required: true, default: "listar" }
+      caminho: { description: "caminho a partir da raiz da conta (ex.: public_html/index.html). Vazio = raiz", required: false, default: "" }
+      origem:  { description: "só para gravar: arquivo no repo (ex.: hg-envio/index.html)", required: false, default: "" }
+jobs:
+  hg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Executar
+        env:
+          U: ${{ secrets.CPANEL_USER }}
+          H: ${{ secrets.CPANEL_HOST }}
+          T: ${{ secrets.CPANEL_TOKEN }}
+          ACAO: ${{ github.event.inputs.acao }}
+          CAM: ${{ github.event.inputs.caminho }}
+          ORI: ${{ github.event.inputs.origem }}
+        run: |
+          set -e
+          [ -n "$U" ] && [ -n "$H" ] && [ -n "$T" ] || { echo "Faltam os secrets CPANEL_USER / CPANEL_HOST / CPANEL_TOKEN"; exit 1; }
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          HOME_DIR="/home/$U"
+          CAM="${CAM#/}"; CAM="${CAM%/}"
+          case "/$CAM/" in *"/../"*|*"/./"*) echo "caminho inválido"; exit 1;; esac
+          # pastas e arquivos fechados (nunca listar, ler ou gravar)
+          for f in mail .ssh .cpanel .gnupg etc logs ssl tmp .trash perl5 .softaculous; do
+            case "$CAM" in "$f"|"$f"/*) echo "Pasta fechada: $f"; exit 1;; esac
+          done
+          case "$(basename "$CAM")" in wp-config.php|wp-config-sample.php|.env|.htpasswd|id_rsa|error_log) echo "Arquivo fechado."; exit 1;; esac
+          api() { curl -sS --max-time 60 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/$1" "${@:2}"; }
+          DIR="$HOME_DIR${CAM:+/$CAM}"
+          case "$ACAO" in
+            listar)
+              api list_files --data-urlencode "dir=$DIR" --data "include_mime=0&show_hidden=1" \
+                | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin)
+          if j.get('status')!=1: print('ERRO:',j.get('errors')); sys.exit(1)
+          fech={'mail','.ssh','.cpanel','.gnupg','etc','logs','ssl','tmp','.trash','perl5','.softaculous'}
+          rel='''$CAM'''
+          for x in sorted(j['data'],key=lambda x:(x.get('type')!='dir',x['file'].lower())):
+              if x['file'] in ('.','..'): continue
+              if not rel and x['file'] in fech: continue
+              print(('[pasta] ' if x.get('type')=='dir' else '        ')+x['file']+('' if x.get('type')=='dir' else '  ('+str(x.get('size'))+' B)'))
+          "
+              ;;
+            ler)
+              api get_file_content --data-urlencode "dir=$(dirname "$DIR")" --data-urlencode "file=$(basename "$DIR")" \
+                | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin)
+          if j.get('status')!=1: print('ERRO:',j.get('errors')); sys.exit(1)
+          sys.stdout.write(j['data']['content'])
+          "
+              ;;
+            gravar)
+              [ -f "$ORI" ] || { echo "Arquivo de origem não existe no repo: $ORI"; exit 1; }
+              case "$ORI" in hg-envio/*) ;; *) echo "A origem precisa estar em hg-envio/"; exit 1;; esac
+              mkdir -p backup
+              api get_file_content --data-urlencode "dir=$(dirname "$DIR")" --data-urlencode "file=$(basename "$DIR")" \
+                | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin)
+          sys.stdout.write(j['data']['content'] if j.get('status')==1 else '')
+          " > "backup/$(basename "$CAM").antes" || true
+              R=$(api save_file_content --data-urlencode "dir=$(dirname "$DIR")" --data-urlencode "file=$(basename "$DIR")" --data-urlencode "content@$ORI")
+              echo "$R" | python3 -c "
+          import json,sys
+          j=json.load(sys.stdin)
+          print('GRAVADO' if j.get('status')==1 else 'ERRO: '+str(j.get('errors')))
+          sys.exit(0 if j.get('status')==1 else 1)
+          "
+              ;;
+            *) echo "acao inválida"; exit 1;;
+          esac
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event.inputs.acao == 'gravar' }}
+        with: { name: backup-antes, path: backup/ }
