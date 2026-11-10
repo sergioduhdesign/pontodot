@@ -1,5 +1,1 @@
-/* REGRA FIXA — ferramenta da PD aberta dentro da home/app (iframe, html.emb):
-   o cabeçalho (título + botões + X de fechar) SEMPRE começa ABAIXO do menu do topo da PD (~60px + safe-area).
-   O X fica na mesma linha do título, no canto direito, sem bolinha atrás. No celular o X some (volta/gesto fecha). */
-html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
-@media(max-width:999px){html.emb .top{padding:calc(var(--safe,0px) + 60px) 68px 8px 12px;flex-wrap:wrap}#btFechar{display:none!important}}
+/* Obsoleto: a estrutura padrão (caixa branca central + seta de voltar) está em CLAUDE.md e em seo.html (.folha). */

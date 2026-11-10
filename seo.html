@@ -7,7 +7,6 @@
 <meta name="theme-color" content="#0B0C0B">
 <title>SEO · Pontodot</title>
 <link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/pd-ferramenta.css">
 <style>
 :root{--bg:#0B0C0B;--card:rgba(255,255,255,.045);--tx:rgba(255,255,255,.92);--mut:rgba(255,255,255,.55);--lin:rgba(255,255,255,.16);--acc:#fff;--acc-tx:#0B0C0B;--ok:#2fb36d;--verm:#DB2777;--ouro:#D97706;--r:18px;--veu:rgba(11,12,11,.5);--in:rgba(255,255,255,.06)}
 :root[data-theme=light]{--bg:#F6F5F1;--card:#fff;--tx:#1A1B1E;--mut:rgba(26,27,30,.58);--lin:rgba(26,27,30,.14);--acc:#1A1B1E;--acc-tx:#fff;--ok:#16a34a;--veu:rgba(246,245,241,.7);--in:rgba(26,27,30,.04)}
@@ -75,18 +74,28 @@ a{color:inherit}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--acc);color:var(--acc-tx);padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.on{opacity:1}
 .mut{color:var(--mut)}.pequeno{font-size:12.5px}
+
+/* caixa branca grande, central, com tudo dentro; abaixo do menu do topo da PD */
+html.emb body{padding:68px 20px 28px}
+.folha{max-width:1240px;margin:0 auto;background:var(--card);border:1px solid var(--lin);border-radius:var(--r);box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden}
+:root[data-theme=light] .folha{background:#fff}
+.folha .top{position:sticky;top:0;background:inherit;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0 18px;min-height:64px}
+.folha .corpo{max-width:none;margin:0;padding:18px 22px 40px}
+html{scrollbar-width:thin}
+@media(max-width:999px){html.emb body{padding:calc(var(--safe,0px) + 60px) 0 0}.folha{border-radius:0;border:0;box-shadow:none;min-height:100vh}.folha .corpo{padding:14px 12px 60px}}
 </style>
 </head>
 <body>
 <div id="porta"><div class="pcx"><h2>SEO</h2><p>Carregando…</p></div></div>
 <div id="app" class="hid">
+  <div class="folha">
   <div class="top">
-    <button class="btn i hid" id="btVolta" title="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="btn i" id="btVolta" title="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <h1 id="tit">SEO</h1><span class="sub" id="sub"></span>
-    <span class="fl1"></span>
-    <button class="btn i" id="btFechar" title="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <span class="fl1"></span><span id="topoAcoes" style="display:flex;gap:8px"></span>
   </div>
   <div class="corpo" id="cont"></div>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -100,8 +109,8 @@ try{
   const sf = new URLSearchParams(location.search).get('safe'); if (sf) R.style.setProperty('--safe', Number(sf) + 'px');
   let dia = false;
   try { dia = emb ? parent.document.documentElement.classList.contains('dia') : localStorage.getItem('sd_tema') === 'dia'; } catch(e){ dia = localStorage.getItem('sd_tema') === 'dia'; }
-  if (matchMedia('(max-width:700px)').matches) dia = false;
-  R.setAttribute('data-theme', dia ? 'light' : 'dark');
+  const cel = matchMedia('(max-width:999px)').matches;
+  R.setAttribute('data-theme', cel ? 'dark' : 'light');   // desktop: caixa branca; celular (app): escuro
 }catch(e){}
 const $ = s => document.querySelector(s);
 const esc = x => String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -152,9 +161,10 @@ async function boot(){
 // ------------------------------------------------------------------ cabeçalho
 function topo(titulo, sub, voltar){
   $('#tit').textContent = titulo; $('#sub').textContent = sub || '';
-  const b = $('#btVolta'); b.classList.toggle('hid', !voltar); b.onclick = voltar || null;
+  const b = $('#btVolta'); b.classList.remove('hid'); b.onclick = voltar || fecha;
 }
-$('#btFechar').onclick = () => { try { parent.postMessage({ tipo: 'seo-fechar' }, '*'); } catch(e){} };
+function fecha(){ try { parent.postMessage({ tipo: 'seo-fechar' }, '*'); } catch(e){} }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && VIEW === 'lista') fecha(); });
 
 function cartaQuem(){
   const q = QUEM; const taxa = q.total ? ' · acertou de primeira <b>' + q.acertos + ' de ' + q.total + '</b>' : ' · ainda sem histórico';
@@ -438,6 +448,44 @@ async function aplicaLote(){
 // ------------------------------------------------------------------ PDF (impressão do navegador → Salvar como PDF)
 const ROTULO = { sem_titulo: 'Páginas sem título', titulo_curto: 'Títulos SEO curtos', titulo_longo: 'Títulos SEO longos demais', sem_meta: 'Páginas sem meta description', meta_curta: 'Meta descriptions curtas', meta_longa: 'Meta descriptions longas demais', sem_h1: 'Páginas sem título principal (H1)', varios_h1: 'Páginas com mais de um H1', noindex: 'Páginas bloqueadas para o Google (noindex)', sem_canonical: 'Páginas sem URL canônica', sem_og: 'Páginas sem imagem de compartilhamento', sem_schema: 'Páginas sem dados estruturados (schema)', sem_viewport: 'Páginas sem configuração para celular', img_sem_alt: 'Páginas com imagens sem texto alternativo', conteudo_curto: 'Páginas com pouco conteúdo', sem_links_internos: 'Páginas sem links internos', slug_longo: 'Endereços muito longos', fora: 'Páginas que não abriram', lenta: 'Páginas lentas', titulo_repetido: 'Páginas com título repetido', meta_repetida: 'Páginas com meta description repetida' };
 function relatorioPdf(){
+  if (!FULL) return;
+  try { if (self !== top && typeof parent.pdfDoc === 'function') return pdfCasa(); } catch(e){}
+  relatorioPdfSolo();
+}
+// PDF no padrão da casa (index.html pdfDoc): identidade PD + logo do cliente, wide 1920×1080, Baixar/Compartilhar/Copiar link
+function pdfCasa(){
+  const nome = cli().name || '', R = FULL.resumo, e = esc;
+  const home = FULL.itens.find(i => i.tipo === 'home'), site = home ? home.url : (FULL.itens[0] || {}).url || '';
+  const urlAv = QUEM && QUEM.avatar ? new URL(QUEM.avatar, location.href).href : '';
+  const cn = n => n >= 80 ? '#16a34a' : n >= 55 ? '#d97706' : '#dc2626';
+  const apl = {}; HIST.filter(h => h.status === 'aplicada').forEach(h => (apl[h.url] = apl[h.url] || []).push(h));
+  const vit = (url, t, m, flag) => { const host = e(String(url || '').replace(/^https?:\/\//, '').replace(/\/$/, '')), cut = (x, n) => x.length > n ? x.slice(0, n - 1).trim() + '…' : x;
+    return '<div class="serp"><div class="a">' + host + '</div><div class="b' + (flag && flag.t ? ' err' : '') + '">' + e(cut((t || '').trim() || '(sem título)', 60)) + '</div><div class="c' + (flag && flag.m ? ' err' : '') + '">' + e(cut((m || '').trim() || '(sem descrição: o Google escolhe um trecho qualquer da página)', 158)) + '</div></div>'; };
+  let somaAntes = 0, somaDepois = 0, n = 0, aplicadas = 0;
+  const blocos = FULL.itens.map(it => {
+    const cod = it.problemas.map(p => String(p[0])), fl = { t: cod.some(c => /titulo/.test(c)), m: cod.some(c => /meta/.test(c)) };
+    const a = apl[it.url] || [], v = { titulo: (it.analise.titulo || ''), meta: (it.analise.meta || ''), alts: {} };
+    a.forEach(h => { if (h.campo === 'titulo_seo') v.titulo = h.depois; else if (h.campo === 'meta') v.meta = h.depois; else if (h.campo === 'alt') v.alts[h.alvo] = h.depois; });
+    const depois = a.length ? estima(it, v) : it.nota; n++; somaAntes += it.nota; somaDepois += depois; aplicadas += a.length;
+    const trocas = a.map(h => '<li><b>' + CAMPO[h.campo] + '</b>' + (h.campo === 'alt' ? ' · imagem ' + e(h.alvo) : '') + (h.motivo ? ' — ' + e(h.motivo) : '') + '</li>').join('');
+    return '<div class="pg"><div class="ph"><b>' + e((it.analise && it.analise.titulo) || it.titulo_wp || '(sem título)') + '</b><span class="nn" style="color:' + cn(it.nota) + '">' + it.nota + '</span><span class="ar">→</span><span class="nn" style="color:' + cn(depois) + '">' + depois + '</span></div>' +
+      '<div class="par"><div><small>ANTES</small>' + vit(it.url, it.analise.titulo, it.analise.meta, fl) + '</div><div><small>DEPOIS' + (a.length ? '' : ' · ainda sem correção aplicada') + '</small>' + (a.length ? vit(it.url, v.titulo, v.meta, {}) : '<div class="serp vazio">Nada aplicado nesta página ainda.</div>') + '</div></div>' +
+      (trocas ? '<ul class="tr">' + trocas + '</ul>' : '') + '<div class="pl">' + (it.problemas.map(p => '<span class="pp">' + e(p[2]) + '</span>').join('') || '<span class="pp ok">Sem problemas</span>') + '</div></div>';
+  }).join('');
+  const mediaA = n ? Math.round(somaAntes / n) : 0, mediaD = n ? Math.round(somaDepois / n) : 0;
+  const css = `.big{display:flex;gap:18px;align-items:stretch;margin:6px 0 4px}.bx{flex:1;background:#F4F3EF;border-radius:14px;padding:14px 18px}.bx small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6B6D75}.bx b{font-size:44px;line-height:1.1;font-weight:600}.bx i{font-style:normal;font-size:14px;color:#6B6D75}
+  .eu{display:flex;align-items:center;gap:12px;padding:10px 0}.eu img{width:48px;height:48px;border-radius:50%;object-fit:cover}.eu span{font-size:12px;color:#55575F}
+  .pg{border-top:1px solid #E4E3DE;padding:14px 0;break-inside:avoid}.ph{display:flex;align-items:center;gap:10px}.ph b{flex:1;font-size:14px}.nn{font-size:24px;font-weight:700}.ar{color:#6B6D75}
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}.par small{display:block;font-size:9.5px;letter-spacing:.12em;color:#6B6D75;margin-bottom:4px}
+  .serp{padding:10px 13px;border-radius:10px;background:#fff;border:1px solid #DADCE0;color:#202124;font-family:Arial,sans-serif}.serp .a{font-size:11.5px;color:#4d5156}.serp .b{font-size:17px;line-height:1.25;color:#1a0dab;margin:2px 0}.serp .c{font-size:12.5px;color:#4d5156;line-height:1.4}.serp .err{outline:2px dashed #d93025;outline-offset:2px;border-radius:3px}.serp.vazio{color:#8e8e93;font-size:12px;display:flex;align-items:center;min-height:70px;background:#FAFAF8}
+  .tr{margin:8px 0 0;padding-left:18px;font-size:11.5px;color:#55575F}.pl{margin-top:8px}.pp{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:99px;background:#F4F3EF;margin:0 5px 4px 0}.pp.ok{background:#DCFCE7;color:#166534}`;
+  const corpo = `<div class="eu">${urlAv ? '<img crossorigin="anonymous" src="' + e(urlAv) + '" alt="">' : ''}<span><b>${e(QUEM.nome || 'IA da casa')}</b> · ${e(QUEM.titulo || '')} — cuida do SEO da casa. Nada foi aplicado sem aprovação; tudo dá para desfazer.</span></div>
+  <h2>Diagnóstico · antes e depois</h2><div class="big"><div class="bx"><small>Nota do site na auditoria</small><b style="color:${cn(R.nota)}">${R.nota}</b><i> /100</i></div><div class="bx"><small>Média das páginas · antes</small><b style="color:${cn(mediaA)}">${mediaA}</b><i> /100</i></div><div class="bx"><small>Média das páginas · depois</small><b style="color:${cn(mediaD)}">${mediaD}</b><i> /100 · ${aplicadas} correç${aplicadas === 1 ? 'ão aplicada' : 'ões aplicadas'}</i></div><div class="bx"><small>Páginas lidas</small><b>${R.paginas_lidas}</b><i> de ${R.paginas_no_site}</i></div></div>
+  ${R.site.length ? '<h2>Pontos do site inteiro</h2>' + R.site.map(x => '<div style="margin:3px 0"><span class="pp">' + e(SEV[x[1]]) + '</span>' + e(x[2]) + '</div>').join('') : ''}
+  <h2>Página por página · como aparece no Google</h2>${blocos}`;
+  parent.pdfDoc('Diagnóstico de SEO', e(site.replace(/^https?:\/\//, '')) + ' · auditado em ' + new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR'), nome, corpo, { css });
+}
+function relatorioPdfSolo(){
   if (!FULL) return; const R = FULL.resumo, nome = cli().name || '';
   const home = FULL.itens.find(i => i.tipo === 'home'), site = home ? home.url : (FULL.itens[0] || {}).url || '';
   const hoje = new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
