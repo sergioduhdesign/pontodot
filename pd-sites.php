@@ -60,6 +60,8 @@ try {
         echo json_encode(['ok' => true, 'feed' => $feed, 'snippet' => '<div id="pd-bloco"></div>' . "\n" . '<script src="' . $base . '/pd-bloco.js" data-feed="' . $feed . '" data-max="6" defer></script>'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit;
     }
     if (($d['acao'] ?? '') === 'testar') {
+        $st = pdSiteCfg($cid);
+        if (($st['tipo'] ?? '') !== 'wp' && pdCred($cid, 'wix')) { require_once __DIR__ . '/pd-wix-lib.php'; echo json_encode(['ok' => true] + pdWixTestar($cid), JSON_UNESCAPED_UNICODE); exit; }
         $r = pdWPTestar($cid);
         // de brinde: o endereço do feed assinado pro "bloco embutido"
         $r['feed'] = '/pd-sites.php?feed=' . $cid . '&k=' . substr(hash_hmac('sha256', 'feed:' . $cid, SD_SECRET_KEY), 0, 24);

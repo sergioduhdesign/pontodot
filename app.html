@@ -873,10 +873,10 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
               </div>
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
-                  <div class="entity-card-name">HostGator da casa</div>
+                  <div class="entity-card-name">HostGator e Wix da casa</div>
                   <div class="entity-card-meta">Acesso à conta inteira (todos os sites da raiz): guardar o token uma vez e editar arquivos com backup e desfazer</div>
                 </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">🔐 Acesso</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">🔐 HostGator</button><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix','casa')">🔐 Wix</button><button class="btn btn-secondary btn-sm" onclick="pdWixSitesVer()">Sites do Wix</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
               </div>
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
@@ -7721,6 +7721,20 @@ async function pdSeoAgenda(){
     st.textContent = r.agenda.ativo ? '✓ auditoria automática a cada ' + r.agenda.dias + ' dia(s)' : '✓ auditoria automática desligada';
   } catch(e){ st.textContent = '✗ ' + e.message; }
 }
+async function pdWixSitesVer(){
+  try {
+    const r = await sdFetch('/pd-wix.php', { acao:'sites' });
+    const ov = document.createElement('div'); ov.id = 'wixVeu';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:76px 16px 24px';
+    ov.innerHTML = `<div style="max-width:720px;margin:0 auto;background:#fff;color:#15161A;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden;font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #E4E3DE"><button id="wx-v" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px">‹</button><b style="font-size:16px">Sites do Wix (${r.sites.length})</b></div>
+      <div style="padding:6px 8px 14px">${r.sites.map(x => `<div style="padding:10px 12px;border-bottom:1px solid #EFEEE9"><b>${esc(x.nome||'(sem nome)')}</b><div style="font-size:12px;color:#6B6D75">${esc(x.url||'')}</div><div style="font-size:12px;font-family:monospace;color:#3D3F46;user-select:all">${esc(x.id)}</div></div>`).join('') || '<div style="padding:20px;color:#6B6D75">Nenhum site encontrado.</div>'}
+      <div style="padding:10px 12px;font-size:12px;color:#6B6D75">Copie o ID do site e cole em Clientes → cliente → Canais → Chave do Wix.</div></div></div>`;
+    document.body.appendChild(ov);
+    const f = () => { ov.remove(); document.removeEventListener('keydown', k); }; const k = e => { if (e.key === 'Escape') f(); };
+    document.addEventListener('keydown', k); ov.querySelector('#wx-v').onclick = f;
+  } catch(e){ showToast('Wix: ' + e.message, 'error'); }
+}
 async function pdSiteTestar(){
   const st = document.getElementById('mc-site-st'); st.textContent = 'testando…';
   try {
@@ -7737,22 +7751,25 @@ function pdCofreAbrir(servico, escopo){
     <div class="cfF" style="max-width:600px;margin:0 auto;background:#fff;color:#15161A;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden;font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif">
     <div class="cfH" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #E4E3DE;background:#fff">
       <button id="cf-v" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px;color:#15161A">‹</button>
-      <b style="font-size:16px">Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?'Wix do cliente':servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':esc(servico)}</b></div>
+      <b style="font-size:16px">Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?(casa?'Wix da casa — a chave vale p/ todos os sites':'Wix do cliente (ID do site)'):servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':esc(servico)}</b></div>
     <div style="padding:18px 20px 22px">
     <div style="font-size:13px;color:#6B6D75;line-height:1.55;margin-bottom:16px">A chave vai direto pro cofre do servidor. Ninguém — nem admin — lê depois.
       ${servico==='wordpress' ? 'No WP do cliente: Usuários → Perfil → <b>Senhas de aplicativo</b> → crie uma chamada "pontodot" e cole aqui.' : ''}
       ${servico==='hostgator' ? 'No cPanel: <b>Segurança → Gerenciar tokens de API</b> → criar "pontodot" (sem validade). Usuário = o usuário do cPanel; servidor = o endereço que aparece ao entrar no cPanel (ex.: br123.hostgator.com.br); chave = o token. Com ele a PD instala o plugin de SEO e mexe em robots.txt/.htaccess sozinha.' : ''}
-      ${servico==='wix' ? 'Chave: manage.wix.com/account/api-keys → gerar chave "pontodot". O <b>ID do site</b> é o trecho longo da URL do painel (manage.wix.com/dashboard/<b>ID</b>/home). A mesma chave serve para vários sites da conta; o ID muda por site.' : ''}</div></div>
-    <input id="cf-user" placeholder="${servico==='wix'?'ID do site (da URL do painel Wix)':servico==='hostgator'?'usuário do cPanel':'usuário (ex.: pontodot)'}" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">
+      ${servico==='wix' && casa ? 'Uma vez só: chave em manage.wix.com/account/api-keys (permissões de todos os sites, blog e SEO). Usuário = o <b>ID da conta</b> Wix. Depois, em cada cliente, só o ID do site.' : ''}
+      ${servico==='wix' && !casa ? 'Só o <b>ID do site</b> (trecho longo da URL do painel). A chave vem da casa; cole uma aqui só se este site for de outra conta Wix.' : ''}
+      ${false ? 'Chave: manage.wix.com/account/api-keys → gerar chave "pontodot". O <b>ID do site</b> é o trecho longo da URL do painel (manage.wix.com/dashboard/<b>ID</b>/home). A mesma chave serve para vários sites da conta; o ID muda por site.' : ''}</div></div>
+    <input id="cf-user" placeholder="${servico==='wix'?(casa?'ID da conta Wix':'ID do site (da URL do painel Wix)'):servico==='hostgator'?'usuário do cPanel':'usuário (ex.: pontodot)'}" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">
     ${servico==='hostgator' ? '<input id="cf-host" placeholder="servidor do cPanel (ex.: br123.hostgator.com.br)" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">' : ''}
-    <input id="cf-pass" type="password" placeholder="${servico==='wix'?'chave de API do Wix':servico==='hostgator'?'token da API do cPanel':'senha de aplicativo'}" autocomplete="new-password" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">
+    <input id="cf-pass" type="password" placeholder="${servico==='wix'?(casa?'chave de API do Wix':'chave própria (vazio = usa a da casa)'):servico==='hostgator'?'token da API do cPanel':'senha de aplicativo'}" autocomplete="new-password" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">
     <button class="btn btn-primary" style="width:100%;height:42px;margin-top:6px" id="cf-ok">Guardar no cofre</button></div></div>`;
   document.body.appendChild(ov);
   const cfFecha = () => { ov.remove(); document.removeEventListener('keydown', cfEsc); };
   const cfEsc = ev => { if (ev.key === 'Escape') cfFecha(); }; document.addEventListener('keydown', cfEsc);
   ov.querySelector('#cf-v').onclick = cfFecha;
   ov.querySelector('#cf-ok').onclick = async () => {
-    const seg = ov.querySelector('#cf-pass').value.trim();
+    let seg = ov.querySelector('#cf-pass').value.trim();
+    if (!seg && servico === 'wix' && !casa) seg = '@casa';   // cliente sem chave própria: usa a da casa
     if (!seg) { showToast('Cola a senha primeiro.', 'warn'); return; }
     try {
       await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: casa ? 'casa' : currentClientId, servico,
