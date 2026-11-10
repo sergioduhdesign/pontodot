@@ -6,6 +6,7 @@ on:
     inputs:
       acao:    { description: "listar | ler | gravar", required: true, default: "listar" }
       caminho: { description: "caminho a partir da raiz da conta (ex.: public_html/index.html). Vazio = raiz", required: false, default: "" }
+      conta:   { description: "outra conta HostGator: código curto (ex.: VF) com secrets CPANEL_VF_USER/HOST/TOKEN. Vazio = a conta da casa", required: false, default: "" }
       origem:  { description: "só para gravar: arquivo no repo (ex.: hg-envio/index.html)", required: false, default: "" }
 jobs:
   hg:
@@ -14,9 +15,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Executar
         env:
-          U: ${{ secrets.CPANEL_USER }}
-          H: ${{ secrets.CPANEL_HOST }}
-          T: ${{ secrets.CPANEL_TOKEN }}
+          U: ${{ (github.event.inputs.conta != '' && secrets[format('CPANEL_{0}_USER', github.event.inputs.conta)]) || secrets.CPANEL_USER }}
+          H: ${{ (github.event.inputs.conta != '' && secrets[format('CPANEL_{0}_HOST', github.event.inputs.conta)]) || secrets.CPANEL_HOST }}
+          T: ${{ (github.event.inputs.conta != '' && secrets[format('CPANEL_{0}_TOKEN', github.event.inputs.conta)]) || secrets.CPANEL_TOKEN }}
           ACAO: ${{ github.event.inputs.acao }}
           CAM: ${{ github.event.inputs.caminho }}
           ORI: ${{ github.event.inputs.origem }}
