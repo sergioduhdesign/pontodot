@@ -6,7 +6,7 @@ window.pdArquivosAbrir = function (cid) {
   const api = b => sdFetch('/pd-arquivos.php', Object.assign(cid ? { client_id: cid, escopo } : { escopo: 'conta' }, b));
   let rel = '', aberto = null, orig = '', escopo = 'conta';
   const v = document.createElement('div'); v.id = 'arqVeu';
-  v.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:24px 16px';
+  v.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:76px 16px 24px';
   v.innerHTML = `<div style="max-width:1100px;margin:0 auto;background:#fff;color:#15161A;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden;font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif">
     <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #E4E3DE;position:sticky;top:0;background:#fff;z-index:2">
       <button id="aV" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px">‹</button>

@@ -1790,7 +1790,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
 <script src="/js/pd-ajuda.js?v=328"></script>
 <script src="/js/pd-modelos.js?v=1"></script>
 <script src="/js/pd-seo.js?v=4"></script>
-<script src="/js/pd-arquivos.js?v=4"></script>
+<script src="/js/pd-arquivos.js?v=5"></script>
 <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://js.pusher.com/beams/2.1.0/push-notifications-cdn.js"></script>
@@ -7726,28 +7726,33 @@ async function pdSiteTestar(){
 // cofre: a senha entra num campo de senha e vai DIRETO pro servidor
 function pdCofreAbrir(servico, escopo){
   const casa = escopo === 'casa';
-  const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(10,10,12,.55);backdrop-filter:blur(6px);padding:20px';
-  ov.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:420px;width:100%;padding:22px">
-    <div style="font-weight:700;margin-bottom:4px">🔐 Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?'Wix do cliente':servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':esc(servico)}</div>
-    <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:14px">A chave vai direto pro cofre do servidor. Ninguém — nem admin — lê depois.
+  const ov = document.createElement('div'); ov.id = 'cofreVeu';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,10,12,.55);backdrop-filter:blur(8px);overflow:auto;padding:76px 16px 24px';
+  ov.innerHTML = `<style>@media(max-width:700px){#cofreVeu{padding:0!important;background:#0B0C0B!important}#cofreVeu .cfF{max-width:none!important;min-height:100%;border-radius:0!important;background:#111214!important;color:#ECECE8!important}#cofreVeu .cfF input{background:#1A1B1E!important;color:#ECECE8!important;border-color:#2A2B30!important}#cofreVeu .cfH{background:#111214!important;border-color:#2A2B30!important}#cofreVeu .cfH button{background:#1A1B1E!important;color:#ECECE8!important;border-color:#2A2B30!important}}</style>
+    <div class="cfF" style="max-width:600px;margin:0 auto;background:#fff;color:#15161A;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden;font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif">
+    <div class="cfH" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #E4E3DE;background:#fff">
+      <button id="cf-v" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px;color:#15161A">‹</button>
+      <b style="font-size:16px">Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?'Wix do cliente':servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':esc(servico)}</b></div>
+    <div style="padding:18px 20px 22px">
+    <div style="font-size:13px;color:#6B6D75;line-height:1.55;margin-bottom:16px">A chave vai direto pro cofre do servidor. Ninguém — nem admin — lê depois.
       ${servico==='wordpress' ? 'No WP do cliente: Usuários → Perfil → <b>Senhas de aplicativo</b> → crie uma chamada "pontodot" e cole aqui.' : ''}
       ${servico==='hostgator' ? 'No cPanel: <b>Segurança → Gerenciar tokens de API</b> → criar "pontodot" (sem validade). Usuário = o usuário do cPanel; servidor = o endereço que aparece ao entrar no cPanel (ex.: br123.hostgator.com.br); chave = o token. Com ele a PD instala o plugin de SEO e mexe em robots.txt/.htaccess sozinha.' : ''}
-      ${servico==='wix' ? 'Chave: manage.wix.com/account/api-keys → gerar chave "pontodot". O <b>ID do site</b> é o trecho longo da URL do painel (manage.wix.com/dashboard/<b>ID</b>/home). A mesma chave serve para vários sites da conta; o ID muda por site.' : ''}</div>
-    <input id="cf-user" placeholder="${servico==='wix'?'ID do site (da URL do painel Wix)':servico==='hostgator'?'usuário do cPanel':'usuário (ex.: pontodot)'}" style="width:100%;height:36px;margin-bottom:8px">
-    ${servico==='hostgator' ? '<input id="cf-host" placeholder="servidor do cPanel (ex.: br123.hostgator.com.br)" style="width:100%;height:36px;margin-bottom:8px">' : ''}
-    <input id="cf-pass" type="password" placeholder="${servico==='wix'?'chave de API do Wix':servico==='hostgator'?'token da API do cPanel':'senha de aplicativo'}" autocomplete="new-password" style="width:100%;height:36px;margin-bottom:14px">
-    <div style="display:flex;gap:8px"><button class="btn btn-secondary" style="flex:1" onclick="this.closest('div').parentElement.parentElement.remove()">Cancelar</button>
-    <button class="btn btn-primary" style="flex:1" id="cf-ok">Guardar no cofre</button></div></div>`;
+      ${servico==='wix' ? 'Chave: manage.wix.com/account/api-keys → gerar chave "pontodot". O <b>ID do site</b> é o trecho longo da URL do painel (manage.wix.com/dashboard/<b>ID</b>/home). A mesma chave serve para vários sites da conta; o ID muda por site.' : ''}</div></div>
+    <input id="cf-user" placeholder="${servico==='wix'?'ID do site (da URL do painel Wix)':servico==='hostgator'?'usuário do cPanel':'usuário (ex.: pontodot)'}" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">
+    ${servico==='hostgator' ? '<input id="cf-host" placeholder="servidor do cPanel (ex.: br123.hostgator.com.br)" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">' : ''}
+    <input id="cf-pass" type="password" placeholder="${servico==='wix'?'chave de API do Wix':servico==='hostgator'?'token da API do cPanel':'senha de aplicativo'}" autocomplete="new-password" style="width:100%;height:40px;margin-bottom:10px;border:1px solid #D9D8D2;border-radius:10px;padding:0 12px;background:#fff;color:#15161A;font:14px -apple-system,Helvetica,Arial,sans-serif">
+    <button class="btn btn-primary" style="width:100%;height:42px;margin-top:6px" id="cf-ok">Guardar no cofre</button></div></div>`;
   document.body.appendChild(ov);
-  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  const cfFecha = () => { ov.remove(); document.removeEventListener('keydown', cfEsc); };
+  const cfEsc = ev => { if (ev.key === 'Escape') cfFecha(); }; document.addEventListener('keydown', cfEsc);
+  ov.querySelector('#cf-v').onclick = cfFecha;
   ov.querySelector('#cf-ok').onclick = async () => {
     const seg = ov.querySelector('#cf-pass').value.trim();
     if (!seg) { showToast('Cola a senha primeiro.', 'warn'); return; }
     try {
       await sdFetch('/pd-cofre.php', { acao:'guardar', client_id: casa ? 'casa' : currentClientId, servico,
         rotulo: servico==='hostgator' ? (ov.querySelector('#cf-host')?.value.trim()||'') : servico + ' · ' + (clients.find(c=>c.id===currentClientId)?.name||''), usuario: ov.querySelector('#cf-user').value.trim(), segredo: seg });
-      ov.remove(); showToast('Guardado no cofre. Pode testar a conexão.', 'success');
+      cfFecha(); showToast('Guardado no cofre. Pode testar a conexão.', 'success');
     } catch(e){ showToast('Cofre: ' + e.message, 'error'); }
   };
 }
