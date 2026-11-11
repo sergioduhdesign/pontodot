@@ -30,7 +30,7 @@ jobs:
               _config.php|conteudo/*) [ "$PRIMEIRA" = "true" ] || continue;;
             esac
             dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
-            R=$(curl -sS --max-time 120 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
+            R=$(curl -sS --max-time 120 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
             ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
             echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
           done < <(find "$SRC" -type f | sort)
