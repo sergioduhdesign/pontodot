@@ -37,15 +37,16 @@ function placePills(){
     var bb=p.tx.getBBox(), w=Math.ceil(bb.width)+22, h=17;
     p.rc.setAttribute("width",w); p.rc.setAttribute("x",-w/2); p.rc.setAttribute("y",-h/2);
     p.tx.setAttribute("x",-w/2+11); p.tx.setAttribute("y",0.5);
-    var path=document.getElementById("ring"+i), L=r.L, base=r.hours[p.c.n%12]||0, step=L*0.012, best=null;
-    for(var n=0;n<40&&!best;n++){
-      var off=(n%2?1:-1)*Math.ceil(n/2)*step, s=((base+off)%L+L)%L, pt=path.getPointAtLength(s);
-      var x=cx+pt.x*k, y=cy+pt.y*k, box={x:x-w/2-4,y:y-h/2-3,w:w+8,h:h+6}, ok=true;
-      if(Math.hypot(x-cx,y-cy)<R0+w/2*0.2) ok=false;
+    var path=document.getElementById("ring"+i), L=r.L, a=p.c.pct*L, base=r.hours[p.c.n%12]||0, step=L*0.012, best=null, first=null;
+    /* sempre sobre o trecho colorido da própria linha: começa no início dele e só avança por ele */
+    for(var o=0;o<=a-step&&!best;o+=step){
+      var s=(base+o+w/2/k*0.0)%L, pt=path.getPointAtLength(((base+o)%L+L)%L);
+      var x=cx+pt.x*k, y=cy+pt.y*k, box={x:x-w/2-3,y:y-h/2-2,w:w+6,h:h+4}, ok=true;
+      if(!first) first={x:x,y:y,box:box};
       for(var j=0;ok&&j<placed.length;j++){var q=placed[j];if(box.x<q.x+q.w&&box.x+box.w>q.x&&box.y<q.y+q.h&&box.y+box.h>q.y)ok=false;}
       if(ok) best={x:x,y:y,box:box};
     }
-    if(!best){var pt0=path.getPointAtLength(base);best={x:cx+pt0.x*k,y:cy+pt0.y*k,box:{x:0,y:0,w:0,h:0}};}
+    if(!best){ if(!first){var pt0=path.getPointAtLength(base);first={x:cx+pt0.x*k,y:cy+pt0.y*k,box:{x:0,y:0,w:0,h:0}};} best=first; }
     placed.push(best.box); p.g.setAttribute("transform","translate("+best.x.toFixed(1)+" "+best.y.toFixed(1)+")");
   });
 }
