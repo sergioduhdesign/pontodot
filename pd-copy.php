@@ -10,6 +10,21 @@ header('Content-Type: application/json; charset=utf-8');
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'inicio');
 
+// tipos de gancho (abertura) que a Copy sabe aplicar: o seletor do briefing escolhe, o prompt recebe a fórmula
+function cpGanchos() { return [
+  ['id' => 'invertido', 'nome' => 'Invertido', 'formula' => 'Abre pelo DESFECHO: entrega o resultado ou a conclusão já na 1ª frase, e só depois volta ao começo para mostrar como se chegou lá.', 'ex' => 'Ele pagou menos do que o vizinho e mora com mais luz. Veja como começou.'],
+  ['id' => 'contraintuitivo', 'nome' => 'Contraintuitivo', 'formula' => 'Afirma o contrário do que o público acredita e resolve a tensão no corpo do texto, com prova.', 'ex' => 'Comprar na planta pode ser mais seguro do que comprar pronto.'],
+  ['id' => 'erro_comum', 'nome' => 'Erro que todo mundo comete', 'formula' => 'Nomeia um erro concreto e frequente do público e promete o caminho certo.', 'ex' => 'O erro de quem visita o decorado só no sábado de manhã.'],
+  ['id' => 'pergunta_choque', 'nome' => 'Pergunta-choque', 'formula' => 'Uma pergunta curta que o público não consegue ignorar, sobre algo que ele já sente.', 'ex' => 'Quanto da sua rua você realmente conhece?'],
+  ['id' => 'numero', 'nome' => 'Número ou prova primeiro', 'formula' => 'Abre com um número, dado ou fato verificável; a explicação vem depois.', 'ex' => '32 anos lendo o mercado: o que os dados dizem sobre a sua próxima casa.'],
+  ['id' => 'bastidor', 'nome' => 'Ninguém conta', 'formula' => 'Promete um bastidor ou informação que quase ninguém do mercado revela.', 'ex' => 'O que o corretor não costuma contar sobre o preço do metro quadrado.'],
+  ['id' => 'identificacao', 'nome' => 'Identificação (você que...)', 'formula' => 'Descreve em uma linha a situação exata do público, para ele se reconhecer.', 'ex' => 'Você que já fechou a planilha do financiamento três vezes e ainda tem dúvida.'],
+  ['id' => 'antes_depois', 'nome' => 'Antes e depois', 'formula' => 'Contrasta duas cenas de vida, antes e depois, em frases curtas.', 'ex' => 'Antes: trânsito às 7h. Depois: café na varanda às 8h.'],
+  ['id' => 'cena', 'nome' => 'Cena no meio da ação', 'formula' => 'Começa dentro de uma cena concreta, já em andamento, sem apresentação.', 'ex' => 'Ela abriu a porta e a luz da tarde ocupou a sala inteira.'],
+  ['id' => 'previsao', 'nome' => 'Previsão', 'formula' => 'Faz uma previsão ousada, mas defensável com dados, sobre o futuro do morar.', 'ex' => 'Em 2030, morar perto vai valer mais do que morar grande.'],
+  ['id' => 'lista', 'nome' => 'Lista curiosa', 'formula' => 'Promete N itens específicos; o número cria expectativa e ritmo.', 'ex' => '3 coisas que mudam quando o bairro ganha uma praça.'],
+  ['id' => 'comparacao', 'nome' => 'Comparação inesperada', 'formula' => 'Compara duas coisas que ninguém compara e tira uma conclusão útil.', 'ex' => 'Escolher apartamento é como escolher sapato: o número não diz tudo.'],
+]; }
 // estilos-base da casa: vozes de redatores e escolas que funcionam (o banco de referências do Drive soma a estes)
 function cpEstilosBase() { return [
   ['id' => 'ogilvy', 'nome' => 'Ogilvy · fato e benefício', 'resumo' => 'Clareza, informação útil, promessa concreta. Título longo com fato específico.', 'dna' => 'Começa pelo benefício mais forte. Usa fatos, números e nomes próprios. Frases completas, sem gíria. Nunca esperto demais: o leitor é inteligente. Fecha com uma razão para acreditar.'],
@@ -45,7 +60,7 @@ if ($acao === 'inicio') {
     $cid = (string)($b['client_id'] ?? ''); $q = '/rest/v1/pd_estilos?ativo=eq.true&area=eq.copys&select=id,nome,resumo,dna,client_id,refs&order=nome.asc'; $q .= $cid ? '&or=(client_id.is.null,client_id.eq.' . urlencode($cid) . ')' : '&client_id=is.null';
     $est = sd_supabase($q)['body'] ?? []; $cp = $cid ? (sd_supabase('/rest/v1/pd_copys?client_id=eq.' . urlencode($cid) . '&select=id,nome,briefing,variantes,mudado_em&order=mudado_em.desc&limit=30')['body'] ?? []) : [];
     $refs = cpRefsDrive();
-    echo json_encode(['base' => cpEstilosBase(), 'estilos' => $est, 'copys' => $cp, 'refs' => array_map(fn($r) => ['nome' => $r['nome']], $refs), 'quem' => pdQuemFazArea('copys')], JSON_UNESCAPED_UNICODE); exit;
+    echo json_encode(['ganchos' => cpGanchos(), 'base' => cpEstilosBase(), 'estilos' => $est, 'copys' => $cp, 'refs' => array_map(fn($r) => ['nome' => $r['nome']], $refs), 'quem' => pdQuemFazArea('copys')], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'estilo_salvar') {
     $d = ['area' => 'copys', 'nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 80) ?: 'Estilo', 'resumo' => mb_substr((string)($b['resumo'] ?? ''), 0, 400), 'dna' => mb_substr((string)($b['dna'] ?? ''), 0, 6000), 'client_id' => ($b['client_id'] ?? null) ?: null, 'criado_por' => $u['id'], 'refs' => is_array($b['refs'] ?? null) ? $b['refs'] : null];
@@ -113,7 +128,10 @@ function cpGerar($b, $u) {
     $t0 = microtime(true);   // Hora de Catum: quanto a IA levou para escrever
     $cid = (string)($b['client_id'] ?? ''); if (!$cid) sd_fail('Escolha o cliente.');
     $c = sd_supabase('/rest/v1/clients?id=eq.' . urlencode($cid) . '&select=name,segment,site')['body'][0] ?? []; $kit = sd_supabase('/rest/v1/brand_kits?client_id=eq.' . urlencode($cid) . '&select=tom,voz,sobre')['body'][0] ?? [];
-    $br = (array)($b['briefing'] ?? []); $repBloco = pdRepertorioBloco((array)($br['repertorio'] ?? []), 'copys'); unset($br['repertorio']); $n = max(1, min(8, (int)($b['variantes'] ?? 3))); $dados = mb_substr((string)($b['dados'] ?? ''), 0, 40000);
+    $br = (array)($b['briefing'] ?? []); $repBloco = pdRepertorioBloco((array)($br['repertorio'] ?? []), 'copys'); unset($br['repertorio']);
+    $ganSel = array_values(array_filter((array)($br['ganchos'] ?? []))); unset($br['ganchos']); $ganTxt = [];
+    foreach (cpGanchos() as $g) if (in_array($g['id'], $ganSel, true)) $ganTxt[] = "- {$g['nome']}: {$g['formula']} Exemplo de ritmo (não copie): {$g['ex']}";
+    if ($ganTxt) $repBloco .= "\n\nTIPOS DE GANCHO PEDIDOS (a PRIMEIRA frase de cada peça/roteiro segue um deles; com mais de uma variante, alterne os tipos entre as variantes; diga no campo estilo qual gancho usou; o gancho nunca promete valorização nem inventa dado):\n" . implode("\n", $ganTxt); $n = max(1, min(8, (int)($b['variantes'] ?? 3))); $dados = mb_substr((string)($b['dados'] ?? ''), 0, 40000);
     $links = array_slice(array_filter(array_map('trim', (array)($b['links'] ?? []))), 0, 6); $lidos = []; foreach ($links as $lk) { $t = cpLeLink($lk); if ($t !== '') $lidos[] = "[$lk]\n" . mb_substr($t, 0, 12000); }
     $base = []; foreach (cpEstilosBase() as $e) $base[$e['id']] = $e; $sel = (array)($b['estilos'] ?? []); $estTxt = [];
     foreach ($sel as $se) { $sid = (string)($se['id'] ?? ''); $peso = max(1, min(3, (int)($se['peso'] ?? 2))); if (isset($base[$sid])) $estTxt[] = "- {$base[$sid]['nome']} (peso $peso/3): {$base[$sid]['dna']}";
