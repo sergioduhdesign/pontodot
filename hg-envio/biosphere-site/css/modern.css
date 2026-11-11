@@ -446,3 +446,7 @@ body.intro-locked{ overflow: hidden; }
 .portfolio-box.mosaico .project-post{ position: absolute; margin: 0; float: none; overflow: hidden;
     transition: left .6s ease, top .6s ease, width .6s ease, height .6s ease; }
 .portfolio-box.mosaico .project-post > img{ position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; }
+
+.portfolio-box.mosaico{ opacity: 0; transition: opacity .6s ease; }
+.portfolio-box.mosaico.pronto{ opacity: 1; }
+.portfolio-box.mosaico .project-post > img{ object-position: 50% 35%; }
