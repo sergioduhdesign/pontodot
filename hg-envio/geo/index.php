@@ -19,6 +19,7 @@ $og = $seo['og'] ?? []; $tw = $seo['twitter'] ?? [];
 
 $h = [];
 $h[] = '<link rel="canonical" href="' . e($canon) . '">';
+if (!is_file($dir . '/favicon.ico')) $h[] = '<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%23E8D16F%27/%3E%3Ccircle cx=%2716%27 cy=%2717.5%27 r=%2711%27 fill=%27%2341A27F%27/%3E%3Ccircle cx=%2716%27 cy=%2719%27 r=%277%27 fill=%27%23193C3D%27/%3E%3C/svg%3E">';
 $h[] = '<meta name="robots" content="' . e($robots) . '">';
 if (!empty($seo['theme_color'])) $h[] = '<meta name="theme-color" content="' . e($seo['theme_color']) . '">';
 $ogT = trim($og['title'] ?? '') ?: $titulo; $ogD = trim($og['description'] ?? '') ?: $desc; $ogI = $abs($og['image'] ?? '');
