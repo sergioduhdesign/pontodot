@@ -1,0 +1,28 @@
+name: Página pública — foto de um trecho
+on:
+  workflow_dispatch:
+    inputs:
+      url:      { description: "endereço", required: true }
+      texto:    { description: "texto que aparece no trecho a fotografar", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pip install playwright >/dev/null && python -m playwright install --with-deps chromium >/dev/null
+      - env: { U: "${{ github.event.inputs.url }}", T: "${{ github.event.inputs.texto }}" }
+        run: |
+          python - <<'PY'
+          import os
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              b=p.chromium.launch(); pg=b.new_page(viewport={'width':1440,'height':900},device_scale_factor=1)
+              pg.goto(os.environ['U']+'?v=1',wait_until='networkidle'); pg.wait_for_timeout(1500)
+              el=pg.get_by_text(os.environ['T']).first; el.scroll_into_view_if_needed()
+              box=el.evaluate_handle("e=>e.closest('.e-con.e-parent')||e.closest('section')||e.parentElement.parentElement.parentElement")
+              box.as_element().screenshot(path='trecho.png')
+              pg.set_viewport_size({'width':390,'height':800}); pg.wait_for_timeout(800)
+              pg.get_by_text(os.environ['T']).first.evaluate_handle("e=>e.closest('.e-con.e-parent')||e.parentElement.parentElement.parentElement").as_element().screenshot(path='trecho-celular.png')
+              b.close()
+          PY
+      - uses: actions/upload-artifact@v4
+        with: { name: trecho, path: "*.png" }
