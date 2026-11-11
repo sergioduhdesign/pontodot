@@ -1,0 +1,407 @@
+/*==================================================================
+  Biosphere — camada de refinamento visual
+  (carregada depois de style.css / responsive.css, sobrepõe pontos
+  específicos sem tocar no arquivo original do tema)
+==================================================================*/
+
+/*------------------------------------------------------
+  1. Grid da home — menos "quadradinho", mais proporções
+------------------------------------------------------*/
+.project-post{
+    transition: none;
+}
+.project-post{ overflow: hidden; }
+.project-post img{
+    transition: transform 1.35s cubic-bezier(.16,.7,.2,1), filter .6s ease;
+    -webkit-transition: transform 1.35s cubic-bezier(.16,.7,.2,1), filter .6s ease;
+    transform: scale(1.001);
+    filter: saturate(1) brightness(1);
+}
+.project-post:hover img{
+    transform: scale(1.16);
+    filter: saturate(1.08) brightness(.92);
+}
+
+/* larguras variadas para o masonry (isotope já suporta múltiplos de coluna) */
+.project-post.feat-wide{ width: 49.9%; }
+.project-post.feat-tall img{ min-height: 100%; }
+
+/*------------------------------------------------------
+  2. Hover escuro com "reveal" (substitui o flip verde)
+------------------------------------------------------*/
+.project-post{ position: relative; }
+
+.project-post .hover-box{
+    background: linear-gradient(180deg, rgba(4,5,5,.12) 0%, rgba(4,5,5,.72) 55%, rgba(2,3,3,.96) 100%) !important;
+    visibility: visible !important;
+    opacity: 0;
+    transform: none !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    transition: opacity .4s cubic-bezier(.16,.7,.2,1) !important;
+    -webkit-transition: opacity .4s cubic-bezier(.16,.7,.2,1) !important;
+}
+.project-post:hover .hover-box{
+    opacity: 1;
+}
+.project-post .project-title{
+    top: auto !important;
+    bottom: 26px;
+    left: 26px;
+    right: 26px;
+    width: auto;
+    text-align: left;
+    transform: translateY(14px);
+    transition: transform .55s cubic-bezier(.2,.7,.2,1);
+}
+.project-post:hover .project-title{
+    transform: translateY(0);
+}
+.project-post .project-title h2{
+    color: #fff;
+    text-align: left;
+    font-size: 19px;
+    line-height: 26px;
+}
+.project-post .project-title span{
+    color: rgba(255,255,255,0.65);
+    text-align: left;
+}
+.project-post .project-title > div{
+    text-align: left;
+    margin-top: 12px;
+}
+.project-post .project-title > div a{
+    border-color: rgba(255,255,255,0.55);
+    color: #fff;
+}
+.project-post .project-title > div a:hover{
+    background: #fff;
+    color: #0a0c0c;
+}
+
+/* Equipe (quem-faz / sobre) — mesmo espírito de reveal escuro */
+.team-hover{
+    background: rgba(3,4,4,.92) !important;
+    border-radius: 0 !important;
+    -webkit-border-radius: 0 !important;
+    transform: scale(1) !important;
+    -webkit-transform: scale(1) !important;
+    opacity: 0;
+    transition: opacity .4s ease !important;
+    -webkit-transition: opacity .4s ease !important;
+}
+.team-post:hover .team-hover{
+    opacity: 1;
+}
+.team-post{ overflow: hidden; }
+.team-post img{
+    transition: transform 1.35s cubic-bezier(.16,.7,.2,1), filter .6s ease;
+    -webkit-transition: transform 1.35s cubic-bezier(.16,.7,.2,1), filter .6s ease;
+}
+.team-post:hover img{
+    transform: scale(1.16);
+    filter: brightness(.92);
+}
+
+/*------------------------------------------------------
+  3. Tipografia e diagramação — páginas internas
+------------------------------------------------------*/
+.about-section h1,
+.project-post-content h1,
+.sidebar h1{
+    font-size: 30px;
+    line-height: 38px;
+    font-weight: 300;
+    letter-spacing: -.01em;
+    position: relative;
+    padding-top: 18px;
+}
+.about-section h1::before,
+.project-post-content h1::before{
+    content: '';
+    display: block;
+    width: 42px;
+    height: 3px;
+    background: #0F938A;
+    margin-bottom: 16px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.sidebar h1::before{
+    content: '';
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: #0F938A;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.about-section > img{
+    border-radius: 3px;
+    margin-bottom: 30px;
+}
+
+.about-content,
+.project-post-content{
+    padding-top: 40px !important;
+}
+
+.about-section p, .project-post-content p{
+    font-size: 17px;
+    line-height: 29px;
+}
+
+.about-page, .single-project{
+    padding: 46px !important;
+}
+
+.single-box, .about-box{
+    box-shadow: 0 30px 70px -40px rgba(0,0,0,0.25);
+}
+
+/* Sidebar como cartão destacado */
+.sidebar{
+    background: #fbfbfa;
+}
+.sidebar .skills-progress,
+.sidebar .testimonial,
+.sidebar .services,
+.sidebar .post-info,
+.sidebar .project-feature,
+.sidebar .project-gallery,
+.sidebar .tags-box,
+.sidebar .archives-sidebar{
+    background: #fff;
+    padding: 24px 26px;
+    margin-bottom: 22px !important;
+    border: 1px solid #ececea;
+    border-radius: 4px;
+}
+
+/* Pilares / passo-a-passo em cartões numerados */
+.skills-progress{
+    display: grid;
+    grid-template-columns: 1fr;
+}
+.skills-progress p strong{
+    display: block;
+    counter-increment: pilar;
+    color: #0a0c0c;
+    font-size: 15px;
+    letter-spacing: .01em;
+    padding-left: 30px;
+    position: relative;
+}
+.skills-progress p:not(:first-of-type) strong{
+    margin-top: 18px;
+}
+.skills-progress p strong::before{
+    content: counter(pilar);
+    position: absolute;
+    left: 0;
+    top: -1px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0F938A;
+    color: #fff;
+    font-size: 10px;
+    line-height: 20px;
+    text-align: center;
+    font-weight: 700;
+}
+.skills-progress{ counter-reset: pilar; }
+.skills-progress p[style]{
+    padding-left: 30px !important;
+    margin-top: -6px !important;
+    margin-bottom: 6px !important;
+}
+
+/* Depoimento com aspas grandes */
+.testimonial .client-test{ position: relative; }
+.testimonial h3{
+    position: relative;
+    font-style: normal !important;
+    font-weight: 500;
+    font-size: 17px !important;
+    line-height: 27px !important;
+}
+.testimonial h3::before{
+    content: '\201C';
+    font-family: Georgia, serif;
+    font-size: 60px;
+    color: rgba(15,147,138,0.35);
+    position: absolute;
+    left: -6px;
+    top: -30px;
+    line-height: 1;
+}
+.testimonial img{ display: none; }
+.testimonial h3{ margin-left: 0 !important; }
+
+.services ul li a:hover{ color: #0F938A; }
+
+a.main-button, .biosphere-cta .cta-buttons a{
+    display: inline-block;
+    background: #0a0c0c;
+    color: #fff !important;
+    text-decoration: none;
+    padding: 15px 30px;
+    font-family: 'Avenir Next Condensed', sans-serif;
+    font-size: 14px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    transition: background .3s ease;
+}
+a.main-button:hover, .biosphere-cta .cta-buttons a:hover{
+    background: #0F938A;
+}
+.biosphere-cta .cta-buttons a.secondary{
+    background: transparent;
+    color: #0a0c0c !important;
+    border: 1px solid #0a0c0c;
+}
+.biosphere-cta .cta-buttons a.secondary:hover{
+    background: #0a0c0c;
+    color: #fff !important;
+}
+
+/*------------------------------------------------------
+  4. Hero + CTA final (home)
+------------------------------------------------------*/
+
+body.intro-locked{ overflow: hidden; }
+
+#intro-screen{
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 60px;
+    opacity: 1;
+    transition: opacity .7s ease;
+}
+#intro-screen.is-closing{ opacity: 0; }
+
+.intro-slide{
+    position: absolute;
+    max-width: 760px;
+    left: 60px;
+    right: 60px;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity .8s ease, transform .8s ease;
+    pointer-events: none;
+}
+.intro-slide.is-active{
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+.intro-slide .eyebrow{
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 12px;
+    color: #0F938A;
+    font-weight: 700;
+    margin-bottom: 18px;
+}
+.intro-slide h1{
+    font-size: 44px;
+    line-height: 52px;
+    font-weight: 300;
+    color: #0a0c0c;
+    margin: 0 0 20px;
+    letter-spacing: -.01em;
+}
+.intro-slide p{
+    font-size: 18px;
+    line-height: 30px;
+    color: #7a7a7a;
+    margin: 0 0 28px;
+}
+
+#intro-skip{
+    position: absolute;
+    bottom: 34px;
+    right: 44px;
+    color: #9c9c9c;
+    text-decoration: none;
+    font-family: 'Avenir Next Condensed', sans-serif;
+    font-size: 13px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+#intro-skip:hover{ color: #0a0c0c; }
+#intro-skip i{ margin-left: 6px; font-size: 11px; }
+
+@media (max-width: 900px){
+    .intro-slide h1{ font-size: 28px; line-height: 36px; }
+    #intro-screen{ padding: 30px; }
+}
+
+.biosphere-hero{
+    padding: 90px 60px 60px;
+    max-width: 900px;
+}
+.biosphere-hero .eyebrow{
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 12px;
+    color: #0F938A;
+    font-weight: 700;
+    margin-bottom: 18px;
+}
+.biosphere-hero h1{
+    font-size: 46px;
+    line-height: 54px;
+    font-weight: 300;
+    color: #0a0c0c;
+    margin: 0 0 22px;
+    letter-spacing: -.01em;
+}
+.biosphere-hero p{
+    font-size: 18px;
+    line-height: 30px;
+    color: #7a7a7a;
+    max-width: 640px;
+    margin: 0 0 30px;
+}
+.biosphere-hero a.main-button{
+    display: inline-block;
+}
+
+.biosphere-cta{
+    padding: 70px 60px;
+    text-align: center;
+    border-top: 1px solid #ececea;
+}
+.biosphere-cta h1{
+    font-size: 32px;
+    font-weight: 300;
+    margin: 0 0 12px;
+}
+.biosphere-cta p{
+    color: #8a8a8a;
+    font-size: 16px;
+    margin: 0 0 26px;
+}
+.biosphere-cta .cta-buttons a{
+    margin: 0 8px;
+}
+
+@media (max-width: 900px){
+    .project-post.feat-wide{ width: 100%; }
+    .single-box-content, .sidebar{ width: 100% !important; float: none !important; }
+    .biosphere-hero{ padding: 50px 26px 30px; }
+    .biosphere-hero h1{ font-size: 30px; line-height: 38px; }
+}

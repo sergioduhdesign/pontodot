@@ -1,0 +1,42 @@
+name: BIOSPHERE — restaurar site original (stratesign.com.br/clientes/biosphere)
+on:
+  workflow_dispatch:
+    inputs:
+      limpar: { description: "true = remove arquivos da reconstrução errada", required: false, default: "true" }
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restaurar
+        env:
+          U: ${{ secrets.CPANEL_USER }}
+          H: ${{ secrets.CPANEL_HOST }}
+          T: ${{ secrets.CPANEL_TOKEN }}
+          LIMPAR: ${{ github.event.inputs.limpar }}
+        run: |
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          BASE="$HOME_DIR/stratesign.com.br/clientes/biosphere"; SRC=hg-envio/biosphere-site
+          if [ "$LIMPAR" = "true" ]; then
+            for x in index.php lib.php schema.php _config.php admin img conteudo uploads assets/site.css assets/site.js assets/logo.png assets/logo-branco.png assets/simbolo.png assets/fonts; do
+              R=$(curl -sS --max-time 60 -H "Authorization: cpanel $U:$T" "https://$H/json-api/cpanel" --data "cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&cpanel_jsonapi_apiversion=2&op=unlink" --data-urlencode "sourcefiles=$BASE/$x" --data-urlencode "doubledecode=0" | head -c 200)
+              echo "rm $x -> $R"
+            done
+          fi
+          for d in css css/fonts js images assets assets/logo assets/photos assets/scenes; do
+            curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$BASE/$(dirname $d)" --data-urlencode "name=$(basename $d)" --data "permissions=0755" >/dev/null || true
+          done
+          n=0; falhas=0
+          while IFS= read -r f; do
+            rel="${f#$SRC/}"
+            dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
+            R=$(curl -sS --max-time 120 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
+            ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
+            echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
+          done < <(find "$SRC" -type f | sort)
+          echo "== enviados: $n | falhas: $falhas"
+          for p in "" about.html quem-faz.html blog.html contact.html projeto-cocoon.html css/style.css assets/photos/caua-01.jpg index.php admin/; do
+            echo "$(curl -s -o /dev/null -w '%{http_code}' https://stratesign.com.br/clientes/biosphere/$p)  /$p"
+          done
+          [ "$falhas" = "0" ]
