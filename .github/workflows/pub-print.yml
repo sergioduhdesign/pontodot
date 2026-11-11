@@ -17,12 +17,10 @@ jobs:
           with sync_playwright() as p:
               b=p.chromium.launch(channel='chrome'); pg=b.new_page(viewport={'width':1440,'height':900},device_scale_factor=1)
               pg.goto(os.environ['U']+'?v=1',wait_until='networkidle'); pg.wait_for_timeout(1500)
-              el=pg.get_by_text(os.environ['T']).first; el.scroll_into_view_if_needed()
-              box=el.evaluate_handle("e=>e.closest('.e-con.e-parent')||e.closest('section')||e.parentElement.parentElement.parentElement")
-              box.as_element().screenshot(path='trecho.png')
-              pg.set_viewport_size({'width':390,'height':800}); pg.wait_for_timeout(800)
-              pg.get_by_text(os.environ['T']).first.evaluate_handle("e=>e.closest('.e-con.e-parent')||e.parentElement.parentElement.parentElement").as_element().screenshot(path='trecho-celular.png')
+              def medir(rot):
+                  r=pg.evaluate("""t=>{const h=[...document.querySelectorAll('h2')].find(e=>e.textContent.includes(t));const row=h.closest('.e-con.e-parent');const img=row.querySelector('img[src*="book.pets"]');const a=img.getBoundingClientRect(),b=row.getBoundingClientRect();const cs=getComputedStyle(img);return {img:[a.x|0,a.y|0,a.width|0,a.height|0],faixa:[b.x|0,b.y|0,b.width|0,b.height|0],folga_base:Math.round(b.bottom-a.bottom),nat:[img.naturalWidth,img.naturalHeight],display:cs.display,fit:cs.objectFit}}""",os.environ['T'])
+                  print('MEDIDA',rot,r)
+              medir('desktop')
+              pg.set_viewport_size({'width':390,'height':800}); pg.wait_for_timeout(1000); medir('celular')
               b.close()
           PY
-      - uses: actions/upload-artifact@v4
-        with: { name: trecho, path: "*.png" }
