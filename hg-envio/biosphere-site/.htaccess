@@ -1,2 +1,5 @@
 DirectoryIndex index.html
 Options -Indexes
+<FilesMatch "^(_config|auth)\.php$">
+Require all denied
+</FilesMatch>

@@ -2,6 +2,8 @@
 // ===== CONFIGURAÇÃO =====
 // Troque pelo e-mail real que vai receber os contatos do site.
 $destinatario = 'contato@biospherebycreymond.com.br';
+$_c = @json_decode(@file_get_contents(__DIR__ . '/_cms/config.json'), true);
+if (!empty($_c['email_contato'])) $destinatario = $_c['email_contato']; // definido no painel (/admin)
 
 header('Content-Type: text/plain; charset=utf-8');
 
@@ -24,6 +26,12 @@ foreach ($_POST as $campo => $valor) {
 }
 
 $corpo = implode("\n", $linhas);
+
+// guarda no painel (/admin > Contatos)
+$_f = __DIR__ . '/_cms/leads.json';
+$_l = is_file($_f) ? (json_decode(file_get_contents($_f), true) ?: []) : [];
+$_l[] = ['data' => date('Y-m-d H:i'), 'tipo' => $tipo, 'nome' => $nome, 'email' => $email, 'dados' => array_map(function ($v) { return is_array($v) ? implode(', ', $v) : mb_substr((string)$v, 0, 1500); }, $_POST)];
+@file_put_contents($_f, json_encode(array_slice($_l, -500), JSON_UNESCAPED_UNICODE), LOCK_EX);
 
 $assuntos = [
     'incorporadoras' => 'Novo projeto apresentado — Biosphere',

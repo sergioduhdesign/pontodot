@@ -2,7 +2,8 @@ name: BIOSPHERE — restaurar site original (stratesign.com.br/clientes/biospher
 on:
   workflow_dispatch:
     inputs:
-      limpar: { description: "true = remove arquivos da reconstrução errada", required: false, default: "true" }
+      limpar: { description: "true = remove arquivos da reconstrução errada", required: false, default: "false" }
+      primeira: { description: "true = envia também _cms/auth.php, config e posts (só na 1ª vez)", required: false, default: "false" }
 jobs:
   d:
     runs-on: ubuntu-latest
@@ -14,6 +15,7 @@ jobs:
           H: ${{ secrets.CPANEL_HOST }}
           T: ${{ secrets.CPANEL_TOKEN }}
           LIMPAR: ${{ github.event.inputs.limpar }}
+          PRIMEIRA: ${{ github.event.inputs.primeira }}
         run: |
           H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
           HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
@@ -24,19 +26,20 @@ jobs:
               echo "rm $x -> $R"
             done
           fi
-          for d in css css/fonts js images assets assets/logo assets/photos assets/scenes; do
+          for d in css css/fonts js images assets assets/logo assets/photos assets/scenes assets/media admin _cms _cms/bkp; do
             curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$BASE/$(dirname $d)" --data-urlencode "name=$(basename $d)" --data "permissions=0755" >/dev/null || true
           done
           n=0; falhas=0
           while IFS= read -r f; do
             rel="${f#$SRC/}"
+            case "$rel" in _cms/auth.php|_cms/config.json|_cms/posts.json) [ "$PRIMEIRA" = "true" ] || continue;; esac
             dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
             R=$(curl -sS --max-time 120 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
             ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
             echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
           done < <(find "$SRC" -type f | sort)
           echo "== enviados: $n | falhas: $falhas"
-          for p in "" about.html quem-faz.html blog.html contact.html projeto-cocoon.html css/style.css assets/photos/caua-01.jpg index.php admin/; do
+          for p in "" about.html quem-faz.html blog.html contact.html projeto-cocoon.html css/style.css assets/photos/caua-01.jpg admin/ admin/api.php _cms/posts.json _cms/auth.php sitemap.xml; do
             echo "$(curl -s -o /dev/null -w '%{http_code}' https://stratesign.com.br/clientes/biosphere/$p)  /$p"
           done
           [ "$falhas" = "0" ]
