@@ -10,20 +10,27 @@ header('Content-Type: application/json; charset=utf-8');
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
 $b = sd_body(); $acao = (string)($b['acao'] ?? 'inicio');
 
-// tipos de gancho (abertura) que a Copy sabe aplicar: o seletor do briefing escolhe, o prompt recebe a fórmula
+// 18 mecanismos de abertura (PD · Copy e narrativa 2026, doc de 11/11): o seletor do briefing escolhe, o prompt recebe a operação.
+// Os exemplos são editoriais, sem empreendimento real: a peça só afirma o que a ficha e os ativos do cliente confirmam.
 function cpGanchos() { return [
-  ['id' => 'invertido', 'nome' => 'Invertido', 'formula' => 'Abre pelo DESFECHO: entrega o resultado ou a conclusão já na 1ª frase, e só depois volta ao começo para mostrar como se chegou lá.', 'ex' => 'Ele pagou menos do que o vizinho e mora com mais luz. Veja como começou.'],
-  ['id' => 'contraintuitivo', 'nome' => 'Contraintuitivo', 'formula' => 'Afirma o contrário do que o público acredita e resolve a tensão no corpo do texto, com prova.', 'ex' => 'Comprar na planta pode ser mais seguro do que comprar pronto.'],
-  ['id' => 'erro_comum', 'nome' => 'Erro que todo mundo comete', 'formula' => 'Nomeia um erro concreto e frequente do público e promete o caminho certo.', 'ex' => 'O erro de quem visita o decorado só no sábado de manhã.'],
-  ['id' => 'pergunta_choque', 'nome' => 'Pergunta-choque', 'formula' => 'Uma pergunta curta que o público não consegue ignorar, sobre algo que ele já sente.', 'ex' => 'Quanto da sua rua você realmente conhece?'],
-  ['id' => 'numero', 'nome' => 'Número ou prova primeiro', 'formula' => 'Abre com um número, dado ou fato verificável; a explicação vem depois.', 'ex' => '32 anos lendo o mercado: o que os dados dizem sobre a sua próxima casa.'],
-  ['id' => 'bastidor', 'nome' => 'Ninguém conta', 'formula' => 'Promete um bastidor ou informação que quase ninguém do mercado revela.', 'ex' => 'O que o corretor não costuma contar sobre o preço do metro quadrado.'],
-  ['id' => 'identificacao', 'nome' => 'Identificação (você que...)', 'formula' => 'Descreve em uma linha a situação exata do público, para ele se reconhecer.', 'ex' => 'Você que já fechou a planilha do financiamento três vezes e ainda tem dúvida.'],
-  ['id' => 'antes_depois', 'nome' => 'Antes e depois', 'formula' => 'Contrasta duas cenas de vida, antes e depois, em frases curtas.', 'ex' => 'Antes: trânsito às 7h. Depois: café na varanda às 8h.'],
-  ['id' => 'cena', 'nome' => 'Cena no meio da ação', 'formula' => 'Começa dentro de uma cena concreta, já em andamento, sem apresentação.', 'ex' => 'Ela abriu a porta e a luz da tarde ocupou a sala inteira.'],
-  ['id' => 'previsao', 'nome' => 'Previsão', 'formula' => 'Faz uma previsão ousada, mas defensável com dados, sobre o futuro do morar.', 'ex' => 'Em 2030, morar perto vai valer mais do que morar grande.'],
-  ['id' => 'lista', 'nome' => 'Lista curiosa', 'formula' => 'Promete N itens específicos; o número cria expectativa e ritmo.', 'ex' => '3 coisas que mudam quando o bairro ganha uma praça.'],
-  ['id' => 'comparacao', 'nome' => 'Comparação inesperada', 'formula' => 'Compara duas coisas que ninguém compara e tira uma conclusão útil.', 'ex' => 'Escolher apartamento é como escolher sapato: o número não diz tudo.'],
+  ['id' => 'invertido', 'nome' => 'Gancho invertido', 'formula' => 'Contrariar uma expectativa e explicar em que condição a inversão é verdadeira.', 'ex' => 'Talvez você precise de menos metros e mais casa.'],
+  ['id' => 'consequencia', 'nome' => 'Consequência primeiro', 'formula' => 'Apresentar o efeito antes da causa, reconstruindo o caminho.', 'ex' => 'A mudança começou quando ela parou de contar quartos.'],
+  ['id' => 'prova', 'nome' => 'Prova primeiro', 'formula' => 'Abrir por evidência observável, depois interpretar.', 'ex' => 'Olha onde a mesa entra nesta planta.'],
+  ['id' => 'lacuna', 'nome' => 'Lacuna específica', 'formula' => 'Nomear precisamente o que falta descobrir e resolver no conteúdo.', 'ex' => 'Tem uma medida dessa planta que muda a circulação.'],
+  ['id' => 'objecao', 'nome' => 'Objeção demonstrada', 'formula' => 'Verbalizar uma dúvida real e responder com demonstração.', 'ex' => 'Cabe uma mesa ou só parece que cabe?'],
+  ['id' => 'cena', 'nome' => 'Cena em andamento', 'formula' => 'Entrar no meio de uma ação que já contém conflito.', 'ex' => 'A visita ia acabar. Aí ela abriu a janela.'],
+  ['id' => 'contraste', 'nome' => 'Contraste visual', 'formula' => 'Colocar duas alternativas comparáveis lado a lado.', 'ex' => 'Mesma área. Duas maneiras de usar.'],
+  ['id' => 'detalhe', 'nome' => 'Detalhe concreto', 'formula' => 'Escolher um detalhe verificável que torne o benefício palpável.', 'ex' => 'O caminho da porta até a varanda.'],
+  ['id' => 'erro', 'nome' => 'Erro observável', 'formula' => 'Mostrar um equívoco que o público pode verificar.', 'ex' => 'A cama cabe. A porta abre?'],
+  ['id' => 'pergunta', 'nome' => 'Pergunta de decisão', 'formula' => 'Abrir com uma pergunta que muda o critério de escolha.', 'ex' => 'Você está comprando um quarto ou um lugar para trabalhar?'],
+  ['id' => 'comentario', 'nome' => 'Comentário como pauta', 'formula' => 'Responder uma dúvida recebida de verdade.', 'ex' => 'Perguntaram como fica a circulação com os móveis.'],
+  ['id' => 'busca', 'nome' => 'Busca adjacente', 'formula' => 'Entrar por uma necessidade próxima da compra.', 'ex' => 'Como montar um canto de trabalho sem perder a sala?'],
+  ['id' => 'bastidor', 'nome' => 'Decisão de bastidor', 'formula' => 'Mostrar uma escolha de projeto e suas consequências.', 'ex' => 'Por que essa parede ficou aqui?'],
+  ['id' => 'duas_vontades', 'nome' => 'Duas vontades em conflito', 'formula' => 'Explorar uma tensão cotidiana sem caricatura.', 'ex' => 'Você quer receber gente. Também quer silêncio.'],
+  ['id' => 'concessao', 'nome' => 'Concessão honesta', 'formula' => 'Reconhecer uma limitação relevante e contextualizar.', 'ex' => 'Essa planta pode não servir para quem precisa de três quartos.'],
+  ['id' => 'reconhecimento', 'nome' => 'Reconhecimento cotidiano', 'formula' => 'Começar por uma situação com que alguém se reconheça.', 'ex' => 'A reunião começa e a casa inteira aparece na câmera.'],
+  ['id' => 'teste', 'nome' => 'Teste em cena', 'formula' => 'Formular uma questão e executar um teste observável.', 'ex' => 'Vamos desenhar os móveis em escala antes da visita.'],
+  ['id' => 'criterio', 'nome' => 'Mudança de critério', 'formula' => 'Reformular o que vale comparar.', 'ex' => 'E se você comparasse a casa pela terça-feira, não pelo domingo?'],
 ]; }
 // estilos-base da casa: vozes de redatores e escolas que funcionam (o banco de referências do Drive soma a estes)
 function cpEstilosBase() { return [
@@ -131,7 +138,7 @@ function cpGerar($b, $u) {
     $br = (array)($b['briefing'] ?? []); $repBloco = pdRepertorioBloco((array)($br['repertorio'] ?? []), 'copys'); unset($br['repertorio']);
     $ganSel = array_values(array_filter((array)($br['ganchos'] ?? []))); unset($br['ganchos']); $ganTxt = [];
     foreach (cpGanchos() as $g) if (in_array($g['id'], $ganSel, true)) $ganTxt[] = "- {$g['nome']}: {$g['formula']} Exemplo de ritmo (não copie): {$g['ex']}";
-    if ($ganTxt) $repBloco .= "\n\nTIPOS DE GANCHO PEDIDOS (a PRIMEIRA frase de cada peça/roteiro segue um deles; com mais de uma variante, alterne os tipos entre as variantes; diga no campo estilo qual gancho usou; o gancho nunca promete valorização nem inventa dado):\n" . implode("\n", $ganTxt); $n = max(1, min(8, (int)($b['variantes'] ?? 3))); $dados = mb_substr((string)($b['dados'] ?? ''), 0, 40000);
+    if ($ganTxt) $repBloco .= "\n\nMECANISMOS DE ABERTURA PEDIDOS (a PRIMEIRA frase de cada peça/roteiro segue um deles; com mais de uma variante, distribua os mecanismos entre variantes DIFERENTES em argumento, prova e cena, não só em palavras; a operação escolhida precisa ser sustentada no desenvolvimento; só afirme o que a ficha e os ativos do cliente confirmam: nada de depoimento, número ou comparação inventados; no campo estilo diga qual mecanismo usou e no campo por_que registre a hipótese criativa e a métrica a observar, sem prometer viralização):\n" . implode("\n", $ganTxt);
     $links = array_slice(array_filter(array_map('trim', (array)($b['links'] ?? []))), 0, 6); $lidos = []; foreach ($links as $lk) { $t = cpLeLink($lk); if ($t !== '') $lidos[] = "[$lk]\n" . mb_substr($t, 0, 12000); }
     $base = []; foreach (cpEstilosBase() as $e) $base[$e['id']] = $e; $sel = (array)($b['estilos'] ?? []); $estTxt = [];
     foreach ($sel as $se) { $sid = (string)($se['id'] ?? ''); $peso = max(1, min(3, (int)($se['peso'] ?? 2))); if (isset($base[$sid])) $estTxt[] = "- {$base[$sid]['nome']} (peso $peso/3): {$base[$sid]['dna']}";
