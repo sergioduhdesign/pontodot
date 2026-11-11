@@ -405,3 +405,20 @@ body.intro-locked{ overflow: hidden; }
     .biosphere-hero{ padding: 50px 26px 30px; }
     .biosphere-hero h1{ font-size: 30px; line-height: 38px; }
 }
+
+/*------------------------------------------------------
+  Ajuste: grade uniforme (sem buracos) e título da entrada sem palavra órfã
+------------------------------------------------------*/
+.project-post.feat-wide{ width: 24.99%; }
+@media (max-width: 1300px){ .project-post.feat-wide{ width: 33.3%; } }
+@media (max-width: 991px){ .project-post.feat-wide{ width: 49.99%; } }
+@media (max-width: 480px){ .project-post.feat-wide{ width: 100%; } }
+.portfolio-box .project-post > img{
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+.intro-slide h1{ text-wrap: balance; max-width: 15em; }
+.intro-slide p{ text-wrap: pretty; }
