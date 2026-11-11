@@ -440,3 +440,9 @@ body.intro-locked{ overflow: hidden; }
 @keyframes introIn{ to{ opacity: 1; transform: none; } }
 @keyframes introRule{ to{ width: 64px; } }
 @media (max-width: 600px){ .intro-phrase{ font-size: 16px; line-height: 28px; letter-spacing: .16em; } .intro-logo{ width: 220px; } }
+
+/* Mosaico da home (js/mosaico.js): blocos posicionados para preencher tudo */
+.portfolio-box.mosaico{ position: relative; width: 100%; }
+.portfolio-box.mosaico .project-post{ position: absolute; margin: 0; float: none; overflow: hidden;
+    transition: left .6s ease, top .6s ease, width .6s ease, height .6s ease; }
+.portfolio-box.mosaico .project-post > img{ position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; }

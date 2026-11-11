@@ -13,7 +13,7 @@ $(document).ready(function($) {
 
 	var winDow = $(window);
 	// Needed variables
-	var $container=$('.portfolio-box, .blog-box');
+	var $container=$('.portfolio-box, .blog-box').not('.portfolio-page > .portfolio-box'); // a home usa js/mosaico.js
 	var $filter=$('.filter');
 
 	try{
