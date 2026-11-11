@@ -422,3 +422,21 @@ body.intro-locked{ overflow: hidden; }
 }
 .intro-slide h1{ text-wrap: balance; max-width: 15em; }
 .intro-slide p{ text-wrap: pretty; }
+
+/*------------------------------------------------------
+  Entrada: logotipo + frase (aparece só na primeira visita da sessão)
+------------------------------------------------------*/
+#intro-screen{ flex-direction: column; background: #fff; }
+.intro-brand{ text-align: center; display: flex; flex-direction: column; align-items: center; }
+.intro-logo{ width: 340px; max-width: 70vw; height: auto; opacity: 0; transform: translateY(10px);
+    animation: introIn 1.6s cubic-bezier(.16,.7,.2,1) .25s forwards; }
+.intro-rule{ display: block; width: 0; height: 1px; background: #0F938A; margin: 40px 0 34px;
+    animation: introRule 1.4s cubic-bezier(.16,.7,.2,1) 1.2s forwards; }
+.intro-phrase{ margin: 0; font-family: 'Avenir Next Condensed','Avenir Next',sans-serif; font-weight: 400;
+    font-size: 24px; line-height: 38px; letter-spacing: .22em; text-transform: uppercase; color: #3a2b1e;
+    opacity: 0; animation: introIn 1.8s ease 1.9s forwards; }
+.intro-phrase em{ font-style: normal; color: #0F938A; }
+#intro-skip{ opacity: 0; animation: introIn 1s ease 3s forwards; }
+@keyframes introIn{ to{ opacity: 1; transform: none; } }
+@keyframes introRule{ to{ width: 64px; } }
+@media (max-width: 600px){ .intro-phrase{ font-size: 16px; line-height: 28px; letter-spacing: .16em; } .intro-logo{ width: 220px; } }

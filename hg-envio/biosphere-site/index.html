@@ -72,13 +72,13 @@
 				<div class="portfolio-page">
 
 					<div id="intro-screen">
-						<div class="intro-slide is-active" data-slide="1">
-							<span class="eyebrow">Biosphere by C. Reymond</span>
-							<h1>Não é sobre o espaço que você ocupa. É sobre a vida que você resgata.</h1>
-							<p>Você não precisa escolher entre o sucesso profissional, a saúde do corpo e o tempo com quem ama. Transformamos o morar em um plano prático para você viver por inteiro, todos os dias.</p>
-							<a class="main-button" href="quem-faz.html">Descubra seu Novo Habitat</a>
+						<script>try{if(sessionStorage.getItem('bsIntro')){var _e=document.getElementById('intro-screen');_e.parentNode.removeChild(_e);}}catch(e){}</script>
+						<div class="intro-brand">
+							<img class="intro-logo" alt="Biosphere by C. Reymond" src="images/logo-entrada.png">
+							<span class="intro-rule"></span>
+							<p class="intro-phrase">Mais que morar.<br><em>Viver por inteiro.</em></p>
 						</div>
-						<a href="#" id="intro-skip">Pular <i class="fa fa-arrow-right"></i></a>
+						<a href="#" id="intro-skip">Entrar <i class="fa fa-arrow-right"></i></a>
 					</div>
 
 					<div class="portfolio-box">
@@ -362,12 +362,13 @@
 			setTimeout(function(){ screen.style.display = 'none'; }, 700);
 		}
 
+		try{sessionStorage.setItem('bsIntro','1');}catch(e){}
 		document.body.classList.add('intro-locked');
-		t1 = setTimeout(closeIntro, 4200);
+		t1 = setTimeout(closeIntro, 5200);
 
 		skip.addEventListener('click', function(e){ e.preventDefault(); closeIntro(); });
 		screen.addEventListener('click', function(e){
-			if(e.target === screen){ closeIntro(); }
+			closeIntro();
 		});
 	})();
 	</script>
