@@ -1,0 +1,42 @@
+name: BIOSPHERE — publicar site (stratesign.com.br/clientes/biosphere)
+on:
+  workflow_dispatch:
+    inputs:
+      primeira: { description: "true = também envia conteudo/*.json e _config.php (só na 1ª vez)", required: false, default: "false" }
+      conta:    { description: "código da outra conta (vazio = a conta da casa)", required: false, default: "" }
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enviar
+        env:
+          U: ${{ (github.event.inputs.conta != '' && secrets[format('CPANEL_{0}_USER', github.event.inputs.conta)]) || secrets.CPANEL_USER }}
+          H: ${{ (github.event.inputs.conta != '' && secrets[format('CPANEL_{0}_HOST', github.event.inputs.conta)]) || secrets.CPANEL_HOST }}
+          T: ${{ (github.event.inputs.conta != '' && secrets[format('CPANEL_{0}_TOKEN', github.event.inputs.conta)]) || secrets.CPANEL_TOKEN }}
+          PRIMEIRA: ${{ github.event.inputs.primeira }}
+        run: |
+          set -e
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          BASE="$HOME_DIR/stratesign.com.br/clientes/biosphere"; SRC=hg-envio/biosphere
+          for d in admin assets img conteudo uploads; do
+            curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$BASE" --data-urlencode "name=$d" --data "permissions=0755" >/dev/null || true
+          done
+          curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$BASE/assets" --data-urlencode "name=fonts" --data "permissions=0755" >/dev/null || true
+          n=0; falhas=0
+          while IFS= read -r f; do
+            rel="${f#$SRC/}"
+            case "$rel" in
+              _config.php|conteudo/*) [ "$PRIMEIRA" = "true" ] || continue;;
+            esac
+            dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
+            R=$(curl -sS --max-time 120 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
+            ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
+            echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
+          done < <(find "$SRC" -type f | sort)
+          echo "== enviados: $n | falhas: $falhas"
+          for p in "" conceito quem-faz projetos projeto-cocoon incorporadoras blog contato admin/ sitemap.xml; do
+            echo "$(curl -s -o /dev/null -w '%{http_code}' https://stratesign.com.br/clientes/biosphere/$p)  /$p"
+          done
+          [ "$falhas" = "0" ]
