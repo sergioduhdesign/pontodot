@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel de conteúdo · GEO2030</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#193C3D;--text:#243031;--mist:#E3E8E5;--sand:#F4F0E6;--leaf:#41A27F;--bad:#A63A3A;--bg:#fff;--sans:"Jost",system-ui,sans-serif;--serif:"EB Garamond",Georgia,serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#fff}}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--sans);color:var(--text);background:var(--bg);font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;justify-content:space-between;padding:22px clamp(20px,4vw,56px);border-bottom:1px solid var(--ink)}
+.brand{font-size:13px;letter-spacing:.36em;text-transform:uppercase;font-weight:600;color:var(--ink)}.brand span{font-weight:300}
+.sub{font-size:10px;letter-spacing:.28em;text-transform:uppercase;margin-left:18px;opacity:.7}
+main{max-width:980px;margin:0 auto;padding:36px clamp(20px,4vw,56px) 90px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3vw,36px);line-height:1.25;color:var(--ink);margin:0 0 8px}
+h2{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;font-weight:500;color:var(--ink);margin:0 0 14px}
+p{margin:0 0 12px;font-size:14px}.mut{opacity:.75;font-size:13px}
+.btn{font:inherit;font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:500;padding:13px 22px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;border-radius:2px;transition:background .3s,color .3s;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--ink);color:#fff}.btn.pri{background:var(--ink);color:#fff}.btn.pri:hover{background:var(--leaf);border-color:var(--leaf)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.step{display:grid;grid-template-columns:44px 1fr;gap:6px 18px;padding:26px 0;border-top:1px solid var(--mist)}
+.step>b{font-family:var(--serif);font-size:28px;font-weight:400;color:var(--leaf);line-height:1}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
+input[type=password],input[type=text]{font:inherit;font-size:15px;padding:13px 14px;border:1px solid var(--ink);border-radius:2px;width:min(320px,100%);background:#fff}
+.drop{display:block;border:1px dashed var(--ink);padding:26px;text-align:center;font-size:13px;cursor:pointer;border-radius:2px;transition:background .3s}.drop:hover,.drop.on{background:var(--sand)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:14px}
+th{font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;font-weight:500;text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--ink)}
+td{padding:10px 10px 10px 0;border-bottom:1px solid var(--mist);vertical-align:top}
+.chip{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:3px;background:var(--mist);margin:0 4px 4px 0}.chip.ok{background:#dcefe6}.chip.no{background:#f4e3e3;color:var(--bad)}
+.warn{color:var(--bad);font-size:12px;margin:2px 0}.good{color:var(--leaf)}
+.bar{height:3px;background:var(--mist);margin:12px 0}.bar i{display:block;height:100%;width:0;background:var(--leaf);transition:width .3s}
+.box{background:var(--sand);padding:16px 18px;font-size:13px;border-radius:2px;margin-top:12px}
+.hid{display:none!important}
+.lk{background:none;border:0;border-bottom:1px solid currentColor;font:inherit;font-size:12px;color:var(--ink);cursor:pointer;padding:0 0 1px}
+#msg{min-height:20px;font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<header><div><span class="brand">GEO<span>2030</span></span><span class="sub">Painel de conteúdo</span></div><button class="lk hid" id="sair">Sair</button></header>
+<main>
+
+<section id="vLogin" class="hid">
+  <h1>Acesso ao painel</h1><p class="mut">Atualize textos e fotos do site enviando uma planilha.</p>
+  <div class="row"><input type="text" id="usuario" placeholder="Usuário" autocomplete="username" autocapitalize="none" spellcheck="false"><input type="password" id="senha" placeholder="Senha" autocomplete="current-password"><button class="btn pri" id="entrar">Entrar</button></div>
+  <div id="msgL" class="warn"></div>
+</section>
+
+<section id="vPainel" class="hid">
+  <h1>Atualize o site por planilha</h1>
+  <p class="mut">Textos e fotos dos doze compromissos. O que não estiver na planilha simplesmente não aparece no site, e a página se reorganiza sozinha.</p>
+
+  <div class="step"><b>1</b><div><h2>Baixar a planilha</h2><p>Vem com o conteúdo que está no ar agora e com a orientação completa na primeira aba.</p>
+    <div class="row"><button class="btn" id="baixar">Baixar planilha (.xlsx)</button><a class="lk" href="geo2030-modelo.xlsx" download>ou baixe o arquivo de modelo</a></div></div></div>
+
+  <div class="step"><b>2</b><div><h2>Enviar a planilha preenchida</h2>
+    <label class="drop" id="drop" for="arq">Clique aqui ou arraste o arquivo .xlsx</label><input type="file" id="arq" accept=".xlsx,.xls" class="hid">
+    <div id="prev"></div></div></div>
+
+  <div class="step hid" id="stPub"><b>3</b><div><h2>Publicar</h2>
+    <div class="row"><button class="btn pri" id="publicar">Publicar no site</button><button class="btn hid" id="forcar">Publicar mesmo assim, sem as imagens com problema</button></div>
+    <div class="bar hid" id="bar"><i></i></div><div id="msg"></div></div></div>
+
+  <div class="step"><b>·</b><div><h2>Versões anteriores</h2><p class="mut">Se algo sair errado, volte para uma versão anterior.</p><div id="hist" class="mut">carregando…</div></div></div>
+  <div class="step"><b>·</b><div><h2>Trocar a senha</h2><div class="row"><input type="password" id="pa" placeholder="Senha atual" autocomplete="current-password"><input type="password" id="pn" placeholder="Nova senha (mín. 8)" autocomplete="new-password"><button class="btn" id="trocar">Trocar</button></div><div id="msgS" class="mut" style="margin-top:8px"></div></div></div>
+</section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var api=function(a,body){
+  var opt=body===undefined?{credentials:"same-origin"}:{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-Geo-Admin":"1"},body:JSON.stringify(Object.assign({a:a},body))};
+  return fetch("../api.php?a="+encodeURIComponent(a),opt).then(function(r){return r.json().catch(function(){return {ok:false,erro:"Resposta inválida do servidor."};});});
+};
+var show=function(id,on){$(id).classList.toggle("hid",!on);};
+var ORIGEM=location.origin+"/";
+var FIELDS=[["n","n"],["compromisso","name"],["situacao","status"],["percentual","pct"],["verificacao","ver"],["pulso","pulse"],["territorio","terr"],["por_que","why"],["o_que_assumimos","resp"],["prazo","deadline"],["agora","now"],["quem_participa","who"],["proximo_passo","next"],["metodologia","method"]];
+var LABEL={name:"Compromisso",status:"Situação",pct:"Percentual",ver:"Verificação",pulse:"Pulso",terr:"Território",why:"Por que",resp:"O que assumimos",deadline:"Prazo",now:"Agora",who:"Quem participa",next:"Próximo passo",method:"Metodologia"};
+var cur=null, parsed=null;
+
+/* ---------- acesso ---------- */
+function boot(){api("sessao").then(function(r){if(r.ok)entrou();else{show("#vLogin",true);$("#usuario").focus();}});}
+function entrou(){show("#vLogin",false);show("#vPainel",true);show("#sair",true);histCarrega();}
+$("#entrar").onclick=function(){var b=this;b.disabled=true;api("login",{usuario:$("#usuario").value,senha:$("#senha").value}).then(function(r){b.disabled=false;if(r.ok)entrou();else $("#msgL").textContent=r.erro||"Não foi possível entrar.";});};
+["#usuario","#senha"].forEach(function(s){$(s).addEventListener("keydown",function(e){if(e.key==="Enter")$("#entrar").click();});});
+$("#sair").onclick=function(){api("sair",{}).then(function(){location.reload();});};
+$("#trocar").onclick=function(){api("senha",{atual:$("#pa").value,nova:$("#pn").value}).then(function(r){$("#msgS").textContent=r.ok?"Senha trocada.":(r.erro||"Erro.");if(r.ok){$("#pa").value=$("#pn").value="";}});};
+
+/* ---------- modelo ---------- */
+var rel=function(u){u=String(u||"");return u&&!/^https?:/i.test(u)?ORIGEM+u:u;};
+function baixarModelo(){
+  api("atual").then(function(r){
+    var cs=(r.conteudo&&r.conteudo.compromissos)||{}, nf=3;
+    Object.keys(cs).forEach(function(n){nf=Math.max(nf,(cs[n].fotos||[]).length);});
+    var H=FIELDS.map(function(f){return f[0];});
+    for(var j=1;j<=nf;j++){H.push("foto_"+j,"legenda_"+j);}
+    H.push("galeria","galeria_legendas","tem_imagens");
+    var rows=[H];
+    for(var n=1;n<=12;n++){
+      var c=cs[String(n)]||{}, row=[];
+      FIELDS.forEach(function(f){var k=f[1];var v=k==="n"?n:k==="who"?(c.who||[]).join("\n"):(k==="pct"?(c.pct||""):(c[k]||""));row.push(v);});
+      for(var j=0;j<nf;j++){var ft=(c.fotos||[])[j];row.push(ft?rel(ft.big||ft.src):"",ft?(ft.cap||""):"");}
+      row.push((c.gal||[]).map(function(g){return rel(g.big||g.src);}).join("\n"),(c.gal||[]).map(function(g){return g.cap||"";}).join("\n"));
+      row.push(((c.fotos||[]).length||(c.gal||[]).length)?"sim":"não");
+      rows.push(row);
+    }
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"]=H.map(function(h){return {wch:/^(por_que|o_que|agora|metod|proximo|galeria|foto_|quem)/.test(h)?44:(h==="n"?5:20)};});
+    var tl=[["n","data","texto","tipo"]],ev=[["n","titulo","descricao","selo"]];
+    Object.keys(cs).sort(function(a,b){return a-b;}).forEach(function(n){var c=cs[n];(c.tl||[]).forEach(function(t){tl.push([+n,t.d||"",t.t||"",t.soft?"previsto":"feito"]);});(c.ev||[]).forEach(function(e){ev.push([+n,e.b||"",e.t||"",e.l||""]);});});
+    var w2=XLSX.utils.aoa_to_sheet(tl);w2["!cols"]=[{wch:5},{wch:14},{wch:80},{wch:12}];
+    var w3=XLSX.utils.aoa_to_sheet(ev);w3["!cols"]=[{wch:5},{wch:36},{wch:70},{wch:28}];
+    var L=[["COMO USAR ESTA PLANILHA"],[""],
+     ["1. Cada linha da aba \"Compromissos\" é um compromisso do site (1 a 12). Não altere a coluna \"n\"."],
+     ["2. Preencha só o que quiser mostrar. Campo vazio = esse bloco não aparece no site, e a página se reorganiza sozinha."],
+     ["3. Quebra de linha dentro de uma célula: Alt+Enter (Windows) ou Ctrl+Option+Enter (Mac)."],
+     ["4. Para destacar parte do texto em negrito, coloque entre dois asteriscos: **assim**."],
+     ["5. \"percentual\" é um número de 0 a 100, sem o símbolo %. Vazio ou 0 = o site mostra um traço no lugar do número."],
+     ["6. \"quem_participa\": um nome por linha dentro da célula (Alt+Enter)."],[""],
+     ["IMAGENS"],
+     ["7. Fotos: cole na célula o endereço (URL) da imagem. Serve link direto, Google Drive (compartilhado como \"qualquer pessoa com o link\") ou Dropbox. O painel baixa, otimiza e guarda a imagem no site."],
+     ["8. Colunas foto_1, foto_2, foto_3, cada uma com a sua legenda_. Precisa de mais? Crie foto_4 + legenda_4, foto_5 + legenda_5... O painel reconhece sozinho. As fotos são distribuídas de forma organizada ao longo do texto: uma foto entra depois do primeiro bloco; duas ou mais se espalham entre os blocos."],
+     ["9. Galeria: na coluna \"galeria\" coloque várias URLs, uma por linha dentro da célula (Alt+Enter). Legendas são opcionais, na coluna \"galeria_legendas\", na mesma ordem. A galeria aparece como slide com botões de movimento; ao clicar numa imagem ela abre ampliada no site."],
+     ["10. Última coluna, \"tem_imagens\": escreva sim se há imagens nesta linha ou não se não há. Se escrever \"não\", as colunas de imagem desta linha são ignoradas."],[""],
+     ["OUTRAS ABAS"],
+     ["11. \"Linha do tempo\": uma linha por fato. \"n\" é o número do compromisso; \"tipo\" é feito ou previsto."],
+     ["12. \"Evidências\": uma linha por evidência, com título, descrição e selo (ex.: Registro · verificado)."],[""],
+     ["PUBLICAR"],
+     ["13. Salve como .xlsx, entre no painel, envie o arquivo e confira a prévia. Só depois clique em Publicar. Se algo sair errado, volte para a versão anterior no próprio painel."]];
+    var w0=XLSX.utils.aoa_to_sheet(L);w0["!cols"]=[{wch:130}];
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,w0,"LEIA-ME");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),"Compromissos");
+    wb.Sheets["Compromissos"]["!cols"]=ws["!cols"];
+    XLSX.utils.book_append_sheet(wb,w2,"Linha do tempo");XLSX.utils.book_append_sheet(wb,w3,"Evidências");
+    XLSX.writeFile(wb,"geo2030-conteudo.xlsx");
+  });
+}
+$("#baixar").onclick=baixarModelo;
+
+/* ---------- leitura da planilha ---------- */
+var norm=function(s){return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");};
+var yes=function(v){v=norm(v);return /^(sim|s|yes|y|1|x|true)$/.test(v);}, no=function(v){v=norm(v);return /^(nao|n|no|0|false)$/.test(v);};
+var rel2=function(u){u=String(u||"").trim();return u.indexOf(ORIGEM)===0?u.slice(ORIGEM.length):u;};
+var urls=function(s){var m=String(s||"").match(/(https?:\/\/[^\s;,]+(?:,[^\s;,]+)*|(?:img|uploads)\/[\w./-]+)/g);return (m||[]).map(rel2);};
+var lines=function(s){return String(s||"").split(/\n|;/).map(function(x){return x.trim();});};
+function sheetRows(wb,name){
+  var key=Object.keys(wb.Sheets).filter(function(k){return norm(k)===name;})[0]; if(!key)return null;
+  var a=XLSX.utils.sheet_to_json(wb.Sheets[key],{header:1,defval:"",raw:false});
+  while(a.length&&a[0].every(function(c){return String(c).trim()==="";}))a.shift();
+  if(!a.length)return [];
+  var h=a[0].map(norm); return a.slice(1).map(function(r){var o={};h.forEach(function(k,i){if(k)o[k]=r[i]===undefined?"":String(r[i]);});return o;});
+}
+function parse(wb){
+  var warns=[],out={compromissos:{}},meta={};
+  var rows=sheetRows(wb,"compromissos"); if(!rows){return {erro:"Não encontrei a aba \"Compromissos\". Use a planilha baixada neste painel."};}
+  var tl=sheetRows(wb,"linha_do_tempo")||[], ev=sheetRows(wb,"evidencias")||[];
+  rows.forEach(function(r,ix){
+    var n=parseInt(r.n,10); if(!(n>=1&&n<=12)){if(Object.keys(r).some(function(k){return String(r[k]).trim();}))warns.push("Linha "+(ix+2)+": número \"n\" inválido (use 1 a 12). Ignorada.");return;}
+    var c={who:[],tl:[],ev:[],fotos:[],gal:[]},mt={w:[],imgOff:false,pendentes:[]};
+    FIELDS.forEach(function(f){if(f[1]==="n")return;var v=(r[f[0]]||"").trim();if(f[1]==="who")c.who=v.split(/\n|;/).map(function(x){return x.trim();}).filter(Boolean);else c[f[1]]=v;});
+    var flag=r.tem_imagens||"",temUrl=false,fn=[];
+    Object.keys(r).forEach(function(k){var m=k.match(/^foto_?(\d+)$/);if(m)fn.push(+m[1]);});
+    fn.sort(function(a,b){return a-b;});
+    var fotos=[];fn.forEach(function(j){var u=urls(r["foto_"+j]||r["foto"+j]);if(u.length){temUrl=true;fotos.push({url:u[0],cap:(r["legenda_"+j]||r["legenda"+j]||"").trim()});}else if((r["foto_"+j]||"").trim())mt.w.push("foto_"+j+": endereço inválido");});
+    var gu=urls(r.galeria),gl=lines(r.galeria_legendas||"");if(gu.length)temUrl=true;
+    var gal=gu.map(function(u,i){return {url:u,cap:gl[i]||""};});
+    if(no(flag)){mt.imgOff=temUrl;}else{if(yes(flag)&&!temUrl)mt.w.push("marcou tem_imagens = sim, mas não colocou nenhum link");c.fotosIn=fotos;c.galIn=gal;}
+    if(!c.name)mt.w.push("sem o nome do compromisso (usa o nome padrão)");
+    out.compromissos[String(n)]=c;meta[n]=mt;
+  });
+  tl.forEach(function(r){var n=parseInt(r.n,10);var c=out.compromissos[String(n)];if(!c)return;var t=(r.texto||"").trim();if(!t)return;c.tl.push({d:(r.data||"").trim(),t:t,soft:/prev|plan|futur/.test(norm(r.tipo))?1:0});});
+  ev.forEach(function(r){var n=parseInt(r.n,10);var c=out.compromissos[String(n)];if(!c)return;if(!(r.titulo||r.descricao))return;c.ev.push({b:(r.titulo||"").trim(),t:(r.descricao||"").trim(),l:(r.selo||"").trim()});});
+  return {data:out,meta:meta,warns:warns};
+}
+function resumo(p){
+  var h='<table><tr><th>n</th><th>Compromisso</th><th>O que vai aparecer</th><th>Avisos</th></tr>';
+  for(var n=1;n<=12;n++){
+    var c=p.data.compromissos[String(n)],m=p.meta[n];
+    if(!c){h+='<tr><td>'+n+'</td><td colspan="3" class="mut">Não está na planilha: fica só o nome do compromisso.</td></tr>';continue;}
+    var ch=[],v=function(k,l){ch.push('<span class="chip '+(c[k]?"ok":"no")+'">'+l+'</span>');};
+    v("why","Por que");v("resp","Assumimos");v("now","Agora");v("next","Próximo passo");v("method","Metodologia");
+    ch.push('<span class="chip '+(c.who.length?"ok":"no")+'">Quem participa</span>');
+    ch.push('<span class="chip '+(c.tl.length?"ok":"no")+'">Linha do tempo '+c.tl.length+'</span>');
+    ch.push('<span class="chip '+(c.ev.length?"ok":"no")+'">Evidências '+c.ev.length+'</span>');
+    var nf=(c.fotosIn||[]).length,ng=(c.galIn||[]).length;
+    ch.push('<span class="chip '+(nf?"ok":"no")+'">Fotos '+nf+'</span>');ch.push('<span class="chip '+(ng?"ok":"no")+'">Galeria '+ng+'</span>');
+    var w=m.w.map(function(x){return '<div class="warn">'+x+'</div>';}).join("")+(m.imgOff?'<div class="mut">Imagens ignoradas (tem_imagens = não).</div>':"");
+    h+='<tr><td>'+n+'</td><td>'+(c.name||"—")+'</td><td>'+ch.join("")+'</td><td>'+(w||'<span class="good">ok</span>')+'</td></tr>';
+  }
+  return h+'</table>'+(p.warns.length?'<div class="box">'+p.warns.map(function(x){return '<div class="warn">'+x+'</div>';}).join("")+'</div>':"");
+}
+function lerArquivo(f){
+  if(!f)return; $("#drop").textContent="Lendo "+f.name+"…";
+  var fr=new FileReader();
+  fr.onload=function(e){
+    try{var wb=XLSX.read(e.target.result,{type:"array"});var p=parse(wb);
+      if(p.erro){$("#prev").innerHTML='<div class="warn" style="margin-top:12px">'+p.erro+'</div>';show("#stPub",false);return;}
+      parsed=p;$("#drop").textContent=f.name+" · clique para trocar";$("#prev").innerHTML=resumo(p);show("#stPub",true);$("#msg").textContent="";show("#forcar",false);
+    }catch(err){$("#prev").innerHTML='<div class="warn" style="margin-top:12px">Não consegui ler o arquivo. Envie um .xlsx.</div>';}
+  };
+  fr.readAsArrayBuffer(f);
+}
+$("#arq").addEventListener("change",function(){lerArquivo(this.files[0]);});
+var dr=$("#drop");["dragover","dragenter"].forEach(function(t){dr.addEventListener(t,function(e){e.preventDefault();dr.classList.add("on");});});
+["dragleave","drop"].forEach(function(t){dr.addEventListener(t,function(e){e.preventDefault();dr.classList.remove("on");});});
+dr.addEventListener("drop",function(e){lerArquivo(e.dataTransfer.files[0]);});
+
+/* ---------- publicar ---------- */
+function setBar(p){show("#bar",true);$("#bar i").style.width=Math.round(p*100)+"%";}
+function publicar(forcar){
+  if(!parsed)return; var P=parsed.data.compromissos, lista=[],seen={};
+  Object.keys(P).forEach(function(n){var c=P[n];(c.fotosIn||[]).forEach(function(f){lista.push(f.url);});(c.galIn||[]).forEach(function(f){lista.push(f.url);});});
+  lista=lista.filter(function(u){if(seen[u])return false;seen[u]=1;return true;});
+  var res={},falhas=[],feitos=0;$("#publicar").disabled=true;$("#msg").textContent=lista.length?"Baixando e otimizando "+lista.length+" imagem(ns)…":"Publicando…";setBar(lista.length?0:.9);
+  var idx=0;function worker(){
+    if(idx>=lista.length)return Promise.resolve();
+    var u=lista[idx++];
+    return api("imagem",{url:u}).then(function(r){feitos++;setBar(feitos/Math.max(1,lista.length)*.85);if(r.ok)res[u]={src:r.src,big:r.big};else falhas.push({u:u,e:r.erro});}).then(worker);
+  }
+  Promise.all([worker(),worker(),worker()]).then(function(){
+    if(falhas.length&&!forcar){
+      $("#msg").innerHTML='<div class="warn"><b>'+falhas.length+' imagem(ns) com problema:</b></div>'+falhas.map(function(f){return '<div class="warn">'+f.u.slice(0,90)+' — '+f.e+'</div>';}).join("")+'<div class="mut">Corrija os links na planilha e envie de novo, ou publique sem essas imagens.</div>';
+      show("#forcar",true);$("#publicar").disabled=false;return;
+    }
+    var out={compromissos:{}};
+    Object.keys(P).forEach(function(n){var c=P[n],o={};Object.keys(c).forEach(function(k){if(k!=="fotosIn"&&k!=="galIn")o[k]=c[k];});
+      o.fotos=(c.fotosIn||[]).filter(function(f){return res[f.url];}).map(function(f){return {src:res[f.url].src,big:res[f.url].big,cap:f.cap};});
+      o.gal=(c.galIn||[]).filter(function(f){return res[f.url];}).map(function(f){return {src:res[f.url].src,big:res[f.url].big,cap:f.cap};});
+      out.compromissos[n]=o;});
+    $("#msg").textContent="Publicando…";setBar(.92);
+    api("salvar",out).then(function(r){
+      $("#publicar").disabled=false;setBar(1);
+      if(r.ok){show("#forcar",false);$("#msg").innerHTML='<span class="good">Publicado.</span> '+r.compromissos+' compromisso(s) atualizados. <a class="lk" href="../" target="_blank" rel="noopener">Ver o site</a>'+(falhas.length?'<div class="mut">'+falhas.length+' imagem(ns) ficaram de fora.</div>':"");histCarrega();}
+      else $("#msg").innerHTML='<div class="warn">'+(r.erro||"Não foi possível publicar.")+'</div>';
+    });
+  });
+}
+$("#publicar").onclick=function(){publicar(false);};$("#forcar").onclick=function(){publicar(true);};
+
+/* ---------- versões ---------- */
+function fmt(id){var m=id.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);return m?m[3]+"/"+m[2]+"/"+m[1]+" "+m[4]+":"+m[5]:id;}
+function histCarrega(){api("historico").then(function(r){var el=$("#hist");if(!r.ok||!r.itens.length){el.textContent="Ainda não há versões anteriores.";return;}
+  el.innerHTML=r.itens.map(function(id){return '<div style="margin:4px 0">'+fmt(id)+' &nbsp; <button class="lk" data-id="'+id+'">restaurar</button></div>';}).join("");
+  el.querySelectorAll("button").forEach(function(b){b.onclick=function(){if(!confirm("Voltar o site para a versão de "+fmt(b.dataset.id)+"?"))return;api("restaurar",{id:b.dataset.id}).then(function(x){el.insertAdjacentHTML("afterbegin",'<div class="'+(x.ok?"good":"warn")+'">'+(x.ok?"Versão restaurada.":x.erro)+"</div>");histCarrega();});};});});}
+boot();
+})();
+</script>
+</body>
+</html>

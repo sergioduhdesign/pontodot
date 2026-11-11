@@ -1,0 +1,36 @@
+Options -Indexes
+DirectoryIndex index.php index.html
+AddDefaultCharset UTF-8
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{SERVER_PORT} ^80$
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteRule ^robots\.txt$ seo.php?f=robots [L,QSA]
+RewriteRule ^sitemap\.xml$ seo.php?f=sitemap [L,QSA]
+</IfModule>
+
+<FilesMatch "^(imgmap|\.tent)\.json$|^_config\.php$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_deflate.c>
+AddOutputFilterByType DEFLATE text/html text/css application/javascript text/javascript application/json image/svg+xml text/xml
+</IfModule>
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType image/jpeg "access plus 1 year"
+ExpiresByType image/png "access plus 1 year"
+ExpiresByType image/webp "access plus 1 year"
+ExpiresByType image/svg+xml "access plus 1 year"
+ExpiresByType text/css "access plus 1 month"
+ExpiresByType application/javascript "access plus 1 month"
+ExpiresByType text/javascript "access plus 1 month"
+</IfModule>
+<IfModule mod_headers.c>
+Header set X-Content-Type-Options "nosniff"
+Header set Referrer-Policy "strict-origin-when-cross-origin"
+<FilesMatch "\.(jpg|jpeg|png|webp|svg|css|js)$">
+Header set Cache-Control "public, max-age=2592000"
+</FilesMatch>
+</IfModule>

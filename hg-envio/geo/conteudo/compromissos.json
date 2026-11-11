@@ -1,0 +1,603 @@
+{
+ "versao": 1,
+ "atualizado": "2026-11-11T00:00:00Z",
+ "compromissos": {
+  "1": {
+   "name": "Educação ambiental",
+   "status": "Em andamento",
+   "pct": 25,
+   "ver": "2 de 8 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Criar repertório para escolhas mais conscientes em escolas, comunidades, equipes, moradores e parceiros.",
+   "resp": "Formar a primeira turma de multiplicadores nas escolas de Pedra Bela e publicar o material educativo com licença aberta.",
+   "deadline": "Até março de 2027",
+   "now": "A equipe está revisando o plano das oficinas com a direção de duas escolas municipais. O material impresso foi aprovado internamente e segue para revisão técnica antes da impressão.",
+   "next": "Publicar o material educativo e confirmar a data da primeira oficina com a instituição responsável.",
+   "method": "Progresso calculado pela soma dos pesos dos marcos verificados: 2 de 8, com pesos 10 e 15 sobre um total de 100. Marcos em andamento não preenchem o arco. Última verificação em 28/08/2026 por verificador atribuído.",
+   "who": [
+    "Geoville (gestão do programa)",
+    "Escolas municipais de Pedra Bela",
+    "Parceiro técnico em educação ambiental"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Pulso publicado.** Plano de oficinas revisado e calendário do primeiro semestre definido.",
+     "soft": 0
+    },
+    {
+     "d": "Ago 2026",
+     "t": "**Marco verificado.** Diagnóstico com professores concluído. Parecer do parceiro técnico anexado.",
+     "soft": 0
+    },
+    {
+     "d": "Jul 2026",
+     "t": "**Marco verificado.** Escuta inicial com 3 escolas e definição dos temas prioritários.",
+     "soft": 0
+    },
+    {
+     "d": "Nov 2026",
+     "t": "Primeira oficina em escola. Aguardando autorização institucional.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Relatório de diagnóstico",
+     "t": "Documento revisado pelo parceiro técnico, com metodologia e amostra.",
+     "l": "Registro · verificado"
+    },
+    {
+     "b": "Ata da escuta com professores",
+     "t": "Registro coletivo, sem dados identificáveis de menores.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [
+    {
+     "src": "img/escola.jpg",
+     "big": "img/escola.jpg",
+     "cap": "Escola municipal, Pedra Bela. Encontro de escuta com a equipe pedagógica, julho de 2026."
+    },
+    {
+     "src": "img/plantio_maos.jpg",
+     "big": "img/plantio_maos.jpg",
+     "cap": "Atividade prática de reconhecimento de espécies durante o diagnóstico."
+    }
+   ],
+   "gal": []
+  },
+  "2": {
+   "name": "Água",
+   "status": "Preparando",
+   "pct": 0,
+   "ver": "Nenhum marco verificado ainda",
+   "pulse": "Setembro de 2026",
+   "terr": "Serra da Canastra",
+   "why": "Cuidar de nascentes, cursos, consumo, drenagem e qualidade da água conforme a realidade de cada território.",
+   "resp": "Mapear necessidades e parceiros técnicos antes de definir a primeira meta. Não anunciar meta sem linha de base.",
+   "deadline": "Método e cronograma até dezembro de 2026",
+   "now": "Diagnóstico territorial e definição da linha de base na Serra da Canastra. Conversas em curso com um parceiro técnico para a leitura inicial de água e drenagem.",
+   "next": "Publicar método, território e cronograma. Só então o primeiro marco recebe peso.",
+   "method": "Este compromisso ainda não possui percentual. Mostrar um número sem método definido seria um dado fictício. O arco permanece neutro até o primeiro marco verificado.",
+   "who": [
+    "Geoville (responsabilidade direta)",
+    "Parceiro técnico em recursos hídricos (em definição)"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Pulso publicado.** Início do diagnóstico e da busca por parceiro técnico independente.",
+     "soft": 0
+    },
+    {
+     "d": "Dez 2026",
+     "t": "Publicação do método, do território e do cronograma.",
+     "soft": 1
+    },
+    {
+     "d": "1º sem 2027",
+     "t": "Primeiro ciclo de monitoramento.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Termo de referência do diagnóstico",
+     "t": "Documento interno em revisão. Será publicado após validação do método.",
+     "l": "Aguardando"
+    }
+   ],
+   "fotos": [
+    {
+     "src": "img/canastra_rio.jpg",
+     "big": "img/canastra_rio.jpg",
+     "cap": "Curso d'água na Serra da Canastra. Registro de reconhecimento, agosto de 2026."
+    }
+   ],
+   "gal": []
+  },
+  "3": {
+   "name": "Arborização",
+   "status": "Em andamento",
+   "pct": 17,
+   "ver": "2 de 9 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Planejar, plantar e acompanhar árvores adequadas ao lugar, evitando ações simbólicas sem manutenção.",
+   "resp": "Executar o mapeamento das áreas, definir espécies nativas com parecer técnico e garantir manutenção por 12 meses após cada plantio.",
+   "deadline": "Primeiro ciclo até agosto de 2027",
+   "now": "O plano de plantio do primeiro ciclo está em revisão técnica. Foram definidas as espécies, as áreas e o calendário de manutenção em 3, 6 e 12 meses.",
+   "next": "Realizar o primeiro plantio orientado e registrar a linha de base de sobrevivência.",
+   "method": "2 de 9 marcos, pesos 8 e 9 sobre 100. Os marcos de sobrevivência (3, 6 e 12 meses) têm os maiores pesos e só serão computados com medição em campo.",
+   "who": [
+    "Geoville (execução e manutenção)",
+    "Escola municipal (missão de acompanhamento)",
+    "Parceiro técnico (parecer e verificação)"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Pulso publicado.** Plano de plantio em revisão técnica. Missão de acompanhamento aberta.",
+     "soft": 0
+    },
+    {
+     "d": "Ago 2026",
+     "t": "**Marco verificado.** Lista de espécies nativas com parecer do parceiro técnico.",
+     "soft": 0
+    },
+    {
+     "d": "Jun 2026",
+     "t": "**Marco verificado.** Mapeamento das áreas de plantio no loteamento e no entorno.",
+     "soft": 0
+    },
+    {
+     "d": "Out 2026",
+     "t": "Primeiro plantio orientado. Vagas para moradores e escola.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Mapa das áreas de plantio",
+     "t": "Arquivo georreferenciado com localização pública aproximada.",
+     "l": "Entrega · verificada"
+    },
+    {
+     "b": "Parecer de espécies",
+     "t": "Relatório técnico com justificativa por área e regime de manutenção.",
+     "l": "Validação externa"
+    }
+   ],
+   "fotos": [
+    {
+     "src": "img/plantio.jpg",
+     "big": "img/plantio.jpg",
+     "cap": "Plantio piloto com moradores e escola, Pedra Bela. A sobrevivência das mudas será medida em 3, 6 e 12 meses."
+    },
+    {
+     "src": "img/vila.jpg",
+     "big": "img/vila.jpg",
+     "cap": "Área de entorno mapeada para o primeiro ciclo."
+    }
+   ],
+   "gal": [
+    {
+     "src": "img/plantio.jpg",
+     "big": "img/plantio.jpg",
+     "cap": "Plantio piloto com moradores e escola, Pedra Bela."
+    },
+    {
+     "src": "img/vila.jpg",
+     "big": "img/vila.jpg",
+     "cap": "Área de entorno mapeada para o primeiro ciclo."
+    },
+    {
+     "src": "img/escola.jpg",
+     "big": "img/escola.jpg",
+     "cap": "Encontro com a equipe pedagógica."
+    },
+    {
+     "src": "img/plantio_maos.jpg",
+     "big": "img/plantio_maos.jpg",
+     "cap": "Reconhecimento de espécies durante o diagnóstico."
+    }
+   ]
+  },
+  "4": {
+   "name": "Biodiversidade",
+   "status": "Aguardando evidência",
+   "pct": 8,
+   "ver": "1 de 7 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Serra da Canastra",
+   "why": "Reconhecer espécies, habitats e relações ecológicas locais antes de intervir.",
+   "resp": "Contratar o inventário inicial de fauna e flora e publicar seus resultados antes de qualquer intervenção na área.",
+   "deadline": "Inventário até maio de 2027",
+   "now": "O inventário de campo teve a primeira campanha concluída. O relatório está com o parceiro técnico e ainda não foi enviado para verificação.",
+   "next": "Receber o relatório da primeira campanha e submeter à verificação.",
+   "method": "1 de 7 marcos, peso 8 sobre 100. Este compromisso não abre missões públicas até o inventário indicar onde a participação é segura para o habitat.",
+   "who": [
+    "Geoville (financiamento)",
+    "Parceiro técnico em ecologia (execução e validação)"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "Primeira campanha de campo concluída. Relatório aguardando envio.",
+     "soft": 1
+    },
+    {
+     "d": "Jul 2026",
+     "t": "**Marco verificado.** Plano do inventário e delimitação das áreas de amostragem.",
+     "soft": 0
+    }
+   ],
+   "ev": [
+    {
+     "b": "Plano do inventário",
+     "t": "Método, áreas de amostragem e cronograma das campanhas.",
+     "l": "Registro · verificado"
+    },
+    {
+     "b": "Relatório da 1ª campanha",
+     "t": "Em elaboração pelo parceiro técnico.",
+     "l": "Aguardando evidência"
+    }
+   ],
+   "fotos": [
+    {
+     "src": "img/canastra_serra.jpg",
+     "big": "img/canastra_serra.jpg",
+     "cap": "Área de amostragem, Serra da Canastra."
+    }
+   ],
+   "gal": []
+  },
+  "5": {
+   "name": "Consumo consciente",
+   "status": "Em andamento",
+   "pct": 12,
+   "ver": "1 de 6 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Reduzir desperdício e melhorar escolhas de materiais, água, energia e produtos.",
+   "resp": "Revisar as compras da própria operação da Geoville antes de propor qualquer campanha aos moradores.",
+   "deadline": "Política de compras até fevereiro de 2027",
+   "now": "A revisão interna de compras da empresa foi concluída e verificada. A campanha prática para moradores está sendo desenhada a partir dos hábitos ouvidos nas rodas.",
+   "next": "Abrir a primeira prática de 30 dias com checklist e relato simples.",
+   "method": "1 de 6 marcos, peso 12 sobre 100. Práticas individuais só contam quando o relato passa por revisão amostral.",
+   "who": [
+    "Geoville (operação própria)",
+    "Moradores (prática individual)"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Pulso publicado.** Desenho da primeira prática doméstica de 30 dias.",
+     "soft": 0
+    },
+    {
+     "d": "Ago 2026",
+     "t": "**Marco verificado.** Levantamento das compras e fornecedores da operação Geoville.",
+     "soft": 0
+    }
+   ],
+   "ev": [
+    {
+     "b": "Levantamento de compras",
+     "t": "Planilha resumida, sem valores comerciais, com categorias e critérios.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [],
+   "gal": []
+  },
+  "6": {
+   "name": "Descarte responsável",
+   "status": "Verificado",
+   "pct": 33,
+   "ver": "3 de 6 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Dar destino adequado a resíduos específicos e tornar o processo compreensível.",
+   "resp": "Instalar e manter pontos de coleta de resíduos específicos e publicar o comprovante de destinação de cada lote.",
+   "deadline": "Contínuo, com prestação de contas mensal",
+   "now": "Dois pontos de coleta estão em operação. O primeiro lote de resíduos eletrônicos foi destinado com comprovante emitido pelo operador logístico.",
+   "next": "Publicar a rotina mensal de pesagem e abrir a campanha com a escola.",
+   "method": "3 de 6 marcos, pesos 10, 10 e 13 sobre 100. Cada lote destinado só entra no cálculo com comprovante do operador.",
+   "who": [
+    "Geoville (instalação e manutenção)",
+    "Operador logístico (destinação)",
+    "Moradores"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Marco verificado.** Primeiro lote destinado. Comprovante e pesagem anexados.",
+     "soft": 0
+    },
+    {
+     "d": "Ago 2026",
+     "t": "**Marco verificado.** Segundo ponto de coleta instalado no espaço comum.",
+     "soft": 0
+    },
+    {
+     "d": "Jul 2026",
+     "t": "**Marco verificado.** Primeiro ponto de coleta e comunicação de uso.",
+     "soft": 0
+    },
+    {
+     "d": "Nov 2026",
+     "t": "Campanha de coleta de óleo e pilhas com a escola.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Comprovante de destinação",
+     "t": "Documento do operador logístico com peso e cadeia de destino do lote 01.",
+     "l": "Entrega · verificada"
+    },
+    {
+     "b": "Registro dos pontos de coleta",
+     "t": "Fotos padronizadas e localização.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [],
+   "gal": []
+  },
+  "7": {
+   "name": "Reciclagem",
+   "status": "Em andamento",
+   "pct": 20,
+   "ver": "2 de 7 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Fortalecer separação, coleta e retorno de materiais à cadeia produtiva.",
+   "resp": "Formalizar parceria com cooperativa da região e registrar pesagem mensal do material recolhido.",
+   "deadline": "Rastreio mensal a partir de outubro de 2026",
+   "now": "Parceria com cooperativa de catadores formalizada. A primeira pesagem acontece em outubro, com planilha pública de acompanhamento.",
+   "next": "Publicar a primeira pesagem e o rastreio de destino.",
+   "method": "2 de 7 marcos, pesos 10 e 10 sobre 100.",
+   "who": [
+    "Geoville",
+    "Cooperativa de catadores da região"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Marco verificado.** Termo de parceria com a cooperativa assinado.",
+     "soft": 0
+    },
+    {
+     "d": "Jul 2026",
+     "t": "**Marco verificado.** Diagnóstico da separação atual nos espaços comuns.",
+     "soft": 0
+    },
+    {
+     "d": "Out 2026",
+     "t": "Primeira pesagem mensal.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Termo de parceria",
+     "t": "Documento com papel, contribuição e prazo. Dados comerciais preservados.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [],
+   "gal": []
+  },
+  "8": {
+   "name": "Moradia sustentável",
+   "status": "Preparando",
+   "pct": 0,
+   "ver": "Nenhum marco verificado ainda",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Levar o cuidado para escolhas dentro de casa e para soluções urbanas possíveis.",
+   "resp": "Produzir e publicar um guia prático de eficiência, conforto e manutenção para as casas dos territórios piloto.",
+   "deadline": "Guia até abril de 2027",
+   "now": "Coleta de dúvidas reais dos moradores para orientar o conteúdo do guia. Nenhum marco concluído.",
+   "next": "Consolidar as dúvidas e definir os capítulos do guia.",
+   "method": "Sem percentual. O compromisso mostra estado, não número.",
+   "who": [
+    "Geoville",
+    "Moradores"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "Escuta de moradores sobre água, energia e materiais nas casas.",
+     "soft": 1
+    },
+    {
+     "d": "Abr 2027",
+     "t": "Publicação do guia.",
+     "soft": 1
+    }
+   ],
+   "ev": [],
+   "fotos": [
+    {
+     "src": "img/vila.jpg",
+     "big": "img/vila.jpg",
+     "cap": "Pedra Bela. As perguntas dos moradores orientam o guia."
+    }
+   ],
+   "gal": []
+  },
+  "9": {
+   "name": "Comunidade",
+   "status": "Em andamento",
+   "pct": 15,
+   "ver": "2 de 8 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Criar escuta, encontro e corresponsabilidade sem falar pelo território.",
+   "resp": "Manter rodas de escuta trimestrais e publicar o registro do que foi ouvido e do que a Geoville assumiu a partir delas.",
+   "deadline": "Contínuo",
+   "now": "Duas rodas de escuta realizadas. O registro público da segunda roda foi verificado e está disponível.",
+   "next": "Abrir a rede local de voluntariado com regras de exposição de imagem.",
+   "method": "2 de 8 marcos, pesos 8 e 7 sobre 100.",
+   "who": [
+    "Geoville",
+    "Moradores e instituições locais"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Marco verificado.** Segunda roda de escuta e registro público.",
+     "soft": 0
+    },
+    {
+     "d": "Jun 2026",
+     "t": "**Marco verificado.** Primeira roda de escuta com moradores.",
+     "soft": 0
+    },
+    {
+     "d": "Dez 2026",
+     "t": "Terceira roda.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Registro das rodas",
+     "t": "Síntese do que foi ouvido, com autorização dos participantes citados.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [
+    {
+     "src": "img/plantio.jpg",
+     "big": "img/plantio.jpg",
+     "cap": "Ação comunitária após a segunda roda de escuta."
+    },
+    {
+     "src": "img/escola.jpg",
+     "big": "img/escola.jpg",
+     "cap": "Encontro na escola municipal."
+    }
+   ],
+   "gal": []
+  },
+  "10": {
+   "name": "Espaços coletivos",
+   "status": "Não iniciado",
+   "pct": 0,
+   "ver": "Nenhum marco verificado ainda",
+   "pulse": "Setembro de 2026",
+   "terr": "Pedra Bela e Santa Maria",
+   "why": "Ativar, qualificar e preservar lugares de convivência.",
+   "resp": "Realizar o diagnóstico de uso dos espaços comuns antes de propor mobiliário ou programação.",
+   "deadline": "Diagnóstico até março de 2027",
+   "now": "Ainda não iniciado. Depende da conclusão da terceira roda de escuta para definir o método de diagnóstico.",
+   "next": "Definir o método de diagnóstico após a terceira roda de escuta.",
+   "method": "Sem percentual. Ainda não iniciado.",
+   "who": [
+    "Geoville"
+   ],
+   "tl": [
+    {
+     "d": "Mar 2027",
+     "t": "Diagnóstico de uso dos espaços comuns.",
+     "soft": 1
+    }
+   ],
+   "ev": [],
+   "fotos": [],
+   "gal": []
+  },
+  "11": {
+   "name": "Parcerias locais",
+   "status": "Contínuo",
+   "pct": 30,
+   "ver": "3 de 10 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Todos os territórios",
+   "why": "Conectar conhecimento, recursos e capacidade de continuidade já presentes no território.",
+   "resp": "Formalizar cada parceria com papel, contribuição, conflito de interesse e prazo declarados.",
+   "deadline": "Contínuo",
+   "now": "Três parcerias formalizadas: cooperativa de catadores, parceiro técnico em ecologia e escolas municipais. Duas propostas em curadoria.",
+   "next": "Concluir a curadoria das duas propostas em análise.",
+   "method": "3 de 10 marcos, pesos 10 cada sobre 100.",
+   "who": [
+    "Geoville",
+    "Cooperativa",
+    "Parceiro técnico",
+    "Escolas municipais"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Marco verificado.** Termo com escolas municipais.",
+     "soft": 0
+    },
+    {
+     "d": "Ago 2026",
+     "t": "**Marco verificado.** Termo com parceiro técnico em ecologia.",
+     "soft": 0
+    },
+    {
+     "d": "Jul 2026",
+     "t": "**Marco verificado.** Termo com cooperativa.",
+     "soft": 0
+    }
+   ],
+   "ev": [
+    {
+     "b": "Termos de parceria",
+     "t": "Papel, contribuição e prazo de cada parceiro.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [],
+   "gal": []
+  },
+  "12": {
+   "name": "Cuidado com o futuro",
+   "status": "Em andamento",
+   "pct": 10,
+   "ver": "1 de 6 marcos verificados",
+   "pulse": "Setembro de 2026",
+   "terr": "Todos os territórios",
+   "why": "Garantir que ações deixem acompanhamento, responsáveis, memória e próximos passos.",
+   "resp": "Publicar a governança do programa, manter o histórico mensal do relógio e revisar metas com registro público.",
+   "deadline": "Até 2030",
+   "now": "Governança e metodologia publicadas. O primeiro snapshot mensal do relógio foi gerado em setembro de 2026.",
+   "next": "Manter o pulso mensal e preparar a primeira revisão anual.",
+   "method": "1 de 6 marcos, peso 10 sobre 100.",
+   "who": [
+    "Geoville",
+    "Joice Ferreira (autoria do projeto)"
+   ],
+   "tl": [
+    {
+     "d": "Set 2026",
+     "t": "**Marco verificado.** Governança, metodologia e primeiro snapshot publicados.",
+     "soft": 0
+    },
+    {
+     "d": "Set 2027",
+     "t": "Primeira revisão anual pública.",
+     "soft": 1
+    }
+   ],
+   "ev": [
+    {
+     "b": "Metodologia v1",
+     "t": "Critérios de progresso, evidência e revisão.",
+     "l": "Registro · verificado"
+    }
+   ],
+   "fotos": [],
+   "gal": []
+  }
+ }
+}

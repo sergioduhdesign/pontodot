@@ -1,0 +1,16 @@
+{
+  "title": "GEO2030 · Territórios que Cuidam",
+  "description": "Geoville 12 anos. O tempo encontra seu lugar em territórios que cuidam. Doze compromissos socioambientais acompanhados publicamente até 1º de setembro de 2030.",
+  "canonical": "https://geo2030.com.br/",
+  "robots": "index,follow,max-image-preview:large",
+  "lang": "pt-BR",
+  "theme_color": "#193C3D",
+  "og": { "type": "website", "site_name": "GEO2030", "locale": "pt_BR", "title": "", "description": "", "image": "" },
+  "twitter": { "card": "summary_large_image", "title": "", "description": "", "image": "" },
+  "organizacao": { "nome": "Geoville Urbanismo", "url": "https://geo2030.com.br/", "logo": "", "sameAs": [] },
+  "jsonld": [],
+  "verificacoes": { "google": "", "bing": "" },
+  "head_extra": "",
+  "sitemap": [ { "loc": "https://geo2030.com.br/" } ],
+  "robots_txt_extra": ""
+}
