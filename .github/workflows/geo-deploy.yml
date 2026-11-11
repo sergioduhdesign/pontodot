@@ -31,10 +31,7 @@ jobs:
             esac
             dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
             R=$(curl -sS --max-time 120 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
-            ok=$(echo "$R" | python3 -c "import json,sys
-try:
-  j=json.load(sys.stdin); print('ok' if j.get('status')==1 and not (j.get('data') or {}).get('failed') else 'erro '+str(j.get('errors'))+str(j.get('messages')))
-except Exception as e: print('erro leitura')")
+            ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
             echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
           done < <(find "$SRC" -type f | sort)
           echo "== enviados: $n | falhas: $falhas"
