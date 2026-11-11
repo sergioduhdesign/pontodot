@@ -1,0 +1,19 @@
+name: Site — portas e alcance
+on:
+  workflow_dispatch:
+    inputs:
+      host: { description: "dominio", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { H: "${{ github.event.inputs.host }}" }
+        run: |
+          IP=$(getent hosts "$H" | awk '{print $1}' | head -1); echo "IP=$IP"
+          for P in 80 443 21 2083; do timeout 8 bash -c "echo > /dev/tcp/$IP/$P" 2>/dev/null && echo "porta $P ABERTA" || echo "porta $P sem resposta"; done
+          echo "== http"; curl -s -m 15 -o /dev/null -w "http=%{http_code} t=%{time_total} redir=%{redirect_url}\n" "http://$H/" || echo "http falhou ($?)"
+          echo "== https"; curl -s -m 15 -o /dev/null -w "https=%{http_code} t=%{time_total}\n" "https://$H/" || echo "https falhou ($?)"
+          echo "== www"; curl -s -m 15 -o /dev/null -w "www=%{http_code}\n" "https://www.$H/" || echo "www falhou ($?)"
+          echo "== outro site no mesmo IP (referencia)"; curl -s -m 15 -o /dev/null -w "ref=%{http_code}\n" --resolve "$H:443:$IP" "https://$H/" -k || echo "ref falhou ($?)"
+          echo "== ping"; ping -c 3 -W 3 "$IP" | tail -3 || true
+          echo "== reverso do IP"; getent hosts "$IP" || true
