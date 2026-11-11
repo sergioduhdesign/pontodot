@@ -1,0 +1,49 @@
+name: Site — diagnóstico de página pública
+on:
+  workflow_dispatch:
+    inputs:
+      url: { description: "endereço (https://...)", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { U: "${{ github.event.inputs.url }}" }
+        run: |
+          H=$(echo "$U" | sed -E 's#https?://([^/]+).*#\1#')
+          echo "== DNS"; getent hosts "$H" || echo "sem resposta"; dig +short NS "${H#www.}" 2>/dev/null | head -4
+          echo "== CERTIFICADO"; echo | openssl s_client -servername "$H" -connect "$H:443" 2>/dev/null | openssl x509 -noout -subject -issuer -dates 2>&1 | head -5
+          echo "== CABECALHOS (segue redirecionamentos)"; curl -sIL --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$U" | grep -iE "^HTTP|^location|^server|^x-powered|^content-type|^cf-|^x-wix|^x-litespeed|^link:" | head -20
+          echo "== CORPO"; curl -sL --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" "$U" -o /tmp/p.html -w "http=%{http_code} bytes=%{size_download} tempo=%{time_total}s final=%{url_effective}\n"
+          python3 - <<'PY'
+          import re
+          h=open('/tmp/p.html',errors='ignore').read()
+          print('title:',(re.search(r'<title[^>]*>(.*?)</title>',h,re.S) or [None,'(sem title)'])[1].strip()[:150])
+          for pat in ['Fatal error','Parse error','Warning:','Notice:','Stack trace','Error establishing a database','database error','wp-content/uploads','wix','elementor','Index of /','403 Forbidden','404','Account Suspended','coming soon','manuten']:
+              n=len(re.findall(pat,h,re.I)); 
+              if n: print('achou',pat,n)
+          t=re.sub(r'\s+',' ',re.sub(r'<[^>]+>',' ',re.sub(r'<(script|style|noscript)[^>]*>.*?</\1>',' ',h,flags=re.S)))
+          print('texto visivel:',t[:500])
+          print('generator:',re.findall(r'<meta name="generator" content="([^"]+)"',h)[:3])
+          print('imagens:',len(re.findall(r'<img',h)),'scripts:',len(re.findall(r'<script',h)))
+          PY
+          pip install playwright >/dev/null
+          python - <<'PY'
+          import os,json
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              b=p.chromium.launch(channel='chrome')
+              for nome,wd in [('desktop',1440),('celular',390)]:
+                  pg=b.new_page(viewport={'width':wd,'height':900}); er=[];fa=[];bad=[]
+                  pg.on('console',lambda m,er=er: er.append(m.text[:200]) if m.type in('error','warning') else None)
+                  pg.on('pageerror',lambda e,er=er: er.append('JS: '+str(e)[:200]))
+                  pg.on('requestfailed',lambda r,fa=fa: fa.append(r.url[:120]+' '+str(r.failure)))
+                  pg.on('response',lambda r,bad=bad: bad.append(str(r.status)+' '+r.url[:120]) if r.status>=400 else None)
+                  try:
+                      pg.goto(os.environ['U'],wait_until='networkidle',timeout=45000); pg.wait_for_timeout(2000)
+                      alt=pg.evaluate("document.documentElement.scrollHeight"); larg=pg.evaluate("document.documentElement.scrollWidth")
+                      semalt=pg.evaluate("[...document.images].filter(i=>!i.complete||i.naturalWidth===0).map(i=>i.src.slice(0,100))")
+                      print('NAV',nome,'altura',alt,'largura_rolagem',larg,'vs janela',wd,'| imagens quebradas',len(semalt),semalt[:5])
+                  except Exception as e: print('NAV',nome,'FALHOU',str(e)[:200])
+                  print('NAV',nome,'erros console',len(er),er[:6]); print('NAV',nome,'requisicoes falhas',len(fa),fa[:6]); print('NAV',nome,'respostas 4xx/5xx',len(bad),bad[:8]); pg.close()
+              b.close()
+          PY
