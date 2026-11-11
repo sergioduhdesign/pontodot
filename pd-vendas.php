@@ -5,6 +5,7 @@ require_once __DIR__ . '/sd-base.php';
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-vendas-lib.php';
 require_once __DIR__ . '/pd-dig-lib.php';
+require_once __DIR__ . '/pd-pessoas-lib.php';
 require_once __DIR__ . '/pd-lib.php';
 header('Content-Type: application/json; charset=utf-8');
 @set_time_limit(240);
@@ -56,6 +57,10 @@ switch ($acao) {
         $out(['reabertos' => $n]); break;
     case 'descobrir':
         $r = vdDescobrir((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
+    case 'pessoas_descobrir':
+        $r = vdDescobrirPessoas((string)($b['consulta'] ?? ''), (int)($b['quantos'] ?? 10), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
+    case 'pessoas_triar':
+        $r = vdTriarPessoas((string)($b['texto'] ?? ''), (string)($b['criterio'] ?? ''), $cart, $u['id']); if (empty($r['ok'])) sd_fail($r['erro'] ?? 'não consegui', 422); $out(['r' => $r]); break;
     case 'inbox': $r = vdInboxLer(25, $cart === 'todas' ? null : $cart); $out(['r' => $r]); break;
     case 'auto_ler':
         $o = ['auto' => vdLinhas(vdSup('/rest/v1/pd_vendas_auto?select=*'))];
