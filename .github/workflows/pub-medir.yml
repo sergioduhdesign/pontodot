@@ -1,0 +1,27 @@
+name: Página pública — medir elemento e vizinhos
+on:
+  workflow_dispatch:
+    inputs:
+      url:   { description: "endereço", required: true }
+      texto: { description: "texto do elemento", required: true }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { U: "${{ github.event.inputs.url }}", T: "${{ github.event.inputs.texto }}" }
+        run: |
+          pip install playwright >/dev/null
+          python - <<'PY'
+          import os,json
+          from playwright.sync_api import sync_playwright
+          JS="""t=>{const el=[...document.querySelectorAll('h1,h2,h3,.elementor-widget-heading')].find(e=>e.textContent.includes(t));if(!el)return 'nao achei';
+          const w=el.closest('.elementor-widget')||el;const col=w.parentElement;const r=e=>{const a=e.getBoundingClientRect();return [Math.round(a.x),Math.round(a.y+scrollY),Math.round(a.width),Math.round(a.height)]};
+          const h=w.querySelector('.elementor-heading-title')||el;const cs=getComputedStyle(h);const lh=parseFloat(cs.lineHeight)||parseFloat(cs.fontSize)*1.2;
+          return {titulo:r(h),linhas:Math.round(h.getBoundingClientRect().height/lh),fonte:cs.fontSize,largura_css:getComputedStyle(w).width,pos:getComputedStyle(w).position,vizinhos:[...col.children].map(c=>[c.className.split(' ').filter(x=>x.startsWith('elementor-widget-')).join(' ')||c.tagName,...r(c),getComputedStyle(c).position])}}"""
+          with sync_playwright() as p:
+              b=p.chromium.launch(channel='chrome')
+              for nome,wd in [('desktop',1440),('laptop',1200),('tablet',820),('celular',390)]:
+                  pg=b.new_page(viewport={'width':wd,'height':900}); pg.goto(os.environ['U']+'?v=2',wait_until='networkidle'); pg.wait_for_timeout(1500)
+                  print('MEDIDA',nome,json.dumps(pg.evaluate(JS,os.environ['T']),ensure_ascii=False)); pg.close()
+              b.close()
+          PY
