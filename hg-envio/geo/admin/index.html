@@ -120,7 +120,7 @@ function baixarModelo(){
      ["2. Preencha só o que quiser mostrar. Campo vazio = esse bloco não aparece no site, e a página se reorganiza sozinha."],
      ["3. Quebra de linha dentro de uma célula: Alt+Enter (Windows) ou Ctrl+Option+Enter (Mac)."],
      ["4. Para destacar parte do texto em negrito, coloque entre dois asteriscos: **assim**."],
-     ["5. \"percentual\" é um número de 0 a 100, sem o símbolo %. Vazio ou 0 = o site mostra um traço no lugar do número."],
+     ["5. \"percentual\" é um número de 0 a 100 (ex.: 25). Vazio ou 0 = a faixa do compromisso não recebe caixinha no relógio."],
      ["6. \"quem_participa\": um nome por linha dentro da célula (Alt+Enter)."],[""],
      ["IMAGENS"],
      ["7. Fotos: cole na célula o endereço (URL) da imagem. Serve link direto, Google Drive (compartilhado como \"qualquer pessoa com o link\") ou Dropbox. O painel baixa, otimiza e guarda a imagem no site."],
@@ -163,6 +163,7 @@ function parse(wb){
     var n=parseInt(r.n,10); if(!(n>=1&&n<=12)){if(Object.keys(r).some(function(k){return String(r[k]).trim();}))warns.push("Linha "+(ix+2)+": número \"n\" inválido (use 1 a 12). Ignorada.");return;}
     var c={who:[],tl:[],ev:[],fotos:[],gal:[]},mt={w:[],imgOff:false,pendentes:[]};
     FIELDS.forEach(function(f){if(f[1]==="n")return;var v=(r[f[0]]||"").trim();if(f[1]==="who")c.who=v.split(/\n|;/).map(function(x){return x.trim();}).filter(Boolean);else c[f[1]]=v;});
+    (function(){var s=String(c.pct||"").replace("%","").replace(",",".").trim(),v=parseFloat(s);if(!isFinite(v)||v<=0){c.pct="";return;}if(v<1)v=v*100;c.pct=Math.min(100,Math.round(v*10)/10);})();
     var flag=r.tem_imagens||"",temUrl=false,fn=[];
     Object.keys(r).forEach(function(k){var m=k.match(/^foto_?(\d+)$/);if(m)fn.push(+m[1]);});
     fn.sort(function(a,b){return a-b;});

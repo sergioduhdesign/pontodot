@@ -9,7 +9,7 @@
     var r=G.compromissos[String(c.n)]||{};
     if(r.name) c.name=String(r.name).trim();
     c.status=rich(r.status);
-    var p=parseFloat(r.pct); c.pct=isFinite(p)&&p>0?Math.min(1,p>1?p/100:p):0;
+    var p=parseFloat(r.pct); c.pct=isFinite(p)&&p>0?Math.min(1,p/100):0;
     c.ver=rich(r.ver); c.pulse=rich(r.pulse); c.terr=rich(r.terr);
     c.why=rich(r.why); c.resp=rich(r.resp); c.deadline=rich(r.deadline);
     c.now=rich(r.now); c.next=rich(r.next); c.method=rich(r.method);

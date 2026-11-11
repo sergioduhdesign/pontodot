@@ -50,3 +50,6 @@ body.lock #pills,body.dim #pills,body[data-view="open"] #pills{transition-durati
 @media (max-width:760px){#lb .nv{top:auto;bottom:22px;transform:none}#lb img{max-height:70vh}}
 
 .sr-seo{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+
+/* no computador, o movimento nasce só nas caixinhas: a linha não reage ao mouse */
+@media (min-width:761px){#clock .hit{pointer-events:none!important}}

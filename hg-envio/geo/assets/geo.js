@@ -5,13 +5,13 @@ var NS="http://www.w3.org/2000/svg", isMobile=function(){return innerWidth<760;}
 var pillsG=null, pills=[];
 
 /* ============ 1. FAIXAS NOS ANÉIS: nome + porcentagem, na cor da linha ============ */
-function pillText(c){return c.pct>0?Math.round(c.pct*100)+"%":"—";}
+function pillText(c){return Math.round(c.pct*100)+"%";}
 function buildPills(){
   var svg=document.getElementById("clockSvg"); if(!svg||pillsG) return;
   pillsG=document.createElementNS(NS,"g"); pillsG.id="pills";
   svg.insertBefore(pillsG,document.getElementById("liftG"));
   RINGS.forEach(function(r,i){
-    var c=byRing[i]; if(!c) return;
+    var c=byRing[i]; if(!c||!(c.pct>0)) return;
     var g=document.createElementNS(NS,"g"); g.setAttribute("class","pill"); g.setAttribute("tabindex","0"); g.setAttribute("role","link");
     g.setAttribute("aria-label",c.name+(c.pct>0?", "+Math.round(c.pct*100)+"% verificado":"")); g.dataset.i=i;
     var rc=document.createElementNS(NS,"rect"); rc.setAttribute("fill",r.color); rc.setAttribute("rx","3.5"); rc.setAttribute("height","17");
@@ -109,7 +109,7 @@ window.unhover=function(){
 function retargetPointer(){
   if(lastPt.x<0||isMobile()) return;
   var el=document.elementFromPoint(lastPt.x,lastPt.y); if(!el) return;
-  var h=el.closest&&(el.closest(".hit")||el.closest(".pill"));
+  var h=el.closest&&el.closest(".pill");
   if(h&&h.dataset.i!==undefined) wantHover(+h.dataset.i);
 }
 
