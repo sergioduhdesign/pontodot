@@ -876,7 +876,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                   <div class="entity-card-name">HostGator e Wix da casa</div>
                   <div class="entity-card-meta">Acesso à conta inteira (todos os sites da raiz): guardar o token uma vez e editar arquivos com backup e desfazer</div>
                 </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">HostGator</button><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix','casa')">Wix</button><button class="btn btn-secondary btn-sm" onclick="pdWixSitesVer()">Sites do Wix</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('hostgator','casa')">HostGator</button><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('wix','casa')">Wix</button><button class="btn btn-secondary btn-sm" onclick="pdWixSitesVer()">Sites do Wix</button><button class="btn btn-secondary btn-sm" onclick="pdCofreAbrir('apollo','casa')">Contatos B2B (Apollo)</button><button class="btn btn-secondary btn-sm" onclick="pdArquivosAbrir('')">Arquivos do site →</button></div>
               </div>
               <div class="entity-card" style="flex-direction:column;align-items:stretch;gap:9px">
                 <div>
@@ -7794,11 +7794,12 @@ function pdCofreAbrir(servico, escopo){
     <div class="cfF" style="max-width:600px;margin:0 auto;background:#fff;color:#15161A;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden;font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif">
     <div class="cfH" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #E4E3DE;background:#fff">
       <button id="cf-v" title="Voltar" style="width:36px;height:36px;border:1px solid #D9D8D2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px;color:#15161A">‹</button>
-      <b style="font-size:16px">Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?(casa?'Wix da casa — a chave vale p/ todos os sites':'Wix do cliente (ID do site)'):servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':esc(servico)}</b></div>
+      <b style="font-size:16px">Cofre — ${servico==='wordpress'?'WordPress do cliente':servico==='wix'?(casa?'Wix da casa — a chave vale p/ todos os sites':'Wix do cliente (ID do site)'):servico==='hostgator'?'HostGator (cPanel) '+(casa?'da casa — vale p/ todos os sites':'do cliente')+'':servico==='apollo'?'Fornecedor de contatos B2B (Apollo) — chave da casa':esc(servico)}</b></div>
     <div style="padding:18px 20px 22px">
     <div style="font-size:13px;color:#6B6D75;line-height:1.55;margin-bottom:16px">A chave vai direto pro cofre do servidor. Ninguém — nem admin — lê depois.
       ${servico==='wordpress' ? 'No WP do cliente: Usuários → Perfil → <b>Senhas de aplicativo</b> → crie uma chamada "pontodot" e cole aqui.' : ''}
       ${servico==='hostgator' ? 'No cPanel: <b>Segurança → Gerenciar tokens de API</b> → criar "pontodot" (sem validade). Usuário = o usuário do cPanel; servidor = o endereço que aparece ao entrar no cPanel (ex.: br123.hostgator.com.br); chave = o token. Com ele a PD instala o plugin de SEO e mexe em robots.txt/.htaccess sozinha.' : ''}
+      ${servico==='apollo' ? 'Em app.apollo.io: Settings → Integrations → API → criar chave. Cole só a chave (usuário pode ficar vazio). A Tumi usa para achar contatos profissionais licenciados e jogar no funil de pessoas.' : ''}
       ${servico==='wix' && casa ? 'Uma vez só: chave em manage.wix.com/account/api-keys (permissões de todos os sites, blog e SEO). Usuário = o <b>ID da conta</b> Wix. Depois, em cada cliente, só o ID do site.' : ''}
       ${servico==='wix' && !casa ? 'Só o <b>ID do site</b> (trecho longo da URL do painel). A chave vem da casa; cole uma aqui só se este site for de outra conta Wix.' : ''}
       ${false ? 'Chave: manage.wix.com/account/api-keys → gerar chave "pontodot". O <b>ID do site</b> é o trecho longo da URL do painel (manage.wix.com/dashboard/<b>ID</b>/home). A mesma chave serve para vários sites da conta; o ID muda por site.' : ''}</div></div>

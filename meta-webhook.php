@@ -39,6 +39,35 @@ $corpo = json_decode((string)$cru, true);
 http_response_code(200); header('Content-Type: application/json'); echo '{"ok":true}';
 if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
 
+// ------------------------------------------------ 2b) Instagram: comentário com a palavra-chave vira DM (gatilhos de Dig › Captar)
+if (is_array($corpo) && ($corpo['object'] ?? '') === 'instagram') {
+    require_once __DIR__ . '/sd-auth.php'; require_once __DIR__ . '/pd-pessoas-lib.php';
+    foreach ((array)($corpo['entry'] ?? []) as $ent) foreach ((array)($ent['changes'] ?? []) as $mud) {
+        if (($mud['field'] ?? '') !== 'comments') continue; $v = (array)($mud['value'] ?? []);
+        $comId = preg_replace('/\D/', '', (string)($v['id'] ?? '')); $texto = (string)($v['text'] ?? ''); $igId = preg_replace('/\D/', '', (string)($ent['id'] ?? ''));
+        $de = (array)($v['from'] ?? []); $deId = preg_replace('/\D/', '', (string)($de['id'] ?? '')); $user = mb_substr((string)($de['username'] ?? ''), 0, 60); $media = preg_replace('/\D/', '', (string)(($v['media']['id'] ?? '')));
+        if (!$comId || !$igId || $texto === '') continue;
+        $c = pd_supa('/rest/v1/social_accounts?platform=eq.instagram&external_account_id=eq.' . urlencode($igId) . '&select=id,client_id'); $conta = $c['body'][0] ?? null; if (!$conta) continue;
+        if ($deId === $igId) continue;   // comentário da própria conta nunca dispara
+        $gs = pd_supa('/rest/v1/pd_gatilhos?client_id=eq.' . urlencode($conta['client_id']) . '&ativo=is.true&select=*'); $norm = vdNorm($texto); $hit = null;
+        foreach ((array)($gs['body'] ?? []) as $g) { if (!is_array($g)) continue; if (!empty($g['post_id']) && preg_replace('/\D/', '', (string)$g['post_id']) !== $media) continue;
+            if (preg_match('/(^|[^a-z0-9])' . preg_quote($g['palavra'], '/') . '([^a-z0-9]|$)/', $norm)) { $hit = $g; break; } }
+        if (!$hit) continue;
+        $lg = pd_supa('/rest/v1/pd_gatilho_log', 'POST', ['gatilho_id' => $hit['id'], 'client_id' => $conta['client_id'], 'comment_id' => $comId, 'ig_user_id' => $deId, 'username' => $user, 'texto' => mb_substr($texto, 0, 300)], ['Prefer: resolution=ignore-duplicates,return=representation']);
+        if (empty($lg['body'][0]['id'])) continue;   // já tratado (a Meta reenvia)
+        $enviado = false; $erro = null;
+        if (!defined('SD_META_DM_LIBERADO') || !SD_META_DM_LIBERADO) $erro = 'aguardando a Meta liberar a permissão de mensagens do app (instagram_manage_messages)';
+        else { $tk = pd_supa('/rest/v1/social_account_tokens?social_account_id=eq.' . urlencode($conta['id']) . '&select=access_token'); $tok = $tk['body'][0]['access_token'] ?? null;
+            if (!$tok) $erro = 'conta sem chave'; else {
+                $r = pd_meta('POST', '/' . $igId . '/messages', ['recipient' => json_encode(['comment_id' => $comId]), 'message' => json_encode(['text' => $hit['resposta_dm']])], $tok, 20);
+                if (($r['code'] ?? 0) === 200 && empty($r['body']['error'])) { $enviado = true; if (!empty($hit['resposta_publica'])) pd_meta('POST', '/' . $comId . '/replies', ['message' => $hit['resposta_publica']], $tok, 20); }
+                else $erro = mb_substr(pd_meta_erro($r), 0, 200); } }
+        pd_supa('/rest/v1/pd_gatilho_log?comment_id=eq.' . $comId, 'PATCH', ['enviado' => $enviado, 'erro' => $erro], ['Prefer: return=minimal']);
+        if ($enviado) { pd_supa('/rest/v1/pd_gatilhos?id=eq.' . $hit['id'], 'PATCH', ['disparos' => (int)$hit['disparos'] + 1], ['Prefer: return=minimal']);
+            if ($user !== '') vdPessoasGrava([['nome' => $user, 'instagram' => $user, 'nota' => 65, 'fonte_url' => 'instagram:comentario:' . $comId, 'motivo' => 'Comentou "' . mb_substr($hit['palavra'], 0, 40) . '" e recebeu o direct.', 'perfil' => 'Comentário no Instagram do cliente', 'empresa' => '']], 'comentário ' . $hit['palavra'], $conta['client_id'], null, 'comentario', 'Comentários · ' . date('m/Y')); }
+    }
+    exit;
+}
 if (!is_array($corpo) || ($corpo['object'] ?? '') !== 'page') exit;
 
 // ------------------------------------------------ 3) busca e guarda

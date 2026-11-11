@@ -84,6 +84,8 @@ function targetingDe($pub) {
         elseif ($m === 'cities') $geo[$m] = array_map(fn($x) => ['key' => is_array($x) ? $x['key'] : $x, 'radius' => (int)($pub['raio_km'] ?? 25), 'distance_unit' => 'kilometer'], $l);
         else $geo[$m] = array_map(fn($x) => ['key' => is_array($x) ? $x['key'] : $x], $l);
     }
+    $cl = []; foreach ((array)($pub['pontos'] ?? []) as $pt) if (is_array($pt) && isset($pt['lat'], $pt['lng'])) $cl[] = ['latitude' => (float)$pt['lat'], 'longitude' => (float)$pt['lng'], 'radius' => max(1, min(80, (int)($pt['raio_km'] ?? 10))), 'distance_unit' => 'kilometer'];
+    if ($cl) $geo['custom_locations'] = $cl;   // raio ao redor de um ponto no mapa (público por região, de Dig › Captar)
     if (!$geo) $geo = ['countries' => ['BR']];
     $t = ['geo_locations' => $geo, 'age_min' => max(18, min(65, (int)($pub['idade_min'] ?? 25))), 'age_max' => max(18, min(65, (int)($pub['idade_max'] ?? 60)))];
     if (!empty($pub['generos']) && is_array($pub['generos']) && count($pub['generos']) === 1) $t['genders'] = [$pub['generos'][0] === 'f' ? 2 : 1];

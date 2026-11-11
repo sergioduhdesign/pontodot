@@ -11,13 +11,15 @@ function vdPessoaChave($cartK, $x) {
     $ig = strtolower(trim((string)($x['instagram'] ?? ''), " @/")); $ig = preg_replace('~^https?://(www\.)?instagram\.com/~', '', $ig); $ig = trim(explode('?', $ig)[0], '/');
     $ln = strtolower((string)($x['linkedin'] ?? '')); if (preg_match('~linkedin\.com/in/([^/?#]+)~', $ln, $m)) $ln = $m[1]; else $ln = '';
     if ($ig !== '') return $cartK . '|p|ig:' . $ig;
+    $em = strtolower(trim((string)($x['email'] ?? ''))); if ($ln === '' && $em !== '' && filter_var($em, FILTER_VALIDATE_EMAIL)) return $cartK . '|p|em:' . $em;
     if ($ln !== '') return $cartK . '|p|in:' . $ln;
     return $cartK . '|p|' . vdNorm($x['nome'] ?? '') . '|' . vdNorm($x['empresa'] ?? '');
 }
 
 /** Grava pessoas como prospects. $lista: [{nome,cargo,empresa,cidade,uf,instagram,linkedin,site,email,fonte_url,motivo,nota,perfil}] */
 function vdPessoasGrava(array $lista, $criterio, $cart, $uid, $origem, $loteNome) {
-    $lr = vdLinhas(vdSup('/rest/v1/pd_lotes', 'POST', ['nome' => $loteNome, 'motivo' => mb_substr($criterio, 0, 500), 'carteira_id' => $cart, 'criado_por' => $uid]));
+    $lr = $cart ? vdLinhas(vdSup('/rest/v1/pd_lotes?nome=eq.' . rawurlencode($loteNome) . '&carteira_id=eq.' . $cart . '&select=id&limit=1')) : [];   // o mesmo lote serve às capturas seguintes (ex.: uma isca)
+    if (!$lr) $lr = vdLinhas(vdSup('/rest/v1/pd_lotes', 'POST', ['nome' => $loteNome, 'motivo' => mb_substr($criterio, 0, 500), 'carteira_id' => $cart, 'criado_por' => $uid]));
     $lote = $lr[0]['id'] ?? null; $cartK = $cart ?: 'casa'; $por = []; $ign = 0;
     foreach ($lista as $x) {
         if (!is_array($x)) continue; $nome = trim((string)($x['nome'] ?? ''));
@@ -29,19 +31,19 @@ function vdPessoasGrava(array $lista, $criterio, $cart, $uid, $origem, $loteNome
             'uf' => strtoupper(substr(trim((string)($x['uf'] ?? '')), 0, 2)) ?: null, 'segmento' => mb_substr(trim(((string)($x['cargo'] ?? '')) . (!empty($x['empresa']) ? ' · ' . $x['empresa'] : '')), 0, 160) ?: null,
             'instagram' => $ig ?: null, 'origem' => $origem, 'lote_id' => $lote, 'carteira_id' => $cart, 'criado_por' => $uid, 'chave' => $k,
             'nota' => isset($x['nota']) ? max(1, min(100, (int)$x['nota'])) : 50, 'angulo' => mb_substr((string)($x['motivo'] ?? ''), 0, 300) ?: null,
-            'sinais' => ['PESSOA' => true, 'cargo' => (string)($x['cargo'] ?? ''), 'empresa' => (string)($x['empresa'] ?? ''), 'criterio' => mb_substr($criterio, 0, 200), 'fonte_url' => (string)($x['fonte_url'] ?? ''), 'linkedin' => (string)($x['linkedin'] ?? ''), 'perfil' => mb_substr((string)($x['perfil'] ?? ''), 0, 300)],
-            'enriquecido_em' => gmdate('c'), '_email' => $email];
+            'sinais' => ['PESSOA' => true, 'cargo' => (string)($x['cargo'] ?? ''), 'empresa' => (string)($x['empresa'] ?? ''), 'criterio' => mb_substr($criterio, 0, 200), 'fonte_url' => (string)($x['fonte_url'] ?? ''), 'linkedin' => (string)($x['linkedin'] ?? ''), 'perfil' => mb_substr((string)($x['perfil'] ?? ''), 0, 300)] + (is_array($x['sinais_extra'] ?? null) ? $x['sinais_extra'] : []),
+            'enriquecido_em' => gmdate('c'), '_email' => $email, '_zap' => (trim((string)($x['zap'] ?? '')) !== '' ? pdZapNormaliza($x['zap']) : '')];
     }
     if (!$por) return ['novos' => 0, 'duplicados' => 0, 'ignorados' => $ign, 'lote' => $lote];
     $chaves = array_keys($por); $jaTem = [];
     foreach (array_chunk($chaves, 100) as $ck) { $q = sd_supabase('/rest/v1/pd_prospects?chave=in.(' . implode(',', array_map(fn($c) => '"' . str_replace('"', '', $c) . '"', $ck)) . ')&select=chave'); foreach ((array)($q['body'] ?? []) as $r) if (is_array($r)) $jaTem[$r['chave']] = 1; }
-    $ins = []; foreach ($por as $k => $r) if (!isset($jaTem[$k])) { $e = $r['_email']; unset($r['_email']); $ins[] = $r; }
+    $ins = []; foreach ($por as $k => $r) if (!isset($jaTem[$k])) { unset($r['_email'], $r['_zap']); $ins[] = $r; }
     $dup = count($por) - count($ins); if (!$ins) return ['novos' => 0, 'duplicados' => $dup, 'ignorados' => $ign, 'lote' => $lote];
     $r = sd_supabase('/rest/v1/pd_prospects', 'POST', $ins, ['Prefer: return=representation']);
     if (($r['code'] ?? 500) >= 300) { $msg = (string)($r['body']['message'] ?? $r['raw'] ?? '');
         if (preg_match("/Could not find the '([a-z_]+)' column/", $msg, $mm)) { $ins = array_map(function ($x) use ($mm) { unset($x[$mm[1]]); return $x; }, $ins); $r = sd_supabase('/rest/v1/pd_prospects', 'POST', $ins, ['Prefer: return=representation']); }
         if (($r['code'] ?? 500) >= 300) return ['erro' => 'banco recusou: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200)]; }
-    $cts = []; foreach ((array)$r['body'] as $n) { $e = $por[$n['chave']]['_email'] ?? ''; if ($e !== '') $cts[] = ['prospect_id' => $n['id'], 'nome' => $n['nome'], 'cargo' => ($por[$n['chave']]['sinais']['cargo'] ?? '') ?: null, 'email' => $e, 'email_status' => 'publico', 'principal' => true, 'dono' => true]; }
+    $cts = []; foreach ((array)$r['body'] as $n) { $e = $por[$n['chave']]['_email'] ?? ''; $z = $por[$n['chave']]['_zap'] ?? ''; if (strlen($z) < 12) $z = ''; if ($e !== '' || $z !== '') $cts[] = ['prospect_id' => $n['id'], 'nome' => $n['nome'], 'cargo' => ($por[$n['chave']]['sinais']['cargo'] ?? '') ?: null, 'email' => $e ?: null, 'zap' => $z ?: null, 'email_status' => ($por[$n['chave']]['origem'] ?? '') === 'isca' ? 'verificado' : 'arriscado', 'principal' => true, 'dono' => true]; }
     if ($cts) sd_supabase('/rest/v1/pd_prospect_contatos', 'POST', $cts, ['Prefer: return=minimal']);
     return ['novos' => count((array)$r['body']), 'duplicados' => $dup, 'ignorados' => $ign, 'lote' => $lote];
 }
