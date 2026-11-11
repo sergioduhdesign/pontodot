@@ -1,0 +1,16 @@
+name: GEO2030 — verificar no ar
+on: { workflow_dispatch: {} }
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          B=https://geo2030.com.br
+          for u in / /robots.txt /sitemap.xml /admin/ /admin/geo2030-modelo.xlsx /conteudo/compromissos.json /assets/geo.js /img/plantio.jpg /api.php?a=sessao /_config.php /conteudo/.tent.json; do
+            curl -s -o /dev/null -L --max-time 30 -w "%{http_code} %{size_download}B %{time_total}s  $u\n" "$B$u"
+          done
+          echo "== cabecalhos home"; curl -sI --max-time 30 -H "Accept-Encoding: gzip" $B/ | grep -iE "^HTTP|content-encoding|cache-control|content-type"
+          echo "== head"; curl -s --max-time 30 $B/ | grep -oE '<title>[^<]*|canonical" href="[^"]*|og:title" content="[^"]*|application/ld\+json|GEO_CONTENT|class="sr-seo"|assets/geo\.(js|css)\?v=[0-9]+' | sort | uniq -c
+          echo "== certificado"; echo | openssl s_client -servername geo2030.com.br -connect geo2030.com.br:443 2>/dev/null | openssl x509 -noout -subject -issuer -dates | head -4
+          echo "== http->https"; curl -sI --max-time 20 http://geo2030.com.br/ | grep -iE "^HTTP|^location"
