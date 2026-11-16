@@ -48,6 +48,38 @@ function vdPessoasGrava(array $lista, $criterio, $cart, $uid, $origem, $loteNome
     return ['novos' => count((array)$r['body']), 'duplicados' => $dup, 'ignorados' => $ign, 'lote' => $lote];
 }
 
+/** Confere cada pessoa achada: uma busca na web por pessoa (em paralelo), procurando a presença própria dela (site, clínica/escritório, LinkedIn público, cadastro profissional)
+ *  e comparando profissão, cidade e empresa com o que a fonte original disse. Devolve a mesma lista com 'verif' = {ok, confianca, evidencias[], email, telefone, site, instagram, linkedin, canal}. */
+function vdVerificarPessoas(array $lista, $criterio) {
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $sys = "Você confere se uma pessoa achada numa fonte pública é a MESMA pessoa que tem presença profissional própria na web. Use a busca na web: pesquise o nome com a profissão e a cidade; procure site próprio, site da clínica/escritório/empresa, LinkedIn público, perfis em diretórios e cadastros profissionais abertos, Instagram profissional. "
+         . "É a mesma pessoa só se profissão E cidade/região E (empresa OU outro dado) baterem com o que a fonte original disse. Homônimo, profissão diferente ou cidade diferente = não confirmado. Nunca invente nada; e-mail e telefone só se estiverem escritos numa página que você leu (comercial/profissional), senão deixe vazio. Ignore vida privada e dados sensíveis. "
+         . "Responda SOMENTE um JSON: {\"confirmado\":true|false,\"confianca\":0-100,\"evidencias\":[\"url1\",\"url2\"],\"email\":\"\",\"telefone\":\"\",\"site\":\"\",\"instagram\":\"\",\"linkedin\":\"\",\"canal\":\"melhor canal público para chegar (ex.: e-mail do site, formulário, WhatsApp visível, Instagram ativo, LinkedIn)\",\"resumo\":\"1 frase do que confirmou ou por que não\"}";
+    $mh = curl_multi_init(); $chs = [];
+    foreach ($lista as $i => $x) {
+        $q = 'Pessoa: ' . ($x['nome'] ?? '') . ' · cargo/profissão: ' . ($x['cargo'] ?? '') . ' · empresa: ' . ($x['empresa'] ?? '') . ' · cidade: ' . ($x['cidade'] ?? '') . ' ' . ($x['uf'] ?? '') . ' · fonte onde apareceu: ' . ($x['fonte_url'] ?? '') . ' · critério do pedido: ' . mb_substr($criterio, 0, 300);
+        $ch = curl_init($base . '/v1/messages');
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 150,
+            CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_PESSOAS_VERIF_MODEL') ? SD_PESSOAS_VERIF_MODEL : 'claude-haiku-4-5', 'max_tokens' => 1200, 'system' => $sys . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
+                'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 3]], 'messages' => [['role' => 'user', 'content' => $q]]])]);
+        curl_multi_add_handle($mh, $ch); $chs[$i] = $ch;
+    }
+    do { $st = curl_multi_exec($mh, $run); if ($run) curl_multi_select($mh, 1.0); } while ($run && $st === CURLM_OK);
+    foreach ($chs as $i => $ch) {
+        $raw = curl_multi_getcontent($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_multi_remove_handle($mh, $ch); curl_close($ch);
+        $v = ['ok' => false, 'confianca' => 0, 'evidencias' => [], 'resumo' => $code === 200 ? '' : 'a conferência não respondeu (HTTP ' . $code . ')'];
+        if ($code === 200) { $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $bl) if (($bl['type'] ?? '') === 'text') $t .= $bl['text'];
+            if (preg_match('/\{.*\}/s', $t, $m) && is_array($o = json_decode($m[0], true))) {
+                $ev = array_values(array_filter((array)($o['evidencias'] ?? []), fn($u) => is_string($u) && preg_match('~^https?://~', $u)));
+                $v = ['ok' => !empty($o['confirmado']) && count($ev) >= 1, 'confianca' => max(0, min(100, (int)($o['confianca'] ?? 0))), 'evidencias' => array_slice($ev, 0, 3),
+                      'email' => (string)($o['email'] ?? ''), 'telefone' => (string)($o['telefone'] ?? ''), 'site' => (string)($o['site'] ?? ''), 'instagram' => (string)($o['instagram'] ?? ''),
+                      'linkedin' => (string)($o['linkedin'] ?? ''), 'canal' => mb_substr((string)($o['canal'] ?? ''), 0, 160), 'resumo' => mb_substr((string)($o['resumo'] ?? ''), 0, 240)]; } }
+        $lista[$i]['verif'] = $v;
+    }
+    curl_multi_close($mh); return $lista;
+}
+
 /** Acha PESSOAS na web pública. Só traz quem apareceu numa fonte que a IA leu (com o link). */
 function vdDescobrirPessoas($consulta, $quantos, $carteira, $uid) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return ['erro' => 'falta SD_ANTHROPIC_KEY'];
@@ -71,8 +103,18 @@ function vdDescobrirPessoas($consulta, $quantos, $carteira, $uid) {
     $lista = json_decode($m[0], true); if (!is_array($lista) || !$lista) return ['erro' => 'não achei pessoas com fonte confirmada'];
     $lista = array_values(array_filter($lista, fn($x) => is_array($x) && !empty($x['fonte_url'])));
     if (!$lista) return ['erro' => 'as pessoas achadas vieram sem fonte; nada foi gravado'];
-    $r = vdPessoasGrava($lista, $consulta, $cart, $uid, 'pessoas-web', 'Descoberta · pessoas ' . date('d/m H:i') . ' · ' . mb_substr($consulta, 0, 50));
-    if (!empty($r['erro'])) return $r; if (empty($r['novos'])) return ['erro' => 'tudo que achei já estava na carteira (' . count($lista) . ' achadas, ' . (int)$r['duplicados'] . ' repetidas)'];
+    // conferência automática: cada pessoa é pesquisada de novo na web; só entra quem teve a presença própria confirmada (profissão + cidade + empresa/outro dado batendo)
+    $achadas = count($lista); $lista = vdVerificarPessoas(array_slice($lista, 0, 20), $consulta); $ok = [];
+    foreach ($lista as $x) { $v = $x['verif'] ?? []; if (empty($v['ok']) || (int)($v['confianca'] ?? 0) < 60) continue;
+        foreach (['email', 'site', 'instagram', 'linkedin'] as $k) if (trim((string)($x[$k] ?? '')) === '' && trim((string)($v[$k] ?? '')) !== '') $x[$k] = $v[$k];
+        if (trim((string)($x['zap'] ?? '')) === '' && trim((string)($v['telefone'] ?? '')) !== '') $x['zap'] = $v['telefone'];
+        $x['nota'] = (int)round(((int)($x['nota'] ?? 50) + (int)$v['confianca']) / 2);
+        $x['sinais_extra'] = ['VERIFICADA' => true, 'confianca' => (int)$v['confianca'], 'evidencias' => $v['evidencias'], 'canal_sugerido' => $v['canal'] ?? '', 'conferencia' => $v['resumo'] ?? ''];
+        $ok[] = $x; }
+    if (!$ok) return ['erro' => 'achei ' . $achadas . ' nomes, mas nenhum teve a presença profissional confirmada na web (homônimo ou dado que não bate); nada foi gravado'];
+    $r = vdPessoasGrava($ok, $consulta, $cart, $uid, 'pessoas-web', 'Descoberta · pessoas ' . date('d/m H:i') . ' · ' . mb_substr($consulta, 0, 50));
+    if (!empty($r['erro'])) return $r; if (empty($r['novos'])) return ['erro' => 'tudo que achei já estava na carteira (' . count($ok) . ' confirmadas, ' . (int)$r['duplicados'] . ' repetidas)'];
+    $r['descartadas'] = $achadas - count($ok);
     return ['ok' => true] + $r;
 }
 

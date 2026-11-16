@@ -99,7 +99,9 @@ function digExecutar($id, $uid) {
     if ($d['status'] === 'rodando' && !empty($d['iniciado_em']) && time() - strtotime($d['iniciado_em']) < 400) return ['erro' => 'Esta Dig já está rodando'];
     vdSup('/rest/v1/pd_digs?id=eq.' . $id, 'PATCH', ['status' => 'rodando', 'iniciado_em' => gmdate('c'), 'erro' => null]);
     $consulta = $d['briefing'];
-    $r = vdDescobrir($consulta, (int)$d['quantos'], $d['client_id'], $uid);
+    // briefing de PESSOAS (público, médicos, advogados, arquitetos…) vai pelo caminho de pessoas, que confere cada uma na web; empresa segue o garimpo de sempre
+    if (preg_match('/\b(p[úu]blico|pessoas?|m[ée]dic\w*|advogad\w*|dentist\w*|arquitet\w*|engenheir\w*|investidor\w*|empres[áa]rio\w*|s[óo]cio\w*|palestrante\w*|donos?\b|propriet[áa]ri\w*|diretor\w*|juiz\w*|promotor\w*|desembargador\w*)/iu', $consulta)) { require_once __DIR__ . '/pd-pessoas-lib.php'; $r = vdDescobrirPessoas($consulta, (int)$d['quantos'], $d['client_id'], $uid); }
+    else $r = vdDescobrir($consulta, (int)$d['quantos'], $d['client_id'], $uid);
     if (empty($r['ok'])) { vdSup('/rest/v1/pd_digs?id=eq.' . $id, 'PATCH', ['status' => 'erro', 'erro' => mb_substr((string)($r['erro'] ?? 'não consegui'), 0, 400), 'concluido_em' => gmdate('c'), 'duplicados' => (int)($r['duplicados'] ?? 0)]); return ['erro' => $r['erro'] ?? 'não consegui']; }
     $up = ['achados' => (int)$r['novos'], 'duplicados' => (int)($r['duplicados'] ?? 0), 'lote_id' => $r['lote'] ?? null];
     $msgs = 0; $falhas = [];
