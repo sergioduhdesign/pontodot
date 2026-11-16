@@ -689,6 +689,7 @@ $n13c = (function () { try { require_once __DIR__ . '/pd-curriculo-lib.php'; ret
 $n13c = (function () { try { require_once __DIR__ . '/pd-aula-arte-lib.php'; return pdAulaArteRelogio(); } catch (Throwable $e) { return 'erro: ' . $e->getMessage(); } })(); echo "Aulas de arte: $n13c\n";
 $n14 = pdLembretesDisparar();        echo "Lembretes: $n14\n";
 try { require_once __DIR__ . '/pd-vendas-lib.php'; $n15 = vdTick(); echo "Vendas: " . json_encode($n15, JSON_UNESCAPED_UNICODE) . "\n"; } catch (Throwable $e) { echo "Vendas: erro " . $e->getMessage() . "\n"; }
+try { require_once __DIR__ . '/pd-dig-lib.php'; echo "Digs programadas: " . digAgendaTick() . "\n"; } catch (Throwable $e) { echo "Digs programadas: erro " . mb_substr($e->getMessage(), 0, 160) . "\n"; }
 $n16 = 0; try { $n16 = pdPedidosRodar(2); } catch (Throwable $e) { echo "Pedidos entre IAs: erro " . $e->getMessage() . "\n"; }
 echo "Pedidos entre IAs: $n16\n";
 echo "\nConcluido.\n";

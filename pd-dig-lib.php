@@ -102,6 +102,7 @@ function digExecutar($id, $uid) {
     // briefing de PESSOAS (público, médicos, advogados, arquitetos…) vai pelo caminho de pessoas, que confere cada uma na web; empresa segue o garimpo de sempre
     if (preg_match('/\b(p[úu]blico|pessoas?|m[ée]dic\w*|advogad\w*|dentist\w*|arquitet\w*|engenheir\w*|investidor\w*|empres[áa]rio\w*|s[óo]cio\w*|palestrante\w*|donos?\b|propriet[áa]ri\w*|diretor\w*|juiz\w*|promotor\w*|desembargador\w*)/iu', $consulta)) { require_once __DIR__ . '/pd-pessoas-lib.php'; $r = vdDescobrirPessoas($consulta, (int)$d['quantos'], $d['client_id'], $uid); }
     else $r = vdDescobrir($consulta, (int)$d['quantos'], $d['client_id'], $uid);
+    if (empty($r['ok']) && preg_match('/já estava na carteira/u', (string)($r['erro'] ?? ''))) { $up0 = ['status' => 'pronto', 'erro' => null, 'achados' => 0, 'duplicados' => (int)($r['duplicados'] ?? 0), 'concluido_em' => gmdate('c')]; vdSup('/rest/v1/pd_digs?id=eq.' . $id, 'PATCH', $up0); return ['ok' => true] + $up0; }   // nada novo não é falha (importa nas Digs programadas)
     if (empty($r['ok'])) { vdSup('/rest/v1/pd_digs?id=eq.' . $id, 'PATCH', ['status' => 'erro', 'erro' => mb_substr((string)($r['erro'] ?? 'não consegui'), 0, 400), 'concluido_em' => gmdate('c'), 'duplicados' => (int)($r['duplicados'] ?? 0)]); return ['erro' => $r['erro'] ?? 'não consegui']; }
     $up = ['achados' => (int)$r['novos'], 'duplicados' => (int)($r['duplicados'] ?? 0), 'lote_id' => $r['lote'] ?? null];
     $msgs = 0; $falhas = [];
@@ -114,6 +115,51 @@ function digExecutar($id, $uid) {
             'erro' => $falhas ? mb_substr(implode(' · ', array_slice($falhas, 0, 4)), 0, 400) : null];
     vdSup('/rest/v1/pd_digs?id=eq.' . $id, 'PATCH', $up);
     return ['ok' => true] + $up;
+}
+
+// ------------------------------------------------------------ DIG PROGRAMADA (horária, diária, semanal, mensal) — horário de São Paulo
+function digAgendaProxima($freq, $hora, $minuto, $dow, $dom, $de = null) {
+    $tz = new DateTimeZone('America/Sao_Paulo'); $de = $de ?: new DateTime('now', $tz); $hora = max(0, min(23, (int)$hora)); $minuto = max(0, min(59, (int)$minuto)); $t = clone $de;
+    if ($freq === 'horaria') { $t->setTime((int)$t->format('G'), $minuto, 0); if ($t <= $de) $t->modify('+1 hour'); }
+    elseif ($freq === 'diaria') { $t->setTime($hora, $minuto, 0); if ($t <= $de) $t->modify('+1 day'); }
+    elseif ($freq === 'mensal') { $d = max(1, min(28, (int)$dom)); $t->setDate((int)$t->format('Y'), (int)$t->format('n'), $d); $t->setTime($hora, $minuto, 0); if ($t <= $de) { $t->modify('first day of next month'); $t->setDate((int)$t->format('Y'), (int)$t->format('n'), $d); $t->setTime($hora, $minuto, 0); } }
+    else { $dw = max(0, min(6, (int)$dow)); $t->setTime($hora, $minuto, 0); for ($i = 0; $i < 8 && ((int)$t->format('w') !== $dw || $t <= $de); $i++) $t->modify('+1 day'); }
+    return $t->setTimezone(new DateTimeZone('UTC'))->format('c');
+}
+function digAgendaCriar($b, $uid) {
+    $cid = vdUuid($b['client_id'] ?? ''); $briefing = trim((string)($b['briefing'] ?? '')); $modo = (string)($b['modo'] ?? 'achar'); $freq = (string)($b['frequencia'] ?? 'semanal');
+    if (!in_array($modo, ['achar', 'abordar', 'aquecer'], true)) return ['erro' => 'tipo de Dig inválido'];
+    if (!in_array($freq, ['horaria', 'diaria', 'semanal', 'mensal'], true)) return ['erro' => 'frequência inválida'];
+    if (mb_strlen($briefing) < 15) return ['erro' => 'Conte um pouco mais do que você procura (mínimo de uma frase completa).'];
+    $cid = $cid ?: vdCasaId(); $jor = (string)($b['jornada'] ?? ''); if ($modo !== 'achar' && !digJornada($jor)) return ['erro' => 'Escolha a jornada de abordagem.'];
+    $pend = array_values(array_filter(digPendencias($modo, $cid), fn($x) => empty($x['aviso']))); if ($pend) return ['erro' => 'pendencia', 'pendencias' => $pend];
+    $cfg = is_array($b['jornada_cfg'] ?? null) ? array_intersect_key($b['jornada_cfg'], array_flip(['link', 'modelo_email', 'narrativa', 'oferta'])) : [];
+    $hora = (int)($b['hora'] ?? 9); $min = (int)($b['minuto'] ?? 0); $dow = (int)($b['dia_semana'] ?? 1); $dom = (int)($b['dia_mes'] ?? 1);
+    $titulo = trim((string)($b['titulo'] ?? '')) ?: mb_substr($briefing, 0, 60);
+    $r = vdLinhas(vdSup('/rest/v1/pd_dig_agenda', 'POST', ['client_id' => $cid, 'titulo' => mb_substr($titulo, 0, 120), 'briefing' => mb_substr($briefing, 0, 3000), 'modo' => $modo, 'jornada' => $modo === 'achar' ? null : $jor,
+        'jornada_cfg' => $cfg, 'quantos' => max(3, min(20, (int)($b['quantos'] ?? 10))), 'frequencia' => $freq, 'hora' => $hora, 'minuto' => $min, 'dia_semana' => $dow, 'dia_mes' => $dom, 'ativo' => true,
+        'proxima_em' => !empty($b['primeira_agora']) ? gmdate('c') : digAgendaProxima($freq, $hora, $min, $dow, $dom), 'criado_por' => $uid]));
+    if (empty($r[0]['id'])) return ['erro' => 'Não consegui programar a Dig (rodou o SQL v183?).'];
+    return ['ok' => true, 'agenda' => $r[0]];
+}
+/** Roda UMA vez a programação (cria a Dig do dia e executa) e já marca a próxima. */
+function digAgendaRodar($ag, $uid = null) {
+    $uid = $uid ?: ($ag['criado_por'] ?? null);
+    vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $ag['id'], 'PATCH', ['proxima_em' => digAgendaProxima($ag['frequencia'], $ag['hora'], $ag['minuto'], $ag['dia_semana'], $ag['dia_mes']), 'ultima_em' => gmdate('c')]);   // reserva a próxima ANTES de rodar
+    $c = digCriar(['client_id' => $ag['client_id'], 'titulo' => $ag['titulo'] . ' · ' . (new DateTime('now', new DateTimeZone('America/Sao_Paulo')))->format('d/m H:i'), 'briefing' => $ag['briefing'], 'modo' => $ag['modo'],
+        'jornada' => $ag['jornada'], 'jornada_cfg' => is_array($ag['jornada_cfg'] ?? null) ? $ag['jornada_cfg'] : (json_decode((string)($ag['jornada_cfg'] ?? ''), true) ?: []), 'quantos' => $ag['quantos']], $uid);
+    if (empty($c['ok'])) { $st = 'erro: ' . ($c['erro'] === 'pendencia' ? 'falta configurar ' . implode(', ', array_column($c['pendencias'] ?? [], 'titulo')) : ($c['erro'] ?? '?')); }
+    else { $r = digExecutar($c['dig']['id'], $uid); $st = !empty($r['erro']) ? 'erro: ' . mb_substr((string)$r['erro'], 0, 160) : ((int)($r['achados'] ?? 0)) . ' novos'; }
+    vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $ag['id'], 'PATCH', ['ultima_dig_id' => $c['dig']['id'] ?? null, 'ultimo_status' => mb_substr($st, 0, 200), 'rodadas' => (int)$ag['rodadas'] + 1]);
+    return $st;
+}
+/** Chamado pelo relógio da casa (a cada 5 min): roda no máximo UMA programação vencida por vez (cada Dig leva minutos). */
+function digAgendaTick() {
+    if (time() - (int)($_SERVER['REQUEST_TIME'] ?? time()) > 90) return 'sem tempo neste ciclo';   // o worker já gastou o tempo: fica pro próximo
+    $v = vdLinhas(vdSup('/rest/v1/pd_dig_agenda?ativo=is.true&proxima_em=lte.' . rawurlencode(gmdate('c')) . '&select=*&order=proxima_em.asc&limit=1'))[0] ?? null;
+    if (!$v) return 'nada vencido';
+    if (!empty($v['ultima_em']) && time() - strtotime($v['ultima_em']) < 120) return 'já rodou agora há pouco';   // dois relógios ao mesmo tempo
+    @set_time_limit(280); return $v['titulo'] . ': ' . digAgendaRodar($v);
 }
 
 /** Passagem para a Gigi: lead de uma Dig "aquecer" respondeu com interesse e tem zap → rascunho de zap na Caixa de saída. */

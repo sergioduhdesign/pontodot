@@ -117,6 +117,18 @@ switch ($acao) {
     case 'dig_listar':
         $q = '/rest/v1/pd_digs?select=*&order=created_at.desc&limit=60' . ($cart === 'todas' ? '' : '&client_id=eq.' . $cart);
         $out(['digs' => vdLinhas(vdSup($q))]); break;
+    case 'dig_agenda_criar': $r = digAgendaCriar($b, $u['id']); if (!empty($r['erro']) && ($r['erro'] !== 'pendencia')) sd_fail($r['erro'], 422); $out($r); break;
+    case 'dig_agenda_listar':
+        $q = '/rest/v1/pd_dig_agenda?select=*&order=proxima_em.asc&limit=100' . ($cart === 'todas' ? '' : '&client_id=eq.' . $cart);
+        $out(['agenda' => vdLinhas(vdSup($q))]); break;
+    case 'dig_agenda_alterar':   // pausar/ativar, apagar ou rodar agora
+        $aid = vdUuid($b['agenda'] ?? ''); if (!$aid) sd_fail('falta a programação');
+        $ag = vdLinhas(vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $aid . '&select=*&limit=1'))[0] ?? null; if (!$ag) sd_fail('programação não encontrada', 404);
+        $op = (string)($b['op'] ?? '');
+        if ($op === 'apagar') { vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $aid, 'DELETE'); $out([]); break; }
+        if ($op === 'ativar' || $op === 'pausar') { $upd = ['ativo' => $op === 'ativar']; if ($op === 'ativar') $upd['proxima_em'] = digAgendaProxima($ag['frequencia'], $ag['hora'], $ag['minuto'], $ag['dia_semana'], $ag['dia_mes']); vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $aid, 'PATCH', $upd); $out([]); break; }
+        if ($op === 'rodar') { @set_time_limit(280); $st = digAgendaRodar($ag, $u['id']); $out(['status' => $st]); break; }
+        sd_fail('operação inválida'); break;
     case 'dig_apagar': $did = vdUuid($b['dig'] ?? ''); if ($did) vdSup('/rest/v1/pd_digs?id=eq.' . $did, 'DELETE'); $out([]); break;
     case 'ver':
         if (!$pid) sd_fail('falta o lead');

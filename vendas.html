@@ -128,8 +128,8 @@ function faixa(){const f=$('#faixa');if(!f)return;
 async function troca(id){AUTOMSG='';CART=id;EST='';PAG=0;chips();faixa();await carrega();}
 async function carrega(){
   $('#app')&&($('#app').style.opacity='.55');
-  try{const[f,l,c,dg]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'}),api({acao:'dig_listar'}).catch(()=>({digs:[]}))]);
-    DIGS=dg.digs||[];if(!JOR.length)api({acao:'dig_catalogo'}).then(r=>{JOR=r.jornadas||[];if(TAB==='digs')draw();}).catch(()=>{});FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;PROC=f.pedidos||[];proc();}
+  try{const[f,l,c,dg,ag]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'}),api({acao:'dig_listar'}).catch(()=>({digs:[]})),api({acao:'dig_agenda_listar'}).catch(()=>({agenda:[]}))]);
+    DIGS=dg.digs||[];AGENDA=ag.agenda||[];if(!JOR.length)api({acao:'dig_catalogo'}).then(r=>{JOR=r.jornadas||[];if(TAB==='digs')draw();}).catch(()=>{});FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;PROC=f.pedidos||[];proc();}
   catch(e){$('#app').style.opacity='';$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
   $('#app').style.opacity='';draw();extras();}
 let _ex=0;
@@ -311,8 +311,20 @@ async function abre(id){$('#dr').style.display='block';$('#drc').innerHTML='<div
 const MODOS={achar:['Só achar','Caça profunda de empresas, instituições e pessoas jurídicas. Entrega a lista com o porquê de cada uma.'],abordar:['Achar e abordar','Acha e já escreve a abordagem por e-mail dentro da jornada que você escolher. Nada sai sem você aprovar.'],aquecer:['Achar, abordar e aquecer','Tudo isso + quando o lead responde com interesse, a Gigi segue no WhatsApp, amarrada na narrativa de venda daquele cliente.']};
 const DST={fila:'na fila',rodando:'garimpando agora',pronto:'pronta',parcial:'achou, sem mensagens',erro:'não deu',rascunho:'rascunho'};
 function dtCurta(t){try{return new Date(t).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
+let AGENDA=[];
+const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+function agFreq(a){const h=String(a.hora).padStart(2,'0')+':'+String(a.minuto).padStart(2,'0');
+  return a.frequencia==='horaria'?'a cada hora (no minuto '+String(a.minuto).padStart(2,'0')+')':a.frequencia==='diaria'?'todo dia às '+h:a.frequencia==='mensal'?'todo dia '+a.dia_mes+' às '+h:'toda '+DSEM[a.dia_semana]+' às '+h;}
+function agDt(t){try{return new Date(t).toLocaleString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
+function vAgenda(){if(!AGENDA.length)return'';
+  return`<div class="card" style="margin:0 0 14px"><b>Programadas</b><div class="sub" style="margin:2px 0 8px">Rodam sozinhas no horário de Brasília. O relógio da casa confere a cada 5 minutos.</div>`+AGENDA.map(a=>{const c=CARTS.find(x=>x.id===a.client_id)||{name:'',color:'#555'};
+    return`<div class="row" style="gap:10px;align-items:flex-start;padding:9px 0;border-top:.5px solid var(--linha)">${avDe(c)}<div style="flex:1;min-width:0"><div><b>${esc(a.titulo)}</b> <span class="dg-st ${a.ativo?'pronto':'fila'}">${a.ativo?'ativa':'pausada'}</span></div>
+      <div class="sub">${esc(c.name)} · ${esc(agFreq(a))}${a.ativo?' · próxima: '+agDt(a.proxima_em):''}</div>
+      <div class="sub">${a.rodadas?'Rodou '+a.rodadas+'x'+(a.ultima_em?' · última '+dtCurta(a.ultima_em):'')+(a.ultimo_status?' · '+esc(a.ultimo_status):''):'Ainda não rodou'}</div>
+      <div class="row" style="margin-top:6px;gap:6px"><button class="btn s" onclick="agAlt('${a.id}','rodar',this)">Rodar agora</button><button class="btn s" onclick="agAlt('${a.id}','${a.ativo?'pausar':'ativar'}',this)">${a.ativo?'Pausar':'Ativar'}</button><button class="btn s" onclick="if(confirm('Apagar esta programação? As Digs que já rodaram continuam na lista.'))agAlt('${a.id}','apagar',this)">Apagar</button></div></div></div>`;}).join('')+`</div>`;}
+async function agAlt(id,op,b){b.disabled=true;if(op==='rodar')b.textContent='Rodando… (pode levar minutos, deixe a página aberta)';try{await api({acao:'dig_agenda_alterar',agenda:id,op});}catch(e){alert(e.message)}await carrega();}
 function vDigs(){
-  const top=`<div class="dg-top"><button class="btn p nova" onclick="wzAbre()">＋ Nova Dig</button><span class="sub">${CART==='todas'?'Resultados das Digs de todos os clientes, da mais recente para a mais antiga.':'Resultados das Digs deste cliente, da mais recente para a mais antiga.'}</span></div>`;
+  const top=`<div class="dg-top"><button class="btn p nova" onclick="wzAbre()">＋ Nova Dig</button><span class="sub">${CART==='todas'?'Resultados das Digs de todos os clientes, da mais recente para a mais antiga.':'Resultados das Digs deste cliente, da mais recente para a mais antiga.'}</span></div>`+vAgenda();
   if(!DIGS.length)return top+`<div class="card"><b>Nenhuma Dig ainda.</b><div class="sub" style="margin-top:6px">Clique em <b>＋ Nova Dig</b>, escolha o cliente, conte o que procura e o Tumi vai garimpar. Os resultados aparecem aqui.</div></div>`;
   return top+DIGS.map(d=>{const c=CARTS.find(x=>x.id===d.client_id)||{name:'',color:'#555'};const velha=(d.status==='rodando'&&Date.now()-new Date(d.iniciado_em||d.created_at).getTime()>7*6e4);
     return`<div class="card dg" onclick="digAbre('${d.id}')">${avDe(c)}<div class="t"><div class="row" style="justify-content:space-between;gap:8px"><b>${esc(d.titulo)}</b><span class="dg-st ${d.status}">${DST[d.status]||d.status}</span></div>
@@ -327,12 +339,13 @@ function digAbre(id){const d=DIGS.find(x=>x.id===id);if(!d)return;
 async function digRoda(id,b){b.disabled=true;b.textContent='O Tumi está garimpando… (pode levar alguns minutos, deixe esta página aberta)';try{await api({acao:'dig_rodar',dig:id});}catch(e){alert(e.message)}await carrega();}
 let JOR=[];
 /* ---- assistente */
-function wzAbre(){W={passo:1,client:CART==='todas'?'':CART,titulo:'',briefing:'',quantos:10,modo:'',jornada:'',cfg:{link:'',modelo_email:'',narrativa:''},v:null,pend:[],busy:false,msg:''};
+function wzAbre(){W={passo:1,client:CART==='todas'?'':CART,titulo:'',briefing:'',quantos:10,modo:'',jornada:'',cfg:{link:'',modelo_email:'',narrativa:''},v:null,pend:[],busy:false,msg:'',rep:{freq:'',hora:9,minuto:0,dow:1,dom:1,agora:true}};
   if(!JOR.length)api({acao:'dig_catalogo'}).then(r=>{JOR=r.jornadas||[];if(W&&W.passo===4)wzDraw();}).catch(()=>{});
   let o=$('#wz');if(!o){o=document.createElement('div');o.id='wz';o.className='wz';document.body.appendChild(o);}o.style.display='flex';wzDraw();}
 function wzFecha(){const o=$('#wz');if(o)o.style.display='none';W=null;}
 function wzLe(){if(!W)return;const g=i=>document.getElementById(i);if(g('wzT'))W.titulo=g('wzT').value;if(g('wzB'))W.briefing=g('wzB').value;if(g('wzN'))W.quantos=+g('wzN').value||10;
-  ['link','modelo_email','narrativa'].forEach(k=>{if(g('wz_'+k))W.cfg[k]=g('wz_'+k).value;});}
+  ['link','modelo_email','narrativa'].forEach(k=>{if(g('wz_'+k))W.cfg[k]=g('wz_'+k).value;});
+  if(g('wzFq')){const R=W.rep;R.freq=g('wzFq').value;if(g('wzHr'))R.hora=+g('wzHr').value;if(g('wzMn'))R.minuto=+g('wzMn').value;if(g('wzDw'))R.dow=+g('wzDw').value;if(g('wzDm'))R.dom=+g('wzDm').value;if(g('wzAg'))R.agora=g('wzAg').checked;}}
 function wzDraw(){const o=$('#wz');if(!o||!W)return;wzLe();const P=W.modo==='achar'?4:5,n=W.passo;
   const pas=`<div class="pas">${Array.from({length:P},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}</div>`;
   const cab=`<div class="row" style="justify-content:space-between;align-items:center"><h2>${['','1 · Para qual cliente?','2 · O que você procura?','3 · O que a Dig faz?','4 · Como abordar?','5 · Revisar e rodar'][n]}</h2><button class="btn s" onclick="wzFecha()">✕</button></div>${pas}`;
@@ -355,8 +368,15 @@ function wzDraw(){const o=$('#wz');if(!o||!W)return;wzLe();const P=W.modo==='ach
     ac=`<button class="btn s" onclick="wzVolta(3)">Voltar</button><button class="btn p" ${W.jornada?'':'disabled'} onclick="wzVai(5)">Avançar</button>`;}
   if(n===5){const cl=CARTS.find(x=>x.id===W.client)||{name:''},jr=JOR.find(j=>j.id===W.jornada);
     c=`<div class="card" style="margin:0"><div class="row" style="gap:10px">${avDe(cl)}<b>${esc(cl.name)}</b></div><div class="sub" style="margin:10px 0 2px"><b>Procura:</b> ${esc(W.briefing)}</div><div class="sub"><b>Tipo:</b> ${esc(MODOS[W.modo][0])} · até ${W.quantos} empresas</div>${jr?`<div class="sub"><b>Jornada:</b> ${esc(jr.nome)}${W.cfg.link?' · '+esc(W.cfg.link):''}</div>`:''}</div>
-      <div class="sub" style="margin-top:10px">${W.modo==='achar'?'O Tumi garimpa e entrega a lista aqui nas Digs.':'O Tumi garimpa, escreve as abordagens e deixa tudo na Caixa de saída para você aprovar. '+(W.modo==='aquecer'?'Quem responder com interesse e tiver zap passa para a Gigi.':'')}<br>Pode levar alguns minutos: deixe esta página aberta.</div>${W.msg?`<div class="avs ruim">${esc(W.msg)}</div>`:''}`;
-    ac=`<button class="btn s" onclick="wzVolta(W.modo==='achar'?3:4)">Voltar</button><button class="btn ia" ${W.busy?'disabled':''} onclick="wzRoda()">${W.busy?'O Tumi está garimpando…':'Rodar a Dig'}</button>`;}
+      <div class="sub" style="margin-top:10px">${W.modo==='achar'?'O Tumi garimpa e entrega a lista aqui nas Digs.':'O Tumi garimpa, escreve as abordagens e deixa tudo na Caixa de saída para você aprovar. '+(W.modo==='aquecer'?'Quem responder com interesse e tiver zap passa para a Gigi.':'')}<br>Pode levar alguns minutos: deixe esta página aberta.</div>
+      <div class="card" style="margin:12px 0 0"><b>Quando rodar?</b><div class="row" style="margin-top:8px;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <label class="sub">Repetição<br><select id="wzFq" onchange="wzDraw()"><option value="" ${W.rep.freq?'':'selected'}>Só agora, uma vez</option><option value="horaria" ${W.rep.freq==='horaria'?'selected':''}>A cada hora</option><option value="diaria" ${W.rep.freq==='diaria'?'selected':''}>Todo dia</option><option value="semanal" ${W.rep.freq==='semanal'?'selected':''}>Toda semana</option><option value="mensal" ${W.rep.freq==='mensal'?'selected':''}>Todo mês</option></select></label>
+        ${W.rep.freq==='semanal'?`<label class="sub">Dia<br><select id="wzDw">${DSEM.map((d,i)=>`<option value="${i}" ${W.rep.dow===i?'selected':''}>${d}</option>`).join('')}</select></label>`:''}
+        ${W.rep.freq==='mensal'?`<label class="sub">Dia do mês<br><input id="wzDm" type="number" min="1" max="28" value="${W.rep.dom}" style="width:80px"></label>`:''}
+        ${W.rep.freq&&W.rep.freq!=='horaria'?`<label class="sub">Hora<br><input id="wzHr" type="number" min="0" max="23" value="${W.rep.hora}" style="width:70px"></label>`:''}
+        ${W.rep.freq?`<label class="sub">Minuto<br><input id="wzMn" type="number" min="0" max="59" value="${W.rep.minuto}" style="width:70px"></label>`:''}</div>
+        ${W.rep.freq?`<label class="sub" style="display:block;margin-top:8px"><input id="wzAg" type="checkbox" ${W.rep.agora?'checked':''}> Rodar a primeira já (em até 5 minutos) e depois seguir o horário</label><div class="sub" style="margin-top:6px">Horário de Brasília. Cada rodada traz pessoas ou empresas novas, sem repetir as que já estão na carteira.</div>`:''}</div>${W.msg?`<div class="avs ruim">${esc(W.msg)}</div>`:''}`;
+    ac=`<button class="btn s" onclick="wzVolta(W.modo==='achar'?3:4)">Voltar</button><button class="btn ia" ${W.busy?'disabled':''} onclick="wzRoda()">${W.busy?(W.rep.freq?'Programando…':'O Tumi está garimpando…'):(W.rep.freq?'Programar a Dig':'Rodar a Dig')}</button>`;}
   o.innerHTML=`<div>${cab}${c}<div class="row" style="justify-content:flex-end;margin-top:18px">${ac}</div></div>`;}
 function wzVai(p){wzLe();W.passo=p;W.msg='';wzDraw();}
 function wzVolta(p){wzLe();W.passo=p;wzDraw();}
@@ -365,6 +385,9 @@ async function wzViab(){wzLe();if(W.briefing.trim().length<15){W.msg='Conte um p
   try{const r=await api({acao:'dig_viabilidade',briefing:W.briefing,modo:'aquecer',client_id:W.client});W.v=r.v;W.pend=r.pendencias||[];}catch(e){W.v=null;}
   W.busy=false;W.passo=3;wzDraw();}
 async function wzRoda(){wzLe();W.busy=true;W.msg='';wzDraw();
+  if(W.rep.freq){try{const R=W.rep,c=await api({acao:'dig_agenda_criar',client_id:W.client,titulo:W.titulo,briefing:W.briefing,modo:W.modo,jornada:W.jornada,jornada_cfg:W.cfg,quantos:W.quantos,frequencia:R.freq,hora:R.hora,minuto:R.minuto,dia_semana:R.dow,dia_mes:R.dom,primeira_agora:R.agora});
+      if(c.erro==='pendencia'){W.busy=false;W.msg='Falta configurar: '+c.pendencias.map(x=>x.titulo).join('; ')+'. Volte ao passo 3.';wzDraw();return;}
+      wzFecha();await carrega();TAB='digs';draw();}catch(e){if(W){W.busy=false;W.msg=e.message;wzDraw();}}return;}
   try{const c=await api({acao:'dig_criar',client_id:W.client,titulo:W.titulo,briefing:W.briefing,modo:W.modo,jornada:W.jornada,jornada_cfg:W.cfg,quantos:W.quantos,viabilidade:W.v});
     if(c.erro==='pendencia'){W.busy=false;W.msg='Falta configurar: '+c.pendencias.map(x=>x.titulo).join('; ')+'. Volte ao passo 3.';wzDraw();return;}
     await carrega();TAB='digs';draw();
