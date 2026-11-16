@@ -117,6 +117,10 @@ switch ($acao) {
     case 'dig_listar':
         $q = '/rest/v1/pd_digs?select=*&order=created_at.desc&limit=60' . ($cart === 'todas' ? '' : '&client_id=eq.' . $cart);
         $out(['digs' => vdLinhas(vdSup($q))]); break;
+    case 'dig_editar':   // nome, o que procura e quantos
+        $did = vdUuid($b['dig'] ?? ''); if (!$did) sd_fail('falta a Dig'); $br = trim((string)($b['briefing'] ?? '')); if (mb_strlen($br) < 15) sd_fail('Conte um pouco mais do que você procura (mínimo de uma frase completa).');
+        $r = vdSup('/rest/v1/pd_digs?id=eq.' . $did, 'PATCH', ['titulo' => mb_substr(trim((string)($b['titulo'] ?? '')) ?: mb_substr($br, 0, 60), 0, 120), 'briefing' => mb_substr($br, 0, 3000), 'quantos' => max(3, min(20, (int)($b['quantos'] ?? 10)))]);
+        if (($r['code'] ?? 500) >= 300) sd_fail('não consegui salvar', 500); $out([]); break;
     case 'dig_agenda_criar': $r = digAgendaCriar($b, $u['id']); if (!empty($r['erro']) && ($r['erro'] !== 'pendencia')) sd_fail($r['erro'], 422); $out($r); break;
     case 'dig_agenda_listar':
         $q = '/rest/v1/pd_dig_agenda?select=*&order=proxima_em.asc&limit=100' . ($cart === 'todas' ? '' : '&client_id=eq.' . $cart);
@@ -127,6 +131,11 @@ switch ($acao) {
         $op = (string)($b['op'] ?? '');
         if ($op === 'apagar') { vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $aid, 'DELETE'); $out([]); break; }
         if ($op === 'ativar' || $op === 'pausar') { $upd = ['ativo' => $op === 'ativar']; if ($op === 'ativar') $upd['proxima_em'] = digAgendaProxima($ag['frequencia'], $ag['hora'], $ag['minuto'], $ag['dia_semana'], $ag['dia_mes']); vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $aid, 'PATCH', $upd); $out([]); break; }
+        if ($op === 'editar') {
+            $br = trim((string)($b['briefing'] ?? '')); if (mb_strlen($br) < 15) sd_fail('Conte um pouco mais do que você procura (mínimo de uma frase completa).');
+            $fq = in_array(($b['frequencia'] ?? ''), ['horaria', 'diaria', 'semanal', 'mensal'], true) ? $b['frequencia'] : $ag['frequencia']; $h = max(0, min(23, (int)($b['hora'] ?? $ag['hora']))); $mi = max(0, min(59, (int)($b['minuto'] ?? $ag['minuto']))); $dw = max(0, min(6, (int)($b['dia_semana'] ?? $ag['dia_semana']))); $dm = max(1, min(28, (int)($b['dia_mes'] ?? $ag['dia_mes'])));
+            $upd = ['titulo' => mb_substr(trim((string)($b['titulo'] ?? '')) ?: mb_substr($br, 0, 60), 0, 120), 'briefing' => mb_substr($br, 0, 3000), 'quantos' => max(3, min(20, (int)($b['quantos'] ?? 10))), 'frequencia' => $fq, 'hora' => $h, 'minuto' => $mi, 'dia_semana' => $dw, 'dia_mes' => $dm, 'proxima_em' => digAgendaProxima($fq, $h, $mi, $dw, $dm)];
+            $r = vdSup('/rest/v1/pd_dig_agenda?id=eq.' . $aid, 'PATCH', $upd); if (($r['code'] ?? 500) >= 300) sd_fail('não consegui salvar', 500); $out([]); break; }
         if ($op === 'rodar') { @set_time_limit(280); $st = digAgendaRodar($ag, $u['id']); $out(['status' => $st]); break; }
         sd_fail('operação inválida'); break;
     case 'dig_apagar': $did = vdUuid($b['dig'] ?? ''); if ($did) vdSup('/rest/v1/pd_digs?id=eq.' . $did, 'DELETE'); $out([]); break;
