@@ -80,6 +80,37 @@ function vdVerificarPessoas(array $lista, $criterio) {
     curl_multi_close($mh); return $lista;
 }
 
+/** PLANO DE BUSCA: a IA lê o pedido em linguagem normal e o traduz em recortes (onde procurar + comando de busca), como um pesquisador faria;
+ *  cada recorte roda em paralelo e os nomes são juntados. Devolve null se não conseguir planejar (aí vale a busca única de sempre). */
+function vdColetarPlanejado($consulta, $quantos, $sysColeta) {
+    $plano = 'Você é pesquisador de prospecção. Leia o PEDIDO e o traduza em um plano de busca na web aberta para achar PESSOAS (não empresas). Devolva de 4 a 6 RECORTES, cada um uma família diferente de fonte pública onde essas pessoas aparecem com nome e papel: '
+           . 'programações e palestrantes de eventos e congressos, premiações e rankings, catálogos e diretórios profissionais abertos, páginas de equipe/sócios de clínicas, escritórios e empresas, associações e sociedades de classe, matérias e entrevistas, e fontes específicas do meio da pessoa (ex.: leilões e feiras para o agro). '
+           . 'Inclua a cidade/região do pedido e cidades próximas, e prefira os últimos 24 meses quando a fonte tiver data. Responda SOMENTE um JSON array: [{"recorte":"nome curto","onde":"tipo de fonte","comando":"instrução de busca em 1-2 frases, concreta"}].';
+    [$txt, , $err] = pdClaude($plano, 'PEDIDO: ' . mb_substr($consulta, 0, 1500), 1500);
+    if (!$txt || !preg_match('/\[.*\]/s', $txt, $m) || !is_array($rec = json_decode($m[0], true))) return null;
+    $rec = array_slice(array_values(array_filter($rec, fn($r) => is_array($r) && !empty($r['comando']))), 0, 6); if (count($rec) < 2) return null;
+    $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
+    $porRec = max(4, (int)ceil($quantos * 2 / count($rec))); $mh = curl_multi_init(); $chs = [];
+    foreach ($rec as $i => $r) {
+        $ch = curl_init($base . '/v1/messages');
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 110,
+            CURLOPT_HTTPHEADER => ['x-api-key: ' . SD_ANTHROPIC_KEY, 'anthropic-version: 2023-06-01', 'content-type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['model' => defined('SD_PESSOAS_COLETA_MODEL') ? SD_PESSOAS_COLETA_MODEL : 'claude-haiku-4-5', 'max_tokens' => 4000, 'system' => str_replace('até ' . $quantos . ' itens', 'até ' . $porRec . ' itens', $sysColeta) . (function_exists('pdBlindagem') ? pdBlindagem() : ''),
+                'tools' => [['type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 5]],
+                'messages' => [['role' => 'user', 'content' => 'PEDIDO ORIGINAL: ' . mb_substr($consulta, 0, 900) . "\n\nSEU RECORTE: " . ($r['recorte'] ?? '') . ' — ' . ($r['onde'] ?? '') . "\nCOMANDO: " . $r['comando']]]])]);
+        curl_multi_add_handle($mh, $ch); $chs[$i] = $ch;
+    }
+    do { $st = curl_multi_exec($mh, $run); if ($run) curl_multi_select($mh, 1.0); } while ($run && $st === CURLM_OK);
+    $todas = []; $visto = [];
+    foreach ($chs as $i => $ch) {
+        $raw = curl_multi_getcontent($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_multi_remove_handle($mh, $ch); curl_close($ch);
+        if ($code !== 200) continue; $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $bl) if (($bl['type'] ?? '') === 'text') $t .= $bl['text'];
+        if (!preg_match('/\[.*\]/s', $t, $mm) || !is_array($l = json_decode($mm[0], true))) continue;
+        foreach ($l as $x) { if (!is_array($x) || empty($x['nome']) || empty($x['fonte_url'])) continue; $k = vdNorm($x['nome']) . '|' . vdNorm($x['cidade'] ?? ''); if (isset($visto[$k])) continue; $visto[$k] = 1; $x['recorte'] = $rec[$i]['recorte'] ?? ''; $todas[] = $x; }
+    }
+    curl_multi_close($mh); return $todas ?: null;
+}
+
 /** Acha PESSOAS na web pública. Só traz quem apareceu numa fonte que a IA leu (com o link). */
 function vdDescobrirPessoas($consulta, $quantos, $carteira, $uid) {
     if (!defined('SD_ANTHROPIC_KEY') || !SD_ANTHROPIC_KEY) return ['erro' => 'falta SD_ANTHROPIC_KEY'];
@@ -90,6 +121,8 @@ function vdDescobrirPessoas($consulta, $quantos, $carteira, $uid) {
          . "Regras: só inclua pessoa que apareceu em uma fonte que você leu, e devolva o link dessa fonte; nunca invente nome, cargo, empresa, @, e-mail ou telefone. Só dados PROFISSIONAIS e públicos; ignore vida privada, saúde, religião, política, filhos e qualquer dado sensível. "
          . "Se o e-mail comercial estiver publicado na fonte, devolva; se não estiver, deixe vazio (nunca deduza). Siga o CRITÉRIO do pedido ao pé da letra. INSISTA: faça várias buscas variando termos, cidades e tipos de lista até juntar a quantidade pedida; prefira gente menos óbvia. "
          . "Responda SOMENTE um JSON array de até $quantos itens: [{\"nome\":\"\",\"cargo\":\"\",\"empresa\":\"\",\"cidade\":\"\",\"uf\":\"\",\"instagram\":\"\",\"linkedin\":\"\",\"site\":\"\",\"email\":\"\",\"fonte_url\":\"\",\"nota\":0,\"motivo\":\"1 frase: por que esta pessoa encaixa no critério\"}]. nota = encaixe de 1 a 100. Sem texto fora do JSON.";
+    $lista = vdColetarPlanejado($consulta, $quantos, $sys);   // plano de busca em recortes, rodando em paralelo
+    if ($lista === null) {   // sem plano: a busca única de sempre
     $base = defined('PD_ANTHROPIC_BASE') ? rtrim(PD_ANTHROPIC_BASE, '/') : 'https://api.anthropic.com';
     $ch = curl_init($base . '/v1/messages');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 240,
@@ -101,6 +134,7 @@ function vdDescobrirPessoas($consulta, $quantos, $carteira, $uid) {
     $j = json_decode((string)$raw, true); $t = ''; foreach ((array)($j['content'] ?? []) as $bl) if (($bl['type'] ?? '') === 'text') $t .= $bl['text'];
     if (!preg_match('/\[.*\]/s', $t, $m)) return ['erro' => 'a IA não devolveu uma lista'];
     $lista = json_decode($m[0], true); if (!is_array($lista) || !$lista) return ['erro' => 'não achei pessoas com fonte confirmada'];
+    }
     $lista = array_values(array_filter($lista, fn($x) => is_array($x) && !empty($x['fonte_url'])));
     if (!$lista) return ['erro' => 'as pessoas achadas vieram sem fonte; nada foi gravado'];
     // conferência automática: cada pessoa é pesquisada de novo na web; só entra quem teve a presença própria confirmada (profissão + cidade + empresa/outro dado batendo)
