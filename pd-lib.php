@@ -1411,6 +1411,8 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
     };
     [$code, $raw] = $chamar($body);
     if ($code === 400 && isset($body['tools'])) { unset($body['tools']); [$code, $raw] = $chamar($body); }   // busca na web não habilitada na conta: responde sem ela
+    if ($code === 0 || $code === 429 || $code >= 500) { sleep(2); [$code, $raw] = $chamar($body); }   // instabilidade/sobrecarga: tenta de novo uma vez
+    if ($code !== 200 && ($body['model'] ?? '') !== 'claude-sonnet-4-5' && !defined('SD_IA_ZAP_MODEL')) { $falha('modelo ' . ($body['model'] ?? '?') . ' falhou (HTTP ' . $code . '); tentando sonnet'); $body['model'] = 'claude-sonnet-4-5'; [$code, $raw] = $chamar($body); }   // plano B: outro modelo
     $resp = '';
     if ($code === 200) { $j = json_decode((string)$raw, true); foreach ((array)($j['content'] ?? []) as $b) if (($b['type'] ?? '') === 'text') $resp .= $b['text'];
         try { $u = (array)($j['usage'] ?? []); sd_supabase('/rest/v1/sd_ia_uso', 'POST', ['user_id' => (string)($p['id'] ?? ''), 'canal' => 'zap', 'modelo' => (string)($body['model'] ?? ''),
@@ -1521,6 +1523,7 @@ function pdIaZapResponder($p, $tel, $texto, $tipo = 'text', $midia = null) {
         }
     }
     if ($code !== 200) $falha('Anthropic respondeu HTTP ' . $code . ' ' . mb_substr((string)$raw, 0, 160));
+    if ($resp === '' && $code === 200) $falha('Anthropic respondeu 200 mas sem texto: ' . mb_substr((string)$raw, 0, 160));
     if ($resp === '') { $enviar('Não consegui pensar nisso agora. Tenta de novo em instantes?'); return; }
     $enviar(mb_substr($resp, 0, 3500));
 }
