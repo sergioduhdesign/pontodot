@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v540 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v541 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4828,9 +4828,9 @@ const ehDesk = () => matchMedia('(min-width:1000px)').matches;
 function gadCaixa(titulo, corpo, acao){
   const ajk = (window.PD_AJUDA_TIT || {})[titulo];
   return `<div class="caixa painel" style="margin-top:0">
-    <h4>${titulo}${ajk && window.ajudaBtn ? ajudaBtn(ajk) : ''}</h4>${corpo}
-    ${acao?`<div style="margin-top:11px"><button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px" onclick="${acao[1].replace(/"/g,'&quot;')}">${acao[0]}</button></div>`:''}
-  </div>`;
+    <h4>${titulo}${ajk && window.ajudaBtn ? ajudaBtn(ajk) : ''}</h4>
+    ${acao?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 12px">${(Array.isArray(acao[0]) ? acao : [acao]).map(a => `<button class="btn" style="min-height:38px;padding:7px 13px;font-size:11.5px" onclick="${a[1].replace(/"/g,'&quot;')}">${a[0]}</button>`).join('')}</div>`:''}${corpo}
+  </div>`;   // botões de ação no TOPO da caixa (regra da casa), um ou vários
 }
 
 // =====================================================================
@@ -8791,7 +8791,7 @@ function htmlVendas(){
         <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><button class="btn cp-b" style="min-height:26px;padding:3px 10px;font-size:11px" onclick="abrirVendas('${e.cart || ''}','${e.lote}')">Ver</button><button class="btn cp-b" style="min-height:26px;padding:3px 10px;font-size:11px" onclick="venExporta('${e.lote}','xlsx')">Excel</button><button class="btn cp-b" style="min-height:26px;padding:3px 10px;font-size:11px" onclick="venExporta('${e.lote}','pdf')">PDF</button></div></div></div>`).join('') : ''}
     ${linhas ? '<div class="ads-sec">Carteiras</div>' + linhas : '<div class="nota" style="margin:8px 0 0;line-height:1.5">Nenhum lead ainda. Suba uma base ou peça pra IA achar.</div>'}
     ${d.sem_sql ? '<div class="nota" style="margin-top:6px">Falta rodar o SQL v147.</div>' : ''}`,
-    ['Abrir o Dig', 'abrirVendas()']);
+    [['Abrir o Dig', 'abrirVendas()'], ['Criar uma Dig', 'abrirVendas(undefined, undefined, true)']]);
 }
 async function venCarregaLib(src, teste){ if (teste()) return; await new Promise((ok, no) => { const t = document.createElement('script'); t.src = src; t.onload = ok; t.onerror = () => no(new Error('Não consegui carregar a biblioteca de exportação.')); document.head.appendChild(t); }); }
 // Entrega um arquivo pronto: baixar, compartilhar (arquivo de verdade) ou copiar um link
@@ -8861,11 +8861,11 @@ async function venExporta(lote, fmt){
       venEntrega(blob, nome + '.pdf', 'application/pdf'); } finally { el.remove(); }
   } catch(e){ toast(e.message); }
 }
-function abrirVendas(carteira, lote){
+function abrirVendas(carteira, lote, nova){
   // abre DENTRO do site (a janela da casa), com o chat e o resto da plataforma por perto — nada de tela por cima
   abrirJanela(`<div class="caixa painel invertida" data-sem-fio style="padding:0;display:flex;flex-direction:column;overflow:hidden;background:#0e100f;color:#fff;border-color:rgba(255,255,255,.28)">
     <div class="tc-topo" style="padding:10px 12px 0"><span class="tc-id" style="align-self:center;color:rgba(255,255,255,.6)">PD · Dig</span><button class="fechar" style="color:#fff" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
-    <iframe title="Dig" src="vendas.html?v=${encodeURIComponent(window.SD_VERSAO || Date.now())}${carteira !== undefined ? '&cart=' + encodeURIComponent(carteira || '') : ''}${lote ? '&lote=' + encodeURIComponent(lote) : ''}" style="flex:1;border:0;width:100%;min-height:0;background:transparent" allowtransparency="true"></iframe></div>`, true);
+    <iframe title="Dig" src="vendas.html?v=${encodeURIComponent(window.SD_VERSAO || Date.now())}${carteira !== undefined ? '&cart=' + encodeURIComponent(carteira || '') : ''}${lote ? '&lote=' + encodeURIComponent(lote) : ''}${nova ? '&nova=1' : ''}" style="flex:1;border:0;width:100%;min-height:0;background:transparent" allowtransparency="true"></iframe></div>`, true);
 }
 function abrirEscolaBastidores(){ popupIframe('/escola-bastidores.html?v=' + encodeURIComponent(window.SD_VERSAO || Date.now()), 'Escola — bastidores'); }
 function abrirSala(){

@@ -131,7 +131,8 @@ async function carrega(){
   try{const[f,l,c,dg,ag]=await Promise.all([api({acao:'funil'}),api({acao:'listar',estagio:EST,...FIL,de:PAG*100}),api({acao:'caixa'}),api({acao:'dig_listar'}).catch(()=>({digs:[]})),api({acao:'dig_agenda_listar'}).catch(()=>({agenda:[]}))]);
     DIGS=dg.digs||[];AGENDA=ag.agenda||[];if(!JOR.length)api({acao:'dig_catalogo'}).then(r=>{JOR=r.jornadas||[];if(TAB==='digs')draw();}).catch(()=>{});FUN=f.funil;FILA=f.fila;IMAP=f.imap;CARTS=f.carteiras;LEADS=l.leads;TOTAL=l.total;CAIXA=c.caixa;HOJE=c.hoje;TETO=c.teto;PROC=f.pedidos||[];proc();}
   catch(e){$('#app').style.opacity='';$('#app').innerHTML='<div class="msg">'+esc(e.message)+'</div>';return;}
-  $('#app').style.opacity='';draw();extras();}
+  $('#app').style.opacity='';draw();extras();
+  if(!window._novaFeita&&new URLSearchParams(location.search).get('nova')){window._novaFeita=1;TAB='digs';draw();wzAbre();}}   // veio do botão "Criar uma Dig" da home: já abre o assistente
 let _ex=0;
 async function extras(){const n=++_ex;   // o que só a Caixa de saída usa: carrega em paralelo, sem travar a troca de aba/cliente
   const [a,b,c]=await Promise.allSettled([api({acao:'caixas'}),api({acao:'termometro'}),api({acao:'auto_ler'})]);if(n!==_ex)return;
