@@ -30,7 +30,8 @@ function vdPode($u) {
 function vdDominio($site) {
     $s = trim(strtolower((string)$site)); if ($s === '') return '';
     if (!preg_match('#^https?://#', $s)) $s = 'https://' . $s;
-    $h = parse_url($s, PHP_URL_HOST); return $h ? preg_replace('/^www\./', '', $h) : '';
+    $h = parse_url($s, PHP_URL_HOST); $h = $h ? preg_replace('/^www\./', '', $h) : '';
+    return preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/', $h) ? $h : '';   // "não verificado", "n/d", "-" etc. não são domínio: sem isso, dois leads sem site colidem no índice único
 }
 
 /** Nome do "dono" da carteira (cliente) ou da casa. */
@@ -359,6 +360,10 @@ function vdImportarLinhas(array $rows, $carteira, $lote, $uid, $origem = 'planil
     if (($r['code'] ?? 500) >= 300) {   // coluna faltando (migração atrasada): grava sem ela
         $msg = (string)($r['body']['message'] ?? $r['raw'] ?? '');
         if (preg_match("/Could not find the '([a-z_]+)' column/", $msg, $mm)) { $ins = array_map(function ($x) use ($mm) { unset($x[$mm[1]]); return $x; }, $ins); $r = sd_supabase('/rest/v1/pd_prospects', 'POST', $ins, ['Prefer: return=representation']); }
+        if (($r['code'] ?? 500) >= 300 && strpos((string)($r['raw'] ?? ''), '23505') !== false) {   // duplicado no índice único (carteira+domínio): grava um a um e pula só o repetido
+            $okL = []; foreach ($ins as $um) { $r1 = sd_supabase('/rest/v1/pd_prospects', 'POST', [$um], ['Prefer: return=representation']); if (($r1['code'] ?? 500) < 300) foreach ((array)$r1['body'] as $nb) $okL[] = $nb; }
+            if ($okL) $r = ['code' => 201, 'body' => $okL, 'raw' => ''];
+        }
         if (($r['code'] ?? 500) >= 300) return ['erro' => 'banco recusou: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200)]; }
     $novos = (array)$r['body']; $cts = [];
     foreach ($novos as $n) { $x = $porChave[$n['chave']]['row'] ?? null; if (!$x) continue;
