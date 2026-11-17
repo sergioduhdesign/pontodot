@@ -37,10 +37,15 @@ window.CampPainel = (function () {
 .cpn-btn-top[aria-expanded="true"] svg.s{transform:rotate(180deg)}
 .cpn-btn-top .n{background:#fff;color:#111;border-radius:10px;font-size:10.5px;padding:1px 7px}
 @media (max-width:640px){.cpn-btn-top .tx-l{display:none}}
-.cpn-host{position:relative;height:0;z-index:60}
-.cpn-gav{position:absolute;left:0;right:0;top:0;max-height:0;overflow:hidden;background:var(--surface);color:var(--text);
+.cpn-host{height:0}
+.cpn-gav{position:fixed;left:0;right:0;top:var(--cpn-top,0px);z-index:60;max-height:0;overflow:hidden;background:var(--surface);color:var(--text);
   box-shadow:0 18px 40px rgba(0,0,0,.28);border-bottom:1px solid var(--border);transition:max-height .28s ease}
-.cpn-gav.on{max-height:calc(100vh - 130px);overflow-y:auto;scrollbar-width:thin}
+.cpn-gav.on{max-height:calc(100vh - var(--cpn-top,0px) - 8px);overflow-y:auto;scrollbar-width:thin}
+.cpn-slot-bar{flex:0 0 auto;display:inline-flex}
+.cpn-btn-top.na-barra{height:38px;padding:0 12px;border-color:var(--border);color:var(--text2)}
+.cpn-btn-top.na-barra:hover,.cpn-btn-top.na-barra[aria-expanded="true"]{background:var(--surface2)}
+.cpn-btn-top.na-barra .n{background:var(--accent);color:var(--accent-fg)}
+@media (max-width:640px){.cpn-btn-top.na-barra svg.s{display:none}.cpn-btn-top.na-barra{padding:0 11px;gap:5px}}
 .cpn-in{max-width:1400px;margin:0 auto;padding:18px clamp(16px,4vw,44px) 8px}
 .cpn-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .cpn-cab .k{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
@@ -94,10 +99,20 @@ window.CampPainel = (function () {
     return `<section class="cg-sec"><header><span class="ic">${svg(IC[k])}</span><h4>${TIT[k]}</h4>${ed}</header>${corpo}${notas}${form}</section>`;
   }
 
+  // A gaveta é fixa na tela e começa logo abaixo da faixa preta (ou, dentro do app, abaixo da barra de filtros)
+  function posicionar() {
+    const g = document.querySelector('.cpn-gav'); if (!g) return;
+    const topo = document.querySelector('.ap-top'), barra = document.querySelector('.ap-bar');
+    const topoVisivel = topo && topo.offsetParent !== null;
+    const y = topoVisivel ? Math.max(0, topo.getBoundingClientRect().bottom) : (barra ? Math.max(0, barra.getBoundingClientRect().bottom) : 0);
+    g.style.setProperty('--cpn-top', Math.round(y) + 'px');
+  }
   function alternar(abrir) {
     const g = document.querySelector('.cpn-gav'), b = document.querySelector('.cpn-btn-top'); if (!g) return;
     aberta = abrir === undefined ? !aberta : abrir;
+    if (aberta) posicionar();
     g.classList.toggle('on', aberta); if (b) b.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+    if (!window._cpnPos) { window._cpnPos = true; ['scroll', 'resize'].forEach(ev => window.addEventListener(ev, () => { if (aberta) posicionar(); }, { passive: true })); }
   }
 
   /** alvo = contêiner logo abaixo da faixa; o = { topo, dados, ajustes, podeSugerir, onSugerir(secao, texto), podeResolver, onResolver(id) } */
@@ -123,11 +138,20 @@ window.CampPainel = (function () {
         <button class="cpn-x" type="button" aria-label="Fechar" data-fechar-gav>${svg(IC.fechar, 14)}</button></div>
       <div class="cpn-cols">${secao('campanha', sCamp, o)}${secao('persona', sPers, o)}${secao('publicos', sPubs, o)}${secao('anuncios', sAns, o)}</div></div></div>`;
 
-    if (slot) {
-      slot.innerHTML = `<button class="cpn-btn-top on" type="button" aria-expanded="${aberta ? 'true' : 'false'}">${svg(IC.estrategia, 16)}<span><span class="tx-l">Ver detalhes estratégicos da campanha</span></span>${pend ? `<span class="n">${pend}</span>` : ''}${svg(IC.seta, 14).replace('<svg ', '<svg class="s" ')}</button>`;
-      slot.querySelector('.cpn-btn-top').onclick = () => alternar();
+    // Botão: na faixa preta; dentro do app (faixa escondida) vai pra barra de filtros
+    const topoVisivel = o.topo && o.topo.offsetParent !== null, barra = document.querySelector('.ap-bar');
+    const html = (extra) => `<button class="cpn-btn-top on ${extra}" type="button" aria-expanded="${aberta ? 'true' : 'false'}" title="Ver detalhes estratégicos da campanha">${svg(IC.estrategia, 16)}<span class="tx-l">${extra ? 'Estratégia' : 'Ver detalhes estratégicos da campanha'}</span>${pend ? `<span class="n">${pend}</span>` : ''}${svg(IC.seta, 14).replace('<svg ', '<svg class="s" ')}</button>`;
+    document.querySelectorAll('.cpn-slot-bar').forEach(e => e.remove());
+    let btn = null;
+    if (topoVisivel && slot) { slot.innerHTML = html(''); btn = slot.querySelector('.cpn-btn-top'); }
+    else if (barra) {
+      const w = document.createElement('span'); w.className = 'cpn-slot-bar'; w.innerHTML = html('na-barra');
+      const sel = barra.querySelector('#apSel'), selVisivel = sel && getComputedStyle(sel).display !== 'none';
+      if (selVisivel) sel.insertAdjacentElement('afterend', w); else barra.insertBefore(w, barra.firstChild);
+      btn = w.querySelector('.cpn-btn-top');
     }
-    if (aberta) alvo.querySelector('.cpn-gav').classList.add('on');
+    if (btn) btn.onclick = ev => { ev.stopPropagation(); alternar(); };
+    if (aberta) { posicionar(); alvo.querySelector('.cpn-gav').classList.add('on'); }
     alvo.querySelector('[data-fechar-gav]').onclick = () => alternar(false);
     if (!window._cpnEsc) { window._cpnEsc = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && aberta) alternar(false); }); }
     alvo.querySelectorAll('[data-abrir]').forEach(b => b.onclick = () => { alvo.querySelector(`[data-form="${b.dataset.abrir}"]`).classList.add('on'); alvo.querySelector(`[data-form="${b.dataset.abrir}"] textarea`).focus(); });
