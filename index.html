@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v566 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v567 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5100,11 +5100,19 @@ function linhasAprov(todas){
   return L.map(t => {
     const novo = eNovo('aprovacoes', t.id + ':' + t.status);
     const nome = t.clients?.name || 'SD';
-    return `<button class="ia-linha${novo ? ' nv' : ''}" style="width:100%;gap:10px" onclick="visitarTarefa('${t.id}');abrirTarefaReal('${t.id}')">
+    return `<button class="ia-linha${novo ? ' nv' : ''}" style="width:100%;gap:10px" onclick="visitarTarefa('${t.id}');abrirAprovDireto('${t.id}')">
       ${logoCliente(nome, 28)}
       <div class="c" style="min-width:0"><div class="n" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${novo ? '<i class="nv-dot"></i>' : ''}${esc(String(t.action).slice(0, 48))}</div>
       <div class="d">${esc(nome)} · com ${esc(t.resp || '—')}${t.date_cli ? ' · prazo do cliente ' + fmtD(t.date_cli) : ''}</div></div></button>`;
   }).join('') + (!todas && L0.length > L.length ? `<button class="btn" style="width:100%;margin-top:6px;min-height:32px;font-size:11.5px" onclick="abrirAprovacoesTodas()">+ ${L0.length - L.length} mais — ver todas</button>` : '');
+}
+// clicou numa aprovação: abre direto a caixa do lote (se não houver lote, cai na tarefa)
+async function abrirAprovDireto(id){
+  try {
+    const { data: sets } = await sbR.from('approval_sets').select('id').eq('task_id', id).order('created_at',{ascending:false}).limit(1);
+    if (sets && sets.length){ popupIframe('/aprovacao.html?set=' + encodeURIComponent(sets[0].id), 'Aprovação — ' + id); return; }
+  } catch(e){}
+  abrirTarefaReal(id);
 }
 function pintarAprov(){
   const L = $('#apLista'); if (L) L.innerHTML = linhasAprov();
