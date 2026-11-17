@@ -473,8 +473,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
     <div class="main-content">
 
       <div class="view-panel active" id="view-feed">
-        <iframe id="esc-so-cursos" title="Cursos da Escola Agêntica" style="display:block;width:100%;height:70vh;border:0;background:transparent"></iframe>
-        <div class="feed-wrap" id="feed-wrap" style="display:none">
+        <div class="feed-wrap" id="feed-wrap">
           <div class="esc-wrap" id="escola-wrap">
             <div class="esc-marca"><img class="m-escuro" src="assets/logo-pontodot-escola-white.svg" alt="pontodot — a school for AI"><img class="m-claro" src="assets/logo-pontodot-escola-preto.svg" alt="pontodot — a school for AI"></div>
             <header class="esc-capa" id="esc-capa">
@@ -487,7 +486,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
                 <div class="esc-cidade-nome">Catum</div>
                 <button type="button" class="esc-conhece" onclick="escMitologia()">Você conhece Catum? <span aria-hidden="true">→</span></button>
                 <div class="esc-clima" id="esc-clima"></div>
-                <button class="esc-luz" id="esc-luz" onclick="escAlternarLuz()" aria-label="Apagar ou acender a luz da escola" title="Apagar / acender">
+                <button class="esc-luz" id="esc-luz" style="display:none" onclick="escAlternarLuz()" aria-label="Apagar ou acender a luz da escola" title="Apagar / acender">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
                 </button>
               </section>
@@ -553,7 +552,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <div class="esc-ficcao">Catum é ficção. As cenas, os parentes e as conversas entre os alunos não existem fora da escola.</div>
           </div>
         </div>
-        <div class="app-footer" style="display:none">
+        <div class="app-footer" style="display:block">
           © 2026 Pontodot · NOVA HORDA SERVICOS &amp; NEGOCIOS LTDA · CNPJ 43.383.376/0001-35 ·
           Criado por <a href="https://sergioduh.com" target="_blank" rel="noopener">sergioduh.com</a>
         </div>
@@ -3255,20 +3254,7 @@ async function publishPost(){
   showToast('Publicado! 🚀','success');await loadPosts();
 }
 
-// A primeira página da Escola é só a dos cursos. A rede social de Catum (fotos, mural, capas) saiu daqui
-// porque pesava a tela; ela continua só na LP. Nada de Catum é carregado nem atualizado nesta página.
-const ESC_SO_CURSOS = true;
-function escCursosAjusta(){ const f = document.getElementById('esc-so-cursos'); if (!f || !f.offsetParent) return;
-  f.style.height = Math.max(320, innerHeight - f.getBoundingClientRect().top) + 'px'; }
-addEventListener('resize', () => { try { escCursosAjusta(); } catch(e){} });
 function renderFeed(){
-  if (ESC_SO_CURSOS){
-    const f = document.getElementById('esc-so-cursos');
-    if (f && !f.getAttribute('src')) f.src = '/escola-bastidores.html?modo=cursos&v=' + encodeURIComponent((typeof APP_V !== 'undefined' && APP_V) || new Date().toISOString().slice(0,10));
-    escCursosAjusta(); setTimeout(escCursosAjusta, 300);
-    if (!ESC.u) fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (u) ESC.u = u; }).catch(() => {});   // só os nomes das IAs, que o resto do app usa
-    return;
-  }
   iniciarEscola();
   const cav=document.getElementById('compose-av');
   if(profile.avatar_url)cav.innerHTML=`<img src="${profile.avatar_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
@@ -3342,7 +3328,7 @@ async function escCarregar(){
   const get = (u)=>fetch(u).then(r=>r.ok?r.json():null).catch(()=>null);
   const social = escCarregarSocial();   // roda junto com o resto (antes esperava tudo para só então começar)
   const [u, sem, im, capas, postais, alunos] = await Promise.all([
-    ESC.u||get('/pd/universo.json'), get('/pd-narrativas.php'), get('/pd-imagens.php?pasta=personagens'),
+    ESC.u||get('/pd/universo.json'), null /* narrativas de Catum: só na LP */, get('/pd-imagens.php?pasta=personagens'),
     get('/pd-imagens.php?pasta=capas'), get('/pd-imagens.php?pasta=postais'),
     sb.rpc('pd_escola_alunos').then(r=>r.error?null:r.data).catch(()=>null) ]);
   if (u) ESC.u = u;
@@ -3538,7 +3524,6 @@ async function escHumanosCarregar(ids){
 }
 
 function renderEscola(){
-  if (ESC_SO_CURSOS) return;
   const box = document.getElementById('esc-posts'); if (!box) return;
   if (!ESC.u){ box.innerHTML = '<div class="esc-vazio">Chegando…</div>'; return; }
   // capa + frase
@@ -3585,7 +3570,8 @@ function renderEscola(){
     document.getElementById('esc-cursos').innerHTML = dest.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(c.area)} · ${c.semanas} semanas</small></button>`).join('')
       + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
-  const lista = escPosts().concat((posts||[]).filter(h=>!/^Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
+  // o feed social de Catum (fotos dos alunos) saiu desta página porque pesava: ele vive só na LP. Aqui fica o mural da casa.
+  const lista = [].concat((posts||[]).filter(h=>!/^Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
   lista.sort((a,b)=> (b.humano?1:0)-(a.humano?1:0) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));   // gente da casa primeiro; alunos de Catum em ordem aleatória
   box.innerHTML = lista.map((p, n) => {
     if (p.humano) return escHtmlHumano(p.h, n === lista.length - 1);
@@ -3633,7 +3619,7 @@ function escAjustaTitulo(){
 window.addEventListener('resize', () => { try { escAjustaTitulo(); } catch(e){} });
 // apagar e acender: escuro (quase marrom) ou o bege da caixa de entrada
 let ESC_LUZ = null;
-function escLuz(){ if (ESC_LUZ) return ESC_LUZ; try { ESC_LUZ = localStorage.getItem('pd_esc_luz'); } catch(e){} return ESC_LUZ || 'apagada'; }
+function escLuz(){ return 'acesa'; }   // a página da Escola é SEMPRE branca (decisão do Sérgio)
 function escAplicaLuz(){
   const luz = escLuz();
   const v = document.getElementById('view-feed'); if (!v) return;
@@ -3688,7 +3674,7 @@ function escTodosCursos(){
   d.addEventListener('click', e => { if (e.target === d) d.remove(); });
   document.body.appendChild(d);
 }
-window.addEventListener('message', e => { if (e.data && e.data.tipo === 'esc-inscrito' && !ESC_SO_CURSOS){ try { escCarregarSocial().then(renderEscola); } catch(_){} } });
+window.addEventListener('message', e => { if (e.data && e.data.tipo === 'esc-inscrito'){ try { escCarregarSocial().then(renderEscola); } catch(_){} } });
 function escAmpliarCapa(){ const f = document.getElementById('esc-capa-frase'); escAmpliar((escPostalDoDia()||{}).src || escCapasDoDia().cidade, f ? f.textContent.trim() : 'Catum'); }
 function escAlMais(){
   ESC.alAberto = !ESC.alAberto;
