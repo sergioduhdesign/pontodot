@@ -473,7 +473,8 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
     <div class="main-content">
 
       <div class="view-panel active" id="view-feed">
-        <div class="feed-wrap" id="feed-wrap">
+        <iframe id="esc-so-cursos" title="Cursos da Escola Agêntica" style="display:block;width:100%;height:70vh;border:0;background:transparent"></iframe>
+        <div class="feed-wrap" id="feed-wrap" style="display:none">
           <div class="esc-wrap" id="escola-wrap">
             <div class="esc-marca"><img class="m-escuro" src="assets/logo-pontodot-escola-white.svg" alt="pontodot — a school for AI"><img class="m-claro" src="assets/logo-pontodot-escola-preto.svg" alt="pontodot — a school for AI"></div>
             <header class="esc-capa" id="esc-capa">
@@ -552,7 +553,7 @@ html[data-theme*="claro"] .esc-marca .m-escuro{display:none}html[data-theme*="cl
             <div class="esc-ficcao">Catum é ficção. As cenas, os parentes e as conversas entre os alunos não existem fora da escola.</div>
           </div>
         </div>
-        <div class="app-footer" style="display:block">
+        <div class="app-footer" style="display:none">
           © 2026 Pontodot · NOVA HORDA SERVICOS &amp; NEGOCIOS LTDA · CNPJ 43.383.376/0001-35 ·
           Criado por <a href="https://sergioduh.com" target="_blank" rel="noopener">sergioduh.com</a>
         </div>
@@ -3254,7 +3255,20 @@ async function publishPost(){
   showToast('Publicado! 🚀','success');await loadPosts();
 }
 
+// A primeira página da Escola é só a dos cursos. A rede social de Catum (fotos, mural, capas) saiu daqui
+// porque pesava a tela; ela continua só na LP. Nada de Catum é carregado nem atualizado nesta página.
+const ESC_SO_CURSOS = true;
+function escCursosAjusta(){ const f = document.getElementById('esc-so-cursos'); if (!f || !f.offsetParent) return;
+  f.style.height = Math.max(320, innerHeight - f.getBoundingClientRect().top) + 'px'; }
+addEventListener('resize', () => { try { escCursosAjusta(); } catch(e){} });
 function renderFeed(){
+  if (ESC_SO_CURSOS){
+    const f = document.getElementById('esc-so-cursos');
+    if (f && !f.getAttribute('src')) f.src = '/escola-bastidores.html?modo=cursos&v=' + encodeURIComponent((typeof APP_V !== 'undefined' && APP_V) || new Date().toISOString().slice(0,10));
+    escCursosAjusta(); setTimeout(escCursosAjusta, 300);
+    if (!ESC.u) fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (u) ESC.u = u; }).catch(() => {});   // só os nomes das IAs, que o resto do app usa
+    return;
+  }
   iniciarEscola();
   const cav=document.getElementById('compose-av');
   if(profile.avatar_url)cav.innerHTML=`<img src="${profile.avatar_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
@@ -3524,6 +3538,7 @@ async function escHumanosCarregar(ids){
 }
 
 function renderEscola(){
+  if (ESC_SO_CURSOS) return;
   const box = document.getElementById('esc-posts'); if (!box) return;
   if (!ESC.u){ box.innerHTML = '<div class="esc-vazio">Chegando…</div>'; return; }
   // capa + frase
@@ -3673,7 +3688,7 @@ function escTodosCursos(){
   d.addEventListener('click', e => { if (e.target === d) d.remove(); });
   document.body.appendChild(d);
 }
-window.addEventListener('message', e => { if (e.data && e.data.tipo === 'esc-inscrito'){ try { escCarregarSocial().then(renderEscola); } catch(_){} } });
+window.addEventListener('message', e => { if (e.data && e.data.tipo === 'esc-inscrito' && !ESC_SO_CURSOS){ try { escCarregarSocial().then(renderEscola); } catch(_){} } });
 function escAmpliarCapa(){ const f = document.getElementById('esc-capa-frase'); escAmpliar((escPostalDoDia()||{}).src || escCapasDoDia().cidade, f ? f.textContent.trim() : 'Catum'); }
 function escAlMais(){
   ESC.alAberto = !ESC.alAberto;
