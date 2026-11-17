@@ -56,6 +56,7 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .top .seg button{display:flex;align-items:center;gap:7px;padding:7px 15px;border-radius:9px;font-size:13px;font-weight:500}
 .top .seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .top .seg button.on{box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.nm-ed{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}.nm-ed .fl{flex:1}.nm-ed .bt{height:44px;padding:0 18px;margin-bottom:10px}.nm-ed .bt[disabled]{opacity:.35}
 .sugav{font-size:12.5px;color:var(--tx);border:1px solid var(--lin);border-radius:10px;padding:8px 11px;margin:-4px 0 8px}
 .sugs{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 10px}
 .sug{border:1px solid var(--lin);background:transparent;color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;display:flex;gap:7px;align-items:center}
@@ -791,8 +792,11 @@ function vPessoas(sentido){
   const t12 = G.reduce((a, g) => a + g.doze, 0);
   const tit = AMB === 'empresa' ? (sentido === 'entrada' ? 'Clientes' : 'Equipe e fornecedores') : (sentido === 'entrada' ? 'De quem entra' : 'Para onde vai');
   let h = '<input class="busca" id="busca" placeholder="Buscar…" value="' + esc(BUSCA) + '">' + (podeEditar() ? '<button class="add" style="width:100%;margin:0 0 12px" data-contrato="' + sentido + '">+ ' + (sentido === 'entrada' ? 'Novo contrato' : 'Novo parcelamento') + '</button>' : '') + '<div class="cx"><div class="cab"><h3>' + tit + '</h3><span class="tt">' + BRL0(t12) + ' <small style="color:var(--mut);font-weight:400">em 12 meses</small></span></div>';
+  const KS = G.map(g => ({ g, k: chaveNome(g.nome) }));
   h += F.map(g => {
     const ult = g.itens.filter(x => x.mes === g.ult).sort((a, b) => (b.dia || 0) - (a.dia || 0))[0], pa = ult && ult.parcela_de ? ' · parcela ' + ult.parcela_n + ' de ' + ult.parcela_de : '';
+    const k0 = chaveNome(g.nome), tl = k0.length >= 9 ? 2 : k0.length >= 4 ? 1 : 0, tw = tl ? KS.find(x => x.g !== g && x.g.itens.length >= g.itens.length && lev(x.k, k0) <= tl) : null;
+    if (tw) pa += ' · parece “' + tw.g.nome + '”';
     return '<div class="pes" data-pes="' + esc(g.nome) + '" data-sent="' + sentido + '">' + avHtml(g.nome, sentido) + '<div class="m"><b>' + esc(g.nome) + '</b><small>' + g.meses.size + ' meses · último em ' + rotCurto(g.ult) + pa + '</small></div><div class="val ' + (sentido === 'entrada' ? 'e' : '') + '">' + BRL0(g.doze) + '</div></div>';
   }).join('') || '<div class="vazio">Nada encontrado.</div>';
   $('#cont').innerHTML = h + '</div>';
@@ -802,9 +806,33 @@ function abrePessoa(nome, sentido){
   const R = dados().filter(l => l.sentido === sentido && l.conta && normNome(l.descricao) === nome).sort((a, b) => b.mes.localeCompare(a.mes) || (b.dia || 0) - (a.dia || 0));
   const tot = soma(R), ult = R[0], pr = ult && ult.parcela_de ? ult.parcela_n / ult.parcela_de * 100 : null;
   const cat0 = R.length ? catDe(R[0]) : 'out', manual = R.some(l => l.categoria);
-  folha('<h3 style="display:flex;align-items:center;gap:12px">' + avHtml(nome, sentido) + esc(nome) + '</h3>' + (sentido === 'saida' && podeEditar() ? '<label class="fl"><span>Categoria (vale para todas as linhas deste nome)</span><select id="catNome" data-ids="' + R.map(l => l.id).join(',') + '"><option value="">Automática · ' + esc(rotCat(cat0)) + '</option>' + Object.entries(CATS).map(([k, v]) => '<option value="' + k + '"' + (manual && cat0 === k ? ' selected' : '') + '>' + esc(rotCat(k)) + '</option>').join('') + '</select></label>' : '') + '<div class="trio" style="margin-bottom:12px"><div><small>Total</small><b>' + BRL0(tot) + '</b></div><div><small>Lançamentos</small><b>' + R.length + '</b></div><div><small>Último</small><b>' + (ult ? rotCurto(ult.mes) : '—') + '</b></div></div>' +
+  abrePessoa._p = { nome, sentido };
+  folha('<h3 style="display:flex;align-items:center;gap:12px">' + avHtml(nome, sentido) + esc(nome) + '</h3>' +
+    (podeEditar() ? '<div class="nm-ed"><label class="fl" style="margin:0"><span>Nome (muda em todas as ' + R.length + ' linhas)</span><input id="pNome" value="' + esc(nome) + '" autocomplete="off"></label><button class="bt" id="pSalva" data-renomeia="1" disabled>Salvar</button></div><div id="pSug"></div>' : '') +(sentido === 'saida' && podeEditar() ? '<label class="fl"><span>Categoria (vale para todas as linhas deste nome)</span><select id="catNome" data-ids="' + R.map(l => l.id).join(',') + '"><option value="">Automática · ' + esc(rotCat(cat0)) + '</option>' + Object.entries(CATS).map(([k, v]) => '<option value="' + k + '"' + (manual && cat0 === k ? ' selected' : '') + '>' + esc(rotCat(k)) + '</option>').join('') + '</select></label>' : '') + '<div class="trio" style="margin-bottom:12px"><div><small>Total</small><b>' + BRL0(tot) + '</b></div><div><small>Lançamentos</small><b>' + R.length + '</b></div><div><small>Último</small><b>' + (ult ? rotCurto(ult.mes) : '—') + '</b></div></div>' +
     (pr != null ? '<div class="prog" style="margin:0 0 12px"><div><div class="ln"><span>Parcelas <b>' + ult.parcela_n + ' de ' + ult.parcela_de + '</b></span><span>faltam ' + (ult.parcela_de - ult.parcela_n) + '</span></div><div class="bar"><i style="width:' + pr + '%"></i></div></div></div>' : '') +
     '<div style="max-height:46vh;overflow:auto">' + R.map(l => '<div class="lin" data-id="' + l.id + '" data-fecha="1"><div class="dia">' + (l.dia || '·') + '</div><div class="m"><b>' + rotMes(l.mes) + '</b><small>' + esc([l.parcela, l.forma, l.obs].filter(Boolean).join(' · ')) + '</small></div><div class="val">' + BRL(l.valor) + '</div><div class="ck ' + (l.pago ? 'on' : '') + '">' + (l.pago ? ICK : '') + '</div></div>').join('') + '</div><div class="bts"><button class="bt sec" data-fechar="1">Fechar</button></div>');
+}
+
+// renomear/unir um cliente (ou fornecedor): troca o nome em TODAS as linhas dele; se o novo nome já existe, os dois viram um só
+function sugerePessoa(){
+  const p = abrePessoa._p, el = $('#pNome'), box = $('#pSug'), bt = $('#pSalva'); if (!p || !el || !box) return;
+  const v = el.value.trim(), kq = chaveNome(v), k0 = chaveNome(p.nome), todos = nomesConhecidos(p.sentido).filter(x => x.k !== k0), tol = kq.length >= 9 ? 2 : kq.length >= 4 ? 1 : 0;
+  const par = kq ? todos.filter(x => x.k.startsWith(kq) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol)).sort((a, b) => b.n - a.n).slice(0, 6) : [];
+  const igual = todos.find(x => x.k === kq);
+  box.innerHTML = (igual ? '<div class="sugav">Já existe <b>' + esc(igual.nome) + '</b> (' + igual.n + ' lançamento' + (igual.n > 1 ? 's' : '') + '). Salvar une os dois num só.</div>' : '') +
+    (par.length ? '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sugp="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + x.n + '</small></button>').join('') + '</div>' : '');
+  bt.disabled = !v || v === p.nome;
+}
+async function renomeiaPessoa(){
+  const p = abrePessoa._p, novo = $('#pNome').value.trim(); if (!p || !novo || novo === p.nome) return;
+  const ids = dados().filter(l => l.sentido === p.sentido && l.grupo !== 'saldo' && l.grupo !== 'retirada' && normNome(l.descricao) === p.nome);
+  if (!ids.length) return toast('Nenhuma linha encontrada.');
+  const suf = d => { const m = String(d).match(/\s*[-–·]*\s*\b\d+\s*de\s*\d+\b[-–·\s]*$/i); return m ? ' ' + m[0].trim() : ''; };
+  const bt = $('#pSalva'); bt.disabled = true; bt.textContent = 'Salvando…';
+  try {
+    const rs = await Promise.all(ids.map(l => { const nd = novo + suf(l.descricao); return sb.from('fin_lancamentos').update({ descricao: nd }).eq('id', l.id).then(r => { if (r.error) throw r.error; l.descricao = nd; }); }));
+  } catch(e){ bt.textContent = 'Salvar'; bt.disabled = false; return toast('Não consegui salvar tudo: ' + (e.message || e)); }
+  fecha(); desenha(); toast('Nome mudado em ' + ids.length + ' linha' + (ids.length > 1 ? 's' : '') + '.');
 }
 
 // ---------- ano ----------
@@ -1349,6 +1377,8 @@ document.addEventListener('click', e => {
   if ((el = q('[data-ia]'))) { folhaIA(CIA.find(c => c.id === el.dataset.ia)); return; }
   if ((el = q('[data-salvaia]'))) { salvaIA(el.dataset.salvaia); return; }
   if ((el = q('[data-apagaia]'))) { sb.from('fin_custos_ia').delete().eq('id', el.dataset.apagaia).then(r => { if (r.error) return toast(r.error.message); CIA = null; fecha(); vIA(); }); return; }
+  if ((el = q('[data-sugp]'))) { $('#pNome').value = el.dataset.sugp; sugerePessoa(); return; }
+  if (q('[data-renomeia]')) { renomeiaPessoa(); return; }
   if ((el = q('[data-sug]'))) { $('#fDes').value = el.dataset.sug; sugereNome(); return; }
   if ((el = q('[data-stp]'))) { if (!el.disabled) stepMexe(el.dataset.stp); return; }
   if (q('[data-fechar]')) { fecha(); return; }
@@ -1362,6 +1392,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'vQ') { VISTA.q = e.target.value; desLista(); return; }
   if (e.target.id === 'gCorX') { gCor(e.target.value); return; }
   if (e.target.id === 'fDes') { sugereNome(); return; }
+  if (e.target.id === 'pNome') { sugerePessoa(); return; }
   if (!(e.target.closest && e.target.closest('#folha'))) return; if (document.getElementById('cPrev')) previaContrato(); if (e.target.id === 'rVal') { const v = parseValor(e.target.value) || 0; $('#rPR').textContent = BRL0(v); $('#rPS').textContent = BRL0(folhaRetirada._sobra - v); } });
 document.addEventListener('change', async e => {
   const t = e.target;
