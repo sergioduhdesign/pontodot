@@ -435,7 +435,7 @@ const ICDEST = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stro
 const catSoma = (c, m) => soma(doMes(m).filter(l => l.conta && l.sentido === 'saida' && l.grupo !== 'retirada' && l.grupo !== 'saldo' && catDe(l) === c));
 const METR = {
   total:   { rot: 'Total do mês', curto: 'Total', f: t => t.sobra },
-  caixa:   { rot: 'No caixa agora', curto: 'No caixa', f: t => t.caixa },
+  caixa:   { rot: 'Caixa pelos lançamentos', curto: 'Caixa (previsto)', f: t => t.caixa },
   ent:     { rot: 'Entradas', curto: 'Entradas', f: t => t.e },
   sai:     { rot: 'Saídas', curto: 'Saídas', f: t => t.s },
   res:     { rot: 'Entradas − saídas', curto: 'Resultado', f: t => t.e - t.s },
@@ -723,7 +723,8 @@ function totais(m, a){
   const R = doMes(m, a).filter(l => l.conta);
   const ent = R.filter(l => l.sentido === 'entrada' && l.grupo !== 'saldo'), sal = R.filter(l => l.grupo === 'saldo'), sai = R.filter(l => l.sentido === 'saida' && l.grupo !== 'retirada');
   const e = soma(ent), s = soma(sai), sd = soma(sal), ep = soma(ent, l => l.pago), sp = soma(sai, l => l.pago);
-  return { e, s, sd, ep, sp, sobra: e + sd - s, caixa: sd + ep - sp };
+  const rp = soma(R.filter(l => l.grupo === 'retirada'), l => l.pago);   // retirada já feita também saiu do caixa da Empresa
+  return { e, s, sd, ep, sp, sobra: e + sd - s, caixa: sd + ep - sp - rp };
 }
 function fluxo(m, a){
   const t = totais(m, a), pm = somaMes(m, 1), tem = doMes(pm, a).some(l => l.grupo === 'saldo' && l.conta), p = tem ? totais(pm, a) : null;
@@ -738,7 +739,7 @@ function hero(){
     '<div class="trio">' + DS.trio.map(k => '<div><small>' + METR[k].curto + '</small><b>' + (mv(k, t) == null ? '—' : BRL0(mv(k, t))) + '</b></div>').join('') + '</div>' +
     (DS.prog ? '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
     '<div><div class="ln"><span>Pago <b>' + BRL0(t.sp) + '</b> de ' + BRL0(t.s) + '</span><span>falta ' + BRL0(t.s - t.sp) + '</span></div><div class="bar"><i style="width:' + ps + '%"></i></div></div>' +
-    '<div class="ln ed" data-contas="1" style="margin:0;cursor:pointer"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div>' +
+    '<div class="ln ed" data-contas="1" style="margin:0;cursor:pointer"><span>Caixa pelos lançamentos (saldo do mês anterior + entrou − pago' + (AMB === 'empresa' ? ' − retirada feita' : '') + ')</span><b>' + BRL(t.caixa) + '</b></div>' +
     '</div>' : '') + bancosLinha() +
     (!DS.div ? '' : (t.tem || (AMB === 'empresa' && t.temRet)) ? '<div class="comp"><div class="ln" style="margin:0"><span>O total se divide em' + (AMB === 'empresa' ? ' retirada e ' : ' ') + 'saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span></div>' + (AMB === 'empresa' ? '<div class="lc ed" data-retirada="1"><span>RETIRADA · toque para mudar</span><b>' + BRL(t.retirada) + ' ' + ICL + '</b></div>' : '') + '<div class="lc"><span>SALDO (vai para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + ')</span><b>' + BRL(t.saldoFim) + '</b></div></div>' : (AMB === 'empresa' && podeEditar() ? '<div class="comp"><div class="lc ed" data-retirada="1"><span>RETIRADA deste mês</span><b>definir ' + ICL + '</b></div></div>' : '')) +
     (vazio ? '<div class="nota" style="padding:12px 0 0">Este mês ainda não tem lançamentos.</div>' : '') + '</div>';
