@@ -41,13 +41,27 @@ input,select,textarea{font:inherit;color:inherit}
 @keyframes kp{0%{box-shadow:0 0 0 0 rgba(31,138,85,.65)}100%{box-shadow:0 0 0 9px rgba(31,138,85,0)}}
 html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 @media(max-width:999px){.top{position:relative;flex-wrap:wrap;row-gap:0;padding:6px 10px}html.emb .top{padding:calc(var(--safe,0px) + 60px) 68px 6px 10px}#btFechar{display:none!important}.top .dk{display:none}.top .fl1{flex:1 1 0}.mesbar{order:9;flex:1 0 calc(100% + 58px);margin-right:-58px;justify-content:center}}
-@media(max-width:600px){.seg button{padding:6px 11px}.ic{width:32px;height:32px}.mesbar b{min-width:118px!important;font-size:16px!important}}
+@media(max-width:600px){.seg button{padding:6px 11px}.top .seg button{padding:6px 11px}.top .seg button svg{display:none}.relogio svg,#relTxt .rd{display:none}.mesbar b{min-width:118px!important;font-size:16px!important}}
 .seg{display:flex;border:1px solid var(--lin);border-radius:999px;padding:3px}
 .seg button{border:0;background:transparent;color:var(--mut);padding:6px 16px;border-radius:999px;font-weight:500;font-size:13px}
 .seg button.on{background:var(--acc);color:var(--acc-tx)}
-.ic{border:1px solid var(--lin);background:transparent;color:var(--tx);width:34px;height:34px;border-radius:50%;font-size:15px;line-height:1}
-.mesbar{display:flex;align-items:center;gap:6px}
-.mesbar b{font-size:18px;font-weight:400;min-width:170px;text-align:center}
+.ic{border:0;background:transparent;color:var(--mut);width:32px;height:34px;border-radius:8px;display:grid;place-items:center;padding:0}
+.ic svg,.relogio svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ic:hover{color:var(--tx);background:var(--card)}
+.mesbar{display:flex;align-items:center;gap:2px}
+.mesbar b{font-size:18px;font-weight:400;min-width:150px;text-align:center}
+.relogio{display:flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--mut);font-size:13px;padding:6px 8px;border-radius:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.relogio:hover{color:var(--tx);background:var(--card)}
+.top .seg{background:var(--card);border:0;border-radius:12px;padding:3px;gap:2px}
+.top .seg button{display:flex;align-items:center;gap:7px;padding:7px 15px;border-radius:9px;font-size:13px;font-weight:500}
+.top .seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.top .seg button.on{box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.stp{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--lin);border-radius:12px;padding:3px}
+.stp button{width:38px;height:36px;border:0;background:transparent;color:var(--tx);border-radius:9px;display:grid;place-items:center;padding:0}
+.stp button:active{background:var(--card)}
+.stp button[disabled]{opacity:.3}
+.stp svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.stp b{font-weight:500;font-size:16px;font-variant-numeric:tabular-nums}
 .av{position:relative;overflow:hidden}
 .av span{position:relative}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
@@ -216,7 +230,6 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 .cmes.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
 .cmes i{position:absolute;bottom:9px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:currentColor;opacity:.55}
 /* ---- v504 · seções em botões, ordenar/filtrar, grupos com cor, desktop denso ---- */
-.top .seg{border-radius:8px;padding:2px}.top .seg button{border-radius:6px}
 .secs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
 .sec{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:1 1 auto;padding:0 14px;height:42px;border:1px solid var(--lin);border-radius:10px;background:transparent;color:var(--mut);font-weight:600;font-size:13.5px;white-space:nowrap;transition:background-color .25s,color .25s,border-color .25s,transform .15s}
 .sec svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -292,9 +305,10 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
   <div class="top">
     <button class="btn i hid" id="btVolta" title="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <div class="seg" id="segAmb"></div>
-    <span class="sep dk"></span>
-    <div class="mesbar"><button class="ic" id="mAnt" title="Mês anterior">‹</button><b id="mesTxt"></b><button class="ic" id="mProx" title="Próximo mês">›</button></div>
     <span class="fl1"></span>
+    <button class="relogio" id="relogio" title="Hoje · ir para o mês atual"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span id="relTxt"></span></button>
+    <span class="sep dk"></span>
+    <div class="mesbar"><button class="ic" id="mAnt" title="Mês anterior"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><b id="mesTxt"></b><button class="ic" id="mProx" title="Próximo mês"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div>
     <button class="btn i hid" id="btKiro" title="Kiro · IA da grana"><img src="/icone-ia.php?p=kiro&s=88" alt="Kiro" onerror="this.style.visibility='hidden'"><i class="kpulso"></i></button>
     <button class="btn i" id="btTrancar" title="Trancar"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
     <button class="btn i hid" id="btFechar" title="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -662,7 +676,7 @@ function folhaSalvaFiltro(){
 const ehMob = () => matchMedia('(max-width:999px)').matches;
 function desenha(){
   const ps = areasPermitidas();
-  $('#segAmb').innerHTML = ps.map(a => '<button data-amb="' + a + '" class="' + (a === AMB ? 'on' : '') + '">' + (a === 'casa' ? 'Casa' : 'Empresa') + '</button>').join('');
+  $('#segAmb').innerHTML = ps.map(a => '<button data-amb="' + a + '" class="' + (a === AMB ? 'on' : '') + '">' + (a === 'casa' ? '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M10 20v-5h4v5"/></svg>Casa' : '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/></svg>Empresa') + '</button>').join('');
   $('#segAmb').classList.toggle('hid', ps.length < 2);
   $('#mesTxt').textContent = rotMes(MES);
   hero(); abas();
@@ -873,13 +887,32 @@ function folhaLanc(l, sentido){
   folha('<h3>' + (n ? (l.sentido === 'entrada' ? 'Nova entrada' : 'Nova saída') : esc(l.descricao)) + '</h3>' +
     '<label class="fl"><span>' + (l.sentido === 'entrada' ? 'Cliente / de onde' : 'O que é') + '</span><input id="fDes" value="' + esc(l.descricao) + '"></label>' +
     '<div class="f2"><label class="fl"><span>Valor (R$)</span><input id="fVal" inputmode="decimal" value="' + esc(l.valor === '' ? '' : String(l.valor).replace('.', ',')) + '"></label><label class="fl"><span>Dia</span><input id="fDia" inputmode="numeric" value="' + esc(l.dia || '') + '"></label></div>' +
-    '<div class="f2"><label class="fl"><span>Grupo</span><select id="fGru">' + gs.map(g => '<option value="' + g.chave + '"' + (g.chave === l.grupo ? ' selected' : '') + '>' + esc(g.nome) + '</option>').join('') + (podeEditar() ? '<option value="__novo">+ Novo grupo…</option>' : '') + '</select></label><label class="fl"><span>Parcela</span><input id="fPar" value="' + esc(l.parcela || '') + '" placeholder="3de10, mensal…"></label></div>' +
-    '<div class="f2"><label class="fl"><span>Como</span><input id="fFor" value="' + esc(l.forma || '') + '" placeholder="transf, PJ, cartão…"></label>' + (l.sentido === 'entrada' ? '<label class="fl"><span>Vendedor(a)</span><input id="fVen" value="' + esc(l.vendedor || '') + '"></label>' : '<div></div>') + '</div>' +
+    '<div class="f2"><label class="fl"><span>Grupo</span><select id="fGru">' + gs.map(g => '<option value="' + g.chave + '"' + (g.chave === l.grupo ? ' selected' : '') + '>' + esc(g.nome) + '</option>').join('') + (podeEditar() ? '<option value="__novo">+ Novo grupo…</option>' : '') + '</select></label><label class="fl"><span>Como</span><input id="fFor" value="' + esc(l.forma || '') + '" placeholder="transf, PJ, cartão…"></label></div>' +
+    '<input type="hidden" id="fPar" value="' + esc(l.parcela || '') + '" data-orig="' + esc(l.parcela || '') + '">' + stepParcela(l.parcela) +
+    (l.sentido === 'entrada' ? '<label class="fl"><span>Vendedor(a)</span><input id="fVen" value="' + esc(l.vendedor || '') + '"></label>' : '') +
     '<label class="fl"><span>Observação</span><input id="fObs" value="' + esc(l.obs || '') + '"></label>' +
     '<label class="chk"><input type="checkbox" id="fPag"' + (l.pago ? ' checked' : '') + '> ' + (l.sentido === 'entrada' ? 'Já recebi' : 'Já paguei') + '</label>' +
     '<label class="chk"><input type="checkbox" id="fCon"' + (l.conta ? ' checked' : '') + '> Entra na soma do mês <small style="color:var(--mut)">(desmarque para só anotar)</small></label>' +
+    (n ? '' : '<label class="chk"><input type="checkbox" id="fMov"> Passar para ' + rotMes(somaMes(l.mes, 1)) + '</label>') +
     '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button>' + (n ? '' : '<button class="bt sec" style="flex:1.6 1 0" data-dup="1">Copiar p/ próx. mês</button><button class="bt perigo" data-apaga="1">Apagar</button>') + '<button class="bt" data-salva="1">Salvar</button></div>');
   l.__sent = l.sentido; folhaLanc._l = l;
+}
+// parcelas: dois steppers (nº e total) que escrevem "NdeT" no #fPar escondido; total 0 = sem parcelamento (mantém "mensal" etc.)
+const IC_MENOS = '<svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>', IC_MAIS = '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>';
+function stepParcela(par){
+  const [pn, pd] = parcelaDe(par), t = pd || 0, n = pd ? pn : 0;
+  const bloco = (rot, id, v, a) => '<label class="fl"><span>' + rot + '</span><div class="stp"><button type="button" data-stp="' + id + '-"' + a + '>' + IC_MENOS + '</button><b id="' + id + '">' + v + '</b><button type="button" data-stp="' + id + '+">' + IC_MAIS + '</button></div></label>';
+  return '<div class="f2">' + bloco('Parcela nº', 'stN', t ? n : '—', t ? '' : ' disabled') + bloco('Total de parcelas', 'stT', t || '—', '') + '</div>';
+}
+function stepMexe(k){
+  const id = k.slice(0, -1), d = k.slice(-1) === '+' ? 1 : -1, el = $('#stN'), tl = $('#stT');
+  let n = parseInt(el.textContent, 10) || 0, t = parseInt(tl.textContent, 10) || 0, mov = false;
+  if (id === 'stT') { t = Math.max(0, Math.min(120, t + d)); if (t && !n) n = 1; if (n > t) n = t; if (!t) n = 0; }
+  else { if (!t) return; const nn = Math.max(1, Math.min(t, n + d)); mov = nn > n; n = nn; }
+  el.textContent = t ? n : '—'; tl.textContent = t || '—';
+  el.parentNode.querySelector('button').disabled = !t; el.parentNode.querySelectorAll('button').forEach(b => b.disabled = !t);
+  const f = $('#fPar'); f.value = t ? n + 'de' + t : (f.dataset.orig && !/^\d+\s*de\s*\d+/i.test(f.dataset.orig) ? f.dataset.orig : '');
+  if (mov && $('#fMov')) $('#fMov').checked = true;
 }
 async function salvaLanc(){
   const l = folhaLanc._l, v = parseValor($('#fVal').value), d = $('#fDes').value.trim(); if (!d || isNaN(v)) return toast('Descrição e valor.');
@@ -887,6 +920,7 @@ async function salvaLanc(){
   const o = { descricao: d, valor: v, dia: dia >= 1 && dia <= 31 ? dia : null, grupo: $('#fGru').value, parcela: par, parcela_n: pn, parcela_de: pd, forma: $('#fFor').value.trim() || null, obs: $('#fObs').value.trim() || null, pago: $('#fPag').checked, conta: $('#fCon').checked };
   if (l.sentido === 'entrada') o.vendedor = ($('#fVen') && $('#fVen').value.trim()) || null;
   o.situacao = o.pago ? 'OK' : (l.situacao && l.situacao.toUpperCase() !== 'OK' ? l.situacao : null);
+  const mov = l.id && $('#fMov') && $('#fMov').checked; if (mov) { o.mes = somaMes(l.mes, 1); o.pago = false; o.situacao = null; }
   let r;
   if (l.id) r = await sb.from('fin_lancamentos').update(o).eq('id', l.id).select().single();
   else r = await sb.from('fin_lancamentos').insert(Object.assign(o, { ambiente: AMB, mes: MES, sentido: l.sentido })).select().single();
@@ -896,9 +930,9 @@ async function salvaLanc(){
   let extra = '';
   try {
     if (AMB === 'casa' && nv.sentido === 'entrada' && normNome(nv.descricao) === 'STRAT/PD' && D.empresa) { const r2 = await setRetirada(nv.mes, nv.valor); extra = ' · retirada da Empresa acompanhou' + r2.aviso; }
-    else if (nv.grupo !== 'retirada') { const c = await cascata(AMB, nv.mes); if (c) extra = ' · ' + c + ' mês(es) seguinte(s) atualizado(s)'; }
+    else if (nv.grupo !== 'retirada') { const c = await cascata(AMB, mov ? l.mes : nv.mes); if (c) extra = ' · ' + c + ' mês(es) seguinte(s) atualizado(s)'; }
   } catch(e){ extra = ' · não consegui atualizar o outro lado: ' + (e.message || e); }
-  fecha(); desenha(); toast('Salvo' + extra + '.');
+  fecha(); desenha(); toast((mov ? 'Passou para ' + rotMes(nv.mes) : 'Salvo') + extra + '.');
 }
 async function apagaLanc(btn){
   if (!btn.dataset.sim) { btn.dataset.sim = '1'; btn.textContent = 'Apagar mesmo?'; return; }
@@ -906,9 +940,11 @@ async function apagaLanc(btn){
   D[AMB] = D[AMB].filter(x => x.id !== l.id); try { await cascata(AMB, l.mes); } catch(e){} fecha(); desenha(); toast('Apagado.');
 }
 async function duplica(){
-  const l = folhaLanc._l, prox = somaMes(l.mes, 1); let par = l.parcela, pn = l.parcela_n;
-  if (l.parcela_de) { if (l.parcela_n >= l.parcela_de) return toast('Essa já era a última parcela.'); pn = l.parcela_n + 1; par = pn + 'de' + l.parcela_de; }
-  const o = { ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: l.conta };
+  // copia o que está na folha (inclusive o que ainda não foi salvo), não o registro antigo
+  const l = folhaLanc._l, prox = somaMes(l.mes, 1), v = parseValor($('#fVal').value), dia = parseInt($('#fDia').value, 10);
+  let par = $('#fPar').value.trim() || null, [pn, pd] = parcelaDe(par);
+  if (pd) { if (pn >= pd) return toast('Essa já era a última parcela.'); pn += 1; par = pn + 'de' + pd; }
+  const o = { ambiente: AMB, mes: prox, sentido: l.sentido, grupo: $('#fGru').value === '__novo' ? l.grupo : $('#fGru').value, dia: dia >= 1 && dia <= 31 ? dia : null, descricao: $('#fDes').value.trim() || l.descricao, parcela: par, parcela_n: pn, parcela_de: pd, forma: $('#fFor').value.trim() || null, valor: isNaN(v) ? l.valor : v, obs: $('#fObs').value.trim() || null, vendedor: $('#fVen') ? $('#fVen').value.trim() || null : l.vendedor, pago: false, conta: $('#fCon').checked };
   const r = await sb.from('fin_lancamentos').insert(o).select().single(); if (r.error) return toast(r.error.message);
   D[AMB].push(Object.assign(r.data, { valor: Number(r.data.valor) })); fecha(); desenha(); toast('Copiado para ' + rotMes(prox) + '.');
 }
@@ -1271,6 +1307,7 @@ document.addEventListener('click', e => {
   if ((el = q('[data-ia]'))) { folhaIA(CIA.find(c => c.id === el.dataset.ia)); return; }
   if ((el = q('[data-salvaia]'))) { salvaIA(el.dataset.salvaia); return; }
   if ((el = q('[data-apagaia]'))) { sb.from('fin_custos_ia').delete().eq('id', el.dataset.apagaia).then(r => { if (r.error) return toast(r.error.message); CIA = null; fecha(); vIA(); }); return; }
+  if ((el = q('[data-stp]'))) { if (!el.disabled) stepMexe(el.dataset.stp); return; }
   if (q('[data-fechar]')) { fecha(); return; }
   if (q('[data-salva]')) { salvaLanc(); return; }
   if ((el = q('[data-apaga]'))) { apagaLanc(el); return; }
@@ -1299,6 +1336,13 @@ document.addEventListener('change', async e => {
 });
 ligaSeta($('#mAnt'), -1); ligaSeta($('#mProx'), 1); ligaArrasto();
 $('#mesTxt').onclick = () => folhaCalendario();
+// relógio: dia da semana, data e hora de agora; clicar volta para o mês atual
+function relogio(){
+  const d = new Date(), s = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).replace(/\./g, ''), h = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  $('#relTxt').innerHTML = '<span class="rd">' + esc(s) + ' · </span>' + h;
+}
+relogio(); setInterval(relogio, 15000);
+$('#relogio').onclick = () => { const d = new Date(); irMes(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'); };
 $('#btVolta').onclick = () => { ANIM = true; ABA = 'inicio'; BUSCA = ''; desenha(); scrollTo(0, 0); };
 $('#btKiro').onclick = () => {
   const b = document.getElementById('kbox'); if (b) { b.remove(); return; }
