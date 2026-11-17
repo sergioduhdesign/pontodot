@@ -56,6 +56,8 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .top .seg button{display:flex;align-items:center;gap:7px;padding:7px 15px;border-radius:9px;font-size:13px;font-weight:500}
 .top .seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .top .seg button.on{box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.ct{display:grid;grid-template-columns:1fr 130px 38px;gap:8px;margin-bottom:8px}.ct input{padding:11px 13px;border-radius:12px;border:1px solid var(--lin);background:transparent;outline:none;min-width:0;width:100%}.ct input:focus{border-color:var(--acc)}.ct .ctV{text-align:right}
+.ctx{border:1px solid var(--lin);background:transparent;color:var(--mut);border-radius:12px;display:grid;place-items:center;padding:0}.ctx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .nm-ed{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}.nm-ed .fl{flex:1}.nm-ed .bt{height:44px;padding:0 18px;margin-bottom:10px}.nm-ed .bt[disabled]{opacity:.35}
 .sugav{font-size:12.5px;color:var(--tx);border:1px solid var(--lin);border-radius:10px;padding:8px 11px;margin:-4px 0 8px}
 .sugs{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 10px}
@@ -735,8 +737,8 @@ function hero(){
     '<div class="trio">' + DS.trio.map(k => '<div><small>' + METR[k].curto + '</small><b>' + (mv(k, t) == null ? '—' : BRL0(mv(k, t))) + '</b></div>').join('') + '</div>' +
     (DS.prog ? '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
     '<div><div class="ln"><span>Pago <b>' + BRL0(t.sp) + '</b> de ' + BRL0(t.s) + '</span><span>falta ' + BRL0(t.s - t.sp) + '</span></div><div class="bar"><i style="width:' + ps + '%"></i></div></div>' +
-    '<div class="ln" style="margin:0"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div>' +
-    '</div>' : '') +
+    '<div class="ln ed" data-contas="1" style="margin:0;cursor:pointer"><span>No caixa agora (saldo + o que entrou − o que saiu)</span><b>' + BRL(t.caixa) + '</b></div>' +
+    '</div>' : '') + bancosLinha() +
     (!DS.div ? '' : (t.tem || (AMB === 'empresa' && t.temRet)) ? '<div class="comp"><div class="ln" style="margin:0"><span>O total se divide em' + (AMB === 'empresa' ? ' retirada e ' : ' ') + 'saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span></div>' + (AMB === 'empresa' ? '<div class="lc ed" data-retirada="1"><span>RETIRADA · toque para mudar</span><b>' + BRL(t.retirada) + ' ' + ICL + '</b></div>' : '') + '<div class="lc"><span>SALDO (vai para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + ')</span><b>' + BRL(t.saldoFim) + '</b></div></div>' : (AMB === 'empresa' && podeEditar() ? '<div class="comp"><div class="lc ed" data-retirada="1"><span>RETIRADA deste mês</span><b>definir ' + ICL + '</b></div></div>' : '')) +
     (vazio ? '<div class="nota" style="padding:12px 0 0">Este mês ainda não tem lançamentos.</div>' : '') + '</div>';
 }
@@ -820,7 +822,7 @@ function sugerePessoa(){
   const par = kq ? todos.filter(x => x.k.startsWith(kq) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol)).sort((a, b) => b.n - a.n).slice(0, 6) : [];
   const igual = todos.find(x => x.k === kq);
   box.innerHTML = (igual ? '<div class="sugav">Já existe <b>' + esc(igual.nome) + '</b> (' + igual.n + ' lançamento' + (igual.n > 1 ? 's' : '') + '). Salvar une os dois num só.</div>' : '') +
-    (par.length ? '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sugp="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + x.n + '</small></button>').join('') + '</div>' : '');
+    (par.length ? '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sugp="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + nTxt(x) + '</small></button>').join('') + '</div>' : '');
   bt.disabled = !v || v === p.nome;
 }
 async function renomeiaPessoa(){
@@ -833,6 +835,57 @@ async function renomeiaPessoa(){
     const rs = await Promise.all(ids.map(l => { const nd = novo + suf(l.descricao); return sb.from('fin_lancamentos').update({ descricao: nd }).eq('id', l.id).then(r => { if (r.error) throw r.error; l.descricao = nd; }); }));
   } catch(e){ bt.textContent = 'Salvar'; bt.disabled = false; return toast('Não consegui salvar tudo: ' + (e.message || e)); }
   fecha(); desenha(); toast('Nome mudado em ' + ids.length + ' linha' + (ids.length > 1 ? 's' : '') + '.');
+}
+
+// ---------- onde está o dinheiro hoje: saldo real por banco/conta ----------
+const CTAS = {}; let CT_DEL = [];
+async function carregaContas(){
+  if (CTAS[AMB]) return CTAS[AMB];
+  const r = await sb.from('fin_contas').select('id,nome,valor,ordem,atualizado_em').eq('ambiente', AMB).order('ordem').order('criado_em');
+  if (r.error) throw r.error;
+  return (CTAS[AMB] = r.data.map(x => Object.assign(x, { valor: Number(x.valor) })));
+}
+function bancosLinha(){
+  const C = CTAS[AMB];
+  if (C === undefined) { CTAS[AMB] = null; carregaContas().then(() => { if ($('#veu').classList.contains('hid')) hero(); }).catch(() => { CTAS[AMB] = []; }); return ''; }
+  if (C === null) return '';
+  const tot = C.reduce((a, c) => a + c.valor, 0), ult = C.reduce((a, c) => c.atualizado_em > a ? c.atualizado_em : a, '');
+  if (!C.length) return podeEditar() ? '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Nos bancos hoje</span><b>informar ' + ICL + '</b></div>' : '';
+  return '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Nos bancos hoje · ' + C.length + ' conta' + (C.length > 1 ? 's' : '') + (ult ? ' · ' + new Date(ult).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '') + '</span><b>' + BRL(tot) + ' ' + ICL + '</b></div>';
+}
+const ctLinha = c => '<div class="ct" data-cid="' + (c.id || '') + '"><input class="ctN" value="' + esc(c.nome || '') + '" placeholder="Onde (Santander, Nu…)" autocomplete="off"><input class="ctV" inputmode="decimal" value="' + esc(c.valor === '' || c.valor == null ? '' : String(c.valor).replace('.', ',')) + '" placeholder="0,00"><button type="button" class="ctx" data-ctdel="1" title="Tirar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
+async function folhaContas(){
+  let C; try { CTAS[AMB] = CTAS[AMB] || undefined; C = await carregaContas(); } catch(e){ return toast(/fin_contas/.test(e.message || '') ? 'Falta rodar o migration_v188 no Supabase.' : (e.message || 'Erro')); }
+  CT_DEL = []; folhaContas._cx = fluxo(MES).caixa; const ed = podeEditar();
+  folha('<h3>Onde está o dinheiro hoje</h3><div class="nota" style="padding:0 0 10px;line-height:1.5">Informe quanto tem em cada banco ou lugar (' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '). Compare com o caixa que a Wallet calcula pelos lançamentos.</div>' +
+    '<div id="ctLista">' + C.map(ctLinha).join('') + (C.length || !ed ? '' : ctLinha({})) + '</div>' +
+    (ed ? '<button class="add" style="width:100%;margin:2px 0 12px" data-ctadd="1">+ Adicionar lugar</button>' : '') +
+    '<div class="trio" style="margin-bottom:6px"><div><small>Somando os bancos</small><b id="ctTot">—</b></div><div><small>Caixa pelos lançamentos</small><b>' + BRL0(folhaContas._cx) + '</b></div><div><small>Diferença</small><b id="ctDif">—</b></div></div>' +
+    '<div class="bts"><button class="bt sec" data-fechar="1">' + (ed ? 'Cancelar' : 'Fechar') + '</button>' + (ed ? '<button class="bt" data-ctsalva="1">Salvar</button>' : '') + '</div>');
+  ctSoma();
+}
+function ctSoma(){
+  let t = 0; document.querySelectorAll('#ctLista .ct:not(.hid)').forEach(r => { const v = parseValor(r.querySelector('.ctV').value); if (!isNaN(v)) t += v; });
+  const d = Math.round((t - folhaContas._cx) * 100) / 100;
+  $('#ctTot').textContent = BRL(t); $('#ctDif').textContent = Math.abs(d) < 0.01 ? 'bate' : (d > 0 ? '+' : '') + BRL0(d);
+}
+async function salvaContas(){
+  if (!podeEditar()) return toast('Você só pode ver.');
+  const ant = CTAS[AMB] || [], ins = [], ups = []; let ordem = 0, erro = '';
+  document.querySelectorAll('#ctLista .ct:not(.hid)').forEach(r => {
+    const nome = r.querySelector('.ctN').value.trim(), raw = r.querySelector('.ctV').value.trim(), v = raw === '' ? 0 : parseValor(raw), id = r.dataset.cid;
+    if (!nome && !raw) return; if (!nome) { erro = 'Falta o nome de um lugar.'; return; } if (isNaN(v)) { erro = 'Valor inválido em ' + nome + '.'; return; }
+    ordem++; if (!id) { ins.push({ ambiente: AMB, nome, valor: v, ordem }); return; }
+    const a = ant.find(x => x.id === id); if (!a || a.nome !== nome || a.valor !== v || a.ordem !== ordem) ups.push([id, { nome, valor: v, ordem }]);
+  });
+  if (erro) return toast(erro);
+  try {
+    if (CT_DEL.length) { const r = await sb.from('fin_contas').delete().in('id', CT_DEL); if (r.error) throw r.error; }
+    if (ins.length) { const r = await sb.from('fin_contas').insert(ins); if (r.error) throw r.error; }
+    await Promise.all(ups.map(([id, o]) => sb.from('fin_contas').update(o).eq('id', id).then(r => { if (r.error) throw r.error; })));
+  } catch(e){ return toast(/fin_contas/.test(e.message || '') ? 'Falta rodar o migration_v188 no Supabase.' : (e.message || 'Não salvou')); }
+  CTAS[AMB] = undefined; try { await carregaContas(); } catch(e){}
+  fecha(); hero(); toast('Saldos dos bancos salvos.');
 }
 
 // ---------- ano ----------
@@ -944,8 +997,13 @@ function nomesConhecidos(sentido){
     const k = chaveNome(l.descricao); if (!k || k === '—'.toUpperCase()) return; const t = l.descricao.trim(), e = m.get(k) || { k, n: 0, c: {} };
     e.n++; e.c[t] = (e.c[t] || 0) + 1; m.set(k, e);
   });
-  return [...m.values()].map(e => ({ k: e.k, n: e.n, nome: Object.entries(e.c).sort((a, b) => b[1] - a[1])[0][0] }));
+  const out = [...m.values()].map(e => ({ k: e.k, n: e.n, nome: Object.entries(e.c).sort((a, b) => b[1] - a[1])[0][0] }));
+  // também os clientes (e a equipe) cadastrados na PD, mesmo que ainda não tenham lançamento aqui
+  const vistos = new Set(out.map(x => x.k));
+  [].concat(AV.cli || [], sentido === 'saida' ? (AV.pes || []) : []).forEach(c => { const k = chaveNome(c.name); if (k && k !== '—' && !vistos.has(k)) { vistos.add(k); out.push({ k, n: 0, nome: String(c.name).trim() }); } });
+  return out;
 }
+const nTxt = x => x.n ? x.n : 'PD';
 function sugereNome(){
   const el = $('#fDes'), box = $('#fSug'), l = folhaLanc._l; if (!el || !box || !l) return;
   const v = el.value.trim(), kq = chaveNome(v), todos = nomesConhecidos(l.sentido), meu = todos.find(x => x.k === kq), meuN = meu ? meu.n : 0;
@@ -955,7 +1013,7 @@ function sugereNome(){
     const par = todos.filter(x => x.k !== kq && (x.k.startsWith(kq) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol))).sort((a, b) => b.n - a.n).slice(0, 5);
     const erro = par.find(x => tol && lev(x.k, kq) <= tol && x.n > Math.max(meuN - sem, 0) && !x.k.startsWith(kq));
     if (erro && v) html += '<div class="sugav">Parece escrito diferente de <b>' + esc(erro.nome) + '</b> (' + erro.n + ' lançamento' + (erro.n > 1 ? 's' : '') + '). Toque para usar o nome certo.</div>';
-    if (par.length) html += '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sug="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + x.n + '</small></button>').join('') + '</div>';
+    if (par.length) html += '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sug="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + nTxt(x) + '</small></button>').join('') + '</div>';
   }
   const antigo = l.id ? chaveNome(l.descricao) : '', outros = l.id ? (D[AMB] || []).filter(x => x.id !== l.id && x.sentido === l.sentido && chaveNome(x.descricao) === antigo).length : 0;
   if (l.id && outros && v && v !== (l.descricao || '').trim()) html += '<label class="chk" style="margin-top:2px"><input type="checkbox" id="fFix" checked> Corrigir também nos outros ' + outros + ' lançamento' + (outros > 1 ? 's' : '') + ' chamados “' + esc(l.descricao) + '”</label>';
@@ -1378,6 +1436,10 @@ document.addEventListener('click', e => {
   if ((el = q('[data-ia]'))) { folhaIA(CIA.find(c => c.id === el.dataset.ia)); return; }
   if ((el = q('[data-salvaia]'))) { salvaIA(el.dataset.salvaia); return; }
   if ((el = q('[data-apagaia]'))) { sb.from('fin_custos_ia').delete().eq('id', el.dataset.apagaia).then(r => { if (r.error) return toast(r.error.message); CIA = null; fecha(); vIA(); }); return; }
+  if (q('[data-contas]')) { folhaContas(); return; }
+  if (q('[data-ctadd]')) { $('#ctLista').insertAdjacentHTML('beforeend', ctLinha({})); const n = document.querySelectorAll('#ctLista .ctN'); n[n.length - 1].focus(); return; }
+  if ((el = q('[data-ctdel]'))) { const r = el.closest('.ct'); if (r.dataset.cid) CT_DEL.push(r.dataset.cid); r.classList.add('hid'); ctSoma(); return; }
+  if (q('[data-ctsalva]')) { salvaContas(); return; }
   if ((el = q('[data-sugp]'))) { $('#pNome').value = el.dataset.sugp; sugerePessoa(); return; }
   if (q('[data-renomeia]')) { renomeiaPessoa(); return; }
   if ((el = q('[data-sug]'))) { $('#fDes').value = el.dataset.sug; sugereNome(); return; }
@@ -1394,6 +1456,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'gCorX') { gCor(e.target.value); return; }
   if (e.target.id === 'fDes') { sugereNome(); return; }
   if (e.target.id === 'pNome') { sugerePessoa(); return; }
+  if (e.target.classList && e.target.classList.contains('ctV')) { ctSoma(); return; }
   if (!(e.target.closest && e.target.closest('#folha'))) return; if (document.getElementById('cPrev')) previaContrato(); if (e.target.id === 'rVal') { const v = parseValor(e.target.value) || 0; $('#rPR').textContent = BRL0(v); $('#rPS').textContent = BRL0(folhaRetirada._sobra - v); } });
 document.addEventListener('change', async e => {
   const t = e.target;

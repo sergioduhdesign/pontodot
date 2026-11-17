@@ -433,7 +433,7 @@ details.ap-cap[open] summary::before{content:"▾"}
   mais.onclick = ev => { ev.stopPropagation(); const r = document.querySelector('.ap-bar').getBoundingClientRect(); pop.style.setProperty('--ap-pop-top', Math.round(r.bottom + 6) + 'px'); pop.classList.toggle('on'); };
   document.addEventListener('click', ev => { if (!ev.target.closest('#apMaisPop')) pop.classList.remove('on'); });
   pop.addEventListener('click', ev => { if (ev.target.closest('button')) setTimeout(() => pop.classList.remove('on'), 50); });
-  mq.addEventListener?.('change', mover); mover(); setInterval(sync, 700);
+  mq.addEventListener?.('change', mover); mover(); setInterval(() => { if (!document.hidden) sync(); }, 700);
 })();
 </script>
 <div id="apAviso"></div>
@@ -454,9 +454,9 @@ details.ap-cap[open] summary::before{content:"▾"}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
 <script src="/js/aprovacao-comum.js?v=551"></script>
 <script src="/js/campanha-painel.js?v=551"></script>

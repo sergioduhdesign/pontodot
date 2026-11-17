@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v557 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v558 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -4470,7 +4470,7 @@ function prepararVersoApp(){
       // o campo "Fale comigo" sai da frente quando o app abre um modal próprio
       if (!f.dataset.vigiaModal){
         f.dataset.vigiaModal = '1';
-        setInterval(()=>{ try {
+        setInterval(()=>{ if (document.hidden) return; try {
           const dd = f.contentDocument; if (!dd) return;
           const aberto = !!dd.querySelector('.overlay.open');
           $('#vPe')?.classList.toggle('oculto', aberto);
@@ -7593,7 +7593,7 @@ let EST_ARQ_ABERTO = false, EST_MIN = false;
 function estPdMenu(){ const b = document.getElementById('estBarra'); if (b) b.classList.toggle('pdOn'); }
 document.addEventListener('click', e => { const b = document.getElementById('estBarra'); if (!b) return; if (EST_ARQ_ABERTO && !e.target.closest('#estArq, #estBarra .eb')) estArquivos(); if (!b.classList.contains('pdOn') || e.target.closest('#estBarra .marca')) return; b.classList.remove('pdOn'); }, true);
 function estTema(){ const b = document.getElementById('estBarra'); if (!b) return; const a = EST_ABAS.find(x => x.id === EST_ATUAL); let esc = false; try { const m = (getComputedStyle(a.iframe.contentDocument.body).backgroundColor || '').match(/\d+/g); if (m) esc = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) < 110; } catch(e){} b.classList.toggle('escuro', esc); }
-setInterval(estTema, 1200);
+setInterval(()=>{ if (!document.hidden) estTema(); }, 1200);
 const PD_AREAS = {
   copys:   { nome:'Copys', ico:'<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.6 7.6"/>' },
   digital: { nome:'Arte digital', ico:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-.8-.5-1.2-1-1.7-.5-.6-.6-1.5.5-1.5h1.8A4.7 4.7 0 0 0 20 11.3C20 6.7 16.4 3 12 3z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>' },
@@ -9095,7 +9095,7 @@ function alinharConjunto(){
   } catch(e){}
 }
 setInterval(() => { if (!document.hidden) alinharConjunto(); }, 900);
-setInterval(()=>{ try{ $('#clAdmin')?.classList.toggle('tem', !!$('#clBadge')?.classList.contains('on')); }catch(e){} }, 1500);
+setInterval(()=>{ if (document.hidden) return; try{ $('#clAdmin')?.classList.toggle('tem', !!$('#clBadge')?.classList.contains('on')); }catch(e){} }, 1500);
 document.addEventListener('click', e => { if (!e.target.closest('#clMenu,#clAdmin')) $('#clMenu')?.classList.remove('on'); });
 let _clSel = -1, _clAch = [];
 function clAbrirBusca(){
@@ -9147,7 +9147,7 @@ function clBadgeAtualiza(){ try {
   b.textContent = n ? String(n) : ''; b.classList.toggle('on', !!n);
   const b2 = $('#clBadge2'); if (b2){ b2.textContent = n ? String(n) : ''; b2.classList.toggle('on', !!n); }
 } catch(e){} }
-setInterval(clBadgeAtualiza, 2500);
+setInterval(()=>{ if (!document.hidden) clBadgeAtualiza(); }, 2500);
 document.addEventListener('click', e => { if (!e.target.closest('#clBusca,#clRes')) { const b = $('#clBusca'); if (b && b.classList.contains('aberta')) clFecharBusca(); } });
 
 function alternarTema(){
@@ -10872,14 +10872,14 @@ async function entrarReal(session){
     gadsAbertos.publicacao = true; carregarPub(true); history.replaceState(null, '', location.pathname);
   }
   // o SD completo carrega no fundo: a ponte do Drive e o verso ficam prontos antes do primeiro giro
-  setTimeout(()=>{ try { prepararVersoApp(); } catch(e){} }, 2500);
+  setTimeout(()=>{ const go = ()=>{ try { prepararVersoApp(); } catch(e){} }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000);   // só quando o navegador está folgado, sem competir com a abertura
   const _bg = ()=>{ try { carregarPub(); carregarAds(); } catch(e){} };
   setTimeout(_bg, 2500);
   setTimeout(()=>{ try { falarNome(); carregarFundos(); } catch(e){} }, 3200);
   setInterval(()=>{ if (document.hidden) return; carregarReal().catch(()=>{}); carregarThreadsSalvas(); _bg(); }, 60000);
   if (perfil && ['admin','team'].includes(perfil.role)) {
     setTimeout(roboLote, 8000);
-    setInterval(roboLote, 90000);
+    setInterval(()=>{ if (!document.hidden) roboLote(); }, 90000);
     // o ALARME: pisca e apita até alguém cuidar
     if (window.PDCARD) PDCARD.vigiarAlarmes(sbR, perfil, { abrir: (l, a) => {
       if (!l && a && /^WhatsApp de/.test(a.titulo || '')) l = 'avisos:';
@@ -13043,7 +13043,7 @@ setTimeout(function(){ try {
     if (!meusGadgets.includes('vendas')){ meusGadgets = [...meusGadgets, 'vendas']; salvarGadgets(); renderBoard(); } }
 } catch(e){} }, 4200);
 setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZap(); } catch(e){} }, 20000);
-setInterval(function(){ try { if (sbR && perfil) carregarZapRecebidos(); } catch(e){} }, 60000);
+setInterval(function(){ try { if (sbR && perfil && !document.hidden) carregarZapRecebidos(); } catch(e){} }, 60000);
 // Saída de materiais: sonda silenciosa (a oficina trabalha com você fora; a bolinha conta o que ficou pronto)
 async function ofiSonda(){ try { if (!sbR || !perfil || !['admin', 'team'].includes(perfil.role)) return; ofiPautas(); const d = await ofiFala({ acao:'inicio' }); const antes = JSON.stringify((OFI.d && OFI.d.trabalhos || []).map(t => t.id + t.status)); OFI.d = d; const depois = JSON.stringify(d.trabalhos.map(t => t.id + t.status)); pintarBolinhas(); if (antes !== depois) renderBoard(); } catch(e){} }
 setTimeout(ofiSonda, 6000); setInterval(() => { if (!document.hidden) ofiSonda(); }, 90000);
@@ -13066,7 +13066,7 @@ setTimeout(ofiSonda, 6000); setInterval(() => { if (!document.hidden) ofiSonda()
     try { if (chat) return 'Conversa'; } catch(e){}
     return 'Início';
   }
-  setInterval(() => { const el = document.getElementById('clTitulo'); if (!el) return; const t = titulo(); if (t !== ult){ ult = t; el.textContent = t; } }, 300);
+  setInterval(() => { if (document.hidden) return; const el = document.getElementById('clTitulo'); if (!el) return; const t = titulo(); if (t !== ult){ ult = t; el.textContent = t; } }, 300);
 
   // ---- gestos ----
   const movel = () => !ehDesk();
