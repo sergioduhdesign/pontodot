@@ -89,7 +89,7 @@ Options -Indexes
 # --- Cache curto SÓ para js/css chamados com ?v= (a versão muda quando o arquivo muda): menos download a cada abertura
 <IfModule mod_headers.c>
   <FilesMatch "\.(js|css)$">
-    Header set Cache-Control "public, max-age=14400" "expr=%{QUERY_STRING} =~ /(^|&)v=/"
+    Header set Cache-Control "public, max-age=604800" "expr=%{QUERY_STRING} =~ /(^|&)v=/"
   </FilesMatch>
 </IfModule>
 

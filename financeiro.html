@@ -409,24 +409,26 @@ function pedirSenha(msg){
   $('#pwOk').onclick = go; $('#pw').onkeydown = e => { if (e.key === 'Enter') go(); }; setTimeout(() => $('#pw') && $('#pw').focus(), 60);
 }
 async function carregaAmb(a){
-  let tudo = [], de = 0;
-  for (;;) {
-    const r = await sb.from('fin_lancamentos').select('*').eq('ambiente', a).order('mes').order('sentido').order('dia', { nullsFirst: false }).order('criado_em').range(de, de + 999);
-    if (r.error) throw r.error; tudo = tudo.concat(r.data); if (r.data.length < 1000) break; de += 1000;
-  }
+  // as páginas de 1000 saem todas ao mesmo tempo (antes era uma depois da outra)
+  const pag = de => sb.from('fin_lancamentos').select('*').eq('ambiente', a).order('mes').order('sentido').order('dia', { nullsFirst: false }).order('criado_em').order('id').range(de, de + 999);
+  const c = await sb.from('fin_lancamentos').select('id', { count: 'exact', head: true }).eq('ambiente', a);
+  if (c.error) throw c.error;
+  const n = Math.max(c.count || 0, 1), rs = await Promise.all(Array.from({ length: Math.ceil(n / 1000) }, (_, i) => pag(i * 1000)));
+  let tudo = [];
+  rs.forEach(r => { if (r.error) throw r.error; tudo = tudo.concat(r.data); });
   D[a] = tudo.map(l => Object.assign(l, { valor: Number(l.valor) }));
 }
 async function entrar(){
   try {
     const ps = areasPermitidas(); AMB = ps.includes(localStorage.getItem('fin_amb')) ? localStorage.getItem('fin_amb') : ps[0];
-    await Promise.all(ps.map(carregaAmb).concat(carregaGrupos()));
+    await Promise.all(ps.map(carregaAmb).concat(carregaGrupos(), carregaAv(true)));
   } catch(e){ return porta('<h2>Não consegui abrir</h2><p>' + esc(e.message || e) + '</p><button class="bt" onclick="location.reload()">Tentar de novo</button>'); }
   const hoje = iso(new Date()), meses = [...new Set(dados().map(l => l.mes))].sort();
   MES = meses.includes(hoje) ? hoje : (meses[meses.length - 1] || hoje);
   try { const q = new URLSearchParams(location.search), a = q.get('amb'), m = q.get('mes'), ab = q.get('aba'); if (a && areasPermitidas().includes(a)) { AMB = a; } if (m && /^\d{4}-\d{2}-01$/.test(m)) MES = m; if (ab) ABA = ab; else if (ehMob()) ABA = 'inicio'; } catch(e){}
   $('#porta').classList.add('hid'); $('#app').classList.remove('hid');
   if (window.self !== window.top) $('#btFechar').classList.remove('hid');
-  desenha(); carregaAv(); garanteRetiradas().catch(() => {});
+  desenha(); garanteRetiradas().catch(() => {});
 }
 
 
@@ -1168,11 +1170,11 @@ function avHtml(nome, sentido, extra){
   const u = avDe(nome, sentido);
   return '<div class="av ' + (extra || '') + '"><span>' + esc(inicial(nome)) + '</span>' + (u ? '<img src="' + esc(u) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</div>';
 }
-async function carregaAv(){
+async function carregaAv(quieto){
   try {
-    const c = await sb.from('clients').select('name,logo_url'), p = await sb.from('profiles').select('name,avatar_url').neq('role', 'client');
+    const [c, p] = await Promise.all([sb.from('clients').select('name,logo_url'), sb.from('profiles').select('name,avatar_url').neq('role', 'client')]);
     AV.cli = (c.data || []).filter(x => x.name); AV.pes = (p.data || []).filter(x => x.name); AV.c.clear();
-    if (!['kiro', 'modelos'].includes(ABA) && $('#veu').classList.contains('hid')) desenha();
+    if (!quieto && !['kiro', 'modelos'].includes(ABA) && $('#veu').classList.contains('hid')) desenha();
   } catch(e){}
 }
 
