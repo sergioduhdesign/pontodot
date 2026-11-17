@@ -3585,7 +3585,9 @@ function renderEscola(){
       + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
   const lista0 = escPosts().concat((posts||[]).filter(h=>!/^Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
-  lista0.sort((a,b)=> (b.humano?1:0)-(a.humano?1:0) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));   // gente da casa primeiro; alunos de Catum em ordem aleatória
+  // ordem: gente de verdade primeiro; depois as histórias da semana em Catum (sempre tem algo acontecendo); por último as fotos soltas "Da casa"
+  const escOrd = p => !p.humano ? 1 : (/^\s*(?:🏠\s*)?Da casa/.test(p.h.body || '') ? 2 : 0);
+  lista0.sort((a,b)=> escOrd(a)-escOrd(b) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));
   // peso: o mural mostra só 3 publicações; o resto (e as fotos) só carrega quando a pessoa pede "Ver mais"
   const lista = lista0.slice(0, ESC_VER), resto = lista0.length - lista.length;
   box.innerHTML = lista.map((p, n) => {
