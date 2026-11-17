@@ -1,87 +1,142 @@
-/* PAINEL DA CAMPANHA — mostra o setup (campanha, persona, públicos, anúncios) no topo do aprovador.
+/* DETALHES ESTRATÉGICOS DA CAMPANHA — gaveta que desce da faixa preta do aprovador, por cima dos criativos.
+   Também desenha a identidade na faixa (logo da PD + logo do cliente) e o botão que abre a gaveta.
    Usado no link do cliente (ver.html) e na tela da equipe (aprovacao.html): um desenho só.
-   O cliente pode SUGERIR ajuste por seção; a equipe vê e marca como resolvido.
-   Formato dos dados = o do Excel de setup (js/campanha-setup.js): { campanha, persona, publicos, anuncios, avisos }. */
+   O cliente (e a equipe) pode SUGERIR ajuste por seção; a equipe marca como resolvido.
+   Dados = formato do Excel de setup (js/campanha-setup.js): { campanha, persona, publicos, anuncios, avisos }. */
 window.CampPainel = (function () {
   const T = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const SECOES = { campanha: 'Campanha', persona: 'Persona', publicos: 'Públicos', anuncios: 'Anúncios' };
   const OBJ = { OUTCOME_LEADS: 'Leads', OUTCOME_TRAFFIC: 'Tráfego', OUTCOME_ENGAGEMENT: 'Engajamento', OUTCOME_AWARENESS: 'Reconhecimento', OUTCOME_SALES: 'Vendas' };
-  let css = false;
+  // Ícones de linha, no traço da PD (nada colorido)
+  const svg = (p, t) => `<svg viewBox="0 0 24 24" width="${t || 18}" height="${t || 18}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+  const IC = {
+    campanha: '<path d="M4 10v4h3l8 4V6L7 10z"/><path d="M18 9a4 4 0 0 1 0 6"/>',
+    persona: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>',
+    publicos: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+    anuncios: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M7 9h10M7 13h6"/>',
+    editar: '<path d="M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16z"/>',
+    fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
+    seta: '<path d="M6 9l6 6 6-6"/>',
+    estrategia: '<path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>'
+  };
+  const TIT = { campanha: 'Campanha', persona: 'Persona', publicos: 'Públicos', anuncios: 'Anúncios' };
+  let cssOk = false, aberta = false;
   function estilo() {
-    if (css) return; css = true;
+    if (cssOk) return; cssOk = true;
     const s = document.createElement('style');
     s.textContent = `
-.cpn{max-width:1180px;margin:14px auto 0;padding:0 clamp(12px,3vw,28px)}
-.cpn>details{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.cpn>details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px}
-.cpn>details>summary::-webkit-details-marker{display:none}
-.cpn .cpn-k{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
-.cpn .cpn-n{font-size:16px;font-weight:800;letter-spacing:-.01em;flex:1;min-width:160px}
-.cpn .cpn-chip{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
-.cpn .cpn-seta{font-size:12px;color:var(--text3);margin-left:auto}
-.cpn>details[open] .cpn-seta::after{content:'Recolher'}
-.cpn>details:not([open]) .cpn-seta::after{content:'Ver detalhes'}
-.cpn-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border)}
-.cpn-sec{background:var(--surface);padding:14px 18px 12px;min-width:0}
-.cpn-sec.larga{grid-column:1/-1}
-.cpn-sec h4{margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
-.cpn-l{font-size:13px;line-height:1.5;margin:0 0 4px;color:var(--text)}
-.cpn-l b{font-weight:700;color:var(--text2)}
-.cpn-pub{padding:8px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.45}
-.cpn-pub:first-of-type{border-top:0;padding-top:0}
-.cpn-an{padding:9px 0;border-top:1px solid var(--border);font-size:12.5px;line-height:1.45}
-.cpn-an:first-of-type{border-top:0}
-.cpn-an .t{font-weight:700}
-.cpn-an .x{color:var(--text2);white-space:pre-line}
-.cpn-mais summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text2);padding:4px 0}
-.cpn-aj{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border)}
-.cpn-ajit{font-size:12px;line-height:1.45;padding:7px 10px;border-radius:8px;background:var(--surface2);margin-bottom:6px}
-.cpn-ajit.ok{opacity:.55}
-.cpn-ajit small{display:block;color:var(--text3);margin-top:2px}
-.cpn-btn{font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer}
-.cpn-btn.p{background:var(--accent);color:var(--accent-fg);border-color:transparent}
-.cpn-form{margin-top:8px;display:none}
-.cpn-form.on{display:block}
-.cpn-form textarea{width:100%;min-height:70px;box-sizing:border-box;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:13px;resize:vertical}
-.cpn-form .acoes{display:flex;gap:8px;margin-top:6px}
-@media (max-width:760px){.cpn-grid{grid-template-columns:1fr}}`;
+.cpn-marca{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.cpn-marca img.pd{height:20px;width:auto;display:block}
+.cpn-marca .sep{width:1px;height:22px;background:currentColor;opacity:.25}
+.cpn-marca .cli{display:inline-flex;align-items:center;height:30px;padding:0 10px;border-radius:8px;background:#fff;color:#111;font-size:12px;font-weight:700;letter-spacing:-.01em}
+.cpn-marca .cli img{max-height:22px;max-width:120px;width:auto;display:block;object-fit:contain}
+.cpn-slot{margin-left:auto}
+.cpn-btn-top{display:none;align-items:center;gap:8px;font:inherit;font-size:12.5px;font-weight:700;color:inherit;background:transparent;border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:7px 14px 7px 12px;cursor:pointer}
+.cpn-btn-top.on{display:inline-flex}
+.cpn-btn-top:hover,.cpn-btn-top[aria-expanded="true"]{background:rgba(255,255,255,.14)}
+.cpn-btn-top svg.s{transition:transform .2s}
+.cpn-btn-top[aria-expanded="true"] svg.s{transform:rotate(180deg)}
+.cpn-btn-top .n{background:#fff;color:#111;border-radius:10px;font-size:10.5px;padding:1px 7px}
+@media (max-width:640px){.cpn-btn-top .tx-l{display:none}}
+.cpn-host{position:relative;height:0;z-index:60}
+.cpn-gav{position:absolute;left:0;right:0;top:0;max-height:0;overflow:hidden;background:var(--surface);color:var(--text);
+  box-shadow:0 18px 40px rgba(0,0,0,.28);border-bottom:1px solid var(--border);transition:max-height .28s ease}
+.cpn-gav.on{max-height:calc(100vh - 130px);overflow-y:auto;scrollbar-width:thin}
+.cpn-in{max-width:1400px;margin:0 auto;padding:18px clamp(16px,4vw,44px) 8px}
+.cpn-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.cpn-cab .k{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.cpn-cab .nm{font-size:17px;font-weight:800;letter-spacing:-.02em;flex:1;min-width:160px}
+.cpn-chip{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.cpn-x{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer}
+.cpn-cols{column-count:2;column-gap:36px}
+.cg-sec{break-inside:avoid;margin:0 0 20px}
+.cg-sec>header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.cg-sec>header .ic{color:var(--text2);display:inline-flex}
+.cg-sec>header h4{margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);flex:1}
+.cg-ed{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:11.5px;font-weight:700;color:var(--text3);background:transparent;border:0;cursor:pointer;padding:2px 4px}
+.cg-ed:hover{color:var(--text)}
+.cg-l{font-size:13px;line-height:1.5;margin:0 0 3px}
+.cg-l b{font-weight:700;color:var(--text2)}
+.cg-row{padding:7px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.45}
+.cg-row:first-of-type{border-top:0;padding-top:0}
+.cg-row .sub{color:var(--text2);font-size:12.5px}
+.cg-row .x{color:var(--text2);white-space:pre-line;font-size:12.5px}
+.cg-mais>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text2);padding:6px 0 2px;list-style:none}
+.cg-mais>summary::-webkit-details-marker{display:none}
+.cg-aj{font-size:12px;line-height:1.45;padding:7px 10px;border-radius:8px;background:var(--surface2);margin-top:8px}
+.cg-aj.ok{opacity:.55}
+.cg-aj small{display:block;color:var(--text3);margin-top:2px}
+.cg-form{display:none;margin-top:8px}
+.cg-form.on{display:block}
+.cg-form textarea{width:100%;min-height:64px;box-sizing:border-box;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:13px;resize:vertical}
+.cg-form .ac{display:flex;gap:8px;margin-top:6px}
+.cg-b{font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer}
+.cg-b.p{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+@media (max-width:760px){.cpn-cols{column-count:1}}`;
     document.head.appendChild(s);
   }
-  const lin = (r, v) => v ? `<p class="cpn-l"><b>${r}:</b> ${T(v)}</p>` : '';
+  const lin = (r, v) => v ? `<p class="cg-l"><b>${r}:</b> ${T(v)}</p>` : '';
 
-  function secaoHtml(chave, corpo, ajustes, o) {
-    const meus = (ajustes || []).filter(a => a.secao === chave);
-    const lista = meus.map(a => `<div class="cpn-ajit ${a.resolvido ? 'ok' : ''}">${T(a.texto)}<small>${T(a.por || 'Cliente')}${a.em ? ' · ' + new Date(a.em).toLocaleDateString('pt-BR') : ''}${a.resolvido ? ' · resolvido' : ' · enviado para a equipe'}${o.podeResolver && !a.resolvido ? ` · <a href="#" data-resolver="${T(a.id)}" style="color:var(--accent);font-weight:700">marcar como resolvido</a>` : ''}</small></div>`).join('');
-    const botao = o.podeSugerir ? `<button class="cpn-btn" data-abrir="${chave}">Sugerir ajuste</button>
-      <div class="cpn-form" data-form="${chave}"><textarea placeholder="O que você quer mudar em ${SECOES[chave].toLowerCase()}?"></textarea><div class="acoes"><button class="cpn-btn p" data-enviar="${chave}">Enviar para a equipe</button><button class="cpn-btn" data-fechar="${chave}">Cancelar</button></div></div>` : '';
-    return `<div class="cpn-sec ${chave === 'anuncios' || chave === 'publicos' ? 'larga' : ''}"><h4>${SECOES[chave]}</h4>${corpo}${(lista || botao) ? `<div class="cpn-aj">${lista}${botao}</div>` : ''}</div>`;
+  /** Identidade na faixa preta: logo da PD + logo (ou nome) do cliente. Idempotente. */
+  function marca(topo, o) {
+    estilo(); if (!topo) return;
+    let m = topo.querySelector('.cpn-marca');
+    if (!m) { m = document.createElement('div'); m.className = 'cpn-marca'; topo.insertBefore(m, topo.firstChild); }
+    const cli = o && o.logo ? `<img src="${T(o.logo)}" alt="${T(o.nome || '')}" onerror="this.replaceWith(document.createTextNode(this.alt))">` : T((o && o.nome) || '');
+    m.innerHTML = `<img class="pd" src="/assets/logo-pontodot-white.svg" alt="pontodot">${(o && (o.logo || o.nome)) ? `<span class="sep"></span><span class="cli">${cli}</span>` : ''}<span class="cpn-slot"></span>`;
   }
 
-  /** o = { dados, ajustes, podeSugerir, onSugerir(secao, texto), podeResolver, onResolver(id) } */
+  function secao(k, corpo, o) {
+    if (!corpo) return '';
+    const meus = (o.ajustes || []).filter(a => a.secao === k);
+    const notas = meus.map(a => `<div class="cg-aj ${a.resolvido ? 'ok' : ''}">${T(a.texto)}<small>${T(a.por || 'Cliente')}${a.em ? ' · ' + new Date(a.em).toLocaleDateString('pt-BR') : ''}${a.resolvido ? ' · resolvido' : ' · enviado para a equipe'}${o.podeResolver && !a.resolvido ? ` · <a href="#" data-resolver="${T(a.id)}" style="color:var(--accent);font-weight:700">marcar como resolvido</a>` : ''}</small></div>`).join('');
+    const ed = o.podeSugerir ? `<button class="cg-ed" data-abrir="${k}" type="button" title="Sugerir ajuste">${svg(IC.editar, 14)}Sugerir ajuste</button>` : '';
+    const form = o.podeSugerir ? `<div class="cg-form" data-form="${k}"><textarea placeholder="O que mudar em ${TIT[k].toLowerCase()}?"></textarea><div class="ac"><button class="cg-b p" data-enviar="${k}" type="button">Enviar</button><button class="cg-b" data-fechar="${k}" type="button">Cancelar</button></div></div>` : '';
+    return `<section class="cg-sec"><header><span class="ic">${svg(IC[k])}</span><h4>${TIT[k]}</h4>${ed}</header>${corpo}${notas}${form}</section>`;
+  }
+
+  function alternar(abrir) {
+    const g = document.querySelector('.cpn-gav'), b = document.querySelector('.cpn-btn-top'); if (!g) return;
+    aberta = abrir === undefined ? !aberta : abrir;
+    g.classList.toggle('on', aberta); if (b) b.setAttribute('aria-expanded', aberta ? 'true' : 'false');
+  }
+
+  /** alvo = contêiner logo abaixo da faixa; o = { topo, dados, ajustes, podeSugerir, onSugerir(secao, texto), podeResolver, onResolver(id) } */
   function montar(alvo, o) {
     estilo();
+    const slot = o.topo && o.topo.querySelector('.cpn-slot');
     const d = o.dados;
-    if (!d || !d.campanha) { alvo.innerHTML = ''; return; }
+    if (!d || !d.campanha) { alvo.innerHTML = ''; alvo.className = ''; if (slot) slot.innerHTML = ''; return; }
     const c = d.campanha, p = d.persona || {}, pubs = d.publicos || [], ans = d.anuncios || [];
     const br = v => String(v || '').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, '$3/$2/$1');
     const periodo = [c.inicio, c.fim].filter(Boolean).map(br).join(' a ');
-    const temPersona = p.nome || p.quem || p.busca || p.dores || p.gatilhos || p.tom || p.referencias;
     const pend = (o.ajustes || []).filter(a => !a.resolvido).length;
-    const sCamp = secaoHtml('campanha', `${lin('Objetivo', OBJ[c.objetivo] || c.objetivo)}${lin('Período', periodo)}${lin('Formulário de leads', c.formulario)}${lin('WhatsApp', c.whatsapp)}${lin('Link de destino', c.link)}${!(c.objetivo || periodo || c.formulario || c.whatsapp || c.link) ? '<p class="cpn-l" style="color:var(--text3)">Sem detalhes informados.</p>' : ''}`, o.ajustes, o);
-    const sPers = secaoHtml('persona', temPersona ? `${lin('Nome', p.nome)}${lin('Quem é', p.quem)}${lin('O que busca', p.busca)}${lin('Dores e objeções', p.dores)}${lin('Gatilhos de decisão', p.gatilhos)}${lin('Tom de voz', p.tom)}${lin('Referências', p.referencias)}` : '<p class="cpn-l" style="color:var(--text3)">Sem persona informada.</p>', o.ajustes, o);
-    const sPubs = secaoHtml('publicos', pubs.map(u => `<div class="cpn-pub"><b>${T(u.conjunto)}</b>${u.persona ? ' · ' + T(u.persona) : ''}<br><span style="color:var(--text2)">${[u.cidades && u.cidades.length ? T(u.cidades.join(', ')) + (u.raio ? ' (raio ' + T(u.raio) + ' km)' : '') : '', u.interesses && u.interesses.length ? 'Interesses: ' + T(u.interesses.join(', ')) : '', 'R$ ' + T(u.verba) + '/dia', u.horarios && u.horarios.length ? u.horarios.length + ' faixa(s) de horário' : ''].filter(Boolean).join(' · ')}</span></div>`).join('') || '<p class="cpn-l" style="color:var(--text3)">Sem públicos informados.</p>', o.ajustes, o);
-    const linAn = a => `<div class="cpn-an"><span class="t">${T(a.anuncio)}</span> <span style="color:var(--text3)">· ${T(a.conjunto)}${a.botao ? ' · botão: ' + T(a.botao) : ''}</span>${a.titulo ? `<div><b>${T(a.titulo)}</b></div>` : ''}${a.texto ? `<div class="x">${T(a.texto)}</div>` : ''}</div>`;
-    const sAns = secaoHtml('anuncios', ans.length > 6 ? `<details class="cpn-mais"><summary>Ver os ${ans.length} anúncios (texto, título e botão)</summary>${ans.map(linAn).join('')}</details>` : (ans.map(linAn).join('') || '<p class="cpn-l" style="color:var(--text3)">Sem anúncios informados.</p>'), o.ajustes, o);
-    alvo.innerHTML = `<div class="cpn"><details open><summary><span class="cpn-k">Campanha</span><span class="cpn-n">${T(c.nome || 'Sem nome')}</span>
-      ${c.objetivo ? `<span class="cpn-chip">${T(OBJ[c.objetivo] || c.objetivo)}</span>` : ''}<span class="cpn-chip">${pubs.length} público(s)</span><span class="cpn-chip">${ans.length} anúncio(s)</span>${pend ? `<span class="cpn-chip" style="background:var(--accent);color:var(--accent-fg);border-color:transparent">${pend} ajuste(s) sugerido(s)</span>` : ''}<span class="cpn-seta"></span></summary>
-      <div class="cpn-grid">${sCamp}${sPers}${sPubs}${sAns}</div></details></div>`;
-    alvo.querySelectorAll('[data-abrir]').forEach(b => b.onclick = () => { alvo.querySelector(`[data-form="${b.dataset.abrir}"]`).classList.add('on'); b.style.display = 'none'; });
-    alvo.querySelectorAll('[data-fechar]').forEach(b => b.onclick = () => { const f = alvo.querySelector(`[data-form="${b.dataset.fechar}"]`); f.classList.remove('on'); alvo.querySelector(`[data-abrir="${b.dataset.fechar}"]`).style.display = ''; });
+    const sCamp = lin('Objetivo', OBJ[c.objetivo] || c.objetivo) + lin('Período', periodo) + lin('Formulário de leads', c.formulario) + lin('WhatsApp', c.whatsapp) + lin('Link de destino', c.link);
+    const sPers = lin('Nome', p.nome) + lin('Quem é', p.quem) + lin('O que busca', p.busca) + lin('Dores e objeções', p.dores) + lin('Gatilhos de decisão', p.gatilhos) + lin('Tom de voz', p.tom) + lin('Referências', p.referencias);
+    const sPubs = pubs.map(u => `<div class="cg-row"><b>${T(u.conjunto)}</b>${u.persona ? ' · ' + T(u.persona) : ''}<div class="sub">${[u.cidades && u.cidades.length ? T(u.cidades.join(', ')) + (u.raio ? ' (raio ' + T(u.raio) + ' km)' : '') : '', u.interesses && u.interesses.length ? 'Interesses: ' + T(u.interesses.join(', ')) : '', u.verba ? 'R$ ' + T(u.verba) + '/dia' : '', u.horarios && u.horarios.length ? u.horarios.length + ' faixa(s) de horário' : ''].filter(Boolean).join(' · ')}</div></div>`).join('');
+    const linAn = a => `<div class="cg-row"><b>${T(a.anuncio)}</b> <span class="sub">· ${T(a.conjunto)}${a.botao ? ' · botão: ' + T(a.botao) : ''}</span>${a.titulo ? `<div>${T(a.titulo)}</div>` : ''}${a.texto ? `<div class="x">${T(a.texto)}</div>` : ''}</div>`;
+    const sAns = ans.length > 5 ? ans.slice(0, 5).map(linAn).join('') + `<details class="cg-mais"><summary>Ver os outros ${ans.length - 5} anúncios</summary>${ans.slice(5).map(linAn).join('')}</details>` : ans.map(linAn).join('');
+
+    alvo.className = 'cpn-host';
+    alvo.innerHTML = `<div class="cpn-gav" role="region" aria-label="Detalhes estratégicos da campanha"><div class="cpn-in">
+      <div class="cpn-cab"><span class="k">Detalhes estratégicos</span><span class="nm">${T(c.nome || 'Campanha')}</span>
+        ${c.objetivo ? `<span class="cpn-chip">${T(OBJ[c.objetivo] || c.objetivo)}</span>` : ''}<span class="cpn-chip">${pubs.length} público(s)</span><span class="cpn-chip">${ans.length} anúncio(s)</span>
+        <button class="cpn-x" type="button" aria-label="Fechar" data-fechar-gav>${svg(IC.fechar, 14)}</button></div>
+      <div class="cpn-cols">${secao('campanha', sCamp, o)}${secao('persona', sPers, o)}${secao('publicos', sPubs, o)}${secao('anuncios', sAns, o)}</div></div></div>`;
+
+    if (slot) {
+      slot.innerHTML = `<button class="cpn-btn-top on" type="button" aria-expanded="${aberta ? 'true' : 'false'}">${svg(IC.estrategia, 16)}<span><span class="tx-l">Ver detalhes estratégicos da campanha</span></span>${pend ? `<span class="n">${pend}</span>` : ''}${svg(IC.seta, 14).replace('<svg ', '<svg class="s" ')}</button>`;
+      slot.querySelector('.cpn-btn-top').onclick = () => alternar();
+    }
+    if (aberta) alvo.querySelector('.cpn-gav').classList.add('on');
+    alvo.querySelector('[data-fechar-gav]').onclick = () => alternar(false);
+    if (!window._cpnEsc) { window._cpnEsc = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && aberta) alternar(false); }); }
+    alvo.querySelectorAll('[data-abrir]').forEach(b => b.onclick = () => { alvo.querySelector(`[data-form="${b.dataset.abrir}"]`).classList.add('on'); alvo.querySelector(`[data-form="${b.dataset.abrir}"] textarea`).focus(); });
+    alvo.querySelectorAll('[data-fechar]').forEach(b => b.onclick = () => alvo.querySelector(`[data-form="${b.dataset.fechar}"]`).classList.remove('on'));
     alvo.querySelectorAll('[data-enviar]').forEach(b => b.onclick = async () => {
       const f = alvo.querySelector(`[data-form="${b.dataset.enviar}"]`), txt = f.querySelector('textarea').value.trim(); if (!txt) return;
       b.disabled = true; try { await o.onSugerir(b.dataset.enviar, txt); } catch (e) { b.disabled = false; alert('Não consegui enviar: ' + (e.message || e)); }
     });
     alvo.querySelectorAll('[data-resolver]').forEach(a => a.onclick = async ev => { ev.preventDefault(); try { await o.onResolver(a.dataset.resolver); } catch (e) { alert(e.message || e); } });
   }
-  return { montar };
+  return { montar, marca, alternar };
 })();

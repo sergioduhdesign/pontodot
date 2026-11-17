@@ -377,6 +377,7 @@ details.ap-cap[open] summary::before{content:"▾"}
     </div>
   </div>
 </div>
+<div id="campPainel"></div>
 
 <div class="ap-bar">
   <select id="apSel" class="ap-sel" aria-label="Filtrar peças"></select>
@@ -429,7 +430,6 @@ details.ap-cap[open] summary::before{content:"▾"}
 })();
 </script>
 <div id="apAviso"></div>
-<div id="campPainel"></div>
 
 <div class="ap-board" id="apBoard">
   <div class="ap-load">Carregando material…</div>
@@ -451,8 +451,8 @@ details.ap-cap[open] summary::before{content:"▾"}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
-<script src="/js/aprovacao-comum.js?v=549"></script>
-<script src="/js/campanha-painel.js?v=549"></script>
+<script src="/js/aprovacao-comum.js?v=550"></script>
+<script src="/js/campanha-painel.js?v=550"></script>
 <script src="/js/briefing-ia.js?v=1"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
@@ -539,7 +539,13 @@ window.addEventListener('unhandledrejection', ev => {
 function pintarCampanha(){
   const alvo = document.getElementById('campPainel'); if (!alvo || typeof CampPainel === 'undefined') return;
   if (!apSet || !apSet.campanha) { alvo.innerHTML = ''; return; }
-  CampPainel.montar(alvo, { dados: apSet.campanha, ajustes: apSet.campanha_ajustes || [], podeSugerir: false, podeResolver: true,
+  CampPainel.montar(alvo, { topo: document.querySelector('.ap-top-inner'), dados: apSet.campanha, ajustes: apSet.campanha_ajustes || [], podeSugerir: true, podeResolver: true,
+    onSugerir: async (secao, texto) => {
+      const nova = [...(apSet.campanha_ajustes || []), { id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())), secao, texto, por: 'Equipe', em: new Date().toISOString(), resolvido: false }];
+      const { error } = await sb.from('approval_sets').update({ campanha_ajustes: nova }).eq('id', SET_ID);
+      if (error) throw error;
+      apSet.campanha_ajustes = nova; pintarCampanha();
+    },
     onResolver: async id => {
       const nova = (apSet.campanha_ajustes || []).map(a => a.id === id ? { ...a, resolvido: true } : a);
       const { error } = await sb.from('approval_sets').update({ campanha_ajustes: nova }).eq('id', SET_ID);
@@ -555,9 +561,9 @@ async function load(){
     return;
   }
   apSet = s;
+  const { data: cli } = await sb.from('clients').select('name,logo_url').eq('id', s.client_id).single();
+  if (typeof CampPainel !== 'undefined') CampPainel.marca(document.querySelector('.ap-top-inner'), { nome: cli?.name || '', logo: cli?.logo_url || null });
   pintarCampanha();
-
-  const { data: cli } = await sb.from('clients').select('name').eq('id', s.client_id).single();
 
   document.getElementById('apEyebrow').textContent = (cli?.name || 'Pontodot') + ' · Aprovação';
   document.getElementById('apTitle').textContent   = s.title;
