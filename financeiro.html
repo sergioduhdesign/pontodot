@@ -435,7 +435,6 @@ const ICDEST = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stro
 const catSoma = (c, m) => soma(doMes(m).filter(l => l.conta && l.sentido === 'saida' && l.grupo !== 'retirada' && l.grupo !== 'saldo' && catDe(l) === c));
 const METR = {
   total:   { rot: 'Total do mês', curto: 'Total', f: t => t.sobra },
-  caixa:   { rot: 'Caixa pelos lançamentos', curto: 'Caixa (previsto)', f: t => t.caixa },
   ent:     { rot: 'Entradas', curto: 'Entradas', f: t => t.e },
   sai:     { rot: 'Saídas', curto: 'Saídas', f: t => t.s },
   res:     { rot: 'Entradas − saídas', curto: 'Resultado', f: t => t.e - t.s },
@@ -739,7 +738,7 @@ function hero(){
     '<div class="trio">' + DS.trio.map(k => '<div><small>' + METR[k].curto + '</small><b>' + (mv(k, t) == null ? '—' : BRL0(mv(k, t))) + '</b></div>').join('') + '</div>' +
     (DS.prog ? '<div class="prog"><div><div class="ln"><span>Entrou <b>' + BRL0(t.ep) + '</b> de ' + BRL0(t.e) + '</span><span>falta ' + BRL0(t.e - t.ep) + '</span></div><div class="bar v"><i style="width:' + pe + '%"></i></div></div>' +
     '<div><div class="ln"><span>Pago <b>' + BRL0(t.sp) + '</b> de ' + BRL0(t.s) + '</span><span>falta ' + BRL0(t.s - t.sp) + '</span></div><div class="bar"><i style="width:' + ps + '%"></i></div></div>' +
-    '<div class="ln ed" data-contas="1" style="margin:0;cursor:pointer"><span>Caixa pelos lançamentos (saldo do mês anterior + entrou − pago' + (AMB === 'empresa' ? ' − retirada feita' : '') + ')</span><b>' + BRL(t.caixa) + '</b></div>' +
+    
     '</div>' : '') + bancosLinha() +
     (!DS.div ? '' : (t.tem || (AMB === 'empresa' && t.temRet)) ? '<div class="comp"><div class="ln" style="margin:0"><span>O total se divide em' + (AMB === 'empresa' ? ' retirada e ' : ' ') + 'saldo que segue para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + '</span></div>' + (AMB === 'empresa' ? '<div class="lc ed" data-retirada="1"><span>RETIRADA · toque para mudar</span><b>' + BRL(t.retirada) + ' ' + ICL + '</b></div>' : '') + '<div class="lc"><span>SALDO (vai para ' + MN[mesDe(somaMes(MES, 1)).getMonth()] + ')</span><b>' + BRL(t.saldoFim) + '</b></div></div>' : (AMB === 'empresa' && podeEditar() ? '<div class="comp"><div class="lc ed" data-retirada="1"><span>RETIRADA deste mês</span><b>definir ' + ICL + '</b></div></div>' : '')) +
     (vazio ? '<div class="nota" style="padding:12px 0 0">Este mês ainda não tem lançamentos.</div>' : '') + '</div>';
@@ -852,24 +851,23 @@ function bancosLinha(){
   if (C === undefined) { CTAS[AMB] = null; carregaContas().then(() => { if ($('#veu').classList.contains('hid')) hero(); }).catch(() => { CTAS[AMB] = []; }); return ''; }
   if (C === null) return '';
   const tot = C.reduce((a, c) => a + c.valor, 0), ult = C.reduce((a, c) => c.atualizado_em > a ? c.atualizado_em : a, '');
-  if (!C.length) return podeEditar() ? '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Nos bancos hoje</span><b>informar ' + ICL + '</b></div>' : '';
-  return '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Nos bancos hoje · ' + C.length + ' conta' + (C.length > 1 ? 's' : '') + (ult ? ' · ' + new Date(ult).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '') + '</span><b>' + BRL(tot) + ' ' + ICL + '</b></div>';
+  if (!C.length) return podeEditar() ? '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Saldo atual (nos bancos)</span><b>informar ' + ICL + '</b></div>' : '';
+  return '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Saldo atual (nos bancos) · ' + C.length + ' conta' + (C.length > 1 ? 's' : '') + (ult ? ' · ' + new Date(ult).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '') + '</span><b>' + BRL(tot) + ' ' + ICL + '</b></div>';
 }
 const ctLinha = c => '<div class="ct" data-cid="' + (c.id || '') + '"><input class="ctN" value="' + esc(c.nome || '') + '" placeholder="Onde (Santander, Nu…)" autocomplete="off"><input class="ctV" inputmode="decimal" value="' + esc(c.valor === '' || c.valor == null ? '' : String(c.valor).replace('.', ',')) + '" placeholder="0,00"><button type="button" class="ctx" data-ctdel="1" title="Tirar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
 async function folhaContas(){
   let C; try { CTAS[AMB] = CTAS[AMB] || undefined; C = await carregaContas(); } catch(e){ return toast(/fin_contas/.test(e.message || '') ? 'Falta rodar o migration_v188 no Supabase.' : (e.message || 'Erro')); }
-  CT_DEL = []; folhaContas._cx = fluxo(MES).caixa; const ed = podeEditar();
-  folha('<h3>Onde está o dinheiro hoje</h3><div class="nota" style="padding:0 0 10px;line-height:1.5">Informe quanto tem em cada banco ou lugar (' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '). Compare com o caixa que a Wallet calcula pelos lançamentos.</div>' +
+  CT_DEL = []; const ed = podeEditar();
+  folha('<h3>Saldo atual</h3><div class="nota" style="padding:0 0 10px;line-height:1.5">Quanto tem hoje em cada banco ou lugar (' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '). Esse é o dinheiro de verdade; não entra na conta dos meses.</div>' +
     '<div id="ctLista">' + C.map(ctLinha).join('') + (C.length || !ed ? '' : ctLinha({})) + '</div>' +
     (ed ? '<button class="add" style="width:100%;margin:2px 0 12px" data-ctadd="1">+ Adicionar lugar</button>' : '') +
-    '<div class="trio" style="margin-bottom:6px"><div><small>Somando os bancos</small><b id="ctTot">—</b></div><div><small>Caixa pelos lançamentos</small><b>' + BRL0(folhaContas._cx) + '</b></div><div><small>Diferença</small><b id="ctDif">—</b></div></div>' +
+    '<div class="ln" style="margin:4px 0 8px"><span>Total nos bancos</span><b id="ctTot">—</b></div>' +
     '<div class="bts"><button class="bt sec" data-fechar="1">' + (ed ? 'Cancelar' : 'Fechar') + '</button>' + (ed ? '<button class="bt" data-ctsalva="1">Salvar</button>' : '') + '</div>');
   ctSoma();
 }
 function ctSoma(){
   let t = 0; document.querySelectorAll('#ctLista .ct:not(.hid)').forEach(r => { const v = parseValor(r.querySelector('.ctV').value); if (!isNaN(v)) t += v; });
-  const d = Math.round((t - folhaContas._cx) * 100) / 100;
-  $('#ctTot').textContent = BRL(t); $('#ctDif').textContent = Math.abs(d) < 0.01 ? 'bate' : (d > 0 ? '+' : '') + BRL0(d);
+  $('#ctTot').textContent = BRL(t);
 }
 async function salvaContas(){
   if (!podeEditar()) return toast('Você só pode ver.');
