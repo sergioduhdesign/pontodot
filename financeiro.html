@@ -59,6 +59,7 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .ct{display:grid;grid-template-columns:1fr 130px 38px;gap:8px;margin-bottom:8px}.ct input{padding:11px 13px;border-radius:12px;border:1px solid var(--lin);background:transparent;outline:none;min-width:0;width:100%}.ct input:focus{border-color:var(--acc)}.ct .ctV{text-align:right}
 .ctx{border:1px solid var(--lin);background:transparent;color:var(--mut);border-radius:12px;display:grid;place-items:center;padding:0}.ctx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .nm-ed{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}.nm-ed .fl{flex:1}.nm-ed .bt{height:44px;padding:0 18px;margin-bottom:10px}.nm-ed .bt[disabled]{opacity:.35}
+.sugok{font-size:12.5px;color:var(--acc);margin:-4px 2px 8px}
 .sugav{font-size:12.5px;color:var(--tx);border:1px solid var(--lin);border-radius:10px;padding:8px 11px;margin:-4px 0 8px}
 .sugs{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 10px}
 .sug{border:1px solid var(--lin);background:transparent;color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;display:flex;gap:7px;align-items:center}
@@ -819,7 +820,7 @@ function abrePessoa(nome, sentido){
 function sugerePessoa(){
   const p = abrePessoa._p, el = $('#pNome'), box = $('#pSug'), bt = $('#pSalva'); if (!p || !el || !box) return;
   const v = el.value.trim(), kq = chaveNome(v), k0 = chaveNome(p.nome), todos = nomesConhecidos(p.sentido).filter(x => x.k !== k0), tol = kq.length >= 9 ? 2 : kq.length >= 4 ? 1 : 0;
-  const par = kq ? todos.filter(x => x.k.startsWith(kq) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol)).sort((a, b) => b.n - a.n).slice(0, 6) : [];
+  const par = kq ? todos.filter(x => x.k.startsWith(kq) || bate(x.w, v) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol)).sort((a, b) => b.n - a.n).slice(0, 6) : [];
   const igual = todos.find(x => x.k === kq);
   box.innerHTML = (igual ? '<div class="sugav">Já existe <b>' + esc(igual.nome) + '</b> (' + igual.n + ' lançamento' + (igual.n > 1 ? 's' : '') + '). Salvar une os dois num só.</div>' : '') +
     (par.length ? '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sugp="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + nTxt(x) + '</small></button>').join('') + '</div>' : '');
@@ -984,6 +985,8 @@ function folhaLanc(l, sentido){
   l.__sent = l.sentido; folhaLanc._l = l; sugereNome();
 }
 // ---- nomes: sugere parecidos enquanto digita, avisa de possível erro e deixa corrigir em todos ----
+const palavras = s => normNome(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+const bate = (w, q) => { const t = palavras(q); return t.length > 0 && t.every(a => w.some(x => x.startsWith(a))); };   // cada palavra digitada abre alguma palavra do nome (vale para "278", "emp", "278 emp")
 const chaveNome = s => normNome(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 function lev(a, b){
   if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m + n; if (Math.abs(m - n) > 2) return 3;   // só usamos limite ≤ 2: corta cedo let p = Array.from({ length: n + 1 }, (_, j) => j);
@@ -997,10 +1000,10 @@ function nomesConhecidos(sentido){
     const k = chaveNome(l.descricao); if (!k || k === '—'.toUpperCase()) return; const t = l.descricao.trim(), e = m.get(k) || { k, n: 0, c: {} };
     e.n++; e.c[t] = (e.c[t] || 0) + 1; m.set(k, e);
   });
-  const out = [...m.values()].map(e => ({ k: e.k, n: e.n, nome: Object.entries(e.c).sort((a, b) => b[1] - a[1])[0][0] }));
+  const out = [...m.values()].map(e => { const nome = Object.entries(e.c).sort((a, b) => b[1] - a[1])[0][0]; return { k: e.k, n: e.n, nome, w: palavras(nome) }; });
   // também os clientes (e a equipe) cadastrados na PD, mesmo que ainda não tenham lançamento aqui
   const vistos = new Set(out.map(x => x.k));
-  [].concat(AV.cli || [], sentido === 'saida' ? (AV.pes || []) : []).forEach(c => { const k = chaveNome(c.name); if (k && k !== '—' && !vistos.has(k)) { vistos.add(k); out.push({ k, n: 0, nome: String(c.name).trim() }); } });
+  [].concat(AV.cli || [], sentido === 'saida' ? (AV.pes || []) : []).forEach(c => { const k = chaveNome(c.name); if (k && k !== '—' && !vistos.has(k)) { vistos.add(k); out.push({ k, n: 0, nome: String(c.name).trim(), w: palavras(c.name) }); } });
   return out;
 }
 const nTxt = x => x.n ? x.n : 'PD';
@@ -1010,8 +1013,9 @@ function sugereNome(){
   const tol = kq.length >= 9 ? 2 : kq.length >= 4 ? 1 : 0;
   const sem = (l.id ? 1 : 0); let html = '';
   if (kq && kq !== '—') {
-    const par = todos.filter(x => x.k !== kq && (x.k.startsWith(kq) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol))).sort((a, b) => b.n - a.n).slice(0, 5);
+    const par = todos.filter(x => x.k !== kq && (x.k.startsWith(kq) || bate(x.w, v) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol))).sort((a, b) => b.n - a.n).slice(0, 5);
     const erro = par.find(x => tol && lev(x.k, kq) <= tol && x.n > Math.max(meuN - sem, 0) && !x.k.startsWith(kq));
+    if (meu && v) html += '<div class="sugok">Reconhecido: <b>' + esc(meu.nome) + '</b> · ' + nTxt(meu) + (meu.n ? ' lançamento' + (meu.n > 1 ? 's' : '') : ' · cliente da PD') + '</div>';
     if (erro && v) html += '<div class="sugav">Parece escrito diferente de <b>' + esc(erro.nome) + '</b> (' + erro.n + ' lançamento' + (erro.n > 1 ? 's' : '') + '). Toque para usar o nome certo.</div>';
     if (par.length) html += '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sug="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + nTxt(x) + '</small></button>').join('') + '</div>';
   }
