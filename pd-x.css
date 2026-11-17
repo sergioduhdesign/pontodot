@@ -41,4 +41,5 @@ html.pd-tool.pd-emb:not(.pd-est) .top #afinacao,html.pd-tool.pd-emb:not(.pd-est)
 html.pd-tool.pd-emb:not(.pd-est) .top .btn.s{height:36px!important;min-height:36px!important;padding:0 11px!important;font-size:12px!important}
 html.pd-tool.pd-emb:not(.pd-est) .top .btn.p{height:40px!important;min-height:40px!important;padding:0 13px!important}
 html.pd-tool.pd-emb:not(.pd-est) .top select#fmt{max-width:96px}
+html.pd-tool.pd-emb:not(.pd-est) #app{grid-template-rows:auto minmax(0,1fr)!important}
 }
