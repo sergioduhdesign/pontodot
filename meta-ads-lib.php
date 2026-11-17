@@ -102,6 +102,65 @@ function pd_token_para($conectadaPor) {
     return null;
 }
 
+/**
+ * LIGAR / PAUSAR uma campanha que a plataforma subiu (usado pelo play manual E pelo play agendado).
+ * Antes de ligar confere: conta ativa na Meta + forma de pagamento (a plataforma nunca cadastra cartão).
+ * Se algo não ligar, volta tudo para PAUSADO. Devolve ['ok'=>bool, 'erro'=>string, 'avisos'=>[]].
+ */
+function pdCampanhaLigar($L, $ligar, $porId = null) {
+    $cta = pd_supa('/rest/v1/meta_ad_accounts?id=eq.' . urlencode((string)$L['conta']) . '&select=conectada_por');
+    $tok = pd_token_para($cta['body'][0]['conectada_por'] ?? null);
+    if (!$tok) return ['ok' => false, 'erro' => 'Ninguém com acesso válido à Meta. Reconecte a Meta em Redes sociais.', 'avisos' => []];
+    if ($ligar) {
+        $a = pd_meta('GET', '/' . $L['conta'], ['fields' => 'account_status,funding_source_details,disable_reason'], $tok);
+        if (($a['code'] ?? 0) !== 200 || isset($a['body']['error'])) return ['ok' => false, 'erro' => 'Conta: ' . pd_meta_erro($a), 'avisos' => []];
+        if ((int)($a['body']['account_status'] ?? 0) !== 1) return ['ok' => false, 'erro' => 'A conta de anúncio não está ativa na Meta (status ' . ($a['body']['account_status'] ?? '?') . ').', 'avisos' => []];
+        if (empty($a['body']['funding_source_details'])) return ['ok' => false, 'erro' => 'A conta não tem forma de pagamento na Meta. O cliente precisa cadastrar lá.', 'avisos' => []];
+    }
+    $ids = (array)($L['meta_ids'] ?? []); $st = $ligar ? 'ACTIVE' : 'PAUSED'; $erros = [];
+    foreach (array_merge([$L['campanha_meta_id']], array_values((array)($ids['conjuntos'] ?? [])), array_map(fn($x) => $x['id'], (array)($ids['anuncios'] ?? []))) as $mid) {
+        $r = pd_meta('POST', '/' . $mid, ['status' => $st], $tok); if (empty($r['body']['success'])) $erros[] = $mid . ': ' . pd_meta_erro($r);
+    }
+    if ($erros && $ligar) { pd_meta('POST', '/' . $L['campanha_meta_id'], ['status' => 'PAUSED'], $tok); return ['ok' => false, 'erro' => 'Não liguei tudo, deixei pausado: ' . implode(' · ', array_slice($erros, 0, 3)), 'avisos' => $erros]; }
+    pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $L['id'], 'PATCH', ['estado' => $ligar ? 'ativa' : 'pausada', 'ligada_em' => $ligar ? gmdate('c') : null, 'ligada_por' => $ligar ? $porId : null]);
+    return ['ok' => true, 'erro' => '', 'avisos' => $erros];
+}
+
+/** Estado da aprovação do cliente a partir das peças do lote do plano: aprovada | ajuste | pendente. */
+function pdCampanhaAprovacaoLer($setId) {
+    $its = pd_supa('/rest/v1/approval_items?set_id=eq.' . urlencode((string)$setId) . '&select=status');
+    $sts = array_map(fn($x) => (string)($x['status'] ?? ''), array_filter((array)($its['body'] ?? []), 'is_array'));
+    if (!$sts) return 'pendente';
+    if (in_array('ajustar', $sts, true)) return 'ajuste';
+    if (!array_diff($sts, ['aprovado'])) return 'aprovada';
+    return 'pendente';
+}
+
+/**
+ * RELÓGIO DO PLAY AGENDADO (roda no worker a cada ciclo): liga as campanhas cuja hora chegou e pausa as que passaram do fim.
+ * Só liga se o plano foi APROVADO pelo cliente. Falhou? Registra o motivo, avisa a equipe e não tenta de novo sozinho.
+ */
+function pdCampanhaAgendaTick() {
+    $agora = gmdate('c'); $fez = 0;
+    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?estado=eq.pausada&play_em=not.is.null&play_em=lte.' . urlencode($agora) . '&agenda_erro=is.null&select=*&order=play_em.asc&limit=5');
+    foreach ((array)($q['body'] ?? []) as $L) { if (!is_array($L)) continue;
+        $apr = !empty($L['aprovacao_set_id']) ? pdCampanhaAprovacaoLer($L['aprovacao_set_id']) : ($L['aprovacao'] ?? 'rascunho');
+        if ($apr !== 'aprovada') { pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $L['id'], 'PATCH', ['agenda_erro' => 'Chegou a hora, mas o cliente ainda não aprovou o plano.', 'aprovacao' => $apr]); if (function_exists('pdAlarme')) pdAlarme('campanha_agenda', 'Campanha não foi ao ar: falta aprovação', ($L['nome'] ?? '') . ' — o cliente ainda não aprovou o plano.', null, null, true); continue; }
+        $r = pdCampanhaLigar($L, true, $L['agendada_por'] ?? null);
+        pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $L['id'], 'PATCH', $r['ok'] ? ['agenda_erro' => null, 'play_em' => null] : ['agenda_erro' => mb_substr($r['erro'], 0, 400)]);
+        if (function_exists('pdAlarme')) pdAlarme('campanha_agenda', $r['ok'] ? 'Campanha no ar (agendada)' : 'Campanha agendada NÃO foi ao ar', ($L['nome'] ?? '') . ($r['ok'] ? '' : ' — ' . $r['erro']), null, null, true);
+        $fez++;
+    }
+    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?estado=eq.ativa&pausar_em=not.is.null&pausar_em=lte.' . urlencode($agora) . '&select=*&limit=5');
+    foreach ((array)($q['body'] ?? []) as $L) { if (!is_array($L)) continue;
+        $r = pdCampanhaLigar($L, false, null);
+        pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $L['id'], 'PATCH', $r['ok'] ? ['pausar_em' => null] : ['agenda_erro' => mb_substr($r['erro'], 0, 400)]);
+        if (function_exists('pdAlarme')) pdAlarme('campanha_agenda', $r['ok'] ? 'Campanha pausada (fim agendado)' : 'Não consegui pausar no fim agendado', ($L['nome'] ?? '') . ($r['ok'] ? '' : ' — ' . $r['erro']), null, null, true);
+        $fez++;
+    }
+    return $fez;
+}
+
 /** Cache curto em disco: a Meta limita consultas, e número de anúncio não muda a cada segundo. */
 function pd_cache_ler($chave, $validade) {
     $f = PD_META_CACHE . '/ads-' . md5($chave) . '.json';

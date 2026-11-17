@@ -228,19 +228,65 @@ if ($acao === 'play' || $acao === 'pausar') {
     if (($me['role'] ?? '') !== 'admin') sd_fail('Só admin liga ou desliga campanha.', 403);
     $id = uuidOk($b['id'] ?? '') ?: sd_fail('Campanha inválida.', 400);
     $q = pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id . '&select=*'); $L = $q['body'][0] ?? null; if (!$L) sd_fail('Não achei essa campanha na plataforma.', 404);
-    [$tok] = tokenConta($L['conta']); $ids = (array)($L['meta_ids'] ?? []);
     if ($acao === 'play') {
-        $a = metaOuFalha(pd_meta('GET', '/' . $L['conta'], ['fields' => 'account_status,funding_source_details,disable_reason'], $tok), 'Conta');
-        if ((int)($a['account_status'] ?? 0) !== 1) sd_fail('A conta de anúncio não está ativa na Meta (status ' . ($a['account_status'] ?? '?') . '). Resolva lá antes do play.', 409);
-        if (empty($a['funding_source_details'])) sd_fail('A conta não tem forma de pagamento cadastrada na Meta. O cliente precisa cadastrar lá; a plataforma não cadastra cartão.', 409);
         if (empty($b['confirmo'])) sd_fail('Falta a confirmação humana do play.', 400);
+        $apr = !empty($L['aprovacao_set_id']) ? pdCampanhaAprovacaoLer($L['aprovacao_set_id']) : 'rascunho';
+        if ($apr !== 'aprovada' && empty($b['sem_aprovacao'])) sd_fail('O cliente ainda não aprovou o plano desta campanha (' . $apr . '). Mande para aprovação, ou confirme o play sem aprovação.', 409);
     }
-    $st = $acao === 'play' ? 'ACTIVE' : 'PAUSED'; $erros = [];
-    foreach (array_merge([$L['campanha_meta_id']], array_values((array)($ids['conjuntos'] ?? [])), array_map(fn($x) => $x['id'], (array)($ids['anuncios'] ?? []))) as $mid) {
-        $r = pd_meta('POST', '/' . $mid, ['status' => $st], $tok); if (empty($r['body']['success'])) $erros[] = $mid . ': ' . pd_meta_erro($r); }
-    if ($erros && $acao === 'play') { foreach ([$L['campanha_meta_id']] as $mid) pd_meta('POST', '/' . $mid, ['status' => 'PAUSED'], $tok); sd_fail('Não liguei tudo, então deixei pausado: ' . implode(' · ', array_slice($erros, 0, 3)), 502); }
-    pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'PATCH', ['estado' => $acao === 'play' ? 'ativa' : 'pausada', 'ligada_em' => $acao === 'play' ? gmdate('c') : null, 'ligada_por' => $acao === 'play' ? ($me['id'] ?? null) : null]);
-    sai(['estado' => $acao === 'play' ? 'ativa' : 'pausada', 'avisos' => $erros]);
+    $r = pdCampanhaLigar($L, $acao === 'play', $me['id'] ?? null);
+    if (!$r['ok']) sd_fail($r['erro'], 409);
+    if ($acao === 'play') pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'PATCH', ['play_em' => null, 'agenda_erro' => null]);
+    sai(['estado' => $acao === 'play' ? 'ativa' : 'pausada', 'avisos' => $r['avisos']]);
+}
+
+// ---------------------------------------------------------------- APROVAÇÃO DO PLANO PELO CLIENTE (mesmo lote/link das peças)
+if ($acao === 'aprovacao_plano') {
+    $id = uuidOk($b['id'] ?? '') ?: sd_fail('Campanha inválida.', 400);
+    $L = pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id . '&select=*')['body'][0] ?? null; if (!$L) sd_fail('Não achei essa campanha na plataforma.', 404);
+    if (!empty($L['aprovacao_set_id']) && empty($b['refazer'])) sai(['set_id' => $L['aprovacao_set_id'], 'url' => '/aprovacao.html?set=' . $L['aprovacao_set_id'], 'ja_existia' => true]);
+    $pl = (array)($L['plano'] ?? []); $camp = (array)($pl['campanha'] ?? []); $conjs = array_values(array_filter((array)($pl['conjuntos'] ?? []), 'is_array')); $ads = array_values(array_filter((array)($pl['anuncios'] ?? []), 'is_array'));
+    $brl = fn($v) => 'R$ ' . number_format((float)$v, 2, ',', '.');
+    $linhasTxt = []; $totDia = 0;
+    $linhasTxt[] = 'Objetivo: ' . ($OBJETIVOS[$L['objetivo'] ?? ''] ?? ($L['objetivo'] ?? '—'));
+    $per = trim((!empty($camp['inicio']) ? 'de ' . date('d/m/Y', strtotime($camp['inicio'])) : '') . (!empty($camp['fim']) ? ' até ' . date('d/m/Y', strtotime($camp['fim'])) : '')); if ($per !== '') $linhasTxt[] = 'Período: ' . $per;
+    foreach ($conjs as $i => $cj) { $pub = (array)($cj['publico'] ?? []); $totDia += (float)($cj['orcamento_diario'] ?? 0);
+        $cid2 = implode(', ', array_filter(array_map(fn($x) => is_array($x) ? ($x['nome'] ?? '') : (string)$x, (array)($pub['cidades'] ?? [])))); $int = implode(', ', array_filter(array_map(fn($x) => is_array($x) ? ($x['nome'] ?? '') : (string)$x, (array)($pub['interesses'] ?? []))));
+        $hs = implode(' · ', array_map(fn($h) => implode('', array_map(fn($d) => ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][(int)$d % 7] ?? '', (array)($h['dias'] ?? []))) . ' ' . ($h['de'] ?? '') . '–' . ($h['ate'] ?? ''), array_filter((array)($cj['horarios'] ?? []), 'is_array')));
+        $linhasTxt[] = "\nPúblico " . ($i + 1) . ' — ' . ($cj['nome'] ?? 'Conjunto') . ': ' . $brl($cj['orcamento_diario'] ?? 0) . '/dia' . ($cid2 !== '' ? "\nOnde: " . $cid2 . (!empty($pub['raio_km']) ? ' (raio ' . (int)$pub['raio_km'] . ' km)' : '') : '') . ($int !== '' ? "\nInteresses: " . $int : '') . ($hs !== '' ? "\nHorários: " . $hs : ''); }
+    $linhasTxt[] = "\nInvestimento diário somado: " . $brl($totDia) . '. O valor é cobrado pela Meta direto do anunciante; a plataforma não movimenta dinheiro.';
+    $base = ['client_id' => $L['client_id'], 'title' => 'Campanha · ' . mb_substr((string)($L['nome'] ?? 'plano'), 0, 120), 'subtitle' => 'Plano de campanha para aprovação · ' . count($ads) . ' anúncio(s)', 'layout' => 'galeria', 'status' => 'rascunho', 'created_by' => $me['id'] ?? null, 'interno' => true];
+    $set = null; foreach ([['copy', 'studio'], ['lote_variado', 'upload'], ['lote_variado', 'studio'], ['copy', 'upload']] as [$mo, $so]) {
+        $set = pd_supa('/rest/v1/approval_sets', 'POST', $base + ['modo' => $mo, 'source_type' => $so], ['Prefer: return=representation']);
+        if (($set['code'] ?? 500) < 300 && !empty($set['body'][0]['id'])) break; if (strpos((string)($set['raw'] ?? json_encode($set['body'] ?? '')), '23514') === false) break; }
+    if (($set['code'] ?? 500) >= 300 || empty($set['body'][0]['id'])) sd_fail('Não consegui criar o lote de aprovação: ' . mb_substr(json_encode($set['body'] ?? ''), 0, 300), 500);
+    $sid = $set['body'][0]['id'];
+    $linhas = [['set_id' => $sid, 'position' => 0, 'kind' => 'material', 'title' => 'Plano da campanha', 'caption' => mb_substr(implode("\n", $linhasTxt), 0, 4000), 'media' => []]];
+    foreach ($ads as $k => $a) { $media = []; if (!empty($a['peca_id']) && uuidOk($a['peca_id'])) { $it = pd_supa('/rest/v1/approval_items?id=eq.' . uuidOk($a['peca_id']) . '&select=media')['body'][0] ?? null; $m = $it['media'] ?? []; $media = is_array($m) ? $m : (json_decode((string)$m, true) ?: []); }
+        $linhas[] = ['set_id' => $sid, 'position' => $k + 1, 'kind' => 'material', 'title' => 'Anúncio ' . ($k + 1) . ' · ' . mb_substr((string)($a['titulo'] ?? $a['nome'] ?? ''), 0, 120), 'caption' => mb_substr(trim((string)($a['texto'] ?? '') . (!empty($a['descricao']) ? "\n\n" . $a['descricao'] : '') . (!empty($a['cta']) ? "\n\nBotão: " . str_replace('_', ' ', strtolower($a['cta'])) : '')), 0, 4000), 'media' => $media]; }
+    $r = pd_supa('/rest/v1/approval_items', 'POST', $linhas); if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui criar as peças do plano: ' . mb_substr(json_encode($r['body'] ?? ''), 0, 200), 500);
+    pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'PATCH', ['aprovacao_set_id' => $sid, 'aprovacao' => 'pendente', 'aprovacao_em' => null]);
+    sai(['set_id' => $sid, 'url' => '/aprovacao.html?set=' . $sid, 'itens' => count($linhas)]);
+}
+if ($acao === 'aprovacao_estado') {   // relê no lote o que o cliente decidiu e guarda na campanha
+    $id = uuidOk($b['id'] ?? '') ?: sd_fail('Campanha inválida.', 400);
+    $L = pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id . '&select=id,aprovacao_set_id,aprovacao')['body'][0] ?? null; if (!$L || empty($L['aprovacao_set_id'])) sai(['aprovacao' => 'rascunho']);
+    $e = pdCampanhaAprovacaoLer($L['aprovacao_set_id']);
+    if ($e !== ($L['aprovacao'] ?? '')) pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'PATCH', ['aprovacao' => $e, 'aprovacao_em' => $e === 'aprovada' ? gmdate('c') : null]);
+    sai(['aprovacao' => $e, 'set_id' => $L['aprovacao_set_id']]);
+}
+
+// ---------------------------------------------------------------- PLAY AGENDADO (admin): liga na hora marcada, só com plano aprovado; pausa no fim
+if ($acao === 'agendar' || $acao === 'desagendar') {
+    if (($me['role'] ?? '') !== 'admin') sd_fail('Só admin agenda o play.', 403);
+    $id = uuidOk($b['id'] ?? '') ?: sd_fail('Campanha inválida.', 400);
+    $L = pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id . '&select=id,estado,aprovacao_set_id,nome')['body'][0] ?? null; if (!$L) sd_fail('Não achei essa campanha na plataforma.', 404);
+    if ($acao === 'desagendar') { pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'PATCH', ['play_em' => null, 'pausar_em' => null, 'agenda_erro' => null]); sai(['agendada' => false]); }
+    $ini = strtotime((string)($b['inicio'] ?? '')); $fim = !empty($b['fim']) ? strtotime((string)$b['fim']) : null;
+    if (!$ini || $ini < time() - 60) sd_fail('Escolha uma data e hora de início no futuro.', 400);
+    if ($fim && $fim <= $ini) sd_fail('O fim precisa ser depois do início.', 400);
+    pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'PATCH', ['play_em' => gmdate('c', $ini), 'pausar_em' => $fim ? gmdate('c', $fim) : null, 'agendada_por' => $me['id'] ?? null, 'agenda_erro' => null]);
+    $apr = !empty($L['aprovacao_set_id']) ? pdCampanhaAprovacaoLer($L['aprovacao_set_id']) : 'rascunho';
+    sai(['agendada' => true, 'play_em' => gmdate('c', $ini), 'pausar_em' => $fim ? gmdate('c', $fim) : null, 'aprovacao' => $apr, 'aviso' => $apr === 'aprovada' ? '' : 'Na hora marcada o play só acontece se o cliente já tiver aprovado o plano.']);
 }
 
 if ($acao === 'apagar') {   // (admin) tira da lista; com meta=true também apaga a campanha na Meta (só se estiver pausada)
@@ -257,7 +303,7 @@ if ($acao === 'apagar') {   // (admin) tira da lista; com meta=true também apag
 }
 if ($acao === 'lista') {
     $cid = uuidOk($b['client_id'] ?? '');
-    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?select=id,client_id,product_id,conta,campanha_meta_id,nome,objetivo,estado,criado_em,ligada_em,clients(name)' . ($cid ? '&client_id=eq.' . $cid : '') . '&order=criado_em.desc&limit=60');
+    $q = pd_supa('/rest/v1/pd_campanhas_lancadas?select=id,client_id,product_id,conta,campanha_meta_id,nome,objetivo,estado,criado_em,ligada_em,aprovacao,aprovacao_set_id,play_em,pausar_em,agenda_erro,clients(name)' . ($cid ? '&client_id=eq.' . $cid : '') . '&order=criado_em.desc&limit=60');
     sai(['campanhas' => array_values(array_filter((array)($q['body'] ?? []), 'is_array'))]);
 }
 sd_fail('Ação desconhecida.', 400);
