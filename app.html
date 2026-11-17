@@ -3328,7 +3328,7 @@ async function escCarregar(){
   const get = (u)=>fetch(u).then(r=>r.ok?r.json():null).catch(()=>null);
   const social = escCarregarSocial();   // roda junto com o resto (antes esperava tudo para só então começar)
   const [u, sem, im, capas, postais, alunos] = await Promise.all([
-    ESC.u||get('/pd/universo.json'), null /* narrativas de Catum: só na LP */, get('/pd-imagens.php?pasta=personagens'),
+    ESC.u||get('/pd/universo.json'), get('/pd-narrativas.php'), get('/pd-imagens.php?pasta=personagens'),
     get('/pd-imagens.php?pasta=capas'), get('/pd-imagens.php?pasta=postais'),
     sb.rpc('pd_escola_alunos').then(r=>r.error?null:r.data).catch(()=>null) ]);
   if (u) ESC.u = u;
@@ -3523,6 +3523,7 @@ async function escHumanosCarregar(ids){
   }catch(e){}
 }
 
+let ESC_VER = 3;
 function renderEscola(){
   const box = document.getElementById('esc-posts'); if (!box) return;
   if (!ESC.u){ box.innerHTML = '<div class="esc-vazio">Chegando…</div>'; return; }
@@ -3570,9 +3571,10 @@ function renderEscola(){
     document.getElementById('esc-cursos').innerHTML = dest.map(c => `<button class="esc-curso" onclick="escCurso('${c.id}')"><b>${escSafe(c.titulo)}</b><small>${escSafe(c.area)} · ${c.semanas} semanas</small></button>`).join('')
       + `<button class="esc-link" onclick="escTodosCursos()">Ver todos os ${ESC_CURSOS.length} cursos…</button>`; }
   // mural
-  // o feed social de Catum (fotos dos alunos) saiu desta página porque pesava: ele vive só na LP. Aqui fica o mural da casa.
-  const lista = [].concat((posts||[]).filter(h=>!/^Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
-  lista.sort((a,b)=> (b.humano?1:0)-(a.humano?1:0) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));   // gente da casa primeiro; alunos de Catum em ordem aleatória
+  const lista0 = escPosts().concat((posts||[]).filter(h=>!/^Da casa/.test(h.body||'')).map(h=>({humano:true,h,data:String(h.created_at||'')})));
+  lista0.sort((a,b)=> (b.humano?1:0)-(a.humano?1:0) || (a.humano && b.humano ? String(b.data||'').localeCompare(String(a.data||'')) : 0));   // gente da casa primeiro; alunos de Catum em ordem aleatória
+  // peso: o mural mostra só 3 publicações; o resto (e as fotos) só carrega quando a pessoa pede "Ver mais"
+  const lista = lista0.slice(0, ESC_VER), resto = lista0.length - lista.length;
   box.innerHTML = lista.map((p, n) => {
     if (p.humano) return escHtmlHumano(p.h, n === lista.length - 1);
     const conv = escConversa(p.c, p.data); const ult = n === lista.length - 1;
@@ -3589,7 +3591,9 @@ function renderEscola(){
           ${reais.map(x => `<div class="real"><b>${escSafe(x.autor||'Alguém da casa')}</b> ${escSafe(x.texto)} <small>${escSafe(escQuando(x.criado_em))}</small>${x.user_id===profile.id?` <button class="esc-x" onclick="escApagarCom('${x.id}','${escSafe(k)}')" aria-label="Apagar">✕</button>`:''}</div>`).join('')}</div>
           <form class="esc-comenta" onsubmit="escComentar('${escSafe(k)}',event)"><input data-ck="${escSafe(k)}" maxlength="600" placeholder="Comente algo…" autocomplete="off"><button>Enviar</button></form>`; })()}
       </div></article>`;
-  }).join('') + `<div class="esc-mais" id="esc-fim">Carregando mais publicações…</div>`
+  }).join('') + (resto > 0
+      ? `<button class="esc-link" style="display:block;margin:14px auto 6px" onclick="ESC_VER+=6;renderEscola()">Ver mais publicações (${resto})</button>`
+      : (lista.length ? `<div class="esc-mais" id="esc-fim">Carregando mais publicações…</div>` : ''))
     || '<div class="esc-vazio">Nada publicado ainda.</div>';
   escVigiaFim();
   escHumanosCarregar(lista.filter(x=>x.humano).map(x=>x.h.id));
