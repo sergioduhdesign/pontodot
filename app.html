@@ -3497,7 +3497,7 @@ function escHtmlHumano(h, ult){
   return `<article class="esc-post esc-humano ${ult?'esc-ultimo':''}">
     <div class="esc-cab-post">${av}<b>${escSafe(nome)}</b><span>${escSafe(escDia(String(h.created_at).slice(0,10)))}</span>${h.user_id===profile.id?`<button class="esc-x" style="margin-left:8px" onclick="deletePost('${h.id}')" aria-label="Apagar">✕</button>`:''}</div>
     ${h.image_url?`<div class="esc-foto-col"><img onclick="escAmpliar(this.src,'')" style="cursor:zoom-in" src="${escSafe(h.image_url)}" alt="" loading="lazy"></div>`:''}
-    <div class="esc-txt-col"><p>${linkify(h.body||'')}</p>
+    <div class="esc-txt-col">${dc ? '' : `<p>${linkify(h.body||'')}</p>`}
       <div class="esc-curt"><button class="esc-cora ${eu?'on':''}" id="hl-${h.id}" onclick="escCurtirHumano('${h.id}',this)" aria-label="Curtir">${eu?'♥':'♡'}</button> <span id="hn-${h.id}"></span></div>
       <div class="esc-coms" id="hc-${h.id}"></div>
       <form class="esc-comenta" onsubmit="escComentarHumano('${h.id}',event)"><input maxlength="600" placeholder="Comente algo…" autocomplete="off"><button>Enviar</button></form>
