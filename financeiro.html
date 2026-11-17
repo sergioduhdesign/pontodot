@@ -56,6 +56,11 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .top .seg button{display:flex;align-items:center;gap:7px;padding:7px 15px;border-radius:9px;font-size:13px;font-weight:500}
 .top .seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .top .seg button.on{box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.sugav{font-size:12.5px;color:var(--tx);border:1px solid var(--lin);border-radius:10px;padding:8px 11px;margin:-4px 0 8px}
+.sugs{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 10px}
+.sug{border:1px solid var(--lin);background:transparent;color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;display:flex;gap:7px;align-items:center}
+.sug small{color:var(--mut);font-size:11px}
+.sug:active{background:var(--card)}
 .stp{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--lin);border-radius:12px;padding:3px}
 .stp button{width:38px;height:36px;border:0;background:transparent;color:var(--tx);border-radius:9px;display:grid;place-items:center;padding:0}
 .stp button:active{background:var(--card)}
@@ -885,7 +890,7 @@ function folhaLanc(l, sentido){
   const gs = gruposDe(l.sentido).filter(g => !g.oculto || g.chave === l.grupo);
   if (l.grupo && !gs.some(g => g.chave === l.grupo)) gs.push(grupoInfo(l.grupo, l.sentido));
   folha('<h3>' + (n ? (l.sentido === 'entrada' ? 'Nova entrada' : 'Nova saída') : esc(l.descricao)) + '</h3>' +
-    '<label class="fl"><span>' + (l.sentido === 'entrada' ? 'Cliente / de onde' : 'O que é') + '</span><input id="fDes" value="' + esc(l.descricao) + '"></label>' +
+    '<label class="fl"><span>' + (l.sentido === 'entrada' ? 'Cliente / de onde' : 'O que é') + '</span><input id="fDes" value="' + esc(l.descricao) + '" autocomplete="off"></label><div id="fSug"></div>' +
     '<div class="f2"><label class="fl"><span>Valor (R$)</span><input id="fVal" inputmode="decimal" value="' + esc(l.valor === '' ? '' : String(l.valor).replace('.', ',')) + '"></label><label class="fl"><span>Dia</span><input id="fDia" inputmode="numeric" value="' + esc(l.dia || '') + '"></label></div>' +
     '<div class="f2"><label class="fl"><span>Grupo</span><select id="fGru">' + gs.map(g => '<option value="' + g.chave + '"' + (g.chave === l.grupo ? ' selected' : '') + '>' + esc(g.nome) + '</option>').join('') + (podeEditar() ? '<option value="__novo">+ Novo grupo…</option>' : '') + '</select></label><label class="fl"><span>Como</span><input id="fFor" value="' + esc(l.forma || '') + '" placeholder="transf, PJ, cartão…"></label></div>' +
     '<input type="hidden" id="fPar" value="' + esc(l.parcela || '') + '" data-orig="' + esc(l.parcela || '') + '">' + stepParcela(l.parcela) +
@@ -895,7 +900,43 @@ function folhaLanc(l, sentido){
     '<label class="chk"><input type="checkbox" id="fCon"' + (l.conta ? ' checked' : '') + '> Entra na soma do mês <small style="color:var(--mut)">(desmarque para só anotar)</small></label>' +
     (n ? '' : '<label class="chk"><input type="checkbox" id="fMov"> Passar para ' + rotMes(somaMes(l.mes, 1)) + '</label>') +
     '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button>' + (n ? '' : '<button class="bt sec" style="flex:1.6 1 0" data-dup="1">Copiar p/ próx. mês</button><button class="bt perigo" data-apaga="1">Apagar</button>') + '<button class="bt" data-salva="1">Salvar</button></div>');
-  l.__sent = l.sentido; folhaLanc._l = l;
+  l.__sent = l.sentido; folhaLanc._l = l; sugereNome();
+}
+// ---- nomes: sugere parecidos enquanto digita, avisa de possível erro e deixa corrigir em todos ----
+const chaveNome = s => normNome(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+function lev(a, b){
+  if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m + n; let p = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; }
+  return p[n];
+}
+function nomesConhecidos(sentido){
+  const m = new Map();
+  (D[AMB] || []).forEach(l => {
+    if (l.sentido !== sentido || l.grupo === 'saldo' || l.grupo === 'retirada' || !l.descricao) return;
+    const k = chaveNome(l.descricao); if (!k || k === '—'.toUpperCase()) return; const t = l.descricao.trim(), e = m.get(k) || { k, n: 0, c: {} };
+    e.n++; e.c[t] = (e.c[t] || 0) + 1; m.set(k, e);
+  });
+  return [...m.values()].map(e => ({ k: e.k, n: e.n, nome: Object.entries(e.c).sort((a, b) => b[1] - a[1])[0][0] }));
+}
+function sugereNome(){
+  const el = $('#fDes'), box = $('#fSug'), l = folhaLanc._l; if (!el || !box || !l) return;
+  const v = el.value.trim(), kq = chaveNome(v), todos = nomesConhecidos(l.sentido), meu = todos.find(x => x.k === kq), meuN = meu ? meu.n : 0;
+  const tol = kq.length >= 9 ? 2 : kq.length >= 4 ? 1 : 0;
+  const sem = (l.id ? 1 : 0); let html = '';
+  if (kq && kq !== '—') {
+    const par = todos.filter(x => x.k !== kq && (x.k.startsWith(kq) || (kq.length >= 3 && x.k.includes(kq)) || (tol && lev(x.k, kq) <= tol))).sort((a, b) => b.n - a.n).slice(0, 5);
+    const erro = par.find(x => tol && lev(x.k, kq) <= tol && x.n > Math.max(meuN - sem, 0) && !x.k.startsWith(kq));
+    if (erro && v) html += '<div class="sugav">Parece escrito diferente de <b>' + esc(erro.nome) + '</b> (' + erro.n + ' lançamento' + (erro.n > 1 ? 's' : '') + '). Toque para usar o nome certo.</div>';
+    if (par.length) html += '<div class="sugs">' + par.map(x => '<button type="button" class="sug" data-sug="' + esc(x.nome) + '">' + esc(x.nome) + '<small>' + x.n + '</small></button>').join('') + '</div>';
+  }
+  const antigo = l.id ? chaveNome(l.descricao) : '', outros = l.id ? (D[AMB] || []).filter(x => x.id !== l.id && x.sentido === l.sentido && chaveNome(x.descricao) === antigo).length : 0;
+  if (l.id && outros && v && v !== (l.descricao || '').trim()) html += '<label class="chk" style="margin-top:2px"><input type="checkbox" id="fFix" checked> Corrigir também nos outros ' + outros + ' lançamento' + (outros > 1 ? 's' : '') + ' chamados “' + esc(l.descricao) + '”</label>';
+  const fix = $('#fFix'), marcado = fix ? fix.checked : true; box.innerHTML = html; if ($('#fFix')) $('#fFix').checked = marcado;
+}
+async function corrigeNomes(l, novo){
+  const antigo = chaveNome(l.descricao), ids = (D[AMB] || []).filter(x => x.id !== l.id && x.sentido === l.sentido && chaveNome(x.descricao) === antigo).map(x => x.id);
+  if (!ids.length) return 0; const r = await sb.from('fin_lancamentos').update({ descricao: novo }).in('id', ids); if (r.error) throw r.error;
+  D[AMB].forEach(x => { if (ids.includes(x.id)) x.descricao = novo; }); return ids.length;
 }
 // parcelas: dois steppers (nº e total) que escrevem "NdeT" no #fPar escondido; total 0 = sem parcelamento (mantém "mensal" etc.)
 const IC_MENOS = '<svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>', IC_MAIS = '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>';
@@ -928,6 +969,7 @@ async function salvaLanc(){
   const nv = Object.assign(r.data, { valor: Number(r.data.valor) }), i = D[AMB].findIndex(x => x.id === nv.id);
   if (i >= 0) D[AMB][i] = nv; else D[AMB].push(nv);
   let extra = '';
+  try { if (l.id && $('#fFix') && $('#fFix').checked && d !== (l.descricao || '').trim()) { const c = await corrigeNomes(l, d); if (c) extra += ' · nome corrigido em mais ' + c; } } catch(e){ extra += ' · não consegui corrigir os outros: ' + (e.message || e); }
   try {
     if (AMB === 'casa' && nv.sentido === 'entrada' && normNome(nv.descricao) === 'STRAT/PD' && D.empresa) { const r2 = await setRetirada(nv.mes, nv.valor); extra = ' · retirada da Empresa acompanhou' + r2.aviso; }
     else if (nv.grupo !== 'retirada') { const c = await cascata(AMB, mov ? l.mes : nv.mes); if (c) extra = ' · ' + c + ' mês(es) seguinte(s) atualizado(s)'; }
@@ -1307,6 +1349,7 @@ document.addEventListener('click', e => {
   if ((el = q('[data-ia]'))) { folhaIA(CIA.find(c => c.id === el.dataset.ia)); return; }
   if ((el = q('[data-salvaia]'))) { salvaIA(el.dataset.salvaia); return; }
   if ((el = q('[data-apagaia]'))) { sb.from('fin_custos_ia').delete().eq('id', el.dataset.apagaia).then(r => { if (r.error) return toast(r.error.message); CIA = null; fecha(); vIA(); }); return; }
+  if ((el = q('[data-sug]'))) { $('#fDes').value = el.dataset.sug; sugereNome(); return; }
   if ((el = q('[data-stp]'))) { if (!el.disabled) stepMexe(el.dataset.stp); return; }
   if (q('[data-fechar]')) { fecha(); return; }
   if (q('[data-salva]')) { salvaLanc(); return; }
@@ -1318,6 +1361,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'vQ') { VISTA.q = e.target.value; desLista(); return; }
   if (e.target.id === 'gCorX') { gCor(e.target.value); return; }
+  if (e.target.id === 'fDes') { sugereNome(); return; }
   if (!(e.target.closest && e.target.closest('#folha'))) return; if (document.getElementById('cPrev')) previaContrato(); if (e.target.id === 'rVal') { const v = parseValor(e.target.value) || 0; $('#rPR').textContent = BRL0(v); $('#rPS').textContent = BRL0(folhaRetirada._sobra - v); } });
 document.addEventListener('change', async e => {
   const t = e.target;
