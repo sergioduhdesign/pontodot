@@ -51,6 +51,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(255,255,255,.7)}textar
 .cfg label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--branco2)}.cfg input{width:100%}
 .cfg .hh{display:flex;gap:6px;align-items:center}.cfg .hh input{width:100%}
 .tumi{display:inline-grid;place-items:center;border-radius:50%;overflow:hidden;flex:0 0 auto;background:#2a2d2b;color:#fff;font-weight:600;border:.5px solid rgba(255,255,255,.25)}.tumi img{width:100%;height:100%;object-fit:cover;display:block}
+.dig-top{padding:14px 10px 4px}.dig-top h1{font-size:26px}
 .capa{position:relative;border-radius:var(--r);overflow:hidden;height:clamp(110px,19vw,190px);border:.5px solid var(--linha);background:#161918}
 .capa>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 45%}
 .capa-v{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,9,.88) 0%,rgba(8,10,9,.55) 42%,rgba(8,10,9,0) 75%)}
@@ -82,9 +83,7 @@ code{font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radi
 .avs{background:rgba(245,158,11,.12);border:.5px solid rgba(245,158,11,.55);border-radius:14px;padding:11px 13px;margin:10px 0;font-size:12.5px;line-height:1.5}.avs.ruim{background:rgba(220,38,38,.12);border-color:rgba(220,38,38,.5)}
 .pas-j{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:11.5px;color:var(--branco2)}
 </style></head><body><div class="w">
-<div class="capa"><img src="/pd/tour/clientes.webp" alt="" width="1200" height="300"><div class="capa-v"></div>
-  <div class="capa-t"><img src="/assets/logo-pontodot-white.svg" alt="pontodot" class="lg"><div class="row" style="gap:14px;align-items:center;margin-top:8px"><div><div class="eyebrow">garimpo de leads</div><h1>Dig</h1></div><span class="tumi" style="width:58px;height:58px;border-width:1.5px"><img src="/pd/personagens/tumi/avatar.jpg" alt="Tumi" onerror="this.remove()"></span><span class="sub" style="line-height:1.25">com o<br><b style="color:#fff">Tumi</b></span></div></div>
-</div>
+<div class="dig-top"><div class="eyebrow">garimpo de leads</div><h1>Dig</h1></div>
 <div class="cw"><button class="sc l" onclick="rola(-1)" aria-label="Anterior">‹</button><div class="carts" id="carts"></div><button class="sc r" onclick="rola(1)" aria-label="Próximo">›</button></div>
 <div class="faixa" id="faixa" style="display:none"></div>
 <div class="proc" id="proc"></div>
