@@ -761,7 +761,7 @@ AP.gerarPDF = async function(o){
     const cx = AX + usedW + 12, cw = W - cx - M, yMax = H - 12;
     let cy = 26;
     const rotulo = { feed:'FEED', carrossel:'CARROSSEL', stories:'STORIES', post:'POST',
-                     reels:'REELS', material:'MATERIAL', generico:'MATERIAL' }[it.kind] || 'PEÇA';
+                     reels:'REELS', anuncio:'ANÚNCIO', material:'MATERIAL', generico:'MATERIAL' }[it.kind] || 'PEÇA';
     const est  = it.status === 'aprovado' ? 'APROVADO' : it.status === 'ajustar' ? 'AJUSTE PEDIDO' : 'PENDENTE';
     const corE = it.status === 'aprovado' ? [22,163,74] : it.status === 'ajustar' ? [219,39,119] : [150,150,150];
     pdf.setFont('helvetica','bold'); pdf.setFontSize(7);

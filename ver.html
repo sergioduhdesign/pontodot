@@ -245,6 +245,8 @@ details.ap-cap[open] summary::before{content:"▾"}
   </div>
 </div>
 
+<div id="campPainel"></div>
+
 <div class="ap-bar">
   <button class="ap-chip on" data-f="all">Tudo <span class="n" id="nAll"></span></button>
   <button class="ap-chip" data-f="pendente">Pendentes <span class="n" id="nPend"></span></button>
@@ -281,7 +283,8 @@ details.ap-cap[open] summary::before{content:"▾"}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
-<script src="/js/aprovacao-comum.js?v=548"></script>
+<script src="/js/aprovacao-comum.js?v=549"></script>
+<script src="/js/campanha-painel.js?v=549"></script>
 <script>
 // ==================================================================
 // ESTADO — versão por LINK PÚBLICO (cliente sem conta)
@@ -302,8 +305,23 @@ const esc = s => String(s ?? '')
 
 const KIND_LABEL = {
   feed:'Feed', carrossel:'Carrossel', stories:'Stories',
-  reels:'Reels', generico:'Material', material:'Material'
+  reels:'Reels', anuncio:'Anúncio', generico:'Material', material:'Material'
 };
+
+// Detalhes da campanha (quando o lote é de campanha): painel no topo; o cliente sugere ajuste por seção
+async function carregarCampanha(){
+  const alvo = document.getElementById('campPainel'); if (!alvo || typeof CampPainel === 'undefined') return;
+  try {
+    const { data, error } = await sb.rpc('get_campanha_by_token', { p_token: TOKEN });
+    if (error || !data || !data.campanha) { alvo.innerHTML = ''; return; }
+    CampPainel.montar(alvo, { dados: data.campanha, ajustes: data.ajustes, podeSugerir: true,
+      onSugerir: async (secao, texto) => {
+        const { error: e2 } = await sb.rpc('campanha_ajuste_by_token', { p_token: TOKEN, p_secao: secao, p_texto: texto, p_guest: guest || null });
+        if (e2) throw e2;
+        showToast('Sugestão enviada para a equipe.', 'success'); await carregarCampanha();
+      } });
+  } catch (e) { console.warn('Campanha:', e.message); }
+}
 
 // Quem é a pessoa? Perguntamos uma vez e guardamos no navegador dela,
 // só para assinar os comentários. Não é login e não dá acesso a nada.
@@ -356,6 +374,7 @@ async function load(){
   }
 
   render();
+  carregarCampanha();
 }
 
 // ==================================================================

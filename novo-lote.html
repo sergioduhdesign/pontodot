@@ -332,7 +332,7 @@ body.carregando .nl-skel{display:block}
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/aprovacao-comum.js?v=548"></script>
+<script src="/js/aprovacao-comum.js?v=549"></script>
 <script src="/js/campanha-setup.js?v=548"></script>
 <script>
 function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -542,6 +542,9 @@ let CAMP_PEND = null;   // setup de campanha achado no zip (Excel ou .txt de an�
 async function salvarSetupCampanha(){
   if (!CAMP_PEND || !el('fClient').value) return;
   const c = CAMP_PEND; CAMP_PEND = null;
+  // os detalhes ficam no próprio lote: é daqui que o cliente (link) e a equipe os veem no aprovador
+  if (setId) { try { const { error } = await sb.from('approval_sets').update({ campanha: c.dados }).eq('id', setId); if (error) throw error; }
+    catch (e) { showToast('Os detalhes da campanha não entraram no lote (rode a migration v186): ' + e.message, 'error'); } }
   try { await AP.sdFetch('/meta-lancar.php', { acao: 'setup_salvar', client_id: el('fClient').value, task_id: TASK_ID || null, dados: c.dados });
     showToast('Setup da campanha salvo em Campanhas › Subir campanha.', 'success'); }
   catch (e) { CAMP_PEND = c; showToast('Lote ok, mas o setup da campanha não salvou: ' + e.message, 'error'); }
