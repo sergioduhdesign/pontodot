@@ -6641,7 +6641,7 @@ function desenharFila(){
     const badges = Object.entries(porStatus).map(([st,n]) => {
       const cfg = FILA_STATUS_CFG[st] || { cor:'#7a7a88', label:st };
       return `<span class="st-badge" style="background:${cfg.cor}18;color:${cfg.cor};margin-right:3px">${n} ${cfg.label}</span>`;
-    }).join('');
+    }).join('') || `<span class="st-badge" title="Estas peças estão na fila sem conta de destino — abra o lote e agende de novo" style="background:#dc262618;color:#dc2626">sem destino · agendar de novo</span>`;
 
     const aberto = filaExpandido.has(g.setId);
     const linhaDetalhe = aberto ? desenharDetalheLote(g) : '';
@@ -6977,10 +6977,21 @@ async function filaBulkCancelar(){
 
 async function filaBulkExcluir(){
   const ids = lotesSelecionadosAlvoIds();
-  if (!ids.length) return;
+  if (!ids.length) {   // lote só com posts sem destino: tira os fantasmas da fila
+    const fant = filaLotes.filter(g => filaSelecionados.has(g.setId)).flatMap(g => g.posts.map(p => p.id));
+    if (!fant.length || !confirm(`Tirar da fila ${fant.length} peça(s) sem destino? As peças do lote ficam; dá pra agendar de novo.`)) return;
+    const { error } = await sb.from('scheduled_posts').delete().in('id', fant);
+    if (error) { showToast('Erro: '+error.message,'error'); return; }
+    filaSelecionados.clear(); renderFila(); return;
+  }
   if (!confirm(`Excluir ${ids.length} publicação(ões) de vez? Isso NÃO tem volta — diferente de cancelar.`)) return;
+  const postsDosLotes = filaLotes.filter(g => filaSelecionados.has(g.setId)).flatMap(g => g.posts.map(p => p.id));
   const { error } = await sb.from('scheduled_post_targets').delete().in('id', ids);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
+  // sem destino o post vira fantasma na fila (parece agendado e nunca sai): apaga junto
+  try { const { data: rest } = await sb.from('scheduled_post_targets').select('post_id').in('post_id', postsDosLotes);
+    const com = new Set((rest||[]).map(r => r.post_id)); const orf = postsDosLotes.filter(id => !com.has(id));
+    if (orf.length) await sb.from('scheduled_posts').delete().in('id', orf); } catch(e){}
   showToast(`${ids.length} excluída(s).`,'success');
   filaSelecionados.clear();
   renderFila();

@@ -1310,6 +1310,20 @@ window.addEventListener('beforeunload', () => {
 //      o resultado ("10/10 publicadas") E o botão de agendar as novas,
 //      lado a lado — as duas coisas são situações reais ao mesmo tempo.
 // ==================================================================
+// Post na fila SEM destino (alvo apagado ou que nunca gravou) trava a peça: parece agendada e nunca sai.
+// Limpa esses órfãos para a peça voltar a aparecer como "falta agendar".
+async function limparPostsSemDestino(itemIds){
+  try {
+    if (!itemIds || !itemIds.length) return;
+    const { data: ps } = await sb.from('scheduled_posts').select('id').in('batch_name', itemIds.map(id => 'ap:' + id));
+    if (!ps || !ps.length) return;
+    const { data: al, error } = await sb.from('scheduled_post_targets').select('post_id').in('post_id', ps.map(p => p.id));
+    if (error) return;
+    const com = new Set((al || []).map(a => a.post_id));
+    const orf = ps.filter(p => !com.has(p.id)).map(p => p.id);
+    if (orf.length) await sb.from('scheduled_posts').delete().in('id', orf);
+  } catch(e){ console.warn('limparPostsSemDestino', e); }
+}
 async function atualizarBotaoAgendar(){
   const ba = document.getElementById('btnAgendar');
   if (!ba || ba.style.display === 'none') return;
@@ -1318,6 +1332,7 @@ async function atualizarBotaoAgendar(){
     ['feed','carrossel','stories','reels','anuncio'].includes(i.kind));
   const idsElegiveis = elegiveis.map(i => i.id);
   if (!idsElegiveis.length) return;
+  await limparPostsSemDestino(idsElegiveis);
 
   const { data: postsDoLote } = await sb.from('scheduled_posts')
     .select('id,batch_name').in('batch_name', idsElegiveis.map(id => 'ap:' + id));
@@ -1455,6 +1470,7 @@ async function abrirAgendamento(){
   // de sistemas diferentes. Uso batch_name (campo livre) só pra eu
   // mesmo saber depois de qual peça aprovada este agendamento veio,
   // e pra não agendar a mesma peça duas vezes.
+  await limparPostsSemDestino(elegiveis.map(i => i.id));
   const { data: jaAgendadas } = await sb.from('scheduled_posts')
     .select('batch_name').in('batch_name', elegiveis.map(i => 'ap:' + i.id));
   const idsAgendados = new Set((jaAgendadas||[]).map(x => (x.batch_name||'').replace('ap:','')));
