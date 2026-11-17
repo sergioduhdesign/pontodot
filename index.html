@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v543 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v544 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -5889,7 +5889,7 @@ function abrirSubirCampanha(cid, doc, docId, pid){
   if (cid) LC.cid = cid; if (doc) { LC.doc = doc; LC.docId = docId || null; LC.plano = null; } if (pid) LC.pid = pid;
   if (!LC.conta){ const c = (ADS.dados?.contas || []).find(x => !x.erro && x.client_id === LC.cid); if (c) LC.conta = c.conta; }
   if (!document.getElementById('cxLc')) abrirJanela('<div class="caixa invertida cp sem-ajuda" style="padding:16px 18px 20px" id="cxLc"></div>', true);
-  LC.feito = null; LC.msg = ''; lcPinta(); if (LC.conta && !LC.opc) lcOpcoes(); lcLista();
+  LC.feito = null; LC.msg = ''; lcPinta(); if (LC.conta && !LC.opc) lcOpcoes(); lcLista(); lcSetups();
 }
 function lcPinta(){
   const X = document.getElementById('cxLc'); if (!X) return; const o = LC.opc, pl = LC.plano, cn = (clientesReais.find(c => c.id === LC.cid) || {}).name || '';
@@ -5905,6 +5905,7 @@ function lcPinta(){
       <button class="acao-cab" style="color:var(--branco)" onclick="fecharJanela()" aria-label="Fechar">✕</button></div>
     <h3 style="margin:10px 0 2px;font-size:22px;font-weight:400">Subir campanha · ${esc(cn)}</h3>
     <div class="nota" style="margin:0 0 8px">Nada vai ao ar sozinho: a plataforma cria tudo pausado na Meta e um admin dá o play depois de conferir pagamento e aprovação do cliente.</div>
+    ${lcSetupBloco()}
     ${LC.carreg ? progHtml(LC.carreg, '#18155F') : ''}${LC.msg ? `<div class="nota" style="margin:8px 0;color:var(--rosa)">${esc(LC.msg)}</div>` : ''}
     ${LC.feito ? `<div class="cmp-prog" style="border-style:solid"><b>Criado na Meta, pausado.</b> ${LC.feito.conjuntos} conjunto${LC.feito.conjuntos === 1 ? '' : 's'} · ${LC.feito.anuncios} anúncio${LC.feito.anuncios === 1 ? '' : 's'} · ${LC.feito.segundos}s${LC.feito.registro ? '' : ' · <span style="color:var(--rosa)">não ficou registrado na plataforma (rode o SQL v161)</span>'}
       ${LC.feito.estado === 'ativa' ? '<div style="margin-top:6px;color:var(--verde,#1f8a55)"><b>No ar.</b></div>' : ehAdmin() ? `<label class="nota" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" ${LC.confirmo ? 'checked' : ''} onchange="LC.confirmo=this.checked;lcPinta()"> Confirmo que o cliente aprovou o investimento e as peças, e que a conta tem pagamento ativo na Meta.</label>` : '<div class="nota" style="margin-top:6px">Peça a um admin para dar o play.</div>'}</div>` : ''}
@@ -5979,7 +5980,7 @@ function lcPinta(){
         ${lcBotoes(c)}<a class="btn cp-b" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${esc(c.conta.replace('act_', ''))}&selected_campaign_ids=${esc(c.campanha_meta_id)}" target="_blank" rel="noopener">Gerenciador</a>
         ${ehAdmin() ? (c.estado === 'ativa' ? `<button class="btn cp-b" onclick="lcEstado('${esc(c.id)}','pausar')">Pausar</button>` : `<button class="btn cheio cp-b" onclick="LC.feito={id:'${esc(c.id)}',link:'',conjuntos:'?',anuncios:'?',segundos:0,registro:true,estado:'${esc(c.estado)}'};LC.confirmo=false;lcPinta();cmpTopo()">Preparar play</button><button class="vt-x" title="Apagar (pergunta se tira da Meta também)" onclick="lcApagar('${esc(c.id)}')">✕</button>`) : ''}</div>`).join('') : '<div class="nota">Nenhuma ainda.</div>') : '<div class="nota">Carregando…</div>'}`; });
 }
-function lcConta(v){ LC.conta = v; const c0 = (ADS.dados?.contas || []).find(x => x.conta === v); if (c0 && c0.client_id){ LC.cid = c0.client_id; LC.pid = ''; } LC.opc = null; LC.pagina = ''; LC.formulario = ''; LC.pixel = ''; lcPinta(); if (v) lcOpcoes(); }
+function lcConta(v){ LC.conta = v; const c0 = (ADS.dados?.contas || []).find(x => x.conta === v); if (c0 && c0.client_id){ LC.cid = c0.client_id; LC.pid = ''; } LC.opc = null; LC.pagina = ''; LC.formulario = ''; LC.pixel = ''; lcPinta(); if (v) { lcOpcoes(); lcSetups(); } }
 function lcPagina(v){ LC.pagina = v; const p = (LC.opc.paginas || []).find(x => x.id === v); LC.instagram = p && p.ig_id || ''; lcPinta(); }
 async function lcOpcoes(){
   LC.carreg = 'Lendo a conta na Meta (páginas, formulários, pixel, pagamento)…'; lcPinta(); progIni();
@@ -6035,6 +6036,44 @@ async function lcPlay(id){
   catch(e){ LC.msg = e.message; }
   progFim(); LC.carreg = ''; lcPinta();
 }
+// SETUP DE CAMPANHA POR EXCEL — o mesmo arquivo que a equipe envia pela tarefa; aqui ele vira o plano, sem digitar nada
+function lcSetupBloco(){
+  if (LC.feito) return '';
+  const ss = LC.setups || [];
+  return `<div class="cmp-prog" style="border:1.5px solid var(--verde,#1f8a55);margin:8px 0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <b style="flex:1;min-width:150px">Faça antes: setup em Excel</b>
+      <a class="btn cheio cp-b" href="/SD_modelo_campanha_setup.xlsx" download>Baixar Excel de campanha</a>
+      <label class="btn cp-b" style="cursor:pointer">Importar Excel preenchido<input type="file" accept=".xlsx" style="display:none" onchange="lcSetupArquivo(this)"></label></div>
+    <div class="nota" style="margin-top:4px">Baixe, peça pra sua IA preencher os dados da campanha e integrar com os criativos. Quem sobe pela tarefa cai aqui também.</div>
+    ${ss.length ? `<div style="margin-top:8px">${ss.map((s, i) => `<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-top:1px solid rgba(127,127,127,.2)"><div style="flex:1;min-width:0"><b>${esc(s.titulo || 'Setup')}</b>${s.usado_em ? ' <span class="cp-chip">já usado</span>' : ''}<div class="nota">${s.task_id ? 'tarefa ' + esc(s.task_id) + ' · ' : ''}${new Date(s.criado_em).toLocaleDateString('pt-BR')} · ${(s.dados.anuncios || []).length} anúncio(s)</div></div>
+        <button class="btn cheio cp-b" onclick="lcSetupUsar(${i})">Usar este setup</button><button class="vt-x" title="Descartar" onclick="lcSetupApaga(${i})">✕</button></div>`).join('')}</div>` : ''}</div>`;
+}
+function lcSetupLib(){
+  const add = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Não consegui carregar ' + src.split('/').pop())); document.head.appendChild(s); });
+  return (window.XLSX ? Promise.resolve() : add('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js')).then(() => window.CampSetup ? 0 : add('/js/campanha-setup.js?v=543'));
+}
+async function lcSetups(){ try { const j = await lcFala({ acao:'setup_listar', client_id: LC.cid }); LC.setups = j.setups || []; } catch(e){ LC.setups = []; } lcPinta(); }
+async function lcSetupArquivo(inp){
+  const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+  try { await lcSetupLib(); const d = CampSetup.ler(await f.arrayBuffer());
+    if (!LC.cid) throw new Error('Escolha primeiro a conta de anúncio do cliente.');
+    await lcFala({ acao:'setup_salvar', client_id: LC.cid, product_id: LC.pid || null, dados: d }); LC.msg = d.avisos.length ? 'Setup recebido. Atenção: ' + d.avisos.slice(0, 3).join(' ') : ''; toast('Setup recebido.'); await lcSetups(); }
+  catch(e){ LC.msg = e.message; lcPinta(); }
+}
+async function lcSetupUsar(i){
+  const s = (LC.setups || [])[i]; if (!s) return;
+  try { await lcSetupLib();
+    if (!LC.opc) throw new Error('Escolha a conta de anúncio e espere a plataforma ler a conta na Meta; depois use o setup.');
+    const { plano, extras, semPeca } = CampSetup.paraPlano(s.dados, LC.pecas);
+    const hoje = new Date().toISOString().slice(0, 10); if (!plano.campanha.inicio || plano.campanha.inicio < hoje) plano.campanha.inicio = hoje; if (plano.campanha.fim && plano.campanha.fim < hoje) plano.campanha.fim = '';
+    LC.plano = plano;
+    if (extras.whatsapp) LC.whatsapp = extras.whatsapp; if (extras.link) LC.link = extras.link;
+    if (extras.formulario){ const q = extras.formulario.toLowerCase(), f = (LC.opc.formularios || []).find(x => String(x.id) === extras.formulario || (x.nome || '').toLowerCase() === q) || (LC.opc.formularios || []).find(x => (x.nome || '').toLowerCase().includes(q)); if (f) LC.formulario = f.id; }
+    LC.msg = semPeca.length ? 'Não achei a peça aprovada de: ' + semPeca.join(', ') + '. Escolha a peça nesses anúncios (a coluna PECA precisa bater com o nome do arquivo ou da pasta).' : '';
+    lcPinta(); lcResolver(); lcFala({ acao:'setup_usado', id: s.id }).catch(() => {}); toast('Plano montado a partir do setup. Confira e crie pausado.'); }
+  catch(e){ LC.msg = e.message; lcPinta(); }
+}
+async function lcSetupApaga(i){ const s = (LC.setups || [])[i]; if (!s || !confirm('Descartar este setup?')) return; try { await lcFala({ acao:'setup_apagar', id: s.id }); } catch(e){ LC.msg = e.message; } lcSetups(); }
 // APROVAÇÃO DO PLANO PELO CLIENTE + PLAY AGENDADO (mesmo lote e link das peças; o worker liga na hora marcada, só com plano aprovado)
 const LC_APR = { rascunho:['Sem aprovação do cliente',''], pendente:['Aguardando o cliente',''], ajuste:['Cliente pediu ajuste','var(--rosa)'], aprovada:['Cliente aprovou','var(--verde,#1f8a55)'] };
 function lcQuando(iso){ return new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }

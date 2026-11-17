@@ -105,6 +105,22 @@ body.carregando .nl-skel{display:block}
 .nl-link{display:flex;gap:8px;margin-top:14px}
 .nl-link input{flex:1;font-size:12px;background:var(--surface2)}
 .hide{display:none}
+
+/* FAÇA ANTES — os Excel padrão (posts e campanha). Fixo à direita no desktop; vira bloco no topo no celular. */
+.nl-antes{background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius-lg);padding:14px 15px;margin-bottom:16px}
+.nl-antes .t{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.nl-antes .b{padding:9px 0;border-top:1px solid var(--border)}
+.nl-antes .b:first-of-type{border-top:0;padding-top:0}
+.nl-antes .b b{display:block;font-size:13px;margin-bottom:2px}
+.nl-antes .b p{margin:0 0 8px;font-size:12px;line-height:1.45;color:var(--text3)}
+.nl-antes .btn{display:flex;width:100%;justify-content:center;margin-top:6px;text-decoration:none;cursor:pointer}
+.nl-antes .msg{font-size:11.5px;line-height:1.4;margin-top:7px;color:var(--text3)}
+.nl-antes .msg.ok{color:var(--accent)}
+.nl-antes .msg.er{color:#c63d32}
+@media (min-width:1240px){
+  .nl-antes{position:fixed;top:132px;right:max(18px,calc((100vw - 1080px)/2 - 262px));width:240px;margin:0;z-index:30}
+  body.embed .nl-antes{top:20px}
+}
 </style>
 </head>
 <body class="carregando">
@@ -126,6 +142,23 @@ body.carregando .nl-skel{display:block}
 </div>
 
 <div class="nl-wrap">
+
+  <aside class="nl-antes" id="nlAntes">
+    <div class="t">Faça antes</div>
+    <div class="b">
+      <b>Posts</b>
+      <p>Baixe, peça pra sua IA preencher legendas, datas e hashtags e envie junto com os criativos.</p>
+      <a class="btn btn-primary btn-sm" href="/SD_modelo_lote_aprovacao.xlsx" download>Baixar Excel de posts</a>
+    </div>
+    <div class="b">
+      <b>Campanha</b>
+      <p>Baixe, peça pra sua IA preencher os dados da campanha e integrar com os criativos.</p>
+      <a class="btn btn-primary btn-sm" href="/SD_modelo_campanha_setup.xlsx" download>Baixar Excel de campanha</a>
+      <label class="btn btn-secondary btn-sm" for="inSetup">Enviar o Excel de campanha preenchido</label>
+      <input type="file" id="inSetup" accept=".xlsx" class="hide">
+      <div class="msg" id="setupMsg"></div>
+    </div>
+  </aside>
 
   <!-- ESCOLHA -->
   <div class="nl-card" id="cardModo">
@@ -289,6 +322,7 @@ body.carregando .nl-skel{display:block}
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/aprovacao-comum.js?v=21"></script>
+<script src="/js/campanha-setup.js?v=543"></script>
 <script>
 function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
@@ -299,6 +333,20 @@ let driveTask = null;     // pasta do Drive desta tarefa (task_drive)
 let CONTEXTO = '';        // ação/projeto/obs da tarefa — ajuda a deduzir o tipo
 
 const el = id => document.getElementById(id);
+
+// SETUP DE CAMPANHA pela tarefa: o Excel preenchido entra aqui e aparece na janela Campanhas (mesmo lugar, mesmo formato)
+el('inSetup').addEventListener('change', async ev => {
+  const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  const msg = el('setupMsg'), cid = el('fClient').value;
+  const say = (t, c) => { msg.className = 'msg ' + (c || ''); msg.textContent = t; };
+  if (!cid) return say('Escolha o cliente primeiro (ou abra pela tarefa).', 'er');
+  say('Lendo o Excel…');
+  try {
+    const d = CampSetup.ler(await f.arrayBuffer());
+    await AP.sdFetch('/meta-lancar.php', { acao: 'setup_salvar', client_id: cid, task_id: TASK_ID || null, dados: d });
+    say('Setup recebido: "' + (d.campanha.nome || 'sem nome') + '". Já está em Campanhas, em Subir campanha.' + (d.avisos.length ? ' Atenção: ' + d.avisos.slice(0, 3).join(' ') : ''), d.avisos.length ? '' : 'ok');
+  } catch (e) { say(e.message, 'er'); }
+});
 
 const QS = new URLSearchParams(location.search);
 const TASK_ID = QS.get('task');

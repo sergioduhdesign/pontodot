@@ -248,6 +248,7 @@ if ($acao === 'aprovacao_plano') {
     $brl = fn($v) => 'R$ ' . number_format((float)$v, 2, ',', '.');
     $linhasTxt = []; $totDia = 0;
     $linhasTxt[] = 'Objetivo: ' . ($OBJETIVOS[$L['objetivo'] ?? ''] ?? ($L['objetivo'] ?? '—'));
+    $pe = (array)($pl['persona'] ?? []); if (!empty($pe['nome']) || !empty($pe['quem'])) $linhasTxt[] = 'Para quem: ' . trim(($pe['nome'] ?? '') . (!empty($pe['quem']) ? ' — ' . $pe['quem'] : '')) . (!empty($pe['busca']) ? "\nO que busca: " . $pe['busca'] : '');
     $per = trim((!empty($camp['inicio']) ? 'de ' . date('d/m/Y', strtotime($camp['inicio'])) : '') . (!empty($camp['fim']) ? ' até ' . date('d/m/Y', strtotime($camp['fim'])) : '')); if ($per !== '') $linhasTxt[] = 'Período: ' . $per;
     foreach ($conjs as $i => $cj) { $pub = (array)($cj['publico'] ?? []); $totDia += (float)($cj['orcamento_diario'] ?? 0);
         $cid2 = implode(', ', array_filter(array_map(fn($x) => is_array($x) ? ($x['nome'] ?? '') : (string)$x, (array)($pub['cidades'] ?? [])))); $int = implode(', ', array_filter(array_map(fn($x) => is_array($x) ? ($x['nome'] ?? '') : (string)$x, (array)($pub['interesses'] ?? []))));
@@ -300,6 +301,26 @@ if ($acao === 'apagar') {   // (admin) tira da lista; com meta=true também apag
         $r = pd_meta('DELETE', '/' . $L['campanha_meta_id'], [], $tok); if (empty($r['body']['success'])) $avisos[] = 'Meta: ' . pd_meta_erro($r); }
     pd_supa('/rest/v1/pd_campanhas_lancadas?id=eq.' . $id, 'DELETE');
     sai(['apagada' => true, 'avisos' => $avisos]);
+}
+// ---------------------------------------------------------------- SETUP DE CAMPANHA (Excel enviado pela TAREFA ou pela janela Campanhas: um formato, um lugar)
+if ($acao === 'setup_salvar') {
+    $cid = uuidOk($b['client_id'] ?? '') ?: sd_fail('Escolha o cliente do setup.', 400); $d = $b['dados'] ?? null;
+    if (!is_array($d) || empty($d['campanha']) || !isset($d['anuncios'])) sd_fail('Esse arquivo não parece o modelo de setup de campanha.', 400);
+    $reg = ['client_id' => $cid, 'task_id' => mb_substr((string)($b['task_id'] ?? ''), 0, 40) ?: null, 'product_id' => uuidOk($b['product_id'] ?? ''), 'titulo' => mb_substr((string)($d['campanha']['nome'] ?? 'Setup de campanha'), 0, 160), 'dados' => $d, 'criado_por' => $me['id'] ?? null];
+    $r = pd_supa('/rest/v1/pd_campanha_setup', 'POST', $reg, ['Prefer: return=representation']);
+    if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui guardar o setup (rode o SQL v185 no Supabase): ' . mb_substr(json_encode($r['body'] ?? ''), 0, 200), 500);
+    if (function_exists('pdAlarme')) { try { pdAlarme('campanha_setup', 'Setup de campanha recebido', $reg['titulo'] . ($reg['task_id'] ? ' · tarefa ' . $reg['task_id'] : ''), $reg['task_id'], null, true); } catch (Throwable $e) {} }
+    sai(['id' => $r['body'][0]['id'] ?? null, 'titulo' => $reg['titulo']]);
+}
+if ($acao === 'setup_listar') {
+    $cid = uuidOk($b['client_id'] ?? '');
+    $q = pd_supa('/rest/v1/pd_campanha_setup?select=id,client_id,task_id,product_id,titulo,dados,criado_em,usado_em' . ($cid ? '&client_id=eq.' . $cid : '') . '&order=criado_em.desc&limit=20');
+    sai(['setups' => array_values(array_filter((array)($q['body'] ?? []), 'is_array'))]);
+}
+if ($acao === 'setup_usado' || $acao === 'setup_apagar') {
+    $id = uuidOk($b['id'] ?? '') ?: sd_fail('Setup inválido.', 400);
+    if ($acao === 'setup_apagar') pd_supa('/rest/v1/pd_campanha_setup?id=eq.' . $id, 'DELETE'); else pd_supa('/rest/v1/pd_campanha_setup?id=eq.' . $id, 'PATCH', ['usado_em' => gmdate('c')]);
+    sai(['ok' => true]);
 }
 if ($acao === 'lista') {
     $cid = uuidOk($b['client_id'] ?? '');
