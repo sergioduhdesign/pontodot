@@ -98,7 +98,6 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .kenv{background:var(--acc)!important;color:var(--acc-tx)!important;border-color:var(--acc)!important;width:40px!important;height:40px!important;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .corpo{max-width:1080px;margin:0 auto;padding:16px 16px 90px}
 /* hero */
-.hero,.cx,.pcx{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .hero{background:var(--card);border:1px solid var(--lin);border-radius:var(--r);padding:22px;margin-bottom:14px}
 .hero .rot{color:var(--mut);font-size:13px}
 .hero .gr{font-size:40px;font-weight:600;letter-spacing:-.02em;margin:2px 0 14px;font-variant-numeric:tabular-nums}
@@ -220,7 +219,6 @@ table.tb th{color:var(--mut);font-weight:500;font-size:12px}
 .hero{position:relative}.hdest{position:absolute;top:12px;right:12px;width:30px;height:30px;opacity:.7}.hdest:hover{opacity:1}
 .hero .rot{padding-right:36px}
 .corpo{touch-action:pan-y}
-#hero,#cont,#mesTxt{will-change:transform}
 #mesTxt{cursor:pointer;display:inline-block;border-bottom:1px dashed var(--lin);padding-bottom:1px}
 .mesbar .ic{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .dsec{margin:14px 2px 7px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.dsec span{text-transform:none;letter-spacing:0;opacity:.8}
@@ -374,7 +372,8 @@ function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on
 function porta(html){ $('#app').classList.add('hid'); const p = $('#porta'); p.classList.remove('hid'); p.innerHTML = '<div class="pcx">' + html + '</div>'; }
 function parseValor(t){ let s = String(t == null ? '' : t).replace(/[R$\s]/g,''); if (!s) return NaN; if (s.includes(',')) s = s.replace(/\./g,'').replace(',','.'); return Number(s); }
 function parcelaDe(t){ const m = /^\s*(\d+)\s*de\s*(\d+)/i.exec(t || ''); return m ? [Number(m[1]), Number(m[2])] : [null, null]; }
-const normNome = d => String(d || '').replace(/\b\d+\s*de\s*\d+\b/gi,'').replace(/[-–·]+\s*$/,'').replace(/\s+/g,' ').trim().toUpperCase() || '—';
+const _NN = new Map();   // cache: o mesmo nome é normalizado milhares de vezes por tela
+const normNome = d => { const s = String(d || ''); let r = _NN.get(s); if (r === undefined) { r = s.replace(/\b\d+\s*de\s*\d+\b/gi,'').replace(/[-–·]+\s*$/,'').replace(/\s+/g,' ').trim().toUpperCase() || '—'; if (_NN.size > 20000) _NN.clear(); _NN.set(s, r); } return r; };
 const soma = (arr, f) => arr.reduce((a, l) => a + (f ? (f(l) ? Number(l.valor) : 0) : Number(l.valor)), 0);
 const ICK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
 const ICL = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
@@ -652,7 +651,7 @@ function passa(l){
 }
 function ordena(arr, sentido){
   const dia = (a, b) => (a.dia || 99) - (b.dia || 99) || String(a.descricao).localeCompare(String(b.descricao), 'pt-BR');
-  const gr = l => grupoInfo(l.grupo, sentido).ordem;
+  const og = {}, gr = l => og[l.grupo] !== undefined ? og[l.grupo] : (og[l.grupo] = grupoInfo(l.grupo, sentido).ordem);
   const F = { grupo: (a, b) => gr(a) - gr(b) || dia(a, b), data: dia, pago: (a, b) => (a.pago ? 1 : 0) - (b.pago ? 1 : 0) || dia(a, b), valor: (a, b) => b.valor - a.valor, nome: (a, b) => String(a.descricao).localeCompare(String(b.descricao), 'pt-BR') }[VISTA.ord] || dia;
   return arr.slice().sort((a, b) => VISTA.dir * F(a, b));
 }
@@ -682,7 +681,8 @@ function folhaSalvaFiltro(){
 const ehMob = () => matchMedia('(max-width:999px)').matches;
 function desenha(){
   const ps = areasPermitidas();
-  $('#segAmb').innerHTML = ps.map(a => '<button data-amb="' + a + '" class="' + (a === AMB ? 'on' : '') + '">' + (a === 'casa' ? '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M10 20v-5h4v5"/></svg>Casa' : '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/></svg>Empresa') + '</button>').join('');
+  const segH = ps.map(a => '<button data-amb="' + a + '" class="' + (a === AMB ? 'on' : '') + '">' + (a === 'casa' ? '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M10 20v-5h4v5"/></svg>Casa' : '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/></svg>Empresa') + '</button>').join('');
+  if (desenha._seg !== segH) { $('#segAmb').innerHTML = segH; desenha._seg = segH; }
   $('#segAmb').classList.toggle('hid', ps.length < 2);
   $('#mesTxt').textContent = rotMes(MES);
   hero(); abas();
@@ -800,7 +800,7 @@ function vPessoas(sentido){
     return '<div class="pes" data-pes="' + esc(g.nome) + '" data-sent="' + sentido + '">' + avHtml(g.nome, sentido) + '<div class="m"><b>' + esc(g.nome) + '</b><small>' + g.meses.size + ' meses · último em ' + rotCurto(g.ult) + pa + '</small></div><div class="val ' + (sentido === 'entrada' ? 'e' : '') + '">' + BRL0(g.doze) + '</div></div>';
   }).join('') || '<div class="vazio">Nada encontrado.</div>';
   $('#cont').innerHTML = h + '</div>';
-  const b = $('#busca'); b.oninput = () => { BUSCA = b.value; const p = b.selectionStart; vPessoas(sentido); const n = $('#busca'); n.focus(); n.setSelectionRange(p, p); };
+  const b = $('#busca'); b.oninput = () => { BUSCA = b.value; clearTimeout(vPessoas._t); vPessoas._t = setTimeout(() => { const p = b.selectionStart; vPessoas(sentido); const n = $('#busca'); n.focus(); n.setSelectionRange(p, p); }, 160); };
 }
 function abrePessoa(nome, sentido){
   const R = dados().filter(l => l.sentido === sentido && l.conta && normNome(l.descricao) === nome).sort((a, b) => b.mes.localeCompare(a.mes) || (b.dia || 0) - (a.dia || 0));
@@ -933,7 +933,7 @@ function folhaLanc(l, sentido){
 // ---- nomes: sugere parecidos enquanto digita, avisa de possível erro e deixa corrigir em todos ----
 const chaveNome = s => normNome(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 function lev(a, b){
-  if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m + n; let p = Array.from({ length: n + 1 }, (_, j) => j);
+  if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m + n; if (Math.abs(m - n) > 2) return 3;   // só usamos limite ≤ 2: corta cedo let p = Array.from({ length: n + 1 }, (_, j) => j);
   for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; }
   return p[n];
 }
@@ -1036,9 +1036,10 @@ async function virarMes(){
 }
 async function alternaPago(id){
   const l = dados().find(x => x.id === id); if (!l || !podeEditar()) return; const novo = !l.pago;
-  l.pago = novo; l.situacao = novo ? 'OK' : null; desenha();
+  const leve = () => { if (ABA === 'mes' && $('#listas')) { hero(); desLista(); } else desenha(); };   // só o que muda: cabeçalho e listas
+  l.pago = novo; l.situacao = novo ? 'OK' : null; leve();
   const r = await sb.from('fin_lancamentos').update({ pago: novo, situacao: l.situacao }).eq('id', id);
-  if (r.error) { l.pago = !novo; desenha(); toast(r.error.message); }
+  if (r.error) { l.pago = !novo; leve(); toast(r.error.message); }
 }
 
 
@@ -1389,7 +1390,7 @@ document.addEventListener('click', e => {
   if ((el = q('.lin[data-id]'))) { const l = dados().find(x => x.id === el.dataset.id); if (!l) return; if (!podeEditar()) return toast('Você só pode ver.'); if (l.grupo === 'retirada') { folhaRetirada(l.mes); return; } fecha(); folhaLanc(l, l.sentido); return; }
 });
 document.addEventListener('input', e => {
-  if (e.target.id === 'vQ') { VISTA.q = e.target.value; desLista(); return; }
+  if (e.target.id === 'vQ') { VISTA.q = e.target.value; clearTimeout(desLista._t); desLista._t = setTimeout(desLista, 140); return; }
   if (e.target.id === 'gCorX') { gCor(e.target.value); return; }
   if (e.target.id === 'fDes') { sugereNome(); return; }
   if (e.target.id === 'pNome') { sugerePessoa(); return; }
