@@ -55,6 +55,10 @@
 .mc-kit .logo{width:88px;height:64px;border:1px dashed var(--border);border-radius:7px;display:grid;place-items:center;font-size:10.5px;color:var(--text3);cursor:pointer;background:#fff;overflow:hidden;position:relative}.mc-kit .logo img{max-width:92%;max-height:80%;object-fit:contain}
 /* botão com tamanho fixo no estilo inline: texto/ícone sempre no centro (rede de segurança contra botão torto) */
 button[style*="height:"][style*="width:"]:not([style*="display"]){display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;text-align:center;box-sizing:border-box}
+.esc-vermais{position:relative;z-index:2;margin-top:-170px;padding:150px 0 150px;text-align:center;pointer-events:none;background:linear-gradient(to bottom,rgba(255,255,255,0) 0,var(--bg,#fff) 120px)}
+.esc-vermais button{pointer-events:auto;border:0;background:none;cursor:pointer;font:200 30px/1.15 'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:-.01em;color:#9a9a96;padding:8px 14px;transition:color .25s}
+.esc-vermais button:hover{color:#4b4b49}
+@media(max-width:700px){.esc-vermais button{font-size:24px}}
 </style>
 <link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -3592,7 +3596,7 @@ function renderEscola(){
           <form class="esc-comenta" onsubmit="escComentar('${escSafe(k)}',event)"><input data-ck="${escSafe(k)}" maxlength="600" placeholder="Comente algo…" autocomplete="off"><button>Enviar</button></form>`; })()}
       </div></article>`;
   }).join('') + (resto > 0
-      ? `<button class="esc-link" style="display:block;margin:14px auto 6px" onclick="ESC_VER+=6;renderEscola()">Ver mais publicações (${resto})</button>`
+      ? `<div class="esc-vermais"><button onclick="ESC_VER+=6;renderEscola()">Ver mais publicações</button></div>`
       : (lista.length ? `<div class="esc-mais" id="esc-fim">Carregando mais publicações…</div>` : ''))
     || '<div class="esc-vazio">Nada publicado ainda.</div>';
   escVigiaFim();
