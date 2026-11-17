@@ -319,7 +319,7 @@ AP.lerPacote = async function(files, opts){
       && porPasta[p2].some(ehMidia));
     // CAMPANHA: vários .txt de anúncio na mesma pasta = um anúncio por arte (casa pelo campo PEÇA ou pelo nome do .txt)
     const anunciosDaPasta = [];
-    if (txts.length > 1) for (const t of txts) { const r = await lerTxtPeca(t.e); if (r.anuncio) anunciosDaPasta.push({ t, r }); }
+    if (txts.length > 1) for (const t of txts) { try { const r = await lerTxtPeca(t.e); if (r.anuncio) anunciosDaPasta.push({ t, r }); } catch (e) { /* .txt ilegível: segue como antes */ } }
     const individual = pasta === '' || temSubpastaComMidia || anunciosDaPasta.length > 1;
     const grupos = individual
       ? midias.map(m => ({ nomeBase: m.nome.replace(/\.[^.]+$/,''), lista: [m], individual: true }))
@@ -372,10 +372,17 @@ AP.lerPacote = async function(files, opts){
 
   // ---- Excel no pacote: casa por chave e GANHA de .txt/.docx ----
   const linhas = [];
+  let setupCampanha = null;
   for (const x of todas.filter(e => XLS.test(e.path))) {
     st('Lendo planilha ' + ultimo(x.path) + '…');
     try {
-      const ls = AP.lerPlanilha(new Uint8Array(await x.buf()));
+      const buf = await x.buf();
+      // Excel de SETUP DE CAMPANHA (abas CAMPANHA + ANUNCIOS): não é planilha de posts — vira o setup da campanha
+      if (typeof CampSetup !== 'undefined' && CampSetup.ehSetup(XLSX.read(buf, { type: 'array' }))) {
+        if (!setupCampanha) setupCampanha = CampSetup.ler(buf);
+        continue;
+      }
+      const ls = AP.lerPlanilha(new Uint8Array(buf));
       ls.forEach(l => { l._fonte = ultimo(x.path); linhas.push(l); });
     } catch(e) { console.warn('Planilha não lida:', x.path, e.message); }
   }
@@ -425,7 +432,7 @@ AP.lerPacote = async function(files, opts){
   }
 
   pecas.sort((a,b)=>a.ordem.localeCompare(b.ordem,'pt-BR',{numeric:true}));
-  return { pecas, linhas };
+  return { pecas, linhas, setupCampanha };
 };
 
 // =====================================================================

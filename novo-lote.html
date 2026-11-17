@@ -117,6 +117,12 @@ body.carregando .nl-skel{display:block}
 .nl-antes .msg{font-size:11.5px;line-height:1.4;margin-top:7px;color:var(--text3)}
 .nl-antes .msg.ok{color:var(--accent)}
 .nl-antes .msg.er{color:#c63d32}
+#tipoEntrega{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+#tipoEntrega button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--text);font:inherit;cursor:pointer}
+#tipoEntrega button b{font-size:15px}
+#tipoEntrega button span{font-size:12px;color:var(--text3)}
+#tipoEntrega button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.nl-antes.foco-camp .b:first-of-type,.nl-antes.foco-posts .b:nth-of-type(2){opacity:.45}
 @media (max-width:1239px){
   .nl-antes{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:auto 1fr 1fr;gap:14px;align-items:start;box-shadow:0 6px 18px rgba(0,0,0,.08)}
   .nl-antes .t{margin:0;align-self:center}
@@ -166,10 +172,15 @@ body.carregando .nl-skel{display:block}
     </div>
   </aside>
 
+  <div id="tipoEntrega" role="group" aria-label="Tipo de entrega">
+    <button type="button" class="on" data-tipo="posts"><b>Posts</b><span>lote de posts, carrosséis, stories, reels</span></button>
+    <button type="button" data-tipo="campanha"><b>Campanha</b><span>anúncios com público, verba e setup</span></button>
+  </div>
+
   <!-- ESCOLHA -->
   <div class="nl-card" id="cardModo">
     <h2>O que você está entregando?</h2>
-    <p class="hint">Serve para lote de posts ou para campanha: o caminho é o mesmo. Aceita imagens, vídeos e PDF. Envie junto o Excel com todos os dados de configuração (posts: legendas, datas e hashtags; campanha: público, verba e anúncios). Dá para voltar depois.</p>
+    <p class="hint" id="hintModo"></p>
     <div class="nl-opts">
       <button class="nl-opt" data-modo="lote_variado">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
@@ -272,18 +283,12 @@ body.carregando .nl-skel{display:block}
   <div class="nl-card hide" id="cardZip">
     <h2>Pasta completa</h2>
     <p class="hint">
-      Como eu leio: <b>cada subpasta vira uma peça</b> (2+ imagens = carrossel, 1 = post,
-      vídeo = reels, "stories" no nome = stories, PDF = uma imagem por página) · pasta com subpastas dentro (ex.: "semana 1")
-      trata os arquivos soltos como posts individuais · se tiver um <b>.xlsx</b> dentro do zip
-      (o modelo de 7 colunas — <a href="/SD_modelo_lote_aprovacao.xlsx" download style="color:inherit;font-weight:700">baixar</a>),
-      ele manda: casa cada linha pela chave ARQUIVO_OU_PASTA · <b>campanha</b>: o <a href="/SD_modelo_campanha_setup.xlsx" download style="color:inherit;font-weight:700">Excel de campanha</a> dentro do zip vira o setup (público, verba, anúncios) · sem excel, aceito <b>.txt</b> (vira legenda)
-      ou o <b>.docx</b> da semana (DIA 1, DIA 2… com Legenda e STORYs). Depois é só conferir e ajustar.
+      Cada subpasta vira uma peça (2+ imagens = carrossel, vídeo = reels). O <b>Excel</b> dentro do zip manda nos dados:
+      <a href="/SD_modelo_lote_aprovacao.xlsx" download style="color:inherit;font-weight:700">Excel de posts</a> (legendas, datas, hashtags) ou
+      <a href="/SD_modelo_campanha_setup.xlsx" download style="color:inherit;font-weight:700">Excel de campanha</a> (público, verba, anúncios).
+      Sem Excel, aceito .txt (legenda) ou o .docx da semana. Depois é só conferir.
     </p>
-    <div style="margin-bottom:10px"><select id="selPag" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12px">
-          <option value="auto">PDF/PPTX: automático ("carrossel"/"stories" no nome = 1 peça)</option>
-          <option value="peca">PDF/PPTX: cada página é uma peça</option>
-          <option value="grupo">PDF/PPTX: o arquivo inteiro é uma peça (carrossel)</option>
-        </select></div>
+    <input type="hidden" id="selPag" value="auto">
     <button class="btn btn-primary" id="btnLerDrive" style="display:none;width:100%;justify-content:center;height:44px">
       ⇣ Ler a entrega da IA no Drive</button>
     <div class="nl-drop" id="dropZip">
@@ -327,8 +332,8 @@ body.carregando .nl-skel{display:block}
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/aprovacao-comum.js?v=545"></script>
-<script src="/js/campanha-setup.js?v=545"></script>
+<script src="/js/aprovacao-comum.js?v=548"></script>
+<script src="/js/campanha-setup.js?v=548"></script>
 <script>
 function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
@@ -594,15 +599,12 @@ async function receberZip(file){
     // CAMPANHA: o Excel de setup dentro do zip manda; sem ele, os .txt de anúncio montam o setup
     CAMP_PEND = null;
     try {
-      const zip = await JSZip.loadAsync(file);
-      for (const z of Object.values(zip.files)) {
-        if (z.dir || !/\.xlsx$/i.test(z.name) || /(^|\/)(__MACOSX|\._)/.test(z.name)) continue;
-        const buf = await z.async('arraybuffer');
-        if (CampSetup.ehSetup(XLSX.read(buf, { type: 'array' }))) { CAMP_PEND = { dados: CampSetup.ler(buf), origem: 'excel' }; break; }
-      }
-    } catch (e) { console.warn('Excel de campanha no zip:', e.message); }
-    if (!CAMP_PEND) { const an = zipPecas.filter(p => p.anuncio); if (an.length) CAMP_PEND = { dados: CampSetup.deAnuncios(an.map(p => ({ meta: p.anuncio, texto: p.legenda, titulo: p.titulo })), el('fTitle').value), origem: 'txt' }; }
-    if (CAMP_PEND) st.textContent += ` CAMPANHA detectada (${CAMP_PEND.origem === 'excel' ? 'pelo Excel de campanha' : 'pelos .txt dos anúncios, sem Excel'}): "${CAMP_PEND.dados.campanha.nome || 'sem nome'}", ${CAMP_PEND.dados.publicos.length} público(s), ${CAMP_PEND.dados.anuncios.length} anúncio(s). Ao enviar, vai pra Campanhas › Subir campanha.`;
+      if (r.setupCampanha) CAMP_PEND = { dados: r.setupCampanha, origem: 'excel' };
+      else { const an = zipPecas.filter(p => p.anuncio); if (an.length) CAMP_PEND = { dados: CampSetup.deAnuncios(an.map(p => ({ meta: p.anuncio, texto: p.legenda, titulo: p.titulo })), el('fTitle').value), origem: 'txt' }; }
+    } catch (e) { console.warn('Setup de campanha no zip:', e.message); }
+    if (CAMP_PEND && TIPO !== 'campanha') { setTipo('campanha'); st.textContent += ' Achei dados de campanha no zip — troquei o envio para Campanha.'; }
+    if (TIPO === 'campanha') zipPecas.forEach(p => p.kind = 'anuncio');
+    if (TIPO === 'campanha' && !CAMP_PEND) st.textContent += ' Atenção: não achei o Excel de campanha nem .txt de anúncio neste zip.';
     renderZipPecas();
   } catch(e) {
     st.textContent = 'Não consegui ler esse zip: ' + e.message;
@@ -610,11 +612,32 @@ async function receberZip(file){
   atualizar();
 }
 
-function tipoDeTodas(k){
-  if (!k) return;
-  zipPecas.forEach(p => p.kind = k);
-  renderZipPecas();
-  showToast('Tipo aplicado em ' + zipPecas.length + ' peça(s).', 'success');
+// POSTS ou CAMPANHA: definido de cara, no topo. Campanha = peças viram anúncios e o setup (Excel) aparece pra conferir.
+let TIPO = 'posts';
+function setTipo(t){
+  TIPO = t;
+  document.querySelectorAll('#tipoEntrega button').forEach(b => b.classList.toggle('on', b.dataset.tipo === t));
+  el('nlAntes').classList.toggle('foco-camp', t === 'campanha');
+  el('nlAntes').classList.toggle('foco-posts', t === 'posts');
+  el('hintModo').textContent = t === 'campanha'
+    ? 'Campanha: suba o zip com os criativos e o Excel de campanha (público, verba, anúncios). Cada arte vira um anúncio e a campanha vai pra Campanhas › Subir campanha. Dá para voltar depois.'
+    : 'Posts: imagens, vídeos e PDF. Envie junto o Excel com legendas, datas e hashtags. Dá para voltar depois.';
+  if (zipPecas.length) { if (t === 'campanha') zipPecas.forEach(p => p.kind = 'anuncio'); renderZipPecas(); atualizar(); }
+}
+document.querySelectorAll('#tipoEntrega button').forEach(b => b.onclick = () => setTipo(b.dataset.tipo));
+setTimeout(() => setTipo('posts'), 0);
+function resumoCampanha(){
+  if (TIPO !== 'campanha' || !CAMP_PEND) return '';
+  const d = CAMP_PEND.dados, c = d.campanha, p = d.persona, T = escX;
+  const lin = (r, v) => v ? `<div style="font-size:12px;line-height:1.45"><b>${r}:</b> ${T(v)}</div>` : '';
+  return `<div style="padding:12px 14px;margin-bottom:12px;border:1.5px solid var(--accent);border-radius:9px;background:var(--surface)">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Campanha (${CAMP_PEND.origem === 'excel' ? 'lida do Excel' : 'montada pelos .txt, sem Excel'})</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px">${T(c.nome || 'Sem nome')}</div>
+    ${lin('Objetivo', c.objetivo)}${lin('Período', [c.inicio, c.fim].filter(Boolean).join(' a '))}${lin('Formulário', c.formulario)}${lin('WhatsApp', c.whatsapp)}${lin('Link', c.link)}
+    ${(p.nome || p.quem || p.busca || p.dores || p.gatilhos || p.tom) ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3)">Persona</div>${lin('Nome', p.nome)}${lin('Quem é', p.quem)}${lin('O que busca', p.busca)}${lin('Dores e objeções', p.dores)}${lin('Gatilhos', p.gatilhos)}${lin('Tom de voz', p.tom)}` : ''}
+    <div style="margin:8px 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3)">${d.publicos.length} público(s) · ${d.anuncios.length} anúncio(s)</div>
+    ${d.publicos.map(u => `<div style="font-size:12px;line-height:1.45">• <b>${T(u.conjunto)}</b>${u.cidades.length ? ' · ' + T(u.cidades.join(', ')) : ''}${u.interesses.length ? ' · ' + T(u.interesses.join(', ')) : ''} · R$ ${T(u.verba)}/dia</div>`).join('')}
+    ${d.avisos.length ? `<div style="margin-top:8px;font-size:11.5px;color:#c63d32">${d.avisos.map(T).join('<br>')}</div>` : ''}</div>`;
 }
 
 function renderZipPecas(){
@@ -622,16 +645,10 @@ function renderZipPecas(){
   const contagem = {};
   zipPecas.forEach(p => contagem[p.kind] = (contagem[p.kind] || 0) + 1);
   const topo = zipPecas.length > 1 ? `
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;
-                border:1px solid var(--border);border-radius:9px;background:var(--surface)">
-      <span style="font-size:12px;color:var(--text3);flex:1;min-width:180px">
-        ${Object.entries(contagem).map(([k,n]) => n + ' ' + (KINDS[k]||k)).join(' · ')}</span>
-      <select onchange="tipoDeTodas(this.value);this.value=''" style="padding:7px 9px;border:1px solid var(--border);
-        border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12px">
-        <option value="">Mudar o tipo de todas…</option>
-        ${Object.entries(KINDS).map(([k,v]) => `<option value="${k}">Todas = ${v}</option>`).join('')}
-      </select></div>` : '';
-  el('zipLista').innerHTML = topo + zipPecas.map((p, i) => `
+    <div style="padding:10px 12px;margin-bottom:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface)">
+      <span style="font-size:12px;color:var(--text3)">
+        ${Object.entries(contagem).map(([k,n]) => n + ' ' + (KINDS[k]||k)).join(' · ')}</span></div>` : '';
+  el('zipLista').innerHTML = resumoCampanha() + topo + zipPecas.map((p, i) => `
     <div class="nl-peca">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
         ${p.files.slice(0,8).map(f => ZIP_VID.test(f.nome)
