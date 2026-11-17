@@ -125,6 +125,29 @@ function separarLegenda(txt){
 }
 AP.separarLegenda = separarLegenda;
 
+// .txt de ANÚNCIO de campanha (formato que a IA entrega): cabeçalho "CHAVE: valor" + "LEGENDA" + texto.
+// O cabeçalho NÃO é legenda: vira dado da campanha; legenda é só o que vem depois de LEGENDA.
+const _semAc = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '');
+const _chaveTxt = s => _semAc(s).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+const _CAMPOS_ANUNCIO = { ANUNCIO:'anuncio', PUBLICO:'publico', ETAPA:'etapa', RODADA:'rodada', PECA:'peca', TITULO_DO_ANUNCIO:'titulo', TITULO:'titulo', BOTAO:'botao', DESCRICAO:'descricao', DESCRICAO_DO_ANUNCIO:'descricao' };
+function lerAnuncioTxt(txt){
+  const L = String(txt || '').split(/\r?\n/), meta = {}; let i = 0;
+  for (; i < L.length; i++) {
+    const t = L[i].trim(); if (!t) continue;
+    if (/^LEGENDA\s*:?\s*$/.test(_semAc(t).toUpperCase())) { i++; break; }
+    const m = t.match(/^([^:]{2,32}):\s*(.*)$/); const k = m && _CAMPOS_ANUNCIO[_chaveTxt(m[1])];
+    if (!k) break; meta[k] = m[2].trim();
+  }
+  if (!meta.anuncio) return null;
+  return { meta, texto: L.slice(i).join('\n').trim() };
+}
+async function lerTxtPeca(e){
+  const bruto = await e.text(), an = lerAnuncioTxt(bruto);
+  if (an) { const sep = separarLegenda(an.texto); return { legenda: sep.legenda, hashtags: sep.hashtags, anuncio: an.meta }; }
+  const sep = separarLegenda(bruto); return { legenda: sep.legenda, hashtags: sep.hashtags, anuncio: null };
+}
+AP.lerAnuncioTxt = lerAnuncioTxt;
+
 const DIAS_SEMANA = { segunda:1, terca:2, 'terça':2, quarta:3, quinta:4, sexta:5, sabado:6, 'sábado':6, domingo:7 };
 function diaDoNome(texto){
   const t = (texto||'').toLowerCase();
@@ -286,25 +309,34 @@ AP.lerPacote = async function(files, opts){
     const txts = arqs.filter(a => TXT.test(a.nome));
     if (!midias.length) continue;
 
-    let legPasta = '', hashPasta = '';
+    let legPasta = '', hashPasta = '', anuncioPasta = null;
     if (txts.length && pasta !== '') {
-      const sep = separarLegenda(await txts[0].e.text());
-      legPasta = sep.legenda; hashPasta = sep.hashtags;
+      const sep = await lerTxtPeca(txts[0].e);
+      legPasta = sep.legenda; hashPasta = sep.hashtags; anuncioPasta = sep.anuncio;
     }
 
     const temSubpastaComMidia = pastas.some(p2 => p2 !== pasta && p2.startsWith(pasta + '/')
       && porPasta[p2].some(ehMidia));
-    const individual = pasta === '' || temSubpastaComMidia;
+    // CAMPANHA: vários .txt de anúncio na mesma pasta = um anúncio por arte (casa pelo campo PEÇA ou pelo nome do .txt)
+    const anunciosDaPasta = [];
+    if (txts.length > 1) for (const t of txts) { const r = await lerTxtPeca(t.e); if (r.anuncio) anunciosDaPasta.push({ t, r }); }
+    const individual = pasta === '' || temSubpastaComMidia || anunciosDaPasta.length > 1;
     const grupos = individual
       ? midias.map(m => ({ nomeBase: m.nome.replace(/\.[^.]+$/,''), lista: [m], individual: true }))
       : [{ nomeBase: ultimo(pasta), lista: midias, individual: false }];
 
     for (const g of grupos) {
-      let legenda = legPasta, hashtags = hashPasta;
+      let legenda = legPasta, hashtags = hashPasta, anuncio = anuncioPasta;
       if (g.individual) {
-        const t = txts.find(x => norm(x.nome) === norm(g.nomeBase));
-        if (t) { const sep = separarLegenda(await t.e.text()); legenda = sep.legenda; hashtags = sep.hashtags; }
-        else { legenda = ''; hashtags = ''; }
+        const basePeca = x => norm(String(x || '').replace(/\.[^.]+$/, ''));
+        const dosAnuncios = anunciosDaPasta.find(a => a.r.anuncio.peca && basePeca(a.r.anuncio.peca) === norm(g.nomeBase))
+          || anunciosDaPasta.find(a => norm(a.t.nome.replace(/\.[^.]+$/, '')) === norm(g.nomeBase));
+        if (dosAnuncios) { legenda = dosAnuncios.r.legenda; hashtags = dosAnuncios.r.hashtags; anuncio = dosAnuncios.r.anuncio; }
+        else {
+          const t = txts.find(x => norm(x.nome) === norm(g.nomeBase));
+          if (t) { const sep = await lerTxtPeca(t.e); legenda = sep.legenda; hashtags = sep.hashtags; anuncio = sep.anuncio; }
+          else { legenda = ''; hashtags = ''; anuncio = null; }
+        }
       }
 
       // lê as artes do zip em paralelo (lotes de 6), mantendo a ordem
@@ -332,7 +364,7 @@ AP.lerPacote = async function(files, opts){
         // Excel como ARQUIVO_OU_PASTA: arquivo solto = nome do arquivo;
         // grupo = caminho da pasta dentro do pacote.
         chave: g.individual ? g.lista[0].nome : pasta,
-        kind, files: fl, legenda, hashtags, fonteLegenda: legenda ? 'txt' : '',
+        kind, files: fl, legenda, hashtags, anuncio: anuncio || null, fonteLegenda: legenda ? 'txt' : '',
         dataPub:'', horaPub:'09:00', linha: null
       });
     }

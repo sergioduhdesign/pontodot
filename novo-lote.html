@@ -117,6 +117,12 @@ body.carregando .nl-skel{display:block}
 .nl-antes .msg{font-size:11.5px;line-height:1.4;margin-top:7px;color:var(--text3)}
 .nl-antes .msg.ok{color:var(--accent)}
 .nl-antes .msg.er{color:#c63d32}
+@media (max-width:1239px){
+  .nl-antes{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:auto 1fr 1fr;gap:14px;align-items:start;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+  .nl-antes .t{margin:0;align-self:center}
+  .nl-antes .b,.nl-antes .b:first-of-type{border-top:0;padding:0}
+}
+@media (max-width:700px){ .nl-antes{grid-template-columns:1fr} }
 @media (min-width:1240px){
   .nl-antes{position:fixed;top:132px;right:max(18px,calc((100vw - 1080px)/2 - 262px));width:240px;margin:0;z-index:30}
   body.embed .nl-antes{top:20px}
@@ -270,7 +276,7 @@ body.carregando .nl-skel{display:block}
       vídeo = reels, "stories" no nome = stories, PDF = uma imagem por página) · pasta com subpastas dentro (ex.: "semana 1")
       trata os arquivos soltos como posts individuais · se tiver um <b>.xlsx</b> dentro do zip
       (o modelo de 7 colunas — <a href="/SD_modelo_lote_aprovacao.xlsx" download style="color:inherit;font-weight:700">baixar</a>),
-      ele manda: casa cada linha pela chave ARQUIVO_OU_PASTA · sem excel, aceito <b>.txt</b> (vira legenda)
+      ele manda: casa cada linha pela chave ARQUIVO_OU_PASTA · <b>campanha</b>: o <a href="/SD_modelo_campanha_setup.xlsx" download style="color:inherit;font-weight:700">Excel de campanha</a> dentro do zip vira o setup (público, verba, anúncios) · sem excel, aceito <b>.txt</b> (vira legenda)
       ou o <b>.docx</b> da semana (DIA 1, DIA 2… com Legenda e STORYs). Depois é só conferir e ajustar.
     </p>
     <div style="margin-bottom:10px"><select id="selPag" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font:inherit;font-size:12px">
@@ -321,8 +327,8 @@ body.carregando .nl-skel{display:block}
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/aprovacao-comum.js?v=21"></script>
-<script src="/js/campanha-setup.js?v=543"></script>
+<script src="/js/aprovacao-comum.js?v=545"></script>
+<script src="/js/campanha-setup.js?v=545"></script>
 <script>
 function escX(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
@@ -527,6 +533,14 @@ el('btnLerDrive').onclick = receberDrive;
 // O resultado aparece abaixo pra conferir e ajustar antes de enviar.
 // ================================================================
 let zipPecas = [];
+let CAMP_PEND = null;   // setup de campanha achado no zip (Excel ou .txt de anúncio), salvo ao enviar
+async function salvarSetupCampanha(){
+  if (!CAMP_PEND || !el('fClient').value) return;
+  const c = CAMP_PEND; CAMP_PEND = null;
+  try { await AP.sdFetch('/meta-lancar.php', { acao: 'setup_salvar', client_id: el('fClient').value, task_id: TASK_ID || null, dados: c.dados });
+    showToast('Setup da campanha salvo em Campanhas › Subir campanha.', 'success'); }
+  catch (e) { CAMP_PEND = c; showToast('Lote ok, mas o setup da campanha não salvou: ' + e.message, 'error'); }
+}
 let MODO_PACOTE_ANTERIOR = null;
 const ZIP_VID = AP.RE.VID;
 
@@ -577,6 +591,18 @@ async function receberZip(file){
     st.textContent = zipPecas.length
       ? `Entendi ${zipPecas.length} peça(s), ${zipPecas.reduce((t,p)=>t+p.files.length,0)} arte(s). Confere abaixo — dá pra ajustar tudo.`
       : 'Não achei nenhuma imagem, vídeo ou PDF dentro do zip.';
+    // CAMPANHA: o Excel de setup dentro do zip manda; sem ele, os .txt de anúncio montam o setup
+    CAMP_PEND = null;
+    try {
+      const zip = await JSZip.loadAsync(file);
+      for (const z of Object.values(zip.files)) {
+        if (z.dir || !/\.xlsx$/i.test(z.name) || /(^|\/)(__MACOSX|\._)/.test(z.name)) continue;
+        const buf = await z.async('arraybuffer');
+        if (CampSetup.ehSetup(XLSX.read(buf, { type: 'array' }))) { CAMP_PEND = { dados: CampSetup.ler(buf), origem: 'excel' }; break; }
+      }
+    } catch (e) { console.warn('Excel de campanha no zip:', e.message); }
+    if (!CAMP_PEND) { const an = zipPecas.filter(p => p.anuncio); if (an.length) CAMP_PEND = { dados: CampSetup.deAnuncios(an.map(p => ({ meta: p.anuncio, texto: p.legenda, titulo: p.titulo })), el('fTitle').value), origem: 'txt' }; }
+    if (CAMP_PEND) st.textContent += ` CAMPANHA detectada (${CAMP_PEND.origem === 'excel' ? 'pelo Excel de campanha' : 'pelos .txt dos anúncios, sem Excel'}): "${CAMP_PEND.dados.campanha.nome || 'sem nome'}", ${CAMP_PEND.dados.publicos.length} público(s), ${CAMP_PEND.dados.anuncios.length} anúncio(s). Ao enviar, vai pra Campanhas › Subir campanha.`;
     renderZipPecas();
   } catch(e) {
     st.textContent = 'Não consegui ler esse zip: ' + e.message;
@@ -919,6 +945,7 @@ el('btnSave').onclick = async () => {
 
 // Lote da IA em revisão interna: não gera link nem avisa o cliente.
 function finalizarInterno(){
+  salvarSetupCampanha();
   el('prog').classList.remove('on');
   const card = el('cardDone');
   card.querySelector('h2').textContent = 'Lote criado — em revisão interna';
@@ -939,6 +966,7 @@ async function finalizar(){
     const { data:env, error } = await sb.rpc('send_approval_set',
       { p_set_id: setId, p_days: 30 });
     if (error) throw error;
+    salvarSetupCampanha();
 
     const link = `${location.origin}/aprovacao-preview.php?t=${env.token}`;
     if (env.task) {

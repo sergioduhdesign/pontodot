@@ -72,5 +72,15 @@ window.CampSetup = (function () {
     return { plano: { campanha: { nome: d.campanha.nome, objetivo: OBJ[chave(d.campanha.objetivo)] || 'OUTCOME_LEADS', inicio: d.campanha.inicio, fim: d.campanha.fim }, persona: d.persona, conjuntos, anuncios },
       extras: { formulario: d.campanha.formulario, whatsapp: d.campanha.whatsapp, link: d.campanha.link }, semPeca: sobra };
   }
-  return { ler, paraPlano, ehSetup, horarios };
+  /** Sem Excel de setup: monta o setup a partir dos .txt de anúncio (cabeçalho ANÚNCIO/PÚBLICO/PEÇA/TÍTULO/BOTÃO + legenda). O Excel, quando existe, manda. */
+  function deAnuncios(lista, nomeCampanha) {
+    const vistos = [], publicos = [];
+    lista.forEach(a => { const p = txt(a.meta.publico) || 'Público 1'; if (!vistos.includes(p)) { vistos.push(p); publicos.push({ conjunto: p, persona: '', cidades: [], raio: 25, interesses: [], verba: 50, otimizacao: '', horarios: [] }); } });
+    const anuncios = lista.map((a, i) => ({ anuncio: txt(a.meta.anuncio) || 'Anúncio ' + (i + 1), conjunto: txt(a.meta.publico) || 'Público 1', peca: txt(a.meta.peca) || txt(a.titulo),
+      titulo: txt(a.meta.titulo), texto: txt(a.texto), descricao: txt(a.meta.descricao), botao: txt(a.meta.botao) }));
+    return { campanha: { nome: txt(nomeCampanha), objetivo: 'Leads', inicio: '', fim: '', formulario: '', whatsapp: '', link: '' },
+      persona: { nome: '', quem: '', busca: '', dores: '', gatilhos: '', tom: '', referencias: '' }, publicos, anuncios,
+      avisos: ['Veio dos .txt dos anúncios (sem Excel de campanha): faltam cidades, interesses, verba e link/formulário — complete em Subir campanha.'] };
+  }
+  return { ler, paraPlano, ehSetup, horarios, deAnuncios };
 })();
