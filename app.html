@@ -3482,8 +3482,17 @@ function escFotoPost(p){
 function escNomes(ids){ return ids.map(i => escChar(i)?.name || i); }
 
 function escHtmlHumano(h, ult){
-  const nome = h.profiles?.name || 'Equipe';
-  const av = h.profiles?.avatar_url ? `<img src="${escSafe(h.profiles.avatar_url)}" alt="">` : avatarHTML(nome,'',36);
+  let nome = h.profiles?.name || 'Equipe';
+  let av = h.profiles?.avatar_url ? `<img src="${escSafe(h.profiles.avatar_url)}" alt="">` : avatarHTML(nome,'',36);
+  // post automático "Da casa · Fulano": a foto é de um aluno de Catum, então o avatar e o nome são DELE (não de quem a conta publicou)
+  const dc = /^\s*(?:🏠\s*)?Da casa(?:\s*·\s*(.+))?\s*$/.exec(h.body || '');
+  if (dc){
+    const q = String(dc[1] || '').trim(), qn = q.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const id = ESC_IDS.find(i => i === qn || String(escChar(i)?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase() === qn);
+    if (id){ nome = escChar(id)?.name || q;
+      av = `<img src="${escSafe(escFoto(id,'avatar'))}" alt="" onclick="escPerfil('${id}')" style="cursor:pointer">`; }
+    else { nome = q || 'Da casa'; av = `<img src="assets/logo-pontodot-bolinha.svg" alt="">`; }
+  }
   const eu = typeof myLikes !== 'undefined' && myLikes.has(h.id);
   return `<article class="esc-post esc-humano ${ult?'esc-ultimo':''}">
     <div class="esc-cab-post">${av}<b>${escSafe(nome)}</b><span>${escSafe(escDia(String(h.created_at).slice(0,10)))}</span>${h.user_id===profile.id?`<button class="esc-x" style="margin-left:8px" onclick="deletePost('${h.id}')" aria-label="Apagar">✕</button>`:''}</div>
