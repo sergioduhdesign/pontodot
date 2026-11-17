@@ -204,7 +204,7 @@ function pdEmailEspelho($telDigitos, $texto, $ref) {
         if (preg_replace('/\D/', '', (string)$p['zap']) !== $telDigitos || empty($p['email'])) continue;
         $linhas = explode("\n", $texto); $assunto = trim(preg_replace('/^🔔\s*/u', '', $linhas[0]));
         $ok = @mail($p['email'], '=?UTF-8?B?' . base64_encode($assunto) . '?=', $texto . "\n\nPontodot\n" . sd_base(),
-            "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+            "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: pd@pontodot.ai\r\nContent-Type: text/plain; charset=UTF-8");
         pdAvisoLog('email', $p['email'], $p['name'] ?? null, $assunto, $texto, $ok ? 'enviado' : 'erro', $ok ? null : 'mail() falhou', 'equipe', $ref);
         return;
     }
@@ -266,7 +266,7 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
             $msg = 'Olá, ' . ($p['name'] ?: '') . "!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link
                  . "\n\nVocê pode aprovar tudo de uma vez ou pedir ajuste peça por peça.\n\nPontodot\n" . sd_base();
             $okm = @mail($p['email'], '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
-                "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+                "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: pd@pontodot.ai\r\nContent-Type: text/plain; charset=UTF-8");
             pdAvisoLog('email', $p['email'], $p['name'] ?? null, $titulo, $msg, $okm ? 'enviado' : 'erro', $okm ? null : 'mail() falhou', 'cliente', null, $clientId);
         }
         $n++;
@@ -276,7 +276,7 @@ function avisarCliente($clientId, $titulo, $corpo, $link) {
     if ($ea !== '' && filter_var($ea, FILTER_VALIDATE_EMAIL)) {
         $msg = "Olá!\n\n" . $corpo . "\n\nAbra para aprovar:\n" . $link . "\n\nPontodot\n" . sd_base();
         $okm = @mail($ea, '=?UTF-8?B?' . base64_encode($titulo) . '?=', $msg,
-            "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: contato@sergioduh.com\r\nContent-Type: text/plain; charset=UTF-8");
+            "From: Pontodot <workflow@sergioduh.com>\r\nReply-To: pd@pontodot.ai\r\nContent-Type: text/plain; charset=UTF-8");
         pdAvisoLog('email', $ea, $zc['body'][0]['name'] ?? null, $titulo, $msg, $okm ? 'enviado' : 'erro', $okm ? null : 'mail() falhou', 'cliente', null, $clientId);
     }
     return $n;

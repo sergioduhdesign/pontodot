@@ -131,7 +131,7 @@ function pdConviteEmail($email, $name, $link, $modo = 'convite') {
     $texto = "Oi, $primeiro!\n\n" . $txt . "\n\nCrie seu acesso:\n$link\n\nO link vale por 24 horas e é só seu.\n\nPontodot · " . sd_base() . "\n" . $cfg['empresa'] . " · " . $siteTxt;
     $bnd = 'pd' . bin2hex(random_bytes(8));
     $headers = "From: Pontodot <workflow@sergioduh.com>\r\n"
-             . "Reply-To: contato@sergioduh.com\r\n"
+             . "Reply-To: pd@pontodot.ai\r\n"
              . "MIME-Version: 1.0\r\n"
              . "Content-Type: multipart/alternative; boundary=\"$bnd\"";
     $message = "--$bnd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($texto))
