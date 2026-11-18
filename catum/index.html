@@ -96,7 +96,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 (() => {
 'use strict';
 const ESC_P = 1.5;          // personagens maiores que a escala do pacote (pedido do Sérgio)
-const ARTE = '/catum/arte/', VA = '?v=5', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=6', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -510,17 +510,46 @@ function abreRegiao(st){ const ch = '#regiao' + st.i; if (cardDe === ch || cardF
   card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>Ba&iacute;a de Catum</small><p>${esc(st.e.acao)}</p>${st.volta ? `<p><button type="button" id="btVolta" style="${BT}">Voltar para a Esta&ccedil;&atilde;o Mar&eacute;</button></p>` : ''}`;
   card.querySelector('.x').onclick = () => fechaCard(true); const b = card.querySelector('#btVolta'); if (b) b.onclick = () => vai('estacao', null, null, performance.now()); card.classList.add('on'); }
 
-/* ---------- abertura: o filme de 12 s do pacote (só na primeira vez; dá para rever na Config) ---------- */
+/* ---------- trilha 8 bits: tema em ré maior montado a partir do motivo (ré–si–lá) e do andamento da trilha dos vídeos de intro do site ---------- */
+const TEMA = { passo: .1625, ativo: false, timer: 0, i: 0, t0: 0, g: null };
+const NOTA = n => 440 * Math.pow(2, (n - 69) / 12);
+// colcheias (2 passos cada); 0 = pausa. D5=74 B4=71 A4=69 G4=67 E5=76 F#4=66 F#5=78 G5=79 C#5=73
+const MEL = [74,71,69,74,71,69,74,71, 67,71,74,71,67,71,74,0, 76,76,71,74,69,0,69,0, 66,69,74,69,66,69,76,0, 74,71,69,74,71,69,74,78, 79,78,76,74,71,74,76,0, 76,76,71,74,69,71,73,76, 74,0,0,0,69,0,74,0];
+const BAIXO = [50,43,45,50,47,43,45,50];        // um por compasso: D G A D Bm G A D
+function bip(tipo, f, t, dur, vol){ const o = AC.createOscillator(), g = AC.createGain(); o.type = tipo; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.setValueAtTime(vol, t + dur * .6); g.gain.linearRampToValueAtTime(0, t + dur); o.connect(g).connect(TEMA.g); o.start(t); o.stop(t + dur + .02); }
+function chiado(t, vol){ const n = AC.sampleRate * .03 | 0, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0); for (let k = 0; k < n; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / n); const s0 = AC.createBufferSource(), g = AC.createGain(); s0.buffer = b; g.gain.value = vol; s0.connect(g).connect(TEMA.g); s0.start(t); }
+function musica(liga){
+  if (!liga) { if (!TEMA.ativo) return; TEMA.ativo = false; clearInterval(TEMA.timer); try { TEMA.g.gain.cancelScheduledValues(AC.currentTime); TEMA.g.gain.setValueAtTime(TEMA.g.gain.value, AC.currentTime); TEMA.g.gain.linearRampToValueAtTime(0, AC.currentTime + 1.4); } catch(_){} return; }
+  acorda(); if (!AC || TEMA.ativo || !SOM) return; TEMA.ativo = true; TEMA.g = AC.createGain(); TEMA.g.gain.value = .0001; TEMA.g.gain.linearRampToValueAtTime(.5, AC.currentTime + .6); TEMA.g.connect(AC.destination); TEMA.i = 0; TEMA.t0 = AC.currentTime + .15;
+  const toca = () => { if (!TEMA.ativo || AC.state !== 'running') return;
+    if (TEMA.t0 < AC.currentTime) TEMA.t0 = AC.currentTime + .05;
+    while (TEMA.t0 < AC.currentTime + .35) { const k = TEMA.i % (MEL.length * 2), col = k >> 1, t = TEMA.t0, c = (col / 8) | 0;
+      if (k % 2 === 0) { const m = MEL[col]; if (m) { bip('square', NOTA(m), t, TEMA.passo * 1.9, .085); if (c >= 4) bip('square', NOTA(m + 12), t, TEMA.passo * .9, .03); }
+        bip('triangle', NOTA(BAIXO[c] - 12 + (col % 2 ? 7 : 0)), t, TEMA.passo * 1.7, .2); if (col % 2) chiado(t, .05); }
+      else if (k % 4 === 3) chiado(t, .025);
+      TEMA.t0 += TEMA.passo; TEMA.i++; } };
+  toca(); TEMA.timer = setInterval(toca, 90);
+}
+
+/* ---------- abertura: tela de título de jogo sobre o filme do pacote ---------- */
 function abertura(forcar){ return new Promise(ok => {
-  let ja = false; try { ja = localStorage.getItem('catum_abertura') === '1'; } catch(_){} if (ja && !forcar) return ok();
-  const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches, d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;z-index:30;background:#0b1a22;display:flex;align-items:center;justify-content:center';
-  d.innerHTML = (calmo ? `<img src="${ARTE}abertura.jpg${VA}" alt="" style="width:100%;height:100%;object-fit:cover">` : `<video src="${ARTE}abertura.mp4${VA}" poster="${ARTE}abertura.jpg${VA}" muted playsinline autoplay style="width:100%;height:100%;object-fit:cover"></video>`) +
-    `<button type="button" id="abPula" class="px" style="position:absolute;top:14px;right:14px;font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;cursor:pointer">Pular</button>
-     <div id="abFim" style="position:absolute;left:0;right:0;bottom:9vh;display:none;flex-direction:column;align-items:center;gap:10px"><button type="button" id="abEntra" class="px" style="font:inherit;font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:14px 22px;cursor:pointer;background:#ffe27a">Entrar em Catum</button><button type="button" id="abMorador" class="px" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;cursor:pointer">Experimentar um morador</button></div>`;
-  document.body.appendChild(d); const v = d.querySelector('video'), fim = d.querySelector('#abFim'), mostra = () => { fim.style.display = 'flex'; d.querySelector('#abPula').style.display = 'none'; };
-  const sai = morador => { try { localStorage.setItem('catum_abertura', '1'); } catch(_){} d.style.transition = 'opacity .4s'; d.style.opacity = 0; setTimeout(() => d.remove(), 420); ok(); if (morador) setTimeout(abreCfg, 500); };
-  if (v) { v.addEventListener('ended', mostra); v.addEventListener('error', mostra); v.play().catch(mostra); setTimeout(mostra, 13500); } else mostra();
-  d.querySelector('#abPula').onclick = mostra; d.querySelector('#abEntra').onclick = () => sai(false); d.querySelector('#abMorador').onclick = () => sai(true); }); }
+  const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches, d = document.createElement('div'); d.id = 'abre'; d.style.cssText = 'position:fixed;inset:0;z-index:30;background:#0b1a22;overflow:hidden;cursor:pointer';
+  d.innerHTML = (calmo ? `<img src="${ARTE}abertura.jpg${VA}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : `<video src="${ARTE}abertura.mp4${VA}" poster="${ARTE}abertura.jpg${VA}" muted playsinline autoplay loop style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`) +
+    `<div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(8,18,26,.5) 0,rgba(8,18,26,.2) 45%,rgba(8,18,26,.62) 100%)"></div>
+     <div class="abT" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6vh 6vw;gap:2.4vh">
+       <div class="abBv" style="font:700 clamp(13px,2.1vw,26px)/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.42em;text-transform:uppercase;color:#fffdf5;text-shadow:0 2px 0 #12101c,0 0 18px rgba(0,0,0,.6);padding-left:.42em">bem-vindo a</div>
+       <img class="abLogo" src="/assets/nomes/catum-branco.svg" alt="Catum" style="width:min(78vw,980px);height:auto;filter:drop-shadow(0 5px 0 rgba(18,16,28,.75)) drop-shadow(0 0 26px rgba(0,0,0,.55))">
+       <div id="abToque" style="margin-top:4vh;font:700 clamp(11px,1.4vw,16px)/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;text-transform:uppercase;color:#ffe27a;text-shadow:0 2px 0 #12101c;animation:abPisca 1.1s steps(2,jump-none) infinite">toque para come&ccedil;ar</div>
+       <div id="abFim" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:3vh"><button type="button" id="abEntra" class="px" style="font:inherit;font-size:15px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:15px 26px;cursor:pointer;background:#ffe27a">Entrar em Catum</button><button type="button" id="abMorador" class="px" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;cursor:pointer">Experimentar um morador</button><button type="button" id="abSom" class="px" style="font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;cursor:pointer">${SOM ? 'M&uacute;sica ligada' : 'Sem som'}</button></div>
+     </div>
+     <style>@keyframes abPisca{0%{opacity:1}100%{opacity:.15}}@keyframes abChega{0%{opacity:0;transform:translateY(14px) scale(.96)}100%{opacity:1;transform:none}}#abre .abBv{animation:abChega .9s .2s both}#abre .abLogo{animation:abChega 1.2s .55s both}#abre #abToque{opacity:0;animation:abChega .6s 1.6s both,abPisca 1.1s 2.2s steps(2,jump-none) infinite}@media(prefers-reduced-motion:reduce){#abre *{animation:none!important;opacity:1!important}}</style>`;
+  document.body.appendChild(d); const v = d.querySelector('video'), fim = d.querySelector('#abFim'), toque = d.querySelector('#abToque'); if (v) v.play().catch(() => {});
+  let menu = false; const abre = () => { if (menu) return; menu = true; toque.style.display = 'none'; fim.style.display = 'flex'; d.style.cursor = 'default'; musica(true); };
+  const tecla0 = e => { if (!document.body.contains(d)) return removeEventListener('keydown', tecla0, true); e.stopPropagation(); if (!menu) { e.preventDefault(); abre(); } else if (e.key === 'Enter') { e.preventDefault(); sai(false); } };
+  const sai = morador => { removeEventListener('keydown', tecla0, true); musica(false); d.style.transition = 'opacity .5s'; d.style.opacity = 0; setTimeout(() => d.remove(), 520); ok(); if (morador) setTimeout(abreCfg, 600); };
+  addEventListener('keydown', tecla0, true); d.addEventListener('pointerdown', e => { if (!menu) { e.preventDefault(); abre(); } });
+  d.querySelector('#abEntra').onclick = () => sai(false); d.querySelector('#abMorador').onclick = () => sai(true);
+  d.querySelector('#abSom').onclick = e => { SOM = !SOM; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} e.currentTarget.innerHTML = SOM ? 'M&uacute;sica ligada' : 'Sem som'; if (SOM) musica(true); else musica(false); }; }); }
 
 /* ---------- a bola da praça: física simples para jogar com quem estiver por perto ---------- */
 const bola = { x: 548, y: 452, vx: 0, vy: 0 };
