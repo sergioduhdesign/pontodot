@@ -16,7 +16,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rende
 #hud a,#hud div,#hud button{padding:7px 10px;font-family:inherit;cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:#1d1b2a}
 #hud a:hover,#hud button:hover{background:#ffe27a}
 #hud div{cursor:default}
-#lugar{position:fixed;top:12px;left:50%;transform:translateX(-50%);padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;z-index:5;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+#lugar{position:fixed;top:56px;left:50%;transform:translateX(-50%);padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;z-index:5;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
 #lugar.on{opacity:1}
 #dica{position:fixed;left:12px;bottom:12px;padding:7px 10px;font-size:10.5px;letter-spacing:.04em;z-index:5;max-width:calc(100vw - 24px)}
 #fala{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:7;display:none;width:min(420px,calc(100vw - 24px))}
@@ -53,7 +53,7 @@ body.toque #joy{display:block}body.toque.dir #joy{left:auto;right:24px}
 body.toque #dica{display:none}
 body.toque #btFala{display:block;right:14px;bottom:14px}body.toque.dir #btFala{right:auto;left:14px}
 body.toque #fala{bottom:auto;top:56px}
-body.toque #card{top:96px;bottom:auto;left:12px;right:12px;width:auto;max-height:36vh}
+body.toque #card{top:136px;bottom:auto;left:12px;right:12px;width:auto;max-height:36vh}
 #cfg{position:fixed;inset:0;z-index:15;display:none;align-items:center;justify-content:center;background:rgba(18,16,28,.6);padding:12px;touch-action:auto}
 #cfg.on{display:flex}
 #cfg .cx{width:min(460px,100%);max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin;padding:14px;touch-action:pan-y}
@@ -149,15 +149,16 @@ async function cena(id){
 }
 /* mapa mais fino: Scale2x (arredonda os degraus do pixel) só da cena em que estou */
 let SUAVE = true; try { SUAVE = localStorage.getItem('catum_suave') !== '0'; } catch(_){}
-function fino(c){
-  if (c.fino !== undefined) return c.fino; c.fino = null;
-  try { const W = c.w, H = c.h, k = document.createElement('canvas'); k.width = W; k.height = H; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.img, 0, 0);
-    const P = new Uint32Array(g.getImageData(0, 0, W, H).data.buffer), o = document.createElement('canvas'); o.width = W * 2; o.height = H * 2; const og = o.getContext('2d'), od = og.createImageData(W * 2, H * 2), O = new Uint32Array(od.data.buffer), W2 = W * 2;
-    for (let y = 0; y < H; y++) { const yu = y ? y - 1 : y, yd = y < H - 1 ? y + 1 : y; for (let x = 0; x < W; x++) { const p = P[y * W + x], B = P[yu * W + x], Hh = P[yd * W + x], D = P[y * W + (x ? x - 1 : x)], F = P[y * W + (x < W - 1 ? x + 1 : x)], i = y * 2 * W2 + x * 2;
-        if (B !== Hh && D !== F) { O[i] = D === B ? D : p; O[i + 1] = B === F ? F : p; O[i + W2] = D === Hh ? D : p; O[i + W2 + 1] = Hh === F ? F : p; } else O[i] = O[i + 1] = O[i + W2] = O[i + W2 + 1] = p; } }
-    og.putImageData(od, 0, 0); c.fino = o; } catch(e) { console.warn(e); }
-  return c.fino;
+function escala2x(src, W, H){
+  const k = document.createElement('canvas'); k.width = W; k.height = H; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
+  const P = new Uint32Array(g.getImageData(0, 0, W, H).data.buffer), o = document.createElement('canvas'); o.width = W * 2; o.height = H * 2; const og = o.getContext('2d'), od = og.createImageData(W * 2, H * 2), O = new Uint32Array(od.data.buffer), W2 = W * 2;
+  for (let y = 0; y < H; y++) { const yu = y ? y - 1 : y, yd = y < H - 1 ? y + 1 : y; for (let x = 0; x < W; x++) { const p = P[y * W + x], B = P[yu * W + x], Hh = P[yd * W + x], D = P[y * W + (x ? x - 1 : x)], F = P[y * W + (x < W - 1 ? x + 1 : x)], i = y * 2 * W2 + x * 2;
+      if (B !== Hh && D !== F) { O[i] = D === B ? D : p; O[i + 1] = B === F ? F : p; O[i + W2] = D === Hh ? D : p; O[i + W2 + 1] = Hh === F ? F : p; } else O[i] = O[i + 1] = O[i + W2] = O[i + W2 + 1] = p; } }
+  og.putImageData(od, 0, 0); return o;
 }
+function fino(c){ if (c.fino !== undefined) return c.fino; c.fino = null; try { c.fino = escala2x(c.img, c.w, c.h); } catch(e) { console.warn(e); } return c.fino; }
+const FINA = new WeakMap();      // personagens no mesmo tratamento do mapa, para o pixel dos dois combinar
+function fina(im){ let f = FINA.get(im); if (f === undefined) { f = null; try { f = escala2x(im, im.naturalWidth || im.width, im.naturalHeight || im.height); } catch(_){} FINA.set(im, f); } return f; }
 function soEsteFino(c){ for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].fino) { CENAS[k].fino.width = 1; delete CENAS[k].fino; } if (SUAVE) fino(c); }
 function pintaMapa(c, x, y, w, h){ const f = SUAVE && c.fino; cx.imageSmoothingEnabled = !!f; if (f) { cx.imageSmoothingQuality = 'high'; if (x == null) cx.drawImage(f, 0, 0, c.w, c.h); else cx.drawImage(f, x * 2, y * 2, w * 2, h * 2, x, y, w, h); } else if (x == null) cx.drawImage(c.img, 0, 0); else cx.drawImage(c.img, x, y, w, h, x, y, w, h); cx.imageSmoothingEnabled = false; }
 const noMar = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.mar[gy * c.gw + gx] === 1 && c.col[gy * c.gw + gx] !== 1; };
@@ -628,7 +629,7 @@ function desenhaRota(t){
       cx.save(); cx.translate(Math.round(sx + Math.cos(a) * r), Math.round(sy + Math.sin(a) * r)); cx.rotate(a);
       const seta = () => { cx.beginPath(); cx.moveTo(4 * u, 0); cx.lineTo(-1 * u, -3 * u); cx.lineTo(-1 * u, -1.2 * u); cx.lineTo(-4 * u, -1.2 * u); cx.lineTo(-4 * u, 1.2 * u); cx.lineTo(-1 * u, 1.2 * u); cx.lineTo(-1 * u, 3 * u); cx.closePath(); };
       cx.lineJoin = 'miter'; seta(); cx.lineWidth = Math.max(4, u * 1.3); cx.strokeStyle = '#1d1b2a'; cx.stroke(); cx.fillStyle = '#ffe27a'; cx.fill(); cx.restore(); } }
-  cx.font = '700 12px ui-monospace,Menlo,Consolas,monospace'; const w = Math.ceil(cx.measureText(txt).width) + 20, x0 = Math.round(VW / 2 - w / 2), y0 = 56;
+  cx.font = '700 12px ui-monospace,Menlo,Consolas,monospace'; const w = Math.ceil(cx.measureText(txt).width) + 20, x0 = Math.round(VW / 2 - w / 2), y0 = lugarAtual ? 98 : 56;
   cx.fillStyle = '#1d1b2a'; cx.fillRect(x0 - 3, y0 - 3, w + 10, 32); cx.fillStyle = '#ffe27a'; cx.fillRect(x0, y0, w, 26); cx.fillStyle = '#1d1b2a'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(txt, VW / 2, y0 + 14);
 }
 function irDireto(L){ const alvoL = L.dentroDe ? lug(L.dentroDe) : L, s = foraDaPorta(alvoL); alvoL.trava = true; pilha.length = 0; ROTA = null; vai('bairro', s[0], s[1], performance.now()); }
@@ -667,8 +668,9 @@ function boneco(e, t){
   if (!im) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
   const lin = e.anda ? (Math.floor(t / p.ms) % 8) : 8, sx = (e.dir || 0) * 64, sy = lin * 64;
   if (md === 'aquatico' && !agua && !barco) { const r = Math.round(lado * .4), cy0 = y - Math.round(ay * .55); cx.fillStyle = 'rgba(120,220,235,.32)'; cx.beginPath(); cx.arc(x, cy0, r, 0, 6.3); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.5)'; cx.fillRect(x - Math.round(r * .5), cy0 - Math.round(r * .7), 3, 1); }   // cápsula de visita
-  if (agua && !corpo) { const f = .58; cx.drawImage(im, sx, sy, 64, Math.round(64 * f), x - ax, y - Math.round(lado * f) + 2, lado, Math.round(lado * f)); return; }     // gente nadando: só do peito para cima
-  cx.drawImage(im, sx, sy, 64, 64, x - ax, y - ay - sobe, lado, lado);
+  const fi = SUAVE ? fina(im) : null, q = fi ? 2 : 1, src = fi || im; cx.imageSmoothingEnabled = !!fi; if (fi) cx.imageSmoothingQuality = 'high';
+  if (agua && !corpo) { const f = .58; cx.drawImage(src, sx * q, sy * q, 64 * q, Math.round(64 * f) * q, x - ax, y - Math.round(lado * f) + 2, lado, Math.round(lado * f)); cx.imageSmoothingEnabled = false; return; }     // gente nadando: só do peito para cima
+  cx.drawImage(src, sx * q, sy * q, 64 * q, 64 * q, x - ax, y - ay - sobe, lado, lado); cx.imageSmoothingEnabled = false;
 }
 const altura = e => { const p = PERF[corpoDe(e) || 'homem-medio']; return Math.round((p ? Math.max(12, p.alt + 4) : 30) * (CENA === 'regiao' ? .62 : ESC_P)); };
 function etiqueta(txt, wx, wy, fundo, cor, tam){
