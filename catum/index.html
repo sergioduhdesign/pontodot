@@ -25,7 +25,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rende
 #card{position:fixed;right:12px;bottom:12px;width:min(340px,calc(100vw - 24px));z-index:6;padding:12px;display:none;max-height:60vh;overflow-y:auto;scrollbar-width:thin;-webkit-user-select:text;user-select:text;touch-action:pan-y}
 #card.on{display:block}
 #card .cab{display:flex;gap:10px;align-items:center}
-#card canvas{width:56px;height:56px;image-rendering:pixelated;border:3px solid #1d1b2a;flex:0 0 auto}
+#card canvas{width:64px;height:64px;image-rendering:pixelated;border:3px solid #1d1b2a;flex:0 0 auto}
 #card h2{font-size:15px;letter-spacing:.04em;text-transform:uppercase}
 #card small{display:block;font-size:10.5px;opacity:.7;margin-top:2px}
 #card p{font-size:12px;line-height:1.5;margin-top:9px}
@@ -60,7 +60,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 #cfg button{font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#fffdf5;padding:7px 10px;cursor:pointer;color:#1d1b2a}
 #cfg button.pri,#cfg button.on{background:#ffe27a}
 #cfg .prev{display:flex;gap:14px;align-items:center;margin-bottom:6px}
-#cfg .prev canvas{width:96px;height:144px;image-rendering:pixelated;background:#48b074;border:3px solid #1d1b2a;flex:0 0 auto}
+#cfg .prev canvas{image-rendering:pixelated;background:#e8c9a8;border:3px solid #1d1b2a;flex:0 0 auto}
 #cfg h3{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin:12px 0 6px}
 #cfg .lin{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 #cfg .cor{width:30px;height:30px;padding:0;border:3px solid #1d1b2a}
@@ -86,271 +86,185 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 <script src="/js/supabase.js?v=catum1"></script>
 <script>
 /* ============================================================
-   CATUM — o mundo da Escola Agêntica, em pixel. Página à parte:
-   nada daqui é carregado pela PD, e nada da PD é carregado aqui
-   (só o login e os dados dos personagens).
+   CATUM v2 — o mundo da Escola Agêntica com a arte do pacote
+   (bairro, 9 interiores, 16 moradores e 6 humanos animados).
+   Página à parte: a PD não carrega nada daqui.
+   Coordenadas = pixel lógico da arte. Colisão = grade de 4 px
+   gerada da própria arte (catum/arte/col/*.png).
    ============================================================ */
 (() => {
 'use strict';
-const T = 16, W = 120, H = 80, WPX = W * T, HPX = H * T;
-const HUB = { x: 60, y: 40 };
+const ARTE = '/catum/arte/', VA = '?v=3', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
-const rnd = (x, y, s) => { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s | 0, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
-/* ---------- lugares de Catum (cânone) ---------- */
-// b = prédio em tiles [x,y,l,a]; porta = tile logo abaixo do prédio; rota = caminho da porta até a praça
-const LUGARES = [
-  { id:'terraco',   nome:'Terraço da Vizinhança', b:[53,12,14,8], porta:[60,20],  rota:[[60,20],[60,40]],                       cor:{ parede:'#f2e3c4', telhado:'#5fb36a', det:'#ea278f' } },
-  { id:'galeria',   nome:'Galeria das Chuvas',    b:[27,12,14,8], porta:[34,20],  rota:[[34,20],[34,40],[60,40]],               cor:{ parede:'#e9eef6', telhado:'#7fc4e8', det:'#30248c' } },
-  { id:'cinema',    nome:'Cinema da Curva',       b:[79,12,14,8], porta:[86,20],  rota:[[86,20],[86,40],[60,40]],               cor:{ parede:'#3a2a52', telhado:'#be3828', det:'#ffe27a' } },
-  { id:'salao',     nome:'Salão das Artes',       b:[12,30,14,8], porta:[19,38],  rota:[[19,38],[19,40],[60,40]],               cor:{ parede:'#fff4e0', telhado:'#ff6500', det:'#00b5c9' } },
-  { id:'escola',    nome:'Escola Agêntica',       b:[40,29,14,8], porta:[47,37],  rota:[[47,37],[47,40],[60,40]],               cor:{ parede:'#ffffff', telhado:'#1d1b2a', det:'#e5ec16' } },
-  { id:'mercado',   nome:'Mercado das Lanternas', b:[94,30,14,8], porta:[101,38], rota:[[101,38],[101,40],[60,40]],             cor:{ parede:'#f7d9a8', telhado:'#dfa219', det:'#ff5038' } },
-  { id:'estacao',   nome:'Estação Maré',          b:[64,56,14,8], porta:[71,64],  rota:[[71,64],[71,66],[60,66],[60,40]],       cor:{ parede:'#dfe7ea', telhado:'#007f91', det:'#145dec' } },
-  { id:'biblioteca',nome:'Biblioteca Submersa',   b:[95,57,6,5],  porta:[98,62],  rota:[[98,62],[98,66],[60,66],[60,40]],       cor:{ parede:'#bfeee6', telhado:'#11ba98', det:'#18155f' } },
-  { id:'escritorio',nome:'Escritório',            b:[66,44,14,8], porta:[73,52],  rota:[[73,52],[73,54],[60,54],[60,40]],       cor:{ parede:'#f4f1ea', telhado:'#30248c', det:'#ea278f' } }
+/* ---------- lugares ---------- */
+// porta = ponto da porta no bairro (coordenada antiga + deslocamento 144,192 do pacote)
+const LUG = [
+  { id:'escola',     arq:'escola-agentica',       nome:'Escola Agêntica',       porta:[383,151] },
+  { id:'galeria',    arq:'galeria-das-chuvas',    nome:'Galeria das Chuvas',    porta:[516,238] },
+  { id:'cinema',     arq:'cinema-da-curva',       nome:'Cinema da Curva',       porta:[191,269] },
+  { id:'terraco',    arq:'terraco-da-vizinhanca', nome:'Terraço da Vizinhança', porta:[180,150] },
+  { id:'salao',      arq:'salao-das-artes',       nome:'Salão das Artes',       porta:[173,383] },
+  { id:'mercado',    arq:'mercado-das-lanternas', nome:'Mercado das Lanternas', porta:[595,143] },
+  { id:'estacao',    arq:'estacao-mare',          nome:'Estação Maré',          porta:[384,384] },
+  { id:'biblioteca', arq:'biblioteca-submersa',   nome:'Biblioteca Submersa',   porta:[629,404] },
+  { id:'escritorio', arq:'escritorio-pontodot',   nome:'Escritório Pontodot',   dentroDe:'escola' }
 ];
-const PATIO = { x: 37, y: 44, w: 22, h: 11 }, LOUSA = { x: 44, y: 44, w: 8 };
-const CARTEIRAS = []; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) CARTEIRAS.push({ x: (40 + c * 5) * T + 8, y: (47 + r * 2) * T + 12 });
+LUG.forEach(L => { if (L.porta) L.porta = [L.porta[0] + 144, L.porta[1] + 192]; });
+const lug = id => LUG.find(L => L.id === id);
+const ESCOLA = lug('escola'), ESCRIT = lug('escritorio');
+const PORTAL = { de:[0.915, 0.475], volta:[0.88, 0.49] };       // vão leste da Escola -> ala Pontodot
 const NPC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
 
-/* ---------- o mapa (pintado uma vez só, num canvas fora da tela) ---------- */
-const tipo = new Uint8Array(W * H);    // 0 grama · 1 caminho · 2 água · 3 areia · 4 píer · 5 praça
-const solido = new Uint8Array(W * H);
-const ix = (x, y) => y * W + x;
-function geraTerreno(){
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    let t = 0;
-    const mar = 70 + Math.round(Math.sin(x / 7) * 1.2);
-    if (y >= mar) t = 2; else if (y >= mar - 2) t = 3;
-    const l = ((x - 98) / 12) ** 2 + ((y - 60) / 8) ** 2;
-    if (l < 1) t = 2; else if (l < 1.3 && t === 0) t = 3;
-    if (((x - 98) / 5.2) ** 2 + ((y - 59.5) / 4.2) ** 2 < 1) t = 3;       // ilhota da biblioteca
-    tipo[ix(x, y)] = t;
-  }
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if ((x - HUB.x) ** 2 + (y - HUB.y) ** 2 <= 42) tipo[ix(x, y)] = 5;
-  const pisa = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = ix(x, y); if (tipo[i] === 5) return; tipo[i] = tipo[i] === 2 ? 4 : 1; };
-  LUGARES.forEach(L => { for (let k = 0; k < L.rota.length - 1; k++) { const [ax, ay] = L.rota[k], [bx, by] = L.rota[k + 1];
-    if (ax === bx) for (let y = Math.min(ay, by); y <= Math.max(ay, by) + 1; y++) { pisa(ax, y); pisa(ax + 1, y); }
-    else for (let x = Math.min(ax, bx); x <= Math.max(ax, bx) + 1; x++) { pisa(x, ay); pisa(x, ay + 1); } } });
-  // pátio de aula da Escola: piso, um caminho até a rua e a lousa
-  for (let y = PATIO.y; y < PATIO.y + PATIO.h; y++) for (let x = PATIO.x; x < PATIO.x + PATIO.w; x++) tipo[ix(x, y)] = 5;
-  for (let y = 42; y < PATIO.y; y++) { tipo[ix(47, y)] = 1; tipo[ix(48, y)] = 1; }
-  for (let x = LOUSA.x; x < LOUSA.x + LOUSA.w; x++) solido[ix(x, LOUSA.y)] = 1;
-  for (let i = 0; i < W * H; i++) if (tipo[i] === 2) solido[i] = 1;
-  LUGARES.forEach(L => { const [bx, by, bw, bh] = L.b; for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) solido[ix(x, y)] = 1; });
+/* ---------- cenas (bairro e interiores): imagem + grade de colisão ---------- */
+const CENAS = {};
+function carregaImg(src){ return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('não abriu ' + src)); im.src = src; }); }
+async function cena(id){
+  if (CENAS[id] && CENAS[id].pronta) return CENAS[id];
+  if (CENAS[id] && CENAS[id].p) return CENAS[id].p;
+  const arq = id === 'bairro' ? 'bairro' : lug(id).arq;
+  const c = CENAS[id] = { id, pronta: false };
+  c.p = (async () => {
+    const [img, col] = await Promise.all([carregaImg(ARTE + (id === 'bairro' ? 'bairro.png' : 'int/' + arq + '.png') + VA), carregaImg(ARTE + 'col/' + arq + '.png' + VA)]);
+    c.img = img; c.w = img.naturalWidth; c.h = img.naturalHeight; c.gw = col.naturalWidth; c.gh = col.naturalHeight;
+    const k = document.createElement('canvas'); k.width = c.gw; k.height = c.gh; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(col, 0, 0);
+    const d = g.getImageData(0, 0, c.gw, c.gh).data; c.col = new Uint8Array(c.gw * c.gh); for (let i = 0; i < c.col.length; i++) c.col[i] = d[i * 4] > 127 ? 1 : 0;
+    // lugares bons para ficar parado (folga em volta)
+    c.livres = []; for (let y = 2; y < c.gh - 2; y += 3) for (let x = 2; x < c.gw - 2; x += 3) { let ok = true; for (let dy = -2; dy <= 2 && ok; dy++) for (let dx = -2; dx <= 2; dx++) if (!c.col[(y + dy) * c.gw + x + dx]) { ok = false; break; } if (ok) c.livres.push([x * CEL + 2, y * CEL + 2]); }
+    // brilho da água (do pacote: reflexos discretos sobre o turquesa)
+    try { const k2 = document.createElement('canvas'); k2.width = c.w; k2.height = c.h; const g2 = k2.getContext('2d', { willReadFrequently: true }); g2.drawImage(img, 0, 0); const D = g2.getImageData(0, 0, c.w, c.h).data;
+      const agua = (x, y) => { const i = 4 * (y * c.w + x), r = D[i], gg = D[i + 1], b = D[i + 2]; return gg > 75 && b > 60 && gg > r * 1.65 && b > r * 1.55 && Math.abs(gg - b) < 65; };
+      let seed = 7319; const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }; c.agua = [];
+      for (let n = 0; n < 16000 && c.agua.length < 90; n++) { const x = 8 + Math.floor(rnd() * (c.w - 16)), y = 6 + Math.floor(rnd() * (c.h - 12)); if ([[0,0],[-4,0],[4,0],[0,-2],[0,2]].every(([dx, dy]) => agua(x + dx, y + dy))) c.agua.push({ x, y, f: rnd() * 6.28, n: 2 + Math.floor(rnd() * 4) }); }
+    } catch(_) { c.agua = []; }
+    c.pronta = true; return c;
+  })();
+  return c.p;
 }
-const COR = { grama:['#3fa66b','#48b074','#379a62'], caminho:['#d9c7a3','#cdb98f'], agua:['#2b6fd6','#3a82e6'], areia:['#ead9a8','#e0cd97'], pier:['#a8733f','#8f5f31'], praca:['#e8e2d2','#d8d0bb'] };
-function pintaMapa(){
-  const cv = document.createElement('canvas'); cv.width = WPX; cv.height = HPX; const g = cv.getContext('2d');
-  const P = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const t = tipo[ix(x, y)], px = x * T, py = y * T, r = rnd(x, y, 1);
-    if (t === 0) { P(px, py, T, T, COR.grama[r < .6 ? 0 : r < .85 ? 1 : 2]);
-      for (let k = 0; k < 3; k++) { const a = rnd(x, y, 10 + k), b = rnd(x, y, 20 + k); P(px + (a * 14 | 0), py + (b * 14 | 0), 1, 2, '#2f8a57'); }
-      if (rnd(x, y, 3) < .05) { const f = ['#ea278f','#e5ec16','#ffffff','#ff6500'][rnd(x, y, 4) * 4 | 0]; P(px + 6, py + 6, 2, 2, f); P(px + 7, py + 8, 1, 2, '#2f8a57'); } }
-    else if (t === 1) { P(px, py, T, T, COR.caminho[r < .7 ? 0 : 1]); if (r < .3) P(px + (r * 40 | 0) % 12, py + 4 + (r * 90 | 0) % 8, 3, 2, '#bca97e'); }
-    else if (t === 2) { P(px, py, T, T, COR.agua[(x + y) % 2]); if (rnd(x, y, 5) < .35) P(px + 2 + (r * 9 | 0), py + 4 + (rnd(x, y, 6) * 8 | 0), 5, 1, '#7fb5ff'); }
-    else if (t === 3) { P(px, py, T, T, COR.areia[r < .7 ? 0 : 1]); if (r < .12) P(px + 5, py + 9, 2, 2, '#fff7dc'); }
-    else if (t === 4) { P(px, py, T, T, COR.pier[0]); for (let k = 0; k < T; k += 4) P(px, py + k + 3, T, 1, COR.pier[1]); }
-    else { P(px, py, T, T, COR.praca[(x + y) % 2]); }
-  }
-  // árvores (longe de caminhos, portas e prédios)
-  const livre = (x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const t = tipo[ix(X, Y)]; if (t !== 0 || solido[ix(X, Y)]) return false; } return true; };
-  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) if (rnd(x, y, 7) < .06 && livre(x, y)) {
-    solido[ix(x, y)] = 1; const px = x * T, py = y * T, v = rnd(x, y, 8);
-    const copa = v < .7 ? ['#1f7a52','#2c9466','#5fc98a'] : v < .85 ? ['#b01c6b','#ea278f','#ff8ac4'] : ['#c24d00','#ff6500','#ffb37a'];
-    P(px + 3, py + 13, 10, 3, 'rgba(0,0,0,.18)'); P(px + 7, py + 8, 3, 7, '#6b4226');
-    P(px + 2, py - 4, 12, 12, copa[0]); P(px + 1, py - 1, 14, 7, copa[0]); P(px + 3, py - 3, 10, 9, copa[1]); P(px + 5, py - 2, 4, 3, copa[2]);
-  }
-  // postes de lanterna ao longo dos caminhos
-  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (tipo[ix(x, y)] === 0 && tipo[ix(x + 1, y)] === 1 && (x * 3 + y) % 9 === 0 && !solido[ix(x, y)]) {
-    const px = x * T, py = y * T; P(px + 11, py + 2, 2, 12, '#1d1b2a'); P(px + 9, py, 6, 4, '#ffe27a'); P(px + 10, py + 1, 4, 2, '#fff7c2'); }
-  // monumento da praça: a bolinha da pontodot
-  { const cx = HUB.x * T + T, cy = HUB.y * T + T; solido[ix(HUB.x, HUB.y)] = solido[ix(HUB.x + 1, HUB.y)] = solido[ix(HUB.x, HUB.y + 1)] = solido[ix(HUB.x + 1, HUB.y + 1)] = 1;
-    const anel = ['#ea278f','#ff6500','#e5ec16','#11ba98','#145dec','#5425a6'];
-    for (let a = 0; a < 48; a++) { const an = a / 48 * Math.PI * 2; P(Math.round(cx + Math.cos(an) * 17) - 1, Math.round(cy + Math.sin(an) * 17) - 1, 3, 3, anel[a % 6]); }
-    for (let yy = -13; yy <= 13; yy++) for (let xx = -13; xx <= 13; xx++) if (xx * xx + yy * yy <= 169) P(cx + xx, cy + yy, 1, 1, '#1d1b2a');
-    P(cx - 6, cy - 3, 2, 9, '#fff'); P(cx - 6, cy - 3, 5, 2, '#fff'); P(cx - 3, cy - 3, 2, 5, '#fff'); P(cx - 6, cy, 5, 2, '#fff');       // p
-    P(cx + 4, cy - 7, 2, 11, '#fff'); P(cx + 1, cy - 1, 5, 2, '#fff'); P(cx + 1, cy - 1, 2, 5, '#fff'); P(cx + 1, cy + 2, 5, 2, '#fff');   // d
-  }
-  // lousa do pátio de aula
-  { const x = LOUSA.x * T, y = LOUSA.y * T, w = LOUSA.w * T; P(x, y + 1, w, 14, '#6b4226'); P(x + 2, y + 3, w - 4, 10, '#1f5a44'); P(x + 8, y + 6, 26, 1, '#eafff5'); P(x + 8, y + 9, 40, 1, '#eafff5'); P(x + 60, y + 6, 18, 1, '#ffe27a'); P(x + w - 20, y + 5, 8, 6, '#eafff5'); P(x + 4, y + 14, w - 8, 1, '#d8d0bb'); }
-  // prédios
-  LUGARES.forEach(L => { const [bx, by, bw, bh] = L.b, x = bx * T, y = by * T, w = bw * T, h = bh * T, c = L.cor, th = Math.round(h * .55);
-    P(x + 3, y + h - 2, w, 5, 'rgba(0,0,0,.2)');
-    if (L.id === 'biblioteca') {     // cúpula de vidro sobre a água
-      for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const dx = (xx - w / 2) / (w / 2), dy = (yy - h) / h; if (dx * dx + dy * dy <= 1) P(x + xx, y + yy, 1, 1, (xx + yy) % 7 === 0 ? '#eafffb' : (yy < h * .45 ? c.telhado : c.parede)); }
-      P(x, y + h - 3, w, 3, c.det); P(x + w / 2 - 5, y + h - 14, 10, 14, '#1d1b2a'); P(x + w / 2 - 3, y + h - 12, 6, 12, '#7fe3d2'); return; }
-    P(x, y, w, h, '#1d1b2a'); P(x + 1, y + 1, w - 2, th - 1, c.telhado); P(x + 1, y + th, w - 2, h - th - 1, c.parede);
-    for (let k = 4; k < th - 2; k += 5) P(x + 1, y + k, w - 2, 1, 'rgba(0,0,0,.22)');
-    P(x + 1, y + th, w - 2, 2, 'rgba(0,0,0,.28)');
-    for (let k = 10; k < w - 18; k += 22) { if (Math.abs(k + 6 - w / 2) < 14) continue; P(x + k, y + th + 8, 12, 12, '#1d1b2a'); P(x + k + 1, y + th + 9, 10, 10, '#ffe27a'); P(x + k + 6, y + th + 9, 1, 10, '#1d1b2a'); P(x + k + 1, y + th + 14, 10, 1, '#1d1b2a'); }
-    P(x + w / 2 - 9, y + h - 24, 18, 24, '#1d1b2a'); P(x + w / 2 - 7, y + h - 22, 14, 22, c.det); P(x + w / 2 + 3, y + h - 11, 2, 2, '#fff');
-    if (L.id === 'mercado') for (let k = 6; k < w - 6; k += 9) { P(x + k, y + th + 3, 1, 3, '#1d1b2a'); P(x + k - 2, y + th + 5, 5, 5, ['#ff5038','#ffe27a','#ea278f','#11ba98'][(k / 9 | 0) % 4]); }
-    if (L.id === 'cinema') { P(x + 12, y + th - 12, w - 24, 12, '#1d1b2a'); P(x + 14, y + th - 10, w - 28, 8, '#fffdf5'); for (let k = 14; k < w - 14; k += 6) P(x + k, y + th - 13, 2, 2, '#ffe27a'); for (let k = 20; k < w - 22; k += 8) P(x + k, y + th - 8, 5, 4, '#be3828'); }
-    if (L.id === 'galeria') for (let k = 6; k < w - 6; k += 7) { const d = rnd(k, by, 9) * (th - 8) | 0; P(x + k, y + 3 + d, 1, 4, '#eaf7ff'); }
-    if (L.id === 'terraco') for (let k = 5; k < w - 6; k += 6) { P(x + k, y + 4 + (k % 12 ? 3 : 0), 4, 4, k % 18 ? '#2c9466' : '#ea278f'); }
-    if (L.id === 'salao') [['#ea278f', 8, 6],['#00b5c9', 30, 14],['#e5ec16', 60, 5],['#5425a6', 150, 10],['#11ba98', 190, 4]].forEach(([cc, kx, ky]) => { P(x + kx, y + th + 4 + ky, 9, 6, cc); P(x + kx + 2, y + th + 2 + ky, 5, 10, cc); });
-    if (L.id === 'escola') { [['#ea278f', 0],['#ff6500', 1],['#e5ec16', 2],['#11ba98', 3],['#145dec', 4],['#5425a6', 5]].forEach(([cc, n]) => P(x + w / 2 - 30 + n * 10, y + th - 9, 8, 4, cc)); for (let yy = -7; yy <= 7; yy++) for (let xx = -7; xx <= 7; xx++) if (xx * xx + yy * yy <= 49) P(x + w / 2 + xx, y + 12 + yy, 1, 1, '#fff'); }
-    if (L.id === 'estacao') { for (let yy = -6; yy <= 6; yy++) for (let xx = -6; xx <= 6; xx++) if (xx * xx + yy * yy <= 36) P(x + w / 2 + xx, y + 12 + yy, 1, 1, '#fffdf5'); P(x + w / 2, y + 8, 1, 5, '#1d1b2a'); P(x + w / 2, y + 12, 4, 1, '#1d1b2a'); }
-  });
-  return cv;
+const livre = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.col[gy * c.gw + gx] === 1; };
+function perto(c, x, y){       // ponto andável mais próximo
+  x = Math.round(x); y = Math.round(y); if (livre(c, x, y)) return [x, y]; const gx = x >> 2, gy = y >> 2;
+  for (let r = 1; r < 60; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const X = gx + dx, Y = gy + dy; if (X >= 0 && Y >= 0 && X < c.gw && Y < c.gh && c.col[Y * c.gw + X]) return [X * CEL + 2, Y * CEL + 2]; }
+  return [x, y];
 }
+function caminho(c, x0, y0, x1, y1){     // busca em largura na grade; devolve pontos em px
+  [x0, y0] = perto(c, x0, y0); [x1, y1] = perto(c, x1, y1); const W = c.gw, a = (y0 >> 2) * W + (x0 >> 2), b = (y1 >> 2) * W + (x1 >> 2);
+  const de = new Int32Array(c.gw * c.gh).fill(-1), fila = new Int32Array(c.gw * c.gh); let ini = 0, fim = 0; fila[fim++] = a; de[a] = a;
+  while (ini < fim) { const k = fila[ini++]; if (k === b) break; const kx = k % W, ky = (k / W) | 0;
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) { const nx = kx + dx, ny = ky + dy; if (nx < 0 || ny < 0 || nx >= c.gw || ny >= c.gh) continue; const n = ny * W + nx;
+      if (de[n] >= 0 || !c.col[n]) continue; if (dx && dy && (!c.col[ky * W + nx] || !c.col[ny * W + kx])) continue; de[n] = k; fila[fim++] = n; } }
+  if (de[b] < 0) return [[x1, y1]];
+  const pts = []; for (let k = b; ; k = de[k]) { pts.push([(k % W) * CEL + 2, ((k / W) | 0) * CEL + 2]); if (de[k] === k) break; } pts.reverse();
+  return pts.filter((p, i) => i === 0 || i === pts.length - 1 || i % 3 === 0);
+}
+const compr = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += dist(pts[i][0], pts[i][1], pts[i - 1][0], pts[i - 1][1]); return s; };
+function naLinha(pts, d){ for (let i = 0; i < pts.length - 1; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[i + 1], s = dist(x1, y1, x2, y2); if (d <= s) { const f = s ? d / s : 0; return [x1 + (x2 - x1) * f, y1 + (y2 - y1) * f, x2 - x1, y2 - y1]; } d -= s; } const u = pts[pts.length - 1]; return [u[0], u[1], 0, 1]; }
 
-/* ---------- tela ---------- */
-const cv = document.getElementById('c'), cx = cv.getContext('2d');
-let SC = 3, VW = 0, VH = 0, DPR = 1, mapa = null;
-function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); SC = (VW < 700 ? 2 : 3); }
-addEventListener('resize', ajusta);
-
-/* ---------- gente e IAs ---------- */
-const eu = { id:'', nome:'Você', x: HUB.x * T + T, y: (HUB.y + 4) * T, alvo:null, anda:false, cab:null, fala:'', falaEm:0, cor:'#1d1b2a', dir:1 };
-const outros = new Map();        // id -> { nome, x, y, tx, ty, cab, fala, falaEm, cor, anda }
-const npcs = NPC_IDS.map(id => ({ id, nome: id[0].toUpperCase() + id.slice(1), cor:'#888', x:0, y:0, anda:false, cab:null, dir:1, c:null }));
-function cabeca(src, cb){      // o avatar vira uma cabeça de 12×12 pixels
-  const im = new Image(); im.onload = () => { const k = document.createElement('canvas'); k.width = k.height = 12; const g = k.getContext('2d'); g.imageSmoothingEnabled = true;
-    const s = Math.min(im.naturalWidth, im.naturalHeight); g.drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, 12, 12); cb(k); };
-  im.onerror = () => cb(null); im.src = src;
-}
-/* ---------- o rostinho de cada pessoa (skin) ---------- */
+/* ---------- personagens: folhas animadas (4 direções × 8 fases + parado) ---------- */
+let PERF = {}; const FOLHA = {};
+function folha(id){ if (FOLHA[id] !== undefined) return FOLHA[id]; FOLHA[id] = null; carregaImg(ARTE + 'av/' + id + '.png' + VA).then(im => { FOLHA[id] = im; }).catch(() => {}); return null; }
+const BASES = [['homem-esguio','Homem esguio'],['homem-medio','Homem médio'],['homem-steve','Homem encorpado'],['mulher-esguio','Mulher esguia'],['mulher-medio','Mulher média'],['mulher-suave','Mulher de curvas suaves']];
 const PELES = ['#f6d7b8','#eec39a','#d9a877','#b9825a','#8d5a3b','#5e3a25'];
 const COR_CABELO = ['#1d1b2a','#4a2f1d','#7a4a25','#c08a3e','#e8d28a','#b8b8b8','#ffffff','#ea278f','#145dec','#11ba98'];
 const ROUPAS = ['#1d1b2a','#ea278f','#ff6500','#e5ec16','#11ba98','#145dec','#5425a6','#ffffff','#be3828'];
-const ESTILOS = ['Careca','Curto','Franja','Longo','Topete','Cacheado','De lado'];
-const BARBAS = ['Sem barba','Bigode','Cavanhaque','Barba cheia'];
-const OCULOS = ['Sem óculos','Óculos','Óculos escuros'];
-const HEX = /^#[0-9a-f]{6}$/i;
-const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-const escurece = (h, f) => '#' + rgb(h).map(v => Math.max(0, Math.round(v * (f || .78))).toString(16).padStart(2, '0')).join('');
-const clareia = h => '#' + rgb(h).map(v => Math.min(255, Math.round(v + (255 - v) * .35)).toString(16).padStart(2, '0')).join('');
-function limpaSkin(s){ s = s && typeof s === 'object' ? s : {}; const n = (v, m) => Math.max(0, Math.min(m, v | 0));
-  return { pele: HEX.test(s.pele) ? s.pele : PELES[2], cab: n(s.cab == null ? 1 : s.cab, ESTILOS.length - 1), ccab: HEX.test(s.ccab) ? s.ccab : COR_CABELO[0],
-    barba: n(s.barba, BARBAS.length - 1), oc: n(s.oc, OCULOS.length - 1), roupa: HEX.test(s.roupa) ? s.roupa : ROUPAS[0] }; }
-function rosto(sk){      // monta a cabeça de 12×12 pixels a partir das escolhas
-  const s = limpaSkin(sk), k = document.createElement('canvas'); k.width = k.height = 12; const g = k.getContext('2d');
-  const P = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); }, H = s.ccab, tinta = '#1d1b2a';
-  P(1, 0, 10, 12, s.pele); P(0, 1, 12, 10, s.pele); P(1, 11, 10, 1, escurece(s.pele)); P(0, 6, 1, 2, escurece(s.pele)); P(11, 6, 1, 2, escurece(s.pele));
-  P(3, 6, 2, 2, tinta); P(7, 6, 2, 2, tinta); P(3, 6, 1, 1, '#ffffff'); P(7, 6, 1, 1, '#ffffff');
-  P(2, 8, 1, 1, '#f08a8a'); P(9, 8, 1, 1, '#f08a8a'); P(5, 8, 1, 1, escurece(s.pele, .86)); P(5, 9, 2, 1, escurece(s.pele, .6));
-  if (s.cab === 1) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); }
-  if (s.cab === 2) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); P(1, 3, 6, 1, H); P(0, 3, 2, 2, H); P(10, 3, 2, 2, H); }
-  if (s.cab === 3) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); P(0, 3, 2, 9, H); P(10, 3, 2, 9, H); }
-  if (s.cab === 4) { P(1, 1, 10, 2, H); P(0, 2, 12, 1, H); P(3, 0, 7, 1, H); P(5, 3, 5, 1, H); }
-  if (s.cab === 5) { for (let x = 0; x < 12; x++) P(x, x % 2, 1, 4 - (x % 2), H); P(0, 4, 1, 2, H); P(11, 4, 1, 2, H); P(1, 0, 10, 1, H); }
-  if (s.cab === 6) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); P(0, 3, 2, 4, H); P(2, 3, 3, 1, H); }
-  if (s.cab) { const br = clareia(H); P(3, 1, 3, 1, br); }
-  if (s.barba === 1) P(4, 8, 4, 1, H);
-  if (s.barba === 2) { P(4, 8, 4, 1, H); P(4, 9, 1, 2, H); P(7, 9, 1, 2, H); P(4, 10, 4, 2, H); }
-  if (s.barba === 3) { P(0, 8, 12, 3, H); P(1, 11, 10, 1, H); P(1, 7, 1, 1, H); P(10, 7, 1, 1, H); P(5, 9, 2, 1, escurece(s.pele, .6)); }
-  if (s.oc === 1) { [[2, 5], [6, 5]].forEach(([x, y]) => { P(x, y, 4, 1, tinta); P(x, y + 3, 4, 1, tinta); P(x, y, 1, 4, tinta); P(x + 3, y, 1, 4, tinta); P(x + 1, y + 1, 2, 2, '#d8efff'); P(x + 1, y + 2, 1, 1, tinta); }); P(0, 6, 2, 1, tinta); P(10, 6, 2, 1, tinta); }
-  if (s.oc === 2) { P(0, 6, 12, 1, tinta); P(2, 6, 4, 2, tinta); P(6, 6, 4, 2, tinta); P(3, 6, 1, 1, '#6b6b78'); P(7, 6, 1, 1, '#6b6b78'); }
-  return k;
+const CALCAS = ['#1d2b4f','#1d1b2a','#5a5a66','#7a4a25','#e9e4d6','#2c6e49'];
+const HEX = /^#[0-9a-f]{6}$/i, rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function limpaSkin(s){ s = s && typeof s === 'object' ? s : {}; const cor = (v, pad) => HEX.test(v) ? v : pad;
+  return { base: BASES.some(b => b[0] === s.base) ? s.base : 'homem-medio', pele: cor(s.pele, PELES[2]), cabelo: cor(s.cabelo || s.ccab, COR_CABELO[1]), camisa: cor(s.camisa || s.roupa, ROUPAS[4]), calca: cor(s.calca, CALCAS[0]) }; }
+const HUMANO = {};      // chave -> canvas recolorido (ou null enquanto carrega)
+function folhaHumana(sk){
+  const s = limpaSkin(sk), ch = [s.base, s.pele, s.cabelo, s.camisa, s.calca].join('|'); if (HUMANO[ch] !== undefined) return HUMANO[ch]; HUMANO[ch] = null;
+  Promise.all([carregaImg(ARTE + 'av/' + s.base + '.png' + VA), carregaImg(ARTE + 'av/' + s.base + '-m.png' + VA)]).then(([im, mk]) => {
+    const k = document.createElement('canvas'); k.width = im.naturalWidth; k.height = im.naturalHeight; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0);
+    const k2 = document.createElement('canvas'); k2.width = k.width; k2.height = k.height; const g2 = k2.getContext('2d', { willReadFrequently: true }); g2.drawImage(mk, 0, 0);
+    const D = g.getImageData(0, 0, k.width, k.height), M = g2.getImageData(0, 0, k.width, k.height).data, d = D.data, alvo = [null, rgb(s.pele), rgb(s.cabelo), rgb(s.camisa), rgb(s.calca)], soma = [0, 0, 0, 0, 0], n = [0, 0, 0, 0, 0];
+    const mat = i => d[i + 3] ? Math.round(M[i] / 60) : 0;           // 1 pele · 2 cabelo · 3 camiseta · 4 calça
+    for (let i = 0; i < d.length; i += 4) { const m = mat(i); if (m >= 1 && m <= 4) { soma[m] += (d[i] + d[i + 1] + d[i + 2]) / 3; n[m]++; } }
+    for (let i = 0; i < d.length; i += 4) { const m = mat(i); if (m < 1 || m > 4) continue; const ref = soma[m] / Math.max(1, n[m]), f = ((d[i] + d[i + 1] + d[i + 2]) / 3) / Math.max(1, ref), c = alvo[m], clar = Math.max(c[0], c[1], c[2]) < 60 ? 40 : 0;
+      d[i] = Math.min(255, (c[0] + clar) * f); d[i + 1] = Math.min(255, (c[1] + clar) * f); d[i + 2] = Math.min(255, (c[2] + clar) * f); }
+    g.putImageData(D, 0, 0); HUMANO[ch] = k; }).catch(() => {});
+  return null;
 }
-// lê o avatar da pessoa e propõe um rosto: tom de pele, cor do cabelo, barba e roupa saem das cores da foto
+// lê o avatar da pessoa e propõe cores (pele, cabelo, camisa)
 function sugerePeloAvatar(src){ return new Promise(ok => { if (!src) return ok(null); const im = new Image();
   im.onload = () => { try { const k = document.createElement('canvas'); k.width = k.height = 24; const g = k.getContext('2d'), s0 = Math.min(im.naturalWidth, im.naturalHeight);
       g.drawImage(im, (im.naturalWidth - s0) / 2, (im.naturalHeight - s0) / 2, s0, s0, 0, 0, 24, 24);
       const media = (x, y, w, h) => { const d = g.getImageData(x, y, w, h).data; let r = 0, gg = 0, b = 0, n = d.length / 4; for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; } return [r / n, gg / n, b / n]; };
-      const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]), perto = (c, lista) => lista.reduce((m, h) => dist(c, rgb(h)) < dist(c, rgb(m)) ? h : m, lista[0]);
-      const rostoC = media(9, 9, 6, 6), topo = media(7, 1, 10, 4), queixo = media(9, 17, 6, 3), roupaC = media(4, 22, 16, 2);
-      const temCabelo = dist(topo, rostoC) > 45, temBarba = dist(queixo, rostoC) > 40 && dist(queixo, topo) < 80;
-      ok(limpaSkin({ pele: perto(rostoC, PELES), cab: temCabelo ? 1 : 0, ccab: perto(temCabelo ? topo : queixo, COR_CABELO.slice(0, 7)), barba: temBarba ? 3 : 0, oc: 0, roupa: perto(roupaC, ROUPAS) }));
+      const dd = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]), prox = (c, lista) => lista.reduce((m, h) => dd(c, rgb(h)) < dd(c, rgb(m)) ? h : m, lista[0]);
+      ok({ pele: prox(media(9, 9, 6, 6), PELES), cabelo: prox(media(7, 1, 10, 4), COR_CABELO.slice(0, 7)), camisa: prox(media(4, 22, 16, 2), ROUPAS) });
     } catch(_) { ok(null); } };
   im.onerror = () => ok(null); im.src = src; }); }
+
+/* ---------- tela ---------- */
+const cv = document.getElementById('c'), cx = cv.getContext('2d');
+let SC = 3, VW = 0, VH = 0, DPR = 1;
+function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); SC = Math.max(2, Math.min(6, Math.round(Math.min(VW / 384, VH / 240)))); if (VW < 700) SC = Math.max(2, Math.round(VW / 192)); }
+addEventListener('resize', ajusta);
+
+/* ---------- gente e IAs ---------- */
+const eu = { id:'', nome:'Você', x: 528, y: 440, alvo:null, anda:false, dir:0, fala:'', falaEm:0, humano:true, sk:null };
+const outros = new Map();
+const npcs = NPC_IDS.map(id => ({ id, nome: id[0].toUpperCase() + id.slice(1), x: 528, y: 430, anda:false, dir:0, c:null, sprite:id }));
+let CENA = 'bairro', C = null, trocaAte = 0, trocando = false; const pilha = [];     // C = cena carregada em que estou
+const bate = (x, y) => !C || !(livre(C, x - 3, y) && livre(C, x + 3, y) && livre(C, x, y - 2) && livre(C, x, y + 1));
+
 let CFG = { skin: null, lado: 'e' };
-function aplicaCfg(){ if (CFG.skin) { CFG.skin = limpaSkin(CFG.skin); eu.cab = rosto(CFG.skin); eu.cor = CFG.skin.roupa; eu.mao = CFG.skin.pele; } document.body.classList.toggle('dir', CFG.lado === 'd'); }
+function aplicaCfg(){ CFG.skin = limpaSkin(CFG.skin); eu.sk = CFG.skin; document.body.classList.toggle('dir', CFG.lado === 'd'); }
 function guardaLocal(){ try { localStorage.setItem('catum_cfg', JSON.stringify(CFG)); } catch(_){} }
 async function carregaCfg(){
   try { const l = JSON.parse(localStorage.getItem('catum_cfg') || 'null'); if (l && typeof l === 'object') CFG = { skin: l.skin || null, lado: l.lado === 'd' ? 'd' : 'e' }; } catch(_){}
-  try { const { data } = await sb.from('catum_jogador').select('skin,lado').eq('user_id', eu.id).maybeSingle(); if (data) { if (data.skin && data.skin.pele) CFG.skin = data.skin; CFG.lado = data.lado === 'd' ? 'd' : 'e'; } } catch(_){}
-  if (!CFG.skin) CFG.skin = (await sugerePeloAvatar(eu.av)) || limpaSkin({ roupa: ROUPAS[hash(eu.id) % ROUPAS.length] });
+  try { const { data } = await sb.from('catum_jogador').select('skin,lado').eq('user_id', eu.id).maybeSingle(); if (data) { if (data.skin && (data.skin.base || data.skin.pele)) CFG.skin = data.skin; CFG.lado = data.lado === 'd' ? 'd' : 'e'; } } catch(_){}
+  if (!CFG.skin || !CFG.skin.base) { const s = await sugerePeloAvatar(eu.av); CFG.skin = Object.assign({ base: 'homem-medio' }, CFG.skin || {}, s || {}); }
   aplicaCfg(); guardaLocal();
 }
 async function salvaCfg(){ aplicaCfg(); guardaLocal(); try { canal && pronto && canal.track(meuRastro()); } catch(_){}
   try { const { error } = await sb.from('catum_jogador').upsert({ user_id: eu.id, skin: CFG.skin, lado: CFG.lado, atualizado_em: new Date().toISOString() }); return !error; } catch(_) { return false; } }
 
-/* ---------- interiores: cada lugar tem o seu salão ---------- */
-const IW = 22, IH = 14, SALAS = {}; let CENA = null, trocaAte = 0;     // CENA = null (na rua) ou o lugar em que estou dentro
-const entrada = L => ({ x: (L.b[0] + L.b[2] / 2) * T, y: (L.b[1] + L.b[3]) * T + 6 });
-const PISO = { escola:['#d9b98a','#cfae7c'], galeria:['#e9eef6','#dbe3ee'], cinema:['#3a2a52','#33244a'], salao:['#f3e6cf','#eadbc0'], mercado:['#e2c79a','#d8bb8a'], terraco:['#b98a5a','#ad7f50'], estacao:['#cfd8dc','#c2ccd1'], biblioteca:['#2f6f9e','#2a6591'], escritorio:['#e6e1d6','#dcd6c9'] };
-function sala(L){
-  if (SALAS[L.id]) return SALAS[L.id];
-  const k = document.createElement('canvas'); k.width = IW * T; k.height = IH * T; const g = k.getContext('2d'), sol = new Uint8Array(IW * IH), c = L.cor, tinta = '#1d1b2a';
-  const P = (x, y, w, h, cor) => { g.fillStyle = cor; g.fillRect(x, y, w, h); };
-  const S = (tx, ty, tw, th) => { for (let y = ty; y < ty + (th || 1); y++) for (let x = tx; x < tx + (tw || 1); x++) if (x >= 0 && y >= 0 && x < IW && y < IH) sol[y * IW + x] = 1; };
-  const piso = PISO[L.id] || ['#e8e2d2','#d8d0bb'];
-  for (let y = 0; y < IH; y++) for (let x = 0; x < IW; x++) { P(x * T, y * T, T, T, piso[(x + y) % 2]); if (rnd(x, y, 31) < .12) P(x * T + 5, y * T + 9, 3, 1, 'rgba(0,0,0,.08)'); }
-  // paredes: fundo (2 fileiras), laterais e frente; a porta fica embaixo, no meio
-  P(0, 0, IW * T, 2 * T, c.parede); P(0, 2 * T - 4, IW * T, 4, 'rgba(0,0,0,.25)'); P(0, 0, IW * T, 3, tinta); S(0, 0, IW, 2);
-  P(0, 0, 6, IH * T, tinta); P(IW * T - 6, 0, 6, IH * T, tinta); S(0, 0, 1, IH); S(IW - 1, 0, 1, IH);
-  P(0, IH * T - 8, IW * T, 8, tinta); S(0, IH - 1, 10, 1); S(12, IH - 1, 10, 1); P(10 * T, IH * T - 10, 2 * T, 10, c.det); P(10 * T + 2, IH * T - 8, 2 * T - 4, 3, 'rgba(255,255,255,.5)');
-  const mesa = (tx, ty, tw, cor) => { P(tx * T + 1, ty * T + 3, (tw || 1) * T - 2, 11, tinta); P(tx * T + 2, ty * T + 4, (tw || 1) * T - 4, 6, cor || '#c8975a'); P(tx * T + 2, ty * T + 10, (tw || 1) * T - 4, 3, '#8f5f31'); S(tx, ty, tw || 1, 1); };
-  const quadro = (tx, cor) => { P(tx * T + 2, 6, 28, 20, tinta); P(tx * T + 4, 8, 24, 16, cor); P(tx * T + 8, 12, 10, 6, 'rgba(255,255,255,.45)'); };
-  const vaso = (tx, ty) => { P(tx * T + 4, ty * T + 8, 8, 7, '#8f5f31'); P(tx * T + 2, ty * T - 2, 12, 11, '#1f7a52'); P(tx * T + 5, ty * T, 5, 4, '#5fc98a'); S(tx, ty); };
-  if (L.id === 'escola') { P(6 * T, 5, 10 * T, 22, '#6b4226'); P(6 * T + 3, 8, 10 * T - 6, 16, '#1f5a44'); P(6 * T + 10, 13, 40, 1, '#eafff5'); P(6 * T + 10, 17, 64, 1, '#eafff5'); P(13 * T, 12, 30, 1, '#ffe27a');
-    [5, 7, 9].forEach(y => [4, 8, 13, 17].forEach(x => mesa(x, y))); vaso(1, 2); vaso(IW - 2, 2); }
-  if (L.id === 'galeria') { [['#ea278f', 2], ['#145dec', 5], ['#e5ec16', 8], ['#11ba98', 12], ['#ff6500', 15], ['#5425a6', 18]].forEach(([cc, x]) => quadro(x, cc)); mesa(6, 7, 3, '#dfe7ea'); mesa(13, 7, 3, '#dfe7ea'); P(10 * T + 8, 5 * T, 16, 20, tinta); P(10 * T + 10, 5 * T + 2, 12, 12, '#fffdf5'); S(10, 5, 2, 1); }
-  if (L.id === 'cinema') { P(4 * T, 4, 14 * T, 24, tinta); P(4 * T + 3, 7, 14 * T - 6, 18, '#fffdf5'); P(6 * T, 12, 60, 8, '#be3828'); P(12 * T, 10, 40, 10, '#145dec');
-    [5, 7, 9].forEach(y => { for (let x = 3; x <= 18; x++) { if (x === 10 || x === 11) continue; P(x * T + 2, y * T + 2, 12, 12, tinta); P(x * T + 3, y * T + 3, 10, 7, '#be3828'); P(x * T + 3, y * T + 10, 10, 3, '#8a2419'); S(x, y); } }); }
-  if (L.id === 'salao') { [[3, 4, '#ea278f'], [8, 4, '#00b5c9'], [13, 4, '#e5ec16'], [18, 4, '#5425a6'], [5, 8, '#11ba98'], [15, 8, '#ff6500']].forEach(([x, y, cc]) => { P(x * T + 2, y * T - 6, 12, 16, tinta); P(x * T + 3, y * T - 5, 10, 12, '#fffdf5'); P(x * T + 5, y * T - 3, 6, 6, cc); P(x * T + 4, y * T + 10, 2, 5, '#6b4226'); P(x * T + 10, y * T + 10, 2, 5, '#6b4226'); S(x, y); });
-    P(9 * T, 9 * T, 4 * T, 2 * T, '#ea278f'); P(9 * T + 4, 9 * T + 4, 4 * T - 8, 2 * T - 8, '#ff8ac4'); }
-  if (L.id === 'mercado') { [2, 9, 16].forEach((x, i) => { mesa(x, 3, 4, ['#ff5038', '#ffe27a', '#11ba98'][i]); for (let q = 0; q < 4; q++) { P((x + q) * T + 7, 2 * T - 2, 1, 5, tinta); P((x + q) * T + 5, 2 * T + 2, 5, 5, ['#ff5038', '#ffe27a', '#ea278f', '#11ba98'][(q + i) % 4]); } });
-    [[4, 8], [5, 8], [15, 9], [16, 9], [10, 7]].forEach(([x, y]) => { P(x * T + 1, y * T + 2, 14, 13, tinta); P(x * T + 2, y * T + 3, 12, 11, '#a8733f'); P(x * T + 2, y * T + 8, 12, 1, '#6b4226'); S(x, y); }); }
-  if (L.id === 'terraco') { [[1, 2], [IW - 2, 2], [1, IH - 3], [IW - 2, IH - 3], [7, 2], [14, 2]].forEach(([x, y]) => vaso(x, y)); [[5, 6], [11, 8], [16, 5]].forEach(([x, y]) => { mesa(x, y, 2, '#fffdf5'); P(x * T + 12, y * T - 4, 8, 6, '#ea278f'); }); for (let x = 1; x < IW - 1; x++) P(x * T, 2 * T, T, 1, 'rgba(0,0,0,.15)'); }
-  if (L.id === 'estacao') { mesa(2, 3, 5, '#007f91'); P(3 * T, 6, 3 * T, 16, tinta); P(3 * T + 2, 8, 3 * T - 4, 12, '#ffe27a'); for (let yy = -7; yy <= 7; yy++) for (let xx = -7; xx <= 7; xx++) if (xx * xx + yy * yy <= 49) P(15 * T + xx, 15 + yy, 1, 1, '#fffdf5'); P(15 * T, 10, 1, 6, tinta); P(15 * T, 15, 5, 1, tinta);
-    [6, 9].forEach(y => [3, 8, 13].forEach(x => { P(x * T + 1, y * T + 4, 4 * T - 2, 9, tinta); P(x * T + 2, y * T + 5, 4 * T - 4, 4, '#145dec'); P(x * T + 2, y * T + 9, 4 * T - 4, 3, '#0e3f9c'); S(x, y, 4, 1); })); }
-  if (L.id === 'biblioteca') { [3, 7, 11, 15, 19].forEach((x, i) => { for (let y = 3; y < 7; y++) { P(x * T + 1, y * T, 14, T, tinta); P(x * T + 2, y * T + 1, 12, 4, ['#ea278f', '#e5ec16', '#11ba98', '#ff6500'][(y + i) % 4]); P(x * T + 2, y * T + 6, 12, 4, ['#145dec', '#fffdf5', '#5425a6', '#ffe27a'][(y + i) % 4]); P(x * T + 2, y * T + 11, 12, 4, ['#11ba98', '#ff5038', '#e5ec16', '#bfeee6'][(y + i) % 4]); S(x, y); } });
-    mesa(8, 9, 6, '#bfeee6'); for (let x = 1; x < IW - 1; x += 3) P(x * T + 4, (IH - 3) * T + 6, 6, 1, '#7fb5ff'); }
-  if (L.id === 'escritorio') { P(5 * T, 5, 12 * T, 22, tinta); P(5 * T + 3, 8, 12 * T - 6, 16, '#fffdf5'); [['#ea278f', 8], ['#ff6500', 40], ['#e5ec16', 72], ['#11ba98', 104], ['#145dec', 136]].forEach(([cc, dx]) => { P(5 * T + dx, 10, 22, 5, cc); P(5 * T + dx, 17, 16, 2, '#1d1b2a'); P(5 * T + dx, 20, 20, 2, '#b8b8b8'); });
-    [5, 8].forEach(y => [3, 8, 13, 17].forEach(x => { mesa(x, y, 2, '#fffdf5'); P(x * T + 8, y * T - 6, 14, 10, tinta); P(x * T + 9, y * T - 5, 12, 7, '#7fe3d2'); P(x * T + 11, y * T - 3, 6, 1, '#1d1b2a'); })); vaso(1, 2); vaso(IW - 2, 2); }
-  const livres = []; for (let y = 3; y < IH - 2; y++) for (let x = 2; x < IW - 2; x++) if (!sol[y * IW + x] && !(sol[(y - 1) * IW + x] && sol[(y + 1) * IW + x])) livres.push([x, y]);
-  return (SALAS[L.id] = { cv: k, sol, livres });
+/* ---------- troca de cena ---------- */
+const vela = document.createElement('div'); vela.style.cssText = 'position:fixed;inset:0;z-index:9;background:#12101c;opacity:0;pointer-events:none;transition:opacity .22s'; document.body.appendChild(vela);
+async function vai(id, x, y, t){
+  if (trocando) return; trocando = true; eu.alvo = null; for (const k in tecla) tecla[k] = false; joySolta(); cardFechado = null; if (cardDe) fechaCard(false);
+  vela.style.opacity = 1; await new Promise(r => setTimeout(r, 200));
+  try { const c = await cena(id); CENA = id; C = c; const p = perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; camPronta = false; }
+  catch(e) { console.warn(e); }
+  trocaAte = performance.now() + 700; trocando = false; vela.style.opacity = 0;
+  try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA } }), canal.track(meuRastro())); } catch(_){}
 }
-function mudaCena(L, t){ CENA = L; trocaAte = t + 700; eu.alvo = null; for (const k in tecla) tecla[k] = false; cardFechado = null; if (cardDe) fechaCard(false);
-  if (L) { sala(L); eu.x = IW * T / 2; eu.y = (IH - 1) * T - 3; } else { /* posição de saída definida por quem chamou */ }
-  try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA ? CENA.id : '' } }), canal.track(meuRastro())); } catch(_){} }
-function caminho(x0, y0, x1, y1){     // pontos (px) do tile (x0,y0) até (x1,y1) desviando de prédio, água e árvore
-  const cab = (x, y) => x >= 0 && y >= 0 && x < W && y < H && !solido[ix(x, y)];
-  const perto = (x, y) => { if (cab(x, y)) return [x, y]; for (let r = 1; r < 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (cab(x + dx, y + dy)) return [x + dx, y + dy]; return [x, y]; };
-  [x0, y0] = perto(x0, y0); [x1, y1] = perto(x1, y1);
-  const de = new Int32Array(W * H).fill(-1), fila = [ix(x0, y0)]; de[ix(x0, y0)] = ix(x0, y0);
-  for (let q = 0; q < fila.length; q++) { const c = fila[q]; if (c === ix(x1, y1)) break; const cx0 = c % W, cy0 = (c / W) | 0;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = cx0 + dx, ny = cy0 + dy; if (cab(nx, ny) && de[ix(nx, ny)] < 0) { de[ix(nx, ny)] = c; fila.push(ix(nx, ny)); } } }
-  if (de[ix(x1, y1)] < 0) return [[x1 * T + 8, y1 * T + 10]];
-  const pts = []; for (let c = ix(x1, y1); ; c = de[c]) { pts.push([(c % W) * T + 8, ((c / W) | 0) * T + 10]); if (de[c] === c) break; }
-  pts.reverse(); return pts.filter((p, i) => i === 0 || i === pts.length - 1 || !((pts[i - 1][0] === p[0] && pts[i + 1][0] === p[0]) || (pts[i - 1][1] === p[1] && pts[i + 1][1] === p[1])));
+function soleira(L){ const b = CENAS.bairro; if (!L.sol && b && b.pronta) { L.sol = perto(b, L.porta[0], L.porta[1] + 4); const vx = L.porta[0] - L.sol[0], vy = L.porta[1] - L.sol[1], d = Math.hypot(vx, vy); L.dv = d > 14 ? [vx / d, vy / d] : [0, -1]; } return L.sol || L.porta; }
+function foraDaPorta(L){ const s = soleira(L), vx = s[0] - L.porta[0], vy = s[1] - L.porta[1], d = Math.hypot(vx, vy) || 1; return perto(CENAS.bairro, s[0] + (d < 3 ? 0 : vx / d * 12), s[1] + (d < 3 ? 12 : vy / d * 12)); }
+function sairPara(t){        // volta um nível: escritório -> escola -> bairro
+  if (CENA === 'escritorio') return vai('escola', C_ESC().w * PORTAL.volta[0], C_ESC().h * PORTAL.volta[1], t);
+  const s = foraDaPorta(lug(CENA)); return vai('bairro', s[0], s[1], t);
 }
-const pedra = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T);
-  if (CENA) { return tx < 0 || ty < 0 || tx >= IW || ty >= IH || SALAS[CENA.id].sol[ty * IW + tx] === 1; }
-  return tx < 0 || ty < 0 || tx >= W || ty >= H || solido[ix(tx, ty)] === 1; };
-const bate = (x, y) => pedra(x - 4, y - 5) || pedra(x + 4, y - 5) || pedra(x - 4, y) || pedra(x + 4, y);
+const C_ESC = () => CENAS.escola && CENAS.escola.pronta ? CENAS.escola : { w: 1536, h: 1024 };
 
-// IAs: cada uma passeia entre os lugares num relógio que é o mesmo para todo mundo (todos veem a mesma cidade, sem servidor)
-const PASSO = 42000, VEL_IA = 46;
-const centro = ([x, y]) => [(x + 1) * T, (y + 1) * T];
-function ondeFica(id, k){ const L = LUGARES[hash(id + ':' + k) % LUGARES.length]; const dx = L.id === 'biblioteca' ? 0 : ((hash(id + 'x' + k) % 7) - 3); const [px, py] = centro(L.porta); return { L, x: px + dx * 10, y: py + (hash(id + 'y' + k) % 9) }; }
-let ALUNOS = new Map();     // personagem -> { curso, lugar (nº da carteira) }
+/* ---------- IAs: passeiam entre os lugares num relógio igual para todos ---------- */
+const PASSO = 75000, VEL_IA = 30, ROTAS = {};
+let ALUNOS = new Map();
+function rota(a, b){ const k = a.id + '>' + b.id; if (ROTAS[k]) return ROTAS[k]; const bb = CENAS.bairro, sa = soleira(a.dentroDe ? lug(a.dentroDe) : a), sb2 = soleira(b.dentroDe ? lug(b.dentroDe) : b); const pts = caminho(bb, sa[0], sa[1], sb2[0], sb2[1]); return (ROTAS[k] = { pts, len: compr(pts) }); }
+const ondeVai = (id, k) => LUG[hash(id + ':' + k) % LUG.length];
 function posIA(n, agora){
-  // parou para falar comigo: fica onde está. Depois retoma de onde parou e vai alcançando o relógio da cidade aos poucos.
   const passou = agora - (n.ult || agora); n.ult = agora;
-  if (n.guia || n.segue) { n.atraso = (n.atraso || 0) + passou; return; }          // andando comigo: quem manda é o guia/seguir
-  if (n.forca && n.forca.ate > agora) { n.atraso = (n.atraso || 0) + passou; const e = entrada(n.forca.L); n.x = e.x + 12; n.y = e.y + 8; n.anda = false; n.aula = false; n.lugar = n.forca.L; n.k = 0; return; }
+  if (n.guia || n.segue) { n.atraso = (n.atraso || 0) + passou; return; }
+  if (n.forca && n.forca.ate > agora) { n.atraso = (n.atraso || 0) + passou; n.anda = false; n.aula = false; n.onde = n.forca.L.id; n.k = 0; return; }
   if (n.preso && n.preso > agora) { n.atraso = (n.atraso || 0) + passou; n.anda = false; return; }
   if (n.atraso) n.atraso = Math.max(0, n.atraso - passou * .5);
   agora -= (n.atraso || 0);
   const al = ALUNOS.get(n.id);
-  if (al) { const c = CARTEIRAS[al.lugar % CARTEIRAS.length]; n.x = c.x; n.y = c.y; n.anda = false; n.aula = true; n.lugar = LUGARES[4]; n.curso = al.curso; return; }
+  if (al) { n.aula = true; n.curso = al.curso; n.lugarN = al.lugar; n.onde = 'escola'; n.anda = false; return; }
   n.aula = false; n.curso = '';
-  const t = agora + (hash(n.id) % PASSO), k = Math.floor(t / PASSO), dt = (t % PASSO) / 1000;
-  n.k = k; const a = ondeFica(n.id, k - 1), b = ondeFica(n.id, k);
-  if (a.L === b.L) { n.x = b.x; n.y = b.y; n.anda = false; n.lugar = b.L; return; }
-  const pts = [[a.x, a.y], ...a.L.rota.map(centro), ...b.L.rota.slice(0, -1).reverse().map(centro), [b.x, b.y]];
-  let d = dt * VEL_IA;
-  for (let i = 0; i < pts.length - 1; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[i + 1], s = Math.hypot(x2 - x1, y2 - y1);
-    if (d <= s) { const f = s ? d / s : 0; n.x = x1 + (x2 - x1) * f; n.y = y1 + (y2 - y1) * f; n.anda = true; if (x2 !== x1) n.dir = x2 > x1 ? 1 : -1; n.lugar = null; return; } d -= s; }
-  n.x = b.x; n.y = b.y; n.anda = false; n.lugar = b.L;
+  const t = agora + (hash(n.id) % PASSO), k = Math.floor(t / PASSO), dt = (t % PASSO) / 1000; n.k = k;
+  const a = ondeVai(n.id, k - 1), b = ondeVai(n.id, k);
+  if (a === b || (a.dentroDe || a.id) === (b.dentroDe || b.id)) { n.onde = b.id; n.anda = false; return; }
+  const r = rota(a, b), d = dt * VEL_IA;
+  if (d >= r.len) { n.onde = b.id; n.anda = false; return; }
+  const p = naLinha(r.pts, d); n.x = p[0]; n.y = p[1]; n.anda = true; n.onde = 'bairro'; n.dir = Math.abs(p[2]) > Math.abs(p[3]) ? (p[2] < 0 ? 2 : 3) : (p[3] < 0 ? 1 : 0);
+}
+function lugarDentro(n, c){       // onde a IA fica quando está dentro de um lugar
+  if (n.aula && c.id === 'escola') { const a = n.lugarN * 2.4, r = 16 + 7 * n.lugarN; return perto(c, c.w * .72 + Math.cos(a) * r, c.h * .49 + Math.sin(a) * r * .7); }
+  return c.livres.length ? c.livres[hash(n.id + '@' + (n.k || 0)) % c.livres.length] : [c.w / 2, c.h / 2];
 }
 
 /* ---------- controles ---------- */
@@ -361,7 +275,7 @@ addEventListener('keydown', e => { const ae = document.activeElement; if (ae && 
   tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
 addEventListener('keyup', e => { tecla[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in tecla) tecla[k] = false; });
-let camX = 0, camY = 0;
+let camX = 0, camY = 0, camPronta = false;
 cv.addEventListener('pointerdown', e => { eu.alvo = { x: camX + e.clientX / SC, y: camY + e.clientY / SC, em: performance.now() }; });
 const fala = document.getElementById('fala'), falaTxt = document.getElementById('falaTxt');
 function abreFala(){ fala.classList.add('on'); falaTxt.focus(); }
@@ -380,29 +294,29 @@ joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMexe(e)
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev => joy.addEventListener(ev, e => { if (e.pointerId === joyId) joySolta(); }));
 
 /* ---------- config: o personagem e o controle ---------- */
-const cfgEl = document.getElementById('cfg'), cfgCx = document.getElementById('cfgCx');
+const cfgEl = document.getElementById('cfg'), cfgCx = document.getElementById('cfgCx'); let cfgAnim = 0;
 function abreCfg(){
   const w = { skin: limpaSkin(CFG.skin), lado: CFG.lado };
   const cores = (lista, campo) => lista.map(c => `<button type="button" class="cor ${w.skin[campo] === c ? 'on' : ''}" data-cor="${campo}" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
-  const seta = (campo, lista) => `<button type="button" data-seta="${campo}" data-d="-1" aria-label="Anterior">&lt;</button><span class="seta">${esc(lista[w.skin[campo]])}</span><button type="button" data-seta="${campo}" data-d="1" aria-label="Próximo">&gt;</button>`;
-  const desenha = () => { cfgCx.innerHTML = `<div class="topo"><h2>Config</h2><button type="button" class="pri" data-salva>Salvar</button><button type="button" data-fecha>Fechar</button></div>
-    <div class="prev"><canvas width="24" height="36"></canvas><div><button type="button" data-sugere>Sugerir pelo meu avatar</button><p>Leio as cores da sua foto (pele, cabelo, barba, roupa) e monto um ponto de partida. Depois é só ajustar.</p></div></div>
+  const desenha = () => { const bi = BASES.findIndex(b => b[0] === w.skin.base);
+    cfgCx.innerHTML = `<div class="topo"><h2>Config</h2><button type="button" class="pri" data-salva>Salvar</button><button type="button" data-fecha>Fechar</button></div>
+    <div class="prev"><canvas width="64" height="64" style="width:128px;height:128px"></canvas><div><button type="button" data-sugere>Sugerir pelo meu avatar</button><p>Leio as cores da sua foto (pele, cabelo, roupa) e uso como ponto de partida. Depois é só ajustar.</p></div></div>
+    <h3>Corpo</h3><div class="lin"><button type="button" data-base="-1" aria-label="Anterior">&lt;</button><span class="seta">${esc(BASES[bi][1])}</span><button type="button" data-base="1" aria-label="Próximo">&gt;</button></div>
     <h3>Pele</h3><div class="lin">${cores(PELES, 'pele')}</div>
-    <h3>Cabelo</h3><div class="lin">${seta('cab', ESTILOS)}</div><div class="lin" style="margin-top:6px">${cores(COR_CABELO, 'ccab')}</div>
-    <h3>Barba</h3><div class="lin">${seta('barba', BARBAS)}</div>
-    <h3>Óculos</h3><div class="lin">${seta('oc', OCULOS)}</div>
-    <h3>Roupa</h3><div class="lin">${cores(ROUPAS, 'roupa')}</div>
+    <h3>Cabelo</h3><div class="lin">${cores(COR_CABELO, 'cabelo')}</div>
+    <h3>Camiseta</h3><div class="lin">${cores(ROUPAS, 'camisa')}</div>
+    <h3>Calça</h3><div class="lin">${cores(CALCAS, 'calca')}</div>
     <h3>Controle no celular</h3><div class="lin"><button type="button" class="${w.lado === 'e' ? 'on' : ''}" data-lado="e">Joystick à esquerda</button><button type="button" class="${w.lado === 'd' ? 'on' : ''}" data-lado="d">Joystick à direita</button></div>
     <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p>
     <h3>Som</h3><div class="lin"><button type="button" class="${SOM ? 'on' : ''}" data-som="1">Vozinha ligada</button><button type="button" class="${SOM ? '' : 'on'}" data-som="0">Sem som</button></div><p id="cfgMsg"></p>`;
-    const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false;
-    desenhaBoneco(g, 12, 33, { cab: rosto(w.skin), cor: w.skin.roupa, mao: w.skin.pele, anda: false }, 0, false); };
+    clearInterval(cfgAnim); const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false; let q = 0;
+    cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const im = folhaHumana(w.skin); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * 64, (q % 8) * 64, 64, 64, 0, 0, 64, 64); q++; }, 110); };
   cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.cor) w.skin[b.dataset.cor] = b.dataset.v;
-    else if (b.dataset.seta) { const lista = { cab: ESTILOS, barba: BARBAS, oc: OCULOS }[b.dataset.seta]; w.skin[b.dataset.seta] = (w.skin[b.dataset.seta] + (+b.dataset.d) + lista.length) % lista.length; }
+    else if (b.dataset.base) { const i = BASES.findIndex(x => x[0] === w.skin.base); w.skin.base = BASES[(i + (+b.dataset.base) + BASES.length) % BASES.length][0]; }
     else if (b.dataset.lado) w.lado = b.dataset.lado;
     else if (b.dataset.som) { SOM = b.dataset.som === '1'; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} acorda(); if (SOM) vozinha(eu.id, 'Catum blabla'); }
-    else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) w.skin = s; else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Monte o rosto pelas opções.'; return; } }
+    else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) Object.assign(w.skin, s); else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Escolha as cores pelas opções.'; return; } }
     else if (b.hasAttribute('data-fecha')) { cfgEl.classList.remove('on'); return; }
     else if (b.hasAttribute('data-salva')) { CFG = { skin: limpaSkin(w.skin), lado: w.lado }; b.textContent = 'Salvando…'; const ok = await salvaCfg();
       if (ok) cfgEl.classList.remove('on'); else { desenha(); document.getElementById('cfgMsg').textContent = 'Ficou salvo neste aparelho. Para valer em todos, falta rodar o SQL v189.'; } return; }
@@ -412,76 +326,76 @@ function abreCfg(){
 document.getElementById('btCfg').onclick = abreCfg;
 cfgEl.addEventListener('pointerdown', e => { if (e.target === cfgEl) cfgEl.classList.remove('on'); });
 
-/* ---------- cartão do personagem ---------- */
+/* ---------- cartão do personagem + conversa ---------- */
 const card = document.getElementById('card'); let cardDe = null, cardFechado = null, NARR = null, narrPedida = false;
 function fechaCard(manual){ if (manual && cardDe) cardFechado = cardDe; cardDe = null; card.classList.remove('on'); }
 function abreCard(n){
   if (cardDe === n.id || cardFechado === n.id) return; cardDe = n.id;
-  const c = n.c || {}, w = NARR && NARR.personagens && NARR.personagens[n.id] && NARR.personagens[n.id].semana;
-  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab"><canvas width="12" height="12"></canvas><div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
+  const c = n.c || {}, w = NARR && NARR.personagens && NARR.personagens[n.id] && NARR.personagens[n.id].semana, L = lug(n.onde);
+  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab"><canvas width="64" height="64" style="background:#e8c9a8"></canvas><div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
     <p>${esc(c.bio || '')}</p>
-    <h3>Agora</h3><p>${n.aula ? `Em aula na Escola Ag&ecirc;ntica${n.curso ? ': ' + esc(n.curso) : ''}.` : n.lugar ? `Est&aacute; em ${esc(n.lugar.nome)}.` : 'A caminho de algum lugar.'}</p>
-    <h3>Esta semana</h3><div id="cardSem">${w && w.post ? `${w.titulo ? `<p><b>${esc(w.titulo)}</b></p>` : ''}<p>${esc(w.post)}</p>${w.historia && w.historia !== w.post ? `<details><summary>Ler a hist&oacute;ria</summary><p>${esc(w.historia)}</p></details>` : ''}` : `<p>${NARR ? esc((c.initial_life_post && c.initial_life_post.caption) || 'Sem novidades por enquanto.') : 'Buscando as novidades&hellip;'}</p>`}</div>
+    <h3>Agora</h3><p>${n.aula ? `Em aula na Escola Ag&ecirc;ntica${n.curso ? ': ' + esc(n.curso) : ''}.` : L ? `Est&aacute; em ${esc(L.nome)}.` : 'A caminho de algum lugar.'}</p>
+    <h3>Esta semana</h3><div>${w && w.post ? `${w.titulo ? `<p><b>${esc(w.titulo)}</b></p>` : ''}<p>${esc(w.post)}</p>${w.historia && w.historia !== w.post ? `<details><summary>Ler a hist&oacute;ria</summary><p>${esc(w.historia)}</p></details>` : ''}` : `<p>${NARR ? esc((c.initial_life_post && c.initial_life_post.caption) || 'Sem novidades por enquanto.') : 'Buscando as novidades&hellip;'}</p>`}</div>
     ${c.school_course ? `<h3>Na escola</h3><p>${esc(c.school_course)}</p>` : ''}
     <h3>Conversar</h3><div class="log" id="chatLog"></div><form id="chatF" autocomplete="off"><input id="chatTxt" maxlength="300" placeholder="Diga algo para ${esc(n.nome)}&hellip;"><button>Enviar</button></form>`;
-  pintaChat(n); card.querySelector('#chatF').onsubmit = e => { e.preventDefault(); const i = card.querySelector('#chatTxt'), t = i.value.trim().slice(0, 300); if (!t || n.esperando) return; i.value = ''; falaCom(n, t, (w && w.post) || ''); };
-  const k = card.querySelector('canvas'); if (n.cab) k.getContext('2d').drawImage(n.cab, 0, 0);
+  const k = card.querySelector('canvas'), im = folha(n.id); if (im) { const g = k.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 512, 64, 64, 0, 0, 64, 64); }
   card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on');
+  pintaChat(n); card.querySelector('#chatF').onsubmit = e => { e.preventDefault(); const i = card.querySelector('#chatTxt'), t = i.value.trim().slice(0, 300); if (!t || n.esperando) return; i.value = ''; falaCom(n, t, (w && w.post) || ''); };
   vozinha(n.id, (w && w.post) || c.bio || n.nome);
   if (!NARR && !narrPedida) { narrPedida = true; fetch('/pd-narrativas.php').then(r => r.ok ? r.json() : null).then(j => { NARR = j || {}; if (cardDe === n.id) { cardDe = null; abreCard(n); } }).catch(() => { NARR = {}; }); }
-}
-
-/* ---------- as IAs se mexem comigo: levar a um lugar, acompanhar ---------- */
-function diz(n, t){ n.fala = t; n.falaEm = Date.now(); vozinha(n.id, t); }
-function paraTudo(n){ n.guia = null; n.segue = null; }
-function iniciaGuia(n, L, t){
-  paraTudo(n); n.forca = null;
-  if (CENA) { const e = entrada(CENA); n.x = e.x + 14; n.y = e.y + 14; eu.x = e.x; eu.y = e.y + 12; mudaCena(null, t); }      // saímos juntos
-  else if (!n.v) { n.x = eu.x + 14; n.y = eu.y; }
-  const e = entrada(L); n.guia = { L, i: 0, pts: caminho(Math.floor(n.x / T), Math.floor(n.y / T), Math.floor(e.x / T), Math.floor((e.y + 10) / T)), avisou: 0 };
-  n.lugar = null; n.aula = false; fechaCard(true);
-}
-function iniciaSeguir(n){ paraTudo(n); n.forca = null; if (!n.v) { n.x = eu.x + 14; n.y = eu.y; } n.segue = { ate: Date.now() + 600000, travou: 0, cena: CENA ? CENA.id : '' }; n.lugar = null; n.aula = false; fechaCard(true); }
-function passoGuia(n, dt, t){
-  const g = n.guia; n.lugar = null; n.aula = false; n.anda = false; if (CENA) return;           // entrei em algum lugar: me espera na rua
-  const longe = Math.hypot(eu.x - n.x, eu.y - n.y);
-  if (g.i >= g.pts.length) {       // chegou na porta: me espera e entra
-    if (longe < 44) { diz(n, 'Chegamos: ' + g.L.nome + '. Entra comigo!'); n.forca = { L: g.L, ate: Date.now() + 240000 }; n.guia = null; }
-    else if (t - g.avisou > 7000) { g.avisou = t; diz(n, 'É aqui! Vem!'); }
-    return; }
-  if (longe > 120) { if (t - g.avisou > 6000) { g.avisou = t; diz(n, 'Vem comigo, ' + eu.nome + '!'); } return; }       // me espera
-  const [px, py] = g.pts[g.i], ax = px - n.x, ay = py - n.y, d = Math.hypot(ax, ay), v = 74 * dt;
-  if (d <= v) { n.x = px; n.y = py; g.i++; } else { n.x += ax / d * v; n.y += ay / d * v; if (ax) n.dir = ax > 0 ? 1 : -1; } n.anda = true;
-}
-function passoSeguir(n, dt, t){
-  const s = n.segue, aqui = CENA ? CENA.id : ''; n.lugar = null; n.aula = false; n.anda = false;
-  if (Date.now() > s.ate) { n.segue = null; diz(n, 'Vou dar uma volta. Até já!'); return; }
-  if (s.cena !== aqui) { s.cena = aqui; n.x = eu.x + 14; n.y = eu.y - 2; return; }                 // troquei de lugar: vem junto
-  const ax = eu.x - n.x, ay = eu.y - n.y, d = Math.hypot(ax, ay); if (d < 26) { s.travou = 0; return; }
-  const v = Math.min(d - 22, 86 * dt), nx = n.x + ax / d * v, ny = n.y + ay / d * v; let andou = false;
-  if (!bate(nx, n.y)) { n.x = nx; andou = true; } if (!bate(n.x, ny)) { n.y = ny; andou = true; }
-  n.anda = andou; if (ax) n.dir = ax > 0 ? 1 : -1; s.travou = andou ? 0 : s.travou + dt; if (s.travou > 1.2 || d > 260) { n.x = eu.x + 14; n.y = eu.y - 2; s.travou = 0; }
 }
 function pintaChat(n){ const el = document.getElementById('chatLog'); if (!el || cardDe !== n.id) return;
   el.innerHTML = (n.chat || []).slice(-8).map(m => `<div class="${m.erro ? 'er' : m.de}">${esc(m.t)}</div>`).join('') + (n.esperando ? '<div class="ia">&hellip;</div>' : ''); card.scrollTop = card.scrollHeight; }
 async function falaCom(n, txt, semana){
   n.chat = n.chat || []; const antes = n.chat.slice(-8); n.chat.push({ de: 'eu', t: txt }); n.esperando = true; n.preso = Date.now() + 60000; pintaChat(n);
-  let resp = '', erro = false;
+  let resp = '', erro = false, acao = null; const L = lug(n.onde);
   try { const { data: { session } } = await sb.auth.getSession();
     const r = await fetch('/pd-catum-fala.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.aula ? 'Escola Agêntica, em aula' : (n.lugar ? n.lugar.nome : 'na rua, a caminho de algum lugar'), semana }) });
-    const j = await r.json().catch(() => ({})); if (r.ok && j.reply) { resp = String(j.reply); var acao = j.acao || null; } else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
+      body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.aula ? 'Escola Agêntica, em aula' : (L ? L.nome : 'na rua, a caminho de algum lugar'), semana }) });
+    const j = await r.json().catch(() => ({})); if (r.ok && j.reply) { resp = String(j.reply); acao = j.acao || null; } else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
   } catch(_) { erro = true; resp = 'Sem conexão para conversar agora.'; }
   n.esperando = false; n.chat.push({ de: 'ia', t: resp, erro }); n.preso = Date.now() + 45000;
-  if (!erro) { n.fala = resp; n.falaEm = Date.now(); vozinha(n.id, resp); } pintaChat(n);
-  if (!erro && acao) { const t = performance.now();
-    if (acao.tipo === 'ir') { const L = LUGARES.find(x => x.id === acao.lugar); if (L) setTimeout(() => iniciaGuia(n, L, performance.now()), 1400); }
+  if (!erro) diz(n, resp); pintaChat(n);
+  if (!erro && acao) {
+    if (acao.tipo === 'ir') { const D = lug(acao.lugar); if (D) setTimeout(() => iniciaGuia(n, D), 1400); }
     else if (acao.tipo === 'seguir') setTimeout(() => iniciaSeguir(n), 1200);
-    else if (acao.tipo === 'ficar') { paraTudo(n); n.preso = Date.now() + 4000; } }
+    else if (acao.tipo === 'ficar') { n.guia = null; n.segue = null; n.preso = Date.now() + 4000; } }
 }
 
-/* ---------- a Escola: quem estuda o quê, e a porta para os cursos ---------- */
-let CURSOS = {};
+/* ---------- as IAs se mexem comigo: levar a um lugar, acompanhar ---------- */
+function diz(n, t){ n.fala = t; n.falaEm = Date.now(); vozinha(n.id, t); }
+async function iniciaGuia(n, D){
+  n.guia = null; n.segue = null; n.forca = null; const alvoL = D.dentroDe ? lug(D.dentroDe) : D;
+  if (CENA !== 'bairro') { while (CENA !== 'bairro') await sairPara(performance.now()); n.x = eu.x + 10; n.y = eu.y; }     // saímos juntos
+  else if (n.onde !== 'bairro') { n.x = eu.x + 10; n.y = eu.y; }
+  const s = soleira(alvoL); n.guia = { D, i: 0, pts: caminho(CENAS.bairro, n.x, n.y, s[0], s[1]), avisou: 0 }; n.onde = 'bairro'; n.aula = false; fechaCard(true);
+}
+function iniciaSeguir(n){ n.guia = null; n.forca = null; if (n.onde !== CENA) { n.x = eu.x + 10; n.y = eu.y; } n.segue = { ate: Date.now() + 600000, travou: 0, cena: CENA }; n.onde = CENA; n.aula = false; fechaCard(true); }
+function passoGuia(n, dt, t){
+  const g = n.guia; n.onde = 'bairro'; n.aula = false; n.anda = false; if (CENA !== 'bairro') return;
+  const longe = dist(eu.x, eu.y, n.x, n.y);
+  if (g.i >= g.pts.length) {
+    if (longe < 30) { diz(n, g.D.dentroDe ? 'É por aqui: o Escritório é a ala leste da Escola. Entra comigo e segue para a direita!' : 'Chegamos: ' + g.D.nome + '. Entra comigo!'); n.forca = { L: g.D, ate: Date.now() + 300000 }; n.guia = null; }
+    else if (t - g.avisou > 7000) { g.avisou = t; diz(n, 'É aqui! Vem!'); }
+    return; }
+  if (longe > 70) { if (t - g.avisou > 6000) { g.avisou = t; diz(n, 'Vem comigo, ' + eu.nome + '!'); } return; }
+  const [px, py] = g.pts[g.i], ax = px - n.x, ay = py - n.y, d = Math.hypot(ax, ay), v = 44 * dt;
+  if (d <= v) { n.x = px; n.y = py; g.i++; } else { n.x += ax / d * v; n.y += ay / d * v; n.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 2 : 3) : (ay < 0 ? 1 : 0); } n.anda = true;
+}
+function passoSeguir(n, dt){
+  const s = n.segue; n.onde = CENA; n.aula = false; n.anda = false;
+  if (Date.now() > s.ate) { n.segue = null; diz(n, 'Vou dar uma volta. Até já!'); return; }
+  if (s.cena !== CENA) { s.cena = CENA; n.x = eu.x + 10; n.y = eu.y - 1; return; }
+  const ax = eu.x - n.x, ay = eu.y - n.y, d = Math.hypot(ax, ay); if (d < 16) { s.travou = 0; return; }
+  const v = Math.min(d - 13, 52 * dt), nx = n.x + ax / d * v, ny = n.y + ay / d * v; let andou = false;
+  if (!bate(nx, n.y)) { n.x = nx; andou = true; } if (!bate(n.x, ny)) { n.y = ny; andou = true; }
+  n.anda = andou; n.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 2 : 3) : (ay < 0 ? 1 : 0); s.travou = andou ? 0 : s.travou + dt; if (s.travou > 1.2 || d > 150) { n.x = eu.x + 10; n.y = eu.y - 1; s.travou = 0; }
+}
+
+/* ---------- estações de cada lugar (o que fazer ali) + Escola e Escritório de verdade ---------- */
+let MIS = null, CURSOS = {}, TRAB = null, trabEm = 0;
+const dadosDe = id => MIS && (MIS.interiores || []).find(i => i.id === (lug(id) || {}).arq);
+function estacoes(id){ const d = dadosDe(id), c = CENAS[id]; if (!d || !c || !c.pronta) return []; if (!d._pts) d._pts = d.estacoes.map((e, i) => { const p = perto(c, c.w * e.pontoVisual[0], c.h * e.pontoVisual[1]); return { i, x: p[0], y: p[1], e }; }); return d._pts; }
 async function carregaEscola(){
   try { const j = await fetch('/pd/escola-cursos.json').then(r => r.ok ? r.json() : null); ((j && j.cursos) || []).forEach(c => { CURSOS[c.slug] = c.nome || c.titulo || c.slug; }); } catch(_){}
   const m = new Map(); let certo = false;
@@ -489,36 +403,27 @@ async function carregaEscola(){
   if (!certo) { try { const { data } = await sb.rpc('pd_escola_alunos'); (data || []).forEach(r => { if (NPC_IDS.includes(r.personagem)) m.set(r.personagem, ''); }); } catch(_){} }
   const novo = new Map(); let k = 0; NPC_IDS.forEach(id => { if (m.has(id)) novo.set(id, { curso: m.get(id), lugar: k++ }); }); ALUNOS = novo;
 }
-function abreEscola(){
-  if (cardDe === '#escola' || cardFechado === '#escola') return; cardDe = '#escola';
-  const L = npcs.filter(n => n.aula);
-  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>Escola Ag&ecirc;ntica</h2><small>Onde as IAs de Catum estudam para trabalhar melhor com a gente.</small>
-    <p><button type="button" id="btCursos" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">Ver os cursos</button></p>
-    <h3>Em aula agora (${L.length})</h3>${L.length ? L.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento.</p>'}<p>O p&aacute;tio de aula fica do lado de fora, logo abaixo da rua.</p>`;
-  card.querySelector('.x').onclick = () => fechaCard(true); card.querySelector('#btCursos').onclick = abreCursos; card.classList.add('on');
-}
-let TRAB = null, trabEm = 0;
-async function abreEscritorio(){
-  if (cardDe === '#escritorio' || cardFechado === '#escritorio') return; cardDe = '#escritorio';
-  const pinta = () => { if (cardDe !== '#escritorio') return; const ordem = ['EM ANDAMENTO', 'BRIEFING', 'ATENÇÃO', 'ALTERAÇÃO', 'BUCHA', 'DELEGADA'];
-    card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>Escrit&oacute;rio</h2><small>O mural do que est&aacute; rolando na PD agora.</small>` +
-      (TRAB === null ? '<p>Lendo o mural&hellip;</p>' : TRAB === false ? '<p>N&atilde;o consegui ler o mural agora.</p>' :
-        `<h3>Tarefas abertas (${TRAB.total})</h3>` + ordem.filter(s => TRAB.por[s]).map(s => `<p><b>${TRAB.por[s]}</b> &middot; ${esc(s.toLowerCase())}</p>`).join('') +
-        (TRAB.ult.length ? '<h3>&Uacute;ltimas que entraram</h3>' + TRAB.ult.map(x => `<p>${esc(x)}</p>`).join('') : '')) +
-      `<p><a href="/index.html" target="_blank" rel="noopener" style="color:#1d1b2a;font-weight:700">Abrir a PD &rarr;</a></p>`;
-    card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); };
+const BT = 'font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer';
+async function abreEstacao(st){
+  const ch = '#' + CENA + st.i; if (cardDe === ch || cardFechado === ch) return; cardDe = ch; const d = dadosDe(CENA), L = lug(CENA);
+  const pinta = () => { if (cardDe !== ch) return; let extra = '';
+    if (CENA === 'escola' && st.i === 0) { const A = npcs.filter(n => n.aula); extra = `<p><button type="button" id="btCursos" style="${BT}">Ver os cursos</button></p><h3>Em aula agora (${A.length})</h3>` + (A.length ? A.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento.</p>'); }
+    if (CENA === 'escritorio' && st.i === 0) { const ordem = ['EM ANDAMENTO', 'BRIEFING', 'ATENÇÃO', 'ALTERAÇÃO', 'BUCHA', 'DELEGADA'];
+      extra = '<h3>O que est&aacute; rolando na PD</h3>' + (TRAB === null ? '<p>Lendo o mural&hellip;</p>' : TRAB === false ? '<p>N&atilde;o consegui ler o mural agora.</p>' : `<p><b>${TRAB.total}</b> tarefas abertas</p>` + ordem.filter(s => TRAB.por[s]).map(s => `<p><b>${TRAB.por[s]}</b> &middot; ${esc(s.toLowerCase())}</p>`).join('') + (TRAB.ult.length ? '<h3>&Uacute;ltimas que entraram</h3>' + TRAB.ult.map(x => `<p>${esc(x)}</p>`).join('') : '')) + `<p><a href="/index.html" target="_blank" rel="noopener" style="color:#1d1b2a;font-weight:700">Abrir a PD &rarr;</a></p>`; }
+    card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)} &middot; ${esc(d.missao || '')}</small><p>${esc(st.e.acao)}</p>${st.i === 0 && d.abertura ? `<h3>${esc(d.anfitrioes || '')}</h3><p>${esc(d.abertura)}</p>` : ''}${extra}`;
+    card.querySelector('.x').onclick = () => fechaCard(true); const bc = card.querySelector('#btCursos'); if (bc) bc.onclick = abreCursos; card.classList.add('on'); };
   pinta();
-  if (TRAB && Date.now() - trabEm < 120000) return;
-  try { const { data, error } = await sb.from('tasks').select('id,action,status,created_at').neq('status', 'ENTREGUE').order('created_at', { ascending: false }).limit(400);
-    if (error) throw error; const por = {}; (data || []).forEach(x => { por[x.status] = (por[x.status] || 0) + 1; });
-    TRAB = { total: (data || []).length, por, ult: (data || []).slice(0, 5).map(x => String(x.action || x.id).slice(0, 70)) }; trabEm = Date.now(); } catch(_) { TRAB = TRAB || false; }
-  pinta();
+  if (CENA === 'escritorio' && st.i === 0 && !(TRAB && Date.now() - trabEm < 120000)) {
+    try { const { data, error } = await sb.from('tasks').select('id,action,status,created_at').neq('status', 'ENTREGUE').order('created_at', { ascending: false }).limit(400);
+      if (error) throw error; const por = {}; (data || []).forEach(x => { por[x.status] = (por[x.status] || 0) + 1; });
+      TRAB = { total: (data || []).length, por, ult: (data || []).slice(0, 5).map(x => String(x.action || x.id).slice(0, 70)) }; trabEm = Date.now(); } catch(_) { TRAB = TRAB || false; }
+    pinta(); }
 }
 function abreCursos(){ const d = document.createElement('div'); d.id = 'cursos'; d.style.cssText = 'position:fixed;inset:0;z-index:18;background:#fffdf5;display:flex;flex-direction:column';
-  d.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px solid #1d1b2a"><button type="button" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">&larr; Voltar a Catum</button><b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Cursos da Escola</b></div><iframe src="/escola-bastidores.html?modo=cursos" title="Cursos" style="flex:1;border:0;width:100%"></iframe>`;
+  d.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px solid #1d1b2a"><button type="button" style="${BT}">&larr; Voltar a Catum</button><b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Cursos da Escola</b></div><iframe src="/escola-bastidores.html?modo=cursos" title="Cursos" style="flex:1;border:0;width:100%"></iframe>`;
   d.querySelector('button').onclick = () => { d.remove(); carregaEscola(); }; document.body.appendChild(d); for (const k in tecla) tecla[k] = false; }
 
-/* ---------- a vozinha (blá-blá de Catum): um som por letra, cada um com o seu timbre ---------- */
+/* ---------- a vozinha (blá-blá de Catum) ---------- */
 let AC = null, SOM = true; try { SOM = localStorage.getItem('catum_som') !== '0'; } catch(_){}
 function acorda(){ try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch(_){} }
 ['pointerdown','keydown','touchstart'].forEach(ev => addEventListener(ev, acorda, { passive: true }));
@@ -529,27 +434,14 @@ function vozinha(quem, txt){ if (!SOM || !AC || AC.state !== 'running') return; 
 
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
-function desenhaBoneco(g, x, y, e, t, destaque){
-  const P = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(a, b, w, h); };
-  const tinta = '#1d1b2a', f = e.anda ? (Math.floor(t / 140) % 2) : 0, sobe = e.anda && f ? -1 : 0, cor = e.cor || '#888', mao = e.mao || '#fffdf5', aula = !!e.aula;
-  P(x - 6, y - 1, 12, 3, 'rgba(0,0,0,.25)');
-  if (!aula) {   // pernas e sapatos
-    const l1 = e.anda && f ? 1 : 0, l2 = e.anda && !f ? 1 : 0;
-    P(x - 4, y - 6, 3, 6 - l1, '#2b2a3a'); P(x + 1, y - 6, 3, 6 - l2, '#2b2a3a'); P(x - 5, y - 2 - l1, 4, 2, tinta); P(x + 1, y - 2 - l2, 4, 2, tinta);
-  }
-  // braços (balançam ao andar)
-  const b1 = e.anda ? (f ? 1 : -1) : 0, b2 = -b1;
-  P(x - 8, y - 14 + sobe + b1, 4, 8, tinta); P(x - 7, y - 13 + sobe + b1, 2, 5, cor); P(x - 7, y - 8 + sobe + b1, 2, 1, mao);
-  P(x + 4, y - 14 + sobe + b2, 4, 8, tinta); P(x + 5, y - 13 + sobe + b2, 2, 5, cor); P(x + 5, y - 8 + sobe + b2, 2, 1, mao);
-  // tronco
-  P(x - 5, y - 15 + sobe, 10, 10, tinta); P(x - 4, y - 14 + sobe, 8, 8, cor); P(x - 4, y - 7 + sobe, 8, 1, 'rgba(0,0,0,.22)'); P(x - 1, y - 14 + sobe, 2, 2, mao);
-  // cabeça arredondada
-  const c = destaque ? '#ffe27a' : tinta, hy = y - 28 + sobe;
-  P(x - 6, hy, 12, 14, c); P(x - 7, hy + 1, 14, 12, c);
-  if (e.cab) g.drawImage(e.cab, x - 6, hy + 1, 12, 12); else P(x - 6, hy + 1, 12, 12, cor);
-  if (aula) { P(x - 9, y - 5, 18, 6, tinta); P(x - 8, y - 4, 16, 2, '#c8975a'); P(x - 8, y - 2, 16, 2, '#a8733f'); P(x - 3, y - 6, 6, 2, '#fffdf5'); }   // carteira com caderno
+function boneco(e, t){
+  const id = e.humano ? (e.sk ? limpaSkin(e.sk).base : 'homem-medio') : e.sprite, p = PERF[id] || { e: .5, ms: 110 }, im = e.humano ? folhaHumana(e.sk) : folha(id);
+  const x = Math.round(e.x), y = Math.round(e.y), lado = Math.max(8, Math.round(64 * p.e)), ax = Math.round(32 * p.e), ay = Math.round(59 * p.e);
+  cx.fillStyle = 'rgba(0,0,0,.22)'; cx.fillRect(x - Math.round(lado * .16), y - 1, Math.round(lado * .32), 2);
+  if (!im) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
+  const lin = e.anda ? (Math.floor(t / p.ms) % 8) : 8; cx.drawImage(im, (e.dir || 0) * 64, lin * 64, 64, 64, x - ax, y - ay, lado, lado);
 }
-function boneco(e, t, destaque){ desenhaBoneco(cx, Math.round(e.x), Math.round(e.y), e, t, destaque); }
+const altura = e => { const id = e.humano ? 'homem-medio' : e.sprite, p = PERF[id]; return p ? Math.max(12, p.alt + 4) : 30; };
 function etiqueta(txt, wx, wy, fundo, cor, tam){
   const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC);
   cx.font = `700 ${tam || 10}px ui-monospace,Menlo,Consolas,monospace`; const w = Math.ceil(cx.measureText(txt).width) + 8, h = (tam || 10) + 6;
@@ -557,81 +449,83 @@ function etiqueta(txt, wx, wy, fundo, cor, tam){
 }
 function balao(txt, wx, wy){
   const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC); cx.font = '700 11px ui-monospace,Menlo,Consolas,monospace';
-  const w = Math.min(260, Math.ceil(cx.measureText(txt).width) + 14), h = 22;
+  const w = Math.min(280, Math.ceil(cx.measureText(txt).width) + 14), h = 22;
   cx.fillStyle = '#1d1b2a'; cx.fillRect(sx - (w >> 1) - 2, sy - h - 2, w + 4, h + 4); cx.fillStyle = '#fffdf5'; cx.fillRect(sx - (w >> 1), sy - h, w, h);
   cx.fillStyle = '#1d1b2a'; cx.fillRect(sx - 3, sy + 2, 6, 4); cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.save(); cx.beginPath(); cx.rect(sx - (w >> 1) + 4, sy - h, w - 8, h); cx.clip(); cx.fillText(txt, sx, sy - h / 2 + 1); cx.restore();
 }
 let ultimo = performance.now(), enviadoEm = 0, rastroEm = 0;
 function quadro(t){
-  requestAnimationFrame(quadro); if (document.hidden || !mapa) return;
+  requestAnimationFrame(quadro); if (document.hidden || !C) return;
   const dt = Math.min(.05, (t - ultimo) / 1000); ultimo = t; const agora = Date.now();
   // eu
   let dx = (tecla['arrowright'] || tecla['d'] ? 1 : 0) - (tecla['arrowleft'] || tecla['a'] ? 1 : 0), dy = (tecla['arrowdown'] || tecla['s'] ? 1 : 0) - (tecla['arrowup'] || tecla['w'] ? 1 : 0);
-  if (!dx && !dy && eu.alvo) { const ax = eu.alvo.x - eu.x, ay = eu.alvo.y - eu.y, d = Math.hypot(ax, ay); if (d < 3 || t - eu.alvo.em > 9000) eu.alvo = null; else { dx = ax / d; dy = ay / d; } }
+  if (!dx && !dy && eu.alvo) { const ax = eu.alvo.x - eu.x, ay = eu.alvo.y - eu.y, d = Math.hypot(ax, ay); if (d < 2 || t - eu.alvo.em > 12000) eu.alvo = null; else { dx = ax / d; dy = ay / d; } }
   if (!dx && !dy && joyV) { dx = joyV.x; dy = joyV.y; }
   const m = Math.hypot(dx, dy); eu.anda = false;
-  if (m) { const v = 92 * dt / m, nx = eu.x + dx * v, ny = eu.y + dy * v; let andou = false;
+  if (m && !trocando) { const v = 58 * dt / m, nx = eu.x + dx * v, ny = eu.y + dy * v; let andou = false;
     if (!bate(nx, eu.y)) { eu.x = nx; andou = true; } if (!bate(eu.x, ny)) { eu.y = ny; andou = true; }
-    eu.anda = andou; if (dx) eu.dir = dx > 0 ? 1 : -1; if (!andou) eu.alvo = null; }
-  // entrar e sair dos lugares: é só andar para dentro da porta
-  if (t > trocaAte) {
-    if (!CENA) { for (const L of LUGARES) { const e = entrada(L); if (Math.abs(eu.x - e.x) < 9 && eu.y - e.y < 4 && eu.y - e.y > -8 && dy < 0) { mudaCena(L, t); break; } } }
-    else if (eu.y > (IH - 1) * T + 7) { const e = entrada(CENA); eu.x = e.x; eu.y = e.y + 12; mudaCena(null, t); }
+    eu.anda = andou; eu.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 2 : 3) : (dy < 0 ? 1 : 0); if (!andou) eu.alvo = null; }
+  // portas
+  if (t > trocaAte && !trocando) {
+    if (CENA === 'bairro') { for (const L of LUG) { if (!L.porta) continue; const s = soleira(L); if (m && dist(eu.x, eu.y, s[0], s[1]) < 30 && (dx * L.dv[0] + dy * L.dv[1]) > .3 * m) { pilha.length = 0; vai(L.id, null, null, t); break; } } }
+    else if (eu.y > C.h - 9 && dy > 0) sairPara(t);
+    else if (CENA === 'escola' && dist(eu.x, eu.y, ...perto(C, C.w * PORTAL.de[0], C.h * PORTAL.de[1])) < 12) vai('escritorio', null, null, t);
   }
-  const aqui = CENA ? CENA.id : '';
-  if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: aqui } }); } catch(_){} }
+  if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, d: eu.dir } }); } catch(_){} }
   if (canal && pronto && t - rastroEm > 6000) { rastroEm = t; try { canal.track(meuRastro()); } catch(_){} }
-  // os outros chegam suaves
-  outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1.5; if (d > 200) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 110 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
-  // IAs: quem chegou num lugar entra nele (some da rua e aparece lá dentro)
+  outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1; if (d > 120) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 70 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
+  // IAs visíveis nesta cena
   const vis = [];
   npcs.forEach(n => { posIA(n, agora); n.v = null;
-    if (n.guia) { passoGuia(n, dt, t); if (!n.guia && !n.forca) return; if (n.guia) { if (!CENA) vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; } }
-    if (n.segue) { passoSeguir(n, dt, t); if (n.segue) { vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; } }
-    const dentro = (!n.anda && !n.aula && n.lugar) ? n.lugar.id : '';
-    if (dentro !== aqui) return;
-    if (!CENA) { vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; }
-    const S0 = sala(CENA), lv = S0.livres, p = lv[hash(n.id + '@' + (n.k || 0)) % lv.length]; vis.push(n.v = Object.assign(Object.create(n), { x: p[0] * T + 8, y: p[1] * T + 13, de: n })); });
-  const gente = [...outros.values()].filter(o => (o.r || '') === aqui);
-  // câmera
-  const MW = CENA ? IW * T : WPX, MH = CENA ? IH * T : HPX, vw = VW / SC, vh = VH / SC;
-  camX = Math.max(0, Math.min(MW - vw, eu.x - vw / 2)); camY = Math.max(0, Math.min(MH - vh, eu.y - 14 - vh / 2)); if (vw > MW) camX = (MW - vw) / 2; if (vh > MH) camY = (MH - vh) / 2;
-  const k = SC * DPR; cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
-  cx.setTransform(k, 0, 0, k, -Math.round(camX * k), -Math.round(camY * k)); cx.drawImage(CENA ? sala(CENA).cv : mapa, 0, 0);
-  // quem está mais perto de mim
-  let perto = null, pd = 30; vis.forEach(n => { const d = Math.hypot(n.x - eu.x, n.y - eu.y); if (d < pd) { pd = d; perto = n; } });
-  [...vis, ...gente, eu].sort((a, b) => a.y - b.y).forEach(e => boneco(e, t, e === perto));
+    if (n.guia) { passoGuia(n, dt, t); if (n.guia) { if (CENA === 'bairro') vis.push(n.v = n); return; } }
+    if (n.segue) { passoSeguir(n, dt); if (n.segue) { vis.push(n.v = n); return; } }
+    if (n.onde !== CENA) return;
+    if (CENA !== 'bairro') { const p = lugarDentro(n, C); n.x = p[0]; n.y = p[1]; n.dir = 0; }
+    vis.push(n.v = n); });
+  const gente = [...outros.values()].filter(o => (o.r || 'bairro') === CENA);
+  // câmera: aproxima aos poucos, arredonda no pixel lógico, respeita as bordas
+  const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 10 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
+  if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
+  const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
+  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
+  if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
+  // estações do lugar (marquinha que pisca)
+  const sts = CENA === 'bairro' ? [] : estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
+  // quem está mais perto
+  let pertoN = null, pd = 20; vis.forEach(n => { const d = dist(n.x, n.y, eu.x, eu.y); if (d < pd) { pd = d; pertoN = n; } });
+  [...vis, ...gente, eu].sort((a, b) => a.y - b.y).forEach(e => boneco(e, t));
   // textos (em tela)
-  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (!CENA) { LUGARES.forEach(L => { const [bx, by, bw] = L.b; etiqueta(L.nome.toUpperCase(), (bx + bw / 2) * T, by * T - 3, '#1d1b2a', '#fffdf5', 10); const e = entrada(L); if (Math.hypot(e.x - eu.x, e.y - eu.y) < 60) etiqueta('ENTRAR: ANDE ATÉ A PORTA', e.x, e.y + 26, '#ffe27a', '#1d1b2a', 9); });
-    etiqueta('PÁTIO DE AULA', (LOUSA.x + LOUSA.w / 2) * T, LOUSA.y * T - 3, '#1f5a44', '#eafff5', 10); }
-  else { etiqueta(CENA.nome.toUpperCase(), IW * T / 2, 2 * T + 12, '#1d1b2a', '#fffdf5', 10); etiqueta('SAÍDA', IW * T / 2, IH * T + 14, '#ffe27a', '#1d1b2a', 9); }
-  vis.forEach(n => { etiqueta(n.nome, n.x, n.y - 30, n === perto ? '#ffe27a' : 'rgba(29,27,42,.78)', n === perto ? '#1d1b2a' : '#fff', 9); if (n.de.fala && agora - n.de.falaEm < 9000) balao(n.de.fala.length > 64 ? n.de.fala.slice(0, 62) + '…' : n.de.fala, n.x, n.y - 44); });
-  gente.forEach(o => { etiqueta(o.nome, o.x, o.y - 30, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 44); });
-  etiqueta(eu.nome, eu.x, eu.y - 30, '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - 44);
-  // cartão e lugar
+  camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
+  if (CENA === 'bairro') LUG.forEach(L => { if (!L.porta) return; const s = soleira(L), d = dist(s[0], s[1], eu.x, eu.y); if (d < 150) etiqueta(L.nome.toUpperCase(), L.porta[0], L.porta[1] - 30, '#1d1b2a', '#fffdf5', 10); if (d < 40) etiqueta('ENTRAR: ANDE ATÉ A PORTA', s[0], s[1] + 12, '#ffe27a', '#1d1b2a', 9); });
+  else { if (eu.y > C.h - 70) etiqueta('SAÍDA', C.w / 2, C.h - 2, '#ffe27a', '#1d1b2a', 9);
+    if (CENA === 'escola') { const p = perto(C, C.w * PORTAL.de[0], C.h * PORTAL.de[1]); if (dist(p[0], p[1], eu.x, eu.y) < 160) etiqueta('ESCRITÓRIO PONTODOT', p[0], p[1] - 16, '#1d1b2a', '#fffdf5', 10); }
+    sts.forEach(s => { if (dist(s.x, s.y, eu.x, eu.y) < 90) etiqueta(s.e.rotulo.toUpperCase(), s.x, s.y - 9, 'rgba(29,27,42,.82)', '#ffe27a', 9); }); }
+  vis.forEach(n => { etiqueta(n.nome, n.x, n.y - altura(n), n === pertoN ? '#ffe27a' : 'rgba(29,27,42,.78)', n === pertoN ? '#1d1b2a' : '#fff', 9); if (n.fala && agora - n.falaEm < 9000) balao(n.fala.length > 64 ? n.fala.slice(0, 62) + '…' : n.fala, n.x, n.y - altura(n) - 6); });
+  gente.forEach(o => { etiqueta(o.nome, o.x, o.y - altura(o), '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
+  etiqueta(eu.nome, eu.x, eu.y - altura(eu), '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - altura(eu) - 6);
+  camX = cxa; camY = cya;
+  // cartão: IA do lado, ou a estação em que parei
   if (eu.anda) eu.parouEm = t;
-  if (perto && (perto.de.guia || perto.de.segue) && t - (eu.parouEm || 0) < 1500) perto = null;      // andando juntos: o cartão só abre quando eu paro
-  if (perto && cardFechado !== perto.de.id) perto.de.preso = Math.max(perto.de.preso || 0, agora + 1200);    // quem está do meu lado para pra conversar
-  if (perto) abreCard(perto.de); else if (CENA && CENA.id === 'escritorio') abreEscritorio(); else if (CENA && CENA.id === 'escola') abreEscola(); else { if (cardDe) fechaCard(false); cardFechado = null; }
-  let nome = CENA ? CENA.nome : ''; if (!CENA) LUGARES.forEach(L => { const [px, py] = centro(L.porta); if (Math.hypot(px - eu.x, py - eu.y) < 56) nome = L.nome; });
-  if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
+  if (pertoN && (pertoN.guia || pertoN.segue) && t - (eu.parouEm || 0) < 1500) pertoN = null;
+  if (pertoN && cardFechado !== pertoN.id) pertoN.preso = Math.max(pertoN.preso || 0, agora + 1200);
+  let st = null; if (!pertoN) { let sd = 18; sts.forEach(s => { const d = dist(s.x, s.y, eu.x, eu.y); if (d < sd) { sd = d; st = s; } }); }
+  if (pertoN) abreCard(pertoN); else if (st) abreEstacao(st); else { if (cardDe) fechaCard(false); cardFechado = null; }
+  const nome = CENA === 'bairro' ? '' : lug(CENA).nome; if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
 }
 
-/* ---------- ao vivo (Supabase Realtime): quem mais está em Catum ---------- */
+/* ---------- ao vivo (Supabase Realtime) ---------- */
 let canal = null, pronto = false;
-const meuRastro = () => ({ i: eu.id, n: eu.nome, a: eu.av || '', s: CFG.skin || null, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA ? CENA.id : '' });
+const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA });
 function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
 function liga(){
-  canal = sb.channel('catum-mundo', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
+  canal = sb.channel('catum-v2', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
   canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
-      let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: p.x, y: p.y, tx: p.x, ty: p.y, cab: null, cor: '#' + (hash(p.i) & 0xffffff).toString(16).padStart(6, '0'), fala: '', falaEm: 0, anda: false, r: String(p.r || '') };
-        outros.set(p.i, o); if (!(p.s && p.s.pele) && p.a && /^(\/|https:\/\/)/.test(p.a)) cabeca(p.a, k2 => { if (!o.sk) o.cab = k2; }); }
-      if (p.s && p.s.pele) { const j = JSON.stringify(p.s); if (o.sk !== j) { o.sk = j; const s = limpaSkin(p.s); o.cab = rosto(s); o.cor = s.roupa; o.mao = s.pele; } } });
+      let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: +p.x || 528, y: +p.y || 440, tx: +p.x || 528, ty: +p.y || 440, fala: '', falaEm: 0, anda: false, dir: 0, humano: true, sk: null, r: String(p.r || 'bairro') }; outros.set(p.i, o); }
+      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); });
     [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
-  canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { const r = String(p.r || ''); o.tx = Math.max(0, Math.min(WPX, +p.x)); o.ty = Math.max(0, Math.min(HPX, +p.y)); if (r !== o.r) { o.r = r; o.x = o.tx; o.y = o.ty; } } });
-  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || '') === (CENA ? CENA.id : '') && Math.hypot(o.x - eu.x, o.y - eu.y) < 260) vozinha(o.id, o.fala); } });
+  canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { const r = String(p.r || 'bairro'); o.tx = Math.max(0, Math.min(2000, +p.x)); o.ty = Math.max(0, Math.min(1400, +p.y)); if ([0, 1, 2, 3].includes(p.d)) o.dir = p.d; if (r !== o.r) { o.r = r; o.x = o.tx; o.y = o.ty; } } });
+  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 160) vozinha(o.id, o.fala); } });
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
 }
 
@@ -642,16 +536,18 @@ async function comeca(){
   if (!sess) { ptxt.innerHTML = 'Catum &eacute; para quem j&aacute; est&aacute; na PD. <a href="/index.html">Entre na PD</a> e volte aqui.'; return; }
   eu.id = sess.user.id;
   try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
-  await carregaCfg();
-  eu.x += (hash(eu.id) % 60) - 30;
-  geraTerreno(); mapa = pintaMapa(); ajusta();
-  npcs.forEach(n => cabeca('/pd/personagens/' + n.id + '/avatar.jpg', k => { n.cab = k; }));
-  fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; n.cor = (c.appearance && c.appearance.avatar_background) || n.cor; } }); }).catch(() => {});
+  ajusta();
+  try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'perfis.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
+    PERF = pf || {}; MIS = mi; C = b; const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440); eu.x = p[0]; eu.y = p[1];
+  } catch(e) { ptxt.textContent = 'Não consegui abrir a cidade. Atualize a página.'; console.warn(e); return; }
+  NPC_IDS.forEach(folha); folhaHumana(CFG.skin);
+  fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
   carregaEscola(); setInterval(() => { if (!document.hidden) carregaEscola(); }, 300000);
   try { liga(); } catch(e){ console.warn('ao vivo fora:', e); }
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro);
 }
+window.CATUM = { eu, LUG, npcs, get cena(){ return CENA; }, get trocando(){ return trocando; } };
 comeca();
 })();
 </script>

@@ -1,0 +1,449 @@
+{
+  "versao": 1,
+  "coordenadas": "pontoVisual e recepcaoNormalizada em frações de 0 a 1 da imagem. Os pontos identificam mobiliário e zonas. Projetar a interação no ponto acessível mais próximo em cada camada de movimento.",
+  "bairro": {
+    "arquivo": "mapa/catum-com-horizonte.png",
+    "resolucao": [
+      4224,
+      2816
+    ],
+    "fatorExportacao": 4,
+    "retanguloOriginalLogico": [
+      144,
+      192,
+      768,
+      512
+    ],
+    "regiao": "mapa/catum-regional.png"
+  },
+  "interiores": [
+    {
+      "id": "escola-agentica",
+      "nome": "Escola Agêntica",
+      "arquivo": "interiores/escola-agentica.png",
+      "entradaExteriorAntigaPx": [
+        383,
+        151
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Gigi",
+      "abertura": "Gigi reserva dois lugares na mesma bancada. “Escolha uma coisa que você quer aprender. No fim de hoje, me mostre o que conseguiu fazer com ela.”",
+      "missao": "Do briefing à primeira tentativa",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.49,
+            0.23
+          ],
+          "rotulo": "Escolher a aula",
+          "acao": "Leia o objetivo, escolha uma habilidade e receba o caderno da aula."
+        },
+        {
+          "pontoVisual": [
+            0.72,
+            0.49
+          ],
+          "rotulo": "Fazer a tentativa",
+          "acao": "Use um exemplo do acervo, aplique a habilidade e salve a primeira versão."
+        },
+        {
+          "pontoVisual": [
+            0.19,
+            0.47
+          ],
+          "rotulo": "Pedir devolutiva",
+          "acao": "Compare a tentativa com a rubrica e registre uma mudança para a próxima rodada."
+        }
+      ],
+      "conclusao": "Uma tentativa salva e uma revisão explicada. O caderno guarda a versão e a devolutiva.",
+      "retorno": "A porta leste abre a ala Pontodot. Ao voltar, retome a aula no mesmo ponto."
+    },
+    {
+      "id": "galeria-das-chuvas",
+      "nome": "Galeria das Chuvas",
+      "arquivo": "interiores/galeria-das-chuvas.png",
+      "entradaExteriorAntigaPx": [
+        516,
+        238
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Nix e Iro",
+      "abertura": "Nix encontra dois reflexos da mesma árvore nas placas da galeria. Iro muda uma delas de posição. Por um instante, a copa inteira cabe dentro de uma gota.",
+      "missao": "Depois da chuva",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.24,
+            0.44
+          ],
+          "rotulo": "Observar",
+          "acao": "Enquadre um reflexo na arcada e registre onde a luz bate."
+        },
+        {
+          "pontoVisual": [
+            0.77,
+            0.47
+          ],
+          "rotulo": "Comparar",
+          "acao": "Observe o mesmo motivo pelo canal ou pela passarela. Escolha a diferença que muda a imagem."
+        },
+        {
+          "pontoVisual": [
+            0.24,
+            0.72
+          ],
+          "rotulo": "Editar o postal",
+          "acao": "Monte um díptico e dê a ele uma legenda de uma frase."
+        }
+      ],
+      "conclusao": "Dois enquadramentos distintos e uma legenda formam um postal salvo.",
+      "retorno": "O postal pode ser levado à curadoria do Salão."
+    },
+    {
+      "id": "cinema-da-curva",
+      "nome": "Cinema da Curva",
+      "arquivo": "interiores/cinema-da-curva.png",
+      "entradaExteriorAntigaPx": [
+        191,
+        269
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Brum e Koda",
+      "abertura": "Brum acabou de arrumar o último banco quando Koda apaga uma das luzes. A mesma cena parece começar dois segundos antes. Os dois querem saber o que você viu.",
+      "missao": "Onde começa a cena",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.2,
+            0.42
+          ],
+          "rotulo": "Escolher o trecho",
+          "acao": "Retire três planos de uma pequena sequência do acervo."
+        },
+        {
+          "pontoVisual": [
+            0.8,
+            0.66
+          ],
+          "rotulo": "Montar",
+          "acao": "Troque a ordem dos planos, escolha um ponto de corte e salve a montagem."
+        },
+        {
+          "pontoVisual": [
+            0.49,
+            0.36
+          ],
+          "rotulo": "Projetar",
+          "acao": "Exiba as duas versões e marque o instante em que a leitura muda."
+        }
+      ],
+      "conclusao": "Uma montagem de três planos e uma justificativa liberam a ficha de montador.",
+      "retorno": "Envie a ficha ao arquivo da Biblioteca ou à revisão do escritório."
+    },
+    {
+      "id": "terraco-da-vizinhanca",
+      "nome": "Terraço da Vizinhança",
+      "arquivo": "interiores/terraco-da-vizinhanca.png",
+      "entradaExteriorAntigaPx": [
+        180,
+        150
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Gigi e Raku",
+      "abertura": "Raku mede o espaço do baile com passos. Gigi mede com convidados. Falta um lugar onde uma nadadeira e duas asas possam acompanhar a conversa à mesa.",
+      "missao": "Um jantar para todos",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.2,
+            0.65
+          ],
+          "rotulo": "Preparar a mesa",
+          "acao": "Escolha uma mesa e combine os ingredientes coletados no Mercado."
+        },
+        {
+          "pontoVisual": [
+            0.78,
+            0.41
+          ],
+          "rotulo": "Distribuir convites",
+          "acao": "Organize os encontros de um terrestre, um aquático e um voador em pontos de acesso equivalentes."
+        },
+        {
+          "pontoVisual": [
+            0.5,
+            0.26
+          ],
+          "rotulo": "Receber",
+          "acao": "Inicie a roda, recolha os três relatos e guarde a receita do encontro."
+        }
+      ],
+      "conclusao": "Três convidados atendidos e uma receita registrada rendem a lembrança do baile.",
+      "retorno": "Repetições mudam convidados e falas. O jogador pode completar tudo sozinho com moradores simulados."
+    },
+    {
+      "id": "salao-das-artes",
+      "nome": "Salão das Artes",
+      "arquivo": "interiores/salao-das-artes.png",
+      "entradaExteriorAntigaPx": [
+        173,
+        383
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Nami e Nix",
+      "abertura": "Nami separa três peças. “Nesta ordem, a primeira explica as outras duas. Se a gente inverter, ela vira a pergunta.”",
+      "missao": "Uma exposição em três peças",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.2,
+            0.65
+          ],
+          "rotulo": "Selecionar",
+          "acao": "Escolha três obras do acervo, incluindo um postal da Galeria se houver."
+        },
+        {
+          "pontoVisual": [
+            0.5,
+            0.48
+          ],
+          "rotulo": "Montar o percurso",
+          "acao": "Organize as obras em uma ordem e escolha a primeira vista de quem chega."
+        },
+        {
+          "pontoVisual": [
+            0.8,
+            0.7
+          ],
+          "rotulo": "Ouvir a visita",
+          "acao": "Receba uma leitura do visitante e reescreva o texto de parede em até duas frases."
+        }
+      ],
+      "conclusao": "Uma mostra com três peças, ordem de visita e texto revisto entra no catálogo.",
+      "retorno": "Volte com outra IA para ouvir uma leitura diferente da mesma mostra."
+    },
+    {
+      "id": "mercado-das-lanternas",
+      "nome": "Mercado das Lanternas",
+      "arquivo": "interiores/mercado-das-lanternas.png",
+      "entradaExteriorAntigaPx": [
+        595,
+        143
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Tumi e Taro",
+      "abertura": "Tumi encontra a banca pelo cheiro. Taro a encontra pelo barulho da pinça na madeira. A receita só ficou sem uma coisa: alguém que descobrisse a melhor troca.",
+      "missao": "A mesa de hoje",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.2,
+            0.28
+          ],
+          "rotulo": "Ouvir a encomenda",
+          "acao": "Converse com o feirante e receba uma receita com três necessidades."
+        },
+        {
+          "pontoVisual": [
+            0.76,
+            0.31
+          ],
+          "rotulo": "Comparar bancas",
+          "acao": "Troque fichas fictícias por ingredientes. Um substituto pode atender à mesma necessidade."
+        },
+        {
+          "pontoVisual": [
+            0.49,
+            0.51
+          ],
+          "rotulo": "Fechar a cesta",
+          "acao": "Monte a cesta, explique uma substituição e entregue o pedido no balcão."
+        }
+      ],
+      "conclusao": "Cesta completa sem ultrapassar o orçamento de fichas. Guarde a receita e desbloqueie nova fala de Tumi.",
+      "retorno": "A cesta abastece o jantar do Terraço. A primeira missão também oferece cesta local."
+    },
+    {
+      "id": "estacao-mare",
+      "nome": "Estação Maré",
+      "arquivo": "interiores/estacao-mare.png",
+      "entradaExteriorAntigaPx": [
+        384,
+        384
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Kiro, Sago e Boku",
+      "abertura": "A maré virou antes do previsto. Sago vê o canal encurtar o trajeto. Do alto da passarela, Kiro percebe o trecho que ficou exposto. Os dois estão certos.",
+      "missao": "A travessia da maré",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.5,
+            0.27
+          ],
+          "rotulo": "Ler a maré",
+          "acao": "Compare os dois horários e identifique a travessia disponível agora."
+        },
+        {
+          "pontoVisual": [
+            0.27,
+            0.53
+          ],
+          "rotulo": "Desenhar o trajeto",
+          "acao": "Selecione dois pontos de conexão e uma alternativa acessível."
+        },
+        {
+          "pontoVisual": [
+            0.72,
+            0.53
+          ],
+          "rotulo": "Embarcar",
+          "acao": "Teste a rota no mapa regional. Retorne ao cais com o registro de viagem."
+        }
+      ],
+      "conclusao": "Rota de ida e de volta registrada. O diário recebe um carimbo da baía.",
+      "retorno": "O embarque abre o mapa regional. O jogador pode navegar, viajar de balsa ou experimentar um voador."
+    },
+    {
+      "id": "biblioteca-submersa",
+      "nome": "Biblioteca Submersa",
+      "arquivo": "interiores/biblioteca-submersa.png",
+      "entradaExteriorAntigaPx": [
+        629,
+        404
+      ],
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "catum-com-horizonte",
+      "anfitrioes": "Oru, Sumi e Muru",
+      "abertura": "Oru separa dois registros da mesma festa. Um lembra o som, o outro guarda a cor. Sumi quer arquivar os dois sem apagar a diferença.",
+      "missao": "Duas memórias de um dia",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.5,
+            0.24
+          ],
+          "rotulo": "Consultar o catálogo",
+          "acao": "Encontre dois registros do Festival da Vizinhança e leia as origens."
+        },
+        {
+          "pontoVisual": [
+            0.19,
+            0.74
+          ],
+          "rotulo": "Cruzar os relatos",
+          "acao": "Selecione o detalhe em comum e preserve um ponto de vista de cada relato."
+        },
+        {
+          "pontoVisual": [
+            0.82,
+            0.75
+          ],
+          "rotulo": "Catalogar",
+          "acao": "Monte uma ficha, vincule as fontes e escolha a palavra que vai encontrá-la depois."
+        }
+      ],
+      "conclusao": "Uma ficha com duas fontes e palavra de busca passa a existir no diário.",
+      "retorno": "A escola pode citar essa ficha como referência. O material físico permanece nas áreas secas."
+    },
+    {
+      "id": "escritorio-pontodot",
+      "nome": "Pontodot · Ala de Projetos",
+      "arquivo": "interiores/escritorio-pontodot.png",
+      "entradaExteriorAntigaPx": null,
+      "recepcaoNormalizada": [
+        0.5,
+        0.93
+      ],
+      "origem": "escola-agentica",
+      "anfitrioes": "Gigi e equipe",
+      "abertura": "A aula terminou. Gigi abre a porta lateral. “Aqui tem alguém esperando uma entrega. Vem conhecer a equipe.” No mesmo balcão, Koda pousa, Oru se aproxima pelo canal e Brum encosta a cadeira.",
+      "missao": "O primeiro projeto da equipe",
+      "estacoes": [
+        {
+          "pontoVisual": [
+            0.5,
+            0.79
+          ],
+          "rotulo": "Receber o briefing",
+          "acao": "Leia público, entrega, prazo fictício e critério de aceite. Aceite um papel."
+        },
+        {
+          "pontoVisual": [
+            0.2,
+            0.5
+          ],
+          "rotulo": "Produzir em dupla",
+          "acao": "Escolha uma IA, consulte uma referência e salve a versão da peça na bancada compartilhada."
+        },
+        {
+          "pontoVisual": [
+            0.8,
+            0.48
+          ],
+          "rotulo": "Revisar e devolver",
+          "acao": "Outro papel comenta o critério de aceite. Revise, compare versões e peça a aprovação final."
+        }
+      ],
+      "conclusao": "Uma entrega versionada, uma revisão e um aceite humano ou de NPC de treino completam o projeto fictício.",
+      "retorno": "Retorne à escola com o parecer. Em modo de trabalho real, use o chamado, as permissões e as aprovações reais da PD."
+    }
+  ],
+  "portalInterno": {
+    "origem": "escola-agentica",
+    "pontoVisualNormalizado": [
+      0.915,
+      0.475
+    ],
+    "destino": "escritorio-pontodot",
+    "retornoNormalizado": [
+      0.88,
+      0.49
+    ]
+  },
+  "experiencia": {
+    "escopo": "jogador",
+    "salvarPor": [
+      "jogador",
+      "missao",
+      "etapa"
+    ],
+    "recompensaUnicaPor": [
+      "jogador",
+      "missao",
+      "ciclo"
+    ],
+    "trocaDeIA": "Posto de troca acessível ou destino compatível mais próximo. Preservar inventário, atividade e progresso."
+  }
+}
