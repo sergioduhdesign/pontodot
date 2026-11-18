@@ -101,7 +101,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=17', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=19', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -184,6 +184,12 @@ async function cena(id){
   })();
   return c.p;
 }
+function tufos(c){       // blocos de 8 px que são quase só folha (fora do chão): é o que se mexe
+  if (c.tufos) return c.tufos; c.tufos = []; for (const k in CENAS) if (CENAS[k] !== c) delete CENAS[k].tufos;
+  try { const W = c.w, H = c.h, k = document.createElement('canvas'); k.width = W; k.height = H; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.img, 0, 0); const p = g.getImageData(0, 0, W, H).data;
+    for (let by = 0; by + 8 <= H; by += 8) for (let bx = 0; bx + 8 <= W; bx += 8) { if (hash(bx + ',' + by) % 5 > 1) continue; if (c.g.chao[(by + 4 >> 2) * c.gw + (bx + 4 >> 2)]) continue; let v = 0; for (let y = by; y < by + 8; y += 2) for (let x = bx; x < bx + 8; x += 2) { const i = 4 * (y * W + x); if (p[i + 1] > p[i] + 22 && p[i + 1] > p[i + 2] + 22 && p[i + 1] > 80) v++; } if (v >= 12) c.tufos.push(bx, by); }
+    k.width = 1; } catch(_){}
+  return c.tufos; }
 const gr = (c, m) => c.g[m || 'chao'];
 const livre = (c, x, y, m) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && gr(c, m)[gy * c.gw + gx] === 1; };
 function perto(c, x, y, m){       // ponto de apoio mais próximo, no meio pedido
@@ -719,11 +725,12 @@ const CLIMAS = ['céu limpo', 'garoa fina', 'chuva passageira', 'nublado e abafa
 function climaDoDia(){ let a = hash('clima' + new Date().toISOString().slice(0, 10)); const r = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   r(); const i = Math.floor(r() * 6), t = 19 + Math.floor(r() * 12); return { i, nome: CLIMAS[i], t }; }
 let CLIMA = climaDoDia(), MOLHADO = 0; setInterval(() => { if (!CLIMA.fixo) CLIMA = climaDoDia(); }, 600000);
-function chuvaAgora(){ if (CLIMA.i === 1) return .38; if (CLIMA.i !== 2) return 0; const p = (Date.now() % 540000) / 540000; return p < .06 ? p / .06 : p < .56 ? 1 : p < .62 ? (.62 - p) / .06 : 0; }       // a passageira vem e vai: chove uns 5 min, estia uns 3
+const aoArLivre = () => CENA === 'bairro' || CENA === 'regiao';
+function chuvaAgora(){ if (!aoArLivre()) return 0; if (CLIMA.i === 1) return .38; if (CLIMA.i !== 2) return 0; const p = (Date.now() % 540000) / 540000; return p < .06 ? p / .06 : p < .56 ? 1 : p < .62 ? (.62 - p) / .06 : 0; }       // a passageira vem e vai: chove uns 5 min, estia uns 3
 const frac = v => v - Math.floor(v), azar = (a, b) => frac(Math.sin(a * 12.9898 + b * 78.233) * 43758.5453);
 function pocas(c){ if (!c.pocas) { c.pocas = []; (c.livres.chao || []).forEach((p, i) => { const h = hash(c.id + ':' + i); if (h % 7 === 0) c.pocas.push({ x: p[0] + (h >> 4) % 7 - 3, y: p[1] + (h >> 8) % 5 - 2, r: 5 + (h >> 12) % 8, f: (h % 628) / 100 }); }); } return c.pocas; }
 function climaChao(t, dt, ox, oy){        // poças que crescem com a chuva e secam depois; anéis onde o pingo cai nelas
-  const I = chuvaAgora(); MOLHADO = Math.max(0, Math.min(1, MOLHADO + (I > 0 ? dt * I / 12 : -dt / 80))); if (MOLHADO < .04) return;
+  const I = chuvaAgora(); MOLHADO = Math.max(0, Math.min(1, MOLHADO + (I > 0 ? dt * I / 12 : -dt / 80))); if (MOLHADO < .04 || !aoArLivre()) return;
   const vw = VW / SC, vh = VH / SC, M = MOLHADO;
   for (const p of pocas(C)) { if (p.x < ox - 20 || p.y < oy - 12 || p.x > ox + vw + 20 || p.y > oy + vh + 12) continue; const rx = Math.round(p.r * (.45 + .55 * M)), ry = Math.max(2, Math.round(rx * .42));
     cx.fillStyle = 'rgba(52,96,142,' + (.34 * M).toFixed(3) + ')'; cx.fillRect(p.x - rx, p.y - ry + 1, rx * 2, ry * 2 - 2); cx.fillRect(p.x - rx + 2, p.y - ry, rx * 2 - 4, ry * 2);
@@ -732,16 +739,20 @@ function climaChao(t, dt, ox, oy){        // poças que crescem com a chuva e se
 }
 function climaPingos(t, ox, oy){          // o pingo bate no chão e na água e abre um anelzinho; folhas no vento
   const I = chuvaAgora(), vw = VW / SC, vh = VH / SC;
-  if (I > 0 && !CALMO) { const n = Math.round(70 * I * Math.min(2.2, vw * vh / 90000)); for (let j = 0; j < n; j++) { const T = t / 360 + j * .618, k = Math.floor(T), f = T - k, x = Math.floor(ox + azar(k, j) * vw), y = Math.floor(oy + azar(j, k + 7) * vh), gi = (y >> 2) * C.gw + (x >> 2); if (C.sol[gi]) continue;
-      cx.fillStyle = 'rgba(226,240,255,' + ((1 - f) * .75).toFixed(3) + ')'; if (f < .25) cx.fillRect(x, y - 1, 1, 2); else { const r = 1 + Math.round(f * 3); cx.fillRect(x - r, y, 1, 1); cx.fillRect(x + r, y, 1, 1); cx.fillRect(x, y - 1, 1, 1); } } }
+  if (I > 0 && !CALMO) { const n = Math.round(95 * I * Math.min(2.4, vw * vh / 90000)); for (let j = 0; j < n; j++) { const T = t / 300 + azar(j, 3) * 9, k = Math.floor(T), f = T - k, x = Math.floor(ox + azar(k, j) * vw), y = Math.floor(oy + azar(j, k + 7) * vh), gi = (y >> 2) * C.gw + (x >> 2); if (C.sol[gi]) continue;      // só onde há chão ou água: telhado e copa não respingam
+      const a = (1 - f); cx.fillStyle = 'rgba(232,244,255,' + (a * .9).toFixed(3) + ')';
+      if (f < .22) { cx.fillRect(x, y - 3, 1, 3); }                                            // o pingo chegando
+      else if (f < .5) { cx.fillRect(x - 1, y - 1, 1, 1); cx.fillRect(x + 1, y - 1, 1, 1); cx.fillRect(x, y - 2, 1, 1); cx.fillRect(x - 2, y, 5, 1); }      // a coroinha do respingo
+      else { const r = 2 + Math.round((f - .5) * 6); cx.fillStyle = 'rgba(232,244,255,' + (a * .7).toFixed(3) + ')'; cx.fillRect(x - r, y, 2, 1); cx.fillRect(x + r - 1, y, 2, 1); cx.fillRect(x - 1, y - 1, 2, 1); } } }                         // o anel abrindo no chão
   if (CLIMA.i === 4 && !CALMO) { const cores = ['#86b84e', '#d9c04a', '#e58a4a']; for (let i = 0; i < 18; i++) { const x = Math.round(((t * .085 * (1 + (i % 3) * .3) + i * 211) % (C.w + 80)) - 40), y = Math.round((i * 173) % C.h + Math.sin(t * .002 + i) * 18); if (x < ox || y < oy || x > ox + vw || y > oy + vh) continue; cx.fillStyle = cores[i % 3]; cx.fillRect(x, y, 2, 1); cx.fillRect(x + 1, y + 1, 1, 1); } }
 }
 function climaCor(t){ const I = chuvaAgora(), mix = (c, f) => [255 + (c[0] - 255) * f, 255 + (c[1] - 255) * f, 255 + (c[2] - 255) * f];
   return CLIMA.i === 1 ? mix([198, 206, 222], .75) : CLIMA.i === 2 ? mix([170, 184, 210], .22 + .7 * I) : CLIMA.i === 3 ? mix([220, 213, 204], .9) : CLIMA.i === 5 ? mix([206, 210, 224], CALMO ? .3 : .42 + .42 * Math.sin(t / 9000)) : [255, 255, 255]; }
-function climaChuva(t){                    // os riscos da chuva, por cima de tudo, em pé de vento
-  const I = chuvaAgora(); if (I <= 0 || CALMO) return; const W = cv.width, H = cv.height, n = Math.round(I * W * H / 3600), u = Math.max(2, Math.round(DPR * 1.5)), garoa = CLIMA.i === 1;
-  cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = 'rgba(214,230,255,' + (garoa ? '.4' : '.64') + ')';
-  for (let i = 0; i < n; i++) { const v = 1.05 + (i % 5) * .13, x = Math.round(((i * 131.7 - t * .22 * v) % (W + 200) + W + 200) % (W + 200)) - 100, y = Math.round((i * 71.3 + t * v * (garoa ? .7 : 1.15)) % (H + 80)) - 40, L = garoa ? 2 : 4; for (let q = 0; q < L; q++) cx.fillRect(x - q * u, y + q * u * 2, u, u * 2); }
+function climaChuva(t){                    // os riscos da chuva: poucos, finos, e cada gota sorteia onde cai a cada queda (sem padrão)
+  const I = chuvaAgora(); if (I <= 0 || CALMO) return; const W = cv.width, H = cv.height, garoa = CLIMA.i === 1, n = Math.round(I * W * H / (garoa ? 16000 : 11000)), u = Math.max(1, Math.round(DPR));
+  cx.setTransform(1, 0, 0, 1, 0, 0);
+  for (let i = 0; i < n; i++) { const per = 520 + azar(i, 1) * 520, T = (t + azar(i, 2) * 4000) / per, k = Math.floor(T), f = T - k, longe = azar(i, 5) < .45, comp = Math.round((longe ? 7 : 13) * DPR * (garoa ? .6 : 1)), x = Math.round(azar(i, k) * (W + 160) - 40 - f * H * .16), y = Math.round(-comp + f * (H + comp * 2));
+    cx.fillStyle = 'rgba(220,234,255,' + (longe ? .22 : garoa ? .3 : .42) + ')'; const p = Math.max(2, comp >> 2); for (let q = 0; q < 4; q++) cx.fillRect(x - Math.round(q * p * .16), y + q * p, longe ? u : u + (u >> 1), p); }
 }
 
 /* ---------- o dia de Catum: 24 minutos de relógio para um dia inteiro, igual para todo mundo ---------- */
@@ -750,24 +761,49 @@ const horaCatum = () => ((Date.now() % DIA_MS) / DIA_MS * 24 + 7) % 24;        /
 function ceu(h){ let i = 0; while (i < CHAVES.length - 2 && h >= CHAVES[i + 1][0]) i++; const a = CHAVES[i], b = CHAVES[i + 1], f = Math.max(0, Math.min(1, (h - a[0]) / (b[0] - a[0]))); return { cor: a[1].map((v, k) => Math.round(v + (b[1][k] - v) * f)), noite: a[2] + (b[2] - a[2]) * f }; }
 // as luzes da cidade: janelas, lanternas e vitrais do próprio desenho (pixels quentes e claros dentro das construções) ficam acesos quando escurece
 function luzes(c){
-  if (c.acesa !== undefined) return c.acesa; c.acesa = null; for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].acesa) { CENAS[k].acesa.width = 1; CENAS[k].halo.width = 1; delete CENAS[k].acesa; delete CENAS[k].halo; }
+  if (c.acesa !== undefined) return c.acesa; c.acesa = null; for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].acesa) { CENAS[k].acesa.width = 1; CENAS[k].halo.width = 1; if (CENAS[k].brilho) CENAS[k].brilho.width = 1; delete CENAS[k].acesa; delete CENAS[k].halo; delete CENAS[k].brilho; }
   try { const W = c.w, H = c.h, k = document.createElement('canvas'); k.width = W; k.height = H; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.img, 0, 0); const im = g.getImageData(0, 0, W, H), p = im.data, gw = c.gw, gh = c.gh;
     const dentro = new Uint8Array(gw * gh); for (let y = 2; y < gh - 2; y++) for (let x = 2; x < gw - 2; x++) { if (!c.sol[y * gw + x]) continue; let ok = 1; for (let dy = -2; dy <= 2 && ok; dy++) for (let dx = -2; dx <= 2; dx++) if (c.g.chao[(y + dy) * gw + x + dx]) { ok = 0; break; } if (ok) { let ag = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (c.g.agua[(y + dy) * gw + x + dx]) ag = 1; dentro[y * gw + x] = ag ? 1 : 2; } }
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = 4 * (y * W + x), d = dentro[(y >> 2) * gw + (x >> 2)], r = p[i], gg = p[i + 1], b = p[i + 2]; let a = 0;
       if (d && r > 215 && gg > 150 && b < 138 && r - b > 95 && r - gg > 17) a = 255; else if (d === 2 && gg > 185 && b > 170 && r < 175 && gg + b - 2 * r > 90) a = 120; p[i + 3] = a; }
     g.putImageData(im, 0, 0); const hl = document.createElement('canvas'); hl.width = W >> 3; hl.height = H >> 3; const hg = hl.getContext('2d'); hg.imageSmoothingEnabled = true; hg.imageSmoothingQuality = 'high'; hg.globalAlpha = .5; for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) hg.drawImage(k, dx, dy, W >> 3, H >> 3);
-    c.acesa = k; c.halo = hl; } catch(e) { console.warn(e); }
+    const md = document.createElement('canvas'); md.width = Math.ceil(W / 3); md.height = Math.ceil(H / 3); const mg = md.getContext('2d'); mg.imageSmoothingEnabled = true; mg.imageSmoothingQuality = 'high'; mg.drawImage(k, 0, 0, md.width, md.height); mg.globalAlpha = .5; mg.drawImage(k, 1, 0, md.width, md.height); mg.drawImage(k, 0, 1, md.width, md.height);
+    c.acesa = k; c.halo = hl; c.brilho = md; } catch(e) { console.warn(e); }
   return c.acesa;
 }
 const horaEl = document.createElement('span'); horaEl.className = 'px'; horaEl.id = 'hora'; { const hud = document.getElementById('hud'); if (hud) hud.appendChild(horaEl); }
-function luzDoDia(t, k, ox, oy){
-  const h = horaCatum(), c = ceu(h), vw = VW / SC, vh = VH / SC;
-  // sombras de nuvem passando (de dia) e vaga-lumes (de noite)
-  if (!CALMO && c.noite < .6) { const nub = CLIMA.i === 3 || CLIMA.i === 5 || CLIMA.i === 2, vv = CLIMA.i === 4 ? 2.6 : 1; cx.fillStyle = 'rgba(30,34,80,' + ((nub ? .13 : .085) * (1 - c.noite)).toFixed(3) + ')'; for (let i = 0; i < (nub ? 7 : 4); i++) { const x = ((t * .006 * vv * (1 + i * .3) + i * 431) % (C.w + 500)) - 250, y = (i * 263 + 90) % Math.max(200, C.h); cx.beginPath(); cx.ellipse(Math.round(x), Math.round(y), 130 + i * 28, 46 + i * 9, 0, 0, 6.3); cx.fill(); } }
-  // a cor do céu por cima de tudo (multiplica): manhã clara, tarde dourada, crepúsculo rosado, noite azul
-  cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = 'multiply'; { const w = climaCor(t); cx.fillStyle = 'rgb(' + c.cor.map((v, q) => Math.round(v * w[q] / 255)).join(',') + ')'; } cx.fillRect(0, 0, cv.width, cv.height); cx.globalCompositeOperation = 'source-over';
-  if (c.noite > .04) { const L = luzes(C); cx.setTransform(k, 0, 0, k, -ox * k, -oy * k);
-    if (L) { cx.globalCompositeOperation = 'screen'; cx.globalAlpha = Math.min(1, c.noite * 1.1); cx.drawImage(L, 0, 0); cx.imageSmoothingEnabled = true; cx.globalAlpha = Math.min(1, c.noite * (CALMO ? .8 : .78 + .05 * Math.sin(t * .0021))); cx.drawImage(C.halo, 0, 0, C.w, C.h); cx.imageSmoothingEnabled = false; }
+// A luz entra ANTES dos personagens: o cenário é tingido e aceso, e depois cada personagem e cada recorte entra já na cor da hora, por cima das luzes.
+const LUZ = { tem: false, css: '#fff', n: 0, ch: '' };
+function acende(ox, oy, t){        // tinge e acende o que já está desenhado (vale para a tela toda ou só dentro de um recorte)
+  const vw = VW / SC + 2, vh = VH / SC + 2;
+  if (LUZ.tem) { cx.globalCompositeOperation = 'multiply'; cx.fillStyle = LUZ.css; cx.fillRect(ox - 1, oy - 1, vw, vh); cx.globalCompositeOperation = 'source-over'; }
+  if (LUZ.n > .04) { const L = luzes(C); if (L) { cx.globalCompositeOperation = 'screen'; cx.globalAlpha = Math.min(1, LUZ.n * .7); const sx = Math.max(0, Math.floor(ox) - 2), sy = Math.max(0, Math.floor(oy) - 2), sw = Math.min(C.w - sx, Math.ceil(vw) + 4), sh = Math.min(C.h - sy, Math.ceil(vh) + 4);       // só o pedaço que está na tela
+    cx.drawImage(L, sx, sy, sw, sh, sx, sy, sw, sh); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'low'; cx.globalAlpha = Math.min(1, LUZ.n * .8); cx.drawImage(C.brilho, sx / 3, sy / 3, sw / 3, sh / 3, sx, sy, sw, sh); cx.globalAlpha = Math.min(1, LUZ.n * (CALMO ? .8 : .78 + .05 * Math.sin(t * .0021))); cx.drawImage(C.halo, sx / 8, sy / 8, sw / 8, sh / 8, sx, sy, sw, sh); cx.imageSmoothingEnabled = false; cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; } }
+}
+function luzFundo(t, ox, oy){
+  const h = horaCatum(), c = ceu(h), vw = VW / SC, vh = VH / SC, w = climaCor(t), cor = c.cor.map((v, q) => Math.round(v * w[q] / 255 / 3) * 3);
+  LUZ.h = h; LUZ.n = c.noite; LUZ.css = 'rgb(' + cor.join(',') + ')'; LUZ.tem = cor[0] < 252 || cor[1] < 252 || cor[2] < 252; LUZ.ch = LUZ.css + (c.noite * 12 | 0);
+  if (!CALMO && LUZ.n < .6) { const nub = CLIMA.i === 3 || CLIMA.i === 5 || CLIMA.i === 2, vv = CLIMA.i === 4 ? 2.6 : 1; cx.fillStyle = 'rgba(30,34,80,' + ((nub ? .13 : .085) * (1 - LUZ.n)).toFixed(3) + ')'; for (let i = 0; i < (nub ? 7 : 4); i++) { const x = ((t * .006 * vv * (1 + i * .3) + i * 431) % (C.w + 500)) - 250, y = (i * 263 + 90) % Math.max(200, C.h); cx.beginPath(); cx.ellipse(Math.round(x), Math.round(y), 130 + i * 28, 46 + i * 9, 0, 0, 6.3); cx.fill(); } }
+  acende(ox, oy, t);
+}
+const TK = document.createElement('canvas'), TG = TK.getContext('2d');
+function tinto(im, sx, sy, w, h, dx, dy){        // desenha um quadro já na cor da hora (o tom só pega onde há desenho)
+  if (!LUZ.tem) { cx.drawImage(im, sx, sy, w, h, dx, dy, w, h); return; }
+  if (TK.width < w || TK.height < h) { TK.width = Math.max(TK.width, w); TK.height = Math.max(TK.height, h); }
+  TG.globalCompositeOperation = 'copy'; TG.drawImage(im, sx, sy, w, h, 0, 0, w, h); TG.globalCompositeOperation = 'multiply'; TG.fillStyle = LUZ.css; TG.fillRect(0, 0, w, h); TG.globalCompositeOperation = 'destination-in'; TG.drawImage(im, sx, sy, w, h, 0, 0, w, h);
+  cx.drawImage(TK, 0, 0, w, h, dx, dy, w, h);
+}
+function recorte(f){               // recorte de primeiro plano na cor da hora, com as próprias janelas acesas (guardado até a cor mudar)
+  if (!LUZ.tem && LUZ.n <= .04) { cx.drawImage(f.im, f.x, f.y); return; }
+  if (!f.t || f.ch !== LUZ.ch) { const w = f.im.naturalWidth, h = f.im.naturalHeight, k = f.t || (f.t = document.createElement('canvas')); k.width = w; k.height = h; const g = k.getContext('2d'); g.drawImage(f.im, 0, 0);
+    if (LUZ.tem) { g.globalCompositeOperation = 'multiply'; g.fillStyle = LUZ.css; g.fillRect(0, 0, w, h); }
+    if (LUZ.n > .04 && luzes(C)) { g.globalCompositeOperation = 'screen'; g.globalAlpha = Math.min(1, LUZ.n * .7); g.drawImage(C.acesa, f.x, f.y, w, h, 0, 0, w, h); g.globalAlpha = Math.min(1, LUZ.n * .8); g.imageSmoothingEnabled = true; g.drawImage(C.brilho, f.x / 3, f.y / 3, w / 3, h / 3, 0, 0, w, h); g.globalAlpha = 1; }
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(f.im, 0, 0); g.globalCompositeOperation = 'source-over'; f.ch = LUZ.ch; }
+  cx.drawImage(f.t, f.x, f.y);
+}
+function luzFrente(t, k, ox, oy){
+  const h = LUZ.h, c = { noite: LUZ.n }, vw = VW / SC, vh = VH / SC;
+  if (c.noite > .04) {
     if (!CALMO && c.noite > .5) { cx.globalCompositeOperation = 'source-over'; cx.globalAlpha = 1; cx.fillStyle = '#fff3a8'; for (let i = 0; i < 26; i++) { const bx = (i * 197.3) % C.w, by = (i * 331.7) % C.h, x = bx + Math.sin(t * .0007 + i) * 22, y = by + Math.cos(t * .0009 + i * 2) * 14; if (x < ox || y < oy || x > ox + vw || y > oy + vh) continue; if (Math.sin(t * .003 + i * 1.7) > .2) cx.fillRect(Math.round(x), Math.round(y), 1, 1); } }
     cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; }
   climaChuva(t);
@@ -781,7 +817,7 @@ function boneco(e, t){
   if (e !== eu) { const d = e._px == null ? 0 : dist(e.x, e.y, e._px, e._py); e._px = e.x; e._py = e.y; if (e.anda && d < 30) e.fase = ((e.fase || 0) + d / (PERFIS[(at && at.mov) || 'passo'] || PERFIS.passo)[1]) % 1; e.quadro = e.anda ? Math.floor((e.fase || 0) * 8) : 0; }      // a passada anda pela distância, não pelo relógio
   const sw = at ? Math.max(6, Math.round(at.F * .16)) : 8; if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - sw, y + 1, sw * 2, 1); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - sw, y - 1, sw * 2, 2); cx.fillRect(x - sw + 2, y + 1, sw * 2 - 4, 1); }
   if (!at) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
-  const f = at.F; cx.drawImage(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.ax, y - at.ay, f, f);       // quadro nativo 1:1, pela âncora
+  const f = at.F; tinto(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.ax, y - at.ay);       // quadro nativo 1:1, pela âncora
 }
 const altura = e => { const c = corpoDe(e); if (!c || NPC_IDS.includes(c)) return 58; const a = ATOR[c]; return (a ? a.anchor[1] * 2 : 56) + 2; };
 function etiqueta(txt, wx, wy, fundo, cor, tam){
@@ -827,7 +863,11 @@ function quadro(t){
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
   cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
-  if (!CALMO) { for (const p of (C.J.plantas || [])) { const w = p.largura, h = p.altura, ve = CLIMA.i === 4, sv = Math.sin(t * (ve ? .005 : .0017) + p.x * .7 + p.y * .3); if (sv > (ve ? -.2 : .3)) cx.drawImage(C.img, p.x - (w >> 1), p.y - (h >> 1), w, h >> 1, p.x - (w >> 1) + (sv > .75 ? (ve ? 3 : 2) : 1), p.y - (h >> 1), w, h >> 1); }      // folhas: o alto do agrupamento balança 1 a 2 px
+  if (!CALMO) { const T = tufos(C), I = chuvaAgora(), ve = CLIMA.i === 4, vw0 = VW / SC, vh0 = VH / SC, vel = ve ? .0052 : I > 0 ? .0034 : .0013, lim = ve ? -.35 : I > 0 ? -.1 : .55;
+    for (let q = 0; q < T.length; q += 2) { const x = T[q], y = T[q + 1]; if (x < ox - 8 || y < oy - 8 || x > ox + vw0 || y > oy + vh0) continue; const sv = Math.sin(t * vel + x * .045 + y * .03);        // uma onda atravessa a folhagem
+      if (sv > lim) cx.drawImage(C.img, x, y, 8, 8, x + (sv > .8 && ve ? 2 : 1), y, 8, 8);
+      else if (I > 0 && azar(q, Math.floor(t / 130)) < .1 * I) cx.drawImage(C.img, x, y, 8, 7, x, y + 1, 8, 7); }       // o pingo bate e a folha cede 1 px
+    for (const p of (C.J.plantas || [])) { const w = p.largura, h = p.altura, ve = CLIMA.i === 4, sv = Math.sin(t * (ve ? .005 : .0017) + p.x * .7 + p.y * .3); if (sv > (ve ? -.2 : .3)) cx.drawImage(C.img, p.x - (w >> 1), p.y - (h >> 1), w, h >> 1, p.x - (w >> 1) + (sv > .75 ? (ve ? 3 : 2) : 1), p.y - (h >> 1), w, h >> 1); }      // folhas: o alto do agrupamento balança 1 a 2 px
     if (CENA === 'bairro' || CENA === 'regiao') { cx.fillStyle = 'rgba(255,253,245,.78)'; for (let i = 0; i < 5; i++) { const x = Math.round(((t * .0035 * (CLIMA.i === 4 ? 2.6 : 1) * (1 + i * .23) + i * 263) % (C.w + 90)) - 45), y = 10 + (i * 37) % 62; cx.fillRect(x, y + 2, 20, 4); cx.fillRect(x + 4, y, 11, 3); cx.fillRect(x - 3, y + 4, 26, 2); } } }
   if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
   climaChao(t, dt, ox, oy);
@@ -836,16 +876,17 @@ function quadro(t){
   // quem está mais perto
   let pertoN = null, pd = 26; vis.forEach(n => { const d = dist(n.x, n.y, eu.x, eu.y); if (d < pd) { pd = d; pertoN = n; } });
   if (CENA === 'bairro') { passoBola(dt, [eu, ...vis, ...gente]); desenhaBola(); }
+  luzFundo(t, ox, oy);
   // fila de profundidade: recortes e personagens por Y; pé ao norte da linha fica atrás, ao sul fica à frente; no empate o recorte vem antes
   const fila = [...vis, ...gente, eu].map(e => ({ y: e.y, e })); for (const f of C.frentes) fila.push({ y: f.linha - .5, f });
-  fila.sort((a, b) => a.y - b.y); for (const q of fila) { if (q.e) boneco(q.e, t); else cx.drawImage(q.f.im, q.f.x, q.f.y); }
+  fila.sort((a, b) => a.y - b.y); for (const q of fila) { if (q.e) boneco(q.e, t); else recorte(q.f); }
   // onde o mapa não trouxe recorte: a estrutura cuja base está à frente dos pés cobre o personagem (mesa, poste, mureta, portão)
   { const tampa = []; for (const q of fila) { const e = q.e; if (!e || meioDe(e) === 'voo') continue; const hh = altura(e), mw = 11, gx0 = Math.max(0, (e.x - mw) >> 2), gx1 = Math.min(C.gw - 1, (e.x + mw) >> 2), gy1 = Math.min(C.gh - 1, (e.y | 0) >> 2), gy0 = Math.max(0, (e.y - hh) >> 2);
       for (let gx = gx0; gx <= gx1; gx++) { let ini = -1; for (let gy = gy0; gy <= gy1 + 1; gy++) { const i = gy * C.gw + gx, on = gy <= gy1 && C.sol[i] && C.base[i] * 4 + 3 > e.y + 2 && C.base[i] * 4 - e.y < 90; if (on && ini < 0) ini = gy; else if (!on && ini >= 0) { tampa.push([gx * 4, ini * 4, 4, (gy - ini) * 4]); ini = -1; } } } }
-    if (tampa.length) { cx.save(); cx.beginPath(); for (const r of tampa) cx.rect(r[0], r[1], r[2], r[3]); cx.clip(); cx.drawImage(C.img, 0, 0); for (const f of C.frentes) cx.drawImage(f.im, f.x, f.y); cx.restore(); } }
+    if (tampa.length) { cx.save(); cx.beginPath(); for (const r of tampa) cx.rect(r[0], r[1], r[2], r[3]); cx.clip(); cx.drawImage(C.img, 0, 0); acende(ox, oy, t); cx.restore(); } }
   if (ROTA) passoRota(t);
   climaPingos(t, ox, oy);
-  luzDoDia(t, k, ox, oy);
+  luzFrente(t, k, ox, oy);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
   C.portas.forEach(p => { const a = p.ac[meuMeio] || p.sol, d = dist(a[0], a[1], eu.x, eu.y); if (d < 170) etiqueta((p.para === 'bairro' ? 'SAÍDA' : nomeCena(p.para)).toUpperCase(), p.sol[0], p.sol[1] - 24, '#1d1b2a', '#fffdf5', 10); });
