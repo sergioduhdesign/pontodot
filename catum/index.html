@@ -101,7 +101,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=13', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=14', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -127,7 +127,7 @@ const LOCAIS = { duna:'Duna', lume:'Lume', jaci:'Jaci', lito:'Lito' };       // 
 // cada corpo tem o seu meio: chão, água ou ar (do pacote)
 const MEIOS = { oru:'agua', muru:'agua', nami:'agua', sumi:'agua', sago:'agua', koda:'voo', lume:'voo' }, TRES = ['chao','agua','voo'];
 const PERFIS = { passo:[62,17], pesado:[40,17], trote:[72,16], aderencia:[51,14], serpente:[57,24], caranguejo:[52,15], salto:[67,19], arraia:[68,30], asas:[83,24], polvo:[45,20], lula:[62,24], cetaceo:[76,32] };      // [velocidade px/s, passada px]
-const EA = 2;          // os personagens são desenhados em 2x inteiro: o pixel deles fica do tamanho do pixel aparente do cenário
+const KA = 64 / 34;      // os personagens usam a arte de 64 px do pacote (a de maior resolução): o humano entra 1:1 no pixel do cenário e os outros guardam a proporção entre si
 let ATOR = {};       // atores.json: quadro, âncora, altura e tipo de movimento de cada corpo
 
 /* ---------- motor de movimento do pacote: contato por pixel, passada pela distância andada ---------- */
@@ -206,11 +206,18 @@ function naLinha(pts, d){ for (let i = 0; i < pts.length - 1; i++) { const [x1, 
 
 /* ---------- personagens: folhas animadas (4 direções × 8 fases + parado) ---------- */
 const FOLHA = {};
-function folha(id){ if (FOLHA[id] !== undefined) return FOLHA[id]; FOLHA[id] = null; carregaImg(ARTE + 'at/' + id + '.png' + VA).then(im => { FOLHA[id] = im; }).catch(() => {}); return null; }
-const NATIVO = new WeakMap();       // humano: a folha de 64 px montada no configurador vai para o quadro nativo (mesmo pixel do cenário)
-function nativo(sh, f){ let k = NATIVO.get(sh); if (!k) { k = document.createElement('canvas'); k.width = f * 4; k.height = f * 8; const g = k.getContext('2d'); g.imageSmoothingEnabled = false; for (let i = 0; i < 4; i++) for (let j = 0; j < 8; j++) g.drawImage(sh, i * 64, j * 64, 64, 64, i * f, j * f, f, f); NATIVO.set(sh, k); } return k; }
+const fonteDe = id => NPC_IDS.includes(id) ? 64 : ((ATOR[id] || {}).frame || 32);        // os 16 moradores têm folha de 64 px; os 4 novos só vieram na medida pequena
+function folha(id){ if (FOLHA[id] !== undefined) return FOLHA[id]; FOLHA[id] = null; carregaImg(ARTE + (NPC_IDS.includes(id) ? 'av/' : 'at/') + id + '.png' + VA).then(im => { FOLHA[id] = im; }).catch(() => {}); return null; }
+const FITA = new WeakMap();
+function fita(im, fs, F){       // folha (4 direções × 8 poses) no tamanho de desenho; reduz com filtro e borda dura, amplia sem filtro
+  if (fs === F) return im; let m = FITA.get(im); if (!m) FITA.set(im, m = {}); if (m[F]) return m[F];
+  const k = document.createElement('canvas'); k.width = F * 4; k.height = F * 8; const g = k.getContext('2d', { willReadFrequently: true }), menor = F < fs; g.imageSmoothingEnabled = menor; if (menor) g.imageSmoothingQuality = 'high';
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 8; j++) g.drawImage(im, i * fs, j * fs, fs, fs, i * F, j * F, F, F);
+  if (menor) { try { const d = g.getImageData(0, 0, k.width, k.height), p = d.data; for (let i = 3; i < p.length; i += 4) p[i] = p[i] > 120 ? 255 : 0; g.putImageData(d, 0, 0); } catch(_){} }
+  return (m[F] = k); }
 const HUM0 = { frame: 34, anchor: [17, 31], height: 28, mov: 'passo' };
-function atlas(e){ const corpo = corpoDe(e); if (corpo) { const a = ATOR[corpo], im = folha(corpo); return a && im ? { im, a } : null; } const a = ATOR[limpaSkin(e.sk).base] || HUM0, sh = folhaHumana(e.sk); return sh ? { im: nativo(sh, a.frame), a } : null; }
+function atlas(e){ const corpo = corpoDe(e), a = corpo ? ATOR[corpo] : (ATOR[limpaSkin(e.sk).base] || HUM0), src = corpo ? folha(corpo) : folhaHumana(e.sk); if (!a || !src) return null;
+  const F = Math.round(a.frame * KA); return { im: fita(src, corpo ? fonteDe(corpo) : 64, F), F, ax: Math.round(a.anchor[0] * KA), ay: Math.round(a.anchor[1] * KA), mov: a.mov }; }
 const BASES = [['homem-esguio','Homem esguio'],['homem-medio','Homem médio'],['homem-steve','Homem encorpado'],['mulher-esguio','Mulher esguia'],['mulher-medio','Mulher média'],['mulher-suave','Mulher de curvas suaves']];
 const PELES = ['#f6d7b8','#eec39a','#d9a877','#b9825a','#8d5a3b','#5e3a25'];
 const COR_CABELO = ['#1d1b2a','#4a2f1d','#7a4a25','#c08a3e','#e8d28a','#b8b8b8','#ffffff','#ea278f','#145dec','#11ba98'];
@@ -396,7 +403,7 @@ function abreCfg(){
     <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p>
     <h3>Som</h3><div class="lin"><button type="button" class="${SOM ? 'on' : ''}" data-som="1">Vozinha ligada</button><button type="button" class="${SOM ? '' : 'on'}" data-som="0">Sem som</button></div><p id="cfgMsg"></p>`;
     clearInterval(cfgAnim); const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false; let q = 0;
-    cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const hum = w.corpo === 'humano', im = hum ? folhaHumana(w.skin) : folha(w.corpo), f = hum ? 64 : ((ATOR[w.corpo] || {}).frame || 32); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * f, (q % 8) * f, f, f, 0, 0, 64, 64); q++; }, 110); };
+    cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const hum = w.corpo === 'humano', im = hum ? folhaHumana(w.skin) : folha(w.corpo), f = hum ? 64 : fonteDe(w.corpo); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * f, (q % 8) * f, f, f, 0, 0, 64, 64); q++; }, 110); };
   cfgCx.oninput = e => { const r = e.target.dataset && e.target.dataset.reg; if (r) w.skin[r] = +e.target.value; };
   cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.cor) w.skin[b.dataset.cor] = b.dataset.v;
@@ -726,12 +733,12 @@ const CALMO = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
 function boneco(e, t){
   const at = atlas(e), x = Math.round(e.x), y = Math.round(e.y), m = meioDe(e);
-  if (e !== eu) { const d = e._px == null ? 0 : dist(e.x, e.y, e._px, e._py); e._px = e.x; e._py = e.y; if (e.anda && d < 30) e.fase = ((e.fase || 0) + d / (PERFIS[(at && at.a.mov) || 'passo'] || PERFIS.passo)[1]) % 1; e.quadro = e.anda ? Math.floor((e.fase || 0) * 8) : 0; }      // a passada anda pela distância, não pelo relógio
-  if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - 10, y + 2, 20, 2); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - 10, y, 20, 2); cx.fillRect(x - 8, y + 2, 16, 2); }
+  if (e !== eu) { const d = e._px == null ? 0 : dist(e.x, e.y, e._px, e._py); e._px = e.x; e._py = e.y; if (e.anda && d < 30) e.fase = ((e.fase || 0) + d / (PERFIS[(at && at.mov) || 'passo'] || PERFIS.passo)[1]) % 1; e.quadro = e.anda ? Math.floor((e.fase || 0) * 8) : 0; }      // a passada anda pela distância, não pelo relógio
+  const sw = at ? Math.max(6, Math.round(at.F * .16)) : 8; if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - sw, y + 1, sw * 2, 1); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - sw, y - 1, sw * 2, 2); cx.fillRect(x - sw + 2, y + 1, sw * 2 - 4, 1); }
   if (!at) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
-  const f = at.a.frame; cx.drawImage(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.a.anchor[0] * EA, y - at.a.anchor[1] * EA, f * EA, f * EA);       // quadro nativo 1:1, pela âncora
+  const f = at.F; cx.drawImage(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.ax, y - at.ay, f, f);       // quadro nativo 1:1, pela âncora
 }
-const altura = e => { const a = ATOR[corpoDe(e) || limpaSkin(e.sk).base]; return ((a ? a.anchor[1] : 31) + 1) * EA; };
+const altura = e => { const a = ATOR[corpoDe(e) || limpaSkin(e.sk).base]; return Math.round(((a ? a.anchor[1] : 31) + 1) * KA); };
 function etiqueta(txt, wx, wy, fundo, cor, tam){
   const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC);
   cx.font = `700 ${tam || 10}px ui-monospace,Menlo,Consolas,monospace`; const w = Math.ceil(cx.measureText(txt).width) + 8, h = (tam || 10) + 6;
