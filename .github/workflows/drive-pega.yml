@@ -1,0 +1,23 @@
+name: Drive — baixar arquivo grande (link público) como artefato
+# Para arquivos acima do limite do conector do Drive. Só funciona se o arquivo estiver com "qualquer pessoa com o link".
+on:
+  workflow_dispatch:
+    inputs:
+      id:   { description: "id do arquivo no Drive", required: true }
+      nome: { description: "nome de saída (ex.: marcus.jpg)", required: true }
+      larg: { description: "se for imagem: reduzir para esta largura (vazio = original)", required: false, default: "" }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { ID: "${{ github.event.inputs.id }}", NOME: "${{ github.event.inputs.nome }}", LARG: "${{ github.event.inputs.larg }}" }
+        run: |
+          mkdir out && cd out
+          case "$ID" in *[!A-Za-z0-9_-]*) echo "id inválido"; exit 1;; esac
+          NOME=$(basename "$NOME")
+          curl -sSL --max-time 300 -c /tmp/c.txt "https://drive.usercontent.google.com/download?id=$ID&export=download&confirm=t" -o "$NOME"
+          file "$NOME"; ls -la "$NOME"
+          if file "$NOME" | grep -qi "html"; then echo "O Drive devolveu página (arquivo não está público por link)."; head -c 400 "$NOME"; exit 1; fi
+          if [ -n "$LARG" ]; then sudo apt-get -qq install -y imagemagick >/dev/null; convert "$NOME" -auto-orient -resize "${LARG}x>" -quality 88 "$NOME"; ls -la "$NOME"; fi
+      - uses: actions/upload-artifact@v4
+        with: { name: arquivo, path: out/, retention-days: 1 }
