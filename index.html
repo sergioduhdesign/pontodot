@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v603 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v604 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -7920,15 +7920,16 @@ function filaLugar(t){       // etiqueta para a equipe: onde este pedido está n
   const f = filaDe(t.client_id), i = f.prio.concat(f.fila).findIndex(x => x.id === t.id); if (i < 0) return '';
   return (FILA.m[t.id].prioridade ? 'prioridade · ' : '') + (i === 0 ? 'próxima' : (i + 1) + 'º da fila');
 }
-function filaLinha(t, rot, ctrl){
-  return `<div class="ia-linha" style="gap:10px"><button type="button" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;flex:1;min-width:0" onclick="abrirTarefaReal('${t.id}')">${logoCliente(t.clients?.name || '', 30)}<div class="c" style="min-width:0"><div class="n" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.action)}</div><div class="d">${rot}${t.date_cli ? ' · para ' + fmtD(t.date_cli) : ''}</div></div></button>${ctrl || ''}</div>`;
+function filaLinha(t, rot, ctrl, num){       // num = posição na fila, bem visível: deixa claro que há ordem
+  const nb = num ? `<span style="flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;border:1.5px solid currentColor;${num === 1 ? 'background:var(--text,currentColor);color:var(--bg,#fff);border-color:transparent' : 'opacity:.8'}">${num}</span>` : '';
+  return `<div class="ia-linha" style="gap:10px"><button type="button" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;flex:1;min-width:0" onclick="abrirTarefaReal('${t.id}')">${nb || logoCliente(t.clients?.name || '', 30)}<div class="c" style="min-width:0"><div class="n" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.action)}</div><div class="d">${rot}${t.date_cli ? ' · para ' + fmtD(t.date_cli) : ''}</div></div></button>${ctrl || ''}</div>`;
 }
 function htmlFila(){
   const f = filaDe(perfil.client_id), ord = f.prio.concat(f.fila), n = f.agora.length + ord.length + f.comvc.length;
   const linhas = [...f.agora.map(t => filaLinha(t, 'em produção agora')),
-    ...ord.map((t, i) => filaLinha(t, (FILA.m[t.id]?.prioridade ? 'prioridade · ' : '') + (i === 0 && !f.agora.length ? 'próxima a ser pega' : (i + 1) + 'º da fila'))),
+    ...ord.map((t, i) => filaLinha(t, (FILA.m[t.id]?.prioridade ? 'prioridade · ' : '') + (i === 0 && !f.agora.length ? 'próxima a ser pega' : (i + 1) + 'º da fila'), '', i + 1)),
     ...f.comvc.map(t => filaLinha(t, t.status === 'DELEGADA' ? 'esperando você' : 'aprovado'))].slice(0, 6).join('');
-  return gadCaixa('Pedidos', `<div class="nota" style="margin:0 0 6px;text-transform:none;letter-spacing:0">${n ? 'Um pedido por vez, na ordem que você definir. O de cima é o próximo a ser pego.' : 'Nenhum pedido aberto. Crie o primeiro.'}</div>${linhas}${n > 6 ? `<div class="nota">+ ${n - 6} na lista completa</div>` : ''}${FILA.falta ? '<div class="nota">A ordem da fila ainda não está salvando: falta rodar o SQL v192.</div>' : ''}`,
+  return gadCaixa('Pedidos', `<div class="nota" style="margin:0 0 6px;text-transform:none;letter-spacing:0">${n ? 'Ordem de chegada: cada pedido novo entra no fim da fila e a equipe pega um por vez, do número 1 em diante. Você pode mudar a ordem em Ver todas.' : 'Nenhum pedido aberto. Crie o primeiro: ele entra na fila por ordem de chegada.'}</div>${linhas}${n > 6 ? `<div class="nota">+ ${n - 6} na lista completa</div>` : ''}${FILA.falta ? '<div class="nota">A ordem da fila ainda não está salvando: falta rodar o SQL v192.</div>' : ''}`,
     [['Criar nova tarefa', 'filaNova()'], ['Ver todas', 'filaTodas()'], ['PDF', 'filaPdf()']]);
 }
 function filaTodas(cid){
@@ -7939,9 +7940,10 @@ function filaTodas(cid){
   const livre = !f.agora.length;
   abrirJanela(`<h3>Pedidos${nome && !ehCliente() ? ' · ' + esc(nome) : ''}</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px">${ehCliente() ? `<button class="btn" onclick="filaNova()">Criar nova tarefa</button>` : ''}<button class="btn" onclick="filaPdf('${cid}')">PDF</button></div>
+    <div class="nota" style="margin:8px 0 0;text-transform:none;letter-spacing:0">A equipe pega um pedido por vez, seguindo os números. Pedido novo entra no fim; para adiantar um, use Subir ou Priorizar.</div>
     ${sec('Em produção agora', 'É nisto que a equipe está focada.', f.agora, t => filaLinha(t, ROT_STATUS[t.status] || t.status))}
-    ${sec('Fila de prioridades', 'Passam na frente da fila, na ordem em que estão aqui.', f.prio, (t, i) => filaLinha(t, i === 0 && livre ? 'próxima a ser pega' : (i + 1) + 'º', ctrl(t, true)))}
-    ${sec('Fila', 'A de cima é a próxima a ser pega.', f.fila, (t, i) => filaLinha(t, f.prio.length + i === 0 && livre ? 'próxima a ser pega' : (f.prio.length + i + 1) + 'º', ctrl(t, false)))}
+    ${sec('Fila de prioridades', 'Passam na frente da fila, na ordem em que estão aqui.', f.prio, (t, i) => filaLinha(t, i === 0 && livre ? 'próxima a ser pega' : 'prioridade', ctrl(t, true), i + 1))}
+    ${sec('Fila', 'Por ordem de chegada: pedido novo entra no fim. O número é a vez de cada um.', f.fila, (t, i) => filaLinha(t, f.prio.length + i === 0 && livre ? 'próxima a ser pega' : 'na fila', ctrl(t, false), f.prio.length + i + 1))}
     ${sec('Com você', 'Esperando a sua resposta, ou já aprovados.', f.comvc, t => filaLinha(t, t.status === 'DELEGADA' ? 'esperando você' : 'aprovado'))}
     ${!(f.agora.length + f.prio.length + f.fila.length + f.comvc.length) ? '<div class="nota">Nenhum pedido aberto.</div>' : ''}
     ${FILA.falta ? '<div class="nota">A ordem ainda não está salvando: falta rodar o SQL v192.</div>' : ''}`, true);
@@ -7964,7 +7966,7 @@ function filaNova(){
     <label style="display:block;font-size:12px;margin-top:12px">Detalhes (opcional)<textarea id="filaDet" maxlength="800" rows="4" placeholder="Referências, textos, medidas, o que não pode faltar." style="${campo};resize:vertical"></textarea></label>
     <label style="display:block;font-size:12px;margin-top:12px">Para quando você gostaria (opcional)<input id="filaPrazo" type="date" style="${campo}"></label>
     <label style="display:flex;align-items:center;gap:10px;font-size:13px;margin-top:14px;cursor:pointer"><input id="filaPrio" type="checkbox" style="width:18px;height:18px"> É prioridade: passa na frente da fila</label>
-    <div class="nota" style="margin-top:14px;text-transform:none;letter-spacing:0">O pedido entra no fim da sua fila (ou no fim das prioridades). Depois você pode mudar a ordem em Pedidos.</div>`, true);
+    <div class="nota" style="margin-top:14px;text-transform:none;letter-spacing:0">${(() => { const f = filaDe(perfil.client_id), n = f.prio.length + f.fila.length; return n ? `Hoje há ${n} pedido${n === 1 ? '' : 's'} na sua fila. Este entra como o ${n + 1}º, por ordem de chegada (ou no fim das prioridades, se marcar acima).` : 'Sua fila está vazia: este será o 1º.'; })()} Depois você pode mudar a ordem em Pedidos.</div>`, true);
   setTimeout(() => { try { document.getElementById('filaTit').focus(); } catch(e){} }, 250);
 }
 async function filaEnviar(btn){
