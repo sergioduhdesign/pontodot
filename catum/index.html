@@ -101,7 +101,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=11', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=12', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -130,8 +130,8 @@ const PERFIS = { passo:[62,17], pesado:[40,17], trote:[72,16], aderencia:[51,14]
 let ATOR = {};       // atores.json: quadro, âncora, altura e tipo de movimento de cada corpo
 
 /* ---------- motor de movimento do pacote: contato por pixel, passada pela distância andada ---------- */
-function permitido(mask, x, y){ const X = Math.round(x), Y = Math.round(y), w = mask.w, h = mask.h, b = mask.bits; if (X < 2 || Y < 2 || X >= w - 2 || Y >= h - 2) return false; const i = Y * w + X;
-  return !!(b[i] && b[i - 1] && b[i + 1] && b[i - w] && b[i + w] && b[i - 2] && b[i + 2] && b[i - w * 2] && b[i + w * 2] && b[i - w - 1] && b[i - w + 1] && b[i + w - 1] && b[i + w + 1]); }
+function permitido(mask, x, y){ const X = Math.round(x), Y = Math.round(y), w = mask.w, h = mask.h, b = mask.bits; if (X < 1 || Y < 1 || X >= w - 1 || Y >= h - 1) return false; const i = Y * w + X;
+  return !!(b[i] && b[i - 1] && b[i + 1] && b[i - w] && b[i + w]); }      // apoio de 3 px: passa em corredor estreito
 function avancar(a, dx, dy, dt, mask, mov){
   dt = Math.min(.06, Math.max(0, dt)); const mag = Math.hypot(dx, dy); if (!mag || !dt) { a.vel = 0; a.emMarcha = false; a.quadro = 0; return 0; }
   const nx = dx / mag, ny = dy / mag, pf = PERFIS[mov] || PERFIS.passo, vmax = pf[0], passada = pf[1];
@@ -139,6 +139,7 @@ function avancar(a, dx, dy, dt, mask, mov){
   a.vel = Math.min(vmax, (a.vel || 0) + vmax * dt * 12); const desloc = a.vel * dt, steps = Math.max(1, Math.ceil(desloc / .75)); let real = 0;
   for (let i = 0; i < steps; i++) { const sx = nx * desloc / steps, sy = ny * desloc / steps, ox = a.x, oy = a.y;
     if (permitido(mask, ox + sx, oy + sy)) { a.x += sx; a.y += sy; } else if (sx && permitido(mask, ox + sx, oy)) a.x += sx; else if (sy && permitido(mask, ox, oy + sy)) a.y += sy;
+    else { const q = Math.hypot(sx, sy); for (const k of [1, -1, 2, -2, 3, -3]) { const g = Math.sign(k); if (permitido(mask, ox + sx - ny * k, oy + sy + nx * k) && permitido(mask, ox - ny * g, oy + nx * g)) { a.x = ox - ny * g * q; a.y = oy + nx * g * q; break; } } }      // vão a até 3 px de lado: escorrega para dentro dele
     real += Math.hypot(a.x - ox, a.y - oy); }
   a.emMarcha = real > 1e-5; if (!a.emMarcha) a.vel = 0; a.fase = ((a.fase || 0) + real / passada) % 1; a.quadro = a.emMarcha ? Math.floor(a.fase * 8) : 0; return real;
 }
@@ -168,7 +169,7 @@ async function cena(id){
     c.est = J.estacoes || []; c.pass = J.passagens || []; c.social = J.social || [];
     c.frentes = (await Promise.all((J.frentes || []).map(f => carregaImg(base + f.arquivo + VA).then(im => ({ im, x: f.xy[0], y: f.xy[1], linha: f.linha })).catch(() => null)))).filter(Boolean);
     // moradores do lugar (os quatro novos): ficam perto da primeira estação
-    c.locais = []; [0, 1].forEach(k => { const lid = c.social[k]; if (!LOCAIS[lid]) return; const m = MEIOS[lid] || 'chao', a = (c.est[0] && (c.est[0].acesso[m] || c.est[0].acesso.chao)) || [c.w / 2, c.h / 2], L = c.livres[m].slice().sort((p, q) => dist(p[0], p[1], a[0], a[1]) - dist(q[0], q[1], a[0], a[1])), p = L[Math.min(L.length - 1, 2 + k * 3)] || a;
+    c.locais = []; [0, 1].forEach(k => { const lid = c.social[k]; if (!LOCAIS[lid]) return; const m = MEIOS[lid] || 'chao', a = (c.est[0] && (c.est[0].acesso[m] || c.est[0].acesso.chao)) || [c.w / 2, c.h / 2], longe = q => c.est.every(s2 => { const z = s2.acesso[m] || s2.acesso.chao; return dist(q[0], q[1], z[0], z[1]) > 46; }) && c.portas.every(d => dist(q[0], q[1], (d.ac[m] || d.sol)[0], (d.ac[m] || d.sol)[1]) > 40), L = c.livres[m].filter(longe).sort((p, q) => dist(p[0], p[1], a[0], a[1]) - dist(q[0], q[1], a[0], a[1])), p = L[Math.min(L.length - 1, k * 4)] || a;
       c.locais.push({ id: lid, nome: LOCAIS[lid], sprite: lid, local: true, x: p[0], y: p[1], dir: 0, anda: false, titulo: k === 0 ? (c.social[2] || '') : '', linha: k === 0 ? (c.social[3] || '') : (c.social[6] || ''), mesa: c.social[4] || '' }); });
     // brilho da água (reflexos discretos sobre o turquesa)
     try { const k2 = document.createElement('canvas'); k2.width = c.w; k2.height = c.h; const g2 = k2.getContext('2d', { willReadFrequently: true }); g2.drawImage(img, 0, 0); const D = g2.getImageData(0, 0, c.w, c.h).data;
@@ -413,11 +414,16 @@ cfgEl.addEventListener('pointerdown', e => { if (e.target === cfgEl) cfgEl.class
 
 /* ---------- cartão do personagem + conversa ---------- */
 const card = document.getElementById('card'); let cardDe = null, cardFechado = null, NARR = null, narrPedida = false;
-function fechaCard(manual){ if (manual && cardDe) cardFechado = cardDe; cardDe = null; card.classList.remove('on'); }
+let MESA = '';       // estação em que estou sentado: CENA#i (vai na presença; sair ou desconectar libera)
+function sentaEm(m){ if (m === MESA) return; MESA = m; try { canal && pronto && canal.track(meuRastro()); } catch(_){} }
+function mesaHtml(){ if (!MESA) return ''; const q = [...outros.values()].filter(o => o.m === MESA).map(o => o.nome); return '<h3>Na mesa agora (' + (q.length + 1) + ')</h3><p>' + esc([eu.nome + ' (voc\u00ea)'].concat(q).join(', ')) + '</p>'; }
+function pintaMesa(){ const el = document.getElementById('mesaLista'); if (el) el.innerHTML = mesaHtml(); }
+function fechaCard(manual){ if (manual && cardDe) cardFechado = cardDe; cardDe = null; card.classList.remove('on'); sentaEm(''); }
 const retrato = id => `<img src="${ARTE}ret/${id}.png${VA}" alt="" width="96" height="96" style="width:96px;height:96px;image-rendering:pixelated;border:3px solid #1d1b2a;background:#e8c9a8;flex:none">`;
 function abreCard(n){
   if (cardDe === n.id || cardFechado === n.id) return; cardDe = n.id;
-  if (n.local) { card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab">${retrato(n.id)}<div><h2>${esc(n.nome)}</h2><small>${esc(n.titulo || 'Morador de ' + nomeCena(CENA))}</small></div></div><p>${esc(n.linha)}</p>${n.mesa ? `<h3>${esc(n.mesa)}</h3><p>As atividades deste lugar ficam nas marcas amarelas.</p>` : ''}`; card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); diz(n, n.linha); return; }
+  if (n.local) { card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab">${retrato(n.id)}<div><h2>${esc(n.nome)}</h2><small>${esc(n.titulo || 'Morador de ' + nomeCena(CENA))}</small></div></div><p>${esc(n.linha)}</p>${n.mesa ? `<h3>${esc(n.mesa)}</h3><p>As atividades deste lugar ficam nas marcas amarelas.</p>` : ''}<h3>Conversar</h3><div class="log" id="chatLog"></div><form id="chatF" autocomplete="off"><input id="chatTxt" maxlength="300" placeholder="Diga algo para ${esc(n.nome)}&hellip;"><button>Enviar</button></form>`; card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); diz(n, n.linha);
+    pintaChat(n); card.querySelector('#chatF').onsubmit = e => { e.preventDefault(); const i = card.querySelector('#chatTxt'), t = i.value.trim().slice(0, 300); if (!t || n.esperando) return; i.value = ''; falaCom(n, t, n.linha); }; return; }
   const c = n.c || {}, w = NARR && NARR.personagens && NARR.personagens[n.id] && NARR.personagens[n.id].semana, L = lug(n.onde);
   card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab">${retrato(n.id)}<div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
     <p>${esc(c.bio || '')}</p>
@@ -430,19 +436,25 @@ function abreCard(n){
   vozinha(n.id, (w && w.post) || c.bio || n.nome);
   if (!NARR && !narrPedida) { narrPedida = true; fetch('/pd-narrativas.php').then(r => r.ok ? r.json() : null).then(j => { NARR = j || {}; if (cardDe === n.id) { cardDe = null; abreCard(n); } }).catch(() => { NARR = {}; }); }
 }
+const ROSTO = {};
+function meuRosto(){        // o meu rosto, recortado do mesmo corpo que anda no mapa
+  if (eu.corpo && eu.corpo !== 'humano') return ARTE + 'ret/' + eu.corpo + '.png' + VA; const ch = JSON.stringify(limpaSkin(eu.sk)); if (ROSTO[ch]) return ROSTO[ch]; const sh = folhaHumana(eu.sk); if (!sh) return '';
+  try { const d = sh.getContext('2d').getImageData(0, 0, 64, 64).data; let top = 64, bot = 0, l = 64, r = 0; for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) if (d[(y * 64 + x) * 4 + 3] > 100) { top = Math.min(y, top); bot = Math.max(y, bot); l = Math.min(x, l); r = Math.max(x, r); }
+    const side = Math.max(8, Math.round((bot - top + 1) * .4)), x0 = Math.round((r + l - side) / 2), k = document.createElement('canvas'); k.width = k.height = 64; const g = k.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); g.drawImage(sh, x0, Math.max(0, top - 1), side, side, 0, 0, 64, 64); return (ROSTO[ch] = k.toDataURL()); } catch(_) { return ''; } }
 function pintaChat(n){ const el = document.getElementById('chatLog'); if (!el || cardDe !== n.id) return;
+  { const im = card.querySelector('.cab img'), meu = (n.chat || []).length && n.chat[n.chat.length - 1].de === 'eu', r = meu ? meuRosto() : ''; if (im) { const src = r || (ARTE + 'ret/' + n.id + '.png' + VA); if (im.getAttribute('src') !== src) im.src = src; } }       // retrato de quem está falando agora
   el.innerHTML = (n.chat || []).slice(-8).map(m => `<div class="${m.erro ? 'er' : m.de}">${esc(m.t)}</div>`).join('') + (n.esperando ? '<div class="ia">&hellip;</div>' : ''); card.scrollTop = card.scrollHeight; }
 async function falaCom(n, txt, semana){
   n.chat = n.chat || []; const antes = n.chat.slice(-8); n.chat.push({ de: 'eu', t: txt }); n.esperando = true; n.preso = Date.now() + 60000; pintaChat(n);
   let resp = '', erro = false, acao = null; const L = lug(n.onde);
   try { const { data: { session } } = await sb.auth.getSession();
     const r = await fetch('/pd-catum-fala.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.aula ? 'Escola Agêntica, em aula' : (L ? L.nome : 'na rua, a caminho de algum lugar'), semana }) });
+      body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.local ? nomeCena(CENA) : n.aula ? 'Escola Agêntica, em aula' : (L ? L.nome : 'na rua, a caminho de algum lugar'), semana }) });
     const j = await r.json().catch(() => ({})); if (r.ok && j.reply) { resp = String(j.reply); acao = j.acao || null; } else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
   } catch(_) { erro = true; resp = 'Sem conexão para conversar agora.'; }
   n.esperando = false; n.chat.push({ de: 'ia', t: resp, erro }); n.preso = Date.now() + 45000;
   if (!erro) diz(n, resp); pintaChat(n);
-  if (!erro && acao) {
+  if (!erro && acao && !n.local) {
     if (acao.tipo === 'ir') { const D = lug(acao.lugar); if (D) setTimeout(() => iniciaGuia(n, D), 1400); }
     else if (acao.tipo === 'seguir') setTimeout(() => iniciaSeguir(n), 1200);
     else if (acao.tipo === 'ficar') { n.guia = null; n.segue = null; n.preso = Date.now() + 4000; } }
@@ -521,14 +533,16 @@ function abreDiario(){
 }
 const BT = 'font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer';
 async function abreEstacao(st){
-  const ch = '#' + CENA + st.i; if (cardDe === ch || cardFechado === ch) return; cardDe = ch; const d = dadosDe(CENA), L = lug(CENA) || { nome: nomeCena(CENA) };
-  if (!d || !d.estacoes[st.i]) { card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)}</small><p>${esc(st.e.acao)}</p>`; card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); return; }
+  const ch = '#' + CENA + st.i; if (cardDe === ch || cardFechado === ch) return; cardDe = ch; sentaEm(CENA + '#' + st.i); const d = dadosDe(CENA), L = lug(CENA) || { nome: nomeCena(CENA) };
+  if (!d || !d.estacoes[st.i]) { card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)}</small><p>${esc(st.e.acao)}</p><div id="mesaLista">${mesaHtml()}</div>`; card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); return; }
   const pinta = () => { if (cardDe !== ch) return; let extra = '';
     if (CENA === 'escola' && st.i === 0) { const A = npcs.filter(n => n.aula); extra = `<p><button type="button" id="btCursos" style="${BT}">Ver os cursos</button></p><h3>Em aula agora (${A.length})</h3>` + (A.length ? A.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento.</p>'); }
+    if (CENA === 'cinema' && st.i === 0) extra += `<h3>Sess&atilde;o do cineclube</h3><p>${SESSAO ? 'Sess&atilde;o aberta por ' + esc(SESSAO.por) + '.' : 'Abra a sess&atilde;o: quem estiver no Cinema assiste junto, no mesmo instante.'}</p><p><button type="button" id="btSessao" style="${BT}">${SESSAO ? 'Encerrar sess&atilde;o' : 'Abrir sess&atilde;o para a sala'}</button></p>`;
     if (CENA === 'escritorio' && st.i === 0) { const ordem = ['EM ANDAMENTO', 'BRIEFING', 'ATENÇÃO', 'ALTERAÇÃO', 'BUCHA', 'DELEGADA'];
       extra = '<h3>O que est&aacute; rolando na PD</h3>' + (TRAB === null ? '<p>Lendo o mural&hellip;</p>' : TRAB === false ? '<p>N&atilde;o consegui ler o mural agora.</p>' : `<p><b>${TRAB.total}</b> tarefas abertas</p>` + ordem.filter(s => TRAB.por[s]).map(s => `<p><b>${TRAB.por[s]}</b> &middot; ${esc(s.toLowerCase())}</p>`).join('') + (TRAB.ult.length ? '<h3>&Uacute;ltimas que entraram</h3>' + TRAB.ult.map(x => `<p>${esc(x)}</p>`).join('') : '')) + `<p><a href="/index.html" target="_blank" rel="noopener" style="color:#1d1b2a;font-weight:700">Abrir a PD &rarr;</a></p>`; }
-    card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)} &middot; ${esc(d.missao || '')}</small><p>${esc(st.e.acao)}</p>${st.i === 0 && d.abertura ? `<h3>${esc(d.anfitrioes || '')}</h3><p>${esc(d.abertura)}</p>` : ''}${blocoMissao(d, st)}${extra}`;
+    card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)} &middot; ${esc(d.missao || '')}</small><p>${esc(st.e.acao)}</p>${st.i === 0 && d.abertura ? `<h3>${esc(d.anfitrioes || '')}</h3><p>${esc(d.abertura)}</p>` : ''}${blocoMissao(d, st)}${extra}<div id="mesaLista">${mesaHtml()}</div>`;
     card.querySelector('.x').onclick = () => fechaCard(true); const bc = card.querySelector('#btCursos'); if (bc) bc.onclick = abreCursos; card.classList.add('on');
+    const bs = card.querySelector('#btSessao'); if (bs) bs.onclick = () => { sessao(SESSAO ? 0 : Date.now(), eu.nome, true); pinta(); };
     const bn = card.querySelector('#btDeNovo'); if (bn) bn.onclick = () => { const p = prog(d.id); p.xpAnt += p.xp; p.xp = 0; p.ciclo++; p.etapa = 0; p.entregas = []; salvaProg(d.id); pinta(); };
     const mf = card.querySelector('#misF'); if (mf) mf.onsubmit = e => { e.preventDefault(); const tx = card.querySelector('#misTxt').value.trim().slice(0, 400); if (!tx) { card.querySelector('#misTxt').focus(); return; }
       const p = prog(d.id); if (st.i !== p.etapa) return; p.entregas[st.i] = tx; p.etapa++; p.xp += XP_ETAPA + (p.etapa >= d.estacoes.length ? XP_FIM : 0); salvaProg(d.id); acorda(); vozinha('missao' + d.id, p.etapa >= d.estacoes.length ? 'Missao concluida' : 'Salvo'); pinta(); }; };
@@ -542,6 +556,23 @@ async function abreEstacao(st){
 function abreCursos(){ const d = document.createElement('div'); d.id = 'cursos'; d.style.cssText = 'position:fixed;inset:0;z-index:18;background:#fffdf5;display:flex;flex-direction:column';
   d.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px solid #1d1b2a"><button type="button" style="${BT}">&larr; Voltar a Catum</button><b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Cursos da Escola</b></div><iframe src="/escola-bastidores.html?modo=cursos" title="Cursos" style="flex:1;border:0;width:100%"></iframe>`;
   d.querySelector('button').onclick = () => { d.remove(); carregaEscola(); }; document.body.appendChild(d); for (const k in tecla) tecla[k] = false; }
+
+/* ---------- sessão do cineclube: todos no Cinema veem o mesmo filme no mesmo instante ---------- */
+let SESSAO = null, sessaoEl = null, sessaoFechei = 0;
+function sessao(t0, por, minha){        // t0 = 0 encerra
+  SESSAO = t0 ? { t0, por: String(por || 'alguém').slice(0, 18), meu: !!minha } : null; sessaoFechei = 0;
+  if (minha) { try { canal && canal.send({ type: 'broadcast', event: 's', payload: { i: eu.id, t0, n: eu.nome } }); canal && pronto && canal.track(meuRastro()); } catch(_){} }
+}
+function sessaoTela(){ const quer = !!SESSAO && CENA === 'cinema' && sessaoFechei !== SESSAO.t0;
+  if (!quer) { if (sessaoEl) { sessaoEl.remove(); sessaoEl = null; if (!document.getElementById('abertura')) musica(true); } return; } if (sessaoEl) return;
+  sessaoEl = document.createElement('div'); sessaoEl.style.cssText = 'position:fixed;left:50%;top:104px;transform:translateX(-50%);z-index:7;width:min(78vw,560px);border:3px solid #1d1b2a;background:#12101c;box-shadow:6px 6px 0 rgba(29,27,42,.55)';
+  sessaoEl.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:6px 8px;background:#fffdf5;border-bottom:3px solid #1d1b2a;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase"><span style="flex:1">Cineclube &middot; sess&atilde;o de ${esc(SESSAO.por)}</span><button type="button" data-som style="${BT}">Som</button><button type="button" data-x style="${BT};background:#fffdf5">Fechar</button></div><video src="${ARTE}abertura.mp4${VA}" muted playsinline loop style="display:block;width:100%"></video>`;
+  const v = sessaoEl.querySelector('video'), acerta = () => { if (!SESSAO || !v.duration) return; const al = ((Date.now() - SESSAO.t0) / 1000) % v.duration; if (Math.abs(v.currentTime - al) > 1.2) v.currentTime = al; };
+  v.addEventListener('loadedmetadata', () => { acerta(); v.play().catch(() => {}); }); const tm = setInterval(() => { if (!sessaoEl || !sessaoEl.contains(v)) return clearInterval(tm); acerta(); }, 4000);
+  sessaoEl.querySelector('[data-som]').onclick = () => { v.muted = !v.muted; if (!v.muted) musica(false); else musica(true); v.play().catch(() => {}); };
+  sessaoEl.querySelector('[data-x]').onclick = () => { sessaoFechei = SESSAO ? SESSAO.t0 : 0; };
+  document.body.appendChild(sessaoEl);
+}
 
 /* ---------- trilha 8 bits: tema em ré maior montado a partir do motivo (ré–si–lá) e do andamento da trilha dos vídeos de intro do site ---------- */
 const TEMA = { passo: .1625, ativo: false, timer: 0, i: 0, t0: 0, g: null };
@@ -668,6 +699,7 @@ function foto(){ try { cv.toBlob(bl => { if (!bl) return; const nome = 'catum-' 
     cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; }, 'image/png'); } catch(e) { console.warn(e); } }
 document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; { const zr = document.getElementById('zoomR'); zr.value = Math.round(ZF * 100); zr.oninput = () => zoom(zr.value / 100); zr.onchange = () => zr.blur(); }
 
+const CALMO = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_) { return false; } })();
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
 function boneco(e, t){
@@ -703,6 +735,7 @@ function quadro(t){
   // porta ou travessia ao alcance: só entra com confirmação
   { const a = t > trocaAte && !trocando ? acaoPerto() : null, tx = a ? a.txt : ''; ACAO = a; if (acaoEl.dataset.t !== tx) { acaoEl.dataset.t = tx; acaoEl.textContent = tx + (document.body.classList.contains('toque') || !tx ? '' : '  [E]'); acaoEl.style.display = tx ? 'block' : 'none'; } }
   if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, d: eu.dir } }); } catch(_){} }
+  sessaoTela();
   if (canal && pronto && t - rastroEm > 6000) { rastroEm = t; try { canal.track(meuRastro()); } catch(_){} }
   outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1; if (d > 120) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 70 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
   // IAs visíveis nesta cena
@@ -720,6 +753,8 @@ function quadro(t){
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
   cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
+  if (!CALMO) { for (const p of (C.J.plantas || [])) { const w = p.largura, h = p.altura, sv = Math.sin(t * .0017 + p.x * .7 + p.y * .3); if (sv > .3) cx.drawImage(C.img, p.x - (w >> 1), p.y - (h >> 1), w, h >> 1, p.x - (w >> 1) + (sv > .75 ? 2 : 1), p.y - (h >> 1), w, h >> 1); }      // folhas: o alto do agrupamento balança 1 a 2 px
+    if (CENA === 'bairro' || CENA === 'regiao') { cx.fillStyle = 'rgba(255,253,245,.78)'; for (let i = 0; i < 5; i++) { const x = Math.round(((t * .0035 * (1 + i * .23) + i * 263) % (C.w + 90)) - 45), y = 10 + (i * 37) % 62; cx.fillRect(x, y + 2, 20, 4); cx.fillRect(x + 4, y, 11, 3); cx.fillRect(x - 3, y + 4, 26, 2); } } }
   if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
   // estações do lugar (marquinha que pisca)
   const sts = estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
@@ -751,17 +786,19 @@ function quadro(t){
 
 /* ---------- ao vivo (Supabase Realtime) ---------- */
 let canal = null, pronto = false;
-const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA });
+const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, m: MESA, ss: SESSAO && SESSAO.meu ? SESSAO.t0 : 0 });
 function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
 function liga(){
   canal = sb.channel('catum-v3', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
   canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
       let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: +p.x || 528, y: +p.y || 440, tx: +p.x || 528, ty: +p.y || 440, fala: '', falaEm: 0, anda: false, dir: 0, humano: true, sk: null, r: String(p.r || 'bairro') }; outros.set(p.i, o); }
-      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); o.corpo = NPC_IDS.includes(p.c) ? p.c : 'humano'; if (o.corpo !== 'humano') folha(o.corpo); });
+      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); o.corpo = NPC_IDS.includes(p.c) ? p.c : 'humano'; if (o.corpo !== 'humano') folha(o.corpo); o.m = String(p.m || '').slice(0, 40); if (+p.ss > 0 && !SESSAO) SESSAO = { t0: +p.ss, por: o.nome, meu: false }; });
+    pintaMesa();
     [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
   canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { const r = String(p.r || 'bairro'); o.tx = Math.max(0, Math.min(2000, +p.x)); o.ty = Math.max(0, Math.min(1400, +p.y)); if ([0, 1, 2, 3].includes(p.d)) o.dir = p.d; if (r !== o.r) { o.r = r; o.x = o.tx; o.y = o.ty; } } });
   canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 160) vozinha(o.id, o.fala); } });
+  canal.on('broadcast', { event: 's' }, ({ payload: p }) => { if (!p) return; if (+p.t0 > 0) SESSAO = { t0: +p.t0, por: String(p.n || 'alguém').slice(0, 18), meu: false }; else SESSAO = null; sessaoFechei = 0; });
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
 }
 
