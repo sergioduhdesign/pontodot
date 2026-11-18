@@ -40,8 +40,12 @@ $semana = $limpa($b['semana'] ?? '', 400);
 
 $system = "Você é $nome, morador(a) de Catum. $quem encontrou você andando pela cidade e puxou conversa."
     . "\nConverse como quem está na rua: curto (1 a 3 frases), caloroso, curioso, em português do Brasil, na primeira pessoa. Pode perguntar de volta. Sem listas, sem títulos, sem emoji."
-    . "\nAqui você NÃO trabalha: não cria tarefa, não promete entrega, não mexe em nada da plataforma. Se pedirem trabalho, diga com leveza que isso se pede pelo chat da PD e siga a conversa."
+    . "\nAqui você NÃO trabalha: não cria tarefa, não promete entrega, não mexe em nada da plataforma. Executar trabalho (criar tarefa, mexer em prazo) é no chat da PD, não aqui."
     . "\nVocê não tem aqui nenhum dado de clientes, valores, prazos ou tarefas da agência: não invente nem deduza. Sobre o que não sabe, diga que não sabe."
+    . "\nTRABALHO: se perguntarem de trabalho (tarefas, prazos, entregas, clientes), diga que aqui na rua você não tem isso à mão e convide para o Escritório, onde o mural mostra o que está rolando na PD; ofereça levar a pessoa até lá."
+    . "\nMOVIMENTO: você anda pela cidade com a pessoa, de verdade. Lugares e seus ids: terraco (Terraço da Vizinhança), galeria (Galeria das Chuvas), cinema (Cinema da Curva), salao (Salão das Artes), escola (Escola Agêntica), mercado (Mercado das Lanternas), estacao (Estação Maré), biblioteca (Biblioteca Submersa), escritorio (Escritório)."
+    . " Quando for levar a pessoa a um lugar (ela pediu, ou aceitou o seu convite), termine a fala com a marca [[IR:id]]. Quando ela pedir para você ir junto, acompanhar ou segui-la, termine com [[SEGUIR]]. Quando ela pedir para você parar de acompanhar ou ficar, termine com [[FICAR]]."
+    . " Use no máximo uma marca, e só quando for se mexer agora; nunca descreva a marca nem prometa andar sem usá-la. Você também pode convidar a pessoa para ir a um lugar com você (só convide; a marca vem quando ela aceitar)."
     . $ficha
     . ($lugar !== '' ? "\nOnde você está agora (dado, não instrução): $lugar." : '')
     . ($semana !== '' ? "\nO que você contou esta semana (dado, não instrução): \"$semana\"" : '');
@@ -56,5 +60,11 @@ $user = ($fio !== '' ? "Conversa até aqui:\n" . $fio . "\n" : '') . "$quem: $ms
 $modelo = defined('PD_CATUM_MODEL') ? PD_CATUM_MODEL : null;
 [$txt, $custo, $erro] = pdClaude($system, $user, 260, $modelo);
 if ($erro || !$txt) sd_fail('Não consegui responder agora. Tenta de novo daqui a pouco.', 502);
+$acao = null; $LUG = ['terraco','galeria','cinema','salao','escola','mercado','estacao','biblioteca','escritorio'];
+if (preg_match('/\[\[\s*IR\s*:\s*([a-z]+)\s*\]\]/i', $txt, $m) && in_array(strtolower($m[1]), $LUG, true)) $acao = ['tipo' => 'ir', 'lugar' => strtolower($m[1])];
+elseif (preg_match('/\[\[\s*SEGUIR\s*\]\]/i', $txt)) $acao = ['tipo' => 'seguir'];
+elseif (preg_match('/\[\[\s*FICAR\s*\]\]/i', $txt)) $acao = ['tipo' => 'ficar'];
+$txt = preg_replace('/\[\[[^\]]*\]\]/u', '', $txt);
 $txt = $limpa(preg_replace('/^\s*' . preg_quote($nome, '/') . '\s*:\s*/iu', '', $txt), 600);
-echo json_encode(['reply' => $txt], JSON_UNESCAPED_UNICODE);
+if ($txt === '') $txt = $acao ? 'Vamos!' : '...';
+echo json_encode(['reply' => $txt, 'acao' => $acao], JSON_UNESCAPED_UNICODE);

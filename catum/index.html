@@ -108,7 +108,8 @@ const LUGARES = [
   { id:'escola',    nome:'Escola Agêntica',       b:[40,29,14,8], porta:[47,37],  rota:[[47,37],[47,40],[60,40]],               cor:{ parede:'#ffffff', telhado:'#1d1b2a', det:'#e5ec16' } },
   { id:'mercado',   nome:'Mercado das Lanternas', b:[94,30,14,8], porta:[101,38], rota:[[101,38],[101,40],[60,40]],             cor:{ parede:'#f7d9a8', telhado:'#dfa219', det:'#ff5038' } },
   { id:'estacao',   nome:'Estação Maré',          b:[64,56,14,8], porta:[71,64],  rota:[[71,64],[71,66],[60,66],[60,40]],       cor:{ parede:'#dfe7ea', telhado:'#007f91', det:'#145dec' } },
-  { id:'biblioteca',nome:'Biblioteca Submersa',   b:[95,57,6,5],  porta:[98,62],  rota:[[98,62],[98,66],[60,66],[60,40]],       cor:{ parede:'#bfeee6', telhado:'#11ba98', det:'#18155f' } }
+  { id:'biblioteca',nome:'Biblioteca Submersa',   b:[95,57,6,5],  porta:[98,62],  rota:[[98,62],[98,66],[60,66],[60,40]],       cor:{ parede:'#bfeee6', telhado:'#11ba98', det:'#18155f' } },
+  { id:'escritorio',nome:'Escritório',            b:[66,44,14,8], porta:[73,52],  rota:[[73,52],[73,54],[60,54],[60,40]],       cor:{ parede:'#f4f1ea', telhado:'#30248c', det:'#ea278f' } }
 ];
 const PATIO = { x: 37, y: 44, w: 22, h: 11 }, LOUSA = { x: 44, y: 44, w: 8 };
 const CARTEIRAS = []; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) CARTEIRAS.push({ x: (40 + c * 5) * T + 8, y: (47 + r * 2) * T + 12 });
@@ -273,7 +274,7 @@ async function salvaCfg(){ aplicaCfg(); guardaLocal(); try { canal && pronto && 
 /* ---------- interiores: cada lugar tem o seu salão ---------- */
 const IW = 22, IH = 14, SALAS = {}; let CENA = null, trocaAte = 0;     // CENA = null (na rua) ou o lugar em que estou dentro
 const entrada = L => ({ x: (L.b[0] + L.b[2] / 2) * T, y: (L.b[1] + L.b[3]) * T + 6 });
-const PISO = { escola:['#d9b98a','#cfae7c'], galeria:['#e9eef6','#dbe3ee'], cinema:['#3a2a52','#33244a'], salao:['#f3e6cf','#eadbc0'], mercado:['#e2c79a','#d8bb8a'], terraco:['#b98a5a','#ad7f50'], estacao:['#cfd8dc','#c2ccd1'], biblioteca:['#2f6f9e','#2a6591'] };
+const PISO = { escola:['#d9b98a','#cfae7c'], galeria:['#e9eef6','#dbe3ee'], cinema:['#3a2a52','#33244a'], salao:['#f3e6cf','#eadbc0'], mercado:['#e2c79a','#d8bb8a'], terraco:['#b98a5a','#ad7f50'], estacao:['#cfd8dc','#c2ccd1'], biblioteca:['#2f6f9e','#2a6591'], escritorio:['#e6e1d6','#dcd6c9'] };
 function sala(L){
   if (SALAS[L.id]) return SALAS[L.id];
   const k = document.createElement('canvas'); k.width = IW * T; k.height = IH * T; const g = k.getContext('2d'), sol = new Uint8Array(IW * IH), c = L.cor, tinta = '#1d1b2a';
@@ -302,12 +303,25 @@ function sala(L){
     [6, 9].forEach(y => [3, 8, 13].forEach(x => { P(x * T + 1, y * T + 4, 4 * T - 2, 9, tinta); P(x * T + 2, y * T + 5, 4 * T - 4, 4, '#145dec'); P(x * T + 2, y * T + 9, 4 * T - 4, 3, '#0e3f9c'); S(x, y, 4, 1); })); }
   if (L.id === 'biblioteca') { [3, 7, 11, 15, 19].forEach((x, i) => { for (let y = 3; y < 7; y++) { P(x * T + 1, y * T, 14, T, tinta); P(x * T + 2, y * T + 1, 12, 4, ['#ea278f', '#e5ec16', '#11ba98', '#ff6500'][(y + i) % 4]); P(x * T + 2, y * T + 6, 12, 4, ['#145dec', '#fffdf5', '#5425a6', '#ffe27a'][(y + i) % 4]); P(x * T + 2, y * T + 11, 12, 4, ['#11ba98', '#ff5038', '#e5ec16', '#bfeee6'][(y + i) % 4]); S(x, y); } });
     mesa(8, 9, 6, '#bfeee6'); for (let x = 1; x < IW - 1; x += 3) P(x * T + 4, (IH - 3) * T + 6, 6, 1, '#7fb5ff'); }
+  if (L.id === 'escritorio') { P(5 * T, 5, 12 * T, 22, tinta); P(5 * T + 3, 8, 12 * T - 6, 16, '#fffdf5'); [['#ea278f', 8], ['#ff6500', 40], ['#e5ec16', 72], ['#11ba98', 104], ['#145dec', 136]].forEach(([cc, dx]) => { P(5 * T + dx, 10, 22, 5, cc); P(5 * T + dx, 17, 16, 2, '#1d1b2a'); P(5 * T + dx, 20, 20, 2, '#b8b8b8'); });
+    [5, 8].forEach(y => [3, 8, 13, 17].forEach(x => { mesa(x, y, 2, '#fffdf5'); P(x * T + 8, y * T - 6, 14, 10, tinta); P(x * T + 9, y * T - 5, 12, 7, '#7fe3d2'); P(x * T + 11, y * T - 3, 6, 1, '#1d1b2a'); })); vaso(1, 2); vaso(IW - 2, 2); }
   const livres = []; for (let y = 3; y < IH - 2; y++) for (let x = 2; x < IW - 2; x++) if (!sol[y * IW + x] && !(sol[(y - 1) * IW + x] && sol[(y + 1) * IW + x])) livres.push([x, y]);
   return (SALAS[L.id] = { cv: k, sol, livres });
 }
 function mudaCena(L, t){ CENA = L; trocaAte = t + 700; eu.alvo = null; for (const k in tecla) tecla[k] = false; cardFechado = null; if (cardDe) fechaCard(false);
   if (L) { sala(L); eu.x = IW * T / 2; eu.y = (IH - 1) * T - 3; } else { /* posição de saída definida por quem chamou */ }
   try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA ? CENA.id : '' } }), canal.track(meuRastro())); } catch(_){} }
+function caminho(x0, y0, x1, y1){     // pontos (px) do tile (x0,y0) até (x1,y1) desviando de prédio, água e árvore
+  const cab = (x, y) => x >= 0 && y >= 0 && x < W && y < H && !solido[ix(x, y)];
+  const perto = (x, y) => { if (cab(x, y)) return [x, y]; for (let r = 1; r < 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (cab(x + dx, y + dy)) return [x + dx, y + dy]; return [x, y]; };
+  [x0, y0] = perto(x0, y0); [x1, y1] = perto(x1, y1);
+  const de = new Int32Array(W * H).fill(-1), fila = [ix(x0, y0)]; de[ix(x0, y0)] = ix(x0, y0);
+  for (let q = 0; q < fila.length; q++) { const c = fila[q]; if (c === ix(x1, y1)) break; const cx0 = c % W, cy0 = (c / W) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = cx0 + dx, ny = cy0 + dy; if (cab(nx, ny) && de[ix(nx, ny)] < 0) { de[ix(nx, ny)] = c; fila.push(ix(nx, ny)); } } }
+  if (de[ix(x1, y1)] < 0) return [[x1 * T + 8, y1 * T + 10]];
+  const pts = []; for (let c = ix(x1, y1); ; c = de[c]) { pts.push([(c % W) * T + 8, ((c / W) | 0) * T + 10]); if (de[c] === c) break; }
+  pts.reverse(); return pts.filter((p, i) => i === 0 || i === pts.length - 1 || !((pts[i - 1][0] === p[0] && pts[i + 1][0] === p[0]) || (pts[i - 1][1] === p[1] && pts[i + 1][1] === p[1])));
+}
 const pedra = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T);
   if (CENA) { return tx < 0 || ty < 0 || tx >= IW || ty >= IH || SALAS[CENA.id].sol[ty * IW + tx] === 1; }
   return tx < 0 || ty < 0 || tx >= W || ty >= H || solido[ix(tx, ty)] === 1; };
@@ -321,6 +335,8 @@ let ALUNOS = new Map();     // personagem -> { curso, lugar (nº da carteira) }
 function posIA(n, agora){
   // parou para falar comigo: fica onde está. Depois retoma de onde parou e vai alcançando o relógio da cidade aos poucos.
   const passou = agora - (n.ult || agora); n.ult = agora;
+  if (n.guia || n.segue) { n.atraso = (n.atraso || 0) + passou; return; }          // andando comigo: quem manda é o guia/seguir
+  if (n.forca && n.forca.ate > agora) { n.atraso = (n.atraso || 0) + passou; const e = entrada(n.forca.L); n.x = e.x + 12; n.y = e.y + 8; n.anda = false; n.aula = false; n.lugar = n.forca.L; n.k = 0; return; }
   if (n.preso && n.preso > agora) { n.atraso = (n.atraso || 0) + passou; n.anda = false; return; }
   if (n.atraso) n.atraso = Math.max(0, n.atraso - passou * .5);
   agora -= (n.atraso || 0);
@@ -415,6 +431,37 @@ function abreCard(n){
   if (!NARR && !narrPedida) { narrPedida = true; fetch('/pd-narrativas.php').then(r => r.ok ? r.json() : null).then(j => { NARR = j || {}; if (cardDe === n.id) { cardDe = null; abreCard(n); } }).catch(() => { NARR = {}; }); }
 }
 
+/* ---------- as IAs se mexem comigo: levar a um lugar, acompanhar ---------- */
+function diz(n, t){ n.fala = t; n.falaEm = Date.now(); vozinha(n.id, t); }
+function paraTudo(n){ n.guia = null; n.segue = null; }
+function iniciaGuia(n, L, t){
+  paraTudo(n); n.forca = null;
+  if (CENA) { const e = entrada(CENA); n.x = e.x + 14; n.y = e.y + 14; eu.x = e.x; eu.y = e.y + 12; mudaCena(null, t); }      // saímos juntos
+  else if (!n.v) { n.x = eu.x + 14; n.y = eu.y; }
+  const e = entrada(L); n.guia = { L, i: 0, pts: caminho(Math.floor(n.x / T), Math.floor(n.y / T), Math.floor(e.x / T), Math.floor((e.y + 10) / T)), avisou: 0 };
+  n.lugar = null; n.aula = false; fechaCard(true);
+}
+function iniciaSeguir(n){ paraTudo(n); n.forca = null; if (!n.v) { n.x = eu.x + 14; n.y = eu.y; } n.segue = { ate: Date.now() + 600000, travou: 0, cena: CENA ? CENA.id : '' }; n.lugar = null; n.aula = false; fechaCard(true); }
+function passoGuia(n, dt, t){
+  const g = n.guia; n.lugar = null; n.aula = false; n.anda = false; if (CENA) return;           // entrei em algum lugar: me espera na rua
+  const longe = Math.hypot(eu.x - n.x, eu.y - n.y);
+  if (g.i >= g.pts.length) {       // chegou na porta: me espera e entra
+    if (longe < 44) { diz(n, 'Chegamos: ' + g.L.nome + '. Entra comigo!'); n.forca = { L: g.L, ate: Date.now() + 240000 }; n.guia = null; }
+    else if (t - g.avisou > 7000) { g.avisou = t; diz(n, 'É aqui! Vem!'); }
+    return; }
+  if (longe > 120) { if (t - g.avisou > 6000) { g.avisou = t; diz(n, 'Vem comigo, ' + eu.nome + '!'); } return; }       // me espera
+  const [px, py] = g.pts[g.i], ax = px - n.x, ay = py - n.y, d = Math.hypot(ax, ay), v = 74 * dt;
+  if (d <= v) { n.x = px; n.y = py; g.i++; } else { n.x += ax / d * v; n.y += ay / d * v; if (ax) n.dir = ax > 0 ? 1 : -1; } n.anda = true;
+}
+function passoSeguir(n, dt, t){
+  const s = n.segue, aqui = CENA ? CENA.id : ''; n.lugar = null; n.aula = false; n.anda = false;
+  if (Date.now() > s.ate) { n.segue = null; diz(n, 'Vou dar uma volta. Até já!'); return; }
+  if (s.cena !== aqui) { s.cena = aqui; n.x = eu.x + 14; n.y = eu.y - 2; return; }                 // troquei de lugar: vem junto
+  const ax = eu.x - n.x, ay = eu.y - n.y, d = Math.hypot(ax, ay); if (d < 26) { s.travou = 0; return; }
+  const v = Math.min(d - 22, 86 * dt), nx = n.x + ax / d * v, ny = n.y + ay / d * v; let andou = false;
+  if (!bate(nx, n.y)) { n.x = nx; andou = true; } if (!bate(n.x, ny)) { n.y = ny; andou = true; }
+  n.anda = andou; if (ax) n.dir = ax > 0 ? 1 : -1; s.travou = andou ? 0 : s.travou + dt; if (s.travou > 1.2 || d > 260) { n.x = eu.x + 14; n.y = eu.y - 2; s.travou = 0; }
+}
 function pintaChat(n){ const el = document.getElementById('chatLog'); if (!el || cardDe !== n.id) return;
   el.innerHTML = (n.chat || []).slice(-8).map(m => `<div class="${m.erro ? 'er' : m.de}">${esc(m.t)}</div>`).join('') + (n.esperando ? '<div class="ia">&hellip;</div>' : ''); card.scrollTop = card.scrollHeight; }
 async function falaCom(n, txt, semana){
@@ -423,10 +470,14 @@ async function falaCom(n, txt, semana){
   try { const { data: { session } } = await sb.auth.getSession();
     const r = await fetch('/pd-catum-fala.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
       body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.aula ? 'Escola Agêntica, em aula' : (n.lugar ? n.lugar.nome : 'na rua, a caminho de algum lugar'), semana }) });
-    const j = await r.json().catch(() => ({})); if (r.ok && j.reply) resp = String(j.reply); else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
+    const j = await r.json().catch(() => ({})); if (r.ok && j.reply) { resp = String(j.reply); var acao = j.acao || null; } else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
   } catch(_) { erro = true; resp = 'Sem conexão para conversar agora.'; }
   n.esperando = false; n.chat.push({ de: 'ia', t: resp, erro }); n.preso = Date.now() + 45000;
   if (!erro) { n.fala = resp; n.falaEm = Date.now(); vozinha(n.id, resp); } pintaChat(n);
+  if (!erro && acao) { const t = performance.now();
+    if (acao.tipo === 'ir') { const L = LUGARES.find(x => x.id === acao.lugar); if (L) setTimeout(() => iniciaGuia(n, L, performance.now()), 1400); }
+    else if (acao.tipo === 'seguir') setTimeout(() => iniciaSeguir(n), 1200);
+    else if (acao.tipo === 'ficar') { paraTudo(n); n.preso = Date.now() + 4000; } }
 }
 
 /* ---------- a Escola: quem estuda o quê, e a porta para os cursos ---------- */
@@ -445,6 +496,23 @@ function abreEscola(){
     <p><button type="button" id="btCursos" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">Ver os cursos</button></p>
     <h3>Em aula agora (${L.length})</h3>${L.length ? L.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento.</p>'}<p>O p&aacute;tio de aula fica do lado de fora, logo abaixo da rua.</p>`;
   card.querySelector('.x').onclick = () => fechaCard(true); card.querySelector('#btCursos').onclick = abreCursos; card.classList.add('on');
+}
+let TRAB = null, trabEm = 0;
+async function abreEscritorio(){
+  if (cardDe === '#escritorio' || cardFechado === '#escritorio') return; cardDe = '#escritorio';
+  const pinta = () => { if (cardDe !== '#escritorio') return; const ordem = ['EM ANDAMENTO', 'BRIEFING', 'ATENÇÃO', 'ALTERAÇÃO', 'BUCHA', 'DELEGADA'];
+    card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>Escrit&oacute;rio</h2><small>O mural do que est&aacute; rolando na PD agora.</small>` +
+      (TRAB === null ? '<p>Lendo o mural&hellip;</p>' : TRAB === false ? '<p>N&atilde;o consegui ler o mural agora.</p>' :
+        `<h3>Tarefas abertas (${TRAB.total})</h3>` + ordem.filter(s => TRAB.por[s]).map(s => `<p><b>${TRAB.por[s]}</b> &middot; ${esc(s.toLowerCase())}</p>`).join('') +
+        (TRAB.ult.length ? '<h3>&Uacute;ltimas que entraram</h3>' + TRAB.ult.map(x => `<p>${esc(x)}</p>`).join('') : '')) +
+      `<p><a href="/index.html" target="_blank" rel="noopener" style="color:#1d1b2a;font-weight:700">Abrir a PD &rarr;</a></p>`;
+    card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); };
+  pinta();
+  if (TRAB && Date.now() - trabEm < 120000) return;
+  try { const { data, error } = await sb.from('tasks').select('id,action,status,created_at').neq('status', 'ENTREGUE').order('created_at', { ascending: false }).limit(400);
+    if (error) throw error; const por = {}; (data || []).forEach(x => { por[x.status] = (por[x.status] || 0) + 1; });
+    TRAB = { total: (data || []).length, por, ult: (data || []).slice(0, 5).map(x => String(x.action || x.id).slice(0, 70)) }; trabEm = Date.now(); } catch(_) { TRAB = TRAB || false; }
+  pinta();
 }
 function abreCursos(){ const d = document.createElement('div'); d.id = 'cursos'; d.style.cssText = 'position:fixed;inset:0;z-index:18;background:#fffdf5;display:flex;flex-direction:column';
   d.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px solid #1d1b2a"><button type="button" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">&larr; Voltar a Catum</button><b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Cursos da Escola</b></div><iframe src="/escola-bastidores.html?modo=cursos" title="Cursos" style="flex:1;border:0;width:100%"></iframe>`;
@@ -517,7 +585,10 @@ function quadro(t){
   outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1.5; if (d > 200) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 110 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
   // IAs: quem chegou num lugar entra nele (some da rua e aparece lá dentro)
   const vis = [];
-  npcs.forEach(n => { posIA(n, agora); const dentro = (!n.anda && !n.aula && n.lugar) ? n.lugar.id : '';
+  npcs.forEach(n => { posIA(n, agora); n.v = null;
+    if (n.guia) { passoGuia(n, dt, t); if (!n.guia && !n.forca) return; if (n.guia) { if (!CENA) vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; } }
+    if (n.segue) { passoSeguir(n, dt, t); if (n.segue) { vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; } }
+    const dentro = (!n.anda && !n.aula && n.lugar) ? n.lugar.id : '';
     if (dentro !== aqui) return;
     if (!CENA) { vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; }
     const S0 = sala(CENA), lv = S0.livres, p = lv[hash(n.id + '@' + (n.k || 0)) % lv.length]; vis.push(n.v = Object.assign(Object.create(n), { x: p[0] * T + 8, y: p[1] * T + 13, de: n })); });
@@ -539,8 +610,10 @@ function quadro(t){
   gente.forEach(o => { etiqueta(o.nome, o.x, o.y - 30, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 44); });
   etiqueta(eu.nome, eu.x, eu.y - 30, '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - 44);
   // cartão e lugar
+  if (eu.anda) eu.parouEm = t;
+  if (perto && (perto.de.guia || perto.de.segue) && t - (eu.parouEm || 0) < 1500) perto = null;      // andando juntos: o cartão só abre quando eu paro
   if (perto && cardFechado !== perto.de.id) perto.de.preso = Math.max(perto.de.preso || 0, agora + 1200);    // quem está do meu lado para pra conversar
-  if (perto) abreCard(perto.de); else if (CENA && CENA.id === 'escola') abreEscola(); else { if (cardDe) fechaCard(false); cardFechado = null; }
+  if (perto) abreCard(perto.de); else if (CENA && CENA.id === 'escritorio') abreEscritorio(); else if (CENA && CENA.id === 'escola') abreEscola(); else { if (cardDe) fechaCard(false); cardFechado = null; }
   let nome = CENA ? CENA.nome : ''; if (!CENA) LUGARES.forEach(L => { const [px, py] = centro(L.porta); if (Math.hypot(px - eu.x, py - eu.y) < 56) nome = L.nome; });
   if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
 }
