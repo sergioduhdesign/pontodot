@@ -72,6 +72,7 @@ body.toque #card{top:136px;bottom:auto;left:12px;right:12px;width:auto;max-heigh
 #zoom{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:5;padding:10px 5px;touch-action:none}
 #zoomR{display:block;writing-mode:vertical-lr;direction:rtl;width:22px;height:150px;accent-color:#1d1b2a;cursor:pointer;touch-action:none}
 body.toque.dir #zoom{right:auto;left:12px}
+body.toque #acao{bottom:158px !important}
 #btFala{display:none;position:fixed;right:12px;bottom:12px;z-index:6;padding:9px 12px;font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 </style>
 </head>
@@ -79,12 +80,12 @@ body.toque.dir #zoom{right:auto;left:12px}
 <canvas id="c"></canvas>
 <div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px" id="hCatum">Catum</div><div class="px" id="gente">1 aqui</div><button class="px" id="btCfg" type="button">Config</button><button class="px" id="btMapa" type="button">Mapa</button><button class="px" id="btDia" type="button">Di&aacute;rio</button><button class="px" id="btFoto" type="button">Foto</button><div class="px" id="xp">Nv 1 &middot; 0 XP</div></div>
 <div id="lugar" class="px"></div>
-<div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; ande at&eacute; uma porta para entrar &middot; pare numa marca que pisca &middot; Enter para falar</div>
+<div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; perto de uma porta, toque em Entrar (tecla E) &middot; pare numa marca que pisca &middot; Enter para falar</div>
 <form id="fala" class="px" autocomplete="off"><input id="falaTxt" maxlength="90" placeholder="Diga algo para quem est&aacute; por perto&hellip;"><button>Falar</button></form>
 <button id="btFala" class="px" type="button">Falar</button>
 <div id="card" class="px"></div>
 <div id="joy"><i></i></div>
-<div id="zoom" class="px"><input id="zoomR" type="range" min="55" max="220" step="5" value="100" aria-label="Zoom"></div>
+<div id="zoom" class="px"><input id="zoomR" type="range" min="40" max="200" step="5" value="100" aria-label="Zoom"></div>
 <div id="cfg"><div class="cx px" id="cfgCx"></div></div>
 <div id="porta"><img src="/assets/logo-pontodot-bolinha-white.svg" alt=""><h1>Catum</h1><p id="portaTxt">Abrindo a cidade&hellip;</p></div>
 
@@ -100,103 +101,98 @@ body.toque.dir #zoom{right:auto;left:12px}
    ============================================================ */
 (() => {
 'use strict';
-const ESC_P = 1.75;          // personagens maiores que a escala do pacote (pedido do Sérgio)
-const ARTE = '/catum/arte/', VA = '?v=10', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=11', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
-/* ---------- lugares ---------- */
-// porta = ponto da porta no bairro (coordenada antiga + deslocamento 144,192 do pacote)
+/* ---------- lugares (as portas, estações e recortes vêm do cena.json de cada mapa) ---------- */
 const LUG = [
-  { id:'escola',     arq:'escola-agentica',       nome:'Escola Agêntica',       porta:[383,151] },
-  { id:'galeria',    arq:'galeria-das-chuvas',    nome:'Galeria das Chuvas',    porta:[601,260] },
-  { id:'cinema',     arq:'cinema-da-curva',       nome:'Cinema da Curva',       porta:[191,269] },
-  { id:'terraco',    arq:'terraco-da-vizinhanca', nome:'Terraço da Vizinhança', porta:[180,150] },
-  { id:'salao',      arq:'salao-das-artes',       nome:'Salão das Artes',       porta:[173,383] },
-  { id:'mercado',    arq:'mercado-das-lanternas', nome:'Mercado das Lanternas', porta:[595,143] },
-  { id:'estacao',    arq:'estacao-mare',          nome:'Estação Maré',          porta:[384,384] },
-  { id:'biblioteca', arq:'biblioteca-submersa',   nome:'Biblioteca Submersa',   porta:[629,404] },
+  { id:'escola',     arq:'escola-agentica',       nome:'Escola Agêntica' },
+  { id:'galeria',    arq:'galeria-das-chuvas',    nome:'Galeria das Chuvas' },
+  { id:'cinema',     arq:'cinema-da-curva',       nome:'Cinema da Curva' },
+  { id:'terraco',    arq:'terraco-da-vizinhanca', nome:'Terraço da Vizinhança' },
+  { id:'salao',      arq:'salao-das-artes',       nome:'Salão das Artes' },
+  { id:'mercado',    arq:'mercado-das-lanternas', nome:'Mercado das Lanternas' },
+  { id:'estacao',    arq:'estacao-mare',          nome:'Estação Maré' },
+  { id:'biblioteca', arq:'biblioteca-submersa',   nome:'Biblioteca Submersa' },
   { id:'escritorio', arq:'escritorio-pontodot',   nome:'Escritório Pontodot',   dentroDe:'escola' }
 ];
-LUG.forEach(L => { if (L.porta) L.porta = [L.porta[0] + 144, L.porta[1] + 192]; });
 const lug = id => LUG.find(L => L.id === id);
-const ESCOLA = lug('escola'), ESCRIT = lug('escritorio');
-const TOPO = { escola:18, galeria:34, cinema:20, salao:17, mercado:18, estacao:18, biblioteca:20 };     // altura do vão de cada porta: o que fica acima cobre quem passa
-const PORTAL = { de:[0.915, 0.475], volta:[0.88, 0.49] };       // vão leste da Escola -> ala Pontodot
+const ARQ = id => id === 'bairro' ? 'catum-com-horizonte' : id === 'regiao' ? 'catum-regional' : lug(id).arq;
+const idDe = arq => arq === 'catum-com-horizonte' ? 'bairro' : arq === 'catum-regional' ? 'regiao' : (LUG.find(L => L.arq === arq) || {}).id;
+const nomeCena = id => id === 'bairro' ? 'Praça de Catum' : id === 'regiao' ? 'Mar de Catum' : lug(id).nome;
 const NPC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
+const LOCAIS = { duna:'Duna', lume:'Lume', jaci:'Jaci', lito:'Lito' };       // moradores novos: ficam nos lugares, com fala própria
+// cada corpo tem o seu meio: chão, água ou ar (do pacote)
+const MEIOS = { oru:'agua', muru:'agua', nami:'agua', sumi:'agua', sago:'agua', koda:'voo', lume:'voo' }, TRES = ['chao','agua','voo'];
+const PERFIS = { passo:[62,17], pesado:[40,17], trote:[72,16], aderencia:[51,14], serpente:[57,24], caranguejo:[52,15], salto:[67,19], arraia:[68,30], asas:[83,24], polvo:[45,20], lula:[62,24], cetaceo:[76,32] };      // [velocidade px/s, passada px]
+let ATOR = {};       // atores.json: quadro, âncora, altura e tipo de movimento de cada corpo
 
-/* ---------- cenas (bairro e interiores): imagem + grade de colisão ---------- */
+/* ---------- motor de movimento do pacote: contato por pixel, passada pela distância andada ---------- */
+function permitido(mask, x, y){ const X = Math.round(x), Y = Math.round(y), w = mask.w, h = mask.h, b = mask.bits; if (X < 2 || Y < 2 || X >= w - 2 || Y >= h - 2) return false; const i = Y * w + X;
+  return !!(b[i] && b[i - 1] && b[i + 1] && b[i - w] && b[i + w] && b[i - 2] && b[i + 2] && b[i - w * 2] && b[i + w * 2] && b[i - w - 1] && b[i - w + 1] && b[i + w - 1] && b[i + w + 1]); }
+function avancar(a, dx, dy, dt, mask, mov){
+  dt = Math.min(.06, Math.max(0, dt)); const mag = Math.hypot(dx, dy); if (!mag || !dt) { a.vel = 0; a.emMarcha = false; a.quadro = 0; return 0; }
+  const nx = dx / mag, ny = dy / mag, pf = PERFIS[mov] || PERFIS.passo, vmax = pf[0], passada = pf[1];
+  if (Math.abs(nx) > Math.abs(ny) + .1) a.dir = nx < 0 ? 2 : 3; else if (Math.abs(ny) > Math.abs(nx) + .1) a.dir = ny < 0 ? 1 : 0; else a.dir = a.dir >= 2 ? (nx < 0 ? 2 : 3) : (ny < 0 ? 1 : 0);
+  a.vel = Math.min(vmax, (a.vel || 0) + vmax * dt * 12); const desloc = a.vel * dt, steps = Math.max(1, Math.ceil(desloc / .75)); let real = 0;
+  for (let i = 0; i < steps; i++) { const sx = nx * desloc / steps, sy = ny * desloc / steps, ox = a.x, oy = a.y;
+    if (permitido(mask, ox + sx, oy + sy)) { a.x += sx; a.y += sy; } else if (sx && permitido(mask, ox + sx, oy)) a.x += sx; else if (sy && permitido(mask, ox, oy + sy)) a.y += sy;
+    real += Math.hypot(a.x - ox, a.y - oy); }
+  a.emMarcha = real > 1e-5; if (!a.emMarcha) a.vel = 0; a.fase = ((a.fase || 0) + real / passada) % 1; a.quadro = a.emMarcha ? Math.floor(a.fase * 8) : 0; return real;
+}
+
+/* ---------- cenas: fundo 1:1, máscaras de chão/água/voo por pixel, portas, estações e recortes de primeiro plano ---------- */
 const CENAS = {};
 function carregaImg(src){ return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('não abriu ' + src)); im.src = src; }); }
+function bitsDe(c){       // máscaras por pixel só da cena em uso (as outras ficam só com a grade de 4 px)
+  if (c.bits) return c.bits; for (const k in CENAS) if (CENAS[k] !== c) delete CENAS[k].bits; const o = {};
+  for (const m of TRES) { const k = document.createElement('canvas'); k.width = c.w; k.height = c.h; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.mk[m], 0, 0, c.w, c.h); const d = g.getImageData(0, 0, c.w, c.h).data, b = new Uint8Array(c.w * c.h); for (let i = 0; i < b.length; i++) b[i] = d[i * 4] > 127 ? 1 : 0; o[m] = { w: c.w, h: c.h, bits: b }; k.width = 1; }
+  return (c.bits = o);
+}
 async function cena(id){
   if (CENAS[id] && CENAS[id].pronta) return CENAS[id];
   if (CENAS[id] && CENAS[id].p) return CENAS[id].p;
-  const arq = (id === 'bairro' || id === 'regiao') ? id : lug(id).arq;
+  const arq = ARQ(id), base = ARTE + 'm/' + arq + '/';
   const c = CENAS[id] = { id, pronta: false };
   c.p = (async () => {
-    const [img, col, mar] = await Promise.all([carregaImg(ARTE + (id === 'bairro' || id === 'regiao' ? id + '.png' : 'int/' + arq + '.png') + VA), id === 'regiao' ? null : carregaImg(ARTE + 'col/' + arq + '.png' + VA), carregaImg(ARTE + 'col/' + arq + '-a.png' + VA).catch(() => null)]);
-    c.img = img; c.w = img.naturalWidth; c.h = img.naturalHeight; c.gw = (col || mar).naturalWidth; c.gh = (col || mar).naturalHeight;
-    const le = im => { const k = document.createElement('canvas'); k.width = c.gw; k.height = c.gh; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, c.gw, c.gh).data, o = new Uint8Array(c.gw * c.gh); for (let i = 0; i < o.length; i++) o[i] = d[i * 4] > 127 ? 1 : 0; return o; };
-    c.col = col ? le(col) : new Uint8Array(c.gw * c.gh); c.mar = mar ? le(mar) : new Uint8Array(c.gw * c.gh);
-    // profundidade: verde = estrutura (cobre quem está atrás dela), azul = batente/passagem (sempre por cima de quem passa)
-    c.sol = new Uint8Array(c.gw * c.gh); c.cima = new Uint8Array(c.gw * c.gh); c.base = new Uint16Array(c.gw * c.gh);
-    if (col) { const k = document.createElement('canvas'); k.width = c.gw; k.height = c.gh; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(col, 0, 0); const d = g.getImageData(0, 0, c.gw, c.gh).data;
-      for (let i = 0; i < c.sol.length; i++) { c.sol[i] = d[i * 4 + 1] > 127 ? 1 : 0; c.cima[i] = d[i * 4 + 2] > 127 ? 1 : 0; }
-      for (let x = 0; x < c.gw; x++) { let b = 0; for (let y = c.gh - 1; y >= 0; y--) { const i = y * c.gw + x; if (c.sol[i]) { if (!b) b = y; c.base[i] = b; } else b = 0; } } }
-    // lugares bons para ficar parado (folga em volta)
-    c.livres = []; for (let y = 2; y < c.gh - 2; y += 3) for (let x = 2; x < c.gw - 2; x += 3) { let ok = true; for (let dy = -2; dy <= 2 && ok; dy++) for (let dx = -2; dx <= 2; dx++) if (!c.col[(y + dy) * c.gw + x + dx]) { ok = false; break; } if (ok) c.livres.push([x * CEL + 2, y * CEL + 2]); }
-    // brilho da água (do pacote: reflexos discretos sobre o turquesa)
+    const [img, J, mc, ma, mv] = await Promise.all([carregaImg(ARTE + (id === 'bairro' || id === 'regiao' ? id + '.png' : 'int/' + arq + '.png') + VA), fetch(base + 'cena.json' + VA).then(r => r.json()), carregaImg(base + 'chao.png' + VA), carregaImg(base + 'agua.png' + VA), carregaImg(base + 'voo.png' + VA)]);
+    c.img = img; c.w = img.naturalWidth; c.h = img.naturalHeight; c.J = J; c.mk = { chao: mc, agua: ma, voo: mv }; c.gw = c.w >> 2; c.gh = c.h >> 2;
+    // grade de 4 px por meio (rotas das IAs, seta do mapa, pontos de parada): a célula vale quando o centro dela é apoio válido
+    const B = bitsDe(c); c.g = {}; c.livres = {};
+    for (const m of TRES) { const o = new Uint8Array(c.gw * c.gh); for (let gy = 0; gy < c.gh; gy++) for (let gx = 0; gx < c.gw; gx++) o[gy * c.gw + gx] = permitido(B[m], gx * 4 + 2, gy * 4 + 2) ? 1 : 0; c.g[m] = o;
+      const L = [], f = m === 'chao' ? 2 : 1; for (let y = 3; y < c.gh - 3; y += 3) for (let x = 3; x < c.gw - 3; x += 3) { let ok = true; for (let dy = -f; dy <= f && ok; dy++) for (let dx = -f; dx <= f; dx++) if (!o[(y + dy) * c.gw + x + dx]) { ok = false; break; } if (ok) L.push([x * CEL + 2, y * CEL + 2]); } c.livres[m] = L; }
+    if (CENAS[id] !== c || (C && C !== c)) delete c.bits;
+    c.portas = (J.portas || []).map(p => ({ id: p.id, para: idDe(p.destino), retorno: p.retorno, sol: p.soleira, ac: p.acesso || {}, raio: p.raio || 12 })).filter(p => p.para);
+    c.est = J.estacoes || []; c.pass = J.passagens || []; c.social = J.social || [];
+    c.frentes = (await Promise.all((J.frentes || []).map(f => carregaImg(base + f.arquivo + VA).then(im => ({ im, x: f.xy[0], y: f.xy[1], linha: f.linha })).catch(() => null)))).filter(Boolean);
+    // moradores do lugar (os quatro novos): ficam perto da primeira estação
+    c.locais = []; [0, 1].forEach(k => { const lid = c.social[k]; if (!LOCAIS[lid]) return; const m = MEIOS[lid] || 'chao', a = (c.est[0] && (c.est[0].acesso[m] || c.est[0].acesso.chao)) || [c.w / 2, c.h / 2], L = c.livres[m].slice().sort((p, q) => dist(p[0], p[1], a[0], a[1]) - dist(q[0], q[1], a[0], a[1])), p = L[Math.min(L.length - 1, 2 + k * 3)] || a;
+      c.locais.push({ id: lid, nome: LOCAIS[lid], sprite: lid, local: true, x: p[0], y: p[1], dir: 0, anda: false, titulo: k === 0 ? (c.social[2] || '') : '', linha: k === 0 ? (c.social[3] || '') : (c.social[6] || ''), mesa: c.social[4] || '' }); });
+    // brilho da água (reflexos discretos sobre o turquesa)
     try { const k2 = document.createElement('canvas'); k2.width = c.w; k2.height = c.h; const g2 = k2.getContext('2d', { willReadFrequently: true }); g2.drawImage(img, 0, 0); const D = g2.getImageData(0, 0, c.w, c.h).data;
       const agua = (x, y) => { const i = 4 * (y * c.w + x), r = D[i], gg = D[i + 1], b = D[i + 2]; return gg > 75 && b > 60 && gg > r * 1.65 && b > r * 1.55 && Math.abs(gg - b) < 65; };
       let seed = 7319; const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }; c.agua = [];
       for (let n = 0; n < 16000 && c.agua.length < 90; n++) { const x = 8 + Math.floor(rnd() * (c.w - 16)), y = 6 + Math.floor(rnd() * (c.h - 12)); if ([[0,0],[-4,0],[4,0],[0,-2],[0,2]].every(([dx, dy]) => agua(x + dx, y + dy))) c.agua.push({ x, y, f: rnd() * 6.28, n: 2 + Math.floor(rnd() * 4) }); }
-    } catch(_) { c.agua = []; }
+      k2.width = 1; } catch(_) { c.agua = []; }
     c.pronta = true; return c;
   })();
   return c.p;
 }
-/* mapa mais fino: Scale2x (arredonda os degraus do pixel) só da cena em que estou */
-let SUAVE = true; try { SUAVE = localStorage.getItem('catum_suave') !== '0'; } catch(_){}
-function escala2x(src, W, H){
-  const k = document.createElement('canvas'); k.width = W; k.height = H; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
-  const P = new Uint32Array(g.getImageData(0, 0, W, H).data.buffer), o = document.createElement('canvas'); o.width = W * 2; o.height = H * 2; const og = o.getContext('2d'), od = og.createImageData(W * 2, H * 2), O = new Uint32Array(od.data.buffer), W2 = W * 2;
-  for (let y = 0; y < H; y++) { const yu = y ? y - 1 : y, yd = y < H - 1 ? y + 1 : y; for (let x = 0; x < W; x++) { const p = P[y * W + x], B = P[yu * W + x], Hh = P[yd * W + x], D = P[y * W + (x ? x - 1 : x)], F = P[y * W + (x < W - 1 ? x + 1 : x)], i = y * 2 * W2 + x * 2;
-      if (B !== Hh && D !== F) { O[i] = D === B ? D : p; O[i + 1] = B === F ? F : p; O[i + W2] = D === Hh ? D : p; O[i + W2 + 1] = Hh === F ? F : p; } else O[i] = O[i + 1] = O[i + W2] = O[i + W2 + 1] = p; } }
-  og.putImageData(od, 0, 0); return o;
-}
-const FINA = new WeakMap();      // personagens no mesmo tratamento do mapa, para o pixel dos dois combinar
-function fina(im){ let f = FINA.get(im); if (f === undefined) { f = null; try { f = escala2x(im, im.naturalWidth || im.width, im.naturalHeight || im.height); } catch(_){} FINA.set(im, f); } return f; }
-function s2x(S, w, h, D){ const w2 = w * 2; for (let y = 0; y < h; y++) { const r = y * w, ru = (y ? y - 1 : y) * w, rd = (y < h - 1 ? y + 1 : y) * w, o = y * 2 * w2; for (let x = 0; x < w; x++) { const p = S[r + x], B = S[ru + x], Hh = S[rd + x], Dd = S[r + (x ? x - 1 : x)], F = S[r + (x < w - 1 ? x + 1 : x)], i = o + x * 2;
-      if (B !== Hh && Dd !== F) { D[i] = Dd === B ? Dd : p; D[i + 1] = B === F ? F : p; D[i + w2] = Dd === Hh ? Dd : p; D[i + w2 + 1] = Hh === F ? F : p; } else D[i] = D[i + 1] = D[i + w2] = D[i + w2 + 1] = p; } } }
-function pxDe(c){ if (c.px === undefined) { c.px = null; for (const k in CENAS) if (CENAS[k] !== c) delete CENAS[k].px; try { const k = document.createElement('canvas'); k.width = c.w; k.height = c.h; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.img, 0, 0); c.px = new Uint32Array(g.getImageData(0, 0, c.w, c.h).data.buffer); k.width = 1; } catch(e) { console.warn(e); } } return c.px; }
-let VST = null;      // o pedaço do mapa que está na tela, refinado (Scale2x duas vezes); só refaz quando a câmera anda
-function vista(c, x0, y0, w, h){
-  if (VST && VST.c === c && VST.x0 === x0 && VST.y0 === y0 && VST.w === w && VST.h === h) return VST.ok ? VST : null;
-  const P = pxDe(c), n = w * h, f = n > 520000 ? 1 : n > 150000 ? 2 : 4; if (!P || f === 1 || w < 2 || h < 2) { VST = { c, x0, y0, w, h, ok: false }; return null; }
-  if (!VST || !VST.cv || VST.w !== w || VST.h !== h || VST.f !== f) { const cvv = document.createElement('canvas'); cvv.width = w * f; cvv.height = h * f; const g = cvv.getContext('2d'), img = g.createImageData(w * f, h * f); VST = { cv: cvv, g, img, O: new Uint32Array(img.data.buffer), A: new Uint32Array(n), T: f === 4 ? new Uint32Array(n * 4) : null, f }; }
-  const V = VST, A = V.A; for (let y = 0; y < h; y++) A.set(P.subarray((y0 + y) * c.w + x0, (y0 + y) * c.w + x0 + w), y * w);
-  if (f === 4) { s2x(A, w, h, V.T); s2x(V.T, w * 2, h * 2, V.O); } else s2x(A, w, h, V.O);
-  V.g.putImageData(V.img, 0, 0); V.c = c; V.x0 = x0; V.y0 = y0; V.w = w; V.h = h; V.ok = true; return V;
-}
-function pintaFundo(c, ox, oy, vw, vh){
-  if (!SUAVE) { cx.imageSmoothingEnabled = false; cx.drawImage(c.img, 0, 0); return; }
-  const x0 = Math.max(0, ox - 1), y0 = Math.max(0, oy - 1), w = Math.min(c.w - x0, Math.ceil(vw) + 3), h = Math.min(c.h - y0, Math.ceil(vh) + 3), v = vista(c, x0, y0, w, h);
-  cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high'; if (v) cx.drawImage(v.cv, x0, y0, w, h); else cx.drawImage(c.img, 0, 0); cx.imageSmoothingEnabled = false;
-}
-const noMar = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.mar[gy * c.gw + gx] === 1 && c.col[gy * c.gw + gx] !== 1; };
-const livre = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.col[gy * c.gw + gx] === 1; };
-function perto(c, x, y){       // ponto andável mais próximo
-  x = Math.round(x); y = Math.round(y); if (livre(c, x, y)) return [x, y]; const gx = x >> 2, gy = y >> 2;
-  for (let r = 1; r < 60; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const X = gx + dx, Y = gy + dy; if (X >= 0 && Y >= 0 && X < c.gw && Y < c.gh && c.col[Y * c.gw + X]) return [X * CEL + 2, Y * CEL + 2]; }
+const gr = (c, m) => c.g[m || 'chao'];
+const livre = (c, x, y, m) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && gr(c, m)[gy * c.gw + gx] === 1; };
+function perto(c, x, y, m){       // ponto de apoio mais próximo, no meio pedido
+  x = Math.round(x); y = Math.round(y); if (livre(c, x, y, m)) return [((x >> 2) << 2) + 2, ((y >> 2) << 2) + 2]; const gx = x >> 2, gy = y >> 2, G = gr(c, m);
+  for (let r = 1; r < 90; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const X = gx + dx, Y = gy + dy; if (X >= 0 && Y >= 0 && X < c.gw && Y < c.gh && G[Y * c.gw + X]) return [X * CEL + 2, Y * CEL + 2]; }
   return [x, y];
 }
-function caminho(c, x0, y0, x1, y1){     // busca em largura na grade; devolve pontos em px
-  [x0, y0] = perto(c, x0, y0); [x1, y1] = perto(c, x1, y1); const W = c.gw, a = (y0 >> 2) * W + (x0 >> 2), b = (y1 >> 2) * W + (x1 >> 2);
+function caminho(c, x0, y0, x1, y1, m){     // busca em largura na grade do meio; devolve pontos em px
+  const G = gr(c, m); [x0, y0] = perto(c, x0, y0, m); [x1, y1] = perto(c, x1, y1, m); const W = c.gw, a = (y0 >> 2) * W + (x0 >> 2), b = (y1 >> 2) * W + (x1 >> 2);
   const de = new Int32Array(c.gw * c.gh).fill(-1), fila = new Int32Array(c.gw * c.gh); let ini = 0, fim = 0; fila[fim++] = a; de[a] = a;
   while (ini < fim) { const k = fila[ini++]; if (k === b) break; const kx = k % W, ky = (k / W) | 0;
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) { const nx = kx + dx, ny = ky + dy; if (nx < 0 || ny < 0 || nx >= c.gw || ny >= c.gh) continue; const n = ny * W + nx;
-      if (de[n] >= 0 || !c.col[n]) continue; if (dx && dy && (!c.col[ky * W + nx] || !c.col[ny * W + kx])) continue; de[n] = k; fila[fim++] = n; } }
+      if (de[n] >= 0 || !G[n]) continue; if (dx && dy && (!G[ky * W + nx] || !G[ny * W + kx])) continue; de[n] = k; fila[fim++] = n; } }
   if (de[b] < 0) return [[x1, y1]];
   const pts = []; for (let k = b; ; k = de[k]) { pts.push([(k % W) * CEL + 2, ((k / W) | 0) * CEL + 2]); if (de[k] === k) break; } pts.reverse();
   return pts.filter((p, i) => i === 0 || i === pts.length - 1 || i % 3 === 0);
@@ -205,8 +201,12 @@ const compr = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += dist
 function naLinha(pts, d){ for (let i = 0; i < pts.length - 1; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[i + 1], s = dist(x1, y1, x2, y2); if (d <= s) { const f = s ? d / s : 0; return [x1 + (x2 - x1) * f, y1 + (y2 - y1) * f, x2 - x1, y2 - y1]; } d -= s; } const u = pts[pts.length - 1]; return [u[0], u[1], 0, 1]; }
 
 /* ---------- personagens: folhas animadas (4 direções × 8 fases + parado) ---------- */
-let PERF = {}; const FOLHA = {};
-function folha(id){ if (FOLHA[id] !== undefined) return FOLHA[id]; FOLHA[id] = null; carregaImg(ARTE + 'av/' + id + '.png' + VA).then(im => { FOLHA[id] = im; }).catch(() => {}); return null; }
+const FOLHA = {};
+function folha(id){ if (FOLHA[id] !== undefined) return FOLHA[id]; FOLHA[id] = null; carregaImg(ARTE + 'at/' + id + '.png' + VA).then(im => { FOLHA[id] = im; }).catch(() => {}); return null; }
+const NATIVO = new WeakMap();       // humano: a folha de 64 px montada no configurador vai para o quadro nativo (mesmo pixel do cenário)
+function nativo(sh, f){ let k = NATIVO.get(sh); if (!k) { k = document.createElement('canvas'); k.width = f * 4; k.height = f * 8; const g = k.getContext('2d'); g.imageSmoothingEnabled = false; for (let i = 0; i < 4; i++) for (let j = 0; j < 8; j++) g.drawImage(sh, i * 64, j * 64, 64, 64, i * f, j * f, f, f); NATIVO.set(sh, k); } return k; }
+const HUM0 = { frame: 34, anchor: [17, 31], height: 28, mov: 'passo' };
+function atlas(e){ const corpo = corpoDe(e); if (corpo) { const a = ATOR[corpo], im = folha(corpo); return a && im ? { im, a } : null; } const a = ATOR[limpaSkin(e.sk).base] || HUM0, sh = folhaHumana(e.sk); return sh ? { im: nativo(sh, a.frame), a } : null; }
 const BASES = [['homem-esguio','Homem esguio'],['homem-medio','Homem médio'],['homem-steve','Homem encorpado'],['mulher-esguio','Mulher esguia'],['mulher-medio','Mulher média'],['mulher-suave','Mulher de curvas suaves']];
 const PELES = ['#f6d7b8','#eec39a','#d9a877','#b9825a','#8d5a3b','#5e3a25'];
 const COR_CABELO = ['#1d1b2a','#4a2f1d','#7a4a25','#c08a3e','#e8d28a','#b8b8b8','#ffffff','#ea278f','#145dec','#11ba98'];
@@ -262,32 +262,22 @@ function sugerePeloAvatar(src){ return new Promise(ok => { if (!src) return ok(n
 const cv = document.getElementById('c'), cx = cv.getContext('2d');
 let camX = 0, camY = 0, camPronta = false;
 let SC = 3, VW = 0, VH = 0, DPR = 1;
-function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 3 : Math.max(3, Math.min(6, Math.round(VW / 330))); SC = Math.max(1.5, Math.min(11, base * ZF)); SC = Math.round(SC * DPR * 2) / 2 / DPR; camPronta = false; }
-let ZF = 1; try { ZF = Math.max(.55, Math.min(2.2, parseFloat(localStorage.getItem('catum_zf') || '1') || 1)); } catch(_){}
-function zoom(v){ ZF = Math.max(.55, Math.min(2.2, v)); try { localStorage.setItem('catum_zf', ZF); } catch(_){} ajusta(); }
+function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 4 : Math.max(4, Math.min(7, Math.round(VW / 260))); SC = Math.max(2, Math.round(base * ZF * DPR)) / DPR; camPronta = false; }     // ampliação inteira, igual para mapa, recortes e personagens
+let ZF = 1; try { ZF = Math.max(.4, Math.min(2, parseFloat(localStorage.getItem('catum_zf3') || '1') || 1)); } catch(_){}
+function zoom(v){ ZF = Math.max(.4, Math.min(2, v)); try { localStorage.setItem('catum_zf3', ZF); } catch(_){} ajusta(); }
 addEventListener('resize', ajusta);
 
 /* ---------- gente e IAs ---------- */
-const eu = { id:'', nome:'Você', x: 528, y: 440, vx: 0, vy: 0, alvo:null, anda:false, dir:0, fala:'', falaEm:0, humano:true, sk:null, corpo:'humano' };
+const eu = { id:'', nome:'Você', x: 528, y: 440, vel: 0, fase: 0, quadro: 0, alvo:null, anda:false, dir:0, fala:'', falaEm:0, humano:true, sk:null, corpo:'humano' };
 const outros = new Map();
 const npcs = NPC_IDS.map(id => ({ id, nome: id[0].toUpperCase() + id.slice(1), x: 528, y: 430, anda:false, dir:0, c:null, sprite:id }));
-let CENA = 'bairro', C = null, trocaAte = 0, trocando = false; const pilha = [];     // C = cena carregada em que estou
-// cada corpo anda por onde pode: terra, água, ar (do guia: mesma atividade, caminhos diferentes)
-const MODO = { nami:'anfibio', sago:'anfibio', boku:'anfibio', oru:'aquatico', sumi:'aquatico', muru:'aquatico', koda:'voador' };
+let CENA = 'bairro', C = null, trocaAte = 0, trocando = false;     // C = cena carregada em que estou
 const corpoDe = e => e.humano ? (e.corpo && e.corpo !== 'humano' ? e.corpo : null) : e.sprite;
-const modoDe = e => { const c = corpoDe(e); return c ? (MODO[c] || 'terra') : 'anfibio'; };      // gente nada
-const terra = (x, y) => !!C && livre(C, x - 2, y) && livre(C, x + 2, y) && livre(C, x, y - 1) && livre(C, x, y + 1);
-const bate = (x, y) => !terra(x | 0, y | 0);
-function podeIr(e, x, y){ if (!C) return false; x |= 0; y |= 0;
-  if (CENA === 'regiao') return noMar(C, x, y) && noMar(C, x - 5, y) && noMar(C, x + 5, y) && noMar(C, x, y - 3);
-  const md = modoDe(e); if (md === 'voador') return x > 6 && y > 12 && x < C.w - 6 && y < C.h - 3;
-  if (terra(x, y)) return true;
-  return md !== 'terra' && noMar(C, x, y) && (noMar(C, x - 3, y) || livre(C, x - 3, y)) && (noMar(C, x + 3, y) || livre(C, x + 3, y)); }
-function pertoMar(c, x, y){ x = Math.round(x); y = Math.round(y); const gx = x >> 2, gy = y >> 2, ok = (X, Y) => X >= 2 && Y >= 2 && X < c.gw - 2 && Y < c.gh - 2 && [[0,0],[-2,0],[2,0],[0,-1],[0,1]].every(([a, b]) => c.mar[(Y + b) * c.gw + X + a] === 1);
-  for (let r = 0; r < 80; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; if (ok(gx + dx, gy + dy)) return [(gx + dx) * CEL + 2, (gy + dy) * CEL + 2]; } return [x, y]; }
+const meioDe = e => { const c = corpoDe(e); return c ? (MEIOS[c] || 'chao') : 'chao'; };
+function ajeita(){ if (!C) return; const m = meioDe(eu); if (!permitido(bitsDe(C)[m], eu.x, eu.y)) { const p = perto(C, eu.x, eu.y, m); eu.x = p[0]; eu.y = p[1]; camPronta = false; } }      // troquei de corpo: vou para o apoio do meu meio
 
 let CFG = { skin: null, lado: 'e', corpo: 'humano' };
-function aplicaCfg(){ CFG.skin = limpaSkin(CFG.skin); eu.sk = CFG.skin; CFG.corpo = NPC_IDS.includes(CFG.corpo) ? CFG.corpo : 'humano'; eu.corpo = CFG.corpo; if (eu.corpo !== 'humano') folha(eu.corpo); document.body.classList.toggle('dir', CFG.lado === 'd'); }
+function aplicaCfg(){ CFG.skin = limpaSkin(CFG.skin); eu.sk = CFG.skin; CFG.corpo = NPC_IDS.includes(CFG.corpo) ? CFG.corpo : 'humano'; eu.corpo = CFG.corpo; if (eu.corpo !== 'humano') folha(eu.corpo); document.body.classList.toggle('dir', CFG.lado === 'd'); ajeita(); }
 function guardaLocal(){ try { localStorage.setItem('catum_cfg', JSON.stringify(CFG)); } catch(_){} }
 async function carregaCfg(){
   try { const l = JSON.parse(localStorage.getItem('catum_cfg') || 'null'); if (l && typeof l === 'object') CFG = { skin: l.skin || null, lado: l.lado === 'd' ? 'd' : 'e', corpo: l.corpo || 'humano' }; } catch(_){}
@@ -300,26 +290,34 @@ async function salvaCfg(){ aplicaCfg(); guardaLocal(); try { canal && pronto && 
 
 /* ---------- troca de cena ---------- */
 const vela = document.createElement('div'); vela.style.cssText = 'position:fixed;inset:0;z-index:9;background:#12101c;opacity:0;pointer-events:none;transition:opacity .22s;display:flex;align-items:center;justify-content:center;color:#fffdf5;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-align:center;padding:24px'; document.body.appendChild(vela);
-async function vai(id, x, y, t){
+async function vai(id, x, y, t, ret){
   if (trocando) return; trocando = true; eu.alvo = null; for (const k in tecla) tecla[k] = false; joySolta(); cardFechado = null; if (cardDe) fechaCard(false);
-  const Ln = id === 'bairro' ? 'Catum' : id === 'regiao' ? 'a baía' : lug(id).nome; vela.textContent = ''; vela.style.opacity = 1; const avisa = setTimeout(() => { vela.textContent = 'Abrindo ' + Ln + '…'; }, 900); await new Promise(r => setTimeout(r, 200));
-  try { const c = await Promise.race([cena(id), new Promise((_, no) => setTimeout(() => no(new Error('demorou')), 20000))]); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
+  vela.textContent = ''; vela.style.opacity = 1; const avisa = setTimeout(() => { vela.textContent = 'Abrindo ' + nomeCena(id) + '…'; }, 900); await new Promise(r => setTimeout(r, 200));
+  try { const c = await Promise.race([cena(id), new Promise((_, no) => setTimeout(() => no(new Error('demorou')), 20000))]); const m = meioDe(eu); let pt = x != null ? [x, y] : null;
+    if (!pt) { const q = ret && c.portas.find(d => d.id === ret); pt = q ? (q.ac[m] || q.sol) : ((c.J.acessos && c.J.acessos[m]) || [c.w / 2, c.h / 2]); }       // chego pela porta de volta, no acesso do meu meio
+    CENA = id; C = c; const p = perto(c, pt[0], pt[1], m); eu.x = p[0]; eu.y = p[1]; eu.vel = 0; eu.quadro = 0; camPronta = false; if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
   catch(e) { console.warn(e); if (CENAS[id] && !CENAS[id].pronta) delete CENAS[id]; eu.fala = 'Não abriu agora. Tente de novo.'; eu.falaEm = Date.now(); }
-  clearTimeout(avisa); vela.textContent = ''; trocaAte = performance.now() + 700; trocando = false; vela.style.opacity = 0;
+  clearTimeout(avisa); vela.textContent = ''; trocaAte = performance.now() + 500; trocando = false; vela.style.opacity = 0;
   try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA } }), canal.track(meuRastro())); } catch(_){}
 }
-function soleira(L){ const b = CENAS.bairro; if (!L.sol && b && b.pronta) { L.sol = perto(b, L.porta[0], L.porta[1] + 4); const vx = L.porta[0] - L.sol[0], vy = L.porta[1] - L.sol[1], d = Math.hypot(vx, vy); L.dv = d > 14 ? [vx / d, vy / d] : [0, -1]; } return L.sol || L.porta; }
-function foraDaPorta(L){ const s = soleira(L), vx = s[0] - L.porta[0], vy = s[1] - L.porta[1], d = Math.hypot(vx, vy) || 1; return perto(CENAS.bairro, s[0] + (d < 3 ? 0 : vx / d * 20), s[1] + (d < 3 ? 20 : vy / d * 20)); }
-function sairPara(t){        // volta um nível: escritório -> escola -> bairro
-  if (CENA === 'escritorio') return vai('escola', C_ESC().w * PORTAL.volta[0], C_ESC().h * PORTAL.volta[1], t);
-  const L = lug(CENA), s = foraDaPorta(L); L.trava = true; return vai('bairro', s[0], s[1], t);
-}
-const C_ESC = () => CENAS.escola && CENAS.escola.pronta ? CENAS.escola : { w: 1536, h: 1024 };
+// a porta de um lugar no bairro, no acesso do meio pedido
+function portaB(L, m){ const b = CENAS.bairro, p = b && b.pronta && b.portas.find(q => q.para === (L.dentroDe || L.id)); return p ? (p.ac[m || 'chao'] || p.sol) : [528, 440]; }
+const usaPorta = p => vai(p.para, null, null, performance.now(), p.retorno);
+const saidaDe = () => C.portas.find(q => q.para === (CENA === 'escritorio' ? 'escola' : CENA === 'regiao' ? 'estacao' : 'bairro'));
+function sairPara(){ const p = C && saidaDe(); return p ? usaPorta(p) : vai('bairro', null, null, performance.now()); }       // volta um nível
+async function atravessa(b){ if (trocando) return; trocando = true; vela.style.opacity = 1; await new Promise(r => setTimeout(r, 220)); const p = perto(C, b[0], b[1], meioDe(eu)); eu.x = p[0]; eu.y = p[1]; eu.vel = 0; camPronta = false; trocaAte = performance.now() + 400; trocando = false; vela.style.opacity = 0; }
+// o que dá para acionar daqui: porta (sempre com confirmação) ou travessia (comporta, traslado)
+let ACAO = null; const acaoEl = document.createElement('button'); acaoEl.type = 'button'; acaoEl.className = 'px'; acaoEl.id = 'acao'; acaoEl.style.cssText = 'position:fixed;left:50%;bottom:58px;transform:translateX(-50%);z-index:6;display:none;background:#ffe27a;font:inherit;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:11px 16px;max-width:76vw;cursor:pointer'; document.body.appendChild(acaoEl);
+acaoEl.onclick = () => { if (ACAO && !trocando) ACAO.faz(); };
+function acaoPerto(){ const m = meioDe(eu); let best = null, bd = 1e9;
+  for (const p of C.portas) { const a = p.ac[m] || p.sol, d = dist(eu.x, eu.y, a[0], a[1]); if (d < p.raio + 12 && d < bd) { bd = d; best = { txt: (p.para === 'bairro' || (CENA === 'escritorio' && p.para === 'escola') ? 'Sair para ' : 'Entrar: ') + nomeCena(p.para), faz: () => usaPorta(p) }; } }
+  for (const s of C.pass) { if (s.meio !== m) continue; for (const [a, b] of [[s.de, s.para], [s.para, s.de]]) { const d = dist(eu.x, eu.y, a[0], a[1]); if (d < 24 && d < bd) { bd = d; best = { txt: s.tipo + ': atravessar', faz: () => atravessa(b) }; } } }
+  return best; }
 
 /* ---------- IAs: passeiam entre os lugares num relógio igual para todos ---------- */
 const PASSO = 75000, VEL_IA = 30, ROTAS = {};
 let ALUNOS = new Map();
-function rota(a, b){ const k = a.id + '>' + b.id; if (ROTAS[k]) return ROTAS[k]; const bb = CENAS.bairro, sa = soleira(a.dentroDe ? lug(a.dentroDe) : a), sb2 = soleira(b.dentroDe ? lug(b.dentroDe) : b); const pts = caminho(bb, sa[0], sa[1], sb2[0], sb2[1]); return (ROTAS[k] = { pts, len: compr(pts) }); }
+function rota(a, b, m){ const k = a.id + '>' + b.id + m; if (ROTAS[k]) return ROTAS[k]; const bb = CENAS.bairro, sa = portaB(a, m), sb2 = portaB(b, m); const pts = caminho(bb, sa[0], sa[1], sb2[0], sb2[1], m); return (ROTAS[k] = { pts, len: compr(pts) }); }
 const ondeVai = (id, k) => LUG[hash(id + ':' + k) % LUG.length];
 function posIA(n, agora){
   const passou = agora - (n.ult || agora); n.ult = agora;
@@ -334,13 +332,14 @@ function posIA(n, agora){
   const t = agora + (hash(n.id) % PASSO), k = Math.floor(t / PASSO), dt = (t % PASSO) / 1000; n.k = k;
   const a = ondeVai(n.id, k - 1), b = ondeVai(n.id, k);
   if (a === b || (a.dentroDe || a.id) === (b.dentroDe || b.id)) { n.onde = b.id; n.anda = false; return; }
-  const r = rota(a, b), d = dt * VEL_IA;
+  const r = rota(a, b, MEIOS[n.id] || 'chao'), d = dt * VEL_IA;
   if (d >= r.len) { n.onde = b.id; n.anda = false; return; }
   const p = naLinha(r.pts, d); n.x = p[0]; n.y = p[1]; n.anda = true; n.onde = 'bairro'; n.dir = Math.abs(p[2]) > Math.abs(p[3]) ? (p[2] < 0 ? 2 : 3) : (p[3] < 0 ? 1 : 0);
 }
-function lugarDentro(n, c){       // onde a IA fica quando está dentro de um lugar
-  if (n.aula && c.id === 'escola') { const a = n.lugarN * 2.4, r = 16 + 7 * n.lugarN; return perto(c, c.w * .72 + Math.cos(a) * r, c.h * .49 + Math.sin(a) * r * .7); }
-  return c.livres.length ? c.livres[hash(n.id + '@' + (n.k || 0)) % c.livres.length] : [c.w / 2, c.h / 2];
+function lugarDentro(n, c){       // onde a IA fica quando está dentro de um lugar (no meio dela)
+  const m = MEIOS[n.id] || 'chao', L = c.livres[m]; if (!L.length) return (c.J.acessos && c.J.acessos[m]) || [c.w / 2, c.h / 2];
+  if (n.aula && c.id === 'escola') { const a = c.est[1] ? (c.est[1].acesso[m] || c.est[1].acesso.chao) : [c.w / 2, c.h / 2]; if (!c['_aula' + m]) c['_aula' + m] = L.slice().sort((p, q) => dist(p[0], p[1], a[0], a[1]) - dist(q[0], q[1], a[0], a[1])); return c['_aula' + m][Math.min(L.length - 1, 1 + n.lugarN * 2)]; }
+  return L[hash(n.id + '@' + (n.k || 0)) % L.length];
 }
 
 /* ---------- controles ---------- */
@@ -348,7 +347,7 @@ const tecla = {};
 addEventListener('keydown', e => { const ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) { if (e.key === 'Escape') { if (ae.id === 'falaTxt') fechaFala(); else ae.blur(); } return; }
   if (cfgEl.classList.contains('on')) { if (e.key === 'Escape') cfgEl.classList.remove('on'); return; }
   if (e.key === 'Enter') { e.preventDefault(); const ct = document.getElementById('chatTxt'); if (ct && card.classList.contains('on')) ct.focus(); else abreFala(); return; } if (e.key === 'Escape') { fechaCard(true); return; }
-  if (e.metaKey || e.ctrlKey) return; tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
+  if (e.metaKey || e.ctrlKey) return; if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && ACAO && !trocando) { e.preventDefault(); ACAO.faz(); return; } tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
 addEventListener('keyup', e => { tecla[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in tecla) tecla[k] = false; });
 cv.addEventListener('pointerdown', e => { eu.alvo = { x: camX + e.clientX / SC, y: camY + e.clientY / SC, em: performance.now() }; });
@@ -380,7 +379,7 @@ function abreCfg(){
     cfgCx.innerHTML = `<div class="topo"><h2>Config</h2><button type="button" class="pri" data-salva>Salvar</button><button type="button" data-fecha>Fechar</button></div>
     <div class="prev"><canvas width="64" height="64" style="width:128px;height:128px"></canvas><div><button type="button" data-sugere>Sugerir pelo meu avatar</button><p>Leio as cores da sua foto (pele, cabelo, roupa) e uso como ponto de partida.</p><button type="button" data-abertura style="margin-top:8px">Rever a abertura</button></div></div>
     <h3>Jogar como</h3><div class="lin"><button type="button" class="${w.corpo === 'humano' ? 'on' : ''}" data-corpo="humano">Eu (humano)</button>${NPC_IDS.map(id => `<button type="button" class="${w.corpo === id ? 'on' : ''}" data-corpo="${id}">${esc(nomeDe(id))}</button>`).join('')}</div>
-    <p>${w.corpo === 'humano' ? 'Gente anda e nada.' : ({ terra: 'Anda por terra.', anfibio: 'Anda e nada.', aquatico: 'É da água: nada rápido e, em terra, vai numa cápsula.', voador: 'Voa por cima de tudo.' })[MODO[w.corpo] || 'terra']} Trocar de corpo não mexe no seu progresso.</p>
+    <p>${({ chao: 'Anda pelo chão.', agua: 'É da água: vai pelos canais e usa as comportas e as docas de cada lugar.', voo: 'Voa pelos corredores de ar.' })[w.corpo === 'humano' ? 'chao' : (MEIOS[w.corpo] || 'chao')]} As atividades são as mesmas nos três caminhos. Trocar de corpo não mexe no seu progresso.</p>
     <div ${w.corpo === 'humano' ? '' : 'style="opacity:.45"'}>
     <h3>Corpo</h3><div class="lin">${seta('base', BASES)}</div>${regua('ombros', 'Ombros', -20, 20)}${regua('cintura', 'Cintura', -20, 25)}${regua('quadril', 'Quadril', -20, 20)}
     <h3>Pele</h3><div class="lin">${cores(PELES, 'pele')}</div>
@@ -391,17 +390,15 @@ function abreCfg(){
     <h3>Calça</h3><div class="lin">${cores(CALCAS, 'calca')}</div></div>
     <h3>Controle no celular</h3><div class="lin"><button type="button" class="${w.lado === 'e' ? 'on' : ''}" data-lado="e">Joystick à esquerda</button><button type="button" class="${w.lado === 'd' ? 'on' : ''}" data-lado="d">Joystick à direita</button></div>
     <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p>
-    <h3>Mapa</h3><div class="lin"><button type="button" class="${SUAVE ? 'on' : ''}" data-suave="1">Suave</button><button type="button" class="${SUAVE ? '' : 'on'}" data-suave="0">Pixel puro</button></div>
     <h3>Som</h3><div class="lin"><button type="button" class="${SOM ? 'on' : ''}" data-som="1">Vozinha ligada</button><button type="button" class="${SOM ? '' : 'on'}" data-som="0">Sem som</button></div><p id="cfgMsg"></p>`;
     clearInterval(cfgAnim); const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false; let q = 0;
-    cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const im = w.corpo === 'humano' ? folhaHumana(w.skin) : folha(w.corpo); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * 64, (q % 8) * 64, 64, 64, 0, 0, 64, 64); q++; }, 110); };
+    cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const hum = w.corpo === 'humano', im = hum ? folhaHumana(w.skin) : folha(w.corpo), f = hum ? 64 : ((ATOR[w.corpo] || {}).frame || 32); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * f, (q % 8) * f, f, f, 0, 0, 64, 64); q++; }, 110); };
   cfgCx.oninput = e => { const r = e.target.dataset && e.target.dataset.reg; if (r) w.skin[r] = +e.target.value; };
   cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.cor) w.skin[b.dataset.cor] = b.dataset.v;
     else if (b.dataset.op) { const L = { base: BASES, penteado: PENTEADOS, barba: BARBAS, oculos: OCULOS }[b.dataset.op], i = L.findIndex(x => x[0] === w.skin[b.dataset.op]); w.skin[b.dataset.op] = L[(i + (+b.dataset.d) + L.length) % L.length][0]; if (b.dataset.op === 'base' && w.skin.base === 'mulher-suave' && !w.skin.cintura && !w.skin.quadril) { w.skin.cintura = 10; w.skin.quadril = 9; } }
     else if (b.dataset.corpo) w.corpo = b.dataset.corpo;
     else if (b.dataset.lado) w.lado = b.dataset.lado;
-    else if (b.dataset.suave) { SUAVE = b.dataset.suave === '1'; try { localStorage.setItem('catum_suave', SUAVE ? '1' : '0'); } catch(_){} VST = null; }
     else if (b.dataset.som) { SOM = b.dataset.som === '1'; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} acorda(); if (SOM) vozinha(eu.id, 'Catum blabla'); }
     else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) Object.assign(w.skin, s); else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Escolha as cores pelas opções.'; return; } }
     else if (b.hasAttribute('data-abertura')) { cfgEl.classList.remove('on'); abertura(true); return; }
@@ -417,16 +414,17 @@ cfgEl.addEventListener('pointerdown', e => { if (e.target === cfgEl) cfgEl.class
 /* ---------- cartão do personagem + conversa ---------- */
 const card = document.getElementById('card'); let cardDe = null, cardFechado = null, NARR = null, narrPedida = false;
 function fechaCard(manual){ if (manual && cardDe) cardFechado = cardDe; cardDe = null; card.classList.remove('on'); }
+const retrato = id => `<img src="${ARTE}ret/${id}.png${VA}" alt="" width="96" height="96" style="width:96px;height:96px;image-rendering:pixelated;border:3px solid #1d1b2a;background:#e8c9a8;flex:none">`;
 function abreCard(n){
   if (cardDe === n.id || cardFechado === n.id) return; cardDe = n.id;
+  if (n.local) { card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab">${retrato(n.id)}<div><h2>${esc(n.nome)}</h2><small>${esc(n.titulo || 'Morador de ' + nomeCena(CENA))}</small></div></div><p>${esc(n.linha)}</p>${n.mesa ? `<h3>${esc(n.mesa)}</h3><p>As atividades deste lugar ficam nas marcas amarelas.</p>` : ''}`; card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); diz(n, n.linha); return; }
   const c = n.c || {}, w = NARR && NARR.personagens && NARR.personagens[n.id] && NARR.personagens[n.id].semana, L = lug(n.onde);
-  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab"><canvas width="64" height="64" style="background:#e8c9a8"></canvas><div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
+  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab">${retrato(n.id)}<div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
     <p>${esc(c.bio || '')}</p>
     <h3>Agora</h3><p>${n.aula ? `Em aula na Escola Ag&ecirc;ntica${n.curso ? ': ' + esc(n.curso) : ''}.` : L ? `Est&aacute; em ${esc(L.nome)}.` : 'A caminho de algum lugar.'}</p>
     <h3>Esta semana</h3><div>${w && w.post ? `${w.titulo ? `<p><b>${esc(w.titulo)}</b></p>` : ''}<p>${esc(w.post)}</p>${w.historia && w.historia !== w.post ? `<details><summary>Ler a hist&oacute;ria</summary><p>${esc(w.historia)}</p></details>` : ''}` : `<p>${NARR ? esc((c.initial_life_post && c.initial_life_post.caption) || 'Sem novidades por enquanto.') : 'Buscando as novidades&hellip;'}</p>`}</div>
     ${c.school_course ? `<h3>Na escola</h3><p>${esc(c.school_course)}</p>` : ''}
     <h3>Conversar</h3><div class="log" id="chatLog"></div><form id="chatF" autocomplete="off"><input id="chatTxt" maxlength="300" placeholder="Diga algo para ${esc(n.nome)}&hellip;"><button>Enviar</button></form>`;
-  const k = card.querySelector('canvas'), im = folha(n.id); if (im) { const g = k.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 512, 64, 64, 0, 0, 64, 64); }
   card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on');
   pintaChat(n); card.querySelector('#chatF').onsubmit = e => { e.preventDefault(); const i = card.querySelector('#chatTxt'), t = i.value.trim().slice(0, 300); if (!t || n.esperando) return; i.value = ''; falaCom(n, t, (w && w.post) || ''); };
   vozinha(n.id, (w && w.post) || c.bio || n.nome);
@@ -453,17 +451,18 @@ async function falaCom(n, txt, semana){
 /* ---------- as IAs se mexem comigo: levar a um lugar, acompanhar ---------- */
 function diz(n, t){ n.fala = t; n.falaEm = Date.now(); vozinha(n.id, t); }
 async function iniciaGuia(n, D){
-  n.guia = null; n.segue = null; n.forca = null; const alvoL = D.dentroDe ? lug(D.dentroDe) : D;
-  if (CENA !== 'bairro') { while (CENA !== 'bairro') await sairPara(performance.now()); n.x = eu.x + 10; n.y = eu.y; }     // saímos juntos
-  else if (n.onde !== 'bairro') { n.x = eu.x + 10; n.y = eu.y; }
-  const s = soleira(alvoL); n.guia = { D, i: 0, pts: caminho(CENAS.bairro, n.x, n.y, s[0], s[1]), avisou: 0 }; n.onde = 'bairro'; n.aula = false; fechaCard(true);
+  n.guia = null; n.segue = null; n.forca = null; const m = MEIOS[n.id] || 'chao';
+  if (CENA !== 'bairro') { let v = 0; while (CENA !== 'bairro' && v++ < 3) await sairPara(); }     // saímos juntos
+  if (m !== 'chao' || meioDe(eu) !== 'chao') { ROTA = { L: D, em: 0 }; n.forca = { L: D, ate: Date.now() + 300000 }; diz(n, m === 'agua' ? 'Eu vou pelo canal. Segue a seta que eu te encontro lá!' : 'Segue a seta que eu te encontro lá!'); fechaCard(true); return; }      // caminhos diferentes: cada um vai pelo seu e se encontram lá
+  { const q = perto(CENAS.bairro, eu.x + 10, eu.y, 'chao'); n.x = q[0]; n.y = q[1]; }
+  const s = portaB(D, 'chao'); n.guia = { D, i: 0, pts: caminho(CENAS.bairro, n.x, n.y, s[0], s[1], 'chao'), avisou: 0 }; n.onde = 'bairro'; n.aula = false; fechaCard(true);
 }
-function iniciaSeguir(n){ n.guia = null; n.forca = null; if (n.onde !== CENA) { n.x = eu.x + 10; n.y = eu.y; } n.segue = { ate: Date.now() + 600000, travou: 0, cena: CENA }; n.onde = CENA; n.aula = false; fechaCard(true); }
+function iniciaSeguir(n){ n.guia = null; n.forca = null; if (n.onde !== CENA) { const q = perto(C, eu.x + 10, eu.y, MEIOS[n.id] || 'chao'); n.x = q[0]; n.y = q[1]; } n.segue = { ate: Date.now() + 600000, travou: 0, cena: CENA }; n.onde = CENA; n.aula = false; fechaCard(true); }
 function passoGuia(n, dt, t){
   const g = n.guia; n.onde = 'bairro'; n.aula = false; n.anda = false; if (CENA !== 'bairro') return;
   const longe = dist(eu.x, eu.y, n.x, n.y);
   if (g.i >= g.pts.length) {
-    if (longe < 30) { diz(n, g.D.dentroDe ? 'É por aqui: o Escritório é a ala leste da Escola. Entra comigo e segue para a direita!' : 'Chegamos: ' + g.D.nome + '. Entra comigo!'); n.forca = { L: g.D, ate: Date.now() + 300000 }; n.guia = null; }
+    if (longe < 34) { diz(n, g.D.dentroDe ? 'É por aqui: o Escritório é a ala leste da Escola. Entra e segue para a direita!' : 'Chegamos: ' + g.D.nome + '. Toca em Entrar!'); n.forca = { L: g.D, ate: Date.now() + 300000 }; n.guia = null; }
     else if (t - g.avisou > 7000) { g.avisou = t; diz(n, 'É aqui! Vem!'); }
     return; }
   if (longe > 70) { if (t - g.avisou > 6000) { g.avisou = t; diz(n, 'Vem comigo, ' + eu.nome + '!'); } return; }
@@ -473,18 +472,19 @@ function passoGuia(n, dt, t){
 function passoSeguir(n, dt){
   const s = n.segue; n.onde = CENA; n.aula = false; n.anda = false;
   if (Date.now() > s.ate) { n.segue = null; diz(n, 'Vou dar uma volta. Até já!'); return; }
-  if (s.cena !== CENA) { s.cena = CENA; n.x = eu.x + 10; n.y = eu.y - 1; return; }
+  const mn = MEIOS[n.id] || 'chao', mk = bitsDe(C)[mn], junto = () => { const q = perto(C, eu.x + 10, eu.y, mn); n.x = q[0]; n.y = q[1]; };
+  if (s.cena !== CENA) { s.cena = CENA; junto(); return; }
   const naBola = CENA === 'bairro' && dist(bola.x, bola.y, n.x, n.y) < 80 && dist(bola.x, bola.y, eu.x, eu.y) > 22 && Math.hypot(bola.vx, bola.vy) < 25, tx = naBola ? bola.x : eu.x, ty = naBola ? bola.y : eu.y;
   const ax = tx - n.x, ay = ty - n.y, d = Math.hypot(ax, ay); if (d < (naBola ? 2 : 16)) { s.travou = 0; return; }
   const v = Math.min(naBola ? d : d - 13, 52 * dt), nx = n.x + ax / d * v, ny = n.y + ay / d * v; let andou = false;
-  if (!bate(nx, n.y)) { n.x = nx; andou = true; } if (!bate(n.x, ny)) { n.y = ny; andou = true; }
-  n.anda = andou; n.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 2 : 3) : (ay < 0 ? 1 : 0); s.travou = andou ? 0 : s.travou + dt; if (s.travou > 1.2 || dist(eu.x, eu.y, n.x, n.y) > 150) { n.x = eu.x + 10; n.y = eu.y - 1; s.travou = 0; }
+  if (permitido(mk, nx, n.y)) { n.x = nx; andou = true; } if (permitido(mk, n.x, ny)) { n.y = ny; andou = true; }
+  n.anda = andou; n.dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? 2 : 3) : (ay < 0 ? 1 : 0); s.travou = andou ? 0 : s.travou + dt; if (s.travou > 1.2 || dist(eu.x, eu.y, n.x, n.y) > 150) { junto(); s.travou = 0; }
 }
 
 /* ---------- estações de cada lugar (o que fazer ali) + Escola e Escritório de verdade ---------- */
 let MIS = null, CURSOS = {}, TRAB = null, trabEm = 0;
 const dadosDe = id => MIS && (MIS.interiores || []).find(i => i.id === (lug(id) || {}).arq);
-function estacoes(id){ const d = dadosDe(id), c = CENAS[id]; if (!d || !c || !c.pronta) return []; if (!d._pts) d._pts = d.estacoes.map((e, i) => { const p = perto(c, c.w * e.pontoVisual[0], c.h * e.pontoVisual[1]); return { i, x: p[0], y: p[1], e }; }); return d._pts; }
+function estacoes(id){ const c = CENAS[id]; if (!c || !c.pronta) return []; const d = dadosDe(id), m = meioDe(eu), k = '_pts' + m; if (!c[k]) c[k] = c.est.map((s, i) => { const a = s.acesso[m] || s.acesso.chao, p = perto(c, a[0], a[1], m); return { i, x: p[0], y: p[1], e: (d && d.estacoes[i]) || { rotulo: s.nome, acao: s.acao } }; }); return c[k]; }       // a mesma atividade, alcançada pelo acesso do meu meio
 async function carregaEscola(){
   try { const j = await fetch('/pd/escola-cursos.json').then(r => r.ok ? r.json() : null); ((j && j.cursos) || []).forEach(c => { CURSOS[c.slug] = c.nome || c.titulo || c.slug; }); } catch(_){}
   const m = new Map(); let certo = false;
@@ -521,15 +521,14 @@ function abreDiario(){
 }
 const BT = 'font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer';
 async function abreEstacao(st){
-  const ch = '#' + CENA + st.i; if (cardDe === ch || cardFechado === ch) return; cardDe = ch; const d = dadosDe(CENA), L = lug(CENA);
+  const ch = '#' + CENA + st.i; if (cardDe === ch || cardFechado === ch) return; cardDe = ch; const d = dadosDe(CENA), L = lug(CENA) || { nome: nomeCena(CENA) };
+  if (!d || !d.estacoes[st.i]) { card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)}</small><p>${esc(st.e.acao)}</p>`; card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on'); return; }
   const pinta = () => { if (cardDe !== ch) return; let extra = '';
     if (CENA === 'escola' && st.i === 0) { const A = npcs.filter(n => n.aula); extra = `<p><button type="button" id="btCursos" style="${BT}">Ver os cursos</button></p><h3>Em aula agora (${A.length})</h3>` + (A.length ? A.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento.</p>'); }
     if (CENA === 'escritorio' && st.i === 0) { const ordem = ['EM ANDAMENTO', 'BRIEFING', 'ATENÇÃO', 'ALTERAÇÃO', 'BUCHA', 'DELEGADA'];
       extra = '<h3>O que est&aacute; rolando na PD</h3>' + (TRAB === null ? '<p>Lendo o mural&hellip;</p>' : TRAB === false ? '<p>N&atilde;o consegui ler o mural agora.</p>' : `<p><b>${TRAB.total}</b> tarefas abertas</p>` + ordem.filter(s => TRAB.por[s]).map(s => `<p><b>${TRAB.por[s]}</b> &middot; ${esc(s.toLowerCase())}</p>`).join('') + (TRAB.ult.length ? '<h3>&Uacute;ltimas que entraram</h3>' + TRAB.ult.map(x => `<p>${esc(x)}</p>`).join('') : '')) + `<p><a href="/index.html" target="_blank" rel="noopener" style="color:#1d1b2a;font-weight:700">Abrir a PD &rarr;</a></p>`; }
-    if (CENA === 'estacao' && st.i === 2) extra += `<p><button type="button" id="btZarpar" style="${BT}">Zarpar para a ba&iacute;a</button></p>`;
     card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>${esc(L.nome)} &middot; ${esc(d.missao || '')}</small><p>${esc(st.e.acao)}</p>${st.i === 0 && d.abertura ? `<h3>${esc(d.anfitrioes || '')}</h3><p>${esc(d.abertura)}</p>` : ''}${blocoMissao(d, st)}${extra}`;
     card.querySelector('.x').onclick = () => fechaCard(true); const bc = card.querySelector('#btCursos'); if (bc) bc.onclick = abreCursos; card.classList.add('on');
-    const bz = card.querySelector('#btZarpar'); if (bz) bz.onclick = () => vai('regiao', REG[0].x, REG[0].y, performance.now());
     const bn = card.querySelector('#btDeNovo'); if (bn) bn.onclick = () => { const p = prog(d.id); p.xpAnt += p.xp; p.xp = 0; p.ciclo++; p.etapa = 0; p.entregas = []; salvaProg(d.id); pinta(); };
     const mf = card.querySelector('#misF'); if (mf) mf.onsubmit = e => { e.preventDefault(); const tx = card.querySelector('#misTxt').value.trim().slice(0, 400); if (!tx) { card.querySelector('#misTxt').focus(); return; }
       const p = prog(d.id); if (st.i !== p.etapa) return; p.entregas[st.i] = tx; p.etapa++; p.xp += XP_ETAPA + (p.etapa >= d.estacoes.length ? XP_FIM : 0); salvaProg(d.id); acorda(); vozinha('missao' + d.id, p.etapa >= d.estacoes.length ? 'Missao concluida' : 'Salvo'); pinta(); }; };
@@ -543,15 +542,6 @@ async function abreEstacao(st){
 function abreCursos(){ const d = document.createElement('div'); d.id = 'cursos'; d.style.cssText = 'position:fixed;inset:0;z-index:18;background:#fffdf5;display:flex;flex-direction:column';
   d.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px solid #1d1b2a"><button type="button" style="${BT}">&larr; Voltar a Catum</button><b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Cursos da Escola</b></div><iframe src="/escola-bastidores.html?modo=cursos" title="Cursos" style="flex:1;border:0;width:100%"></iframe>`;
   d.querySelector('button').onclick = () => { d.remove(); carregaEscola(); }; document.body.appendChild(d); for (const k in tecla) tecla[k] = false; }
-
-/* ---------- a baía: sai pela Estação Maré, de balsa ---------- */
-const REG = [ { i: 0, x: 410, y: 678, e: { rotulo: 'Cais de Catum', acao: 'O cais de onde saem as travessias da baía. A volta para a Estação Maré é por aqui.' }, volta: true },
-  { i: 1, x: 985, y: 532, e: { rotulo: 'Parada de observação', acao: 'As ilhas do meio da baía. Daqui se vê Catum inteira de um lado e o farol do outro.' } },
-  { i: 2, x: 1330, y: 566, e: { rotulo: 'Farol das Correntes', acao: 'O marco de referência de quem navega a baía.' } } ];
-function estacoesReg(){ const c = CENAS.regiao; if (!c || !c.pronta) return []; REG.forEach(r => { if (!r.ok) { const p = pertoMar(c, r.x, r.y); r.x = p[0]; r.y = p[1]; r.ok = true; } }); return REG; }
-function abreRegiao(st){ const ch = '#regiao' + st.i; if (cardDe === ch || cardFechado === ch) return; cardDe = ch;
-  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>${esc(st.e.rotulo)}</h2><small>Ba&iacute;a de Catum</small><p>${esc(st.e.acao)}</p>${st.volta ? `<p><button type="button" id="btVolta" style="${BT}">Voltar para a Esta&ccedil;&atilde;o Mar&eacute;</button></p>` : ''}`;
-  card.querySelector('.x').onclick = () => fechaCard(true); const b = card.querySelector('#btVolta'); if (b) b.onclick = () => vai('estacao', null, null, performance.now()); card.classList.add('on'); }
 
 /* ---------- trilha 8 bits: tema em ré maior montado a partir do motivo (ré–si–lá) e do andamento da trilha dos vídeos de intro do site ---------- */
 const TEMA = { passo: .1625, ativo: false, timer: 0, i: 0, t0: 0, g: null };
@@ -612,7 +602,7 @@ function abertura(forcar){ return new Promise(ok => {
 /* ---------- a bola da praça: física simples para jogar com quem estiver por perto ---------- */
 const bola = { x: 548, y: 452, vx: 0, vy: 0 };
 function passoBola(dt, quem){
-  for (const e of quem) { const d = dist(e.x, e.y, bola.x, bola.y); if (d < 7 && e.anda) { let ux, uy; if (e === eu) { const s0 = Math.hypot(eu.vx, eu.vy) || 1; ux = eu.vx / s0; uy = eu.vy / s0; } else if (e.segue) { const a = Math.atan2(eu.y - bola.y, eu.x - bola.x); ux = Math.cos(a); uy = Math.sin(a); } else { ux = [0, 0, -1, 1][e.dir || 0]; uy = [1, -1, 0, 0][e.dir || 0]; } bola.vx = ux * 150; bola.vy = uy * 150; } }
+  for (const e of quem) { const d = dist(e.x, e.y, bola.x, bola.y); if (d < 7 && e.anda) { let ux, uy; if (e.segue) { const a = Math.atan2(eu.y - bola.y, eu.x - bola.x); ux = Math.cos(a); uy = Math.sin(a); } else { ux = [0, 0, -1, 1][e.dir || 0]; uy = [1, -1, 0, 0][e.dir || 0]; } bola.vx = ux * 150; bola.vy = uy * 150; } }
   const f = Math.max(0, 1 - 1.7 * dt); bola.vx *= f; bola.vy *= f; if (Math.hypot(bola.vx, bola.vy) < 2) { bola.vx = bola.vy = 0; return; }
   const nx = bola.x + bola.vx * dt, ny = bola.y + bola.vy * dt, c = CENAS.bairro;
   if (livre(c, nx | 0, bola.y | 0)) bola.x = nx; else bola.vx *= -.7; if (livre(c, bola.x | 0, ny | 0)) bola.y = ny; else bola.vy *= -.7;
@@ -630,15 +620,14 @@ function vozinha(quem, txt){ if (!SOM || !AC || AC.state !== 'running') return; 
 
 /* ---------- mapa da cidade e rota a pé (seta tipo GPS) ---------- */
 let ROTA = null;
-function destinoRota(){ const L = ROTA.L, alvoL = L.dentroDe ? lug(L.dentroDe) : L;
-  if (CENA === 'bairro') return { p: soleira(alvoL), txt: L.nome, porta: true };
-  if (CENA === 'regiao') return { p: null, txt: 'Volte pelo cais' };
-  if (CENA === 'escola' && L.id === 'escritorio') return { p: perto(C, C.w * PORTAL.de[0], C.h * PORTAL.de[1]), txt: L.nome };
-  return { p: perto(C, C.w * .5, C.h - 8), txt: 'Saída', saida: true }; }
+function destinoRota(){ const L = ROTA.L, m = meioDe(eu);
+  if (CENA === 'bairro') return { p: portaB(L, m), txt: L.nome, porta: true };
+  if (CENA === 'escola' && L.id === 'escritorio') { const d = C.portas.find(q => q.para === 'escritorio'); if (d) return { p: d.ac[m] || d.sol, txt: L.nome, porta: true }; }
+  const s = saidaDe(); return s ? { p: s.ac[m] || s.sol, txt: 'Saída', saida: true } : { p: null, txt: 'Sem saída por aqui' }; }
 function passoRota(t){
   if (CENA === ROTA.L.id) { const n = ROTA.L.nome; ROTA = null; eu.fala = 'Cheguei: ' + n; eu.falaEm = Date.now(); return; }
   const d = destinoRota(); ROTA.d = d; if (!d.p) { ROTA.pts = null; return; }
-  if (!ROTA.pts || ROTA.cena !== CENA || t - ROTA.em > 450) { ROTA.em = t; ROTA.cena = CENA; ROTA.pts = caminho(C, eu.x, eu.y, d.p[0], d.p[1]); }
+  if (!ROTA.pts || ROTA.cena !== CENA || t - ROTA.em > 450) { ROTA.em = t; ROTA.cena = CENA; ROTA.pts = caminho(C, eu.x, eu.y, d.p[0], d.p[1], meioDe(eu)); }
   const pts = ROTA.pts; let alvo = pts[pts.length - 1], len = 0; for (let i = 1; i < pts.length; i++) len += dist(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]); for (const p of pts) if (dist(p[0], p[1], eu.x, eu.y) > 34) { alvo = p; break; }
   ROTA.len = len; ROTA.ang = Math.atan2(alvo[1] - eu.y, alvo[0] - eu.x); ROTA.falta = dist(eu.x, eu.y, d.p[0], d.p[1]);
   const f = Math.floor(t / 140); pts.forEach((p, i) => { if (i < 1 || dist(p[0], p[1], eu.x, eu.y) < 14) return; const on = (((i - f) % 4) + 4) % 4 === 0; cx.fillStyle = '#1d1b2a'; cx.fillRect(p[0] - 2, p[1] - 2, 4, 4); cx.fillStyle = on ? '#fffdf5' : '#ffe27a'; cx.fillRect(p[0] - 1, p[1] - 1, 2, 2); });
@@ -647,7 +636,7 @@ function desenhaRota(t){
   const d = ROTA.d; if (!d) return; let txt, a = ROTA.ang;
   if (!d.p) txt = d.txt.toUpperCase();
   else { const c = Math.cos(a), s = Math.sin(a), lado = Math.abs(c) > Math.abs(s) ? (c < 0 ? 'ESQUERDA' : 'DIREITA') : (s < 0 ? 'PARA CIMA' : 'PARA BAIXO');
-    txt = ROTA.falta < 26 ? (d.porta ? 'CHEGOU: SEGURE NA DIREÇÃO DA PORTA' : d.saida ? 'SAIA POR AQUI: SEGURE PARA BAIXO' : 'É AQUI') : (d.saida ? 'SAÍDA' : ROTA.L.nome.toUpperCase()) + ' · ' + lado + ' · ' + Math.max(1, Math.round((ROTA.len || ROTA.falta) / 8)) + ' m';
+    txt = ROTA.falta < 26 ? (d.porta ? 'CHEGOU: TOQUE EM ENTRAR' : d.saida ? 'SAÍDA: TOQUE EM SAIR' : 'É AQUI') : (d.saida ? 'SAÍDA' : ROTA.L.nome.toUpperCase()) + ' · ' + lado + ' · ' + Math.max(1, Math.round((ROTA.len || ROTA.falta) / 8)) + ' m';
     if (ROTA.falta >= 26) { const sx = (eu.x - camX) * SC, sy = (eu.y - camY) * SC - altura(eu) * SC * .5, r = Math.max(46, altura(eu) * SC * .8) + 3 * Math.sin(t * .008), u = Math.max(3, Math.round(SC * 1.4));
       cx.save(); cx.translate(Math.round(sx + Math.cos(a) * r), Math.round(sy + Math.sin(a) * r)); cx.rotate(a);
       const seta = () => { cx.beginPath(); cx.moveTo(4 * u, 0); cx.lineTo(-1 * u, -3 * u); cx.lineTo(-1 * u, -1.2 * u); cx.lineTo(-4 * u, -1.2 * u); cx.lineTo(-4 * u, 1.2 * u); cx.lineTo(-1 * u, 1.2 * u); cx.lineTo(-1 * u, 3 * u); cx.closePath(); };
@@ -655,10 +644,10 @@ function desenhaRota(t){
   cx.font = '700 12px ui-monospace,Menlo,Consolas,monospace'; const w = Math.ceil(cx.measureText(txt).width) + 20, x0 = Math.round(VW / 2 - w / 2), y0 = lugarAtual ? 98 : 56;
   cx.fillStyle = '#1d1b2a'; cx.fillRect(x0 - 3, y0 - 3, w + 10, 32); cx.fillStyle = '#ffe27a'; cx.fillRect(x0, y0, w, 26); cx.fillStyle = '#1d1b2a'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(txt, VW / 2, y0 + 14);
 }
-function irDireto(L){ const alvoL = L.dentroDe ? lug(L.dentroDe) : L, s = foraDaPorta(alvoL); alvoL.trava = true; pilha.length = 0; ROTA = null; vai('bairro', s[0], s[1], performance.now()); }
+function irDireto(L){ const s = portaB(L, meioDe(eu)); ROTA = null; vai('bairro', s[0], s[1], performance.now()); }
 function abreMapa(){
   const b = CENAS.bairro; if (!b || !b.pronta) return; const W = Math.min(430, innerWidth - 58), H = Math.round(W * b.h / b.w), e = W / b.w;
-  const onde = CENA === 'bairro' ? [eu.x, eu.y] : CENA === 'regiao' ? null : soleira(lug(CENA).dentroDe ? lug(lug(CENA).dentroDe) : lug(CENA));
+  LUG.forEach(L => { L.porta = portaB(L, 'chao'); }); const onde = CENA === 'bairro' ? [eu.x, eu.y] : CENA === 'regiao' ? null : portaB(lug(CENA), 'chao');
   cfgCx.innerHTML = `<div class="topo"><h2>Mapa de Catum</h2>${ROTA ? '<button type="button" data-semrota>Parar rota</button>' : ''}<button type="button" class="pri" data-fecha>Fechar</button></div>
     <canvas id="mapaCv" width="${W * 2}" height="${H * 2}" style="width:${W}px;height:${H}px;display:block;border:3px solid #1d1b2a;image-rendering:pixelated;cursor:pointer"></canvas>
     <p>Toque num lugar do mapa ou escolha na lista. <b>A pé</b> liga a seta que mostra o caminho; <b>Direto</b> leva você até a porta.</p>
@@ -682,20 +671,13 @@ document.getElementById('btMapa').onclick = abreMapa; document.getElementById('b
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
 function boneco(e, t){
-  const corpo = corpoDe(e), id = corpo || (e.sk ? limpaSkin(e.sk).base : 'homem-medio'), p = PERF[id] || { e: .5, ms: 110 }, im = corpo ? folha(corpo) : folhaHumana(e.sk), md = corpo ? (MODO[corpo] || 'terra') : 'anfibio';
-  const barco = CENA === 'regiao', pe = p.e * (barco ? .62 : ESC_P), x = Math.round(e.x), y = Math.round(e.y), lado = Math.max(8, Math.round(64 * pe)), ax = Math.round(32 * pe), ay = Math.round(59 * pe);
-  const agua = !barco && C && !livre(C, x, y) && noMar(C, x, y), voa = md === 'voador' && !barco && (e.anda || !terra(x, y)), sobe = voa ? 9 : 0;
-  if (barco) { cx.fillStyle = '#5a3a1e'; cx.fillRect(x - 9, y - 2, 18, 5); cx.fillStyle = '#a8733f'; cx.fillRect(x - 8, y - 3, 16, 4); cx.fillStyle = 'rgba(255,255,255,.55)'; cx.fillRect(x - 11, y + 3, 22, 1); }
-  else if (agua) { cx.fillStyle = 'rgba(255,255,255,.5)'; cx.fillRect(x - Math.round(lado * .22), y + 1, Math.round(lado * .44), 1); }
-  else { cx.fillStyle = 'rgba(0,0,0,' + (voa ? '.14' : '.22') + ')'; cx.fillRect(x - Math.round(lado * .16), y - 1, Math.round(lado * .32), 2); }
-  if (!im) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
-  const lin = e.anda ? (Math.floor(t / p.ms) % 8) : 8, sx = (e.dir || 0) * 64, sy = lin * 64;
-  if (md === 'aquatico' && !agua && !barco) { const r = Math.round(lado * .4), cy0 = y - Math.round(ay * .55); cx.fillStyle = 'rgba(120,220,235,.32)'; cx.beginPath(); cx.arc(x, cy0, r, 0, 6.3); cx.fill(); cx.fillStyle = 'rgba(255,255,255,.5)'; cx.fillRect(x - Math.round(r * .5), cy0 - Math.round(r * .7), 3, 1); }   // cápsula de visita
-  const fi = SUAVE ? fina(im) : null, q = fi ? 2 : 1, src = fi || im; cx.imageSmoothingEnabled = !!fi; if (fi) cx.imageSmoothingQuality = 'high';
-  if (agua && !corpo) { const f = .58; cx.drawImage(src, sx * q, sy * q, 64 * q, Math.round(64 * f) * q, x - ax, y - Math.round(lado * f) + 2, lado, Math.round(lado * f)); cx.imageSmoothingEnabled = false; return; }     // gente nadando: só do peito para cima
-  cx.drawImage(src, sx * q, sy * q, 64 * q, 64 * q, x - ax, y - ay - sobe, lado, lado); cx.imageSmoothingEnabled = false;
+  const at = atlas(e), x = Math.round(e.x), y = Math.round(e.y), m = meioDe(e);
+  if (e !== eu) { const d = e._px == null ? 0 : dist(e.x, e.y, e._px, e._py); e._px = e.x; e._py = e.y; if (e.anda && d < 30) e.fase = ((e.fase || 0) + d / (PERFIS[(at && at.a.mov) || 'passo'] || PERFIS.passo)[1]) % 1; e.quadro = e.anda ? Math.floor((e.fase || 0) * 8) : 0; }      // a passada anda pela distância, não pelo relógio
+  if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - 5, y + 1, 10, 1); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - 5, y, 10, 2); }
+  if (!at) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
+  const f = at.a.frame; cx.drawImage(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.a.anchor[0], y - at.a.anchor[1], f, f);       // quadro nativo 1:1, pela âncora
 }
-const altura = e => { const p = PERF[corpoDe(e) || 'homem-medio']; return Math.round((p ? Math.max(12, p.alt + 4) : 30) * (CENA === 'regiao' ? .62 : ESC_P)); };
+const altura = e => { const a = ATOR[corpoDe(e) || limpaSkin(e.sk).base]; return (a ? a.anchor[1] : 31) + 2; };
 function etiqueta(txt, wx, wy, fundo, cor, tam){
   const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC);
   cx.font = `700 ${tam || 10}px ui-monospace,Menlo,Consolas,monospace`; const w = Math.ceil(cx.measureText(txt).width) + 8, h = (tam || 10) + 6;
@@ -715,23 +697,11 @@ function quadro(t){
   let dx = (tecla['arrowright'] || tecla['d'] ? 1 : 0) - (tecla['arrowleft'] || tecla['a'] ? 1 : 0), dy = (tecla['arrowdown'] || tecla['s'] ? 1 : 0) - (tecla['arrowup'] || tecla['w'] ? 1 : 0);
   if (!dx && !dy && eu.alvo) { const ax = eu.alvo.x - eu.x, ay = eu.alvo.y - eu.y, d = Math.hypot(ax, ay); if (d < 2 || t - eu.alvo.em > 12000) eu.alvo = null; else { dx = ax / d; dy = ay / d; } }
   if (!dx && !dy && joyV) { dx = joyV.x; dy = joyV.y; }
-  const m = Math.hypot(dx, dy), md = modoDe(eu), barco = CENA === 'regiao', agua = !barco && !livre(C, eu.x | 0, eu.y | 0) && noMar(C, eu.x | 0, eu.y | 0), voa = md === 'voador' && !barco;
-  const vel = barco ? 96 : 58 * (voa ? 1.3 : agua ? (md === 'aquatico' ? 1.25 : eu.corpo !== 'humano' ? .95 : .62) : (md === 'aquatico' ? .72 : 1));
-  const liso = (agua || voa || barco) ? 4.5 : 40, ax0 = m && !trocando ? dx / m * vel : 0, ay0 = m && !trocando ? dy / m * vel : 0;
-  eu.vx += (ax0 - eu.vx) * Math.min(1, liso * dt); eu.vy += (ay0 - eu.vy) * Math.min(1, liso * dt); eu.anda = false;
-  if (Math.hypot(eu.vx, eu.vy) > 3) { const nx = eu.x + eu.vx * dt, ny = eu.y + eu.vy * dt; let andou = false;
-    if (podeIr(eu, nx, eu.y)) { eu.x = nx; andou = true; } else eu.vx = 0; if (podeIr(eu, eu.x, ny)) { eu.y = ny; andou = true; } else eu.vy = 0;
-    if (!andou && m) { const px = -dy / m, py = dx / m; for (const k of [3, -3, 6, -6]) { const qx = eu.x + px * k + dx / m * 2, qy = eu.y + py * k + dy / m * 2; if (podeIr(eu, qx, qy)) { eu.x += px * Math.sign(k) * 40 * dt; eu.y += py * Math.sign(k) * 40 * dt; andou = true; break; } } }     // esbarrou numa quina: escorrega para o lado livre
-    eu.anda = andou; if (m) eu.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 2 : 3) : (dy < 0 ? 1 : 0); if (!andou) eu.alvo = null; }
-  // portas
-  if (t > trocaAte && !trocando) {
-    if (CENA === 'bairro') { for (const L of LUG) { if (!L.porta) continue; const s = soleira(L), d = dist(eu.x, eu.y, s[0], s[1]);
-        if (L.trava) { if (d > 42) L.trava = false; L.emp = 0; continue; }             // acabei de sair por aqui: só rearma quando eu me afastar
-        if (m && d < 28 && (dx * L.dv[0] + dy * L.dv[1]) > .6 * m) { L.emp = (L.emp || 0) + dt; if (L.emp > .35) { L.emp = 0; pilha.length = 0; vai(L.id, null, null, t); break; } } else L.emp = 0; } }
-    else if (CENA === 'regiao') { /* a volta é pelo cais */ }
-    else if (eu.y > C.h - 7 && dy > .5 * m) { eu.emp = (eu.emp || 0) + dt; if (eu.emp > .3) { eu.emp = 0; sairPara(t); } }
-    else if (CENA === 'escola' && dist(eu.x, eu.y, ...perto(C, C.w * PORTAL.de[0], C.h * PORTAL.de[1])) < 12) vai('escritorio', null, null, t);
-  }
+  if (trocando) dx = dy = 0;
+  const meuMeio = meioDe(eu), real = avancar(eu, dx, dy, dt, bitsDe(C)[meuMeio], (ATOR[corpoDe(eu) || limpaSkin(eu.sk).base] || HUM0).mov); eu.anda = !!eu.emMarcha;
+  if ((dx || dy) && !eu.anda && eu.alvo) eu.alvo = null;        // encostou: para de dar passos
+  // porta ou travessia ao alcance: só entra com confirmação
+  { const a = t > trocaAte && !trocando ? acaoPerto() : null, tx = a ? a.txt : ''; ACAO = a; if (acaoEl.dataset.t !== tx) { acaoEl.dataset.t = tx; acaoEl.textContent = tx + (document.body.classList.contains('toque') || !tx ? '' : '  [E]'); acaoEl.style.display = tx ? 'block' : 'none'; } }
   if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, d: eu.dir } }); } catch(_){} }
   if (canal && pronto && t - rastroEm > 6000) { rastroEm = t; try { canal.track(meuRastro()); } catch(_){} }
   outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1; if (d > 120) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 70 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
@@ -743,32 +713,28 @@ function quadro(t){
     if (n.onde !== CENA) return;
     if (CENA !== 'bairro') { const p = lugarDentro(n, C); n.x = p[0]; n.y = p[1]; n.dir = 0; }
     vis.push(n.v = n); });
+  for (const l of C.locais) vis.push(l);
   const gente = [...outros.values()].filter(o => (o.r || 'bairro') === CENA);
   // câmera: aproxima aos poucos, arredonda no pixel lógico, respeita as bordas
-  const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 16 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
+  const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 12 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
-  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); pintaFundo(C, ox, oy, VW / SC, VH / SC);
+  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
   if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
   // estações do lugar (marquinha que pisca)
-  const sts = CENA === 'bairro' ? [] : CENA === 'regiao' ? estacoesReg() : estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
+  const sts = estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
   // quem está mais perto
   let pertoN = null, pd = 26; vis.forEach(n => { const d = dist(n.x, n.y, eu.x, eu.y); if (d < pd) { pd = d; pertoN = n; } });
   if (CENA === 'bairro') { passoBola(dt, [eu, ...vis, ...gente]); desenhaBola(); }
-  const todos = [...vis, ...gente, eu]; todos.sort((a, b) => a.y - b.y).forEach(e => boneco(e, t));
-  // o que fica por cima das pessoas: estrutura cuja base está à frente dos pés, batentes e passagens
-  if (CENA !== 'regiao') { const tampa = [];
-    if (CENA === 'bairro') for (const L of LUG) { const tp = TOPO[L.id]; if (!tp) continue; const px = L.porta[0], py = L.porta[1]; if (todos.some(e => Math.abs(e.x - px) < 22 && e.y < py + 2 && e.y > py - 18)) tampa.push([px - 34, py - 96, 68, 96 - tp]); }
-    for (const e of todos) { if (modoDe(e) === 'voador') continue; const hh = altura(e), mw = Math.max(8, hh * .32), gx0 = Math.max(0, (e.x - mw) >> 2), gx1 = Math.min(C.gw - 1, (e.x + mw) >> 2), gy1 = Math.min(C.gh - 1, (e.y | 0) >> 2), gy0 = Math.max(0, (e.y - hh - 4) >> 2);
-      for (let gx = gx0; gx <= gx1; gx++) { let ini = -1; for (let gy = gy0; gy <= gy1 + 1; gy++) { const i = gy * C.gw + gx, on = gy <= gy1 && (C.cima[i] || (C.sol[i] && C.base[i] * 4 + 3 > e.y + 1)); if (on && ini < 0) ini = gy; else if (!on && ini >= 0) { tampa.push([gx * 4, ini * 4, 4, (gy - ini) * 4]); ini = -1; } } } }
-    if (tampa.length) { cx.save(); cx.beginPath(); for (const r of tampa) cx.rect(r[0], r[1], r[2], r[3]); cx.clip(); pintaFundo(C, ox, oy, VW / SC, VH / SC); cx.restore(); } }
+  // fila de profundidade: recortes e personagens por Y; pé ao norte da linha fica atrás, ao sul fica à frente; no empate o recorte vem antes
+  const fila = [...vis, ...gente, eu].map(e => ({ y: e.y, e })); for (const f of C.frentes) fila.push({ y: f.linha - .5, f });
+  fila.sort((a, b) => a.y - b.y); for (const q of fila) { if (q.e) boneco(q.e, t); else cx.drawImage(q.f.im, q.f.x, q.f.y); }
   if (ROTA) passoRota(t);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
-  if (CENA === 'bairro') LUG.forEach(L => { if (!L.porta) return; const s = soleira(L), d = dist(s[0], s[1], eu.x, eu.y); if (d < 150) etiqueta(L.nome.toUpperCase(), L.porta[0], L.porta[1] - 30, '#1d1b2a', '#fffdf5', 10); if (d < 40 && !L.trava) etiqueta('ENTRAR: SEGURE NA DIREÇÃO DA PORTA', s[0], s[1] + 12, '#ffe27a', '#1d1b2a', 9); });
-  else { if (CENA !== 'regiao' && eu.y > C.h - 70) etiqueta('SAÍDA', C.w / 2, C.h - 2, '#ffe27a', '#1d1b2a', 9);
-    if (CENA === 'escola') { const p = perto(C, C.w * PORTAL.de[0], C.h * PORTAL.de[1]); if (dist(p[0], p[1], eu.x, eu.y) < 160) etiqueta('ESCRITÓRIO PONTODOT', p[0], p[1] - 16, '#1d1b2a', '#fffdf5', 10); }
-    sts.forEach(s => { if (dist(s.x, s.y, eu.x, eu.y) < (CENA === 'regiao' ? 400 : 90)) etiqueta(s.e.rotulo.toUpperCase(), s.x, s.y - 9, 'rgba(29,27,42,.82)', '#ffe27a', 9); }); }
+  C.portas.forEach(p => { const a = p.ac[meuMeio] || p.sol, d = dist(a[0], a[1], eu.x, eu.y); if (d < 170) etiqueta((p.para === 'bairro' ? 'SAÍDA' : nomeCena(p.para)).toUpperCase(), p.sol[0], p.sol[1] - 24, '#1d1b2a', '#fffdf5', 10); });
+  C.pass.forEach(s => { if (s.meio !== meuMeio) return; [s.de, s.para].forEach(a => { if (dist(a[0], a[1], eu.x, eu.y) < 120) etiqueta(s.tipo.toUpperCase(), a[0], a[1] - 8, 'rgba(29,27,42,.82)', '#a5e2d6', 9); }); });
+  sts.forEach(s => { if (dist(s.x, s.y, eu.x, eu.y) < (CENA === 'regiao' ? 300 : 90)) etiqueta(s.e.rotulo.toUpperCase(), s.x, s.y - 9, 'rgba(29,27,42,.82)', '#ffe27a', 9); });
   vis.forEach(n => { etiqueta(n.nome, n.x, n.y - altura(n), n === pertoN ? '#ffe27a' : 'rgba(29,27,42,.78)', n === pertoN ? '#1d1b2a' : '#fff', 9); if (n.fala && agora - n.falaEm < 9000) balao(n.fala.length > 64 ? n.fala.slice(0, 62) + '…' : n.fala, n.x, n.y - altura(n) - 6); });
   gente.forEach(o => { etiqueta(o.nome, o.x, o.y - altura(o), '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
   etiqueta(eu.nome, eu.x, eu.y - altura(eu), '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - altura(eu) - 6);
@@ -778,9 +744,9 @@ function quadro(t){
   if (eu.anda) eu.parouEm = t;
   if (pertoN && (pertoN.guia || pertoN.segue) && t - (eu.parouEm || 0) < 1500) pertoN = null;
   if (pertoN && cardFechado !== pertoN.id) pertoN.preso = Math.max(pertoN.preso || 0, agora + 1200);
-  let st = null; if (!pertoN) { let sd = CENA === 'regiao' ? 26 : 18; sts.forEach(s => { const d = dist(s.x, s.y, eu.x, eu.y); if (d < sd) { sd = d; st = s; } }); }
-  if (pertoN) abreCard(pertoN); else if (st) (CENA === 'regiao' ? abreRegiao(st) : abreEstacao(st)); else { if (cardDe) fechaCard(false); cardFechado = null; }
-  const nome = CENA === 'bairro' ? '' : CENA === 'regiao' ? 'Baía de Catum' : lug(CENA).nome; if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
+  let st = null; if (!pertoN) { let sd = 18; sts.forEach(s => { const d = dist(s.x, s.y, eu.x, eu.y); if (d < sd) { sd = d; st = s; } }); }
+  if (pertoN) abreCard(pertoN); else if (st) abreEstacao(st); else { if (cardDe) fechaCard(false); cardFechado = null; }
+  const nome = CENA === 'bairro' ? '' : nomeCena(CENA); if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
 }
 
 /* ---------- ao vivo (Supabase Realtime) ---------- */
@@ -788,7 +754,7 @@ let canal = null, pronto = false;
 const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA });
 function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
 function liga(){
-  canal = sb.channel('catum-v2', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
+  canal = sb.channel('catum-v3', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
   canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
       let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: +p.x || 528, y: +p.y || 440, tx: +p.x || 528, ty: +p.y || 440, fala: '', falaEm: 0, anda: false, dir: 0, humano: true, sk: null, r: String(p.r || 'bairro') }; outros.set(p.i, o); }
@@ -807,17 +773,17 @@ async function comeca(){
   eu.id = sess.user.id;
   try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
   ajusta();
-  try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'perfis.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
-    PERF = pf || {}; MIS = mi; C = b; const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440); eu.x = p[0]; eu.y = p[1];
+  try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'atores.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
+    ATOR = pf || {}; MIS = mi; C = b; const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440, meioDe(eu)); eu.x = p[0]; eu.y = p[1]; LUG.forEach(L => { L.porta = portaB(L, 'chao'); });
   } catch(e) { ptxt.textContent = 'Não consegui abrir a cidade. Atualize a página.'; console.warn(e); return; }
-  NPC_IDS.forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
+  NPC_IDS.concat(Object.keys(LOCAIS)).forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
   carregaEscola(); setInterval(() => { if (!document.hidden) carregaEscola(); }, 300000);
   try { liga(); } catch(e){ console.warn('ao vivo fora:', e); }
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
+window.CATUM = { eu, LUG, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>

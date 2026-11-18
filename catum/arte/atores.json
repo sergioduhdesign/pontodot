@@ -1,0 +1,496 @@
+{
+ "nix": {
+  "frame": 29,
+  "anchor": [
+   14,
+   27
+  ],
+  "ms": 85,
+  "label": "Nix",
+  "height": 17,
+  "mov": "trote",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "kiro": {
+  "frame": 36,
+  "anchor": [
+   18,
+   33
+  ],
+  "ms": 115,
+  "label": "Kiro",
+  "height": 19,
+  "mov": "aderencia",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "brum": {
+  "frame": 37,
+  "anchor": [
+   18,
+   34
+  ],
+  "ms": 150,
+  "label": "Brum",
+  "height": 28,
+  "mov": "pesado",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "gigi": {
+  "frame": 51,
+  "anchor": [
+   26,
+   47
+  ],
+  "ms": 125,
+  "label": "Gigi",
+  "height": 42,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "iro": {
+  "frame": 21,
+  "anchor": [
+   10,
+   19
+  ],
+  "ms": 135,
+  "label": "Iro",
+  "height": 16,
+  "mov": "aderencia",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "sago": {
+  "frame": 28,
+  "anchor": [
+   14,
+   26
+  ],
+  "ms": 120,
+  "label": "Sago",
+  "height": 23,
+  "mov": "serpente",
+  "meio": "agua",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "taro": {
+  "frame": 30,
+  "anchor": [
+   15,
+   28
+  ],
+  "ms": 105,
+  "label": "Taro",
+  "height": 14,
+  "mov": "caranguejo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "raku": {
+  "frame": 30,
+  "anchor": [
+   15,
+   28
+  ],
+  "ms": 100,
+  "label": "Raku",
+  "height": 25,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "zumi": {
+  "frame": 21,
+  "anchor": [
+   10,
+   19
+  ],
+  "ms": 85,
+  "label": "Zumi",
+  "height": 17,
+  "mov": "salto",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "oru": {
+  "frame": 27,
+  "anchor": [
+   14,
+   25
+  ],
+  "ms": 145,
+  "label": "Oru",
+  "height": 18,
+  "mov": "arraia",
+  "meio": "agua",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "koda": {
+  "frame": 33,
+  "anchor": [
+   16,
+   30
+  ],
+  "ms": 105,
+  "label": "Koda",
+  "height": 27,
+  "mov": "asas",
+  "meio": "voo",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "tumi": {
+  "frame": 25,
+  "anchor": [
+   12,
+   23
+  ],
+  "ms": 105,
+  "label": "Tumi",
+  "height": 17,
+  "mov": "trote",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "nami": {
+  "frame": 24,
+  "anchor": [
+   12,
+   22
+  ],
+  "ms": 120,
+  "label": "Nami",
+  "height": 20,
+  "mov": "polvo",
+  "meio": "agua",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "sumi": {
+  "frame": 25,
+  "anchor": [
+   12,
+   23
+  ],
+  "ms": 110,
+  "label": "Sumi",
+  "height": 21,
+  "mov": "lula",
+  "meio": "agua",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "boku": {
+  "frame": 29,
+  "anchor": [
+   14,
+   27
+  ],
+  "ms": 140,
+  "label": "Boku",
+  "height": 18,
+  "mov": "caranguejo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "muru": {
+  "frame": 38,
+  "anchor": [
+   19,
+   35
+  ],
+  "ms": 145,
+  "label": "Muru",
+  "height": 16,
+  "mov": "cetaceo",
+  "meio": "agua",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "homem-esguio": {
+  "frame": 34,
+  "anchor": [
+   17,
+   31
+  ],
+  "ms": 110,
+  "label": "Homem · esguio",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "homem-medio": {
+  "frame": 34,
+  "anchor": [
+   17,
+   31
+  ],
+  "ms": 110,
+  "label": "Homem · médio",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "homem-steve": {
+  "frame": 34,
+  "anchor": [
+   17,
+   31
+  ],
+  "ms": 110,
+  "label": "Homem · encorpado",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "mulher-esguio": {
+  "frame": 34,
+  "anchor": [
+   17,
+   31
+  ],
+  "ms": 110,
+  "label": "Mulher · esguia",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "mulher-medio": {
+  "frame": 34,
+  "anchor": [
+   17,
+   31
+  ],
+  "ms": 110,
+  "label": "Mulher · média",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "mulher-suave": {
+  "frame": 34,
+  "anchor": [
+   17,
+   31
+  ],
+  "ms": 110,
+  "label": "Mulher · curvas suaves",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "duna": {
+  "frame": 42,
+  "anchor": [
+   21,
+   39
+  ],
+  "ms": 125,
+  "label": "Duna",
+  "height": 28,
+  "mov": "passo",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "jaci": {
+  "frame": 36,
+  "anchor": [
+   18,
+   33
+  ],
+  "ms": 125,
+  "label": "Jaci",
+  "height": 25,
+  "mov": "trote",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "lito": {
+  "frame": 39,
+  "anchor": [
+   19,
+   36
+  ],
+  "ms": 125,
+  "label": "Lito",
+  "height": 23,
+  "mov": "pesado",
+  "meio": "chao",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ },
+ "lume": {
+  "frame": 47,
+  "anchor": [
+   23,
+   44
+  ],
+  "ms": 125,
+  "label": "Lume",
+  "height": 32,
+  "mov": "asas",
+  "meio": "voo",
+  "direcoes": [
+   "frente",
+   "costas",
+   "esquerda",
+   "direita"
+  ],
+  "quadros": 8
+ }
+}
