@@ -544,7 +544,7 @@ function vozinha(quem, txt){ if (!SOM || !AC || AC.state !== 'running') return; 
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
 function boneco(e, t){
   const corpo = corpoDe(e), id = corpo || (e.sk ? limpaSkin(e.sk).base : 'homem-medio'), p = PERF[id] || { e: .5, ms: 110 }, im = corpo ? folha(corpo) : folhaHumana(e.sk), md = corpo ? (MODO[corpo] || 'terra') : 'anfibio';
-  const x = Math.round(e.x), y = Math.round(e.y), lado = Math.max(8, Math.round(64 * p.e)), ax = Math.round(32 * p.e), ay = Math.round(59 * p.e), barco = CENA === 'regiao';
+  const barco = CENA === 'regiao', pe = p.e * (barco ? .62 : 1), x = Math.round(e.x), y = Math.round(e.y), lado = Math.max(8, Math.round(64 * pe)), ax = Math.round(32 * pe), ay = Math.round(59 * pe);
   const agua = !barco && C && !livre(C, x, y) && noMar(C, x, y), voa = md === 'voador' && !barco && (e.anda || !terra(x, y)), sobe = voa ? 9 : 0;
   if (barco) { cx.fillStyle = '#5a3a1e'; cx.fillRect(x - 9, y - 2, 18, 5); cx.fillStyle = '#a8733f'; cx.fillRect(x - 8, y - 3, 16, 4); cx.fillStyle = 'rgba(255,255,255,.55)'; cx.fillRect(x - 11, y + 3, 22, 1); }
   else if (agua) { cx.fillStyle = 'rgba(255,255,255,.5)'; cx.fillRect(x - Math.round(lado * .22), y + 1, Math.round(lado * .44), 1); }
