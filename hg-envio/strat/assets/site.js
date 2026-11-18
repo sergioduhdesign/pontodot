@@ -65,7 +65,7 @@
   /* ---------- 4. acervo: biblioteca de perfis em giro ---------- */
   var giro = $('#giro'), pista = $('#pista'), central = $('#central'), indice = $('#indice');
   var L = [], els = [], cur = 0, pos = 0, N = 0;
-  var FONTE = { captura: 'Captura do perfil conferida.', press: 'Imagem de arquivo do press da agência.' };
+  var FONTE = { captura: 'Captura do perfil em novembro de 2026.', press: 'Imagem de arquivo do press da agência.' };
   function mod(a, n) { return ((a % n) + n) % n; }
   function dif(i, p) { var d = i - p; d = d - Math.round(d / N) * N; return d; }       // distância mais curta no laço
   function monta() {
