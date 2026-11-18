@@ -30,8 +30,14 @@ jobs:
             rel="${f#$SRC/}"
             case "$rel" in _config.php|_briefings/briefing-*|_briefings/.t-*) continue;; esac
             dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
-            R=$(curl -sS --max-time 300 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
-            ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
+            ok=erro
+            for t in 1 2 3 4 5; do
+              R=$(curl -sS --max-time 300 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
+              ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
+              [ "$ok" = "ok" ] && break
+              sleep $((t * 6))
+            done
+            sleep 0.5
             echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
           done < <(find "$SRC" -type f | sort)
           echo "== enviados: $n | falhas: $falhas"
