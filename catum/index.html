@@ -96,7 +96,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 (() => {
 'use strict';
 const ESC_P = 1.5;          // personagens maiores que a escala do pacote (pedido do Sérgio)
-const ARTE = '/catum/arte/', VA = '?v=7', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=8', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -518,9 +518,11 @@ const MEL = [74,71,69,74,71,69,74,71, 67,71,74,71,67,71,74,0, 76,76,71,74,69,0,6
 const BAIXO = [50,43,45,50,47,43,45,50];        // um por compasso: D G A D Bm G A D
 function bip(tipo, f, t, dur, vol){ const o = AC.createOscillator(), g = AC.createGain(); o.type = tipo; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.setValueAtTime(vol, t + dur * .6); g.gain.linearRampToValueAtTime(0, t + dur); o.connect(g).connect(TEMA.g); o.start(t); o.stop(t + dur + .02); }
 function chiado(t, vol){ const n = AC.sampleRate * .03 | 0, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0); for (let k = 0; k < n; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / n); const s0 = AC.createBufferSource(), g = AC.createGain(); s0.buffer = b; g.gain.value = vol; s0.connect(g).connect(TEMA.g); s0.start(t); }
+let MUS = true; try { MUS = localStorage.getItem('catum_musica') !== '0'; } catch(_){}
 function musica(liga){
   if (!liga) { if (!TEMA.ativo) return; TEMA.ativo = false; clearInterval(TEMA.timer); try { TEMA.g.gain.cancelScheduledValues(AC.currentTime); TEMA.g.gain.setValueAtTime(TEMA.g.gain.value, AC.currentTime); TEMA.g.gain.linearRampToValueAtTime(0, AC.currentTime + 1.4); } catch(_){} return; }
-  acorda(); if (!AC || TEMA.ativo || !SOM) return; TEMA.ativo = true; TEMA.g = AC.createGain(); TEMA.g.gain.value = .0001; TEMA.g.gain.linearRampToValueAtTime(.5, AC.currentTime + .6); TEMA.g.connect(AC.destination); TEMA.i = 0; TEMA.t0 = AC.currentTime + .15;
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state !== 'running') AC.resume(); } catch(_){}
+  if (!AC || TEMA.ativo || !MUS) return; TEMA.ativo = true; TEMA.g = AC.createGain(); TEMA.g.gain.setValueAtTime(.5, AC.currentTime); TEMA.g.connect(AC.destination); TEMA.i = 0; TEMA.t0 = AC.currentTime + .15;
   const toca = () => { if (!TEMA.ativo || AC.state !== 'running') return;
     if (TEMA.t0 < AC.currentTime) TEMA.t0 = AC.currentTime + .05;
     while (TEMA.t0 < AC.currentTime + .35) { const k = TEMA.i % (MEL.length * 2), col = k >> 1, t = TEMA.t0, c = (col / 8) | 0;
@@ -539,10 +541,10 @@ function abertura(forcar){ return new Promise(ok => {
      <div class="abT" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6vh 6vw;gap:2.4vh">
        <canvas class="abBv abPx" aria-label="bem-vindo a" style="width:min(56vw,860px)"></canvas>
        <canvas class="abLogo abPx" aria-label="Catum" style="width:min(86vw,1560px)"></canvas>
-       <canvas id="abToque" class="abPx" aria-label="toque para começar" style="margin-top:4vh;width:min(54vw,640px)"></canvas>
-       <div id="abFim" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:3vh"><button type="button" id="abEntra" class="px" style="font:inherit;font-size:15px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:15px 26px;cursor:pointer;background:#ffe27a">Entrar em Catum</button><button type="button" id="abMorador" class="px" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;cursor:pointer">Experimentar um morador</button><button type="button" id="abSom" class="px" style="font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;cursor:pointer">${SOM ? 'M&uacute;sica ligada' : 'Sem som'}</button></div>
+       <button type="button" id="abToque" aria-label="Começar" style="margin-top:4vh;border:0;background:none;padding:0;cursor:pointer"><canvas class="abPx" style="display:block;width:min(40vw,380px)"></canvas></button>
+       <div id="abFim" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:3vh"><button type="button" id="abEntra" class="px" style="font:inherit;font-size:15px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:15px 26px;cursor:pointer;background:#ffe27a">Entrar em Catum</button><button type="button" id="abMorador" class="px" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;cursor:pointer">Experimentar um morador</button><button type="button" id="abSom" class="px" style="font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;cursor:pointer">${MUS ? 'M&uacute;sica ligada' : 'M&uacute;sica desligada'}</button></div>
      </div>
-     <style>#abre .abPx{height:auto;image-rendering:pixelated;image-rendering:crisp-edges}@keyframes abPisca{0%{opacity:1}100%{opacity:.15}}@keyframes abChega{0%{opacity:0;transform:translateY(14px) scale(.96)}100%{opacity:1;transform:none}}#abre .abBv{animation:abChega .9s .2s both}#abre .abLogo{animation:abChega 1.2s .55s both}#abre #abToque{opacity:0;animation:abChega .6s 1.6s both,abPisca 1.1s 2.2s steps(2,jump-none) infinite}@media(prefers-reduced-motion:reduce){#abre *{animation:none!important;opacity:1!important}}</style>`;
+     <style>#abre .abPx{height:auto;image-rendering:pixelated;image-rendering:crisp-edges}@keyframes abPisca{0%{opacity:1}100%{opacity:.15}}@keyframes abChega{0%{opacity:0;transform:translateY(14px) scale(.96)}100%{opacity:1;transform:none}}#abre .abBv{animation:abChega .9s .2s both}#abre .abLogo{animation:abChega 1.2s .55s both}#abre #abToque{opacity:0;animation:abChega .6s 1.6s both}#abre #abToque:hover canvas,#abre #abToque:focus canvas{filter:brightness(1.12)}#abre #abToque:active canvas{transform:translate(3px,3px)}@media(prefers-reduced-motion:reduce){#abre *{animation:none!important;opacity:1!important}}</style>`;
   document.body.appendChild(d); const v = d.querySelector('video'), fim = d.querySelector('#abFim'), toque = d.querySelector('#abToque'); if (v) v.play().catch(() => {});
   // tudo em pixel: desenha pequeno, corta no limiar (sem suavização) e dá sombra dura em degraus
   const pixela = (cv0, w, h, desenha, cor, somb) => { const t = document.createElement('canvas'); t.width = w; t.height = h; const g = t.getContext('2d', { willReadFrequently: true }); desenha(g, w, h);
@@ -551,14 +553,18 @@ function abertura(forcar){ return new Promise(ok => {
     for (let k = somb; k >= 1; k--) pinta(k, k, k === somb ? '#05080d' : '#12101c'); pinta(1, 0, '#12101c'); pinta(0, 1, '#12101c'); pinta(0, 0, cor); };
   const texto = (cv0, txt, cor) => { const med = document.createElement('canvas').getContext('2d'); med.font = '700 11px ui-monospace,Menlo,Consolas,monospace'; const esp = 3, L = [...txt.toUpperCase()], w = Math.ceil(L.reduce((a, c) => a + med.measureText(c).width + esp, 0)) + 2;
     pixela(cv0, w, 13, g => { g.font = med.font; g.fillStyle = '#fff'; g.textBaseline = 'top'; let x = 1; for (const c of L) { g.fillText(c, Math.round(x), 2); x += med.measureText(c).width + esp; } }, cor, 2); };
-  texto(d.querySelector('.abBv'), 'bem-vindo a', '#fffdf5'); texto(toque, 'toque para começar', '#ffe27a');
+  texto(d.querySelector('.abBv'), 'bem-vindo a', '#fffdf5');
+  { const med = document.createElement('canvas').getContext('2d'); med.font = '700 11px ui-monospace,Menlo,Consolas,monospace'; const L = [...'COMEÇAR'], esp = 3, tw = Math.ceil(L.reduce((a, c) => a + med.measureText(c).width + esp, 0)), w = tw + 22, h = 23, k = toque.querySelector('canvas');      // botão em pixel: placa amarela, borda escura e sombra em degraus
+    k.width = w + 5; k.height = h + 5; const o = k.getContext('2d'); o.fillStyle = '#05080d'; o.fillRect(4, 4, w, h); o.fillStyle = '#12101c'; o.fillRect(2, 2, w, h); o.fillRect(0, 0, w, h); o.fillStyle = '#ffe27a'; o.fillRect(2, 2, w - 4, h - 4); o.fillStyle = '#fff4c2'; o.fillRect(2, 2, w - 4, 2); o.fillStyle = '#e0bb45'; o.fillRect(2, h - 4, w - 4, 2);
+    const t2 = document.createElement('canvas'); t2.width = tw + 2; t2.height = 13; const g = t2.getContext('2d', { willReadFrequently: true }); g.font = med.font; g.fillStyle = '#fff'; g.textBaseline = 'top'; let x = 1; for (const c of L) { g.fillText(c, Math.round(x), 2); x += med.measureText(c).width + esp; }
+    const D = g.getImageData(0, 0, t2.width, 13).data; o.fillStyle = '#12101c'; for (let yy = 0; yy < 13; yy++) for (let xx = 0; xx < t2.width; xx++) if (D[(yy * t2.width + xx) * 4 + 3] > 96) o.fillRect(xx + 11, yy + 5, 1, 1); }
   carregaImg('/assets/nomes/catum-branco.svg').then(im => { const w = 300, h = Math.round(w * (im.naturalHeight || 411.5) / (im.naturalWidth || 1685.9)); pixela(d.querySelector('.abLogo'), w, h, g => g.drawImage(im, 0, 0, w, h), '#fffdf5', 4); }).catch(() => {});
-  let menu = false; const abre = () => { if (menu) return; menu = true; toque.style.display = 'none'; fim.style.display = 'flex'; d.style.cursor = 'default'; musica(true); };
+  d.style.cursor = 'default'; let menu = false; const abre = () => { if (menu) return; menu = true; toque.style.display = 'none'; fim.style.display = 'flex'; musica(true); };
   const tecla0 = e => { if (!document.body.contains(d)) return removeEventListener('keydown', tecla0, true); e.stopPropagation(); if (!menu) { e.preventDefault(); abre(); } else if (e.key === 'Enter') { e.preventDefault(); sai(false); } };
   const sai = morador => { removeEventListener('keydown', tecla0, true); musica(false); d.style.transition = 'opacity .5s'; d.style.opacity = 0; setTimeout(() => d.remove(), 520); ok(); if (morador) setTimeout(abreCfg, 600); };
-  addEventListener('keydown', tecla0, true); d.addEventListener('pointerdown', e => { if (!menu) { e.preventDefault(); abre(); } });
+  addEventListener('keydown', tecla0, true); toque.addEventListener('click', abre); setTimeout(() => { try { toque.focus(); } catch(_){} }, 1800);
   d.querySelector('#abEntra').onclick = () => sai(false); d.querySelector('#abMorador').onclick = () => sai(true);
-  d.querySelector('#abSom').onclick = e => { SOM = !SOM; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} e.currentTarget.innerHTML = SOM ? 'M&uacute;sica ligada' : 'Sem som'; if (SOM) musica(true); else musica(false); }; }); }
+  d.querySelector('#abSom').onclick = e => { MUS = !MUS; try { localStorage.setItem('catum_musica', MUS ? '1' : '0'); } catch(_){} e.currentTarget.innerHTML = MUS ? 'M&uacute;sica ligada' : 'M&uacute;sica desligada'; musica(MUS); }; }); }
 
 /* ---------- a bola da praça: física simples para jogar com quem estiver por perto ---------- */
 const bola = { x: 548, y: 452, vx: 0, vy: 0 };
@@ -708,7 +714,7 @@ async function comeca(){
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; } };
+window.CATUM = { eu, LUG, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>
