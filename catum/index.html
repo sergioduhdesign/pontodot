@@ -54,7 +54,32 @@ body.toque #dica{display:none}
 body.toque #btFala{display:block;right:14px;bottom:14px}body.toque.dir #btFala{right:auto;left:14px}
 body.toque #fala{bottom:auto;top:56px}
 body.toque #lugar{top:98px}
-body.toque #chatP{left:8px!important;right:8px;width:auto!important;bottom:150px!important;height:44vh!important}
+body.toque #chatP{left:8px!important;right:8px;width:auto!important;height:40vh!important}
+#telas{position:fixed;left:12px;top:92px;z-index:6;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;pointer-events:none;max-width:calc(100vw - 80px)}
+#telas .tl{position:relative;width:176px;cursor:pointer;pointer-events:auto;line-height:0}
+#telas .tl video{width:100%;display:block;background:#12101c}
+#telas .tl span{position:absolute;left:0;bottom:0;background:#1d1b2a;color:#fffdf5;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 5px;line-height:1.2}
+#telas .tl.gr{width:min(72vw,760px)}
+body.toque #telas{top:100px;left:8px}body.toque #telas .tl{width:104px}body.toque #telas .tl.gr{width:calc(100vw - 22px)}
+body.deck canvas#c{height:calc(100% - 176px)}
+body.deck #chatP{left:0!important;right:0;width:auto!important;height:176px!important;border-width:3px 0 0;box-shadow:none;padding-left:124px}
+body.deck.dir #chatP{padding-left:0;padding-right:124px}
+body.deck #chatP [data-x],body.deck #btChat{display:none}
+body.deck #chatPA{overflow-x:auto;scrollbar-width:none;padding:5px!important}
+body.deck #chatPL{padding:5px 8px!important;font-size:11px!important;line-height:1.35!important}
+body.deck #chatPT{padding:7px 8px!important}
+body.deck #joy{width:96px;height:96px;left:14px;bottom:40px;z-index:8;background:#e9e3d0}
+body.deck.dir #joy{left:auto;right:14px}
+body.deck #joy i{width:40px;height:40px;margin:-20px 0 0 -20px}
+body.deck #btFala,body.deck #fala{display:none!important}
+body.deck #acao{bottom:186px!important}
+body.deck #zoom{top:calc((100% - 176px)/2)}
+body.toque.deck #card{top:auto;bottom:184px;left:8px;right:8px;width:auto;max-height:30vh;padding:8px}
+body.deck #card:has(#chatLog)>p,body.deck #card:has(#chatLog)>h3,body.deck #card:has(#chatLog)>div:not(.cab):not(.log),body.deck #card:has(#chatLog) details{display:none}
+body.deck #card .cab img{width:44px!important;height:44px!important}
+body.deck #card h2{font-size:12px}
+body.deck #card .log div{font-size:11px;padding:4px 6px}
+body.deck #card form{margin-top:6px}
 body.toque #card{top:136px;bottom:auto;left:12px;right:12px;width:auto;max-height:36vh}
 #cfg{position:fixed;inset:0;z-index:15;display:none;align-items:center;justify-content:center;background:rgba(18,16,28,.6);padding:12px;touch-action:auto}
 #cfg.on{display:flex}
@@ -103,7 +128,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=20', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=21', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -284,10 +309,14 @@ const cv = document.getElementById('c'), cx = cv.getContext('2d');
 let camX = 0, camY = 0, camPronta = false;
 let SC = 3, VW = 0, VH = 0, DPR = 1;
 // o zoom mínimo é o que ainda cobre a tela inteira: nunca aparece margem fora do mapa
-function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 2 : Math.max(2, Math.min(5, VW / 590)); const cobre = CENAS[CENA] && CENAS[CENA].pronta ? Math.max(VW / CENAS[CENA].w, VH / CENAS[CENA].h) : 1; SC = Math.max(Math.ceil(Math.max(1.5, cobre) * DPR - .001), Math.round(base * ZF * DPR)) / DPR; camPronta = false; }     // ampliação inteira, igual para mapa, recortes e personagens
+const DECK_H = 176; let DECK = false;
+function ajusta(){ const tq = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window, retr = typeof orientation === 'number' ? orientation % 180 === 0 : screen.height > screen.width, dk = tq && retr && innerWidth < 700;
+  if (dk !== DECK) { DECK = dk; document.body.classList.toggle('deck', dk); if (dk) setTimeout(() => { try { abreChat(); } catch(_){} }, 0); }
+  { const cp = document.getElementById('chatP'), vv = window.visualViewport, kb = DECK && vv ? Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)) : 0; if (cp) cp.style.bottom = DECK ? kb + 'px' : '54px'; }
+  DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight - (DECK ? DECK_H : 0); cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 2 : Math.max(2, Math.min(5, VW / 590)); const cobre = CENAS[CENA] && CENAS[CENA].pronta ? Math.max(VW / CENAS[CENA].w, VH / CENAS[CENA].h) : 1; SC = Math.max(Math.ceil(Math.max(1.5, cobre) * DPR - .001), Math.round(base * ZF * DPR)) / DPR; camPronta = false; }     // ampliação inteira, igual para mapa, recortes e personagens
 let ZF = 1; try { ZF = Math.max(.4, Math.min(2.4, parseFloat(localStorage.getItem('catum_zf5') || '1') || 1)); } catch(_){}
 function zoom(v){ ZF = Math.max(.4, Math.min(2.4, v)); try { localStorage.setItem('catum_zf5', ZF); } catch(_){} ajusta(); }
-addEventListener('resize', ajusta);
+addEventListener('resize', ajusta); if (window.visualViewport) visualViewport.addEventListener('resize', ajusta);
 
 /* ---------- gente e IAs ---------- */
 const eu = { id:'', nome:'Você', x: 528, y: 440, vel: 0, fase: 0, quadro: 0, alvo:null, anda:false, dir:0, fala:'', falaEm:0, humano:true, sk:null, corpo:'humano' };
@@ -653,24 +682,25 @@ function abreGente(){
 }
 
 /* ---- chat: perto (balão), geral, lugar, avisos e direto ---- */
-const CHAT = { aberto: false, canal: 'perto', logs: { perto: [] }, nomes: {}, novo: 0, falta: false };
+const CHAT = { aberto: false, canal: 'perto', logs: { perto: [] }, nomes: {}, nl: {}, novo: 0, falta: false };
 const chatP = document.createElement('div'); chatP.className = 'px'; chatP.id = 'chatP'; chatP.style.cssText = 'position:fixed;left:12px;bottom:54px;z-index:7;width:min(330px,calc(100vw - 24px));height:min(360px,52vh);display:none;flex-direction:column;-webkit-user-select:text;user-select:text;touch-action:auto'; document.body.appendChild(chatP);
 const canaisFixos = () => EQUIPE ? [['perto', 'Perto'], ['geral', 'Geral'], ['lugar:' + CENA, 'Lugar'], ['avisos', 'Avisos']] : MEU.cli ? [['perto', 'Perto'], ['cli:' + MEU.cli, 'Equipe']] : [['perto', 'Perto']];
 function pintaChatP(){ if (!CHAT.aberto) return; const abas = canaisFixos().concat(Object.keys(CHAT.nomes).map(k => [k, CHAT.nomes[k]])), L = CHAT.logs[CHAT.canal] || [];
-  chatP.innerHTML = `<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px;border-bottom:3px solid #1d1b2a;align-items:center">${abas.map(a => `<button type="button" data-c="${esc(a[0])}" style="${BT};padding:4px 7px;font-size:10px;background:${a[0] === CHAT.canal ? '#ffe27a' : '#fffdf5'}">${esc(a[1])}</button>`).join('')}<button type="button" data-x style="${BT};padding:4px 7px;font-size:10px;background:#fffdf5;margin-left:auto">Fechar</button></div>
-    <div id="chatPL" style="flex:1;overflow-y:auto;padding:8px;font-size:12px;line-height:1.45;scrollbar-width:thin">${L.length ? L.map(m => `<div style="margin:0 0 6px"><b>${esc(m.n)}</b> <span style="opacity:.55;font-size:10px">${esc(m.h || '')}</span><br>${esc(m.t)}</div>`).join('') : `<div style="opacity:.6">${CHAT.canal === 'perto' ? 'O que for dito perto de você aparece aqui.' : CHAT.falta ? 'Este canal ainda não salva: falta rodar o SQL v194.' : 'Nada aqui ainda.'}</div>`}</div>
-    <form id="chatPF" autocomplete="off" style="display:flex;border-top:3px solid #1d1b2a"><input id="chatPT" maxlength="${CHAT.canal === 'perto' ? 90 : 500}" placeholder="${CHAT.canal === 'perto' ? 'Dizer para quem está perto…' : 'Escrever…'}" style="flex:1;min-width:0;border:0;font:inherit;font-size:13px;padding:9px;background:#fff;color:#1d1b2a;outline:0"><button style="${BT};border:0;border-left:3px solid #1d1b2a">Enviar</button></form>`;
-  const pl = chatP.querySelector('#chatPL'); pl.scrollTop = pl.scrollHeight;
-  chatP.onclick = e => { const b = e.target.closest('button[data-c],button[data-x]'); if (!b) return; if (b.hasAttribute('data-x')) { CHAT.aberto = false; chatP.style.display = 'none'; return; } abreChat(b.dataset.c); };
-  chatP.querySelector('#chatPF').onsubmit = e => { e.preventDefault(); const i = chatP.querySelector('#chatPT'), t = i.value.trim(); if (!t) return; i.value = ''; chatEnvia(t); };
+  if (!chatP.querySelector('#chatPL')) { chatP.innerHTML = `<div id="chatPA" style="display:flex;gap:4px;padding:6px;border-bottom:3px solid #1d1b2a;align-items:center;flex:none"></div><div id="chatPL" style="flex:1;min-height:0;overflow-y:auto;padding:8px;font-size:12px;line-height:1.45;scrollbar-width:thin;touch-action:pan-y"></div><form id="chatPF" autocomplete="off" style="display:flex;border-top:3px solid #1d1b2a;flex:none"><input id="chatPT" style="flex:1;min-width:0;border:0;font:inherit;font-size:13px;padding:9px;background:#fff;color:#1d1b2a;outline:0"><button style="${BT};border:0;border-left:3px solid #1d1b2a">Enviar</button></form>`;
+    chatP.onclick = e => { const b = e.target.closest('button[data-c],button[data-x]'); if (!b) return; if (b.hasAttribute('data-x')) { CHAT.aberto = false; chatP.style.display = 'none'; return; } abreChat(b.dataset.c); };
+    chatP.querySelector('#chatPF').onsubmit = e => { e.preventDefault(); const i = chatP.querySelector('#chatPT'), t = i.value.trim(); if (!t) return; i.value = ''; chatEnvia(t); }; }
+  chatP.querySelector('#chatPA').innerHTML = abas.map(a => `<button type="button" data-c="${esc(a[0])}" style="${BT};padding:4px 7px;font-size:10px;white-space:nowrap;flex:none;background:${a[0] === CHAT.canal ? '#ffe27a' : '#fffdf5'}">${esc(a[1])}${CHAT.nl[a[0]] ? ' (' + CHAT.nl[a[0]] + ')' : ''}</button>`).join('') + `<button type="button" data-x style="${BT};padding:4px 7px;font-size:10px;background:#fffdf5;margin-left:auto;flex:none">Fechar</button>`;
+  const pl = chatP.querySelector('#chatPL'), it = chatP.querySelector('#chatPT');
+  pl.innerHTML = L.length ? (DECK ? L.slice(-30).map(m => `<div style="margin:0 0 3px"><b>${esc(m.n)}</b> ${esc(m.t)}</div>`).join('') : L.map(m => `<div style="margin:0 0 6px"><b>${esc(m.n)}</b> <span style="opacity:.55;font-size:10px">${esc(m.h || '')}</span><br>${esc(m.t)}</div>`).join('')) : `<div style="opacity:.6">${CHAT.canal === 'perto' ? 'O que for dito perto de você aparece aqui.' : CHAT.falta ? 'Este canal ainda não salva: falta rodar o SQL v194.' : 'Nada aqui ainda.'}</div>`;
+  pl.scrollTop = pl.scrollHeight; it.maxLength = CHAT.canal === 'perto' ? 90 : 500; it.placeholder = CHAT.canal === 'perto' ? 'Dizer para quem está perto…' : 'Escrever…';
 }
 const horaCurta = d => { try { return new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch(_) { return ''; } };
-async function abreChat(c, nome){ CHAT.aberto = true; CHAT.novo = 0; pintaBtChat(); chatP.style.display = 'flex'; CHAT.canal = c || CHAT.canal; if (nome && CHAT.canal.startsWith('dm:')) CHAT.nomes[CHAT.canal] = nome; pintaChatP(); const k = CHAT.canal;
+async function abreChat(c, nome){ CHAT.aberto = true; CHAT.novo = 0; pintaBtChat(); chatP.style.display = 'flex'; CHAT.canal = c || CHAT.canal; CHAT.nl[CHAT.canal] = 0; if (nome && CHAT.canal.startsWith('dm:')) CHAT.nomes[CHAT.canal] = nome; pintaChatP(); const k = CHAT.canal;
   if (k !== 'perto' && !CHAT.logs[k] && !VIS) { CHAT.logs[k] = [];
     try { const { data, error } = await sb.from('catum_chat').select('id,canal,de,nome,texto,criado_em').eq('canal', k).order('id', { ascending: false }).limit(40); if (error) throw error; CHAT.falta = false; CHAT.logs[k] = (data || []).reverse().map(m => ({ id: m.id, n: m.nome, t: m.texto, h: horaCurta(m.criado_em) })); } catch(_) { CHAT.falta = true; } pintaChatP(); }
-  setTimeout(() => { try { chatP.querySelector('#chatPT').focus(); } catch(_){} }, 60); }
-function chatRecebe(m){ if (!m || !m.canal) return; const k = m.canal, meu = m.de === eu.id; let nova = false; if (k.startsWith('dm:') && !CHAT.nomes[k]) { CHAT.nomes[k] = meu ? 'Direto' : m.nome; nova = true; } const L = CHAT.logs[k] || (CHAT.logs[k] = []); if (L.some(x => x.id === m.id)) return; L.push({ id: m.id, n: m.nome, t: m.texto, h: horaCurta(m.criado_em) }); if (L.length > 80) L.shift();
-  if (CHAT.aberto && CHAT.canal === k) pintaChatP(); else if (!meu) { if (nova && CHAT.aberto) { const i = chatP.querySelector('#chatPT'), v = i ? i.value : ''; pintaChatP(); const j = chatP.querySelector('#chatPT'); if (j) j.value = v; } CHAT.novo++; pintaBtChat(); if (k.startsWith('dm:')) avisa(m.nome + ': ' + String(m.texto).slice(0, 60), 'Abrir', () => abreChat(k, m.nome)); } }
+  if (!DECK) setTimeout(() => { try { chatP.querySelector('#chatPT').focus(); } catch(_){} }, 60); }
+function chatRecebe(m){ if (!m || !m.canal) return; const k = m.canal, meu = m.de === eu.id; if (k.startsWith('dm:') && !CHAT.nomes[k]) CHAT.nomes[k] = meu ? 'Direto' : m.nome; const L = CHAT.logs[k] || (CHAT.logs[k] = []); if (L.some(x => x.id === m.id)) return; L.push({ id: m.id, n: m.nome, t: m.texto, h: horaCurta(m.criado_em) }); if (L.length > 80) L.shift();
+  if (!(CHAT.aberto && CHAT.canal === k) && !meu) { CHAT.nl[k] = (CHAT.nl[k] || 0) + 1; if (!CHAT.aberto) { CHAT.novo++; pintaBtChat(); } if (k.startsWith('dm:')) avisa(m.nome + ': ' + String(m.texto).slice(0, 60), 'Abrir', () => abreChat(k, m.nome)); } pintaChatP(); }
 async function chatEnvia(t){ const k = CHAT.canal;
   if (k === 'perto') { t = t.slice(0, 90); eu.fala = t; eu.falaEm = Date.now(); acorda(); vozinha(eu.id, t); CHAT.logs.perto.push({ n: eu.nome, t, h: horaCurta(Date.now()) }); pintaChatP(); try { canal && canal.send({ type: 'broadcast', event: 'f', payload: { i: eu.id, t } }); } catch(_){} return; }
   try { const { data, error } = await sb.from('catum_chat').insert({ canal: k, nome: eu.nome, texto: t.slice(0, 500) }).select('id,canal,de,nome,texto,criado_em').single(); if (error) throw error; chatRecebe(data); } catch(_) { CHAT.falta = true; avisa(k === 'avisos' ? 'Só o admin publica em Avisos.' : 'Não enviou: falta rodar o SQL v194.'); pintaChatP(); } }
@@ -709,9 +739,62 @@ function abreAgenda(){
 function ferramentas(){        // botões do topo e cargas iniciais
   const hud = document.getElementById('hud'), g = document.getElementById('gente'); if (g) { g.style.cursor = 'pointer'; g.onclick = abreGente; }
   const bt = (rot, fn) => { const b = document.createElement('button'); b.className = 'px'; b.type = 'button'; b.textContent = rot; b.onclick = fn; hud.insertBefore(b, document.getElementById('xp') || null); return b; };
-  btChat = bt('Chat', () => CHAT.aberto ? (CHAT.aberto = false, chatP.style.display = 'none') : abreChat()); bt('Reagir', abreReacoes); if (EQUIPE) bt('Agenda', () => { carregaAgenda().then(abreAgenda); }); if (document.body.classList.contains('toque')) bt('Gente', abreGente);
+  btChat = bt('Chat', () => CHAT.aberto ? (CHAT.aberto = false, chatP.style.display = 'none') : abreChat()); btChat.id = 'btChat'; bt('Reagir', abreReacoes); if (RTC.ok) { btCham = bt('Chamada', abreChamada); setInterval(rtcTick, 500); } if (EQUIPE) bt('Agenda', () => { carregaAgenda().then(abreAgenda); }); if (document.body.classList.contains('toque')) bt('Gente', abreGente);
   if (EQUIPE) { carregaMesas(); carregaRecados(); carregaAgenda(); setInterval(() => { if (!document.hidden) carregaAgenda(); }, 60000); }
 }
+
+/* ============================================================
+   CHAMADA POR PROXIMIDADE (WebRTC par a par, sinal pelo canal ao vivo):
+   microfone, câmera, tela, palco (falar para o lugar todo) e conversa trancada.
+   ============================================================ */
+const RTC = { ok: !!(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia), mic: null, cam: null, tela: null, palco: false, tk: '', pcs: new Map(), sA: null, sB: null };
+try { if (RTC.ok) { RTC.sA = new MediaStream(); RTC.sB = new MediaStream(); } } catch(_) { RTC.ok = false; }
+const ICE = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }] };
+const mdBits = () => (RTC.mic ? 1 : 0) | (RTC.cam ? 2 : 0) | (RTC.tela ? 4 : 0) | (RTC.palco ? 8 : 0);
+let btCham = null;
+const telas = document.createElement('div'); telas.id = 'telas'; document.body.appendChild(telas);
+function rtcTile(nome, st, meu){ const d = document.createElement('div'); d.className = 'px tl'; d.style.display = 'none'; const v = document.createElement('video'); v.autoplay = true; v.playsInline = true; v.muted = !!meu; v.srcObject = st; const n = document.createElement('span'); n.textContent = nome; d.appendChild(v); d.appendChild(n); telas.appendChild(d);
+  d.onclick = () => d.classList.toggle('gr'); d.v = v;
+  d.atualiza = () => { const tem = st.getVideoTracks().some(t => t.readyState === 'live' && !t.muted); d.style.display = tem ? 'block' : 'none'; if (!tem) d.classList.remove('gr'); try { const p = v.play(); p && p.catch(() => {}); } catch(_){} };
+  return d; }
+let tileEu = null;
+function pintaEu(){ if (tileEu) { tileEu.remove(); tileEu = null; } if (RTC.cam) { tileEu = rtcTile('Você', new MediaStream([RTC.cam]), true); tileEu.atualiza(); } }
+const rtcManda = (to, d) => manda('rtc', { to, d });
+function rtcLiga(o, raio){ if (!o || (o.r || 'bairro') !== CENA) return false; if (!((mdBits() & 7) || ((o.md || 0) & 7))) return false; if (((o.md || 0) & 8) || RTC.palco) return true; if ((o.tk || '') !== RTC.tk) return false; return dist(o.x, o.y, eu.x, eu.y) < (raio || 180); }
+function rtcSinc(p){ const quer = { mic: [RTC.mic, RTC.sA], cam: [RTC.cam, RTC.sA], tela: [RTC.tela, RTC.sB] };
+  for (const k in quer) { const tr = quer[k][0], sn = p.snd[k]; try { if (tr && !sn) p.snd[k] = p.pc.addTrack(tr, quer[k][1]); else if (!tr && sn) { p.pc.removeTrack(sn); p.snd[k] = null; } else if (tr && sn && sn.track !== tr) sn.replaceTrack(tr); } catch(_){} } }
+function rtcPar(id){ let p = RTC.pcs.get(id); if (p) return p; const pc = new RTCPeerConnection(ICE); p = { id, pc, snd: {}, educado: eu.id > id, fazendo: false, ignora: false, els: {}, longe: 0 }; RTC.pcs.set(id, p);
+  pc.onicecandidate = e => { if (e.candidate) rtcManda(id, { c: e.candidate.toJSON() }); };
+  pc.onnegotiationneeded = async () => { try { p.fazendo = true; await pc.setLocalDescription(); rtcManda(id, { s: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); } catch(_){} finally { p.fazendo = false; } };
+  pc.ontrack = e => { const st = e.streams[0]; if (!st) return; let el = p.els[st.id]; if (!el) { const o = outros.get(id); el = p.els[st.id] = rtcTile(o ? o.nome : 'Alguém', st, false); st.onremovetrack = () => el.atualiza(); st.onaddtrack = () => el.atualiza(); } e.track.onmute = e.track.onunmute = e.track.onended = () => el.atualiza(); el.atualiza(); };
+  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') { if (!p.avisou) { p.avisou = 1; const o = outros.get(id); avisa('A chamada com ' + (o ? o.nome : 'a pessoa') + ' não conectou nesta rede.'); } rtcFecha(id); } else if (pc.connectionState === 'closed') rtcFecha(id, true); };
+  rtcSinc(p); return p; }
+function rtcFecha(id, quieto){ const p = RTC.pcs.get(id); if (!p) return; RTC.pcs.delete(id); try { p.pc.onconnectionstatechange = null; p.pc.close(); } catch(_){} for (const k in p.els) p.els[k].remove(); if (!quieto) rtcManda(id, { bye: 1 }); }
+async function rtcSinal(m){ if (!m || m.to !== eu.id || !RTC.ok || !m.d) return; const id = m.i, d = m.d; if (d.bye) return rtcFecha(id, true); const o = outros.get(id); if (!rtcLiga(o, 280)) return; const p = rtcPar(id), pc = p.pc;
+  try { if (d.s) { const bate = d.s.type === 'offer' && (p.fazendo || pc.signalingState !== 'stable'); p.ignora = !p.educado && bate; if (p.ignora) return; await pc.setRemoteDescription(d.s); if (d.s.type === 'offer') { await pc.setLocalDescription(); rtcManda(id, { s: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); } }
+    else if (d.c) { try { await pc.addIceCandidate(d.c); } catch(e) { if (!p.ignora) throw e; } } } catch(_){} }
+function rtcTick(){ if (!RTC.ok || VIS) return; const agora = Date.now(); let grupo = false;
+  outros.forEach(o => { const p = RTC.pcs.get(o.id); if (RTC.tk && (o.tk || '') === RTC.tk && (o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 320) grupo = true;
+    if (rtcLiga(o, p ? 230 : 180)) { if (!p) rtcPar(o.id); else p.longe = 0; } else if (p) { p.longe = p.longe || agora; if (agora - p.longe > 1500) rtcFecha(o.id); } });
+  RTC.pcs.forEach((p, id) => { const o = outros.get(id); if (!o) return rtcFecha(id, true); const v = ((o.md || 0) & 8) ? 1 : Math.max(0, Math.min(1, 1 - (dist(o.x, o.y, eu.x, eu.y) - 70) / 140)); for (const k in p.els) { try { p.els[k].v.volume = v; p.els[k].v.muted = v < .03; } catch(_){} } });
+  if (RTC.tk && !grupo) { if (!RTC.tkSo) RTC.tkSo = agora; else if (agora - RTC.tkSo > 4000) { RTC.tk = ''; RTC.tkSo = 0; rtcMudou(); avisa('Você saiu da conversa trancada.'); } } else RTC.tkSo = 0; }
+function rtcMudou(){ RTC.pcs.forEach(rtcSinc); try { canal && pronto && canal.track(meuRastro()); } catch(_){} pintaEu(); if (btCham) { const b = mdBits(); btCham.textContent = 'Chamada' + (b & 7 ? ' · ' + [b & 1 ? 'mic' : '', b & 2 ? 'cam' : '', b & 4 ? 'tela' : ''].filter(Boolean).join(' ') : ''); btCham.style.background = b & 7 ? '#ffe27a' : ''; } rtcTick(); if (cfgCx.querySelector('[data-rtc]')) abreChamada(); }
+async function rtcMic(on){ if (on && !RTC.mic) { try { const st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); RTC.mic = st.getAudioTracks()[0]; } catch(_) { return avisa('O navegador não liberou o microfone.'); } } else if (!on && RTC.mic) { RTC.mic.stop(); RTC.mic = null; RTC.palco = false; } rtcMudou(); }
+async function rtcCam(on){ if (on && !RTC.cam) { try { const st = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 }, facingMode: 'user' } }); RTC.cam = st.getVideoTracks()[0]; } catch(_) { return avisa('O navegador não liberou a câmera.'); } } else if (!on && RTC.cam) { RTC.cam.stop(); RTC.cam = null; } rtcMudou(); }
+async function rtcTela(on){ if (on && !RTC.tela) { try { const st = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10 } }, audio: false }); RTC.tela = st.getVideoTracks()[0]; RTC.tela.onended = () => rtcTela(false); } catch(_) { return; } } else if (!on && RTC.tela) { try { RTC.tela.onended = null; RTC.tela.stop(); } catch(_){} RTC.tela = null; } rtcMudou(); }
+async function rtcPalco(on){ if (on && !RTC.mic) await rtcMic(true); if (on && !RTC.mic) return; RTC.palco = !!on; if (on) avisa('Você está falando para todos em ' + nomeCena(CENA) + '.'); rtcMudou(); }
+function rtcTranca(on){ if (on) { const ids = []; outros.forEach(o => { if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 180) ids.push(o.id); }); if (!ids.length) return avisa('Ninguém perto para trancar a conversa.'); RTC.tk = eu.id; manda('tk', { g: RTC.tk, ids }); avisa('Conversa trancada com ' + ids.length + (ids.length === 1 ? ' pessoa.' : ' pessoas.') + ' Quem está fora não ouve.'); } else { const g = RTC.tk; RTC.tk = ''; if (g === eu.id) manda('tk', { g, off: 1 }); } rtcMudou(); }
+function rtcTrancaChegou(p){ if (!p || !p.g) return; if (p.off) { if (RTC.tk === p.g) { RTC.tk = ''; rtcMudou(); avisa('A conversa foi destrancada.'); } return; } const o = outros.get(p.i); if (!o || !Array.isArray(p.ids) || !p.ids.includes(eu.id) || p.g !== p.i || (o.r || 'bairro') !== CENA || dist(o.x, o.y, eu.x, eu.y) > 280) return; RTC.tk = p.g; rtcMudou(); avisa(o.nome + ' trancou a conversa com você. Quem está fora não ouve.', 'Sair', () => rtcTranca(false)); }
+function abreChamada(){ const on = v => v ? 'on' : '', perto = [...RTC.pcs.keys()].map(id => (outros.get(id) || {}).nome).filter(Boolean);
+  cfgCx.innerHTML = `<div class="topo" data-rtc><h2>Chamada</h2><button type="button" data-fecha>Fechar</button></div>
+    <div class="lin"><button type="button" class="${on(RTC.mic)}" data-k="mic">Microfone</button><button type="button" class="${on(RTC.cam)}" data-k="cam">Câmera</button>${navigator.mediaDevices.getDisplayMedia ? `<button type="button" class="${on(RTC.tela)}" data-k="tela">Compartilhar tela</button>` : ''}</div>
+    <p>Funciona por proximidade: quem chega perto de você ouve e vê; quem se afasta, some. O volume cai com a distância.</p>
+    <h3>Falar para todos</h3><div class="lin"><button type="button" class="${on(RTC.palco)}" data-k="palco">${RTC.palco ? 'No palco' : 'Subir ao palco'}</button></div><p>No palco, todo mundo que está neste lugar ouve você, de perto ou de longe.</p>
+    <h3>Conversa trancada</h3><div class="lin"><button type="button" class="${on(RTC.tk)}" data-k="tk">${RTC.tk ? 'Destrancar' : 'Trancar com quem está perto'}</button></div><p>Trancada, só quem estava perto na hora ouve, vê e lê o que é dito. Quem passa não escuta.</p>
+    <h3>Ligado agora</h3><p style="opacity:1">${perto.length ? esc(perto.join(', ')) : 'Ninguém. Ligue o microfone e chegue perto de alguém.'}</p>`;
+  cfgCx.oninput = null; cfgCx.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.hasAttribute('data-fecha')) return cfgEl.classList.remove('on'); const k = b.dataset.k;
+    if (k === 'mic') rtcMic(!RTC.mic); else if (k === 'cam') rtcCam(!RTC.cam); else if (k === 'tela') rtcTela(!RTC.tela); else if (k === 'palco') rtcPalco(!RTC.palco); else if (k === 'tk') rtcTranca(!RTC.tk); };
+  cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; }
 
 /* ---------- trilha 8 bits: tema em ré maior montado a partir do motivo (ré–si–lá) e do andamento da trilha dos vídeos de intro do site ---------- */
 const TEMA = { passo: .1625, ativo: false, timer: 0, i: 0, t0: 0, g: null };
@@ -1014,7 +1097,7 @@ function quadro(t){
   C.pass.forEach(s => { if (s.meio !== meuMeio) return; [s.de, s.para].forEach(a => { if (dist(a[0], a[1], eu.x, eu.y) < 120) etiqueta(s.tipo.toUpperCase(), a[0], a[1] - 8, 'rgba(29,27,42,.82)', '#a5e2d6', 9); }); });
   if (!SIMPLES) sts.forEach(s => { if (dist(s.x, s.y, eu.x, eu.y) < (CENA === 'regiao' ? 300 : 90)) etiqueta(s.e.rotulo.toUpperCase(), s.x, s.y - 9, 'rgba(29,27,42,.82)', '#ffe27a', 9); });
   vis.forEach(n => { etiqueta(n.nome, n.x, n.y - altura(n), n === pertoN ? '#ffe27a' : 'rgba(29,27,42,.78)', n === pertoN ? '#1d1b2a' : '#fff', 9); if (n.fala && agora - n.falaEm < 9000) balao(n.fala.length > 64 ? n.fala.slice(0, 62) + '…' : n.fala, n.x, n.y - altura(n) - 6); });
-  gente.forEach(o => { etiqueta(o.nome + (o.st && dist(o.x, o.y, eu.x, eu.y) < 140 ? ' · ' + o.st : ''), o.x, o.y - altura(o), DISP[o.dv || 0][1], '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
+  gente.forEach(o => { etiqueta(o.nome + ((o.md || 0) & 8 ? ' · no palco' : o.tk ? ' · trancada' : o.st && dist(o.x, o.y, eu.x, eu.y) < 140 ? ' · ' + o.st : ''), o.x, o.y - altura(o), DISP[o.dv || 0][1], '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
   [...gente, eu].forEach(o => { if (o.emo && agora - o.emo.em < 2600 && o.emo.t) etiqueta(o.emo.t, o.x, o.y - altura(o) - 14 - Math.min(8, (agora - o.emo.em) / 60), '#ea278f', '#fff', 13); });
   if (CENA === 'escritorio') MESAS.forEach(m => { if (dist(m.x, m.y, eu.x, eu.y) < 130) etiqueta('MESA · ' + String(m.nome).toUpperCase(), m.x, m.y - 28, 'rgba(29,27,42,.82)', '#fffdf5', 9); });
   etiqueta(eu.nome, eu.x, eu.y - altura(eu), '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - altura(eu) - 6);
@@ -1031,21 +1114,23 @@ function quadro(t){
 
 /* ---------- ao vivo (Supabase Realtime) ---------- */
 let canal = null, pronto = false;
-const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, m: MESA, ss: SESSAO && SESSAO.meu ? SESSAO.t0 : 0, st: ST.txt, dv: ST.dv, fn: MEU.fn });
+const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, m: MESA, ss: SESSAO && SESSAO.meu ? SESSAO.t0 : 0, st: ST.txt, dv: ST.dv, fn: MEU.fn, md: mdBits(), tk: RTC.tk });
 function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
 function liga(){
   canal = sb.channel(EQUIPE ? 'catum-v3' : 'catum-v3-c-' + (MEU.cli || eu.id), { config: { presence: { key: eu.id }, broadcast: { self: false } } });
   canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
       let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: +p.x || 528, y: +p.y || 440, tx: +p.x || 528, ty: +p.y || 440, fala: '', falaEm: 0, anda: false, dir: 0, humano: true, sk: null, r: String(p.r || 'bairro') }; outros.set(p.i, o); }
-      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); o.corpo = NPC_IDS.includes(p.c) ? p.c : 'humano'; if (o.corpo !== 'humano') folha(o.corpo); o.m = String(p.m || '').slice(0, 40); o.st = String(p.st || '').slice(0, 40); o.dv = [0, 1, 2].includes(p.dv) ? p.dv : 0; o.fn = String(p.fn || '').slice(0, 30); if (+p.ss > 0 && !SESSAO) SESSAO = { t0: +p.ss, por: o.nome, meu: false }; });
+      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); o.corpo = NPC_IDS.includes(p.c) ? p.c : 'humano'; if (o.corpo !== 'humano') folha(o.corpo); o.m = String(p.m || '').slice(0, 40); o.st = String(p.st || '').slice(0, 40); o.dv = [0, 1, 2].includes(p.dv) ? p.dv : 0; o.fn = String(p.fn || '').slice(0, 30); { const md = (+p.md || 0) & 15; if ((md & 8) && !((o.md || 0) & 8) && String(p.r || 'bairro') === CENA) avisa(o.nome + ' está falando para todos.'); o.md = md; o.tk = String(p.tk || '').slice(0, 40); } if (+p.ss > 0 && !SESSAO) SESSAO = { t0: +p.ss, por: o.nome, meu: false }; });
     pintaMesa();
     [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
   canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { const r = String(p.r || 'bairro'); o.tx = Math.max(0, Math.min(2000, +p.x)); o.ty = Math.max(0, Math.min(1400, +p.y)); if ([0, 1, 2, 3].includes(p.d)) o.dir = p.d; if (r !== o.r) { o.r = r; o.x = o.tx; o.y = o.ty; } } });
-  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 160) { vozinha(o.id, o.fala); CHAT.logs.perto.push({ n: o.nome, t: o.fala, h: horaCurta(Date.now()) }); if (CHAT.logs.perto.length > 60) CHAT.logs.perto.shift(); if (CHAT.aberto && CHAT.canal === 'perto') pintaChatP(); } } });
+  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.tk || '') !== RTC.tk) { o.fala = ''; return; } if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 160) { vozinha(o.id, o.fala); CHAT.logs.perto.push({ n: o.nome, t: o.fala, h: horaCurta(Date.now()) }); if (CHAT.logs.perto.length > 60) CHAT.logs.perto.shift(); if (CHAT.aberto && CHAT.canal === 'perto') pintaChatP(); } } });
   canal.on('broadcast', { event: 'e' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) reage(o, String(p.k || '')); });
   canal.on('broadcast', { event: 'w' }, ({ payload: p }) => { if (!p || p.to !== eu.id || ST.dv === 2) return; const o = outros.get(p.i); avisa((o ? o.nome : String(p.n || 'Alguém')) + ' acenou para você.', 'Ir até', () => seguir(p.i, true)); vozinha(p.i, 'oi oi'); });
   canal.on('broadcast', { event: 'a' }, () => { carregaAgenda(); });
+  canal.on('broadcast', { event: 'rtc' }, ({ payload: p }) => { rtcSinal(p); });
+  canal.on('broadcast', { event: 'tk' }, ({ payload: p }) => { rtcTrancaChegou(p); });
   try { canal.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'catum_chat' }, ({ new: m }) => chatRecebe(m)); } catch(_){}
   canal.on('broadcast', { event: 's' }, ({ payload: p }) => { if (!p) return; if (+p.t0 > 0) SESSAO = { t0: +p.t0, por: String(p.n || 'alguém').slice(0, 18), meu: false }; else SESSAO = null; sessaoFechei = 0; });
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
@@ -1066,11 +1151,11 @@ async function comeca(){
   NPC_IDS.concat(Object.keys(LOCAIS)).forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
   carregaEscola(); setInterval(() => { if (!document.hidden) carregaEscola(); }, 300000);
-  if (!VIS) { try { liga(); } catch(e){ console.warn('ao vivo fora:', e); } try { ferramentas(); } catch(e){ console.warn(e); } }
+  if (!VIS) { try { liga(); } catch(e){ console.warn('ao vivo fora:', e); } try { ferramentas(); } catch(e){ console.warn(e); } } if (DECK) abreChat();
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, outros, reagir, abreGente, abreChat, abreAgenda, get equipe(){ return EQUIPE; }, get chat(){ return CHAT; }, get clima(){ return CLIMA; }, set clima(i){ CLIMA = { i, nome: CLIMAS[i], t: 24, fixo: true }; }, get vis(){ return VIS; }, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
+window.CATUM = { eu, LUG, RTC, rtcMic, rtcCam, rtcPalco, rtcTranca, abreChamada, get deck(){ return DECK; }, outros, reagir, abreGente, abreChat, abreAgenda, get equipe(){ return EQUIPE; }, get chat(){ return CHAT; }, get clima(){ return CLIMA; }, set clima(i){ CLIMA = { i, nome: CLIMAS[i], t: 24, fixo: true }; }, get vis(){ return VIS; }, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>
