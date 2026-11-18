@@ -649,9 +649,10 @@ function abreMapa(){
     if (t === k) { const r = k.getBoundingClientRect(), mx = (ev.clientX - r.left) / e, my = (ev.clientY - r.top) / e; let m = null, md = 90; LUG.forEach(L => { if (!L.porta) return; const q = dist(mx, my, L.porta[0], L.porta[1] - 20); if (q < md) { md = q; m = L; } }); if (m) pe(m); } };
   cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false;
 }
-function foto(){ try { cv.toBlob(async bl => { if (!bl) return; const nome = 'catum-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.png', arq = new File([bl], nome, { type: 'image/png' });
-    if (document.body.classList.contains('toque') && navigator.canShare && navigator.canShare({ files: [arq] })) { try { await navigator.share({ files: [arq] }); return; } catch(_){} }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = nome; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }, 'image/png'); } catch(e) { console.warn(e); } }
+function foto(){ try { cv.toBlob(bl => { if (!bl) return; const nome = 'catum-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.png', arq = new File([bl], nome, { type: 'image/png' }), url = URL.createObjectURL(bl), pode = !!(navigator.canShare && navigator.canShare({ files: [arq] }));
+    cfgCx.innerHTML = `<div class="topo"><h2>Foto</h2>${pode ? '<button type="button" data-envia>Compartilhar</button>' : ''}<a href="${url}" download="${nome}" style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;color:#1d1b2a;text-decoration:none">Baixar</a><button type="button" data-fecha>Fechar</button></div><img src="${url}" alt="Foto de Catum" style="display:block;width:100%;border:3px solid #1d1b2a;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto"><p>No celular, tamb&eacute;m d&aacute; para segurar o dedo na imagem e salvar.</p>`;
+    cfgCx.oninput = null; cfgCx.onclick = e => { if (e.target.closest('[data-fecha]')) cfgEl.classList.remove('on'); else if (e.target.closest('[data-envia]')) navigator.share({ files: [arq] }).catch(() => {}); };
+    cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; }, 'image/png'); } catch(e) { console.warn(e); } }
 document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; document.getElementById('btMenos').onclick = () => zoom(-1); document.getElementById('btMais').onclick = () => zoom(1);
 
 /* ---------- desenho ---------- */
