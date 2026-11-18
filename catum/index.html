@@ -45,7 +45,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rende
 #porta h1{font-size:22px;letter-spacing:.3em;text-transform:uppercase}
 #porta p{font-size:12px;opacity:.7;max-width:320px;line-height:1.5}
 #porta a{color:#ffe27a}
-@media(max-width:700px){#dica{display:none}#hCatum,#gente,#xp{display:none}#hud{gap:5px;left:8px;top:8px}#hud a,#hud div,#hud button{padding:6px 7px;font-size:10px}}
+@media(max-width:700px){#dica{display:none}#hCatum,#gente,#xp,#hora{display:none}#hud{gap:5px;left:8px;top:8px}#hud a,#hud div,#hud button{padding:6px 7px;font-size:10px}}
 #card textarea{width:100%}
 #joy{position:fixed;bottom:24px;left:24px;width:116px;height:116px;border-radius:50%;background:rgba(255,253,245,.5);border:3px solid #1d1b2a;z-index:6;display:none;touch-action:none}
 #joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:#1d1b2a;border:3px solid #fffdf5;pointer-events:none}
@@ -101,7 +101,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=12', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=13', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -127,6 +127,7 @@ const LOCAIS = { duna:'Duna', lume:'Lume', jaci:'Jaci', lito:'Lito' };       // 
 // cada corpo tem o seu meio: chão, água ou ar (do pacote)
 const MEIOS = { oru:'agua', muru:'agua', nami:'agua', sumi:'agua', sago:'agua', koda:'voo', lume:'voo' }, TRES = ['chao','agua','voo'];
 const PERFIS = { passo:[62,17], pesado:[40,17], trote:[72,16], aderencia:[51,14], serpente:[57,24], caranguejo:[52,15], salto:[67,19], arraia:[68,30], asas:[83,24], polvo:[45,20], lula:[62,24], cetaceo:[76,32] };      // [velocidade px/s, passada px]
+const EA = 2;          // os personagens são desenhados em 2x inteiro: o pixel deles fica do tamanho do pixel aparente do cenário
 let ATOR = {};       // atores.json: quadro, âncora, altura e tipo de movimento de cada corpo
 
 /* ---------- motor de movimento do pacote: contato por pixel, passada pela distância andada ---------- */
@@ -176,7 +177,9 @@ async function cena(id){
       const agua = (x, y) => { const i = 4 * (y * c.w + x), r = D[i], gg = D[i + 1], b = D[i + 2]; return gg > 75 && b > 60 && gg > r * 1.65 && b > r * 1.55 && Math.abs(gg - b) < 65; };
       let seed = 7319; const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }; c.agua = [];
       for (let n = 0; n < 16000 && c.agua.length < 90; n++) { const x = 8 + Math.floor(rnd() * (c.w - 16)), y = 6 + Math.floor(rnd() * (c.h - 12)); if ([[0,0],[-4,0],[4,0],[0,-2],[0,2]].every(([dx, dy]) => agua(x + dx, y + dy))) c.agua.push({ x, y, f: rnd() * 6.28, n: 2 + Math.floor(rnd() * 4) }); }
-      k2.width = 1; } catch(_) { c.agua = []; }
+      const cel = new Map(); for (let y = 2; y < c.h - 2; y += 2) for (let x = 2; x < c.w - 2; x += 2) { const i = 4 * (y * c.w + x), r = D[i], gg = D[i + 1], b = D[i + 2]; if (r > 244 && gg > 208 && b > 90 && b < 190 && r - b > 62) { const k = (x >> 4) + ',' + (y >> 4), q = cel.get(k) || [0, 0, 0]; q[0] += x; q[1] += y; q[2]++; cel.set(k, q); } }
+      c.luz = [...cel.values()].filter(q => q[2] >= 5).sort((a, b) => b[2] - a[2]).slice(0, 90).map(q => ({ x: Math.round(q[0] / q[2]), y: Math.round(q[1] / q[2]), f: (q[0] * 7 + q[1]) % 6.28, r: Math.min(46, 22 + q[2]) }));
+      k2.width = 1; } catch(_) { c.agua = []; c.luz = []; }
     c.pronta = true; return c;
   })();
   return c.p;
@@ -263,9 +266,9 @@ function sugerePeloAvatar(src){ return new Promise(ok => { if (!src) return ok(n
 const cv = document.getElementById('c'), cx = cv.getContext('2d');
 let camX = 0, camY = 0, camPronta = false;
 let SC = 3, VW = 0, VH = 0, DPR = 1;
-function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 4 : Math.max(4, Math.min(7, Math.round(VW / 260))); SC = Math.max(2, Math.round(base * ZF * DPR)) / DPR; camPronta = false; }     // ampliação inteira, igual para mapa, recortes e personagens
-let ZF = 1; try { ZF = Math.max(.4, Math.min(2, parseFloat(localStorage.getItem('catum_zf3') || '1') || 1)); } catch(_){}
-function zoom(v){ ZF = Math.max(.4, Math.min(2, v)); try { localStorage.setItem('catum_zf3', ZF); } catch(_){} ajusta(); }
+function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 2.5 : Math.max(2, Math.min(5, Math.round(VW / 430))); SC = Math.max(2, Math.round(base * ZF * DPR)) / DPR; camPronta = false; }     // ampliação inteira, igual para mapa, recortes e personagens
+let ZF = 1; try { ZF = Math.max(.4, Math.min(2.4, parseFloat(localStorage.getItem('catum_zf4') || '1') || 1)); } catch(_){}
+function zoom(v){ ZF = Math.max(.4, Math.min(2.4, v)); try { localStorage.setItem('catum_zf4', ZF); } catch(_){} ajusta(); }
 addEventListener('resize', ajusta);
 
 /* ---------- gente e IAs ---------- */
@@ -699,17 +702,36 @@ function foto(){ try { cv.toBlob(bl => { if (!bl) return; const nome = 'catum-' 
     cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; }, 'image/png'); } catch(e) { console.warn(e); } }
 document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; { const zr = document.getElementById('zoomR'); zr.value = Math.round(ZF * 100); zr.oninput = () => zoom(zr.value / 100); zr.onchange = () => zr.blur(); }
 
+/* ---------- o dia de Catum: 24 minutos de relógio para um dia inteiro, igual para todo mundo ---------- */
+const DIA_MS = 24 * 60000, CHAVES = [[0, [122, 132, 212], .9], [4.6, [122, 132, 212], .9], [6, [255, 206, 186], .35], [7.6, [255, 246, 232], 0], [10, [255, 255, 255], 0], [15.5, [255, 255, 255], 0], [17.2, [255, 226, 178], .12], [18.6, [248, 192, 170], .45], [19.8, [170, 150, 214], .8], [21, [122, 132, 212], .9], [24, [122, 132, 212], .9]];
+const horaCatum = () => ((Date.now() % DIA_MS) / DIA_MS * 24 + 7) % 24;        // o ciclo é amarrado ao relógio: quem entra junto vê a mesma hora
+function ceu(h){ let i = 0; while (i < CHAVES.length - 2 && h >= CHAVES[i + 1][0]) i++; const a = CHAVES[i], b = CHAVES[i + 1], f = Math.max(0, Math.min(1, (h - a[0]) / (b[0] - a[0]))); return { cor: a[1].map((v, k) => Math.round(v + (b[1][k] - v) * f)), noite: a[2] + (b[2] - a[2]) * f }; }
+let BRILHO = null; function brilho(){ if (BRILHO) return BRILHO; const k = document.createElement('canvas'); k.width = k.height = 64; const g = k.getContext('2d'), gr2 = g.createRadialGradient(32, 32, 1, 32, 32, 32); gr2.addColorStop(0, 'rgba(255,214,130,.85)'); gr2.addColorStop(.35, 'rgba(255,170,80,.35)'); gr2.addColorStop(1, 'rgba(255,150,60,0)'); g.fillStyle = gr2; g.fillRect(0, 0, 64, 64); return (BRILHO = k); }
+const horaEl = document.createElement('span'); horaEl.className = 'px'; horaEl.id = 'hora'; { const hud = document.getElementById('hud'); if (hud) hud.appendChild(horaEl); }
+function luzDoDia(t, k, ox, oy){
+  const h = horaCatum(), c = ceu(h), vw = VW / SC, vh = VH / SC;
+  // sombras de nuvem passando (de dia) e vaga-lumes (de noite)
+  if (!CALMO && c.noite < .6) { cx.fillStyle = 'rgba(30,34,80,' + (.085 * (1 - c.noite)).toFixed(3) + ')'; for (let i = 0; i < 4; i++) { const x = ((t * .006 * (1 + i * .3) + i * 431) % (C.w + 500)) - 250, y = (i * 263 + 90) % Math.max(200, C.h); cx.beginPath(); cx.ellipse(Math.round(x), Math.round(y), 130 + i * 28, 46 + i * 9, 0, 0, 6.3); cx.fill(); } }
+  // a cor do céu por cima de tudo (multiplica): manhã clara, tarde dourada, crepúsculo rosado, noite azul
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = 'multiply'; cx.fillStyle = 'rgb(' + c.cor.join(',') + ')'; cx.fillRect(0, 0, cv.width, cv.height); cx.globalCompositeOperation = 'source-over';
+  if (c.noite > .04) { cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.globalCompositeOperation = 'screen'; const B = brilho();
+    for (const l of (C.luz || [])) { if (l.x < ox - 50 || l.y < oy - 50 || l.x > ox + vw + 50 || l.y > oy + vh + 50) continue; const r = l.r * (1 + (CALMO ? 0 : .06 * Math.sin(t * .004 + l.f))); cx.globalAlpha = c.noite * .62; cx.drawImage(B, l.x - r, l.y - r, r * 2, r * 2); }
+    cx.globalAlpha = c.noite * .28; cx.drawImage(B, eu.x - 44, eu.y - 62, 88, 88);       // uma luzinha comigo, para eu não sumir no escuro
+    if (!CALMO && c.noite > .5) { cx.globalAlpha = 1; cx.fillStyle = '#fff3a8'; for (let i = 0; i < 26; i++) { const bx = (i * 197.3) % C.w, by = (i * 331.7) % C.h, x = bx + Math.sin(t * .0007 + i) * 22, y = by + Math.cos(t * .0009 + i * 2) * 14; if (x < ox || y < oy || x > ox + vw || y > oy + vh) continue; if (Math.sin(t * .003 + i * 1.7) > .2) cx.fillRect(Math.round(x), Math.round(y), 2, 2); } }
+    cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; }
+  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 10) * 10, tx = (h >= 5.5 && h < 17.5 ? 'Dia' : h >= 17.5 && h < 20 ? 'Entardecer' : h >= 20 || h < 4.6 ? 'Noite' : 'Amanhecer') + ' ' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); if (horaEl.textContent !== tx) horaEl.textContent = tx;
+}
 const CALMO = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_) { return false; } })();
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
 function boneco(e, t){
   const at = atlas(e), x = Math.round(e.x), y = Math.round(e.y), m = meioDe(e);
   if (e !== eu) { const d = e._px == null ? 0 : dist(e.x, e.y, e._px, e._py); e._px = e.x; e._py = e.y; if (e.anda && d < 30) e.fase = ((e.fase || 0) + d / (PERFIS[(at && at.a.mov) || 'passo'] || PERFIS.passo)[1]) % 1; e.quadro = e.anda ? Math.floor((e.fase || 0) * 8) : 0; }      // a passada anda pela distância, não pelo relógio
-  if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - 5, y + 1, 10, 1); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - 5, y, 10, 2); }
+  if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - 10, y + 2, 20, 2); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - 10, y, 20, 2); cx.fillRect(x - 8, y + 2, 16, 2); }
   if (!at) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
-  const f = at.a.frame; cx.drawImage(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.a.anchor[0], y - at.a.anchor[1], f, f);       // quadro nativo 1:1, pela âncora
+  const f = at.a.frame; cx.drawImage(at.im, (e.dir || 0) * f, (e.quadro || 0) * f, f, f, x - at.a.anchor[0] * EA, y - at.a.anchor[1] * EA, f * EA, f * EA);       // quadro nativo 1:1, pela âncora
 }
-const altura = e => { const a = ATOR[corpoDe(e) || limpaSkin(e.sk).base]; return (a ? a.anchor[1] : 31) + 2; };
+const altura = e => { const a = ATOR[corpoDe(e) || limpaSkin(e.sk).base]; return ((a ? a.anchor[1] : 31) + 1) * EA; };
 function etiqueta(txt, wx, wy, fundo, cor, tam){
   const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC);
   cx.font = `700 ${tam || 10}px ui-monospace,Menlo,Consolas,monospace`; const w = Math.ceil(cx.measureText(txt).width) + 8, h = (tam || 10) + 6;
@@ -749,7 +771,7 @@ function quadro(t){
   for (const l of C.locais) vis.push(l);
   const gente = [...outros.values()].filter(o => (o.r || 'bairro') === CENA);
   // câmera: aproxima aos poucos, arredonda no pixel lógico, respeita as bordas
-  const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 12 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
+  const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 26 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
   cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
@@ -765,6 +787,7 @@ function quadro(t){
   const fila = [...vis, ...gente, eu].map(e => ({ y: e.y, e })); for (const f of C.frentes) fila.push({ y: f.linha - .5, f });
   fila.sort((a, b) => a.y - b.y); for (const q of fila) { if (q.e) boneco(q.e, t); else cx.drawImage(q.f.im, q.f.x, q.f.y); }
   if (ROTA) passoRota(t);
+  luzDoDia(t, k, ox, oy);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
   C.portas.forEach(p => { const a = p.ac[meuMeio] || p.sol, d = dist(a[0], a[1], eu.x, eu.y); if (d < 170) etiqueta((p.para === 'bairro' ? 'SAÍDA' : nomeCena(p.para)).toUpperCase(), p.sol[0], p.sol[1] - 24, '#1d1b2a', '#fffdf5', 10); });
@@ -820,7 +843,7 @@ async function comeca(){
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
+window.CATUM = { eu, LUG, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>
