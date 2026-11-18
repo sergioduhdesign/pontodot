@@ -104,6 +104,8 @@ const LUGARES = [
   { id:'estacao',   nome:'Estação Maré',          b:[64,56,14,8], porta:[71,64],  rota:[[71,64],[71,66],[60,66],[60,40]],       cor:{ parede:'#dfe7ea', telhado:'#007f91', det:'#145dec' } },
   { id:'biblioteca',nome:'Biblioteca Submersa',   b:[95,57,6,5],  porta:[98,62],  rota:[[98,62],[98,66],[60,66],[60,40]],       cor:{ parede:'#bfeee6', telhado:'#11ba98', det:'#18155f' } }
 ];
+const PATIO = { x: 37, y: 44, w: 22, h: 11 }, LOUSA = { x: 44, y: 44, w: 8 };
+const CARTEIRAS = []; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) CARTEIRAS.push({ x: (40 + c * 5) * T + 8, y: (47 + r * 2) * T + 12 });
 const NPC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
 
 /* ---------- o mapa (pintado uma vez só, num canvas fora da tela) ---------- */
@@ -125,6 +127,10 @@ function geraTerreno(){
   LUGARES.forEach(L => { for (let k = 0; k < L.rota.length - 1; k++) { const [ax, ay] = L.rota[k], [bx, by] = L.rota[k + 1];
     if (ax === bx) for (let y = Math.min(ay, by); y <= Math.max(ay, by) + 1; y++) { pisa(ax, y); pisa(ax + 1, y); }
     else for (let x = Math.min(ax, bx); x <= Math.max(ax, bx) + 1; x++) { pisa(x, ay); pisa(x, ay + 1); } } });
+  // pátio de aula da Escola: piso, um caminho até a rua e a lousa
+  for (let y = PATIO.y; y < PATIO.y + PATIO.h; y++) for (let x = PATIO.x; x < PATIO.x + PATIO.w; x++) tipo[ix(x, y)] = 5;
+  for (let y = 42; y < PATIO.y; y++) { tipo[ix(47, y)] = 1; tipo[ix(48, y)] = 1; }
+  for (let x = LOUSA.x; x < LOUSA.x + LOUSA.w; x++) solido[ix(x, LOUSA.y)] = 1;
   for (let i = 0; i < W * H; i++) if (tipo[i] === 2) solido[i] = 1;
   LUGARES.forEach(L => { const [bx, by, bw, bh] = L.b; for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) solido[ix(x, y)] = 1; });
 }
@@ -162,6 +168,8 @@ function pintaMapa(){
     P(cx - 6, cy - 3, 2, 9, '#fff'); P(cx - 6, cy - 3, 5, 2, '#fff'); P(cx - 3, cy - 3, 2, 5, '#fff'); P(cx - 6, cy, 5, 2, '#fff');       // p
     P(cx + 4, cy - 7, 2, 11, '#fff'); P(cx + 1, cy - 1, 5, 2, '#fff'); P(cx + 1, cy - 1, 2, 5, '#fff'); P(cx + 1, cy + 2, 5, 2, '#fff');   // d
   }
+  // lousa do pátio de aula
+  { const x = LOUSA.x * T, y = LOUSA.y * T, w = LOUSA.w * T; P(x, y + 1, w, 14, '#6b4226'); P(x + 2, y + 3, w - 4, 10, '#1f5a44'); P(x + 8, y + 6, 26, 1, '#eafff5'); P(x + 8, y + 9, 40, 1, '#eafff5'); P(x + 60, y + 6, 18, 1, '#ffe27a'); P(x + w - 20, y + 5, 8, 6, '#eafff5'); P(x + 4, y + 14, w - 8, 1, '#d8d0bb'); }
   // prédios
   LUGARES.forEach(L => { const [bx, by, bw, bh] = L.b, x = bx * T, y = by * T, w = bw * T, h = bh * T, c = L.cor, th = Math.round(h * .55);
     P(x + 3, y + h - 2, w, 5, 'rgba(0,0,0,.2)');
@@ -209,6 +217,7 @@ const OCULOS = ['Sem óculos','Óculos','Óculos escuros'];
 const HEX = /^#[0-9a-f]{6}$/i;
 const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const escurece = (h, f) => '#' + rgb(h).map(v => Math.max(0, Math.round(v * (f || .78))).toString(16).padStart(2, '0')).join('');
+const clareia = h => '#' + rgb(h).map(v => Math.min(255, Math.round(v + (255 - v) * .35)).toString(16).padStart(2, '0')).join('');
 function limpaSkin(s){ s = s && typeof s === 'object' ? s : {}; const n = (v, m) => Math.max(0, Math.min(m, v | 0));
   return { pele: HEX.test(s.pele) ? s.pele : PELES[2], cab: n(s.cab == null ? 1 : s.cab, ESTILOS.length - 1), ccab: HEX.test(s.ccab) ? s.ccab : COR_CABELO[0],
     barba: n(s.barba, BARBAS.length - 1), oc: n(s.oc, OCULOS.length - 1), roupa: HEX.test(s.roupa) ? s.roupa : ROUPAS[0] }; }
@@ -216,13 +225,15 @@ function rosto(sk){      // monta a cabeça de 12×12 pixels a partir das escolh
   const s = limpaSkin(sk), k = document.createElement('canvas'); k.width = k.height = 12; const g = k.getContext('2d');
   const P = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); }, H = s.ccab, tinta = '#1d1b2a';
   P(1, 0, 10, 12, s.pele); P(0, 1, 12, 10, s.pele); P(1, 11, 10, 1, escurece(s.pele)); P(0, 6, 1, 2, escurece(s.pele)); P(11, 6, 1, 2, escurece(s.pele));
-  P(3, 6, 2, 2, tinta); P(7, 6, 2, 2, tinta); P(5, 9, 2, 1, escurece(s.pele, .6));
+  P(3, 6, 2, 2, tinta); P(7, 6, 2, 2, tinta); P(3, 6, 1, 1, '#ffffff'); P(7, 6, 1, 1, '#ffffff');
+  P(2, 8, 1, 1, '#f08a8a'); P(9, 8, 1, 1, '#f08a8a'); P(5, 8, 1, 1, escurece(s.pele, .86)); P(5, 9, 2, 1, escurece(s.pele, .6));
   if (s.cab === 1) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); }
   if (s.cab === 2) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); P(1, 3, 6, 1, H); P(0, 3, 2, 2, H); P(10, 3, 2, 2, H); }
   if (s.cab === 3) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); P(0, 3, 2, 9, H); P(10, 3, 2, 9, H); }
   if (s.cab === 4) { P(1, 1, 10, 2, H); P(0, 2, 12, 1, H); P(3, 0, 7, 1, H); P(5, 3, 5, 1, H); }
   if (s.cab === 5) { for (let x = 0; x < 12; x++) P(x, x % 2, 1, 4 - (x % 2), H); P(0, 4, 1, 2, H); P(11, 4, 1, 2, H); P(1, 0, 10, 1, H); }
   if (s.cab === 6) { P(1, 0, 10, 3, H); P(0, 1, 12, 2, H); P(0, 3, 2, 4, H); P(2, 3, 3, 1, H); }
+  if (s.cab) { const br = clareia(H); P(3, 1, 3, 1, br); }
   if (s.barba === 1) P(4, 8, 4, 1, H);
   if (s.barba === 2) { P(4, 8, 4, 1, H); P(4, 9, 1, 2, H); P(7, 9, 1, 2, H); P(4, 10, 4, 2, H); }
   if (s.barba === 3) { P(0, 8, 12, 3, H); P(1, 11, 10, 1, H); P(1, 7, 1, 1, H); P(10, 7, 1, 1, H); P(5, 9, 2, 1, escurece(s.pele, .6)); }
@@ -242,7 +253,7 @@ function sugerePeloAvatar(src){ return new Promise(ok => { if (!src) return ok(n
     } catch(_) { ok(null); } };
   im.onerror = () => ok(null); im.src = src; }); }
 let CFG = { skin: null, lado: 'e' };
-function aplicaCfg(){ if (CFG.skin) { CFG.skin = limpaSkin(CFG.skin); eu.cab = rosto(CFG.skin); eu.cor = CFG.skin.roupa; } document.body.classList.toggle('dir', CFG.lado === 'd'); }
+function aplicaCfg(){ if (CFG.skin) { CFG.skin = limpaSkin(CFG.skin); eu.cab = rosto(CFG.skin); eu.cor = CFG.skin.roupa; eu.mao = CFG.skin.pele; } document.body.classList.toggle('dir', CFG.lado === 'd'); }
 function guardaLocal(){ try { localStorage.setItem('catum_cfg', JSON.stringify(CFG)); } catch(_){} }
 async function carregaCfg(){
   try { const l = JSON.parse(localStorage.getItem('catum_cfg') || 'null'); if (l && typeof l === 'object') CFG = { skin: l.skin || null, lado: l.lado === 'd' ? 'd' : 'e' }; } catch(_){}
@@ -260,7 +271,11 @@ const bate = (x, y) => pedra(x - 4, y - 5) || pedra(x + 4, y - 5) || pedra(x - 4
 const PASSO = 42000, VEL_IA = 46;
 const centro = ([x, y]) => [(x + 1) * T, (y + 1) * T];
 function ondeFica(id, k){ const L = LUGARES[hash(id + ':' + k) % LUGARES.length]; const dx = L.id === 'biblioteca' ? 0 : ((hash(id + 'x' + k) % 7) - 3); const [px, py] = centro(L.porta); return { L, x: px + dx * 10, y: py + (hash(id + 'y' + k) % 9) }; }
+let ALUNOS = new Map();     // personagem -> { curso, lugar (nº da carteira) }
 function posIA(n, agora){
+  const al = ALUNOS.get(n.id);
+  if (al) { const c = CARTEIRAS[al.lugar % CARTEIRAS.length]; n.x = c.x; n.y = c.y; n.anda = false; n.aula = true; n.lugar = LUGARES[4]; n.curso = al.curso; return; }
+  n.aula = false; n.curso = '';
   const t = agora + (hash(n.id) % PASSO), k = Math.floor(t / PASSO), dt = (t % PASSO) / 1000;
   const a = ondeFica(n.id, k - 1), b = ondeFica(n.id, k);
   if (a.L === b.L) { n.x = b.x; n.y = b.y; n.anda = false; n.lugar = b.L; return; }
@@ -285,7 +300,7 @@ const fala = document.getElementById('fala'), falaTxt = document.getElementById(
 function abreFala(){ fala.classList.add('on'); falaTxt.focus(); }
 function fechaFala(){ fala.classList.remove('on'); falaTxt.value = ''; falaTxt.blur(); }
 document.getElementById('btFala').onclick = abreFala;
-fala.addEventListener('submit', e => { e.preventDefault(); const t = falaTxt.value.trim().slice(0, 90); fechaFala(); if (!t) return; eu.fala = t; eu.falaEm = Date.now(); try { canal && canal.send({ type:'broadcast', event:'f', payload:{ i: eu.id, t } }); } catch(_){} });
+fala.addEventListener('submit', e => { e.preventDefault(); const t = falaTxt.value.trim().slice(0, 90); fechaFala(); if (!t) return; eu.fala = t; eu.falaEm = Date.now(); acorda(); vozinha(eu.id, t); try { canal && canal.send({ type:'broadcast', event:'f', payload:{ i: eu.id, t } }); } catch(_){} });
 
 /* ---------- joystick (celular) ---------- */
 const joy = document.getElementById('joy'), joyP = joy.firstElementChild; let joyV = null, joyId = null;
@@ -304,20 +319,22 @@ function abreCfg(){
   const cores = (lista, campo) => lista.map(c => `<button type="button" class="cor ${w.skin[campo] === c ? 'on' : ''}" data-cor="${campo}" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
   const seta = (campo, lista) => `<button type="button" data-seta="${campo}" data-d="-1" aria-label="Anterior">&lt;</button><span class="seta">${esc(lista[w.skin[campo]])}</span><button type="button" data-seta="${campo}" data-d="1" aria-label="Próximo">&gt;</button>`;
   const desenha = () => { cfgCx.innerHTML = `<div class="topo"><h2>Config</h2><button type="button" class="pri" data-salva>Salvar</button><button type="button" data-fecha>Fechar</button></div>
-    <div class="prev"><canvas width="16" height="24"></canvas><div><button type="button" data-sugere>Sugerir pelo meu avatar</button><p>Leio as cores da sua foto (pele, cabelo, barba, roupa) e monto um ponto de partida. Depois é só ajustar.</p></div></div>
+    <div class="prev"><canvas width="24" height="36"></canvas><div><button type="button" data-sugere>Sugerir pelo meu avatar</button><p>Leio as cores da sua foto (pele, cabelo, barba, roupa) e monto um ponto de partida. Depois é só ajustar.</p></div></div>
     <h3>Pele</h3><div class="lin">${cores(PELES, 'pele')}</div>
     <h3>Cabelo</h3><div class="lin">${seta('cab', ESTILOS)}</div><div class="lin" style="margin-top:6px">${cores(COR_CABELO, 'ccab')}</div>
     <h3>Barba</h3><div class="lin">${seta('barba', BARBAS)}</div>
     <h3>Óculos</h3><div class="lin">${seta('oc', OCULOS)}</div>
     <h3>Roupa</h3><div class="lin">${cores(ROUPAS, 'roupa')}</div>
     <h3>Controle no celular</h3><div class="lin"><button type="button" class="${w.lado === 'e' ? 'on' : ''}" data-lado="e">Joystick à esquerda</button><button type="button" class="${w.lado === 'd' ? 'on' : ''}" data-lado="d">Joystick à direita</button></div>
-    <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p><p id="cfgMsg"></p>`;
-    const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(3, 21, 10, 3);
-    g.fillStyle = '#1d1b2a'; g.fillRect(4, 19, 3, 3); g.fillRect(9, 19, 3, 3); g.fillRect(3, 12, 10, 8); g.fillStyle = w.skin.roupa; g.fillRect(4, 13, 8, 6); g.fillStyle = '#1d1b2a'; g.fillRect(1, 0, 14, 14); g.drawImage(rosto(w.skin), 2, 1); };
+    <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p>
+    <h3>Som</h3><div class="lin"><button type="button" class="${SOM ? 'on' : ''}" data-som="1">Vozinha ligada</button><button type="button" class="${SOM ? '' : 'on'}" data-som="0">Sem som</button></div><p id="cfgMsg"></p>`;
+    const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false;
+    desenhaBoneco(g, 12, 33, { cab: rosto(w.skin), cor: w.skin.roupa, mao: w.skin.pele, anda: false }, 0, false); };
   cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.cor) w.skin[b.dataset.cor] = b.dataset.v;
     else if (b.dataset.seta) { const lista = { cab: ESTILOS, barba: BARBAS, oc: OCULOS }[b.dataset.seta]; w.skin[b.dataset.seta] = (w.skin[b.dataset.seta] + (+b.dataset.d) + lista.length) % lista.length; }
     else if (b.dataset.lado) w.lado = b.dataset.lado;
+    else if (b.dataset.som) { SOM = b.dataset.som === '1'; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} acorda(); if (SOM) vozinha(eu.id, 'Catum blabla'); }
     else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) w.skin = s; else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Monte o rosto pelas opções.'; return; } }
     else if (b.hasAttribute('data-fecha')) { cfgEl.classList.remove('on'); return; }
     else if (b.hasAttribute('data-salva')) { CFG = { skin: limpaSkin(w.skin), lado: w.lado }; b.textContent = 'Salvando…'; const ok = await salvaCfg();
@@ -336,25 +353,68 @@ function abreCard(n){
   const c = n.c || {}, w = NARR && NARR.personagens && NARR.personagens[n.id] && NARR.personagens[n.id].semana;
   card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab"><canvas width="12" height="12"></canvas><div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
     <p>${esc(c.bio || '')}</p>
-    ${n.lugar ? `<h3>Agora</h3><p>Est&aacute; em ${esc(n.lugar.nome)}.</p>` : `<h3>Agora</h3><p>A caminho de algum lugar.</p>`}
+    <h3>Agora</h3><p>${n.aula ? `Em aula na Escola Ag&ecirc;ntica${n.curso ? ': ' + esc(n.curso) : ''}.` : n.lugar ? `Est&aacute; em ${esc(n.lugar.nome)}.` : 'A caminho de algum lugar.'}</p>
     <h3>Esta semana</h3><div id="cardSem">${w && w.post ? `${w.titulo ? `<p><b>${esc(w.titulo)}</b></p>` : ''}<p>${esc(w.post)}</p>${w.historia && w.historia !== w.post ? `<details><summary>Ler a hist&oacute;ria</summary><p>${esc(w.historia)}</p></details>` : ''}` : `<p>${NARR ? esc((c.initial_life_post && c.initial_life_post.caption) || 'Sem novidades por enquanto.') : 'Buscando as novidades&hellip;'}</p>`}</div>
     ${c.school_course ? `<h3>Na escola</h3><p>${esc(c.school_course)}</p>` : ''}`;
   const k = card.querySelector('canvas'); if (n.cab) k.getContext('2d').drawImage(n.cab, 0, 0);
   card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on');
+  vozinha(n.id, (w && w.post) || c.bio || n.nome);
   if (!NARR && !narrPedida) { narrPedida = true; fetch('/pd-narrativas.php').then(r => r.ok ? r.json() : null).then(j => { NARR = j || {}; if (cardDe === n.id) { cardDe = null; abreCard(n); } }).catch(() => { NARR = {}; }); }
 }
 
+/* ---------- a Escola: quem estuda o quê, e a porta para os cursos ---------- */
+let CURSOS = {};
+async function carregaEscola(){
+  try { const j = await fetch('/pd/escola-cursos.json').then(r => r.ok ? r.json() : null); ((j && j.cursos) || []).forEach(c => { CURSOS[c.slug] = c.nome || c.titulo || c.slug; }); } catch(_){}
+  const m = new Map(); let certo = false;
+  try { const { data, error } = await sb.rpc('catum_estudando'); if (!error && data) { certo = true; data.forEach(r => { if (NPC_IDS.includes(r.personagem) && !m.has(r.personagem)) m.set(r.personagem, CURSOS[r.curso_id] || r.curso_id); }); } } catch(_){}
+  if (!certo) { try { const { data } = await sb.rpc('pd_escola_alunos'); (data || []).forEach(r => { if (NPC_IDS.includes(r.personagem)) m.set(r.personagem, ''); }); } catch(_){} }
+  const novo = new Map(); let k = 0; NPC_IDS.forEach(id => { if (m.has(id)) novo.set(id, { curso: m.get(id), lugar: k++ }); }); ALUNOS = novo;
+}
+function abreEscola(){
+  if (cardDe === '#escola' || cardFechado === '#escola') return; cardDe = '#escola';
+  const L = npcs.filter(n => n.aula);
+  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>Escola Ag&ecirc;ntica</h2><small>Onde as IAs de Catum estudam para trabalhar melhor com a gente.</small>
+    <p><button type="button" id="btCursos" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">Ver os cursos</button></p>
+    <h3>Em aula agora (${L.length})</h3>${L.length ? L.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento. O p&aacute;tio de aula fica logo abaixo da rua.</p>'}`;
+  card.querySelector('.x').onclick = () => fechaCard(true); card.querySelector('#btCursos').onclick = abreCursos; card.classList.add('on');
+}
+function abreCursos(){ const d = document.createElement('div'); d.id = 'cursos'; d.style.cssText = 'position:fixed;inset:0;z-index:18;background:#fffdf5;display:flex;flex-direction:column';
+  d.innerHTML = `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px solid #1d1b2a"><button type="button" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">&larr; Voltar a Catum</button><b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Cursos da Escola</b></div><iframe src="/escola-bastidores.html?modo=cursos" title="Cursos" style="flex:1;border:0;width:100%"></iframe>`;
+  d.querySelector('button').onclick = () => { d.remove(); carregaEscola(); }; document.body.appendChild(d); for (const k in tecla) tecla[k] = false; }
+
+/* ---------- a vozinha (blá-blá de Catum): um som por letra, cada um com o seu timbre ---------- */
+let AC = null, SOM = true; try { SOM = localStorage.getItem('catum_som') !== '0'; } catch(_){}
+function acorda(){ try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch(_){} }
+['pointerdown','keydown','touchstart'].forEach(ev => addEventListener(ev, acorda, { passive: true }));
+function vozinha(quem, txt){ if (!SOM || !AC || AC.state !== 'running') return; const base = 260 + (hash(quem) % 9) * 45, letras = String(txt || '').replace(/[^\p{L}\p{N} ]/gu, '').slice(0, 26); let t0 = AC.currentTime + .02;
+  for (const ch of letras) { if (ch === ' ') { t0 += .07; continue; } const o = AC.createOscillator(), g = AC.createGain(); o.type = 'triangle';
+    const f = base * (1 + ((ch.toLowerCase().charCodeAt(0) * 7) % 11) / 16); o.frequency.setValueAtTime(f, t0); o.frequency.linearRampToValueAtTime(f * (/[aeiouáéíóúãõâêô]/i.test(ch) ? 1.12 : .92), t0 + .05);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.05, t0 + .008); g.gain.linearRampToValueAtTime(0, t0 + .058); o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0 + .07); t0 += .062; } }
+
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
-function boneco(e, t, destaque){
-  const x = Math.round(e.x), y = Math.round(e.y), f = e.anda ? (Math.floor(t / 150) % 2) : 0, sobe = e.anda && f ? -1 : 0;
-  cx.fillStyle = 'rgba(0,0,0,.25)'; cx.fillRect(x - 5, y - 1, 10, 3);
-  cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 4, y - 3 + (f ? 0 : 0), 3, 3); cx.fillRect(x + 1, y - 3, 3, 3);
-  if (e.anda) { cx.fillStyle = '#1d1b2a'; cx.fillRect(f ? x - 4 : x + 1, y - 4, 3, 1); }
-  cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 5, y - 10 + sobe, 10, 8); cx.fillStyle = e.cor || '#888'; cx.fillRect(x - 4, y - 9 + sobe, 8, 6);
-  cx.fillStyle = destaque ? '#ffe27a' : '#1d1b2a'; cx.fillRect(x - 7, y - 23 + sobe, 14, 14);
-  if (e.cab) cx.drawImage(e.cab, x - 6, y - 22 + sobe, 12, 12); else { cx.fillStyle = e.cor || '#bbb'; cx.fillRect(x - 6, y - 22 + sobe, 12, 12); }
+function desenhaBoneco(g, x, y, e, t, destaque){
+  const P = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(a, b, w, h); };
+  const tinta = '#1d1b2a', f = e.anda ? (Math.floor(t / 140) % 2) : 0, sobe = e.anda && f ? -1 : 0, cor = e.cor || '#888', mao = e.mao || '#fffdf5', aula = !!e.aula;
+  P(x - 6, y - 1, 12, 3, 'rgba(0,0,0,.25)');
+  if (!aula) {   // pernas e sapatos
+    const l1 = e.anda && f ? 1 : 0, l2 = e.anda && !f ? 1 : 0;
+    P(x - 4, y - 6, 3, 6 - l1, '#2b2a3a'); P(x + 1, y - 6, 3, 6 - l2, '#2b2a3a'); P(x - 5, y - 2 - l1, 4, 2, tinta); P(x + 1, y - 2 - l2, 4, 2, tinta);
+  }
+  // braços (balançam ao andar)
+  const b1 = e.anda ? (f ? 1 : -1) : 0, b2 = -b1;
+  P(x - 8, y - 14 + sobe + b1, 4, 8, tinta); P(x - 7, y - 13 + sobe + b1, 2, 5, cor); P(x - 7, y - 8 + sobe + b1, 2, 1, mao);
+  P(x + 4, y - 14 + sobe + b2, 4, 8, tinta); P(x + 5, y - 13 + sobe + b2, 2, 5, cor); P(x + 5, y - 8 + sobe + b2, 2, 1, mao);
+  // tronco
+  P(x - 5, y - 15 + sobe, 10, 10, tinta); P(x - 4, y - 14 + sobe, 8, 8, cor); P(x - 4, y - 7 + sobe, 8, 1, 'rgba(0,0,0,.22)'); P(x - 1, y - 14 + sobe, 2, 2, mao);
+  // cabeça arredondada
+  const c = destaque ? '#ffe27a' : tinta, hy = y - 28 + sobe;
+  P(x - 6, hy, 12, 14, c); P(x - 7, hy + 1, 14, 12, c);
+  if (e.cab) g.drawImage(e.cab, x - 6, hy + 1, 12, 12); else P(x - 6, hy + 1, 12, 12, cor);
+  if (aula) { P(x - 9, y - 5, 18, 6, tinta); P(x - 8, y - 4, 16, 2, '#c8975a'); P(x - 8, y - 2, 16, 2, '#a8733f'); P(x - 3, y - 6, 6, 2, '#fffdf5'); }   // carteira com caderno
 }
+function boneco(e, t, destaque){ desenhaBoneco(cx, Math.round(e.x), Math.round(e.y), e, t, destaque); }
 function etiqueta(txt, wx, wy, fundo, cor, tam){
   const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC);
   cx.font = `700 ${tam || 10}px ui-monospace,Menlo,Consolas,monospace`; const w = Math.ceil(cx.measureText(txt).width) + 8, h = (tam || 10) + 6;
@@ -393,11 +453,13 @@ function quadro(t){
   // textos (em tela)
   cx.setTransform(DPR, 0, 0, DPR, 0, 0);
   LUGARES.forEach(L => { const [bx, by, bw] = L.b; etiqueta(L.nome.toUpperCase(), (bx + bw / 2) * T, by * T - 3, '#1d1b2a', '#fffdf5', 10); });
-  npcs.forEach(n => etiqueta(n.nome, n.x, n.y - 25, n === perto ? '#ffe27a' : 'rgba(29,27,42,.78)', n === perto ? '#1d1b2a' : '#fff', 9));
-  outros.forEach(o => { etiqueta(o.nome, o.x, o.y - 25, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 38); });
-  etiqueta(eu.nome, eu.x, eu.y - 25, '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - 38);
+  etiqueta('PÁTIO DE AULA', (LOUSA.x + LOUSA.w / 2) * T, LOUSA.y * T - 3, '#1f5a44', '#eafff5', 10);
+  npcs.forEach(n => etiqueta(n.nome, n.x, n.y - 30, n === perto ? '#ffe27a' : 'rgba(29,27,42,.78)', n === perto ? '#1d1b2a' : '#fff', 9));
+  outros.forEach(o => { etiqueta(o.nome, o.x, o.y - 30, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 44); });
+  etiqueta(eu.nome, eu.x, eu.y - 30, '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - 44);
   // cartão e lugar
-  if (perto) abreCard(perto); else { if (cardDe) fechaCard(false); cardFechado = null; }
+  const [epx, epy] = centro(LUGARES[4].porta), naPorta = Math.hypot(epx - eu.x, epy - eu.y) < 34;
+  if (perto) abreCard(perto); else if (naPorta) abreEscola(); else { if (cardDe) fechaCard(false); cardFechado = null; }
   let nome = ''; LUGARES.forEach(L => { const [px, py] = centro(L.porta); if (Math.hypot(px - eu.x, py - eu.y) < 56) nome = L.nome; });
   if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
 }
@@ -412,10 +474,10 @@ function liga(){
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
       let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: p.x, y: p.y, tx: p.x, ty: p.y, cab: null, cor: '#' + (hash(p.i) & 0xffffff).toString(16).padStart(6, '0'), fala: '', falaEm: 0, anda: false };
         outros.set(p.i, o); if (!(p.s && p.s.pele) && p.a && /^(\/|https:\/\/)/.test(p.a)) cabeca(p.a, k2 => { if (!o.sk) o.cab = k2; }); }
-      if (p.s && p.s.pele) { const j = JSON.stringify(p.s); if (o.sk !== j) { o.sk = j; const s = limpaSkin(p.s); o.cab = rosto(s); o.cor = s.roupa; } } });
+      if (p.s && p.s.pele) { const j = JSON.stringify(p.s); if (o.sk !== j) { o.sk = j; const s = limpaSkin(p.s); o.cab = rosto(s); o.cor = s.roupa; o.mao = s.pele; } } });
     [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
   canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { o.tx = Math.max(0, Math.min(WPX, +p.x)); o.ty = Math.max(0, Math.min(HPX, +p.y)); } });
-  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); } });
+  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if (Math.hypot(o.x - eu.x, o.y - eu.y) < 260) vozinha(o.id, o.fala); } });
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
 }
 
@@ -431,6 +493,7 @@ async function comeca(){
   geraTerreno(); mapa = pintaMapa(); ajusta();
   npcs.forEach(n => cabeca('/pd/personagens/' + n.id + '/avatar.jpg', k => { n.cab = k; }));
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; n.cor = (c.appearance && c.appearance.avatar_background) || n.cor; } }); }).catch(() => {});
+  carregaEscola(); setInterval(() => { if (!document.hidden) carregaEscola(); }, 300000);
   try { liga(); } catch(e){ console.warn('ao vivo fora:', e); }
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro);
