@@ -165,7 +165,8 @@ function pintarAlarmes(abrirLink){
 }
 PD.vigiarAlarmes = function(sb, perfil, opts){
   PD._sb = sb; PD._abrir = (opts && opts.abrir) || (l => { if (l) location.href = l; });
-  const euCuido = a => !a.user_id || a.user_id === (perfil && perfil.id);
+  // alarme com dono vai só para o dono; alarme geral (falha de publicação, saúde, fila) vai só para quem resolve: o ADM
+  const adm = !!perfil && perfil.role === 'admin', euCuido = a => a.user_id ? a.user_id === (perfil && perfil.id) : adm;
   const puxar = async () => {
     try {
       const { data } = await sb.from('pd_alarmes').select('id,titulo,corpo,link,task_id,user_id')
