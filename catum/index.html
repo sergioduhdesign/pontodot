@@ -53,6 +53,8 @@ body.toque #joy{display:block}body.toque.dir #joy{left:auto;right:24px}
 body.toque #dica{display:none}
 body.toque #btFala{display:block;right:14px;bottom:14px}body.toque.dir #btFala{right:auto;left:14px}
 body.toque #fala{bottom:auto;top:56px}
+body.toque #lugar{top:98px}
+body.toque #chatP{left:8px!important;right:8px;width:auto!important;bottom:150px!important;height:44vh!important}
 body.toque #card{top:136px;bottom:auto;left:12px;right:12px;width:auto;max-height:36vh}
 #cfg{position:fixed;inset:0;z-index:15;display:none;align-items:center;justify-content:center;background:rgba(18,16,28,.6);padding:12px;touch-action:auto}
 #cfg.on{display:flex}
@@ -101,7 +103,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=19', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=20', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -121,7 +123,7 @@ const LUG = [
 const lug = id => LUG.find(L => L.id === id);
 const ARQ = id => id === 'bairro' ? 'catum-com-horizonte' : id === 'regiao' ? 'catum-regional' : lug(id).arq;
 const idDe = arq => arq === 'catum-com-horizonte' ? 'bairro' : arq === 'catum-regional' ? 'regiao' : (LUG.find(L => L.arq === arq) || {}).id;
-const nomeCena = id => id === 'bairro' ? 'Praça de Catum' : id === 'regiao' ? 'Mar de Catum' : lug(id).nome;
+const nomeCena = id => id === 'bairro' ? 'Praça de Catum' : id === 'regiao' ? 'Mar de Catum' : (lug(id) || { nome: 'Catum' }).nome;
 const NPC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
 const LOCAIS = { duna:'Duna', lume:'Lume', jaci:'Jaci', lito:'Lito' };       // moradores novos: ficam nos lugares, com fala própria
 // cada corpo tem o seu meio: chão, água ou ar (do pacote)
@@ -331,6 +333,7 @@ let ACAO = null; const acaoEl = document.createElement('button'); acaoEl.type = 
 acaoEl.onclick = () => { if (ACAO && !trocando) ACAO.faz(); };
 function acaoPerto(){ const m = meioDe(eu); let best = null, bd = 1e9;
   for (const p of C.portas) { const a = p.ac[m] || p.sol, d = dist(eu.x, eu.y, a[0], a[1]); if (d < p.raio + 12 && d < bd) { bd = d; best = { txt: (p.para === 'bairro' || (CENA === 'escritorio' && p.para === 'escola') ? 'Sair para ' : 'Entrar: ') + nomeCena(p.para), faz: () => usaPorta(p) }; } }
+  if (CENA === 'escritorio' && EQUIPE) for (const ms of MESAS) { if (ms.user_id === eu.id) continue; const d = dist(eu.x, eu.y, ms.x, ms.y + 6); if (d < 22 && d < bd) { bd = d; best = { txt: 'Deixar recado para ' + ms.nome, faz: () => deixaRecado(ms) }; } }
   for (const s of C.pass) { if (s.meio !== m) continue; for (const [a, b] of [[s.de, s.para], [s.para, s.de]]) { const d = dist(eu.x, eu.y, a[0], a[1]); if (d < 24 && d < bd) { bd = d; best = { txt: s.tipo + ': atravessar', faz: () => atravessa(b) }; } } }
   return best; }
 
@@ -367,7 +370,7 @@ const tecla = {};
 addEventListener('keydown', e => { const ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) { if (e.key === 'Escape') { if (ae.id === 'falaTxt') fechaFala(); else ae.blur(); } return; }
   if (cfgEl.classList.contains('on')) { if (e.key === 'Escape') cfgEl.classList.remove('on'); return; }
   if (e.key === 'Enter') { e.preventDefault(); const ct = document.getElementById('chatTxt'); if (ct && card.classList.contains('on')) ct.focus(); else abreFala(); return; } if (e.key === 'Escape') { fechaCard(true); return; }
-  if (e.metaKey || e.ctrlKey) return; if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && ACAO && !trocando) { e.preventDefault(); ACAO.faz(); return; } tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
+  if (e.metaKey || e.ctrlKey) return; if (/^[1-7]$/.test(e.key) && !VIS) { reagir(REACOES[+e.key - 1][0]); return; } if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && ACAO && !trocando) { e.preventDefault(); ACAO.faz(); return; } tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
 addEventListener('keyup', e => { tecla[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in tecla) tecla[k] = false; });
 cv.addEventListener('pointerdown', e => { eu.alvo = { x: camX + e.clientX / SC, y: camY + e.clientY / SC, em: performance.now() }; });
@@ -410,6 +413,7 @@ function abreCfg(){
     <h3>Calça</h3><div class="lin">${cores(CALCAS, 'calca')}</div></div>
     <h3>Controle no celular</h3><div class="lin"><button type="button" class="${w.lado === 'e' ? 'on' : ''}" data-lado="e">Joystick à esquerda</button><button type="button" class="${w.lado === 'd' ? 'on' : ''}" data-lado="d">Joystick à direita</button></div>
     <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p>
+    <h3>Visão</h3><div class="lin"><button type="button" class="${SIMPLES ? '' : 'on'}" data-simples="0">Completa</button><button type="button" class="${SIMPLES ? 'on' : ''}" data-simples="1">Simples (só gente)</button></div>
     <h3>Som</h3><div class="lin"><button type="button" class="${SOM ? 'on' : ''}" data-som="1">Vozinha ligada</button><button type="button" class="${SOM ? '' : 'on'}" data-som="0">Sem som</button></div><p id="cfgMsg"></p>`;
     clearInterval(cfgAnim); const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false; let q = 0;
     cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const hum = w.corpo === 'humano', im = hum ? folhaHumana(w.skin) : folha(w.corpo), f = hum ? 64 : fonteDe(w.corpo); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * f, (q % 8) * f, f, f, 0, 0, 64, 64); q++; }, 110); };
@@ -419,6 +423,7 @@ function abreCfg(){
     else if (b.dataset.op) { const L = { base: BASES, penteado: PENTEADOS, barba: BARBAS, oculos: OCULOS }[b.dataset.op], i = L.findIndex(x => x[0] === w.skin[b.dataset.op]); w.skin[b.dataset.op] = L[(i + (+b.dataset.d) + L.length) % L.length][0]; if (b.dataset.op === 'base' && w.skin.base === 'mulher-suave' && !w.skin.cintura && !w.skin.quadril) { w.skin.cintura = 10; w.skin.quadril = 9; } }
     else if (b.dataset.corpo) w.corpo = b.dataset.corpo;
     else if (b.dataset.lado) w.lado = b.dataset.lado;
+    else if (b.dataset.simples) { SIMPLES = b.dataset.simples === '1'; try { localStorage.setItem('catum_simples', SIMPLES ? '1' : '0'); } catch(_){} }
     else if (b.dataset.som) { SOM = b.dataset.som === '1'; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} acorda(); if (SOM) vozinha(eu.id, 'Catum blabla'); }
     else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) Object.assign(w.skin, s); else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Escolha as cores pelas opções.'; return; } }
     else if (b.hasAttribute('data-abertura')) { cfgEl.classList.remove('on'); abertura(true); return; }
@@ -593,6 +598,119 @@ function sessaoTela(){ const quer = !!SESSAO && CENA === 'cinema' && sessaoFeche
   sessaoEl.querySelector('[data-som]').onclick = () => { v.muted = !v.muted; if (!v.muted) musica(false); else musica(true); v.play().catch(() => {}); };
   sessaoEl.querySelector('[data-x]').onclick = () => { sessaoFechei = SESSAO ? SESSAO.t0 : 0; };
   document.body.appendChild(sessaoEl);
+}
+
+/* ============================================================
+   FERRAMENTAS DE ESCRITÓRIO (as do Gather): gente, status e disponibilidade,
+   acenos e reações, seguir, chat (perto, geral, lugar, direto, avisos),
+   mesas e recados, agenda, visão simples e o kart.
+   ============================================================ */
+let EQUIPE = false, MEU = { papel: '', cli: null, fn: '' }, SIMPLES = false; try { SIMPLES = localStorage.getItem('catum_simples') === '1'; } catch(_){}
+const DISP = [['Livre', '#fffdf5'], ['Em foco', '#ffe27a'], ['Não perturbe', '#f3b0a8']];
+let ST = { txt: '', dv: 0 }; try { const l = JSON.parse(localStorage.getItem('catum_st') || 'null'); if (l) ST = { txt: String(l.txt || '').slice(0, 40), dv: [0, 1, 2].includes(l.dv) ? l.dv : 0 }; } catch(_){}
+function guardaSt(){ try { localStorage.setItem('catum_st', JSON.stringify(ST)); } catch(_){} try { canal && pronto && canal.track(meuRastro()); } catch(_){} }
+const manda = (ev, payload) => { try { canal && canal.send({ type: 'broadcast', event: ev, payload: Object.assign({ i: eu.id, n: eu.nome }, payload) }); } catch(_){} };
+// aviso curto com um botão (aceno recebido, reunião chegando, recado na mesa)
+const avisoEl = document.createElement('div'); avisoEl.className = 'px'; avisoEl.style.cssText = 'position:fixed;left:50%;top:104px;transform:translateX(-50%);z-index:8;display:none;padding:9px 12px;font-size:12px;font-weight:700;max-width:86vw;gap:10px;align-items:center'; document.body.appendChild(avisoEl); let avisoT = 0;
+function avisa(txt, rot, fn){ avisoEl.innerHTML = `<span>${esc(txt)}</span>${rot ? `<button type="button" style="${BT};margin-left:10px">${esc(rot)}</button>` : ''}`; avisoEl.style.display = 'flex'; const b = avisoEl.querySelector('button'); if (b) b.onclick = () => { avisoEl.style.display = 'none'; fn && fn(); }; clearTimeout(avisoT); avisoT = setTimeout(() => { avisoEl.style.display = 'none'; }, 9000); }
+const pessoa = id => outros.get(id);
+const ondeEsta = o => { const r = o.r || 'bairro'; return r === 'bairro' ? 'na praça' : 'em ' + nomeCena(r); };
+
+/* ---- reações: aparecem em cima de quem reagiu, para todos ---- */
+const REACOES = [['aceno', 'Acenar', 'oi'], ['coracao', 'Coração', '♥'], ['palmas', 'Palmas', '✦✦'], ['ideia', 'Ideia', '!'], ['duvida', 'Dúvida', '?'], ['confete', 'Confete', ''], ['danca', 'Dançar', '♪']];
+const confetes = [];
+function reage(e, k){ if (!e) return; const r = REACOES.find(x => x[0] === k); if (!r) return; e.emo = { t: r[2], em: Date.now() };
+  if (k === 'confete') { const cores = ['#ea278f', '#145dec', '#e5ec16', '#11ba98', '#ff6500']; for (let i = 0; i < 46; i++) confetes.push({ x: e.x, y: e.y - 40, vx: (Math.random() - .5) * 90, vy: -40 - Math.random() * 90, c: cores[i % 5], em: performance.now(), r: e.r || CENA }); }
+  if (k === 'danca') e.danca = Date.now() + 3200; }
+function reagir(k){ reage(eu, k); manda('e', { k }); if (k === 'aceno') { let m = null, md = 420; outros.forEach(o => { if ((o.r || 'bairro') !== CENA) return; const d = dist(o.x, o.y, eu.x, eu.y); if (d < md) { md = d; m = o; } }); if (m) acena(m.id); } }
+function acena(id){ const o = pessoa(id); if (!o) return; if (o.dv === 2) { avisa(o.nome + ' está em Não perturbe.'); return; } manda('w', { to: id, r: CENA }); avisa('Você acenou para ' + o.nome + '.'); }
+function abreReacoes(){ cfgCx.innerHTML = `<div class="topo"><h2>Reagir</h2><button type="button" data-fecha>Fechar</button></div><div class="lin">${REACOES.map((r, i) => `<button type="button" data-re="${r[0]}">${i + 1} · ${r[1]}</button>`).join('')}</div><p>No teclado: teclas 1 a 7. Acenar chama a atenção de quem está mais perto.</p>`;
+  cfgCx.oninput = null; cfgCx.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.re) reagir(b.dataset.re); cfgEl.classList.remove('on'); }; cfgEl.classList.add('on'); }
+
+/* ---- seguir uma pessoa ---- */
+let SEGUE = null;      // { id, pts, em, uma }  (uma = só ir até ela e parar)
+function seguir(id, uma){ const o = pessoa(id); if (!o) return; if ((o.r || 'bairro') !== CENA) { const L = lug(o.r); if (L) { ROTA = { L, em: 0 }; avisa(o.nome + ' está ' + ondeEsta(o) + '. A seta leva você até lá.'); } else avisa(o.nome + ' está ' + ondeEsta(o) + '.'); return; } SEGUE = { id, em: 0, uma: !!uma }; cfgEl.classList.remove('on'); }
+function passoSegueGente(t){ const o = SEGUE && pessoa(SEGUE.id); if (!o || (o.r || 'bairro') !== CENA) { SEGUE = null; return null; } const d = dist(o.x, o.y, eu.x, eu.y); if (d < 22) { if (SEGUE.uma) SEGUE = null; return null; }
+  if (!SEGUE.pts || t - SEGUE.em > 500) { SEGUE.em = t; SEGUE.pts = caminho(C, eu.x, eu.y, o.x, o.y, meioDe(eu)); } const p = SEGUE.pts.find(q => dist(q[0], q[1], eu.x, eu.y) > 6) || [o.x, o.y]; return [p[0] - eu.x, p[1] - eu.y]; }
+
+/* ---- gente: quem está, onde, status; e o meu status ---- */
+function abreGente(){
+  const L = [...outros.values()].sort((a, b) => String(a.r).localeCompare(String(b.r)) || a.nome.localeCompare(b.nome));
+  cfgCx.innerHTML = `<div class="topo"><h2>Gente</h2><button type="button" data-fecha>Fechar</button></div>
+    <h3>Você</h3><div class="lin">${DISP.map((d, i) => `<button type="button" class="${ST.dv === i ? 'on' : ''}" data-dv="${i}">${d[0]}</button>`).join('')}</div>
+    <label style="display:block;font-size:11px;margin-top:8px">O que você está fazendo (aparece ao lado do seu nome)<input id="stTxt" maxlength="40" value="${esc(ST.txt)}" placeholder="ex.: fechando a campanha" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:3px solid #1d1b2a;font:inherit;font-size:12px;padding:7px;background:#fff;color:#1d1b2a;-webkit-user-select:text;user-select:text"></label>
+    ${EQUIPE ? `<div class="lin" style="margin-top:8px"><button type="button" data-mesa>Pôr a minha mesa onde estou</button></div><p>A mesa fica na ala Pontodot. Quem passa por ela pode deixar um recado.</p>` : ''}
+    <h3>Aqui agora (${L.length + 1})</h3>` + (L.length ? L.map(o => `<div class="lin" style="margin-top:7px;align-items:center"><span style="flex:1;min-width:120px;font-size:12px"><b>${esc(o.nome)}</b>${o.fn ? ' · ' + esc(o.fn) : ''}<br><span style="opacity:.7">${esc(DISP[o.dv || 0][0])} · ${esc(ondeEsta(o))}${o.st ? ' · ' + esc(o.st) : ''}</span></span><button type="button" data-ac="${o.id}">Acenar</button><button type="button" data-ir="${o.id}">Ir até</button><button type="button" data-sg="${o.id}">Seguir</button><button type="button" data-dm="${o.id}">Mensagem</button></div>`).join('') : '<p>Só você por aqui agora.</p>');
+  cfgCx.oninput = e => { if (e.target.id === 'stTxt') { ST.txt = e.target.value.slice(0, 40); clearTimeout(abreGente.t); abreGente.t = setTimeout(guardaSt, 700); } };
+  cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.dv) { ST.dv = +b.dataset.dv; guardaSt(); return abreGente(); }
+    if (b.hasAttribute('data-fecha')) return cfgEl.classList.remove('on');
+    if (b.dataset.ac) return acena(b.dataset.ac); if (b.dataset.ir) return seguir(b.dataset.ir, true); if (b.dataset.sg) return seguir(b.dataset.sg, false);
+    if (b.dataset.dm) { cfgEl.classList.remove('on'); return abreChat('dm:' + [eu.id, b.dataset.dm].sort().join(':'), pessoa(b.dataset.dm)?.nome); }
+    if (b.hasAttribute('data-mesa')) { if (CENA !== 'escritorio') { ROTA = { L: lug('escritorio'), em: 0 }; cfgEl.classList.remove('on'); return avisa('A mesa fica na ala Pontodot. A seta leva você até lá.'); }
+      try { const { error } = await sb.from('catum_mesa').upsert({ user_id: eu.id, nome: eu.nome, x: Math.round(eu.x), y: Math.round(eu.y), atualizado_em: new Date().toISOString() }); if (error) throw error; await carregaMesas(); cfgEl.classList.remove('on'); avisa('Sua mesa está aqui.'); } catch(_) { avisa('Não salvou a mesa: falta rodar o SQL v194.'); } } };
+  cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false;
+}
+
+/* ---- chat: perto (balão), geral, lugar, avisos e direto ---- */
+const CHAT = { aberto: false, canal: 'perto', logs: { perto: [] }, nomes: {}, novo: 0, falta: false };
+const chatP = document.createElement('div'); chatP.className = 'px'; chatP.id = 'chatP'; chatP.style.cssText = 'position:fixed;left:12px;bottom:54px;z-index:7;width:min(330px,calc(100vw - 24px));height:min(360px,52vh);display:none;flex-direction:column;-webkit-user-select:text;user-select:text;touch-action:auto'; document.body.appendChild(chatP);
+const canaisFixos = () => EQUIPE ? [['perto', 'Perto'], ['geral', 'Geral'], ['lugar:' + CENA, 'Lugar'], ['avisos', 'Avisos']] : MEU.cli ? [['perto', 'Perto'], ['cli:' + MEU.cli, 'Equipe']] : [['perto', 'Perto']];
+function pintaChatP(){ if (!CHAT.aberto) return; const abas = canaisFixos().concat(Object.keys(CHAT.nomes).map(k => [k, CHAT.nomes[k]])), L = CHAT.logs[CHAT.canal] || [];
+  chatP.innerHTML = `<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px;border-bottom:3px solid #1d1b2a;align-items:center">${abas.map(a => `<button type="button" data-c="${esc(a[0])}" style="${BT};padding:4px 7px;font-size:10px;background:${a[0] === CHAT.canal ? '#ffe27a' : '#fffdf5'}">${esc(a[1])}</button>`).join('')}<button type="button" data-x style="${BT};padding:4px 7px;font-size:10px;background:#fffdf5;margin-left:auto">Fechar</button></div>
+    <div id="chatPL" style="flex:1;overflow-y:auto;padding:8px;font-size:12px;line-height:1.45;scrollbar-width:thin">${L.length ? L.map(m => `<div style="margin:0 0 6px"><b>${esc(m.n)}</b> <span style="opacity:.55;font-size:10px">${esc(m.h || '')}</span><br>${esc(m.t)}</div>`).join('') : `<div style="opacity:.6">${CHAT.canal === 'perto' ? 'O que for dito perto de você aparece aqui.' : CHAT.falta ? 'Este canal ainda não salva: falta rodar o SQL v194.' : 'Nada aqui ainda.'}</div>`}</div>
+    <form id="chatPF" autocomplete="off" style="display:flex;border-top:3px solid #1d1b2a"><input id="chatPT" maxlength="${CHAT.canal === 'perto' ? 90 : 500}" placeholder="${CHAT.canal === 'perto' ? 'Dizer para quem está perto…' : 'Escrever…'}" style="flex:1;min-width:0;border:0;font:inherit;font-size:13px;padding:9px;background:#fff;color:#1d1b2a;outline:0"><button style="${BT};border:0;border-left:3px solid #1d1b2a">Enviar</button></form>`;
+  const pl = chatP.querySelector('#chatPL'); pl.scrollTop = pl.scrollHeight;
+  chatP.onclick = e => { const b = e.target.closest('button[data-c],button[data-x]'); if (!b) return; if (b.hasAttribute('data-x')) { CHAT.aberto = false; chatP.style.display = 'none'; return; } abreChat(b.dataset.c); };
+  chatP.querySelector('#chatPF').onsubmit = e => { e.preventDefault(); const i = chatP.querySelector('#chatPT'), t = i.value.trim(); if (!t) return; i.value = ''; chatEnvia(t); };
+}
+const horaCurta = d => { try { return new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch(_) { return ''; } };
+async function abreChat(c, nome){ CHAT.aberto = true; CHAT.novo = 0; pintaBtChat(); chatP.style.display = 'flex'; CHAT.canal = c || CHAT.canal; if (nome && CHAT.canal.startsWith('dm:')) CHAT.nomes[CHAT.canal] = nome; pintaChatP(); const k = CHAT.canal;
+  if (k !== 'perto' && !CHAT.logs[k] && !VIS) { CHAT.logs[k] = [];
+    try { const { data, error } = await sb.from('catum_chat').select('id,canal,de,nome,texto,criado_em').eq('canal', k).order('id', { ascending: false }).limit(40); if (error) throw error; CHAT.falta = false; CHAT.logs[k] = (data || []).reverse().map(m => ({ id: m.id, n: m.nome, t: m.texto, h: horaCurta(m.criado_em) })); } catch(_) { CHAT.falta = true; } pintaChatP(); }
+  setTimeout(() => { try { chatP.querySelector('#chatPT').focus(); } catch(_){} }, 60); }
+function chatRecebe(m){ if (!m || !m.canal) return; const k = m.canal, meu = m.de === eu.id; let nova = false; if (k.startsWith('dm:') && !CHAT.nomes[k]) { CHAT.nomes[k] = meu ? 'Direto' : m.nome; nova = true; } const L = CHAT.logs[k] || (CHAT.logs[k] = []); if (L.some(x => x.id === m.id)) return; L.push({ id: m.id, n: m.nome, t: m.texto, h: horaCurta(m.criado_em) }); if (L.length > 80) L.shift();
+  if (CHAT.aberto && CHAT.canal === k) pintaChatP(); else if (!meu) { if (nova && CHAT.aberto) { const i = chatP.querySelector('#chatPT'), v = i ? i.value : ''; pintaChatP(); const j = chatP.querySelector('#chatPT'); if (j) j.value = v; } CHAT.novo++; pintaBtChat(); if (k.startsWith('dm:')) avisa(m.nome + ': ' + String(m.texto).slice(0, 60), 'Abrir', () => abreChat(k, m.nome)); } }
+async function chatEnvia(t){ const k = CHAT.canal;
+  if (k === 'perto') { t = t.slice(0, 90); eu.fala = t; eu.falaEm = Date.now(); acorda(); vozinha(eu.id, t); CHAT.logs.perto.push({ n: eu.nome, t, h: horaCurta(Date.now()) }); pintaChatP(); try { canal && canal.send({ type: 'broadcast', event: 'f', payload: { i: eu.id, t } }); } catch(_){} return; }
+  try { const { data, error } = await sb.from('catum_chat').insert({ canal: k, nome: eu.nome, texto: t.slice(0, 500) }).select('id,canal,de,nome,texto,criado_em').single(); if (error) throw error; chatRecebe(data); } catch(_) { CHAT.falta = true; avisa(k === 'avisos' ? 'Só o admin publica em Avisos.' : 'Não enviou: falta rodar o SQL v194.'); pintaChatP(); } }
+let btChat = null; function pintaBtChat(){ if (btChat) btChat.textContent = 'Chat' + (CHAT.novo ? ' (' + CHAT.novo + ')' : ''); }
+
+/* ---- mesas e recados (ala Pontodot) ---- */
+let MESAS = [];
+async function carregaMesas(){ if (!EQUIPE) return; try { const { data, error } = await sb.from('catum_mesa').select('user_id,nome,x,y'); if (!error) MESAS = data || []; } catch(_){} }
+async function carregaRecados(){ if (!EQUIPE) return; try { const { data } = await sb.from('catum_recado').select('id,nome,texto,criado_em').eq('para', eu.id).eq('lido', false).order('id', { ascending: false }).limit(20); if (data && data.length) avisa(data.length + ' recado' + (data.length === 1 ? '' : 's') + ' na sua mesa.', 'Ler', () => abreRecados(data)); } catch(_){} }
+function abreRecados(L){ cfgCx.innerHTML = `<div class="topo"><h2>Recados na sua mesa</h2><button type="button" data-fecha>Fechar</button></div>` + L.map(r => `<h3>${esc(r.nome)} · ${esc(horaCurta(r.criado_em))}</h3><p style="opacity:1">${esc(r.texto)}</p>`).join('');
+  cfgCx.oninput = null; cfgCx.onclick = e => { if (e.target.closest('[data-fecha]')) cfgEl.classList.remove('on'); }; cfgEl.classList.add('on'); try { sb.from('catum_recado').update({ lido: true }).in('id', L.map(r => r.id)).then(() => {}); } catch(_){} }
+function deixaRecado(m){ cfgCx.innerHTML = `<div class="topo"><h2>Recado para ${esc(m.nome)}</h2><button type="button" class="pri" data-envia>Deixar na mesa</button><button type="button" data-fecha>Fechar</button></div><textarea id="recTxt" maxlength="400" rows="5" placeholder="Escreva o recado…" style="width:100%;box-sizing:border-box;border:3px solid #1d1b2a;font:inherit;font-size:13px;padding:8px;background:#fff;color:#1d1b2a;-webkit-user-select:text;user-select:text"></textarea><p>${esc(m.nome)} vê o recado quando entrar em Catum.</p>`;
+  cfgCx.oninput = null; cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return; if (b.hasAttribute('data-fecha')) return cfgEl.classList.remove('on');
+    if (b.hasAttribute('data-envia')) { const t = document.getElementById('recTxt').value.trim(); if (!t) return; try { const { error } = await sb.from('catum_recado').insert({ para: m.user_id, nome: eu.nome, texto: t.slice(0, 400) }); if (error) throw error; cfgEl.classList.remove('on'); avisa('Recado deixado na mesa de ' + m.nome + '.'); } catch(_) { avisa('Não salvou: falta rodar o SQL v194.'); } } };
+  cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; setTimeout(() => { try { document.getElementById('recTxt').focus(); } catch(_){} }, 60); }
+function desenhaMesa(m){ const x = m.x, y = m.y, on = m.user_id === eu.id || outros.has(m.user_id); cx.fillStyle = 'rgba(0,0,0,.2)'; cx.fillRect(x - 15, y - 2, 30, 4); cx.fillStyle = '#5a3a1e'; cx.fillRect(x - 14, y - 12, 28, 10); cx.fillStyle = '#c98a4b'; cx.fillRect(x - 13, y - 13, 26, 8); cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 6, y - 24, 12, 10); cx.fillStyle = on ? '#7ff0d0' : '#3a4a5a'; cx.fillRect(x - 5, y - 23, 10, 8); cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 1, y - 14, 2, 2); }
+
+/* ---- agenda ---- */
+let REUNIOES = [], reuAvisada = {};
+async function carregaAgenda(){ if (!EQUIPE) return; try { const { data, error } = await sb.from('catum_reuniao').select('id,titulo,quando,cena,link,nome,criado_por').gte('quando', new Date(Date.now() - 3600e3).toISOString()).order('quando').limit(30); if (!error) REUNIOES = data || []; } catch(_){}
+  const agora = Date.now(); REUNIOES.forEach(r => { const d = Date.parse(r.quando) - agora; if (d < 5 * 60e3 && d > -10 * 60e3 && !reuAvisada[r.id]) { reuAvisada[r.id] = 1; avisa((d > 0 ? 'Em instantes: ' : 'Começou: ') + r.titulo + ' · ' + nomeCena(r.cena), 'Ir', () => { const L = lug(r.cena); if (L) irDireto(L); }); } }); }
+function abreAgenda(){
+  const quando = d => { try { return new Date(d).toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch(_) { return ''; } }, campo = 'display:block;width:100%;box-sizing:border-box;margin-top:4px;border:3px solid #1d1b2a;font:inherit;font-size:12px;padding:7px;background:#fff;color:#1d1b2a;-webkit-user-select:text;user-select:text';
+  cfgCx.innerHTML = `<div class="topo"><h2>Agenda</h2><button type="button" class="pri" data-marca>Marcar</button><button type="button" data-fecha>Fechar</button></div>
+    <label style="display:block;font-size:11px">Encontro<input id="agT" maxlength="120" placeholder="ex.: revisão da campanha" style="${campo}"></label>
+    <div class="lin" style="margin-top:8px"><label style="flex:1;font-size:11px">Quando<input id="agQ" type="datetime-local" style="${campo}"></label><label style="flex:1;font-size:11px">Onde<select id="agL" style="${campo}">${LUG.map(L => `<option value="${L.id}"${L.id === 'escritorio' ? ' selected' : ''}>${esc(L.nome)}</option>`).join('')}</select></label></div>
+    <label style="display:block;font-size:11px;margin-top:8px">Link da chamada (opcional)<input id="agK" maxlength="300" placeholder="https://meet.google.com/…" style="${campo}"></label>
+    <h3>Próximos</h3>` + (REUNIOES.length ? REUNIOES.map(r => `<div class="lin" style="margin-top:7px;align-items:center"><span style="flex:1;min-width:140px;font-size:12px"><b>${esc(r.titulo)}</b><br><span style="opacity:.7">${esc(quando(r.quando))} · ${esc(nomeCena(r.cena))} · ${esc(r.nome)}</span></span><button type="button" data-vai="${r.cena}">Ir</button>${r.link && /^https:\/\//.test(r.link) ? `<a href="${esc(r.link)}" target="_blank" rel="noopener" style="${BT};text-decoration:none;color:#1d1b2a">Chamada</a>` : ''}${r.criado_por === eu.id ? `<button type="button" data-tira="${r.id}">Tirar</button>` : ''}</div>`).join('') : '<p>Nada marcado.</p>');
+  cfgCx.oninput = null; cfgCx.onclick = async e => { const b = e.target.closest('button'); if (!b) return; if (b.hasAttribute('data-fecha')) return cfgEl.classList.remove('on');
+    if (b.dataset.vai) { cfgEl.classList.remove('on'); const L = lug(b.dataset.vai); if (L) ROTA = { L, em: 0 }; return; }
+    if (b.dataset.tira) { try { await sb.from('catum_reuniao').delete().eq('id', +b.dataset.tira); } catch(_){} await carregaAgenda(); return abreAgenda(); }
+    if (b.hasAttribute('data-marca')) { const tt = document.getElementById('agT').value.trim(), q = document.getElementById('agQ').value; if (!tt || !q) return avisa('Diga o encontro e quando.');
+      try { const { error } = await sb.from('catum_reuniao').insert({ titulo: tt.slice(0, 120), quando: new Date(q).toISOString(), cena: document.getElementById('agL').value, link: document.getElementById('agK').value.trim() || null, nome: eu.nome }); if (error) throw error; await carregaAgenda(); abreAgenda(); manda('a', {}); } catch(_) { avisa('Não marcou: falta rodar o SQL v194.'); } } };
+  cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false;
+}
+function ferramentas(){        // botões do topo e cargas iniciais
+  const hud = document.getElementById('hud'), g = document.getElementById('gente'); if (g) { g.style.cursor = 'pointer'; g.onclick = abreGente; }
+  const bt = (rot, fn) => { const b = document.createElement('button'); b.className = 'px'; b.type = 'button'; b.textContent = rot; b.onclick = fn; hud.insertBefore(b, document.getElementById('xp') || null); return b; };
+  btChat = bt('Chat', () => CHAT.aberto ? (CHAT.aberto = false, chatP.style.display = 'none') : abreChat()); bt('Reagir', abreReacoes); if (EQUIPE) bt('Agenda', () => { carregaAgenda().then(abreAgenda); }); if (document.body.classList.contains('toque')) bt('Gente', abreGente);
+  if (EQUIPE) { carregaMesas(); carregaRecados(); carregaAgenda(); setInterval(() => { if (!document.hidden) carregaAgenda(); }, 60000); }
 }
 
 /* ---------- trilha 8 bits: tema em ré maior montado a partir do motivo (ré–si–lá) e do andamento da trilha dos vídeos de intro do site ---------- */
@@ -813,7 +931,8 @@ const CALMO = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
 function boneco(e, t){
-  const at = atlas(e), x = Math.round(e.x), y = Math.round(e.y), m = meioDe(e);
+  const at = atlas(e), x = Math.round(e.x), y = Math.round(e.y), m = meioDe(e); if (e.danca) { if (Date.now() > e.danca) e.danca = 0; else e.dir = Math.floor(t / 130) % 4; }
+  if (e.kart) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 13, y - 5, 26, 7); cx.fillStyle = '#ea278f'; cx.fillRect(x - 12, y - 7, 24, 5); cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 12, y, 5, 3); cx.fillRect(x + 7, y, 5, 3); }
   if (e !== eu) { const d = e._px == null ? 0 : dist(e.x, e.y, e._px, e._py); e._px = e.x; e._py = e.y; if (e.anda && d < 30) e.fase = ((e.fase || 0) + d / (PERFIS[(at && at.mov) || 'passo'] || PERFIS.passo)[1]) % 1; e.quadro = e.anda ? Math.floor((e.fase || 0) * 8) : 0; }      // a passada anda pela distância, não pelo relógio
   const sw = at ? Math.max(6, Math.round(at.F * .16)) : 8; if (m === 'agua') { cx.fillStyle = 'rgba(255,255,255,.45)'; cx.fillRect(x - sw, y + 1, sw * 2, 1); } else { cx.fillStyle = 'rgba(0,0,0,' + (m === 'voo' ? '.12' : '.2') + ')'; cx.fillRect(x - sw, y - 1, sw * 2, 2); cx.fillRect(x - sw + 2, y + 1, sw * 2 - 4, 1); }
   if (!at) { cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 3, y - 12, 6, 12); return; }
@@ -839,8 +958,9 @@ function quadro(t){
   let dx = (tecla['arrowright'] || tecla['d'] ? 1 : 0) - (tecla['arrowleft'] || tecla['a'] ? 1 : 0), dy = (tecla['arrowdown'] || tecla['s'] ? 1 : 0) - (tecla['arrowup'] || tecla['w'] ? 1 : 0);
   if (!dx && !dy && eu.alvo) { const ax = eu.alvo.x - eu.x, ay = eu.alvo.y - eu.y, d = Math.hypot(ax, ay); if (d < 2 || t - eu.alvo.em > 12000) eu.alvo = null; else { dx = ax / d; dy = ay / d; } }
   if (!dx && !dy && joyV) { dx = joyV.x; dy = joyV.y; }
+  if ((dx || dy) && SEGUE) SEGUE = null; if (!dx && !dy && SEGUE) { const v = passoSegueGente(t); if (v) { dx = v[0]; dy = v[1]; } }
   if (trocando) dx = dy = 0;
-  const meuMeio = meioDe(eu), real = avancar(eu, dx, dy, dt, bitsDe(C)[meuMeio], (ATOR[corpoDe(eu) || limpaSkin(eu.sk).base] || HUM0).mov); eu.anda = !!eu.emMarcha;
+  const meuMeio = meioDe(eu), real = avancar(eu, dx, dy, dt, bitsDe(C)[meuMeio], (ATOR[corpoDe(eu) || limpaSkin(eu.sk).base] || HUM0).mov); eu.anda = !!eu.emMarcha; eu.kart = !!(tecla['shift'] && eu.anda && meuMeio === 'chao'); if (eu.kart) avancar(eu, dx, dy, dt * .8, bitsDe(C)[meuMeio], 'asas');
   if ((dx || dy) && !eu.anda && eu.alvo) eu.alvo = null;        // encostou: para de dar passos
   // porta ou travessia ao alcance: só entra com confirmação
   { const a = t > trocaAte && !trocando ? acaoPerto() : null, tx = a ? a.txt : ''; ACAO = a; if (acaoEl.dataset.t !== tx) { acaoEl.dataset.t = tx; acaoEl.textContent = tx + (document.body.classList.contains('toque') || !tx ? '' : '  [E]'); acaoEl.style.display = tx ? 'block' : 'none'; } }
@@ -878,8 +998,9 @@ function quadro(t){
   if (CENA === 'bairro') { passoBola(dt, [eu, ...vis, ...gente]); desenhaBola(); }
   luzFundo(t, ox, oy);
   // fila de profundidade: recortes e personagens por Y; pé ao norte da linha fica atrás, ao sul fica à frente; no empate o recorte vem antes
-  const fila = [...vis, ...gente, eu].map(e => ({ y: e.y, e })); for (const f of C.frentes) fila.push({ y: f.linha - .5, f });
-  fila.sort((a, b) => a.y - b.y); for (const q of fila) { if (q.e) boneco(q.e, t); else recorte(q.f); }
+  const fila = [...vis, ...gente, eu].map(e => ({ y: e.y, e })); for (const f of C.frentes) fila.push({ y: f.linha - .5, f }); if (CENA === 'escritorio') for (const m of MESAS) fila.push({ y: m.y - 1, mesa: m });
+  fila.sort((a, b) => a.y - b.y); for (const q of fila) { if (q.e) boneco(q.e, t); else if (q.mesa) desenhaMesa(q.mesa); else recorte(q.f); }
+  if (confetes.length) { const ag = performance.now(); for (let i = confetes.length - 1; i >= 0; i--) { const p = confetes[i], d = (ag - p.em) / 1000; if (d > 1.6) { confetes.splice(i, 1); continue; } if (p.r !== CENA) continue; cx.fillStyle = p.c; cx.fillRect(Math.round(p.x + p.vx * d), Math.round(p.y + p.vy * d + 130 * d * d), 2, 2); } }
   // onde o mapa não trouxe recorte: a estrutura cuja base está à frente dos pés cobre o personagem (mesa, poste, mureta, portão)
   { const tampa = []; for (const q of fila) { const e = q.e; if (!e || meioDe(e) === 'voo') continue; const hh = altura(e), mw = 11, gx0 = Math.max(0, (e.x - mw) >> 2), gx1 = Math.min(C.gw - 1, (e.x + mw) >> 2), gy1 = Math.min(C.gh - 1, (e.y | 0) >> 2), gy0 = Math.max(0, (e.y - hh) >> 2);
       for (let gx = gx0; gx <= gx1; gx++) { let ini = -1; for (let gy = gy0; gy <= gy1 + 1; gy++) { const i = gy * C.gw + gx, on = gy <= gy1 && C.sol[i] && C.base[i] * 4 + 3 > e.y + 2 && C.base[i] * 4 - e.y < 90; if (on && ini < 0) ini = gy; else if (!on && ini >= 0) { tampa.push([gx * 4, ini * 4, 4, (gy - ini) * 4]); ini = -1; } } } }
@@ -889,11 +1010,13 @@ function quadro(t){
   luzFrente(t, k, ox, oy);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
-  C.portas.forEach(p => { const a = p.ac[meuMeio] || p.sol, d = dist(a[0], a[1], eu.x, eu.y); if (d < 170) etiqueta((p.para === 'bairro' ? 'SAÍDA' : nomeCena(p.para)).toUpperCase(), p.sol[0], p.sol[1] - 24, '#1d1b2a', '#fffdf5', 10); });
+  if (!SIMPLES) C.portas.forEach(p => { const a = p.ac[meuMeio] || p.sol, d = dist(a[0], a[1], eu.x, eu.y); if (d < 170) etiqueta((p.para === 'bairro' ? 'SAÍDA' : nomeCena(p.para)).toUpperCase(), p.sol[0], p.sol[1] - 24, '#1d1b2a', '#fffdf5', 10); });
   C.pass.forEach(s => { if (s.meio !== meuMeio) return; [s.de, s.para].forEach(a => { if (dist(a[0], a[1], eu.x, eu.y) < 120) etiqueta(s.tipo.toUpperCase(), a[0], a[1] - 8, 'rgba(29,27,42,.82)', '#a5e2d6', 9); }); });
-  sts.forEach(s => { if (dist(s.x, s.y, eu.x, eu.y) < (CENA === 'regiao' ? 300 : 90)) etiqueta(s.e.rotulo.toUpperCase(), s.x, s.y - 9, 'rgba(29,27,42,.82)', '#ffe27a', 9); });
+  if (!SIMPLES) sts.forEach(s => { if (dist(s.x, s.y, eu.x, eu.y) < (CENA === 'regiao' ? 300 : 90)) etiqueta(s.e.rotulo.toUpperCase(), s.x, s.y - 9, 'rgba(29,27,42,.82)', '#ffe27a', 9); });
   vis.forEach(n => { etiqueta(n.nome, n.x, n.y - altura(n), n === pertoN ? '#ffe27a' : 'rgba(29,27,42,.78)', n === pertoN ? '#1d1b2a' : '#fff', 9); if (n.fala && agora - n.falaEm < 9000) balao(n.fala.length > 64 ? n.fala.slice(0, 62) + '…' : n.fala, n.x, n.y - altura(n) - 6); });
-  gente.forEach(o => { etiqueta(o.nome, o.x, o.y - altura(o), '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
+  gente.forEach(o => { etiqueta(o.nome + (o.st && dist(o.x, o.y, eu.x, eu.y) < 140 ? ' · ' + o.st : ''), o.x, o.y - altura(o), DISP[o.dv || 0][1], '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
+  [...gente, eu].forEach(o => { if (o.emo && agora - o.emo.em < 2600 && o.emo.t) etiqueta(o.emo.t, o.x, o.y - altura(o) - 14 - Math.min(8, (agora - o.emo.em) / 60), '#ea278f', '#fff', 13); });
+  if (CENA === 'escritorio') MESAS.forEach(m => { if (dist(m.x, m.y, eu.x, eu.y) < 130) etiqueta('MESA · ' + String(m.nome).toUpperCase(), m.x, m.y - 28, 'rgba(29,27,42,.82)', '#fffdf5', 9); });
   etiqueta(eu.nome, eu.x, eu.y - altura(eu), '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - altura(eu) - 6);
   if (ROTA) desenhaRota(t);
   camX = cxa; camY = cya;
@@ -908,18 +1031,22 @@ function quadro(t){
 
 /* ---------- ao vivo (Supabase Realtime) ---------- */
 let canal = null, pronto = false;
-const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, m: MESA, ss: SESSAO && SESSAO.meu ? SESSAO.t0 : 0 });
+const meuRastro = () => ({ i: eu.id, n: eu.nome, s: CFG.skin || null, c: CFG.corpo, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA, m: MESA, ss: SESSAO && SESSAO.meu ? SESSAO.t0 : 0, st: ST.txt, dv: ST.dv, fn: MEU.fn });
 function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
 function liga(){
-  canal = sb.channel('catum-v3', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
+  canal = sb.channel(EQUIPE ? 'catum-v3' : 'catum-v3-c-' + (MEU.cli || eu.id), { config: { presence: { key: eu.id }, broadcast: { self: false } } });
   canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
       let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: +p.x || 528, y: +p.y || 440, tx: +p.x || 528, ty: +p.y || 440, fala: '', falaEm: 0, anda: false, dir: 0, humano: true, sk: null, r: String(p.r || 'bairro') }; outros.set(p.i, o); }
-      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); o.corpo = NPC_IDS.includes(p.c) ? p.c : 'humano'; if (o.corpo !== 'humano') folha(o.corpo); o.m = String(p.m || '').slice(0, 40); if (+p.ss > 0 && !SESSAO) SESSAO = { t0: +p.ss, por: o.nome, meu: false }; });
+      if (p.s && typeof p.s === 'object') o.sk = limpaSkin(p.s); o.corpo = NPC_IDS.includes(p.c) ? p.c : 'humano'; if (o.corpo !== 'humano') folha(o.corpo); o.m = String(p.m || '').slice(0, 40); o.st = String(p.st || '').slice(0, 40); o.dv = [0, 1, 2].includes(p.dv) ? p.dv : 0; o.fn = String(p.fn || '').slice(0, 30); if (+p.ss > 0 && !SESSAO) SESSAO = { t0: +p.ss, por: o.nome, meu: false }; });
     pintaMesa();
     [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
   canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { const r = String(p.r || 'bairro'); o.tx = Math.max(0, Math.min(2000, +p.x)); o.ty = Math.max(0, Math.min(1400, +p.y)); if ([0, 1, 2, 3].includes(p.d)) o.dir = p.d; if (r !== o.r) { o.r = r; o.x = o.tx; o.y = o.ty; } } });
-  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 160) vozinha(o.id, o.fala); } });
+  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 160) { vozinha(o.id, o.fala); CHAT.logs.perto.push({ n: o.nome, t: o.fala, h: horaCurta(Date.now()) }); if (CHAT.logs.perto.length > 60) CHAT.logs.perto.shift(); if (CHAT.aberto && CHAT.canal === 'perto') pintaChatP(); } } });
+  canal.on('broadcast', { event: 'e' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) reage(o, String(p.k || '')); });
+  canal.on('broadcast', { event: 'w' }, ({ payload: p }) => { if (!p || p.to !== eu.id || ST.dv === 2) return; const o = outros.get(p.i); avisa((o ? o.nome : String(p.n || 'Alguém')) + ' acenou para você.', 'Ir até', () => seguir(p.i, true)); vozinha(p.i, 'oi oi'); });
+  canal.on('broadcast', { event: 'a' }, () => { carregaAgenda(); });
+  try { canal.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'catum_chat' }, ({ new: m }) => chatRecebe(m)); } catch(_){}
   canal.on('broadcast', { event: 's' }, ({ payload: p }) => { if (!p) return; if (+p.t0 > 0) SESSAO = { t0: +p.t0, por: String(p.n || 'alguém').slice(0, 18), meu: false }; else SESSAO = null; sessaoFechei = 0; });
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
 }
@@ -931,7 +1058,7 @@ async function comeca(){
   let sess = null; try { sess = (await sb.auth.getSession()).data.session; } catch(_){}
   if (!sess) { VIS = true; let v = ''; try { v = localStorage.getItem('catum_vis') || ''; if (!v) { v = 'vis-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('catum_vis', v); } } catch(_) { v = 'vis-' + Math.random().toString(36).slice(2, 10); } eu.id = v; eu.nome = 'Visitante'; document.body.classList.add('vis'); }      // visitante: passeia e joga; nada vai para o banco e ninguém da equipe aparece
   else eu.id = sess.user.id;
-  if (!VIS) try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
+  if (!VIS) try { const { data } = await sb.from('profiles').select('*').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; MEU = { papel: data.role || '', cli: data.client_id || null, fn: String((data.funcoes || [])[0] || '').slice(0, 30) }; EQUIPE = ['admin', 'team'].includes(MEU.papel); } } catch(_){}
   ajusta();
   try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'atores.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
     ATOR = pf || {}; MIS = mi; C = b; ajusta(); const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440, meioDe(eu)); eu.x = p[0]; eu.y = p[1]; LUG.forEach(L => { L.porta = portaB(L, 'chao'); });
@@ -939,11 +1066,11 @@ async function comeca(){
   NPC_IDS.concat(Object.keys(LOCAIS)).forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
   carregaEscola(); setInterval(() => { if (!document.hidden) carregaEscola(); }, 300000);
-  if (!VIS) { try { liga(); } catch(e){ console.warn('ao vivo fora:', e); } }
+  if (!VIS) { try { liga(); } catch(e){ console.warn('ao vivo fora:', e); } try { ferramentas(); } catch(e){ console.warn(e); } }
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, get clima(){ return CLIMA; }, set clima(i){ CLIMA = { i, nome: CLIMAS[i], t: 24, fixo: true }; }, get vis(){ return VIS; }, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
+window.CATUM = { eu, LUG, outros, reagir, abreGente, abreChat, abreAgenda, get equipe(){ return EQUIPE; }, get chat(){ return CHAT; }, get clima(){ return CLIMA; }, set clima(i){ CLIMA = { i, nome: CLIMAS[i], t: 24, fixo: true }; }, get vis(){ return VIS; }, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>
