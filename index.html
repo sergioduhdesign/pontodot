@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v604 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v605 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -2875,6 +2875,7 @@ function htmlTarefas(){
   const ferramentas = `<div class="t-ferr">
       <button class="acao-cab" style="opacity:.9" onclick="event.stopPropagation();abrirTarefasTodas()">ver todas as tarefas</button>
       <button class="acao-cab" style="opacity:.9" onclick="event.stopPropagation();filtroRapido(event)">filtrar ∨</button>
+      ${!ehCliente() && window.REAL && !FILA.falta && !FILA.semTempo ? `<button class="acao-cab" style="opacity:.9" onclick="event.stopPropagation();filaRevisar()">revisar tempos${filaPendentes().length ? ' (' + filaPendentes().length + ')' : ''}</button>` : ''}
     </div>`;
   return `
     <div class="cx-cab" role="button" onclick="fecharComFio('#cxTarefas',()=>{vTarefas='fechada';selecionada=-1;renderFlip()})">
@@ -4290,6 +4291,7 @@ function iaDoCliente(){ const v = String((window.CLIENTE_ROW && CLIENTE_ROW.ia_z
 function jeitoDoCliente(){ return { personagem: iaDoCliente(), apelido: null, confirmado: true, respostas: {}, diretas: {}, versao: 'cliente', em: null, uid: perfil && perfil.id }; }
 async function trocarAtendimento(id){
   if (!ehCliente() || !IAS_ATENDIMENTO.includes(id) || !perfil.client_id) return;
+  if (perfil.coringa && perfil.client_id !== perfil.coringa_casa){ toast('No modo coringa você vê como o cliente, mas não troca a IA dele.'); return; }
   try { const { error } = await sbR.from('clients').update({ ia_zap: id }).eq('id', perfil.client_id); if (error) throw error;
     window.CLIENTE_ROW = Object.assign(window.CLIENTE_ROW || {}, { ia_zap: id }); jeito = jeitoDoCliente(); fecharJanela(); render(); toast('Agora quem te atende é ' + (personagemAtual()?.name || id) + ' — aqui e no WhatsApp.');
   } catch(e){ toast('Não consegui trocar: ' + (e.message || e)); }
@@ -7901,28 +7903,51 @@ function htmlEscolaAdmin(abas){
 // O cliente cria o pedido e define a ordem; a equipe pega um por vez, de cima para baixo.
 // A ordem mora em pd_fila (o cliente não altera a tabela de tarefas).
 // =====================================================================
-let FILA = { m: {}, falta: false };
+let FILA = { m: {}, falta: false, semTempo: false, carga: {} };
+const FRENTES = ['Design', 'Imagem e 3D', 'Vídeo', 'Texto e conteúdo', 'Social media', 'Web', 'Mídia e campanhas', 'Estratégia e branding', 'Produção e eventos', 'Atendimento e gestão'];
+const fmtMin = m => !m ? '' : m < 60 ? '~' + m + ' min' : m < 480 ? '~' + String(Math.round(m / 30) / 2).replace('.', ',') + ' h' : '~' + String(Math.round(m / 240) / 2).replace('.', ',') + ' dias de produção';
 async function filaCarrega(){
-  const antes = JSON.stringify(FILA.m);
-  try { const { data, error } = await sbR.from('pd_fila').select('task_id,client_id,pos,prioridade'); if (error) throw error; const m = {}; (data || []).forEach(r => { m[r.task_id] = r; }); FILA = { m, falta: false }; }
-  catch(e){ FILA = { m: {}, falta: true }; }
-  try { if (ehCliente() && antes !== JSON.stringify(FILA.m)) render(); } catch(e){}
+  const antes = JSON.stringify(FILA.m); let semTempo = false, falta = false, m = {}, carga = {};
+  try { let r = await sbR.from('pd_fila').select('task_id,client_id,pos,prioridade,frente,est_min,est_lo,est_hi,est_fonte,est_nota');
+    if (r.error){ semTempo = true; r = await sbR.from('pd_fila').select('task_id,client_id,pos,prioridade'); }       // v193 ainda não rodou: fica só a ordem
+    if (r.error) throw r.error; (r.data || []).forEach(x => { m[x.task_id] = x; }); }
+  catch(e){ falta = true; }
+  if (!falta && !semTempo){ try { const { data } = await sbR.rpc('pd_fila_carga'); (data || []).forEach(x => { carga[x.frente] = x; }); } catch(e){} }
+  FILA = { m, falta, semTempo, carga };
+  try { coringaBarra(); } catch(e){}
+  try { if (antes !== JSON.stringify(m)) { if (ehCliente()) render(); else filaLembra(); } } catch(e){}
+}
+// pede à IA da casa a frente e o tempo das tarefas que ainda não têm (lotes de 12)
+async function filaEstimar(ids, forcar){
+  ids = (ids || []).filter(Boolean); if (!ids.length || FILA.falta || FILA.semTempo) return 0; let feitos = 0;
+  const { data: { session } } = await sbR.auth.getSession();
+  for (let i = 0; i < ids.length && i < 48; i += 12){
+    try { const r = await fetch('/pd-estima.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token }, body: JSON.stringify({ ids: ids.slice(i, i + 12), forcar: !!forcar }) });
+      const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'falhou');
+      (j.itens || []).forEach(x => { const t = tasksReais.find(k => k.id === x.id); FILA.m[x.id] = Object.assign({ task_id: x.id, client_id: t ? t.client_id : null, pos: 0, prioridade: false }, FILA.m[x.id] || {}, { frente: x.frente, est_min: x.est_min, est_lo: x.lo, est_hi: x.hi, est_fonte: 'ia', est_nota: x.nota }); feitos++; });
+    } catch(e){ toast(e.message && e.message !== 'falhou' ? e.message : 'A IA não conseguiu estimar agora.'); break; } }
+  return feitos;
 }
 const FILA_PROD = ['EM ANDAMENTO', 'ALTERAÇÃO', 'BUCHA'], FILA_CLI = ['DELEGADA', 'ATENÇÃO'];
 function filaDe(cid){        // o que está em produção, as prioridades, a fila e o que está com o cliente
   const ts = tasksReais.filter(t => t.client_id === cid && t.status !== 'ENTREGUE');
-  const pos = t => { const r = FILA.m[t.id]; return r ? r.pos : 100000 + ((Date.parse(t.date_cli || t.date_int || '') / 864e5) || 99999); };
+  const pos = t => { const r = FILA.m[t.id]; return r && r.pos > 0 ? r.pos : 100000 + ((Date.parse(t.date_cli || t.date_int || '') / 864e5) || 99999); };
   const br = ts.filter(t => t.status === 'BRIEFING').sort((a, b) => pos(a) - pos(b)), pr = t => !!(FILA.m[t.id] && FILA.m[t.id].prioridade);
   return { agora: ts.filter(t => FILA_PROD.includes(t.status)), prio: br.filter(pr), fila: br.filter(t => !pr(t)), comvc: ts.filter(t => FILA_CLI.includes(t.status)) };
 }
 function filaLugar(t){       // etiqueta para a equipe: onde este pedido está na fila do cliente
-  if (!t || !t.client_id || t.status !== 'BRIEFING' || !FILA.m[t.id]) return '';
+  if (!t || !t.client_id || t.status !== 'BRIEFING' || !FILA.m[t.id] || !(FILA.m[t.id].pos > 0)) return '';
   const f = filaDe(t.client_id), i = f.prio.concat(f.fila).findIndex(x => x.id === t.id); if (i < 0) return '';
   return (FILA.m[t.id].prioridade ? 'prioridade · ' : '') + (i === 0 ? 'próxima' : (i + 1) + 'º da fila');
 }
 function filaLinha(t, rot, ctrl, num){       // num = posição na fila, bem visível: deixa claro que há ordem
   const nb = num ? `<span style="flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;border:1.5px solid currentColor;${num === 1 ? 'background:var(--text,currentColor);color:var(--bg,#fff);border-color:transparent' : 'opacity:.8'}">${num}</span>` : '';
-  return `<div class="ia-linha" style="gap:10px"><button type="button" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;flex:1;min-width:0" onclick="abrirTarefaReal('${t.id}')">${nb || logoCliente(t.clients?.name || '', 30)}<div class="c" style="min-width:0"><div class="n" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.action)}</div><div class="d">${rot}${t.date_cli ? ' · para ' + fmtD(t.date_cli) : ''}</div></div></button>${ctrl || ''}</div>`;
+  return `<div class="ia-linha" style="gap:10px"><button type="button" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;flex:1;min-width:0" onclick="abrirTarefaReal('${t.id}')">${nb || logoCliente(t.clients?.name || '', 30)}<div class="c" style="min-width:0"><div class="n" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.action)}</div><div class="d">${rot}${(() => { const r = FILA.m[t.id] || {}; return (r.frente ? ' · ' + esc(r.frente) : '') + (r.est_min ? ' · ' + fmtMin(r.est_min) : (FILA.semTempo || FILA.falta ? '' : ' · tempo em análise')); })()}${t.date_cli ? ' · para ' + fmtD(t.date_cli) : ''}</div></div></button>${ctrl || ''}</div>`;
+}
+// as frentes de atuação que este cliente tem na fila, com o tamanho da fila de cada uma na casa inteira
+function filaFrentes(f){
+  const meus = {}; f.agora.concat(f.prio, f.fila).forEach(t => { const fr = (FILA.m[t.id] || {}).frente; if (fr) meus[fr] = (meus[fr] || 0) + 1; }); const ks = Object.keys(meus); if (!ks.length) return '';
+  return `<div class="nota" style="margin:16px 0 2px">Frentes de atuação</div><div class="nota" style="opacity:.75;margin:0 0 6px;text-transform:none;letter-spacing:0">Cada frente tem a própria fila na agência. Quando uma frente está cheia, o pedido novo espera a vez dela.</div>` + ks.map(k => { const c = FILA.carga[k]; return `<div class="ia-linha"><div class="c"><div class="n">${esc(k)}</div><div class="d">${c ? c.tarefas + ' tarefa' + (c.tarefas === 1 ? '' : 's') + ' na casa' + (c.minutos ? ' · ' + fmtMin(c.minutos) + ' na frente' : '') : 'fila da frente em cálculo'} · ${meus[k]} sua${meus[k] === 1 ? '' : 's'}</div></div></div>`; }).join('');
 }
 function htmlFila(){
   const f = filaDe(perfil.client_id), ord = f.prio.concat(f.fila), n = f.agora.length + ord.length + f.comvc.length;
@@ -7941,6 +7966,7 @@ function filaTodas(cid){
   abrirJanela(`<h3>Pedidos${nome && !ehCliente() ? ' · ' + esc(nome) : ''}</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px">${ehCliente() ? `<button class="btn" onclick="filaNova()">Criar nova tarefa</button>` : ''}<button class="btn" onclick="filaPdf('${cid}')">PDF</button></div>
     <div class="nota" style="margin:8px 0 0;text-transform:none;letter-spacing:0">A equipe pega um pedido por vez, seguindo os números. Pedido novo entra no fim; para adiantar um, use Subir ou Priorizar.</div>
+    ${filaFrentes(f)}
     ${sec('Em produção agora', 'É nisto que a equipe está focada.', f.agora, t => filaLinha(t, ROT_STATUS[t.status] || t.status))}
     ${sec('Fila de prioridades', 'Passam na frente da fila, na ordem em que estão aqui.', f.prio, (t, i) => filaLinha(t, i === 0 && livre ? 'próxima a ser pega' : 'prioridade', ctrl(t, true), i + 1))}
     ${sec('Fila', 'Por ordem de chegada: pedido novo entra no fim. O número é a vez de cada um.', f.fila, (t, i) => filaLinha(t, f.prio.length + i === 0 && livre ? 'próxima a ser pega' : 'na fila', ctrl(t, false), f.prio.length + i + 1))}
@@ -7974,9 +8000,60 @@ async function filaEnviar(btn){
   const det = (document.getElementById('filaDet')?.value || '').trim(), prazo = document.getElementById('filaPrazo')?.value || null, prio = !!document.getElementById('filaPrio')?.checked;
   if (btn){ btn.disabled = true; btn.textContent = 'Enviando…'; }
   try { const { error } = await sbR.rpc('pd_cliente_pede', { p_titulo: tit, p_detalhe: det || null, p_prazo: prazo, p_prioridade: prio }); if (error) throw error;
-    toast('Pedido enviado. Entrou na sua fila.'); try { await carregarReal(); } catch(e){} await filaCarrega(); filaTodas(); try { render(); } catch(e){} }
+    toast('Pedido enviado. Entrou na sua fila.'); try { await carregarReal(); } catch(e){} await filaCarrega(); filaTodas(); try { render(); } catch(e){}
+    try { const semT = tasksReais.filter(t => t.client_id === perfil.client_id && t.status === 'BRIEFING' && !(FILA.m[t.id] && FILA.m[t.id].est_min)).map(t => t.id); if (semT.length && await filaEstimar(semT)) { filaTodas(); render(); } } catch(e){} }      // a IA já diz a frente e o tempo do pedido novo
   catch(e){ if (btn){ btn.disabled = false; btn.textContent = 'Enviar pedido'; } toast(/pd_cliente_pede|schema cache|does not exist/i.test(e.message || '') ? 'Ainda não dá para criar por aqui: falta rodar o SQL v192.' : (e.message || 'Não consegui enviar agora. Tente de novo.')); }
 }
+// ---- REVISÃO: cada pessoa confere a frente e o tempo das próprias tarefas (a IA sugere; a pessoa confirma) ----
+const filaMinhas = () => { const eu = String(aindaNao(() => chaveDe(perfil), '') || '').toUpperCase(); return tasksReais.filter(t => t.status !== 'ENTREGUE' && String(t.resp || '').toUpperCase() === eu); };
+const filaPendentes = () => (FILA.falta || FILA.semTempo || ehCliente()) ? [] : filaMinhas().filter(t => !(FILA.m[t.id] && FILA.m[t.id].est_fonte === 'pessoa'));
+function filaLembra(){        // uma vez por dia: avisa quem tem tarefa sem tempo conferido
+  try { const n = filaPendentes().length, k = 'sd_fila_lembrou', hoje = new Date().toISOString().slice(0, 10); if (!n || localStorage.getItem(k) === hoje) return; localStorage.setItem(k, hoje);
+    toast(n + ' tarefa' + (n === 1 ? '' : 's') + ' sua' + (n === 1 ? '' : 's') + ' sem tempo conferido. Abra Tarefas e toque em "revisar tempos".'); } catch(e){}
+}
+async function filaRevisar(soIds){
+  if (FILA.falta || FILA.semTempo){ toast('Falta rodar o SQL v193 para revisar os tempos.'); return; }
+  const lista = () => (soIds ? tasksReais.filter(t => soIds.includes(t.id)) : filaMinhas()).sort((a, b) => ((FILA.m[a.id]?.est_fonte === 'pessoa') - (FILA.m[b.id]?.est_fonte === 'pessoa')) || String(a.date_int || '9999').localeCompare(String(b.date_int || '9999')));
+  const campo = 'padding:7px 9px;border-radius:10px;border:1px solid var(--sep);background:transparent;color:inherit;font:inherit;font-size:12.5px';
+  const pinta = (ocupada) => { const L = lista(), falta = L.filter(t => !(FILA.m[t.id]?.est_fonte === 'pessoa')).length;
+    abrirJanela(`<h3>Revisão das tarefas</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px"><button class="btn" onclick="filaConfirmaTodas()">Confirmar todas</button><button class="btn" onclick="filaPedeIA()">${ocupada ? 'A IA está estimando…' : 'Pedir sugestão da IA'}</button></div>
+      <div class="nota" style="text-transform:none;letter-spacing:0;margin:6px 0 4px">${L.length ? `${falta} de ${L.length} sem conferir. A IA sugere a frente e o tempo de produção a partir do catálogo da casa, do tempo real das tarefas já entregues e do peso de cada cliente. Ajuste o que estiver errado e confirme: é isso que monta a fila de entrega.` : 'Você não tem tarefa aberta.'}</div>
+      ${L.map(t => { const r = FILA.m[t.id] || {}, ok = r.est_fonte === 'pessoa';
+        return `<div class="ia-linha" style="flex-wrap:wrap;gap:8px" data-fr="${t.id}"><button type="button" style="all:unset;cursor:pointer;flex:1 1 220px;min-width:0" onclick="abrirTarefaReal('${t.id}')"><div class="n" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.action)}</div><div class="d">${esc(t.clients?.name || 'SD')} · ${ROT_STATUS[t.status] || t.status}${r.est_nota ? ' · ' + esc(r.est_nota) : ''}</div></button>
+          <select class="fr-f" style="${campo};max-width:170px"><option value="">frente…</option>${FRENTES.map(f => `<option${r.frente === f ? ' selected' : ''}>${f}</option>`).join('')}</select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input class="fr-h" type="number" min="0" step="0.25" inputmode="decimal" value="${r.est_min ? Math.round(r.est_min / 15) / 4 : ''}" placeholder="horas" style="${campo};width:74px">h</label>
+          <button class="btn" style="min-height:32px;padding:5px 11px;font-size:11.5px;${ok ? 'opacity:.55' : ''}" onclick="filaConfirma('${t.id}', this)">${ok ? 'Conferida' : 'Confirmar'}</button></div>`; }).join('')}`, true); };
+  window._filaRev = { pinta, lista }; pinta(false);
+  const sem = lista().filter(t => !(FILA.m[t.id] && FILA.m[t.id].est_min)).map(t => t.id);
+  if (sem.length){ pinta(true); await filaEstimar(sem); if (window._filaRev && window._filaRev.pinta === pinta) pinta(false); }
+}
+async function filaPedeIA(){ const R = window._filaRev; if (!R) return; const ids = R.lista().filter(t => !(FILA.m[t.id]?.est_fonte === 'pessoa')).map(t => t.id); if (!ids.length){ toast('Tudo já foi conferido.'); return; } R.pinta(true); await filaEstimar(ids, true); R.pinta(false); }
+function filaLeLinha(id){ const el = document.querySelector('[data-fr="' + id + '"]'); if (!el) return null; const fr = el.querySelector('.fr-f').value, h = parseFloat(String(el.querySelector('.fr-h').value).replace(',', '.')); if (!fr || !(h > 0)) return null; return { frente: fr, est_min: Math.max(5, Math.round(h * 60 / 5) * 5) }; }
+async function filaGrava(pares){        // [[id, {frente, est_min}], ...]
+  const agora = new Date().toISOString(), linhas = pares.map(([id, v]) => { const t = tasksReais.find(k => k.id === id) || {}, r = FILA.m[id] || {}; return { task_id: id, client_id: t.client_id || null, pos: r.pos || 0, prioridade: !!r.prioridade, frente: v.frente, est_min: v.est_min, est_fonte: 'pessoa', revisado_por: perfil.id, revisado_em: agora }; });
+  linhas.forEach(l => { FILA.m[l.task_id] = Object.assign({}, FILA.m[l.task_id] || {}, l); });
+  const { error } = await sbR.from('pd_fila').upsert(linhas); if (error) throw error;
+}
+async function filaConfirma(id, btn){ const v = filaLeLinha(id); if (!v){ toast('Escolha a frente e diga o tempo em horas.'); return; } if (btn){ btn.disabled = true; btn.textContent = 'Salvando…'; }
+  try { await filaGrava([[id, v]]); if (btn){ btn.textContent = 'Conferida'; btn.style.opacity = .55; btn.disabled = false; } try { renderBoard(); } catch(e){} } catch(e){ if (btn){ btn.disabled = false; btn.textContent = 'Confirmar'; } toast('Não salvou agora. Tente de novo.'); } }
+async function filaConfirmaTodas(){ const R = window._filaRev; if (!R) return; const pares = R.lista().map(t => [t.id, filaLeLinha(t.id)]).filter(x => x[1]); if (!pares.length){ toast('Preencha a frente e o tempo antes de confirmar.'); return; }
+  try { await filaGrava(pares); toast(pares.length + ' tarefa' + (pares.length === 1 ? '' : 's') + ' conferida' + (pares.length === 1 ? '' : 's') + '.'); R.pinta(false); try { renderBoard(); } catch(e){} } catch(e){ toast('Não salvou agora. Tente de novo.'); } }
+
+// ---- CLIENTE CORINGA: a conta de cliente da casa entra como qualquer cliente, para testar antes de liberar ----
+function coringaBarra(){
+  let b = document.getElementById('coringaBar'); if (!(perfil && perfil.coringa && ehCliente())){ if (b) b.remove(); return; }
+  if (!b){ b = document.createElement('button'); b.id = 'coringaBar'; b.type = 'button'; b.onclick = coringaTroca; b.style.cssText = 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:420;padding:9px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(20,21,26,.88);color:#fff;font:600 12px system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'; document.body.appendChild(b); }
+  const casa = perfil.coringa_casa && perfil.client_id === perfil.coringa_casa; b.textContent = (casa ? 'Conta coringa' : 'Vendo como ' + ((window.CLIENTE_ROW && CLIENTE_ROW.name) || 'cliente')) + ' · trocar cliente';
+}
+async function coringaTroca(){
+  try { const { data, error } = await sbR.rpc('pd_coringa_clientes'); if (error) throw error;
+    abrirJanela(`<h3>Ver como cliente</h3><div class="nota" style="text-transform:none;letter-spacing:0;margin:0 0 6px">Escolha um cliente para ver a plataforma exatamente como ele vê, com a IA de atendimento dele. O WhatsApp fica fora no modo coringa.</div>` +
+      (data || []).map(c => `<button class="ia-linha" style="width:100%" onclick="coringaEntra('${c.id}')">${logoCliente(c.name, 30)}<div class="c"><div class="n">${esc(c.name)}</div><div class="d">${c.atual ? 'você está aqui' : c.casa ? 'a sua conta' : 'entrar como este cliente'}</div></div></button>`).join(''), true);
+  } catch(e){ toast('Não consegui listar os clientes (o SQL v193 já rodou?).'); }
+}
+async function coringaEntra(id){ try { const { error } = await sbR.rpc('pd_coringa_entrar', { p_client: id }); if (error) throw error; toast('Trocando de cliente…'); setTimeout(() => location.reload(), 500); } catch(e){ toast(e.message || 'Não consegui trocar agora.'); } }
+
 function filaPdf(cid){
   cid = cid || perfil.client_id; const f = filaDe(cid), nome = (clientesReais.find(c => c.id === cid) || window.CLIENTE_ROW || {}).name || '';
   const tab = (arr, fn) => `<table>${arr.map((t, i) => `<tr><td>${fn(t, i)} ${esc(t.action)}</td><td>${t.date_cli ? fmtD(t.date_cli) : ''}</td></tr>`).join('')}</table>`;
@@ -11885,6 +11962,7 @@ async function pvResp(id, o){
 async function playTarefa(id){
   const aberta = !!sessAbertas[id];
   await playReal({ id, play: !aberta, real: tasksReais.find(x=>x.id===id) });
+  try { if (!aberta && !ehCliente() && !FILA.falta && !FILA.semTempo && !(FILA.m[id] && FILA.m[id].est_fonte === 'pessoa')) setTimeout(() => { toast('Antes de seguir: confira a frente e o tempo desta tarefa.'); filaRevisar([id]); }, 900); } catch(e){}
   await carregarReal().catch(()=>{});
   if (!$('#tarefaCheia').classList.contains('oculto')) abrirTarefaReal(id);
 }
