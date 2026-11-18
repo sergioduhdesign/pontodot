@@ -101,7 +101,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=16', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=17', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -295,11 +295,11 @@ function aplicaCfg(){ CFG.skin = limpaSkin(CFG.skin); eu.sk = CFG.skin; CFG.corp
 function guardaLocal(){ try { localStorage.setItem('catum_cfg', JSON.stringify(CFG)); } catch(_){} }
 async function carregaCfg(){
   try { const l = JSON.parse(localStorage.getItem('catum_cfg') || 'null'); if (l && typeof l === 'object') CFG = { skin: l.skin || null, lado: l.lado === 'd' ? 'd' : 'e', corpo: l.corpo || 'humano' }; } catch(_){}
-  try { const { data } = await sb.from('catum_jogador').select('skin,lado').eq('user_id', eu.id).maybeSingle(); if (data) { if (data.skin && (data.skin.base || data.skin.pele)) { CFG.skin = data.skin; if (data.skin.corpo) CFG.corpo = data.skin.corpo; } CFG.lado = data.lado === 'd' ? 'd' : 'e'; } } catch(_){}
+  if (!VIS) try { const { data } = await sb.from('catum_jogador').select('skin,lado').eq('user_id', eu.id).maybeSingle(); if (data) { if (data.skin && (data.skin.base || data.skin.pele)) { CFG.skin = data.skin; if (data.skin.corpo) CFG.corpo = data.skin.corpo; } CFG.lado = data.lado === 'd' ? 'd' : 'e'; } } catch(_){}
   if (!CFG.skin || !CFG.skin.base) { const s = await sugerePeloAvatar(eu.av); CFG.skin = Object.assign({ base: 'homem-medio' }, CFG.skin || {}, s || {}); }
   aplicaCfg(); guardaLocal();
 }
-async function salvaCfg(){ aplicaCfg(); guardaLocal(); try { canal && pronto && canal.track(meuRastro()); } catch(_){}
+async function salvaCfg(){ aplicaCfg(); guardaLocal(); if (VIS) return true; try { canal && pronto && canal.track(meuRastro()); } catch(_){}
   try { const { error } = await sb.from('catum_jogador').upsert({ user_id: eu.id, skin: Object.assign({}, CFG.skin, { corpo: CFG.corpo }), lado: CFG.lado, atualizado_em: new Date().toISOString() }); return !error; } catch(_) { return false; } }
 
 /* ---------- troca de cena ---------- */
@@ -460,7 +460,8 @@ function pintaChat(n){ const el = document.getElementById('chatLog'); if (!el ||
 async function falaCom(n, txt, semana){
   n.chat = n.chat || []; const antes = n.chat.slice(-8); n.chat.push({ de: 'eu', t: txt }); n.esperando = true; n.preso = Date.now() + 60000; pintaChat(n);
   let resp = '', erro = false, acao = null; const L = lug(n.onde);
-  try { const { data: { session } } = await sb.auth.getSession();
+  if (VIS) { await new Promise(r => setTimeout(r, 500)); resp = ((semana || (n.c && n.c.bio) || n.linha || 'Oi!') + ' Para a gente conversar de verdade, entre na PD.').slice(0, 400); }
+  else try { const { data: { session } } = await sb.auth.getSession();
     const r = await fetch('/pd-catum-fala.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
       body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.local ? nomeCena(CENA) : n.aula ? 'Escola Agêntica, em aula' : (L ? L.nome : 'na rua, a caminho de algum lugar'), semana }) });
     const j = await r.json().catch(() => ({})); if (r.ok && j.reply) { resp = String(j.reply); acao = j.acao || null; } else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
@@ -525,11 +526,12 @@ const xpTotal = () => Object.values(PROG).reduce((a, p) => a + (p.xp || 0) + (p.
 function pintaXp(){ const el = document.getElementById('xp'); if (el) { const x = xpTotal(); el.textContent = 'Nv ' + nivelDe(x) + ' · ' + x + ' XP'; } }
 async function carregaProg(){
   try { const l = JSON.parse(localStorage.getItem('catum_mis_' + eu.id) || 'null'); if (l && typeof l === 'object') PROG = l; } catch(_){}
+  if (VIS) { pintaXp(); return; }
   try { const { data, error } = await sb.from('catum_missoes').select('missao,ciclo,etapa,entregas,xp').eq('user_id', eu.id).order('ciclo', { ascending: true }).limit(500);
     if (!error && data && data.length) { const novo = {}; data.forEach(r => { const a = novo[r.missao]; novo[r.missao] = { ciclo: r.ciclo, etapa: r.etapa, entregas: Array.isArray(r.entregas) ? r.entregas : [], xp: r.xp || 0, xpAnt: a ? a.xpAnt + a.xp : 0 }; }); PROG = novo; } } catch(_){}
   pintaXp();
 }
-async function salvaProg(m){ const p = prog(m); try { localStorage.setItem('catum_mis_' + eu.id, JSON.stringify(PROG)); } catch(_){} pintaXp();
+async function salvaProg(m){ const p = prog(m); try { localStorage.setItem('catum_mis_' + eu.id, JSON.stringify(PROG)); } catch(_){} pintaXp(); if (VIS) return;
   try { await sb.from('catum_missoes').upsert({ user_id: eu.id, missao: m, ciclo: p.ciclo, etapa: p.etapa, estado: ESTADO[p.etapa], entregas: p.entregas, xp: p.xp, atualizado_em: new Date().toISOString(), concluida_em: p.etapa >= 3 ? new Date().toISOString() : null }, { onConflict: 'user_id,missao,ciclo' }); } catch(_){} }
 function blocoMissao(d, st){ const p = prog(d.id), n = d.estacoes.length;
   if (p.etapa >= n) return `<h3>Miss&atilde;o conclu&iacute;da</h3><p>${esc(d.conclusao || '')}</p>${p.entregas[st.i] ? `<p><b>Sua entrega aqui:</b> ${esc(p.entregas[st.i])}</p>` : ''}<p>${esc(d.retorno || '')}</p><p><button type="button" id="btDeNovo" style="${BT};background:#fffdf5">Fazer de novo</button></p>`;
@@ -712,6 +714,36 @@ function foto(){ try { cv.toBlob(bl => { if (!bl) return; const nome = 'catum-' 
     cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; }, 'image/png'); } catch(e) { console.warn(e); } }
 document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; { const zr = document.getElementById('zoomR'); zr.value = Math.round(ZF * 100); zr.oninput = () => zoom(zr.value / 100); zr.onchange = () => zr.blur(); }
 
+/* ---------- o clima de Catum: o mesmo sorteio do dia que aparece na página da Escola (mesma semente, mesma ordem) ---------- */
+const CLIMAS = ['céu limpo', 'garoa fina', 'chuva passageira', 'nublado e abafado', 'vento fresco', 'sol entre nuvens'];
+function climaDoDia(){ let a = hash('clima' + new Date().toISOString().slice(0, 10)); const r = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  r(); const i = Math.floor(r() * 6), t = 19 + Math.floor(r() * 12); return { i, nome: CLIMAS[i], t }; }
+let CLIMA = climaDoDia(), MOLHADO = 0; setInterval(() => { if (!CLIMA.fixo) CLIMA = climaDoDia(); }, 600000);
+function chuvaAgora(){ if (CLIMA.i === 1) return .38; if (CLIMA.i !== 2) return 0; const p = (Date.now() % 540000) / 540000; return p < .06 ? p / .06 : p < .56 ? 1 : p < .62 ? (.62 - p) / .06 : 0; }       // a passageira vem e vai: chove uns 5 min, estia uns 3
+const frac = v => v - Math.floor(v), azar = (a, b) => frac(Math.sin(a * 12.9898 + b * 78.233) * 43758.5453);
+function pocas(c){ if (!c.pocas) { c.pocas = []; (c.livres.chao || []).forEach((p, i) => { const h = hash(c.id + ':' + i); if (h % 7 === 0) c.pocas.push({ x: p[0] + (h >> 4) % 7 - 3, y: p[1] + (h >> 8) % 5 - 2, r: 5 + (h >> 12) % 8, f: (h % 628) / 100 }); }); } return c.pocas; }
+function climaChao(t, dt, ox, oy){        // poças que crescem com a chuva e secam depois; anéis onde o pingo cai nelas
+  const I = chuvaAgora(); MOLHADO = Math.max(0, Math.min(1, MOLHADO + (I > 0 ? dt * I / 12 : -dt / 80))); if (MOLHADO < .04) return;
+  const vw = VW / SC, vh = VH / SC, M = MOLHADO;
+  for (const p of pocas(C)) { if (p.x < ox - 20 || p.y < oy - 12 || p.x > ox + vw + 20 || p.y > oy + vh + 12) continue; const rx = Math.round(p.r * (.45 + .55 * M)), ry = Math.max(2, Math.round(rx * .42));
+    cx.fillStyle = 'rgba(52,96,142,' + (.34 * M).toFixed(3) + ')'; cx.fillRect(p.x - rx, p.y - ry + 1, rx * 2, ry * 2 - 2); cx.fillRect(p.x - rx + 2, p.y - ry, rx * 2 - 4, ry * 2);
+    cx.fillStyle = 'rgba(214,236,255,' + (.3 * M).toFixed(3) + ')'; cx.fillRect(p.x - rx + 3, p.y - ry + 1, Math.max(2, rx - 2), 1);
+    if (I > 0 && !CALMO) { const f = frac(t * .0016 + p.f), rr = 1 + Math.round(f * (rx - 2)); cx.fillStyle = 'rgba(230,244,255,' + ((1 - f) * .6 * I).toFixed(3) + ')'; cx.fillRect(p.x - rr, p.y, 1, 1); cx.fillRect(p.x + rr, p.y, 1, 1); cx.fillRect(p.x, p.y - Math.max(1, rr >> 1), 1, 1); cx.fillRect(p.x, p.y + Math.max(1, rr >> 1), 1, 1); } }
+}
+function climaPingos(t, ox, oy){          // o pingo bate no chão e na água e abre um anelzinho; folhas no vento
+  const I = chuvaAgora(), vw = VW / SC, vh = VH / SC;
+  if (I > 0 && !CALMO) { const n = Math.round(70 * I * Math.min(2.2, vw * vh / 90000)); for (let j = 0; j < n; j++) { const T = t / 360 + j * .618, k = Math.floor(T), f = T - k, x = Math.floor(ox + azar(k, j) * vw), y = Math.floor(oy + azar(j, k + 7) * vh), gi = (y >> 2) * C.gw + (x >> 2); if (C.sol[gi]) continue;
+      cx.fillStyle = 'rgba(226,240,255,' + ((1 - f) * .75).toFixed(3) + ')'; if (f < .25) cx.fillRect(x, y - 1, 1, 2); else { const r = 1 + Math.round(f * 3); cx.fillRect(x - r, y, 1, 1); cx.fillRect(x + r, y, 1, 1); cx.fillRect(x, y - 1, 1, 1); } } }
+  if (CLIMA.i === 4 && !CALMO) { const cores = ['#86b84e', '#d9c04a', '#e58a4a']; for (let i = 0; i < 18; i++) { const x = Math.round(((t * .085 * (1 + (i % 3) * .3) + i * 211) % (C.w + 80)) - 40), y = Math.round((i * 173) % C.h + Math.sin(t * .002 + i) * 18); if (x < ox || y < oy || x > ox + vw || y > oy + vh) continue; cx.fillStyle = cores[i % 3]; cx.fillRect(x, y, 2, 1); cx.fillRect(x + 1, y + 1, 1, 1); } }
+}
+function climaCor(t){ const I = chuvaAgora(), mix = (c, f) => [255 + (c[0] - 255) * f, 255 + (c[1] - 255) * f, 255 + (c[2] - 255) * f];
+  return CLIMA.i === 1 ? mix([198, 206, 222], .75) : CLIMA.i === 2 ? mix([170, 184, 210], .22 + .7 * I) : CLIMA.i === 3 ? mix([220, 213, 204], .9) : CLIMA.i === 5 ? mix([206, 210, 224], CALMO ? .3 : .42 + .42 * Math.sin(t / 9000)) : [255, 255, 255]; }
+function climaChuva(t){                    // os riscos da chuva, por cima de tudo, em pé de vento
+  const I = chuvaAgora(); if (I <= 0 || CALMO) return; const W = cv.width, H = cv.height, n = Math.round(I * W * H / 3600), u = Math.max(2, Math.round(DPR * 1.5)), garoa = CLIMA.i === 1;
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = 'rgba(214,230,255,' + (garoa ? '.4' : '.64') + ')';
+  for (let i = 0; i < n; i++) { const v = 1.05 + (i % 5) * .13, x = Math.round(((i * 131.7 - t * .22 * v) % (W + 200) + W + 200) % (W + 200)) - 100, y = Math.round((i * 71.3 + t * v * (garoa ? .7 : 1.15)) % (H + 80)) - 40, L = garoa ? 2 : 4; for (let q = 0; q < L; q++) cx.fillRect(x - q * u, y + q * u * 2, u, u * 2); }
+}
+
 /* ---------- o dia de Catum: 24 minutos de relógio para um dia inteiro, igual para todo mundo ---------- */
 const DIA_MS = 24 * 60000, CHAVES = [[0, [104, 116, 200], .9], [4.6, [104, 116, 200], .9], [6, [255, 206, 186], .35], [7.6, [255, 246, 232], 0], [10, [255, 255, 255], 0], [15.5, [255, 255, 255], 0], [17.2, [255, 226, 178], .12], [18.6, [248, 192, 170], .45], [19.8, [170, 150, 214], .8], [21, [104, 116, 200], .9], [24, [104, 116, 200], .9]];
 const horaCatum = () => ((Date.now() % DIA_MS) / DIA_MS * 24 + 7) % 24;        // o ciclo é amarrado ao relógio: quem entra junto vê a mesma hora
@@ -731,14 +763,15 @@ const horaEl = document.createElement('span'); horaEl.className = 'px'; horaEl.i
 function luzDoDia(t, k, ox, oy){
   const h = horaCatum(), c = ceu(h), vw = VW / SC, vh = VH / SC;
   // sombras de nuvem passando (de dia) e vaga-lumes (de noite)
-  if (!CALMO && c.noite < .6) { cx.fillStyle = 'rgba(30,34,80,' + (.085 * (1 - c.noite)).toFixed(3) + ')'; for (let i = 0; i < 4; i++) { const x = ((t * .006 * (1 + i * .3) + i * 431) % (C.w + 500)) - 250, y = (i * 263 + 90) % Math.max(200, C.h); cx.beginPath(); cx.ellipse(Math.round(x), Math.round(y), 130 + i * 28, 46 + i * 9, 0, 0, 6.3); cx.fill(); } }
+  if (!CALMO && c.noite < .6) { const nub = CLIMA.i === 3 || CLIMA.i === 5 || CLIMA.i === 2, vv = CLIMA.i === 4 ? 2.6 : 1; cx.fillStyle = 'rgba(30,34,80,' + ((nub ? .13 : .085) * (1 - c.noite)).toFixed(3) + ')'; for (let i = 0; i < (nub ? 7 : 4); i++) { const x = ((t * .006 * vv * (1 + i * .3) + i * 431) % (C.w + 500)) - 250, y = (i * 263 + 90) % Math.max(200, C.h); cx.beginPath(); cx.ellipse(Math.round(x), Math.round(y), 130 + i * 28, 46 + i * 9, 0, 0, 6.3); cx.fill(); } }
   // a cor do céu por cima de tudo (multiplica): manhã clara, tarde dourada, crepúsculo rosado, noite azul
-  cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = 'multiply'; cx.fillStyle = 'rgb(' + c.cor.join(',') + ')'; cx.fillRect(0, 0, cv.width, cv.height); cx.globalCompositeOperation = 'source-over';
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalCompositeOperation = 'multiply'; { const w = climaCor(t); cx.fillStyle = 'rgb(' + c.cor.map((v, q) => Math.round(v * w[q] / 255)).join(',') + ')'; } cx.fillRect(0, 0, cv.width, cv.height); cx.globalCompositeOperation = 'source-over';
   if (c.noite > .04) { const L = luzes(C); cx.setTransform(k, 0, 0, k, -ox * k, -oy * k);
     if (L) { cx.globalCompositeOperation = 'screen'; cx.globalAlpha = Math.min(1, c.noite * 1.1); cx.drawImage(L, 0, 0); cx.imageSmoothingEnabled = true; cx.globalAlpha = Math.min(1, c.noite * (CALMO ? .8 : .78 + .05 * Math.sin(t * .0021))); cx.drawImage(C.halo, 0, 0, C.w, C.h); cx.imageSmoothingEnabled = false; }
     if (!CALMO && c.noite > .5) { cx.globalCompositeOperation = 'source-over'; cx.globalAlpha = 1; cx.fillStyle = '#fff3a8'; for (let i = 0; i < 26; i++) { const bx = (i * 197.3) % C.w, by = (i * 331.7) % C.h, x = bx + Math.sin(t * .0007 + i) * 22, y = by + Math.cos(t * .0009 + i * 2) * 14; if (x < ox || y < oy || x > ox + vw || y > oy + vh) continue; if (Math.sin(t * .003 + i * 1.7) > .2) cx.fillRect(Math.round(x), Math.round(y), 1, 1); } }
     cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; }
-  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 10) * 10, tx = (h >= 5.5 && h < 17.5 ? 'Dia' : h >= 17.5 && h < 20 ? 'Entardecer' : h >= 20 || h < 4.6 ? 'Noite' : 'Amanhecer') + ' ' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); if (horaEl.textContent !== tx) horaEl.textContent = tx;
+  climaChuva(t);
+  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 10) * 10, tx = (h >= 5.5 && h < 17.5 ? 'Dia' : h >= 17.5 && h < 20 ? 'Entardecer' : h >= 20 || h < 4.6 ? 'Noite' : 'Amanhecer') + ' ' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + ' · ' + CLIMA.t + '°C ' + CLIMA.nome; if (horaEl.textContent !== tx) horaEl.textContent = tx;
 }
 const CALMO = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_) { return false; } })();
 /* ---------- desenho ---------- */
@@ -794,9 +827,10 @@ function quadro(t){
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
   cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
-  if (!CALMO) { for (const p of (C.J.plantas || [])) { const w = p.largura, h = p.altura, sv = Math.sin(t * .0017 + p.x * .7 + p.y * .3); if (sv > .3) cx.drawImage(C.img, p.x - (w >> 1), p.y - (h >> 1), w, h >> 1, p.x - (w >> 1) + (sv > .75 ? 2 : 1), p.y - (h >> 1), w, h >> 1); }      // folhas: o alto do agrupamento balança 1 a 2 px
-    if (CENA === 'bairro' || CENA === 'regiao') { cx.fillStyle = 'rgba(255,253,245,.78)'; for (let i = 0; i < 5; i++) { const x = Math.round(((t * .0035 * (1 + i * .23) + i * 263) % (C.w + 90)) - 45), y = 10 + (i * 37) % 62; cx.fillRect(x, y + 2, 20, 4); cx.fillRect(x + 4, y, 11, 3); cx.fillRect(x - 3, y + 4, 26, 2); } } }
+  if (!CALMO) { for (const p of (C.J.plantas || [])) { const w = p.largura, h = p.altura, ve = CLIMA.i === 4, sv = Math.sin(t * (ve ? .005 : .0017) + p.x * .7 + p.y * .3); if (sv > (ve ? -.2 : .3)) cx.drawImage(C.img, p.x - (w >> 1), p.y - (h >> 1), w, h >> 1, p.x - (w >> 1) + (sv > .75 ? (ve ? 3 : 2) : 1), p.y - (h >> 1), w, h >> 1); }      // folhas: o alto do agrupamento balança 1 a 2 px
+    if (CENA === 'bairro' || CENA === 'regiao') { cx.fillStyle = 'rgba(255,253,245,.78)'; for (let i = 0; i < 5; i++) { const x = Math.round(((t * .0035 * (CLIMA.i === 4 ? 2.6 : 1) * (1 + i * .23) + i * 263) % (C.w + 90)) - 45), y = 10 + (i * 37) % 62; cx.fillRect(x, y + 2, 20, 4); cx.fillRect(x + 4, y, 11, 3); cx.fillRect(x - 3, y + 4, 26, 2); } } }
   if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
+  climaChao(t, dt, ox, oy);
   // estações do lugar (marquinha que pisca)
   const sts = estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
   // quem está mais perto
@@ -810,6 +844,7 @@ function quadro(t){
       for (let gx = gx0; gx <= gx1; gx++) { let ini = -1; for (let gy = gy0; gy <= gy1 + 1; gy++) { const i = gy * C.gw + gx, on = gy <= gy1 && C.sol[i] && C.base[i] * 4 + 3 > e.y + 2 && C.base[i] * 4 - e.y < 90; if (on && ini < 0) ini = gy; else if (!on && ini >= 0) { tampa.push([gx * 4, ini * 4, 4, (gy - ini) * 4]); ini = -1; } } } }
     if (tampa.length) { cx.save(); cx.beginPath(); for (const r of tampa) cx.rect(r[0], r[1], r[2], r[3]); cx.clip(); cx.drawImage(C.img, 0, 0); for (const f of C.frentes) cx.drawImage(f.im, f.x, f.y); cx.restore(); } }
   if (ROTA) passoRota(t);
+  climaPingos(t, ox, oy);
   luzDoDia(t, k, ox, oy);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
@@ -848,13 +883,14 @@ function liga(){
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
 }
 
+let VIS = false;
 /* ---------- começo ---------- */
 async function comeca(){
   const porta = document.getElementById('porta'), ptxt = document.getElementById('portaTxt');
   let sess = null; try { sess = (await sb.auth.getSession()).data.session; } catch(_){}
-  if (!sess) { ptxt.innerHTML = 'Catum &eacute; para quem j&aacute; est&aacute; na PD. <a href="/index.html">Entre na PD</a> e volte aqui.'; return; }
-  eu.id = sess.user.id;
-  try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
+  if (!sess) { VIS = true; let v = ''; try { v = localStorage.getItem('catum_vis') || ''; if (!v) { v = 'vis-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('catum_vis', v); } } catch(_) { v = 'vis-' + Math.random().toString(36).slice(2, 10); } eu.id = v; eu.nome = 'Visitante'; document.body.classList.add('vis'); }      // visitante: passeia e joga; nada vai para o banco e ninguém da equipe aparece
+  else eu.id = sess.user.id;
+  if (!VIS) try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
   ajusta();
   try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'atores.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
     ATOR = pf || {}; MIS = mi; C = b; ajusta(); const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440, meioDe(eu)); eu.x = p[0]; eu.y = p[1]; LUG.forEach(L => { L.porta = portaB(L, 'chao'); });
@@ -862,11 +898,11 @@ async function comeca(){
   NPC_IDS.concat(Object.keys(LOCAIS)).forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
   carregaEscola(); setInterval(() => { if (!document.hidden) carregaEscola(); }, 300000);
-  try { liga(); } catch(e){ console.warn('ao vivo fora:', e); }
+  if (!VIS) { try { liga(); } catch(e){ console.warn('ao vivo fora:', e); } }
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
+window.CATUM = { eu, LUG, get clima(){ return CLIMA; }, set clima(i){ CLIMA = { i, nome: CLIMAS[i], t: 24, fixo: true }; }, get vis(){ return VIS; }, horaCatum, get C(){ return C; }, get acao(){ return ACAO; }, meioDe, salvaCfg, get cfg(){ return CFG; }, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>

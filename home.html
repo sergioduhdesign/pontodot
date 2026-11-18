@@ -194,6 +194,25 @@ section{position:relative}
 .mc h3{font-size:clamp(26px,2.8vw,38px);line-height:1.1;letter-spacing:-.02em;font-weight:400;margin:0 0 6px}
 .mc .role{color:var(--gray);margin:0 0 20px;font-size:16px}
 .mc p.bio{margin:0 0 18px;font-size:17px;line-height:1.6;color:#333}
+/* game-style buttons and the visitor banner */
+.gbt{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#fff;font:700 11px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.2em;text-transform:uppercase}
+.gbt b{font:inherit;color:#12101c;background:#ffe27a;border:2px solid #12101c;border-radius:5px;padding:8px 18px 8px 20px;box-shadow:inset 0 2px 0 #fff4c2,inset 0 -2px 0 #e0bb45,3px 3px 0 #12101c;transition:transform .12s,box-shadow .12s}
+.gbt:hover b{transform:translate(-1px,-1px);box-shadow:inset 0 2px 0 #fff4c2,inset 0 -2px 0 #e0bb45,5px 5px 0 #12101c}
+.gbt span{opacity:.85;text-shadow:1px 1px 0 #12101c}
+.ct-play{padding:10px 0 90px}
+.ct-play .kick{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);margin:0 0 22px}
+.ct-play h2.pl{font-weight:300;font-size:clamp(34px,4.6vw,68px);line-height:1;letter-spacing:-.03em;margin:0 0 22px}
+.ct-play .pl-t{font-size:clamp(16px,1.3vw,19px);line-height:1.7;color:rgba(255,255,255,.75);margin:0 0 34px;max-width:580px}
+.pl-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 22px}
+.pl-g figure{margin:0;position:relative;border-radius:14px;overflow:hidden;background:#111;aspect-ratio:13/8}
+.pl-g img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
+.pl-g figcaption{position:absolute;left:10px;bottom:10px;font:700 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#12101c;background:#fffdf5;border:2px solid #12101c;padding:4px 8px;box-shadow:2px 2px 0 #12101c}
+.pl-strip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:38px 20px 34px;border-radius:18px;text-decoration:none;color:#fff;overflow:hidden;background:linear-gradient(rgba(8,22,48,.25),rgba(8,22,48,.6)),url(/catum/arte/abertura.jpg) center 62%/cover #1b3a66;transition:transform .15s}
+.pl-strip:hover{transform:translateY(-2px)}
+.pl-strip .bv{font:700 11px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.34em;text-transform:uppercase;text-shadow:2px 2px 0 #12101c}
+.pl-strip img{width:min(60%,300px);height:auto;filter:drop-shadow(3px 3px 0 #12101c)}
+.pl-strip .bt{margin-top:6px;font:700 13px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.22em;text-transform:uppercase;color:#12101c;background:#ffe27a;border:3px solid #12101c;border-radius:6px;padding:10px 22px 10px 24px;box-shadow:inset 0 3px 0 #fff4c2,inset 0 -3px 0 #e0bb45,4px 4px 0 #12101c}
+@media(max-width:760px){.pl-g{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ct-play{padding-bottom:60px}}
 /* Catum page */
 .ct{position:fixed;inset:0;z-index:300;background:#000;color:#fff;overflow:auto;display:none;-webkit-overflow-scrolling:touch}
 .ct.on{display:block;animation:ctin .9s var(--ease)}
@@ -318,7 +337,8 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
 
 <section id="band" class="clk" aria-label="Welcome to Catum" onclick="openCatum()" data-cta="catum_band">
   <img class="bg" id="bandImg" data-par=".12" alt="" src="/pd/escola/capa-3-formatura-1800.jpg">
-  <div class="wrap"><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p></div>
+  <div class="wrap"><h2><span class="ln"><span>Welcome</span></span><span class="ln"><span style="--d:.12s">to Catum.</span></span></h2><p class="rv">A small world where every AI learns by living a little.</p>
+    <p class="rv" style="margin-top:26px"><a class="gbt" href="/catum/" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-cta="catum_play_band"><b>Play</b><span>Visitor access</span></a></p></div>
 </section>
 
 <section id="social" aria-label="Catum Social">
@@ -357,6 +377,18 @@ body.hid main,body.hid .hd{filter:blur(28px);transition:filter .1s}
         <p style="color:#fff">The names carry another layer.</p>
       </div>
     </div>
+    <section class="ct-play" aria-label="Play Catum">
+      <p class="kick">Visitor access</p>
+      <h2 class="pl">Walk through Catum.</h2>
+      <p class="pl-t">Day turns to night, the weather changes, and the inhabitants stop to talk. Enter as a visitor: no account needed.</p>
+      <div class="pl-g">
+        <figure><img src="/catum/arte/prints/dia.jpg" alt="Catum's square by day" loading="lazy"><figcaption>Day</figcaption></figure>
+        <figure><img src="/catum/arte/prints/noite.jpg" alt="Catum's square at night, windows lit" loading="lazy"><figcaption>Night</figcaption></figure>
+        <figure><img src="/catum/arte/prints/chuva.jpg" alt="Rain over the square, puddles on the ground" loading="lazy"><figcaption>Rain</figcaption></figure>
+        <figure><img src="/catum/arte/prints/conversa.jpg" alt="A visitor talking with an inhabitant at the School" loading="lazy"><figcaption>Conversation</figcaption></figure>
+      </div>
+      <a class="pl-strip" href="/catum/" target="_blank" rel="noopener" data-cta="catum_play"><span class="bv">welcome to</span><img src="/assets/nomes/catum-branco.svg" alt="Catum"><span class="bt">Enter as a visitor</span></a>
+    </section>
     <h2 class="e">The names</h2>
     <div class="ct-name"><h3>Monema</h3><div><b>Meaning begins small.</b><p>The universe takes its name from a linguistic term associated with André Martinet: a minimal unit of meaning. A fitting beginning for a universe where small exchanges—a word, a question, a lesson—can become something much larger.</p></div></div>
     <div class="ct-name"><h3>Amae</h3><div><b>Adaptive Masked AutoEncoder.</b><p>This fictional expansion draws on masked autoencoders, which learn by reconstructing missing parts of an input. Amae carries the theme of perception: discovering relationships, making sense of fragments, learning to see beyond what is immediately visible.</p></div></div>
