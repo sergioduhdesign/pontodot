@@ -128,7 +128,7 @@ body.toque #acao{bottom:158px !important}
    ============================================================ */
 (() => {
 'use strict';
-const ARTE = '/catum/arte/', VA = '?v=21', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=22', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -761,8 +761,10 @@ let tileEu = null;
 function pintaEu(){ if (tileEu) { tileEu.remove(); tileEu = null; } if (RTC.cam) { tileEu = rtcTile('Você', new MediaStream([RTC.cam]), true); tileEu.atualiza(); } }
 const rtcManda = (to, d) => manda('rtc', { to, d });
 function rtcLiga(o, raio){ if (!o || (o.r || 'bairro') !== CENA) return false; if (!((mdBits() & 7) || ((o.md || 0) & 7))) return false; if (((o.md || 0) & 8) || RTC.palco) return true; if ((o.tk || '') !== RTC.tk) return false; return dist(o.x, o.y, eu.x, eu.y) < (raio || 180); }
+const RTC_LIM = { mic: [32000, 0, 0], cam: [220000, 15, 320], tela: [900000, 8, 1280] };
+function rtcLimita(sn, k, tr){ try { const L = RTC_LIM[k], pr = sn.getParameters(); if (!pr.encodings || !pr.encodings.length) pr.encodings = [{}]; const e = pr.encodings[0]; e.maxBitrate = L[0]; if (L[1]) e.maxFramerate = L[1]; if (L[2]) { const w = (tr.getSettings && tr.getSettings().width) || 0; e.scaleResolutionDownBy = w > L[2] ? w / L[2] : 1; } if (k === 'tela') pr.degradationPreference = 'maintain-resolution'; const q = sn.setParameters(pr); q && q.catch(() => {}); } catch(_){} }
 function rtcSinc(p){ const quer = { mic: [RTC.mic, RTC.sA], cam: [RTC.cam, RTC.sA], tela: [RTC.tela, RTC.sB] };
-  for (const k in quer) { const tr = quer[k][0], sn = p.snd[k]; try { if (tr && !sn) p.snd[k] = p.pc.addTrack(tr, quer[k][1]); else if (!tr && sn) { p.pc.removeTrack(sn); p.snd[k] = null; } else if (tr && sn && sn.track !== tr) sn.replaceTrack(tr); } catch(_){} } }
+  for (const k in quer) { const tr = quer[k][0], sn = p.snd[k]; try { if (tr && !sn) { p.snd[k] = p.pc.addTrack(tr, quer[k][1]); rtcLimita(p.snd[k], k, tr); } else if (!tr && sn) { p.pc.removeTrack(sn); p.snd[k] = null; } else if (tr && sn && sn.track !== tr) sn.replaceTrack(tr); } catch(_){} } }
 function rtcPar(id){ let p = RTC.pcs.get(id); if (p) return p; const pc = new RTCPeerConnection(ICE); p = { id, pc, snd: {}, educado: eu.id > id, fazendo: false, ignora: false, els: {}, longe: 0 }; RTC.pcs.set(id, p);
   pc.onicecandidate = e => { if (e.candidate) rtcManda(id, { c: e.candidate.toJSON() }); };
   pc.onnegotiationneeded = async () => { try { p.fazendo = true; await pc.setLocalDescription(); rtcManda(id, { s: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } }); } catch(_){} finally { p.fazendo = false; } };
@@ -780,8 +782,8 @@ function rtcTick(){ if (!RTC.ok || VIS) return; const agora = Date.now(); let gr
   if (RTC.tk && !grupo) { if (!RTC.tkSo) RTC.tkSo = agora; else if (agora - RTC.tkSo > 4000) { RTC.tk = ''; RTC.tkSo = 0; rtcMudou(); avisa('Você saiu da conversa trancada.'); } } else RTC.tkSo = 0; }
 function rtcMudou(){ RTC.pcs.forEach(rtcSinc); try { canal && pronto && canal.track(meuRastro()); } catch(_){} pintaEu(); if (btCham) { const b = mdBits(); btCham.textContent = 'Chamada' + (b & 7 ? ' · ' + [b & 1 ? 'mic' : '', b & 2 ? 'cam' : '', b & 4 ? 'tela' : ''].filter(Boolean).join(' ') : ''); btCham.style.background = b & 7 ? '#ffe27a' : ''; } rtcTick(); if (cfgCx.querySelector('[data-rtc]')) abreChamada(); }
 async function rtcMic(on){ if (on && !RTC.mic) { try { const st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); RTC.mic = st.getAudioTracks()[0]; } catch(_) { return avisa('O navegador não liberou o microfone.'); } } else if (!on && RTC.mic) { RTC.mic.stop(); RTC.mic = null; RTC.palco = false; } rtcMudou(); }
-async function rtcCam(on){ if (on && !RTC.cam) { try { const st = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 }, facingMode: 'user' } }); RTC.cam = st.getVideoTracks()[0]; } catch(_) { return avisa('O navegador não liberou a câmera.'); } } else if (!on && RTC.cam) { RTC.cam.stop(); RTC.cam = null; } rtcMudou(); }
-async function rtcTela(on){ if (on && !RTC.tela) { try { const st = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10 } }, audio: false }); RTC.tela = st.getVideoTracks()[0]; RTC.tela.onended = () => rtcTela(false); } catch(_) { return; } } else if (!on && RTC.tela) { try { RTC.tela.onended = null; RTC.tela.stop(); } catch(_){} RTC.tela = null; } rtcMudou(); }
+async function rtcCam(on){ if (on && !RTC.cam) { try { const st = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 15 }, facingMode: 'user' } }); RTC.cam = st.getVideoTracks()[0]; try { RTC.cam.contentHint = 'motion'; } catch(_){} } catch(_) { return avisa('O navegador não liberou a câmera.'); } } else if (!on && RTC.cam) { RTC.cam.stop(); RTC.cam = null; } rtcMudou(); }
+async function rtcTela(on){ if (on && !RTC.tela) { try { const st = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 8, max: 10 }, width: { max: 1920 }, height: { max: 1200 } }, audio: false }); RTC.tela = st.getVideoTracks()[0]; try { RTC.tela.contentHint = 'detail'; } catch(_){} RTC.tela.onended = () => rtcTela(false); } catch(_) { return; } } else if (!on && RTC.tela) { try { RTC.tela.onended = null; RTC.tela.stop(); } catch(_){} RTC.tela = null; } rtcMudou(); }
 async function rtcPalco(on){ if (on && !RTC.mic) await rtcMic(true); if (on && !RTC.mic) return; RTC.palco = !!on; if (on) avisa('Você está falando para todos em ' + nomeCena(CENA) + '.'); rtcMudou(); }
 function rtcTranca(on){ if (on) { const ids = []; outros.forEach(o => { if ((o.r || 'bairro') === CENA && dist(o.x, o.y, eu.x, eu.y) < 180) ids.push(o.id); }); if (!ids.length) return avisa('Ninguém perto para trancar a conversa.'); RTC.tk = eu.id; manda('tk', { g: RTC.tk, ids }); avisa('Conversa trancada com ' + ids.length + (ids.length === 1 ? ' pessoa.' : ' pessoas.') + ' Quem está fora não ouve.'); } else { const g = RTC.tk; RTC.tk = ''; if (g === eu.id) manda('tk', { g, off: 1 }); } rtcMudou(); }
 function rtcTrancaChegou(p){ if (!p || !p.g) return; if (p.off) { if (RTC.tk === p.g) { RTC.tk = ''; rtcMudou(); avisa('A conversa foi destrancada.'); } return; } const o = outros.get(p.i); if (!o || !Array.isArray(p.ids) || !p.ids.includes(eu.id) || p.g !== p.i || (o.r || 'bairro') !== CENA || dist(o.x, o.y, eu.x, eu.y) > 280) return; RTC.tk = p.g; rtcMudou(); avisa(o.nome + ' trancou a conversa com você. Quem está fora não ouve.', 'Sair', () => rtcTranca(false)); }
@@ -1035,7 +1037,7 @@ function balao(txt, wx, wy){
 }
 let ultimo = performance.now(), enviadoEm = 0, rastroEm = 0;
 function quadro(t){
-  requestAnimationFrame(quadro); if (document.hidden || !C) return;
+  requestAnimationFrame(quadro); if (document.hidden || !C) return; if ((RTC.pcs.size || RTC.tela || RTC.cam) && t - ultimo < 31) return;
   const dt = Math.min(.05, (t - ultimo) / 1000); ultimo = t; const agora = Date.now();
   // eu
   let dx = (tecla['arrowright'] || tecla['d'] ? 1 : 0) - (tecla['arrowleft'] || tecla['a'] ? 1 : 0), dy = (tecla['arrowdown'] || tecla['s'] ? 1 : 0) - (tecla['arrowup'] || tecla['w'] ? 1 : 0);
