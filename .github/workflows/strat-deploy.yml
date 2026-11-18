@@ -20,7 +20,15 @@ jobs:
           set -e
           case "$PASTA" in ""|*[!A-Za-z0-9_-]*) echo "pasta inválida"; exit 1;; esac
           H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
-          HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          HOME_DIR=""
+          for t in 1 2 3 4 5 6 7 8; do
+            RESP=$(curl -sS --max-time 30 -w "\n[http=%{http_code}]" -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" || true)
+            HOME_DIR=$(echo "$RESP" | sed '$d' | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])" 2>/dev/null || true)
+            [ -n "$HOME_DIR" ] && break
+            echo "tentativa $t: o painel não respondeu como esperado: $(echo "$RESP" | tail -1) $(echo "$RESP" | head -c 240 | tr '\n' ' ' | sed -E 's/<[^>]+>/ /g')"
+            sleep 40
+          done
+          [ -n "$HOME_DIR" ] || { echo "O painel da hospedagem está recusando o acesso agora."; exit 1; }
           RAIZ="$HOME_DIR/stratesign.com.br"; BASE="$RAIZ/$PASTA"; SRC=hg-envio/strat
           mk() { curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$1" --data-urlencode "name=$2" --data "permissions=0755" >/dev/null || true; }
           mk "$RAIZ" "$PASTA"
