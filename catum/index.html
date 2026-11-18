@@ -96,7 +96,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 (() => {
 'use strict';
 const ESC_P = 1.5;          // personagens maiores que a escala do pacote (pedido do Sérgio)
-const ARTE = '/catum/arte/', VA = '?v=6', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=7', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -537,13 +537,22 @@ function abertura(forcar){ return new Promise(ok => {
   d.innerHTML = (calmo ? `<img src="${ARTE}abertura.jpg${VA}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : `<video src="${ARTE}abertura.mp4${VA}" poster="${ARTE}abertura.jpg${VA}" muted playsinline autoplay loop style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`) +
     `<div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(8,18,26,.5) 0,rgba(8,18,26,.2) 45%,rgba(8,18,26,.62) 100%)"></div>
      <div class="abT" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6vh 6vw;gap:2.4vh">
-       <div class="abBv" style="font:700 clamp(13px,2.1vw,26px)/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.42em;text-transform:uppercase;color:#fffdf5;text-shadow:0 2px 0 #12101c,0 0 18px rgba(0,0,0,.6);padding-left:.42em">bem-vindo a</div>
-       <img class="abLogo" src="/assets/nomes/catum-branco.svg" alt="Catum" style="width:min(78vw,980px);height:auto;filter:drop-shadow(0 5px 0 rgba(18,16,28,.75)) drop-shadow(0 0 26px rgba(0,0,0,.55))">
-       <div id="abToque" style="margin-top:4vh;font:700 clamp(11px,1.4vw,16px)/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;text-transform:uppercase;color:#ffe27a;text-shadow:0 2px 0 #12101c;animation:abPisca 1.1s steps(2,jump-none) infinite">toque para come&ccedil;ar</div>
+       <canvas class="abBv abPx" aria-label="bem-vindo a" style="width:min(52vw,600px)"></canvas>
+       <canvas class="abLogo abPx" aria-label="Catum" style="width:min(82vw,1040px)"></canvas>
+       <canvas id="abToque" class="abPx" aria-label="toque para começar" style="margin-top:4vh;width:min(50vw,440px)"></canvas>
        <div id="abFim" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:3vh"><button type="button" id="abEntra" class="px" style="font:inherit;font-size:15px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:15px 26px;cursor:pointer;background:#ffe27a">Entrar em Catum</button><button type="button" id="abMorador" class="px" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;cursor:pointer">Experimentar um morador</button><button type="button" id="abSom" class="px" style="font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;cursor:pointer">${SOM ? 'M&uacute;sica ligada' : 'Sem som'}</button></div>
      </div>
-     <style>@keyframes abPisca{0%{opacity:1}100%{opacity:.15}}@keyframes abChega{0%{opacity:0;transform:translateY(14px) scale(.96)}100%{opacity:1;transform:none}}#abre .abBv{animation:abChega .9s .2s both}#abre .abLogo{animation:abChega 1.2s .55s both}#abre #abToque{opacity:0;animation:abChega .6s 1.6s both,abPisca 1.1s 2.2s steps(2,jump-none) infinite}@media(prefers-reduced-motion:reduce){#abre *{animation:none!important;opacity:1!important}}</style>`;
+     <style>#abre .abPx{height:auto;image-rendering:pixelated;image-rendering:crisp-edges}@keyframes abPisca{0%{opacity:1}100%{opacity:.15}}@keyframes abChega{0%{opacity:0;transform:translateY(14px) scale(.96)}100%{opacity:1;transform:none}}#abre .abBv{animation:abChega .9s .2s both}#abre .abLogo{animation:abChega 1.2s .55s both}#abre #abToque{opacity:0;animation:abChega .6s 1.6s both,abPisca 1.1s 2.2s steps(2,jump-none) infinite}@media(prefers-reduced-motion:reduce){#abre *{animation:none!important;opacity:1!important}}</style>`;
   document.body.appendChild(d); const v = d.querySelector('video'), fim = d.querySelector('#abFim'), toque = d.querySelector('#abToque'); if (v) v.play().catch(() => {});
+  // tudo em pixel: desenha pequeno, corta no limiar (sem suavização) e dá sombra dura em degraus
+  const pixela = (cv0, w, h, desenha, cor, somb) => { const t = document.createElement('canvas'); t.width = w; t.height = h; const g = t.getContext('2d', { willReadFrequently: true }); desenha(g, w, h);
+    const D = g.getImageData(0, 0, w, h).data, m = new Uint8Array(w * h); for (let i = 0; i < m.length; i++) m[i] = D[i * 4 + 3] > 96 ? 1 : 0;
+    cv0.width = w + somb + 1; cv0.height = h + somb + 1; const o = cv0.getContext('2d'), pinta = (dx, dy, c) => { o.fillStyle = c; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x]) o.fillRect(x + dx, y + dy, 1, 1); };
+    for (let k = somb; k >= 1; k--) pinta(k, k, k === somb ? '#05080d' : '#12101c'); pinta(1, 0, '#12101c'); pinta(0, 1, '#12101c'); pinta(0, 0, cor); };
+  const texto = (cv0, txt, cor) => { const med = document.createElement('canvas').getContext('2d'); med.font = '700 11px ui-monospace,Menlo,Consolas,monospace'; const esp = 3, L = [...txt.toUpperCase()], w = Math.ceil(L.reduce((a, c) => a + med.measureText(c).width + esp, 0)) + 2;
+    pixela(cv0, w, 13, g => { g.font = med.font; g.fillStyle = '#fff'; g.textBaseline = 'top'; let x = 1; for (const c of L) { g.fillText(c, Math.round(x), 2); x += med.measureText(c).width + esp; } }, cor, 2); };
+  texto(d.querySelector('.abBv'), 'bem-vindo a', '#fffdf5'); texto(toque, 'toque para começar', '#ffe27a');
+  carregaImg('/assets/nomes/catum-branco.svg').then(im => { const w = 300, h = Math.round(w * (im.naturalHeight || 411.5) / (im.naturalWidth || 1685.9)); pixela(d.querySelector('.abLogo'), w, h, g => g.drawImage(im, 0, 0, w, h), '#fffdf5', 4); }).catch(() => {});
   let menu = false; const abre = () => { if (menu) return; menu = true; toque.style.display = 'none'; fim.style.display = 'flex'; d.style.cursor = 'default'; musica(true); };
   const tecla0 = e => { if (!document.body.contains(d)) return removeEventListener('keydown', tecla0, true); e.stopPropagation(); if (!menu) { e.preventDefault(); abre(); } else if (e.key === 'Enter') { e.preventDefault(); sai(false); } };
   const sai = morador => { removeEventListener('keydown', tecla0, true); musica(false); d.style.transition = 'opacity .5s'; d.style.opacity = 0; setTimeout(() => d.remove(), 520); ok(); if (morador) setTimeout(abreCfg, 600); };
