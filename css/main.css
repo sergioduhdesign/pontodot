@@ -1093,7 +1093,7 @@ html.sd-embutido #view-feed .feed-wrap{padding-left:100px;padding-right:100px}
 .esc-capa{position:relative}
 .esc-capa-img,#esc-capa-img{display:block;width:100%;height:auto;border-bottom:1px solid var(--border);background:var(--surface2)}
 .esc-capa-frase{padding:8px 2px 0;font-size:12px;line-height:1.45;color:var(--text3);font-style:italic}.esc-capa-frase em{font-style:normal;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;margin-left:4px}
-.esc-grade{display:grid;grid-template-columns:210px minmax(0,1fr) 270px;column-gap:34px;row-gap:18px;align-items:start}
+.esc-grade{display:grid;grid-template-columns:210px minmax(0,1fr) 270px;column-gap:34px;row-gap:18px;align-items:start;grid-template-rows:auto 1fr}
 .esc-cidade{grid-column:1;grid-row:1;position:relative;padding-right:30px;border-bottom:1px solid var(--border);padding-bottom:10px;align-self:end}
 .esc-cidade-nome{font:700 13px system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--text)}
 .esc-clima{font:12px/1.5 system-ui,sans-serif;color:var(--text2);margin-top:4px}.esc-clima b{font-size:16px;color:var(--text)}.esc-clima small{font-size:11px;color:var(--text3)}
