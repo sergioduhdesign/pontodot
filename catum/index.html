@@ -69,18 +69,22 @@ body.toque #card{top:136px;bottom:auto;left:12px;right:12px;width:auto;max-heigh
 #cfg .cor.on{outline:3px solid #ffe27a;outline-offset:1px;background-clip:padding-box}
 #cfg .seta{min-width:150px;text-align:center;font-size:12px;font-weight:700}
 #cfg p{font-size:11px;line-height:1.5;opacity:.75;margin-top:6px}
+#zoom{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:5;padding:10px 5px;touch-action:none}
+#zoomR{display:block;writing-mode:vertical-lr;direction:rtl;width:22px;height:150px;accent-color:#1d1b2a;cursor:pointer;touch-action:none}
+body.toque.dir #zoom{right:auto;left:12px}
 #btFala{display:none;position:fixed;right:12px;bottom:12px;z-index:6;padding:9px 12px;font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px" id="hCatum">Catum</div><div class="px" id="gente">1 aqui</div><button class="px" id="btCfg" type="button">Config</button><button class="px" id="btMapa" type="button">Mapa</button><button class="px" id="btDia" type="button">Di&aacute;rio</button><button class="px" id="btFoto" type="button">Foto</button><button class="px" id="btMenos" type="button" aria-label="Afastar">&minus;</button><button class="px" id="btMais" type="button" aria-label="Aproximar">+</button><div class="px" id="xp">Nv 1 &middot; 0 XP</div></div>
+<div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px" id="hCatum">Catum</div><div class="px" id="gente">1 aqui</div><button class="px" id="btCfg" type="button">Config</button><button class="px" id="btMapa" type="button">Mapa</button><button class="px" id="btDia" type="button">Di&aacute;rio</button><button class="px" id="btFoto" type="button">Foto</button><div class="px" id="xp">Nv 1 &middot; 0 XP</div></div>
 <div id="lugar" class="px"></div>
 <div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; ande at&eacute; uma porta para entrar &middot; pare numa marca que pisca &middot; Enter para falar</div>
 <form id="fala" class="px" autocomplete="off"><input id="falaTxt" maxlength="90" placeholder="Diga algo para quem est&aacute; por perto&hellip;"><button>Falar</button></form>
 <button id="btFala" class="px" type="button">Falar</button>
 <div id="card" class="px"></div>
 <div id="joy"><i></i></div>
+<div id="zoom" class="px"><input id="zoomR" type="range" min="55" max="220" step="5" value="100" aria-label="Zoom"></div>
 <div id="cfg"><div class="cx px" id="cfgCx"></div></div>
 <div id="porta"><img src="/assets/logo-pontodot-bolinha-white.svg" alt=""><h1>Catum</h1><p id="portaTxt">Abrindo a cidade&hellip;</p></div>
 
@@ -96,8 +100,8 @@ body.toque #card{top:136px;bottom:auto;left:12px;right:12px;width:auto;max-heigh
    ============================================================ */
 (() => {
 'use strict';
-const ESC_P = 1.5;          // personagens maiores que a escala do pacote (pedido do Sérgio)
-const ARTE = '/catum/arte/', VA = '?v=9', CEL = 4;
+const ESC_P = 1.75;          // personagens maiores que a escala do pacote (pedido do Sérgio)
+const ARTE = '/catum/arte/', VA = '?v=10', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -135,6 +139,11 @@ async function cena(id){
     c.img = img; c.w = img.naturalWidth; c.h = img.naturalHeight; c.gw = (col || mar).naturalWidth; c.gh = (col || mar).naturalHeight;
     const le = im => { const k = document.createElement('canvas'); k.width = c.gw; k.height = c.gh; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, c.gw, c.gh).data, o = new Uint8Array(c.gw * c.gh); for (let i = 0; i < o.length; i++) o[i] = d[i * 4] > 127 ? 1 : 0; return o; };
     c.col = col ? le(col) : new Uint8Array(c.gw * c.gh); c.mar = mar ? le(mar) : new Uint8Array(c.gw * c.gh);
+    // profundidade: verde = estrutura (cobre quem está atrás dela), azul = batente/passagem (sempre por cima de quem passa)
+    c.sol = new Uint8Array(c.gw * c.gh); c.cima = new Uint8Array(c.gw * c.gh); c.base = new Uint16Array(c.gw * c.gh);
+    if (col) { const k = document.createElement('canvas'); k.width = c.gw; k.height = c.gh; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(col, 0, 0); const d = g.getImageData(0, 0, c.gw, c.gh).data;
+      for (let i = 0; i < c.sol.length; i++) { c.sol[i] = d[i * 4 + 1] > 127 ? 1 : 0; c.cima[i] = d[i * 4 + 2] > 127 ? 1 : 0; }
+      for (let x = 0; x < c.gw; x++) { let b = 0; for (let y = c.gh - 1; y >= 0; y--) { const i = y * c.gw + x; if (c.sol[i]) { if (!b) b = y; c.base[i] = b; } else b = 0; } } }
     // lugares bons para ficar parado (folga em volta)
     c.livres = []; for (let y = 2; y < c.gh - 2; y += 3) for (let x = 2; x < c.gw - 2; x += 3) { let ok = true; for (let dy = -2; dy <= 2 && ok; dy++) for (let dx = -2; dx <= 2; dx++) if (!c.col[(y + dy) * c.gw + x + dx]) { ok = false; break; } if (ok) c.livres.push([x * CEL + 2, y * CEL + 2]); }
     // brilho da água (do pacote: reflexos discretos sobre o turquesa)
@@ -156,12 +165,25 @@ function escala2x(src, W, H){
       if (B !== Hh && D !== F) { O[i] = D === B ? D : p; O[i + 1] = B === F ? F : p; O[i + W2] = D === Hh ? D : p; O[i + W2 + 1] = Hh === F ? F : p; } else O[i] = O[i + 1] = O[i + W2] = O[i + W2 + 1] = p; } }
   og.putImageData(od, 0, 0); return o;
 }
-function fino(c){ if (c.fino !== undefined) return c.fino; c.fino = null; try { c.fino = escala2x(c.img, c.w, c.h); } catch(e) { console.warn(e); } return c.fino; }
 const FINA = new WeakMap();      // personagens no mesmo tratamento do mapa, para o pixel dos dois combinar
 function fina(im){ let f = FINA.get(im); if (f === undefined) { f = null; try { f = escala2x(im, im.naturalWidth || im.width, im.naturalHeight || im.height); } catch(_){} FINA.set(im, f); } return f; }
-function soEsteFino(c){ for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].fino) { CENAS[k].fino.width = 1; delete CENAS[k].fino; } if (SUAVE && !LEVE) fino(c); }
-const LEVE = (() => { try { return matchMedia('(pointer:coarse)').matches || (navigator.deviceMemory && navigator.deviceMemory < 4); } catch(_) { return true; } })();     // celular: sem a cópia grande do mapa (estourava a memória e a tela ficava preta); só o filtro
-function pintaMapa(c, x, y, w, h){ const f = SUAVE && c.fino; cx.imageSmoothingEnabled = !!SUAVE; cx.imageSmoothingQuality = 'high'; if (f) { if (x == null) cx.drawImage(f, 0, 0, c.w, c.h); else cx.drawImage(f, x * 2, y * 2, w * 2, h * 2, x, y, w, h); } else if (x == null) cx.drawImage(c.img, 0, 0); else cx.drawImage(c.img, x, y, w, h, x, y, w, h); cx.imageSmoothingEnabled = false; }
+function s2x(S, w, h, D){ const w2 = w * 2; for (let y = 0; y < h; y++) { const r = y * w, ru = (y ? y - 1 : y) * w, rd = (y < h - 1 ? y + 1 : y) * w, o = y * 2 * w2; for (let x = 0; x < w; x++) { const p = S[r + x], B = S[ru + x], Hh = S[rd + x], Dd = S[r + (x ? x - 1 : x)], F = S[r + (x < w - 1 ? x + 1 : x)], i = o + x * 2;
+      if (B !== Hh && Dd !== F) { D[i] = Dd === B ? Dd : p; D[i + 1] = B === F ? F : p; D[i + w2] = Dd === Hh ? Dd : p; D[i + w2 + 1] = Hh === F ? F : p; } else D[i] = D[i + 1] = D[i + w2] = D[i + w2 + 1] = p; } } }
+function pxDe(c){ if (c.px === undefined) { c.px = null; for (const k in CENAS) if (CENAS[k] !== c) delete CENAS[k].px; try { const k = document.createElement('canvas'); k.width = c.w; k.height = c.h; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.img, 0, 0); c.px = new Uint32Array(g.getImageData(0, 0, c.w, c.h).data.buffer); k.width = 1; } catch(e) { console.warn(e); } } return c.px; }
+let VST = null;      // o pedaço do mapa que está na tela, refinado (Scale2x duas vezes); só refaz quando a câmera anda
+function vista(c, x0, y0, w, h){
+  if (VST && VST.c === c && VST.x0 === x0 && VST.y0 === y0 && VST.w === w && VST.h === h) return VST.ok ? VST : null;
+  const P = pxDe(c), n = w * h, f = n > 520000 ? 1 : n > 150000 ? 2 : 4; if (!P || f === 1 || w < 2 || h < 2) { VST = { c, x0, y0, w, h, ok: false }; return null; }
+  if (!VST || !VST.cv || VST.w !== w || VST.h !== h || VST.f !== f) { const cvv = document.createElement('canvas'); cvv.width = w * f; cvv.height = h * f; const g = cvv.getContext('2d'), img = g.createImageData(w * f, h * f); VST = { cv: cvv, g, img, O: new Uint32Array(img.data.buffer), A: new Uint32Array(n), T: f === 4 ? new Uint32Array(n * 4) : null, f }; }
+  const V = VST, A = V.A; for (let y = 0; y < h; y++) A.set(P.subarray((y0 + y) * c.w + x0, (y0 + y) * c.w + x0 + w), y * w);
+  if (f === 4) { s2x(A, w, h, V.T); s2x(V.T, w * 2, h * 2, V.O); } else s2x(A, w, h, V.O);
+  V.g.putImageData(V.img, 0, 0); V.c = c; V.x0 = x0; V.y0 = y0; V.w = w; V.h = h; V.ok = true; return V;
+}
+function pintaFundo(c, ox, oy, vw, vh){
+  if (!SUAVE) { cx.imageSmoothingEnabled = false; cx.drawImage(c.img, 0, 0); return; }
+  const x0 = Math.max(0, ox - 1), y0 = Math.max(0, oy - 1), w = Math.min(c.w - x0, Math.ceil(vw) + 3), h = Math.min(c.h - y0, Math.ceil(vh) + 3), v = vista(c, x0, y0, w, h);
+  cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high'; if (v) cx.drawImage(v.cv, x0, y0, w, h); else cx.drawImage(c.img, 0, 0); cx.imageSmoothingEnabled = false;
+}
 const noMar = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.mar[gy * c.gw + gx] === 1 && c.col[gy * c.gw + gx] !== 1; };
 const livre = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.col[gy * c.gw + gx] === 1; };
 function perto(c, x, y){       // ponto andável mais próximo
@@ -240,9 +262,9 @@ function sugerePeloAvatar(src){ return new Promise(ok => { if (!src) return ok(n
 const cv = document.getElementById('c'), cx = cv.getContext('2d');
 let camX = 0, camY = 0, camPronta = false;
 let SC = 3, VW = 0, VH = 0, DPR = 1;
-function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 3 : Math.max(3, Math.min(5, Math.round(VW / 400))); SC = Math.max(2, Math.min(7, base + ZOOM)); let kk = Math.round(SC * DPR); if (kk % 2) kk++; SC = kk / DPR; camPronta = false; }
-let ZOOM = 0; try { ZOOM = Math.max(-2, Math.min(3, parseInt(localStorage.getItem('catum_zoom') || '0', 10) || 0)); } catch(_){}
-function zoom(d){ ZOOM = Math.max(-2, Math.min(3, ZOOM + d)); try { localStorage.setItem('catum_zoom', ZOOM); } catch(_){} ajusta(); }
+function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 3 : Math.max(3, Math.min(6, Math.round(VW / 330))); SC = Math.max(1.5, Math.min(11, base * ZF)); SC = Math.round(SC * DPR * 2) / 2 / DPR; camPronta = false; }
+let ZF = 1; try { ZF = Math.max(.55, Math.min(2.2, parseFloat(localStorage.getItem('catum_zf') || '1') || 1)); } catch(_){}
+function zoom(v){ ZF = Math.max(.55, Math.min(2.2, v)); try { localStorage.setItem('catum_zf', ZF); } catch(_){} ajusta(); }
 addEventListener('resize', ajusta);
 
 /* ---------- gente e IAs ---------- */
@@ -281,7 +303,7 @@ const vela = document.createElement('div'); vela.style.cssText = 'position:fixed
 async function vai(id, x, y, t){
   if (trocando) return; trocando = true; eu.alvo = null; for (const k in tecla) tecla[k] = false; joySolta(); cardFechado = null; if (cardDe) fechaCard(false);
   const Ln = id === 'bairro' ? 'Catum' : id === 'regiao' ? 'a baía' : lug(id).nome; vela.textContent = ''; vela.style.opacity = 1; const avisa = setTimeout(() => { vela.textContent = 'Abrindo ' + Ln + '…'; }, 900); await new Promise(r => setTimeout(r, 200));
-  try { const c = await Promise.race([cena(id), new Promise((_, no) => setTimeout(() => no(new Error('demorou')), 20000))]); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; soEsteFino(c); if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
+  try { const c = await Promise.race([cena(id), new Promise((_, no) => setTimeout(() => no(new Error('demorou')), 20000))]); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
   catch(e) { console.warn(e); if (CENAS[id] && !CENAS[id].pronta) delete CENAS[id]; eu.fala = 'Não abriu agora. Tente de novo.'; eu.falaEm = Date.now(); }
   clearTimeout(avisa); vela.textContent = ''; trocaAte = performance.now() + 700; trocando = false; vela.style.opacity = 0;
   try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA } }), canal.track(meuRastro())); } catch(_){}
@@ -379,7 +401,7 @@ function abreCfg(){
     else if (b.dataset.op) { const L = { base: BASES, penteado: PENTEADOS, barba: BARBAS, oculos: OCULOS }[b.dataset.op], i = L.findIndex(x => x[0] === w.skin[b.dataset.op]); w.skin[b.dataset.op] = L[(i + (+b.dataset.d) + L.length) % L.length][0]; if (b.dataset.op === 'base' && w.skin.base === 'mulher-suave' && !w.skin.cintura && !w.skin.quadril) { w.skin.cintura = 10; w.skin.quadril = 9; } }
     else if (b.dataset.corpo) w.corpo = b.dataset.corpo;
     else if (b.dataset.lado) w.lado = b.dataset.lado;
-    else if (b.dataset.suave) { SUAVE = b.dataset.suave === '1'; try { localStorage.setItem('catum_suave', SUAVE ? '1' : '0'); } catch(_){} if (C) soEsteFino(C); }
+    else if (b.dataset.suave) { SUAVE = b.dataset.suave === '1'; try { localStorage.setItem('catum_suave', SUAVE ? '1' : '0'); } catch(_){} VST = null; }
     else if (b.dataset.som) { SOM = b.dataset.som === '1'; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} acorda(); if (SOM) vozinha(eu.id, 'Catum blabla'); }
     else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) Object.assign(w.skin, s); else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Escolha as cores pelas opções.'; return; } }
     else if (b.hasAttribute('data-abertura')) { cfgEl.classList.remove('on'); abertura(true); return; }
@@ -655,7 +677,7 @@ function foto(){ try { cv.toBlob(bl => { if (!bl) return; const nome = 'catum-' 
     cfgCx.innerHTML = `<div class="topo"><h2>Foto</h2>${pode ? '<button type="button" data-envia>Compartilhar</button>' : ''}<a href="${url}" download="${nome}" style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;color:#1d1b2a;text-decoration:none">Baixar</a><button type="button" data-fecha>Fechar</button></div><img src="${url}" alt="Foto de Catum" style="display:block;width:100%;border:3px solid #1d1b2a;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto"><p>No celular, tamb&eacute;m d&aacute; para segurar o dedo na imagem e salvar.</p>`;
     cfgCx.oninput = null; cfgCx.onclick = e => { if (e.target.closest('[data-fecha]')) cfgEl.classList.remove('on'); else if (e.target.closest('[data-envia]')) navigator.share({ files: [arq] }).catch(() => {}); };
     cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false; }, 'image/png'); } catch(e) { console.warn(e); } }
-document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; document.getElementById('btMenos').onclick = () => zoom(-1); document.getElementById('btMais').onclick = () => zoom(1);
+document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; { const zr = document.getElementById('zoomR'); zr.value = Math.round(ZF * 100); zr.oninput = () => zoom(zr.value / 100); zr.onchange = () => zr.blur(); }
 
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
@@ -726,7 +748,7 @@ function quadro(t){
   const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 16 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
-  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); pintaMapa(C);
+  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); pintaFundo(C, ox, oy, VW / SC, VH / SC);
   if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
   // estações do lugar (marquinha que pisca)
   const sts = CENA === 'bairro' ? [] : CENA === 'regiao' ? estacoesReg() : estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
@@ -734,7 +756,12 @@ function quadro(t){
   let pertoN = null, pd = 26; vis.forEach(n => { const d = dist(n.x, n.y, eu.x, eu.y); if (d < pd) { pd = d; pertoN = n; } });
   if (CENA === 'bairro') { passoBola(dt, [eu, ...vis, ...gente]); desenhaBola(); }
   const todos = [...vis, ...gente, eu]; todos.sort((a, b) => a.y - b.y).forEach(e => boneco(e, t));
-  if (CENA === 'bairro') for (const L of LUG) { const tp = TOPO[L.id]; if (!tp) continue; const px = L.porta[0], py = L.porta[1]; if (todos.some(e => Math.abs(e.x - px) < 22 && e.y < py + 2 && e.y > py - 18)) pintaMapa(C, px - 34, py - 84, 68, 84 - tp); }     // o batente cobre quem está passando
+  // o que fica por cima das pessoas: estrutura cuja base está à frente dos pés, batentes e passagens
+  if (CENA !== 'regiao') { const tampa = [];
+    if (CENA === 'bairro') for (const L of LUG) { const tp = TOPO[L.id]; if (!tp) continue; const px = L.porta[0], py = L.porta[1]; if (todos.some(e => Math.abs(e.x - px) < 22 && e.y < py + 2 && e.y > py - 18)) tampa.push([px - 34, py - 96, 68, 96 - tp]); }
+    for (const e of todos) { if (modoDe(e) === 'voador') continue; const hh = altura(e), mw = Math.max(8, hh * .32), gx0 = Math.max(0, (e.x - mw) >> 2), gx1 = Math.min(C.gw - 1, (e.x + mw) >> 2), gy1 = Math.min(C.gh - 1, (e.y | 0) >> 2), gy0 = Math.max(0, (e.y - hh - 4) >> 2);
+      for (let gx = gx0; gx <= gx1; gx++) { let ini = -1; for (let gy = gy0; gy <= gy1 + 1; gy++) { const i = gy * C.gw + gx, on = gy <= gy1 && (C.cima[i] || (C.sol[i] && C.base[i] * 4 + 3 > e.y + 1)); if (on && ini < 0) ini = gy; else if (!on && ini >= 0) { tampa.push([gx * 4, ini * 4, 4, (gy - ini) * 4]); ini = -1; } } } }
+    if (tampa.length) { cx.save(); cx.beginPath(); for (const r of tampa) cx.rect(r[0], r[1], r[2], r[3]); cx.clip(); pintaFundo(C, ox, oy, VW / SC, VH / SC); cx.restore(); } }
   if (ROTA) passoRota(t);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
@@ -781,7 +808,7 @@ async function comeca(){
   try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
   ajusta();
   try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'perfis.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
-    PERF = pf || {}; MIS = mi; C = b; soEsteFino(b); const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440); eu.x = p[0]; eu.y = p[1];
+    PERF = pf || {}; MIS = mi; C = b; const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440); eu.x = p[0]; eu.y = p[1];
   } catch(e) { ptxt.textContent = 'Não consegui abrir a cidade. Atualize a página.'; console.warn(e); return; }
   NPC_IDS.forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
