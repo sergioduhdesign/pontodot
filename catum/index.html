@@ -32,6 +32,12 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rende
 #card h3{font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:12px;opacity:.6}
 #card details{margin-top:8px;font-size:12px}
 #card summary{cursor:pointer;font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+#card .log{margin-top:6px;display:flex;flex-direction:column;gap:5px}
+#card .log div{font-size:12px;line-height:1.45;padding:6px 8px;border:2px solid #1d1b2a;max-width:92%}
+#card .log .eu{align-self:flex-end;background:#ffe27a}#card .log .ia{align-self:flex-start;background:#fff}#card .log .er{align-self:flex-start;background:#ffd9d2}
+#card form{display:flex;margin-top:8px;border:3px solid #1d1b2a}
+#card form input{flex:1;min-width:0;border:0;background:#fff;font:inherit;font-size:12px;padding:8px;outline:0;color:#1d1b2a;-webkit-user-select:text;user-select:text}
+#card form button{border:0;border-left:3px solid #1d1b2a;background:#ffe27a;font:inherit;font-weight:700;font-size:11px;letter-spacing:.06em;padding:0 10px;cursor:pointer;text-transform:uppercase}
 #card .x{position:absolute;top:6px;right:8px;border:0;background:none;font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px}
 #porta{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#12101c;color:#fffdf5;text-align:center;padding:24px;transition:opacity .4s}
 #porta img{width:72px;height:72px;image-rendering:pixelated}
@@ -68,7 +74,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 <canvas id="c"></canvas>
 <div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px">Catum</div><div class="px" id="gente">1 aqui</div><button class="px" id="btCfg" type="button">Config</button></div>
 <div id="lugar" class="px"></div>
-<div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; Enter para falar</div>
+<div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; ande at&eacute; uma porta para entrar &middot; Enter para falar</div>
 <form id="fala" class="px" autocomplete="off"><input id="falaTxt" maxlength="90" placeholder="Diga algo para quem est&aacute; por perto&hellip;"><button>Falar</button></form>
 <button id="btFala" class="px" type="button">Falar</button>
 <div id="card" class="px"></div>
@@ -264,7 +270,47 @@ async function carregaCfg(){
 async function salvaCfg(){ aplicaCfg(); guardaLocal(); try { canal && pronto && canal.track(meuRastro()); } catch(_){}
   try { const { error } = await sb.from('catum_jogador').upsert({ user_id: eu.id, skin: CFG.skin, lado: CFG.lado, atualizado_em: new Date().toISOString() }); return !error; } catch(_) { return false; } }
 
-const pedra = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); return tx < 0 || ty < 0 || tx >= W || ty >= H || solido[ix(tx, ty)] === 1; };
+/* ---------- interiores: cada lugar tem o seu salão ---------- */
+const IW = 22, IH = 14, SALAS = {}; let CENA = null, trocaAte = 0;     // CENA = null (na rua) ou o lugar em que estou dentro
+const entrada = L => ({ x: (L.b[0] + L.b[2] / 2) * T, y: (L.b[1] + L.b[3]) * T + 6 });
+const PISO = { escola:['#d9b98a','#cfae7c'], galeria:['#e9eef6','#dbe3ee'], cinema:['#3a2a52','#33244a'], salao:['#f3e6cf','#eadbc0'], mercado:['#e2c79a','#d8bb8a'], terraco:['#b98a5a','#ad7f50'], estacao:['#cfd8dc','#c2ccd1'], biblioteca:['#2f6f9e','#2a6591'] };
+function sala(L){
+  if (SALAS[L.id]) return SALAS[L.id];
+  const k = document.createElement('canvas'); k.width = IW * T; k.height = IH * T; const g = k.getContext('2d'), sol = new Uint8Array(IW * IH), c = L.cor, tinta = '#1d1b2a';
+  const P = (x, y, w, h, cor) => { g.fillStyle = cor; g.fillRect(x, y, w, h); };
+  const S = (tx, ty, tw, th) => { for (let y = ty; y < ty + (th || 1); y++) for (let x = tx; x < tx + (tw || 1); x++) if (x >= 0 && y >= 0 && x < IW && y < IH) sol[y * IW + x] = 1; };
+  const piso = PISO[L.id] || ['#e8e2d2','#d8d0bb'];
+  for (let y = 0; y < IH; y++) for (let x = 0; x < IW; x++) { P(x * T, y * T, T, T, piso[(x + y) % 2]); if (rnd(x, y, 31) < .12) P(x * T + 5, y * T + 9, 3, 1, 'rgba(0,0,0,.08)'); }
+  // paredes: fundo (2 fileiras), laterais e frente; a porta fica embaixo, no meio
+  P(0, 0, IW * T, 2 * T, c.parede); P(0, 2 * T - 4, IW * T, 4, 'rgba(0,0,0,.25)'); P(0, 0, IW * T, 3, tinta); S(0, 0, IW, 2);
+  P(0, 0, 6, IH * T, tinta); P(IW * T - 6, 0, 6, IH * T, tinta); S(0, 0, 1, IH); S(IW - 1, 0, 1, IH);
+  P(0, IH * T - 8, IW * T, 8, tinta); S(0, IH - 1, 10, 1); S(12, IH - 1, 10, 1); P(10 * T, IH * T - 10, 2 * T, 10, c.det); P(10 * T + 2, IH * T - 8, 2 * T - 4, 3, 'rgba(255,255,255,.5)');
+  const mesa = (tx, ty, tw, cor) => { P(tx * T + 1, ty * T + 3, (tw || 1) * T - 2, 11, tinta); P(tx * T + 2, ty * T + 4, (tw || 1) * T - 4, 6, cor || '#c8975a'); P(tx * T + 2, ty * T + 10, (tw || 1) * T - 4, 3, '#8f5f31'); S(tx, ty, tw || 1, 1); };
+  const quadro = (tx, cor) => { P(tx * T + 2, 6, 28, 20, tinta); P(tx * T + 4, 8, 24, 16, cor); P(tx * T + 8, 12, 10, 6, 'rgba(255,255,255,.45)'); };
+  const vaso = (tx, ty) => { P(tx * T + 4, ty * T + 8, 8, 7, '#8f5f31'); P(tx * T + 2, ty * T - 2, 12, 11, '#1f7a52'); P(tx * T + 5, ty * T, 5, 4, '#5fc98a'); S(tx, ty); };
+  if (L.id === 'escola') { P(6 * T, 5, 10 * T, 22, '#6b4226'); P(6 * T + 3, 8, 10 * T - 6, 16, '#1f5a44'); P(6 * T + 10, 13, 40, 1, '#eafff5'); P(6 * T + 10, 17, 64, 1, '#eafff5'); P(13 * T, 12, 30, 1, '#ffe27a');
+    [5, 7, 9].forEach(y => [4, 8, 13, 17].forEach(x => mesa(x, y))); vaso(1, 2); vaso(IW - 2, 2); }
+  if (L.id === 'galeria') { [['#ea278f', 2], ['#145dec', 5], ['#e5ec16', 8], ['#11ba98', 12], ['#ff6500', 15], ['#5425a6', 18]].forEach(([cc, x]) => quadro(x, cc)); mesa(6, 7, 3, '#dfe7ea'); mesa(13, 7, 3, '#dfe7ea'); P(10 * T + 8, 5 * T, 16, 20, tinta); P(10 * T + 10, 5 * T + 2, 12, 12, '#fffdf5'); S(10, 5, 2, 1); }
+  if (L.id === 'cinema') { P(4 * T, 4, 14 * T, 24, tinta); P(4 * T + 3, 7, 14 * T - 6, 18, '#fffdf5'); P(6 * T, 12, 60, 8, '#be3828'); P(12 * T, 10, 40, 10, '#145dec');
+    [5, 7, 9].forEach(y => { for (let x = 3; x <= 18; x++) { if (x === 10 || x === 11) continue; P(x * T + 2, y * T + 2, 12, 12, tinta); P(x * T + 3, y * T + 3, 10, 7, '#be3828'); P(x * T + 3, y * T + 10, 10, 3, '#8a2419'); S(x, y); } }); }
+  if (L.id === 'salao') { [[3, 4, '#ea278f'], [8, 4, '#00b5c9'], [13, 4, '#e5ec16'], [18, 4, '#5425a6'], [5, 8, '#11ba98'], [15, 8, '#ff6500']].forEach(([x, y, cc]) => { P(x * T + 2, y * T - 6, 12, 16, tinta); P(x * T + 3, y * T - 5, 10, 12, '#fffdf5'); P(x * T + 5, y * T - 3, 6, 6, cc); P(x * T + 4, y * T + 10, 2, 5, '#6b4226'); P(x * T + 10, y * T + 10, 2, 5, '#6b4226'); S(x, y); });
+    P(9 * T, 9 * T, 4 * T, 2 * T, '#ea278f'); P(9 * T + 4, 9 * T + 4, 4 * T - 8, 2 * T - 8, '#ff8ac4'); }
+  if (L.id === 'mercado') { [2, 9, 16].forEach((x, i) => { mesa(x, 3, 4, ['#ff5038', '#ffe27a', '#11ba98'][i]); for (let q = 0; q < 4; q++) { P((x + q) * T + 7, 2 * T - 2, 1, 5, tinta); P((x + q) * T + 5, 2 * T + 2, 5, 5, ['#ff5038', '#ffe27a', '#ea278f', '#11ba98'][(q + i) % 4]); } });
+    [[4, 8], [5, 8], [15, 9], [16, 9], [10, 7]].forEach(([x, y]) => { P(x * T + 1, y * T + 2, 14, 13, tinta); P(x * T + 2, y * T + 3, 12, 11, '#a8733f'); P(x * T + 2, y * T + 8, 12, 1, '#6b4226'); S(x, y); }); }
+  if (L.id === 'terraco') { [[1, 2], [IW - 2, 2], [1, IH - 3], [IW - 2, IH - 3], [7, 2], [14, 2]].forEach(([x, y]) => vaso(x, y)); [[5, 6], [11, 8], [16, 5]].forEach(([x, y]) => { mesa(x, y, 2, '#fffdf5'); P(x * T + 12, y * T - 4, 8, 6, '#ea278f'); }); for (let x = 1; x < IW - 1; x++) P(x * T, 2 * T, T, 1, 'rgba(0,0,0,.15)'); }
+  if (L.id === 'estacao') { mesa(2, 3, 5, '#007f91'); P(3 * T, 6, 3 * T, 16, tinta); P(3 * T + 2, 8, 3 * T - 4, 12, '#ffe27a'); for (let yy = -7; yy <= 7; yy++) for (let xx = -7; xx <= 7; xx++) if (xx * xx + yy * yy <= 49) P(15 * T + xx, 15 + yy, 1, 1, '#fffdf5'); P(15 * T, 10, 1, 6, tinta); P(15 * T, 15, 5, 1, tinta);
+    [6, 9].forEach(y => [3, 8, 13].forEach(x => { P(x * T + 1, y * T + 4, 4 * T - 2, 9, tinta); P(x * T + 2, y * T + 5, 4 * T - 4, 4, '#145dec'); P(x * T + 2, y * T + 9, 4 * T - 4, 3, '#0e3f9c'); S(x, y, 4, 1); })); }
+  if (L.id === 'biblioteca') { [3, 7, 11, 15, 19].forEach((x, i) => { for (let y = 3; y < 7; y++) { P(x * T + 1, y * T, 14, T, tinta); P(x * T + 2, y * T + 1, 12, 4, ['#ea278f', '#e5ec16', '#11ba98', '#ff6500'][(y + i) % 4]); P(x * T + 2, y * T + 6, 12, 4, ['#145dec', '#fffdf5', '#5425a6', '#ffe27a'][(y + i) % 4]); P(x * T + 2, y * T + 11, 12, 4, ['#11ba98', '#ff5038', '#e5ec16', '#bfeee6'][(y + i) % 4]); S(x, y); } });
+    mesa(8, 9, 6, '#bfeee6'); for (let x = 1; x < IW - 1; x += 3) P(x * T + 4, (IH - 3) * T + 6, 6, 1, '#7fb5ff'); }
+  const livres = []; for (let y = 3; y < IH - 2; y++) for (let x = 2; x < IW - 2; x++) if (!sol[y * IW + x] && !(sol[(y - 1) * IW + x] && sol[(y + 1) * IW + x])) livres.push([x, y]);
+  return (SALAS[L.id] = { cv: k, sol, livres });
+}
+function mudaCena(L, t){ CENA = L; trocaAte = t + 700; eu.alvo = null; for (const k in tecla) tecla[k] = false; cardFechado = null; if (cardDe) fechaCard(false);
+  if (L) { sala(L); eu.x = IW * T / 2; eu.y = (IH - 1) * T - 3; } else { /* posição de saída definida por quem chamou */ }
+  try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA ? CENA.id : '' } }), canal.track(meuRastro())); } catch(_){} }
+const pedra = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T);
+  if (CENA) { return tx < 0 || ty < 0 || tx >= IW || ty >= IH || SALAS[CENA.id].sol[ty * IW + tx] === 1; }
+  return tx < 0 || ty < 0 || tx >= W || ty >= H || solido[ix(tx, ty)] === 1; };
 const bate = (x, y) => pedra(x - 4, y - 5) || pedra(x + 4, y - 5) || pedra(x - 4, y) || pedra(x + 4, y);
 
 // IAs: cada uma passeia entre os lugares num relógio que é o mesmo para todo mundo (todos veem a mesma cidade, sem servidor)
@@ -273,11 +319,16 @@ const centro = ([x, y]) => [(x + 1) * T, (y + 1) * T];
 function ondeFica(id, k){ const L = LUGARES[hash(id + ':' + k) % LUGARES.length]; const dx = L.id === 'biblioteca' ? 0 : ((hash(id + 'x' + k) % 7) - 3); const [px, py] = centro(L.porta); return { L, x: px + dx * 10, y: py + (hash(id + 'y' + k) % 9) }; }
 let ALUNOS = new Map();     // personagem -> { curso, lugar (nº da carteira) }
 function posIA(n, agora){
+  // parou para falar comigo: fica onde está. Depois retoma de onde parou e vai alcançando o relógio da cidade aos poucos.
+  const passou = agora - (n.ult || agora); n.ult = agora;
+  if (n.preso && n.preso > agora) { n.atraso = (n.atraso || 0) + passou; n.anda = false; return; }
+  if (n.atraso) n.atraso = Math.max(0, n.atraso - passou * .5);
+  agora -= (n.atraso || 0);
   const al = ALUNOS.get(n.id);
   if (al) { const c = CARTEIRAS[al.lugar % CARTEIRAS.length]; n.x = c.x; n.y = c.y; n.anda = false; n.aula = true; n.lugar = LUGARES[4]; n.curso = al.curso; return; }
   n.aula = false; n.curso = '';
   const t = agora + (hash(n.id) % PASSO), k = Math.floor(t / PASSO), dt = (t % PASSO) / 1000;
-  const a = ondeFica(n.id, k - 1), b = ondeFica(n.id, k);
+  n.k = k; const a = ondeFica(n.id, k - 1), b = ondeFica(n.id, k);
   if (a.L === b.L) { n.x = b.x; n.y = b.y; n.anda = false; n.lugar = b.L; return; }
   const pts = [[a.x, a.y], ...a.L.rota.map(centro), ...b.L.rota.slice(0, -1).reverse().map(centro), [b.x, b.y]];
   let d = dt * VEL_IA;
@@ -288,9 +339,9 @@ function posIA(n, agora){
 
 /* ---------- controles ---------- */
 const tecla = {};
-addEventListener('keydown', e => { if (document.activeElement && document.activeElement.id === 'falaTxt') { if (e.key === 'Escape') fechaFala(); return; }
+addEventListener('keydown', e => { const ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) { if (e.key === 'Escape') { if (ae.id === 'falaTxt') fechaFala(); else ae.blur(); } return; }
   if (cfgEl.classList.contains('on')) { if (e.key === 'Escape') cfgEl.classList.remove('on'); return; }
-  if (e.key === 'Enter') { e.preventDefault(); abreFala(); return; } if (e.key === 'Escape') { fechaCard(true); return; }
+  if (e.key === 'Enter') { e.preventDefault(); const ct = document.getElementById('chatTxt'); if (ct && card.classList.contains('on')) ct.focus(); else abreFala(); return; } if (e.key === 'Escape') { fechaCard(true); return; }
   tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
 addEventListener('keyup', e => { tecla[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in tecla) tecla[k] = false; });
@@ -355,11 +406,27 @@ function abreCard(n){
     <p>${esc(c.bio || '')}</p>
     <h3>Agora</h3><p>${n.aula ? `Em aula na Escola Ag&ecirc;ntica${n.curso ? ': ' + esc(n.curso) : ''}.` : n.lugar ? `Est&aacute; em ${esc(n.lugar.nome)}.` : 'A caminho de algum lugar.'}</p>
     <h3>Esta semana</h3><div id="cardSem">${w && w.post ? `${w.titulo ? `<p><b>${esc(w.titulo)}</b></p>` : ''}<p>${esc(w.post)}</p>${w.historia && w.historia !== w.post ? `<details><summary>Ler a hist&oacute;ria</summary><p>${esc(w.historia)}</p></details>` : ''}` : `<p>${NARR ? esc((c.initial_life_post && c.initial_life_post.caption) || 'Sem novidades por enquanto.') : 'Buscando as novidades&hellip;'}</p>`}</div>
-    ${c.school_course ? `<h3>Na escola</h3><p>${esc(c.school_course)}</p>` : ''}`;
+    ${c.school_course ? `<h3>Na escola</h3><p>${esc(c.school_course)}</p>` : ''}
+    <h3>Conversar</h3><div class="log" id="chatLog"></div><form id="chatF" autocomplete="off"><input id="chatTxt" maxlength="300" placeholder="Diga algo para ${esc(n.nome)}&hellip;"><button>Enviar</button></form>`;
+  pintaChat(n); card.querySelector('#chatF').onsubmit = e => { e.preventDefault(); const i = card.querySelector('#chatTxt'), t = i.value.trim().slice(0, 300); if (!t || n.esperando) return; i.value = ''; falaCom(n, t, (w && w.post) || ''); };
   const k = card.querySelector('canvas'); if (n.cab) k.getContext('2d').drawImage(n.cab, 0, 0);
   card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on');
   vozinha(n.id, (w && w.post) || c.bio || n.nome);
   if (!NARR && !narrPedida) { narrPedida = true; fetch('/pd-narrativas.php').then(r => r.ok ? r.json() : null).then(j => { NARR = j || {}; if (cardDe === n.id) { cardDe = null; abreCard(n); } }).catch(() => { NARR = {}; }); }
+}
+
+function pintaChat(n){ const el = document.getElementById('chatLog'); if (!el || cardDe !== n.id) return;
+  el.innerHTML = (n.chat || []).slice(-8).map(m => `<div class="${m.erro ? 'er' : m.de}">${esc(m.t)}</div>`).join('') + (n.esperando ? '<div class="ia">&hellip;</div>' : ''); card.scrollTop = card.scrollHeight; }
+async function falaCom(n, txt, semana){
+  n.chat = n.chat || []; const antes = n.chat.slice(-8); n.chat.push({ de: 'eu', t: txt }); n.esperando = true; n.preso = Date.now() + 60000; pintaChat(n);
+  let resp = '', erro = false;
+  try { const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch('/pd-catum-fala.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ personagem: n.id, mensagem: txt, historico: antes, lugar: n.aula ? 'Escola Agêntica, em aula' : (n.lugar ? n.lugar.nome : 'na rua, a caminho de algum lugar'), semana }) });
+    const j = await r.json().catch(() => ({})); if (r.ok && j.reply) resp = String(j.reply); else { erro = true; resp = j.error || 'Não consegui responder agora.'; }
+  } catch(_) { erro = true; resp = 'Sem conexão para conversar agora.'; }
+  n.esperando = false; n.chat.push({ de: 'ia', t: resp, erro }); n.preso = Date.now() + 45000;
+  if (!erro) { n.fala = resp; n.falaEm = Date.now(); vozinha(n.id, resp); } pintaChat(n);
 }
 
 /* ---------- a Escola: quem estuda o quê, e a porta para os cursos ---------- */
@@ -376,7 +443,7 @@ function abreEscola(){
   const L = npcs.filter(n => n.aula);
   card.innerHTML = `<button class="x" aria-label="Fechar">x</button><h2>Escola Ag&ecirc;ntica</h2><small>Onde as IAs de Catum estudam para trabalhar melhor com a gente.</small>
     <p><button type="button" id="btCursos" style="font:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:3px solid #1d1b2a;background:#ffe27a;padding:7px 10px;cursor:pointer">Ver os cursos</button></p>
-    <h3>Em aula agora (${L.length})</h3>${L.length ? L.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento. O p&aacute;tio de aula fica logo abaixo da rua.</p>'}`;
+    <h3>Em aula agora (${L.length})</h3>${L.length ? L.map(n => `<p><b>${esc(n.nome)}</b>${n.curso ? ' &middot; ' + esc(n.curso) : ''}</p>`).join('') : '<p>Ningu&eacute;m em aula neste momento.</p>'}<p>O p&aacute;tio de aula fica do lado de fora, logo abaixo da rua.</p>`;
   card.querySelector('.x').onclick = () => fechaCard(true); card.querySelector('#btCursos').onclick = abreCursos; card.classList.add('on');
 }
 function abreCursos(){ const d = document.createElement('div'); d.id = 'cursos'; d.style.cssText = 'position:fixed;inset:0;z-index:18;background:#fffdf5;display:flex;flex-direction:column';
@@ -438,46 +505,60 @@ function quadro(t){
   if (m) { const v = 92 * dt / m, nx = eu.x + dx * v, ny = eu.y + dy * v; let andou = false;
     if (!bate(nx, eu.y)) { eu.x = nx; andou = true; } if (!bate(eu.x, ny)) { eu.y = ny; andou = true; }
     eu.anda = andou; if (dx) eu.dir = dx > 0 ? 1 : -1; if (!andou) eu.alvo = null; }
-  if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y) } }); } catch(_){} }
+  // entrar e sair dos lugares: é só andar para dentro da porta
+  if (t > trocaAte) {
+    if (!CENA) { for (const L of LUGARES) { const e = entrada(L); if (Math.abs(eu.x - e.x) < 9 && eu.y - e.y < 4 && eu.y - e.y > -8 && dy < 0) { mudaCena(L, t); break; } } }
+    else if (eu.y > (IH - 1) * T + 7) { const e = entrada(CENA); eu.x = e.x; eu.y = e.y + 12; mudaCena(null, t); }
+  }
+  const aqui = CENA ? CENA.id : '';
+  if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: aqui } }); } catch(_){} }
   if (canal && pronto && t - rastroEm > 6000) { rastroEm = t; try { canal.track(meuRastro()); } catch(_){} }
   // os outros chegam suaves
   outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1.5; if (d > 200) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 110 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
-  npcs.forEach(n => posIA(n, agora));
+  // IAs: quem chegou num lugar entra nele (some da rua e aparece lá dentro)
+  const vis = [];
+  npcs.forEach(n => { posIA(n, agora); const dentro = (!n.anda && !n.aula && n.lugar) ? n.lugar.id : '';
+    if (dentro !== aqui) return;
+    if (!CENA) { vis.push(n.v = Object.assign(Object.create(n), { x: n.x, y: n.y, de: n })); return; }
+    const S0 = sala(CENA), lv = S0.livres, p = lv[hash(n.id + '@' + (n.k || 0)) % lv.length]; vis.push(n.v = Object.assign(Object.create(n), { x: p[0] * T + 8, y: p[1] * T + 13, de: n })); });
+  const gente = [...outros.values()].filter(o => (o.r || '') === aqui);
   // câmera
-  const vw = VW / SC, vh = VH / SC; camX = Math.max(0, Math.min(WPX - vw, eu.x - vw / 2)); camY = Math.max(0, Math.min(HPX - vh, eu.y - 14 - vh / 2)); if (vw > WPX) camX = (WPX - vw) / 2; if (vh > HPX) camY = (HPX - vh) / 2;
+  const MW = CENA ? IW * T : WPX, MH = CENA ? IH * T : HPX, vw = VW / SC, vh = VH / SC;
+  camX = Math.max(0, Math.min(MW - vw, eu.x - vw / 2)); camY = Math.max(0, Math.min(MH - vh, eu.y - 14 - vh / 2)); if (vw > MW) camX = (MW - vw) / 2; if (vh > MH) camY = (MH - vh) / 2;
   const k = SC * DPR; cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
-  cx.setTransform(k, 0, 0, k, -Math.round(camX * k), -Math.round(camY * k)); cx.drawImage(mapa, 0, 0);
+  cx.setTransform(k, 0, 0, k, -Math.round(camX * k), -Math.round(camY * k)); cx.drawImage(CENA ? sala(CENA).cv : mapa, 0, 0);
   // quem está mais perto de mim
-  let perto = null, pd = 30; npcs.forEach(n => { const d = Math.hypot(n.x - eu.x, n.y - eu.y); if (d < pd) { pd = d; perto = n; } });
-  const todos = [...npcs, ...outros.values(), eu].sort((a, b) => a.y - b.y); todos.forEach(e => boneco(e, t, e === perto));
+  let perto = null, pd = 30; vis.forEach(n => { const d = Math.hypot(n.x - eu.x, n.y - eu.y); if (d < pd) { pd = d; perto = n; } });
+  [...vis, ...gente, eu].sort((a, b) => a.y - b.y).forEach(e => boneco(e, t, e === perto));
   // textos (em tela)
   cx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  LUGARES.forEach(L => { const [bx, by, bw] = L.b; etiqueta(L.nome.toUpperCase(), (bx + bw / 2) * T, by * T - 3, '#1d1b2a', '#fffdf5', 10); });
-  etiqueta('PÁTIO DE AULA', (LOUSA.x + LOUSA.w / 2) * T, LOUSA.y * T - 3, '#1f5a44', '#eafff5', 10);
-  npcs.forEach(n => etiqueta(n.nome, n.x, n.y - 30, n === perto ? '#ffe27a' : 'rgba(29,27,42,.78)', n === perto ? '#1d1b2a' : '#fff', 9));
-  outros.forEach(o => { etiqueta(o.nome, o.x, o.y - 30, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 44); });
+  if (!CENA) { LUGARES.forEach(L => { const [bx, by, bw] = L.b; etiqueta(L.nome.toUpperCase(), (bx + bw / 2) * T, by * T - 3, '#1d1b2a', '#fffdf5', 10); const e = entrada(L); if (Math.hypot(e.x - eu.x, e.y - eu.y) < 60) etiqueta('ENTRAR: ANDE ATÉ A PORTA', e.x, e.y + 26, '#ffe27a', '#1d1b2a', 9); });
+    etiqueta('PÁTIO DE AULA', (LOUSA.x + LOUSA.w / 2) * T, LOUSA.y * T - 3, '#1f5a44', '#eafff5', 10); }
+  else { etiqueta(CENA.nome.toUpperCase(), IW * T / 2, 2 * T + 12, '#1d1b2a', '#fffdf5', 10); etiqueta('SAÍDA', IW * T / 2, IH * T + 14, '#ffe27a', '#1d1b2a', 9); }
+  vis.forEach(n => { etiqueta(n.nome, n.x, n.y - 30, n === perto ? '#ffe27a' : 'rgba(29,27,42,.78)', n === perto ? '#1d1b2a' : '#fff', 9); if (n.de.fala && agora - n.de.falaEm < 9000) balao(n.de.fala.length > 64 ? n.de.fala.slice(0, 62) + '…' : n.de.fala, n.x, n.y - 44); });
+  gente.forEach(o => { etiqueta(o.nome, o.x, o.y - 30, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 44); });
   etiqueta(eu.nome, eu.x, eu.y - 30, '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - 44);
   // cartão e lugar
-  const [epx, epy] = centro(LUGARES[4].porta), naPorta = Math.hypot(epx - eu.x, epy - eu.y) < 34;
-  if (perto) abreCard(perto); else if (naPorta) abreEscola(); else { if (cardDe) fechaCard(false); cardFechado = null; }
-  let nome = ''; LUGARES.forEach(L => { const [px, py] = centro(L.porta); if (Math.hypot(px - eu.x, py - eu.y) < 56) nome = L.nome; });
+  if (perto && cardFechado !== perto.de.id) perto.de.preso = Math.max(perto.de.preso || 0, agora + 1200);    // quem está do meu lado para pra conversar
+  if (perto) abreCard(perto.de); else if (CENA && CENA.id === 'escola') abreEscola(); else { if (cardDe) fechaCard(false); cardFechado = null; }
+  let nome = CENA ? CENA.nome : ''; if (!CENA) LUGARES.forEach(L => { const [px, py] = centro(L.porta); if (Math.hypot(px - eu.x, py - eu.y) < 56) nome = L.nome; });
   if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
 }
 
 /* ---------- ao vivo (Supabase Realtime): quem mais está em Catum ---------- */
 let canal = null, pronto = false;
-const meuRastro = () => ({ i: eu.id, n: eu.nome, a: eu.av || '', s: CFG.skin || null, x: Math.round(eu.x), y: Math.round(eu.y) });
+const meuRastro = () => ({ i: eu.id, n: eu.nome, a: eu.av || '', s: CFG.skin || null, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA ? CENA.id : '' });
 function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
 function liga(){
   canal = sb.channel('catum-mundo', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
   canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
     Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
-      let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: p.x, y: p.y, tx: p.x, ty: p.y, cab: null, cor: '#' + (hash(p.i) & 0xffffff).toString(16).padStart(6, '0'), fala: '', falaEm: 0, anda: false };
+      let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: p.x, y: p.y, tx: p.x, ty: p.y, cab: null, cor: '#' + (hash(p.i) & 0xffffff).toString(16).padStart(6, '0'), fala: '', falaEm: 0, anda: false, r: String(p.r || '') };
         outros.set(p.i, o); if (!(p.s && p.s.pele) && p.a && /^(\/|https:\/\/)/.test(p.a)) cabeca(p.a, k2 => { if (!o.sk) o.cab = k2; }); }
       if (p.s && p.s.pele) { const j = JSON.stringify(p.s); if (o.sk !== j) { o.sk = j; const s = limpaSkin(p.s); o.cab = rosto(s); o.cor = s.roupa; o.mao = s.pele; } } });
     [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
-  canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { o.tx = Math.max(0, Math.min(WPX, +p.x)); o.ty = Math.max(0, Math.min(HPX, +p.y)); } });
-  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if (Math.hypot(o.x - eu.x, o.y - eu.y) < 260) vozinha(o.id, o.fala); } });
+  canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { const r = String(p.r || ''); o.tx = Math.max(0, Math.min(WPX, +p.x)); o.ty = Math.max(0, Math.min(HPX, +p.y)); if (r !== o.r) { o.r = r; o.x = o.tx; o.y = o.ty; } } });
+  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); if ((o.r || '') === (CENA ? CENA.id : '') && Math.hypot(o.x - eu.x, o.y - eu.y) < 260) vozinha(o.id, o.fala); } });
   canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
 }
 
