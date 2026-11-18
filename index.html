@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v602 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v603 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -3720,6 +3720,7 @@ function pintarTodas(){
       <span class="t-data${atras?' atras':''}">${fmtD(t.date_int)}</span>
       ${ehCliente() ? '' : `<span class="t-clichip">${t.clients?.name||'SD'}</span>`}
       <div class="t-main"><span class="nome" style="flex:none">${t.action}</span><small>${t.project||'GERAL'}</small></div>
+      ${!ehCliente() && filaLugar(t) ? `<span class="ia-chip" title="Ordem definida pelo cliente" onclick="event.stopPropagation();filaTodas('${t.client_id}')">${filaLugar(t)}</span>` : ''}
       ${ia && !ehCliente() ?'<span class="ia-chip">IA</span>':''}
       ${ehCliente() ? '' : `<span class="t-resp">${t.resp||''}</span>
       <span class="t-play ${sessAbertas[t.id]?'rodando':''}" role="button" onclick="event.stopPropagation();playDireto('${t.id}')">${icoPlay(!!sessAbertas[t.id])}</span>`}
@@ -4277,7 +4278,7 @@ function ehAdmin(){
 }
 // CLIENTE: a home dele é só o que ele precisa (aprovar, pedir, falar com a Gigi e com a equipe). Sem ovo, sem escola, sem configurar.
 function ehCliente(){ return !!(window.REAL && perfil && perfil.role === 'client'); }
-const GADGETS_CLIENTE = ['aprovacoes', 'tarefas', 'minhaia', 'equipe'];
+const GADGETS_CLIENTE = ['fila', 'aprovacoes', 'tarefas', 'minhaia', 'equipe'];
 // QUEM O CLIENTE VÊ: por padrão ninguém da equipe. Só as outras pessoas do PRÓPRIO cliente e quem o admin liberou marcando a função Atendimento.
 function equipeParaMim(){
   if (!ehCliente()) return PERFIS.filter(p => p.name && !p.client_id);
@@ -7895,8 +7896,97 @@ function htmlEscolaAdmin(abas){
   return gadCaixa('Escola das IAs', abas + `<div style="margin:0 0 8px"><button class="btn cheio" style="min-height:34px;padding:6px 12px;font-size:12px" onclick="abrirAulas()">Aulas de job real · placar</button></div>` + escfHtml() + (ESC.msg ? `<div class="nota" style="margin:0 0 6px">${esc(ESC.msg)}</div>` : '') + filaH + gptH + `<div class="ads-sec">Evolução</div>` + evo + aviso, ['Gerenciar', 'abrirSala()']);
 }
 
+// =====================================================================
+// PEDIDOS DO CLIENTE: fila e fila de prioridades (v192)
+// O cliente cria o pedido e define a ordem; a equipe pega um por vez, de cima para baixo.
+// A ordem mora em pd_fila (o cliente não altera a tabela de tarefas).
+// =====================================================================
+let FILA = { m: {}, falta: false };
+async function filaCarrega(){
+  const antes = JSON.stringify(FILA.m);
+  try { const { data, error } = await sbR.from('pd_fila').select('task_id,client_id,pos,prioridade'); if (error) throw error; const m = {}; (data || []).forEach(r => { m[r.task_id] = r; }); FILA = { m, falta: false }; }
+  catch(e){ FILA = { m: {}, falta: true }; }
+  try { if (ehCliente() && antes !== JSON.stringify(FILA.m)) render(); } catch(e){}
+}
+const FILA_PROD = ['EM ANDAMENTO', 'ALTERAÇÃO', 'BUCHA'], FILA_CLI = ['DELEGADA', 'ATENÇÃO'];
+function filaDe(cid){        // o que está em produção, as prioridades, a fila e o que está com o cliente
+  const ts = tasksReais.filter(t => t.client_id === cid && t.status !== 'ENTREGUE');
+  const pos = t => { const r = FILA.m[t.id]; return r ? r.pos : 100000 + ((Date.parse(t.date_cli || t.date_int || '') / 864e5) || 99999); };
+  const br = ts.filter(t => t.status === 'BRIEFING').sort((a, b) => pos(a) - pos(b)), pr = t => !!(FILA.m[t.id] && FILA.m[t.id].prioridade);
+  return { agora: ts.filter(t => FILA_PROD.includes(t.status)), prio: br.filter(pr), fila: br.filter(t => !pr(t)), comvc: ts.filter(t => FILA_CLI.includes(t.status)) };
+}
+function filaLugar(t){       // etiqueta para a equipe: onde este pedido está na fila do cliente
+  if (!t || !t.client_id || t.status !== 'BRIEFING' || !FILA.m[t.id]) return '';
+  const f = filaDe(t.client_id), i = f.prio.concat(f.fila).findIndex(x => x.id === t.id); if (i < 0) return '';
+  return (FILA.m[t.id].prioridade ? 'prioridade · ' : '') + (i === 0 ? 'próxima' : (i + 1) + 'º da fila');
+}
+function filaLinha(t, rot, ctrl){
+  return `<div class="ia-linha" style="gap:10px"><button type="button" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;flex:1;min-width:0" onclick="abrirTarefaReal('${t.id}')">${logoCliente(t.clients?.name || '', 30)}<div class="c" style="min-width:0"><div class="n" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.action)}</div><div class="d">${rot}${t.date_cli ? ' · para ' + fmtD(t.date_cli) : ''}</div></div></button>${ctrl || ''}</div>`;
+}
+function htmlFila(){
+  const f = filaDe(perfil.client_id), ord = f.prio.concat(f.fila), n = f.agora.length + ord.length + f.comvc.length;
+  const linhas = [...f.agora.map(t => filaLinha(t, 'em produção agora')),
+    ...ord.map((t, i) => filaLinha(t, (FILA.m[t.id]?.prioridade ? 'prioridade · ' : '') + (i === 0 && !f.agora.length ? 'próxima a ser pega' : (i + 1) + 'º da fila'))),
+    ...f.comvc.map(t => filaLinha(t, t.status === 'DELEGADA' ? 'esperando você' : 'aprovado'))].slice(0, 6).join('');
+  return gadCaixa('Pedidos', `<div class="nota" style="margin:0 0 6px;text-transform:none;letter-spacing:0">${n ? 'Um pedido por vez, na ordem que você definir. O de cima é o próximo a ser pego.' : 'Nenhum pedido aberto. Crie o primeiro.'}</div>${linhas}${n > 6 ? `<div class="nota">+ ${n - 6} na lista completa</div>` : ''}${FILA.falta ? '<div class="nota">A ordem da fila ainda não está salvando: falta rodar o SQL v192.</div>' : ''}`,
+    [['Criar nova tarefa', 'filaNova()'], ['Ver todas', 'filaTodas()'], ['PDF', 'filaPdf()']]);
+}
+function filaTodas(cid){
+  cid = cid || perfil.client_id; window._filaCid = cid; const f = filaDe(cid), nome = (clientesReais.find(c => c.id === cid) || window.CLIENTE_ROW || {}).name || '';
+  const bt = (t, a, rot) => `<button class="btn" style="min-height:30px;padding:4px 10px;font-size:11px" onclick="filaAcao('${t.id}','${a}')">${rot}</button>`;
+  const ctrl = (t, p) => `<span style="display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;max-width:46%">${bt(t, 'sobe', 'Subir')}${bt(t, 'desce', 'Descer')}${bt(t, p ? 'normal' : 'prio', p ? 'Tirar prioridade' : 'Priorizar')}</span>`;
+  const sec = (tit, nota, arr, fn) => arr.length ? `<div class="nota" style="margin:18px 0 2px">${tit}</div>${nota ? `<div class="nota" style="opacity:.75;margin:0 0 4px;text-transform:none;letter-spacing:0">${nota}</div>` : ''}` + arr.map(fn).join('') : '';
+  const livre = !f.agora.length;
+  abrirJanela(`<h3>Pedidos${nome && !ehCliente() ? ' · ' + esc(nome) : ''}</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px">${ehCliente() ? `<button class="btn" onclick="filaNova()">Criar nova tarefa</button>` : ''}<button class="btn" onclick="filaPdf('${cid}')">PDF</button></div>
+    ${sec('Em produção agora', 'É nisto que a equipe está focada.', f.agora, t => filaLinha(t, ROT_STATUS[t.status] || t.status))}
+    ${sec('Fila de prioridades', 'Passam na frente da fila, na ordem em que estão aqui.', f.prio, (t, i) => filaLinha(t, i === 0 && livre ? 'próxima a ser pega' : (i + 1) + 'º', ctrl(t, true)))}
+    ${sec('Fila', 'A de cima é a próxima a ser pega.', f.fila, (t, i) => filaLinha(t, f.prio.length + i === 0 && livre ? 'próxima a ser pega' : (f.prio.length + i + 1) + 'º', ctrl(t, false)))}
+    ${sec('Com você', 'Esperando a sua resposta, ou já aprovados.', f.comvc, t => filaLinha(t, t.status === 'DELEGADA' ? 'esperando você' : 'aprovado'))}
+    ${!(f.agora.length + f.prio.length + f.fila.length + f.comvc.length) ? '<div class="nota">Nenhum pedido aberto.</div>' : ''}
+    ${FILA.falta ? '<div class="nota">A ordem ainda não está salvando: falta rodar o SQL v192.</div>' : ''}`, true);
+}
+async function filaAcao(id, a){
+  const cid = window._filaCid || perfil.client_id, f = filaDe(cid); let P = f.prio.map(t => t.id), N = f.fila.map(t => t.id);
+  const troca = (L, d) => { const i = L.indexOf(id), j = i + d; if (i < 0 || j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; };
+  if (a === 'sobe') { troca(P, -1); troca(N, -1); } else if (a === 'desce') { troca(P, 1); troca(N, 1); }
+  else if (a === 'prio') { N = N.filter(x => x !== id); P.push(id); } else if (a === 'normal') { P = P.filter(x => x !== id); N.unshift(id); }
+  const agora = new Date().toISOString(), linhas = [...P.map((t, i) => ({ task_id: t, client_id: cid, pos: i + 1, prioridade: true })), ...N.map((t, i) => ({ task_id: t, client_id: cid, pos: P.length + i + 1, prioridade: false }))].map(r => Object.assign(r, { atualizado_por: perfil.id, atualizado_em: agora }));
+  linhas.forEach(r => { FILA.m[r.task_id] = r; }); filaTodas(cid);
+  try { const { error } = await sbR.from('pd_fila').upsert(linhas); if (error) throw error; } catch(e){ toast('A ordem não salvou agora. Se o SQL v192 ainda não rodou, é isso.'); }
+  try { if (ehCliente()) render(); } catch(e){}
+}
+function filaNova(){
+  const campo = 'width:100%;box-sizing:border-box;margin-top:5px;padding:10px 12px;border-radius:12px;border:1px solid var(--sep);background:transparent;color:inherit;font:inherit;font-size:14px';
+  abrirJanela(`<h3>Criar nova tarefa</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px"><button class="btn" id="filaBtEnvia" onclick="filaEnviar(this)">Enviar pedido</button></div>
+    <label style="display:block;font-size:12px">O que você precisa<input id="filaTit" maxlength="160" placeholder="Ex.: post de lançamento da torre B" style="${campo}"></label>
+    <label style="display:block;font-size:12px;margin-top:12px">Detalhes (opcional)<textarea id="filaDet" maxlength="800" rows="4" placeholder="Referências, textos, medidas, o que não pode faltar." style="${campo};resize:vertical"></textarea></label>
+    <label style="display:block;font-size:12px;margin-top:12px">Para quando você gostaria (opcional)<input id="filaPrazo" type="date" style="${campo}"></label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;margin-top:14px;cursor:pointer"><input id="filaPrio" type="checkbox" style="width:18px;height:18px"> É prioridade: passa na frente da fila</label>
+    <div class="nota" style="margin-top:14px;text-transform:none;letter-spacing:0">O pedido entra no fim da sua fila (ou no fim das prioridades). Depois você pode mudar a ordem em Pedidos.</div>`, true);
+  setTimeout(() => { try { document.getElementById('filaTit').focus(); } catch(e){} }, 250);
+}
+async function filaEnviar(btn){
+  const tit = (document.getElementById('filaTit')?.value || '').trim(); if (!tit){ toast('Diga o que você precisa.'); document.getElementById('filaTit')?.focus(); return; }
+  const det = (document.getElementById('filaDet')?.value || '').trim(), prazo = document.getElementById('filaPrazo')?.value || null, prio = !!document.getElementById('filaPrio')?.checked;
+  if (btn){ btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try { const { error } = await sbR.rpc('pd_cliente_pede', { p_titulo: tit, p_detalhe: det || null, p_prazo: prazo, p_prioridade: prio }); if (error) throw error;
+    toast('Pedido enviado. Entrou na sua fila.'); try { await carregarReal(); } catch(e){} await filaCarrega(); filaTodas(); try { render(); } catch(e){} }
+  catch(e){ if (btn){ btn.disabled = false; btn.textContent = 'Enviar pedido'; } toast(/pd_cliente_pede|schema cache|does not exist/i.test(e.message || '') ? 'Ainda não dá para criar por aqui: falta rodar o SQL v192.' : (e.message || 'Não consegui enviar agora. Tente de novo.')); }
+}
+function filaPdf(cid){
+  cid = cid || perfil.client_id; const f = filaDe(cid), nome = (clientesReais.find(c => c.id === cid) || window.CLIENTE_ROW || {}).name || '';
+  const tab = (arr, fn) => `<table>${arr.map((t, i) => `<tr><td>${fn(t, i)} ${esc(t.action)}</td><td>${t.date_cli ? fmtD(t.date_cli) : ''}</td></tr>`).join('')}</table>`;
+  const sec = (tit, arr, fn) => arr.length ? `<h2>${tit}</h2>${tab(arr, fn)}` : '';
+  pdfDoc('Pedidos', 'Fila e prioridades', nome,
+    sec('Em produção agora', f.agora, () => '') + sec('Fila de prioridades', f.prio, (t, i) => `<b>${i + 1}º</b>`) + sec('Fila', f.fila, (t, i) => `<b>${f.prio.length + i + 1}º</b>`) + sec('Com o cliente', f.comvc, t => t.status === 'DELEGADA' ? '<span class="cp p">esperando</span>' : '<span class="cp">aprovado</span>')
+    || '<p>Nenhum pedido aberto.</p>');
+}
+
 const GADGETS = {
   tarefas:   { nome:'Tarefas', fixo:true, html:()=>`<div class="caixa cx-tarefas">${htmlTarefas()}</div>` },
+  fila:      { nome:'Pedidos', get oculto(){ return !ehCliente(); }, html:()=>htmlFila() },      // caixa só do ambiente do cliente
   conversas: { nome:'Conversas', oculto:true, html:()=>htmlConversas() },
   zap:       { nome:'Zap', libera:'zap', html:()=>htmlZap() },   // ferramenta de vendas/atendimento: só pra quem o admin libera (admin sempre)
   vendas:    { nome:'Dig', libera:'vendas', html:()=>htmlVendas() },
@@ -11021,6 +11111,7 @@ async function carregarReal(){
   sbR.from('approval_sets').select('id,title,task_id,created_at').order('created_at',{ascending:false}).limit(6)
     .then(({data}) => { setsReais = data || []; }).catch(()=>{});
   tasksReais = ts.data || [];
+  filaCarrega();
   driveMap = {}; (drv.data||[]).forEach(d => driveMap[d.task_id] = d);
   sessAbertas = {}; (ss.data||[]).forEach(x => sessAbertas[x.task_id] = x.id);
 
