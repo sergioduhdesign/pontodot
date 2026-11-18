@@ -159,8 +159,9 @@ function escala2x(src, W, H){
 function fino(c){ if (c.fino !== undefined) return c.fino; c.fino = null; try { c.fino = escala2x(c.img, c.w, c.h); } catch(e) { console.warn(e); } return c.fino; }
 const FINA = new WeakMap();      // personagens no mesmo tratamento do mapa, para o pixel dos dois combinar
 function fina(im){ let f = FINA.get(im); if (f === undefined) { f = null; try { f = escala2x(im, im.naturalWidth || im.width, im.naturalHeight || im.height); } catch(_){} FINA.set(im, f); } return f; }
-function soEsteFino(c){ for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].fino) { CENAS[k].fino.width = 1; delete CENAS[k].fino; } if (SUAVE) fino(c); }
-function pintaMapa(c, x, y, w, h){ const f = SUAVE && c.fino; cx.imageSmoothingEnabled = !!f; if (f) { cx.imageSmoothingQuality = 'high'; if (x == null) cx.drawImage(f, 0, 0, c.w, c.h); else cx.drawImage(f, x * 2, y * 2, w * 2, h * 2, x, y, w, h); } else if (x == null) cx.drawImage(c.img, 0, 0); else cx.drawImage(c.img, x, y, w, h, x, y, w, h); cx.imageSmoothingEnabled = false; }
+function soEsteFino(c){ for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].fino) { CENAS[k].fino.width = 1; delete CENAS[k].fino; } if (SUAVE && !LEVE) fino(c); }
+const LEVE = (() => { try { return matchMedia('(pointer:coarse)').matches || (navigator.deviceMemory && navigator.deviceMemory < 4); } catch(_) { return true; } })();     // celular: sem a cópia grande do mapa (estourava a memória e a tela ficava preta); só o filtro
+function pintaMapa(c, x, y, w, h){ const f = SUAVE && c.fino; cx.imageSmoothingEnabled = !!SUAVE; cx.imageSmoothingQuality = 'high'; if (f) { if (x == null) cx.drawImage(f, 0, 0, c.w, c.h); else cx.drawImage(f, x * 2, y * 2, w * 2, h * 2, x, y, w, h); } else if (x == null) cx.drawImage(c.img, 0, 0); else cx.drawImage(c.img, x, y, w, h, x, y, w, h); cx.imageSmoothingEnabled = false; }
 const noMar = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.mar[gy * c.gw + gx] === 1 && c.col[gy * c.gw + gx] !== 1; };
 const livre = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.col[gy * c.gw + gx] === 1; };
 function perto(c, x, y){       // ponto andável mais próximo
@@ -276,13 +277,13 @@ async function salvaCfg(){ aplicaCfg(); guardaLocal(); try { canal && pronto && 
   try { const { error } = await sb.from('catum_jogador').upsert({ user_id: eu.id, skin: Object.assign({}, CFG.skin, { corpo: CFG.corpo }), lado: CFG.lado, atualizado_em: new Date().toISOString() }); return !error; } catch(_) { return false; } }
 
 /* ---------- troca de cena ---------- */
-const vela = document.createElement('div'); vela.style.cssText = 'position:fixed;inset:0;z-index:9;background:#12101c;opacity:0;pointer-events:none;transition:opacity .22s'; document.body.appendChild(vela);
+const vela = document.createElement('div'); vela.style.cssText = 'position:fixed;inset:0;z-index:9;background:#12101c;opacity:0;pointer-events:none;transition:opacity .22s;display:flex;align-items:center;justify-content:center;color:#fffdf5;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-align:center;padding:24px'; document.body.appendChild(vela);
 async function vai(id, x, y, t){
   if (trocando) return; trocando = true; eu.alvo = null; for (const k in tecla) tecla[k] = false; joySolta(); cardFechado = null; if (cardDe) fechaCard(false);
-  vela.style.opacity = 1; await new Promise(r => setTimeout(r, 200));
-  try { const c = await cena(id); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; soEsteFino(c); if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
-  catch(e) { console.warn(e); }
-  trocaAte = performance.now() + 700; trocando = false; vela.style.opacity = 0;
+  const Ln = id === 'bairro' ? 'Catum' : id === 'regiao' ? 'a baía' : lug(id).nome; vela.textContent = ''; vela.style.opacity = 1; const avisa = setTimeout(() => { vela.textContent = 'Abrindo ' + Ln + '…'; }, 900); await new Promise(r => setTimeout(r, 200));
+  try { const c = await Promise.race([cena(id), new Promise((_, no) => setTimeout(() => no(new Error('demorou')), 20000))]); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; soEsteFino(c); if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
+  catch(e) { console.warn(e); if (CENAS[id] && !CENAS[id].pronta) delete CENAS[id]; eu.fala = 'Não abriu agora. Tente de novo.'; eu.falaEm = Date.now(); }
+  clearTimeout(avisa); vela.textContent = ''; trocaAte = performance.now() + 700; trocando = false; vela.style.opacity = 0;
   try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA } }), canal.track(meuRastro())); } catch(_){}
 }
 function soleira(L){ const b = CENAS.bairro; if (!L.sol && b && b.pronta) { L.sol = perto(b, L.porta[0], L.porta[1] + 4); const vx = L.porta[0] - L.sol[0], vy = L.porta[1] - L.sol[1], d = Math.hypot(vx, vy); L.dv = d > 14 ? [vx / d, vy / d] : [0, -1]; } return L.sol || L.porta; }
