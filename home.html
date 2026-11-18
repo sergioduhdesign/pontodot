@@ -652,11 +652,8 @@ if(/[?&]login=1/.test(location.search))openLogin();
   ['contextmenu','dragstart','selectstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!field(e.target))e.preventDefault()},true));
   ['copy','cut'].forEach(ev=>document.addEventListener(ev,e=>{if(!field(e.target)){e.preventDefault();try{e.clipboardData.setData('text/plain','© pontodot.ai')}catch(x){}}},true));
   document.addEventListener('keydown',e=>{const k=(e.key||'').toLowerCase(),m=e.ctrlKey||e.metaKey;
-    if(k==='printscreen'||k==='snapshot'){try{navigator.clipboard.writeText('© pontodot.ai')}catch(x){}document.body.classList.add('hid');setTimeout(()=>document.body.classList.remove('hid'),1500);e.preventDefault();return}
     if(k==='f12'||(m&&e.shiftKey&&['i','j','c','s'].includes(k))||(m&&['s','p','u'].includes(k))){e.preventDefault();return}
     if(m&&['c','x','a'].includes(k)&&!field(e.target))e.preventDefault()},true);
-  const hide=()=>document.body.classList.add('hid'),show=()=>{if(document.hasFocus()&&!document.hidden)document.body.classList.remove('hid')};
-  addEventListener('blur',hide);addEventListener('focus',show);document.addEventListener('visibilitychange',()=>document.hidden?hide():show());
 })();
 </script>
 <script src="/js/pd-nomes.js?v=2" defer></script>

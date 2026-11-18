@@ -8,10 +8,11 @@
 <link rel="icon" href="/assets/logo-pontodot-bolinha.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:#12101c;color:#1d1b2a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;-webkit-user-select:none;user-select:none;touch-action:none}
+html,body{height:100%;overflow:hidden;background:#12101c;color:#1d1b2a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;touch-action:none}
+canvas#c,#hud,#joy{-webkit-user-select:none;user-select:none}
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
 .px{background:#fffdf5;border:3px solid #1d1b2a;box-shadow:4px 4px 0 #1d1b2a}
-#hud{position:fixed;top:12px;left:12px;display:flex;gap:8px;align-items:center;z-index:5}
+#hud{position:fixed;top:12px;left:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;z-index:5;max-width:calc(100vw - 20px)}
 #hud a,#hud div,#hud button{padding:7px 10px;font-family:inherit;cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:#1d1b2a}
 #hud a:hover,#hud button:hover{background:#ffe27a}
 #hud div{cursor:default}
@@ -44,7 +45,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rende
 #porta h1{font-size:22px;letter-spacing:.3em;text-transform:uppercase}
 #porta p{font-size:12px;opacity:.7;max-width:320px;line-height:1.5}
 #porta a{color:#ffe27a}
-@media(max-width:700px){#dica{display:none}#hCatum,#gente{display:none}#hud{gap:5px;left:8px;top:8px}#hud a,#hud div,#hud button{padding:6px 7px;font-size:10px}}
+@media(max-width:700px){#dica{display:none}#hCatum,#gente,#xp{display:none}#hud{gap:5px;left:8px;top:8px}#hud a,#hud div,#hud button{padding:6px 7px;font-size:10px}}
 #card textarea{width:100%}
 #joy{position:fixed;bottom:24px;left:24px;width:116px;height:116px;border-radius:50%;background:rgba(255,253,245,.5);border:3px solid #1d1b2a;z-index:6;display:none;touch-action:none}
 #joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:#1d1b2a;border:3px solid #fffdf5;pointer-events:none}
@@ -52,7 +53,7 @@ body.toque #joy{display:block}body.toque.dir #joy{left:auto;right:24px}
 body.toque #dica{display:none}
 body.toque #btFala{display:block;right:14px;bottom:14px}body.toque.dir #btFala{right:auto;left:14px}
 body.toque #fala{bottom:auto;top:56px}
-body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height:36vh}
+body.toque #card{top:96px;bottom:auto;left:12px;right:12px;width:auto;max-height:36vh}
 #cfg{position:fixed;inset:0;z-index:15;display:none;align-items:center;justify-content:center;background:rgba(18,16,28,.6);padding:12px;touch-action:auto}
 #cfg.on{display:flex}
 #cfg .cx{width:min(460px,100%);max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin;padding:14px;touch-action:pan-y}
@@ -73,7 +74,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px" id="hCatum">Catum</div><div class="px" id="gente">1 aqui</div><button class="px" id="btCfg" type="button">Config</button><button class="px" id="btDia" type="button">Di&aacute;rio</button><div class="px" id="xp">Nv 1 &middot; 0 XP</div></div>
+<div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px" id="hCatum">Catum</div><div class="px" id="gente">1 aqui</div><button class="px" id="btCfg" type="button">Config</button><button class="px" id="btMapa" type="button">Mapa</button><button class="px" id="btDia" type="button">Di&aacute;rio</button><button class="px" id="btFoto" type="button">Foto</button><button class="px" id="btMenos" type="button" aria-label="Afastar">&minus;</button><button class="px" id="btMais" type="button" aria-label="Aproximar">+</button><div class="px" id="xp">Nv 1 &middot; 0 XP</div></div>
 <div id="lugar" class="px"></div>
 <div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; ande at&eacute; uma porta para entrar &middot; pare numa marca que pisca &middot; Enter para falar</div>
 <form id="fala" class="px" autocomplete="off"><input id="falaTxt" maxlength="90" placeholder="Diga algo para quem est&aacute; por perto&hellip;"><button>Falar</button></form>
@@ -96,7 +97,7 @@ body.toque #card{top:56px;bottom:auto;left:12px;right:12px;width:auto;max-height
 (() => {
 'use strict';
 const ESC_P = 1.5;          // personagens maiores que a escala do pacote (pedido do Sérgio)
-const ARTE = '/catum/arte/', VA = '?v=8', CEL = 4;
+const ARTE = '/catum/arte/', VA = '?v=9', CEL = 4;
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
@@ -105,7 +106,7 @@ const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 // porta = ponto da porta no bairro (coordenada antiga + deslocamento 144,192 do pacote)
 const LUG = [
   { id:'escola',     arq:'escola-agentica',       nome:'Escola Agêntica',       porta:[383,151] },
-  { id:'galeria',    arq:'galeria-das-chuvas',    nome:'Galeria das Chuvas',    porta:[516,238] },
+  { id:'galeria',    arq:'galeria-das-chuvas',    nome:'Galeria das Chuvas',    porta:[601,260] },
   { id:'cinema',     arq:'cinema-da-curva',       nome:'Cinema da Curva',       porta:[191,269] },
   { id:'terraco',    arq:'terraco-da-vizinhanca', nome:'Terraço da Vizinhança', porta:[180,150] },
   { id:'salao',      arq:'salao-das-artes',       nome:'Salão das Artes',       porta:[173,383] },
@@ -117,6 +118,7 @@ const LUG = [
 LUG.forEach(L => { if (L.porta) L.porta = [L.porta[0] + 144, L.porta[1] + 192]; });
 const lug = id => LUG.find(L => L.id === id);
 const ESCOLA = lug('escola'), ESCRIT = lug('escritorio');
+const TOPO = { escola:18, galeria:34, cinema:20, salao:17, mercado:18, estacao:18, biblioteca:20 };     // altura do vão de cada porta: o que fica acima cobre quem passa
 const PORTAL = { de:[0.915, 0.475], volta:[0.88, 0.49] };       // vão leste da Escola -> ala Pontodot
 const NPC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
 
@@ -145,6 +147,19 @@ async function cena(id){
   })();
   return c.p;
 }
+/* mapa mais fino: Scale2x (arredonda os degraus do pixel) só da cena em que estou */
+let SUAVE = true; try { SUAVE = localStorage.getItem('catum_suave') !== '0'; } catch(_){}
+function fino(c){
+  if (c.fino !== undefined) return c.fino; c.fino = null;
+  try { const W = c.w, H = c.h, k = document.createElement('canvas'); k.width = W; k.height = H; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(c.img, 0, 0);
+    const P = new Uint32Array(g.getImageData(0, 0, W, H).data.buffer), o = document.createElement('canvas'); o.width = W * 2; o.height = H * 2; const og = o.getContext('2d'), od = og.createImageData(W * 2, H * 2), O = new Uint32Array(od.data.buffer), W2 = W * 2;
+    for (let y = 0; y < H; y++) { const yu = y ? y - 1 : y, yd = y < H - 1 ? y + 1 : y; for (let x = 0; x < W; x++) { const p = P[y * W + x], B = P[yu * W + x], Hh = P[yd * W + x], D = P[y * W + (x ? x - 1 : x)], F = P[y * W + (x < W - 1 ? x + 1 : x)], i = y * 2 * W2 + x * 2;
+        if (B !== Hh && D !== F) { O[i] = D === B ? D : p; O[i + 1] = B === F ? F : p; O[i + W2] = D === Hh ? D : p; O[i + W2 + 1] = Hh === F ? F : p; } else O[i] = O[i + 1] = O[i + W2] = O[i + W2 + 1] = p; } }
+    og.putImageData(od, 0, 0); c.fino = o; } catch(e) { console.warn(e); }
+  return c.fino;
+}
+function soEsteFino(c){ for (const k in CENAS) if (CENAS[k] !== c && CENAS[k].fino) { CENAS[k].fino.width = 1; delete CENAS[k].fino; } if (SUAVE) fino(c); }
+function pintaMapa(c, x, y, w, h){ const f = SUAVE && c.fino; cx.imageSmoothingEnabled = !!f; if (f) { cx.imageSmoothingQuality = 'high'; if (x == null) cx.drawImage(f, 0, 0, c.w, c.h); else cx.drawImage(f, x * 2, y * 2, w * 2, h * 2, x, y, w, h); } else if (x == null) cx.drawImage(c.img, 0, 0); else cx.drawImage(c.img, x, y, w, h, x, y, w, h); cx.imageSmoothingEnabled = false; }
 const noMar = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.mar[gy * c.gw + gx] === 1 && c.col[gy * c.gw + gx] !== 1; };
 const livre = (c, x, y) => { const gx = x >> 2, gy = y >> 2; return gx >= 0 && gy >= 0 && gx < c.gw && gy < c.gh && c.col[gy * c.gw + gx] === 1; };
 function perto(c, x, y){       // ponto andável mais próximo
@@ -221,8 +236,11 @@ function sugerePeloAvatar(src){ return new Promise(ok => { if (!src) return ok(n
 
 /* ---------- tela ---------- */
 const cv = document.getElementById('c'), cx = cv.getContext('2d');
+let camX = 0, camY = 0, camPronta = false;
 let SC = 3, VW = 0, VH = 0, DPR = 1;
-function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); SC = Math.max(2, Math.min(4, Math.round(VW / 500))); if (VW < 700) SC = 2; }
+function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); const base = VW < 700 ? 3 : Math.max(3, Math.min(5, Math.round(VW / 400))); SC = Math.max(2, Math.min(7, base + ZOOM)); let kk = Math.round(SC * DPR); if (kk % 2) kk++; SC = kk / DPR; camPronta = false; }
+let ZOOM = 0; try { ZOOM = Math.max(-2, Math.min(3, parseInt(localStorage.getItem('catum_zoom') || '0', 10) || 0)); } catch(_){}
+function zoom(d){ ZOOM = Math.max(-2, Math.min(3, ZOOM + d)); try { localStorage.setItem('catum_zoom', ZOOM); } catch(_){} ajusta(); }
 addEventListener('resize', ajusta);
 
 /* ---------- gente e IAs ---------- */
@@ -261,7 +279,7 @@ const vela = document.createElement('div'); vela.style.cssText = 'position:fixed
 async function vai(id, x, y, t){
   if (trocando) return; trocando = true; eu.alvo = null; for (const k in tecla) tecla[k] = false; joySolta(); cardFechado = null; if (cardDe) fechaCard(false);
   vela.style.opacity = 1; await new Promise(r => setTimeout(r, 200));
-  try { const c = await cena(id); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
+  try { const c = await cena(id); CENA = id; C = c; const p = id === 'regiao' ? pertoMar(c, x, y) : perto(c, x == null ? c.w * .5 : x, y == null ? c.h * .93 : y); eu.x = p[0]; eu.y = p[1]; eu.vx = eu.vy = 0; camPronta = false; soEsteFino(c); if (id === 'regiao') npcs.forEach(n => { n.segue = null; n.guia = null; }); }
   catch(e) { console.warn(e); }
   trocaAte = performance.now() + 700; trocando = false; vela.style.opacity = 0;
   try { canal && pronto && (canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y), r: CENA } }), canal.track(meuRastro())); } catch(_){}
@@ -306,10 +324,9 @@ const tecla = {};
 addEventListener('keydown', e => { const ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) { if (e.key === 'Escape') { if (ae.id === 'falaTxt') fechaFala(); else ae.blur(); } return; }
   if (cfgEl.classList.contains('on')) { if (e.key === 'Escape') cfgEl.classList.remove('on'); return; }
   if (e.key === 'Enter') { e.preventDefault(); const ct = document.getElementById('chatTxt'); if (ct && card.classList.contains('on')) ct.focus(); else abreFala(); return; } if (e.key === 'Escape') { fechaCard(true); return; }
-  tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
+  if (e.metaKey || e.ctrlKey) return; tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
 addEventListener('keyup', e => { tecla[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in tecla) tecla[k] = false; });
-let camX = 0, camY = 0, camPronta = false;
 cv.addEventListener('pointerdown', e => { eu.alvo = { x: camX + e.clientX / SC, y: camY + e.clientY / SC, em: performance.now() }; });
 const fala = document.getElementById('fala'), falaTxt = document.getElementById('falaTxt');
 function abreFala(){ fala.classList.add('on'); falaTxt.focus(); }
@@ -350,6 +367,7 @@ function abreCfg(){
     <h3>Calça</h3><div class="lin">${cores(CALCAS, 'calca')}</div></div>
     <h3>Controle no celular</h3><div class="lin"><button type="button" class="${w.lado === 'e' ? 'on' : ''}" data-lado="e">Joystick à esquerda</button><button type="button" class="${w.lado === 'd' ? 'on' : ''}" data-lado="d">Joystick à direita</button></div>
     <p>Destro costuma preferir à esquerda; canhoto, à direita. Fica salvo na sua conta.</p>
+    <h3>Mapa</h3><div class="lin"><button type="button" class="${SUAVE ? 'on' : ''}" data-suave="1">Suave</button><button type="button" class="${SUAVE ? '' : 'on'}" data-suave="0">Pixel puro</button></div>
     <h3>Som</h3><div class="lin"><button type="button" class="${SOM ? 'on' : ''}" data-som="1">Vozinha ligada</button><button type="button" class="${SOM ? '' : 'on'}" data-som="0">Sem som</button></div><p id="cfgMsg"></p>`;
     clearInterval(cfgAnim); const g = cfgCx.querySelector('canvas').getContext('2d'); g.imageSmoothingEnabled = false; let q = 0;
     cfgAnim = setInterval(() => { if (!cfgEl.classList.contains('on')) return clearInterval(cfgAnim); const im = w.corpo === 'humano' ? folhaHumana(w.skin) : folha(w.corpo); g.clearRect(0, 0, 64, 64); g.fillStyle = '#e8c9a8'; g.fillRect(0, 0, 64, 64); if (im) g.drawImage(im, ((q >> 4) % 4) * 64, (q % 8) * 64, 64, 64, 0, 0, 64, 64); q++; }, 110); };
@@ -359,6 +377,7 @@ function abreCfg(){
     else if (b.dataset.op) { const L = { base: BASES, penteado: PENTEADOS, barba: BARBAS, oculos: OCULOS }[b.dataset.op], i = L.findIndex(x => x[0] === w.skin[b.dataset.op]); w.skin[b.dataset.op] = L[(i + (+b.dataset.d) + L.length) % L.length][0]; if (b.dataset.op === 'base' && w.skin.base === 'mulher-suave' && !w.skin.cintura && !w.skin.quadril) { w.skin.cintura = 10; w.skin.quadril = 9; } }
     else if (b.dataset.corpo) w.corpo = b.dataset.corpo;
     else if (b.dataset.lado) w.lado = b.dataset.lado;
+    else if (b.dataset.suave) { SUAVE = b.dataset.suave === '1'; try { localStorage.setItem('catum_suave', SUAVE ? '1' : '0'); } catch(_){} if (C) soEsteFino(C); }
     else if (b.dataset.som) { SOM = b.dataset.som === '1'; try { localStorage.setItem('catum_som', SOM ? '1' : '0'); } catch(_){} acorda(); if (SOM) vozinha(eu.id, 'Catum blabla'); }
     else if (b.hasAttribute('data-sugere')) { const s = await sugerePeloAvatar(eu.av); if (s) Object.assign(w.skin, s); else { desenha(); document.getElementById('cfgMsg').textContent = 'Não consegui ler sua foto. Escolha as cores pelas opções.'; return; } }
     else if (b.hasAttribute('data-abertura')) { cfgEl.classList.remove('on'); abertura(true); return; }
@@ -560,7 +579,7 @@ function abertura(forcar){ return new Promise(ok => {
     const D = g.getImageData(0, 0, t2.width, 13).data; o.fillStyle = '#12101c'; for (let yy = 0; yy < 13; yy++) for (let xx = 0; xx < t2.width; xx++) if (D[(yy * t2.width + xx) * 4 + 3] > 96) o.fillRect(xx + 11, yy + 5, 1, 1); }
   carregaImg('/assets/nomes/catum-branco.svg').then(im => { const w = 300, h = Math.round(w * (im.naturalHeight || 411.5) / (im.naturalWidth || 1685.9)); pixela(d.querySelector('.abLogo'), w, h, g => g.drawImage(im, 0, 0, w, h), '#fffdf5', 4); }).catch(() => {});
   d.style.cursor = 'default'; let menu = false; const abre = () => { if (menu) return; menu = true; toque.style.display = 'none'; fim.style.display = 'flex'; musica(true); };
-  const tecla0 = e => { if (!document.body.contains(d)) return removeEventListener('keydown', tecla0, true); e.stopPropagation(); if (!menu) { e.preventDefault(); abre(); } else if (e.key === 'Enter') { e.preventDefault(); sai(false); } };
+  const tecla0 = e => { if (!document.body.contains(d)) return removeEventListener('keydown', tecla0, true); if (e.metaKey || e.ctrlKey || e.altKey || ['Shift','Control','Alt','Meta','PrintScreen','F12','OS'].includes(e.key)) return; e.stopPropagation(); if (!menu) { e.preventDefault(); abre(); } else if (e.key === 'Enter') { e.preventDefault(); sai(false); } };
   const sai = morador => { removeEventListener('keydown', tecla0, true); musica(false); d.style.transition = 'opacity .5s'; d.style.opacity = 0; setTimeout(() => d.remove(), 520); ok(); if (morador) setTimeout(abreCfg, 600); };
   addEventListener('keydown', tecla0, true); toque.addEventListener('click', abre); setTimeout(() => { try { toque.focus(); } catch(_){} }, 1800);
   d.querySelector('#abEntra').onclick = () => sai(false); d.querySelector('#abMorador').onclick = () => sai(true);
@@ -584,6 +603,56 @@ function vozinha(quem, txt){ if (!SOM || !AC || AC.state !== 'running') return; 
   for (const ch of letras) { if (ch === ' ') { t0 += .07; continue; } const o = AC.createOscillator(), g = AC.createGain(); o.type = 'triangle';
     const f = base * (1 + ((ch.toLowerCase().charCodeAt(0) * 7) % 11) / 16); o.frequency.setValueAtTime(f, t0); o.frequency.linearRampToValueAtTime(f * (/[aeiouáéíóúãõâêô]/i.test(ch) ? 1.12 : .92), t0 + .05);
     g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.05, t0 + .008); g.gain.linearRampToValueAtTime(0, t0 + .058); o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0 + .07); t0 += .062; } }
+
+/* ---------- mapa da cidade e rota a pé (seta tipo GPS) ---------- */
+let ROTA = null;
+function destinoRota(){ const L = ROTA.L, alvoL = L.dentroDe ? lug(L.dentroDe) : L;
+  if (CENA === 'bairro') return { p: soleira(alvoL), txt: L.nome, porta: true };
+  if (CENA === 'regiao') return { p: null, txt: 'Volte pelo cais' };
+  if (CENA === 'escola' && L.id === 'escritorio') return { p: perto(C, C.w * PORTAL.de[0], C.h * PORTAL.de[1]), txt: L.nome };
+  return { p: perto(C, C.w * .5, C.h - 8), txt: 'Saída', saida: true }; }
+function passoRota(t){
+  if (CENA === ROTA.L.id) { const n = ROTA.L.nome; ROTA = null; eu.fala = 'Cheguei: ' + n; eu.falaEm = Date.now(); return; }
+  const d = destinoRota(); ROTA.d = d; if (!d.p) { ROTA.pts = null; return; }
+  if (!ROTA.pts || ROTA.cena !== CENA || t - ROTA.em > 450) { ROTA.em = t; ROTA.cena = CENA; ROTA.pts = caminho(C, eu.x, eu.y, d.p[0], d.p[1]); }
+  const pts = ROTA.pts; let alvo = pts[pts.length - 1], len = 0; for (let i = 1; i < pts.length; i++) len += dist(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]); for (const p of pts) if (dist(p[0], p[1], eu.x, eu.y) > 34) { alvo = p; break; }
+  ROTA.len = len; ROTA.ang = Math.atan2(alvo[1] - eu.y, alvo[0] - eu.x); ROTA.falta = dist(eu.x, eu.y, d.p[0], d.p[1]);
+  const f = Math.floor(t / 140); pts.forEach((p, i) => { if (i < 1 || dist(p[0], p[1], eu.x, eu.y) < 14) return; const on = (((i - f) % 4) + 4) % 4 === 0; cx.fillStyle = '#1d1b2a'; cx.fillRect(p[0] - 2, p[1] - 2, 4, 4); cx.fillStyle = on ? '#fffdf5' : '#ffe27a'; cx.fillRect(p[0] - 1, p[1] - 1, 2, 2); });
+}
+function desenhaRota(t){
+  const d = ROTA.d; if (!d) return; let txt, a = ROTA.ang;
+  if (!d.p) txt = d.txt.toUpperCase();
+  else { const c = Math.cos(a), s = Math.sin(a), lado = Math.abs(c) > Math.abs(s) ? (c < 0 ? 'ESQUERDA' : 'DIREITA') : (s < 0 ? 'PARA CIMA' : 'PARA BAIXO');
+    txt = ROTA.falta < 26 ? (d.porta ? 'CHEGOU: SEGURE NA DIREÇÃO DA PORTA' : d.saida ? 'SAIA POR AQUI: SEGURE PARA BAIXO' : 'É AQUI') : (d.saida ? 'SAÍDA' : ROTA.L.nome.toUpperCase()) + ' · ' + lado + ' · ' + Math.max(1, Math.round((ROTA.len || ROTA.falta) / 8)) + ' m';
+    if (ROTA.falta >= 26) { const sx = (eu.x - camX) * SC, sy = (eu.y - camY) * SC - altura(eu) * SC * .5, r = Math.max(46, altura(eu) * SC * .8) + 3 * Math.sin(t * .008), u = Math.max(3, Math.round(SC * 1.4));
+      cx.save(); cx.translate(Math.round(sx + Math.cos(a) * r), Math.round(sy + Math.sin(a) * r)); cx.rotate(a);
+      const seta = () => { cx.beginPath(); cx.moveTo(4 * u, 0); cx.lineTo(-1 * u, -3 * u); cx.lineTo(-1 * u, -1.2 * u); cx.lineTo(-4 * u, -1.2 * u); cx.lineTo(-4 * u, 1.2 * u); cx.lineTo(-1 * u, 1.2 * u); cx.lineTo(-1 * u, 3 * u); cx.closePath(); };
+      cx.lineJoin = 'miter'; seta(); cx.lineWidth = Math.max(4, u * 1.3); cx.strokeStyle = '#1d1b2a'; cx.stroke(); cx.fillStyle = '#ffe27a'; cx.fill(); cx.restore(); } }
+  cx.font = '700 12px ui-monospace,Menlo,Consolas,monospace'; const w = Math.ceil(cx.measureText(txt).width) + 20, x0 = Math.round(VW / 2 - w / 2), y0 = 56;
+  cx.fillStyle = '#1d1b2a'; cx.fillRect(x0 - 3, y0 - 3, w + 10, 32); cx.fillStyle = '#ffe27a'; cx.fillRect(x0, y0, w, 26); cx.fillStyle = '#1d1b2a'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(txt, VW / 2, y0 + 14);
+}
+function irDireto(L){ const alvoL = L.dentroDe ? lug(L.dentroDe) : L, s = foraDaPorta(alvoL); alvoL.trava = true; pilha.length = 0; ROTA = null; vai('bairro', s[0], s[1], performance.now()); }
+function abreMapa(){
+  const b = CENAS.bairro; if (!b || !b.pronta) return; const W = Math.min(430, innerWidth - 58), H = Math.round(W * b.h / b.w), e = W / b.w;
+  const onde = CENA === 'bairro' ? [eu.x, eu.y] : CENA === 'regiao' ? null : soleira(lug(CENA).dentroDe ? lug(lug(CENA).dentroDe) : lug(CENA));
+  cfgCx.innerHTML = `<div class="topo"><h2>Mapa de Catum</h2>${ROTA ? '<button type="button" data-semrota>Parar rota</button>' : ''}<button type="button" class="pri" data-fecha>Fechar</button></div>
+    <canvas id="mapaCv" width="${W * 2}" height="${H * 2}" style="width:${W}px;height:${H}px;display:block;border:3px solid #1d1b2a;image-rendering:pixelated;cursor:pointer"></canvas>
+    <p>Toque num lugar do mapa ou escolha na lista. <b>A pé</b> liga a seta que mostra o caminho; <b>Direto</b> leva você até a porta.</p>
+    ${LUG.map((L, i) => `<div class="lin" style="margin-top:7px"><span style="flex:1;font-size:12px;font-weight:700">${i + 1}. ${esc(L.nome)}${CENA === L.id ? ' (você está aqui)' : ''}</span><button type="button" data-pe="${L.id}" class="${ROTA && ROTA.L === L ? 'on' : ''}">A pé</button><button type="button" data-direto="${L.id}">Direto</button></div>`).join('')}`;
+  const k = document.getElementById('mapaCv'), g = k.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(b.img, 0, 0, W * 2, H * 2); g.font = '700 16px ui-monospace,Menlo,Consolas,monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  LUG.forEach((L, i) => { const A = L.dentroDe ? lug(L.dentroDe) : L, x = Math.round((A.porta[0] + (L.dentroDe ? 34 : 0)) * e * 2), y = Math.round((A.porta[1] - 26) * e * 2); g.fillStyle = '#1d1b2a'; g.fillRect(x - 13, y - 13, 26, 26); g.fillStyle = ROTA && ROTA.L === L ? '#ffe27a' : '#fffdf5'; g.fillRect(x - 10, y - 10, 20, 20); g.fillStyle = '#1d1b2a'; g.fillText(i + 1, x, y + 1); });
+  if (onde) { const x = Math.round(onde[0] * e * 2), y = Math.round(onde[1] * e * 2); g.fillStyle = '#1d1b2a'; g.fillRect(x - 8, y - 8, 16, 16); g.fillStyle = '#ff5a3c'; g.fillRect(x - 5, y - 5, 10, 10); }
+  const pe = L => { ROTA = { L, em: 0 }; cfgEl.classList.remove('on'); };
+  cfgCx.oninput = null; cfgCx.onclick = ev => { const t = ev.target;
+    if (t.closest('[data-fecha]')) return cfgEl.classList.remove('on'); if (t.closest('[data-semrota]')) { ROTA = null; return abreMapa(); }
+    const a = t.closest('[data-pe]'), dd = t.closest('[data-direto]'); if (a) return pe(lug(a.dataset.pe)); if (dd) { cfgEl.classList.remove('on'); return irDireto(lug(dd.dataset.direto)); }
+    if (t === k) { const r = k.getBoundingClientRect(), mx = (ev.clientX - r.left) / e, my = (ev.clientY - r.top) / e; let m = null, md = 90; LUG.forEach(L => { if (!L.porta) return; const q = dist(mx, my, L.porta[0], L.porta[1] - 20); if (q < md) { md = q; m = L; } }); if (m) pe(m); } };
+  cfgEl.classList.add('on'); for (const q in tecla) tecla[q] = false;
+}
+function foto(){ try { cv.toBlob(async bl => { if (!bl) return; const nome = 'catum-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.png', arq = new File([bl], nome, { type: 'image/png' });
+    if (document.body.classList.contains('toque') && navigator.canShare && navigator.canShare({ files: [arq] })) { try { await navigator.share({ files: [arq] }); return; } catch(_){} }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = nome; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }, 'image/png'); } catch(e) { console.warn(e); } }
+document.getElementById('btMapa').onclick = abreMapa; document.getElementById('btFoto').onclick = foto; document.getElementById('btMenos').onclick = () => zoom(-1); document.getElementById('btMais').onclick = () => zoom(1);
 
 /* ---------- desenho ---------- */
 const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
@@ -653,14 +722,16 @@ function quadro(t){
   const vw = VW / SC, vh = VH / SC; let tx = Math.max(0, Math.min(C.w - vw, eu.x - vw / 2)), ty = Math.max(0, Math.min(C.h - vh, eu.y - 16 - vh / 2)); if (vw > C.w) tx = (C.w - vw) / 2; if (vh > C.h) ty = (C.h - vh) / 2;
   if (!camPronta) { camX = tx; camY = ty; camPronta = true; } else { camX += (tx - camX) * Math.min(1, dt * 7); camY += (ty - camY) * Math.min(1, dt * 7); }
   const k = SC * DPR, ox = Math.round(camX), oy = Math.round(camY); cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
-  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); cx.drawImage(C.img, 0, 0);
+  cx.setTransform(k, 0, 0, k, -ox * k, -oy * k); pintaMapa(C);
   if (C.agua) { cx.fillStyle = '#a5e2d6'; for (const p of C.agua) { const s = Math.sin(t * .0018 + p.f * 3); if (s < .38) continue; cx.globalAlpha = Math.min(.38, (s - .38) * .65); cx.fillRect(p.x + Math.round(Math.sin(t * .001 + p.f)), p.y, p.n, 1); } cx.globalAlpha = 1; }
   // estações do lugar (marquinha que pisca)
   const sts = CENA === 'bairro' ? [] : CENA === 'regiao' ? estacoesReg() : estacoes(CENA); sts.forEach(s => { const a = .55 + .45 * Math.sin(t * .005 + s.i); cx.globalAlpha = a; cx.fillStyle = '#ffe27a'; cx.fillRect(s.x - 2, s.y - 7, 4, 4); cx.fillStyle = '#1d1b2a'; cx.fillRect(s.x - 1, s.y - 6, 2, 2); cx.globalAlpha = 1; });
   // quem está mais perto
   let pertoN = null, pd = 26; vis.forEach(n => { const d = dist(n.x, n.y, eu.x, eu.y); if (d < pd) { pd = d; pertoN = n; } });
   if (CENA === 'bairro') { passoBola(dt, [eu, ...vis, ...gente]); desenhaBola(); }
-  [...vis, ...gente, eu].sort((a, b) => a.y - b.y).forEach(e => boneco(e, t));
+  const todos = [...vis, ...gente, eu]; todos.sort((a, b) => a.y - b.y).forEach(e => boneco(e, t));
+  if (CENA === 'bairro') for (const L of LUG) { const tp = TOPO[L.id]; if (!tp) continue; const px = L.porta[0], py = L.porta[1]; if (todos.some(e => Math.abs(e.x - px) < 22 && e.y < py + 2 && e.y > py - 18)) pintaMapa(C, px - 34, py - 84, 68, 84 - tp); }     // o batente cobre quem está passando
+  if (ROTA) passoRota(t);
   // textos (em tela)
   camX = ox + (camX - ox); cx.setTransform(DPR, 0, 0, DPR, 0, 0); const cxa = camX, cya = camY; camX = ox; camY = oy;
   if (CENA === 'bairro') LUG.forEach(L => { if (!L.porta) return; const s = soleira(L), d = dist(s[0], s[1], eu.x, eu.y); if (d < 150) etiqueta(L.nome.toUpperCase(), L.porta[0], L.porta[1] - 30, '#1d1b2a', '#fffdf5', 10); if (d < 40 && !L.trava) etiqueta('ENTRAR: SEGURE NA DIREÇÃO DA PORTA', s[0], s[1] + 12, '#ffe27a', '#1d1b2a', 9); });
@@ -670,6 +741,7 @@ function quadro(t){
   vis.forEach(n => { etiqueta(n.nome, n.x, n.y - altura(n), n === pertoN ? '#ffe27a' : 'rgba(29,27,42,.78)', n === pertoN ? '#1d1b2a' : '#fff', 9); if (n.fala && agora - n.falaEm < 9000) balao(n.fala.length > 64 ? n.fala.slice(0, 62) + '…' : n.fala, n.x, n.y - altura(n) - 6); });
   gente.forEach(o => { etiqueta(o.nome, o.x, o.y - altura(o), '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - altura(o) - 6); });
   etiqueta(eu.nome, eu.x, eu.y - altura(eu), '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - altura(eu) - 6);
+  if (ROTA) desenhaRota(t);
   camX = cxa; camY = cya;
   // cartão: IA do lado, ou a estação em que parei
   if (eu.anda) eu.parouEm = t;
@@ -705,7 +777,7 @@ async function comeca(){
   try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; } } catch(_){}
   ajusta();
   try { const [b, pf, mi] = await Promise.all([cena('bairro'), fetch(ARTE + 'perfis.json' + VA).then(r => r.json()), fetch(ARTE + 'cenas-e-missoes.json' + VA).then(r => r.json()).catch(() => null), carregaCfg()]);
-    PERF = pf || {}; MIS = mi; C = b; const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440); eu.x = p[0]; eu.y = p[1];
+    PERF = pf || {}; MIS = mi; C = b; soEsteFino(b); const p = perto(b, 528 + (hash(eu.id) % 40) - 20, 440); eu.x = p[0]; eu.y = p[1];
   } catch(e) { ptxt.textContent = 'Não consegui abrir a cidade. Atualize a página.'; console.warn(e); return; }
   NPC_IDS.forEach(folha); folhaHumana(CFG.skin); carregaProg(); document.getElementById('btDia').onclick = abreDiario;
   fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; } }); }).catch(() => {});
@@ -714,7 +786,7 @@ async function comeca(){
   porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
   requestAnimationFrame(quadro); abertura(false);
 }
-window.CATUM = { eu, LUG, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
+window.CATUM = { eu, LUG, abreMapa, irDireto, get rota(){ return ROTA; }, set rota(v){ ROTA = v; }, get sc(){ return SC; }, npcs, bola, vai, estacoes, get cena(){ return CENA; }, get trocando(){ return trocando; }, get prog(){ return PROG; }, get som(){ return { ac: AC && AC.state, tocando: TEMA.ativo, i: TEMA.i }; } };
 comeca();
 })();
 </script>
