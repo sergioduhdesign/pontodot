@@ -1,0 +1,5 @@
+# Catum: a chamada por proximidade precisa de microfone, câmera e captura de tela.
+# Só aqui e só para o próprio site; o resto da plataforma continua bloqueado.
+<IfModule mod_headers.c>
+  Header always set Permissions-Policy "camera=(self), microphone=(self), display-capture=(self), geolocation=()"
+</IfModule>
