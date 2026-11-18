@@ -1,0 +1,398 @@
+[
+ {
+  "nome": "SIMM Brasil",
+  "arroba": "congressosimm",
+  "url": "https://www.instagram.com/congressosimm/",
+  "legenda": "Principal congresso do mercado imobiliário nacional, com curadoria estratégica, posicionamento e estrutura de marca conectados ao ecossistema Datastore.",
+  "grupo": "Atuação recente",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Datastore / Mundo Datastore",
+  "arroba": "mundodatastore",
+  "url": "https://www.instagram.com/mundodatastore/",
+  "legenda": "Maior inteligência de mercado imobiliário da América Latina, com atuação em posicionamento estratégico e produtos editoriais.",
+  "grupo": "Atuação recente",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Marcus Araujo",
+  "arroba": "marcusarauj0",
+  "url": "https://www.instagram.com/marcusarauj0/",
+  "legenda": "Principal voz do mercado imobiliário brasileiro, com construção de marca pessoal, produtos e projetos editoriais.",
+  "grupo": "Atuação recente",
+  "img": "img/ig/marcusarauj0.jpg",
+  "fonte": "press"
+ },
+ {
+  "nome": "Imóvel Books",
+  "arroba": "imovel_books",
+  "url": "https://www.instagram.com/imovel_books/",
+  "legenda": "Editora especializada no mercado imobiliário, com branding, posicionamento e construção editorial estratégica.",
+  "grupo": "Atuação recente",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Biosphere (Cauã Reymond)",
+  "arroba": "biosphere.by.caua.reymond",
+  "url": "https://www.instagram.com/biosphere.by.caua.reymond/",
+  "legenda": "Marca imobiliária autoral ligada ao ator Cauã Reymond, com branding conceitual e narrativa premium.",
+  "grupo": "Atuação recente",
+  "img": "img/ig/biosphere.by.caua.reymond.jpg",
+  "fonte": "press"
+ },
+ {
+  "nome": "L’Atelier Empreendimentos",
+  "arroba": "latelierempreendimentos",
+  "url": "https://www.instagram.com/latelierempreendimentos/",
+  "legenda": "Incorporadora com posicionamento autoral e estética na arte, que veste-se do projeto ARTE DE MORAR BEM de Romero Britto. Seguimos atuantes com direção estratégica e narrativa de marca.",
+  "grupo": "Atuação recente",
+  "img": "img/ig/latelierempreendimentos.jpg",
+  "fonte": "press"
+ },
+ {
+  "nome": "Geoville Urbanismo",
+  "arroba": "geovilleurbanismo",
+  "url": "https://www.instagram.com/geovilleurbanismo/",
+  "legenda": "Urbanizadora com projetos de grande escala, incluindo reposicionamentos e construção de territórios de marca.",
+  "grupo": "Atuação recente",
+  "img": "img/ig/geovilleurbanismo.jpg",
+  "fonte": "captura"
+ },
+ {
+  "nome": "União Incorporadora",
+  "arroba": "uniaoincorporadora",
+  "url": "https://www.instagram.com/uniaoincorporadora/",
+  "legenda": "Grupo imobiliário com atuação em branding, posicionamento institucional e estrutura estratégica de produto.",
+  "grupo": "Atuação recente",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "União 88 Incorporadora",
+  "arroba": "unio88incorporadora",
+  "url": "https://www.instagram.com/unio88incorporadora/",
+  "legenda": "Marca voltada a produtos contemporâneos da União, com direção criativa e posicionamento estratégico.",
+  "grupo": "Atuação recente",
+  "img": "img/ig/unio88incorporadora.jpg",
+  "fonte": "press"
+ },
+ {
+  "nome": "Villaggio Carmen Steffens",
+  "arroba": "villagiocarmensteffens",
+  "url": "https://www.instagram.com/villagiocarmensteffens/",
+  "legenda": "Projeto imobiliário ligado a marca de luxo, com construção de branding e narrativa de lifestyle.",
+  "grupo": "Atuação recente",
+  "img": "img/ig/villagiocarmensteffens.jpg",
+  "fonte": "press"
+ },
+ {
+  "nome": "Wesley Oliveira (JBI)",
+  "arroba": "wesleyoliveira_jbi",
+  "url": "https://www.instagram.com/wesleyoliveira_jbi/",
+  "legenda": "Atuação em posicionamento pessoal e construção de autoridade no mercado imobiliário.",
+  "grupo": "Atuação recente",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Construcastro",
+  "arroba": "construcastro_",
+  "url": "https://www.instagram.com/construcastro_/",
+  "legenda": "Incorporadora consolidada com atuação em branding estratégico e construção de posicionamento institucional.",
+  "grupo": "Atuação recente",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Cesari Empreendimentos",
+  "arroba": "cesariempreendimentos",
+  "url": "https://www.instagram.com/cesariempreendimentos/",
+  "legenda": "Marca com construção conceitual desenvolvida pela Stratesign e ainda presente no posicionamento atual.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Nobilitá Empreendimentos",
+  "arroba": "nobilitaempreendimentos",
+  "url": "https://www.instagram.com/nobilitaempreendimentos/",
+  "legenda": "Projeto com branding estratégico autoral mantido ao longo dos anos, tanto para a empresa como para produtos, em especial, com a marca Mentes Saudáveis Lares Felizes, criada também pela Stratesign para o Dr Augusto Cury.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Florabella Bairro Planejado",
+  "arroba": "florabellabairroplanejado",
+  "url": "https://www.instagram.com/florabellabairroplanejado/",
+  "legenda": "Território urbano com nome, conceito e narrativa desenvolvidos pela Stratesign para oa lançamento e para segunda fase.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Ribeiro Campos Inc.",
+  "arroba": "ribeirocamposinc",
+  "url": "https://www.instagram.com/ribeirocamposinc/",
+  "legenda": "Empresa com base de rebranding desenvolvida e ainda reconhecida no mercado. A Strat cuidou ainda dos lançamentos dos produtos Brisas e Jardim das Américas, criando nome e conceito.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Urbaniza",
+  "arroba": "urbaniza.com.br",
+  "url": "https://www.instagram.com/urbaniza.com.br/",
+  "legenda": "Projeto com participação estratégica em construção de marca e posicionamento urbano.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Sebel Empreendimentos",
+  "arroba": "sebelempreendimentos",
+  "url": "https://www.instagram.com/sebelempreendimentos/",
+  "legenda": "Cliente histórico com atuação em branding e comunicação institucional para varios produtos além da criação de marca da própria empresa.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Lumma Construtora",
+  "arroba": "lummaconstrutora",
+  "url": "https://www.instagram.com/lummaconstrutora/",
+  "legenda": "Branding institucional ainda em uso, incluindo conceito e identidade do produto Acquavila.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Île de Pipa",
+  "arroba": "iledepipamaplage",
+  "url": "https://www.instagram.com/iledepipamaplage/",
+  "legenda": "Criação completa de naming e marca, mantidos até hoje como base do posicionamento do projeto.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "MyHauz Camboriú",
+  "arroba": "myhauzcamboriu",
+  "url": "https://www.instagram.com/myhauzcamboriu/",
+  "legenda": "Projeto com construção de linguagem contemporânea e base conceitual ainda preservada.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Open View (linha de empreendimentos)",
+  "arroba": "openviewaquarius",
+  "url": "https://www.instagram.com/openviewaquarius/",
+  "legenda": "Naming, conceito e estética criados pela Stratesign, atualmente na terceira geração de projetos mantendo o DNA original.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Open View (linha de empreendimentos)",
+  "arroba": "openviewanhangabau",
+  "url": "https://www.instagram.com/openviewanhangabau/",
+  "legenda": "Naming, conceito e estética criados pela Stratesign, atualmente na terceira geração de projetos mantendo o DNA original.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Raposo Engenharia",
+  "arroba": "raposoengenharia",
+  "url": "https://www.instagram.com/raposoengenharia/",
+  "legenda": "Marca institucional criada pela Stratesign, ainda utilizada e associada aos projetos Open View.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Gencons Empreendimentos",
+  "arroba": "genconsempreendimentos",
+  "url": "https://www.instagram.com/genconsempreendimentos/",
+  "legenda": "Rebrand institucional e desenvolvimento de produtos estratégicos, incluindo o Portinari e muitos outros produtos.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Guestier Residencial",
+  "arroba": "guestier_residencial",
+  "url": "https://www.instagram.com/guestier_residencial/",
+  "legenda": "Criação de marca e posicionamento conceitual ainda mantidos.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Civitta Urbanismo",
+  "arroba": "civittaurbanismo",
+  "url": "https://www.instagram.com/civittaurbanismo/",
+  "legenda": "Construção de marca urbana com território conceitual ainda preservado.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Porto do Cabo Residencial",
+  "arroba": "portodocabo_residencial",
+  "url": "https://www.instagram.com/portodocabo_residencial/",
+  "legenda": "Naming e identidade ainda utilizados no posicionamento do empreendimento.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Reserva Centenária",
+  "arroba": "reserva_centenaria",
+  "url": "https://www.instagram.com/reserva_centenaria/",
+  "legenda": "Marca criada para o grande sucesso de vendas que permanece ativo no mercado.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Villagio Azzure",
+  "arroba": "villagioazzurenh",
+  "url": "https://www.instagram.com/villagioazzurenh/",
+  "legenda": "Projeto com construção de naming e identidade mantidos ao longo do tempo.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Soft Empreendimentos",
+  "arroba": "softempreendimentos",
+  "url": "https://www.instagram.com/softempreendimentos/",
+  "legenda": "Branding institucional desenvolvido e ainda reconhecido na comunicação atual para empresa de produtos imobiliários populares da Pernambuco Construtora.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Conserpa & Enger (Ofertas)",
+  "arroba": "ofertasconserpaenger",
+  "url": "https://www.instagram.com/ofertasconserpaenger/",
+  "legenda": "Rebrand que uniu as duas empresas há décadas, ainda em uso pela empresa.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Vista Plena",
+  "arroba": "vistaplena",
+  "url": "https://www.instagram.com/vistaplena/",
+  "legenda": "Construção de marca conceitual ainda presente na identidade do projeto de loteamento popular que conta com a imagem do artista global Luigi Baricelli.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Baptista Leal",
+  "arroba": "oficial.cbl",
+  "url": "https://www.instagram.com/oficial.cbl/",
+  "legenda": "Refinamento de marca mantendo o conceito original baseado nas curvas náuticas.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Conecta Urbanismo",
+  "arroba": "conectaurbanismo",
+  "url": "https://www.instagram.com/conectaurbanismo/",
+  "legenda": "Projeto com construção conceitual e posicionamento, recentes criados.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Florestal Empreendimentos",
+  "arroba": "florestal_empreendimentos",
+  "url": "https://www.instagram.com/florestal_empreendimentos/",
+  "legenda": "Construção de linguagem institucional ainda utilizada pela família mais tradicional de Jundiaí.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Coneleste Construtora",
+  "arroba": "conelesteconstrutora",
+  "url": "https://www.instagram.com/conelesteconstrutora/",
+  "legenda": "Marca institucional e produtos derivados, como Entreserras, ainda mantidos e em uso em campanhas, mesmo após mais de 10 anos.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Vertical Engenharia",
+  "arroba": "verticalengenharia",
+  "url": "https://www.instagram.com/verticalengenharia/",
+  "legenda": "Projeto com estrutura de marca desenvolvida e ainda presente.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "ViewCo Construtora",
+  "arroba": "viewcoconstrutora",
+  "url": "https://www.instagram.com/viewcoconstrutora/",
+  "legenda": "Rebrand ainda em uso pela premiada empresa.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Condomínio Vista Lagoa",
+  "arroba": "condominiovistalagoa",
+  "url": "https://www.instagram.com/condominiovistalagoa/",
+  "legenda": "Criação conceitual aplicada ao empreendimento já entregue e premiado, ainda em uso.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "WVMaldi",
+  "arroba": "wvmaldi",
+  "url": "https://www.instagram.com/wvmaldi/",
+  "legenda": "Refinamento de marca preservando a proposta original de espelhamento e minimalismo.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Quinta do Pinhal (FA Oliva)",
+  "arroba": "quintadopinhal.cabreuva",
+  "url": "https://www.instagram.com/quintadopinhal.cabreuva/",
+  "legenda": "Rebrand desenvolvido para FA Oliva, mantendo identidade e posicionamento.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Oasis Jundiaí (Sebel)",
+  "arroba": "oasisjundiai",
+  "url": "https://www.instagram.com/oasisjundiai/",
+  "legenda": "Naming e marca criados para empreendimento da Sebel, ainda em uso.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ },
+ {
+  "nome": "Macro Empreendimentos",
+  "arroba": "macro.empreendimentos",
+  "url": "https://www.instagram.com/macro.empreendimentos/",
+  "legenda": "Construção de marca institucional ainda preservada.",
+  "grupo": "Legado",
+  "img": null,
+  "fonte": null
+ }
+]

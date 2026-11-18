@@ -32,5 +32,6 @@ jobs:
             LEIAME.txt
             **/fonte/**
             sql/**
+            hg-envio/strat/**
             *.sql
             supabase-functions/**

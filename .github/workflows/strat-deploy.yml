@@ -1,0 +1,38 @@
+name: STRATESIGN — publicar site novo (stratesign.com.br/novo2026)
+# Envia hg-envio/strat/ para a pasta novo2026 do site da Stratesign na conta HostGator da casa.
+# Nunca toca no WordPress que está na raiz. Não sobrescreve _config.php nem os briefings recebidos.
+on:
+  workflow_dispatch:
+    inputs:
+      pasta: { description: "pasta de destino dentro de stratesign.com.br", required: false, default: "novo2026" }
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enviar
+        env:
+          U: ${{ secrets.CPANEL_USER }}
+          H: ${{ secrets.CPANEL_HOST }}
+          T: ${{ secrets.CPANEL_TOKEN }}
+          PASTA: ${{ github.event.inputs.pasta }}
+        run: |
+          set -e
+          case "$PASTA" in ""|*[!A-Za-z0-9_-]*) echo "pasta inválida"; exit 1;; esac
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          RAIZ="$HOME_DIR/stratesign.com.br"; BASE="$RAIZ/$PASTA"; SRC=hg-envio/strat
+          mk() { curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$1" --data-urlencode "name=$2" --data "permissions=0755" >/dev/null || true; }
+          mk "$RAIZ" "$PASTA"
+          while IFS= read -r d; do rel="${d#$SRC/}"; [ "$rel" = "$SRC" ] && continue; mk "$BASE/$(dirname "$rel" | sed 's#^\.$##')" "$(basename "$rel")"; done < <(find "$SRC" -mindepth 1 -type d | sort)
+          n=0; falhas=0
+          while IFS= read -r f; do
+            rel="${f#$SRC/}"
+            case "$rel" in _config.php|_briefings/briefing-*|_briefings/.t-*) continue;; esac
+            dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
+            R=$(curl -sS --max-time 300 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
+            ok=$(echo "$R" | python3 .github/scripts/up_ok.py)
+            echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
+          done < <(find "$SRC" -type f | sort)
+          echo "== enviados: $n | falhas: $falhas"
+          [ "$falhas" = "0" ]
