@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Catum · pontodot</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/logo-pontodot-bolinha.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#12101c;color:#1d1b2a;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;-webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
+.px{background:#fffdf5;border:3px solid #1d1b2a;box-shadow:4px 4px 0 #1d1b2a}
+#hud{position:fixed;top:12px;left:12px;display:flex;gap:8px;align-items:center;z-index:5}
+#hud a,#hud div{padding:7px 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:#1d1b2a}
+#hud a:hover{background:#ffe27a}
+#lugar{position:fixed;top:12px;left:50%;transform:translateX(-50%);padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;z-index:5;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+#lugar.on{opacity:1}
+#dica{position:fixed;left:12px;bottom:12px;padding:7px 10px;font-size:10.5px;letter-spacing:.04em;z-index:5;max-width:calc(100vw - 24px)}
+#fala{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:7;display:none;width:min(420px,calc(100vw - 24px))}
+#fala.on{display:flex}
+#fala input{flex:1;border:0;background:none;font:inherit;font-size:13px;padding:10px 12px;outline:0;color:#1d1b2a;-webkit-user-select:text;user-select:text}
+#fala button{border:0;border-left:3px solid #1d1b2a;background:#ffe27a;font:inherit;font-weight:700;font-size:11px;letter-spacing:.08em;padding:0 12px;cursor:pointer;text-transform:uppercase}
+#card{position:fixed;right:12px;bottom:12px;width:min(340px,calc(100vw - 24px));z-index:6;padding:12px;display:none;max-height:60vh;overflow-y:auto;scrollbar-width:thin;-webkit-user-select:text;user-select:text;touch-action:pan-y}
+#card.on{display:block}
+#card .cab{display:flex;gap:10px;align-items:center}
+#card canvas{width:56px;height:56px;image-rendering:pixelated;border:3px solid #1d1b2a;flex:0 0 auto}
+#card h2{font-size:15px;letter-spacing:.04em;text-transform:uppercase}
+#card small{display:block;font-size:10.5px;opacity:.7;margin-top:2px}
+#card p{font-size:12px;line-height:1.5;margin-top:9px}
+#card h3{font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:12px;opacity:.6}
+#card details{margin-top:8px;font-size:12px}
+#card summary{cursor:pointer;font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+#card .x{position:absolute;top:6px;right:8px;border:0;background:none;font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px}
+#porta{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#12101c;color:#fffdf5;text-align:center;padding:24px;transition:opacity .4s}
+#porta img{width:72px;height:72px;image-rendering:pixelated}
+#porta h1{font-size:22px;letter-spacing:.3em;text-transform:uppercase}
+#porta p{font-size:12px;opacity:.7;max-width:320px;line-height:1.5}
+#porta a{color:#ffe27a}
+@media(max-width:700px){#dica{display:none}#card{left:12px;right:12px;width:auto;bottom:64px}#fala.on{display:flex}#btFala{display:block!important}}
+#btFala{display:none;position:fixed;right:12px;bottom:12px;z-index:6;padding:9px 12px;font:inherit;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><a class="px" href="/index.html">&larr; PD</a><div class="px">Catum</div><div class="px" id="gente">1 aqui</div></div>
+<div id="lugar" class="px"></div>
+<div id="dica" class="px">Setas ou WASD para andar &middot; clique para ir at&eacute; l&aacute; &middot; Enter para falar</div>
+<form id="fala" class="px" autocomplete="off"><input id="falaTxt" maxlength="90" placeholder="Diga algo para quem est&aacute; por perto&hellip;"><button>Falar</button></form>
+<button id="btFala" class="px" type="button">Falar</button>
+<div id="card" class="px"></div>
+<div id="porta"><img src="/assets/logo-pontodot-bolinha-white.svg" alt=""><h1>Catum</h1><p id="portaTxt">Abrindo a cidade&hellip;</p></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/js/supabase.js?v=catum1"></script>
+<script>
+/* ============================================================
+   CATUM — o mundo da Escola Agêntica, em pixel. Página à parte:
+   nada daqui é carregado pela PD, e nada da PD é carregado aqui
+   (só o login e os dados dos personagens).
+   ============================================================ */
+(() => {
+'use strict';
+const T = 16, W = 120, H = 80, WPX = W * T, HPX = H * T;
+const HUB = { x: 60, y: 40 };
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const rnd = (x, y, s) => { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s | 0, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+
+/* ---------- lugares de Catum (cânone) ---------- */
+// b = prédio em tiles [x,y,l,a]; porta = tile logo abaixo do prédio; rota = caminho da porta até a praça
+const LUGARES = [
+  { id:'terraco',   nome:'Terraço da Vizinhança', b:[53,12,14,8], porta:[60,20],  rota:[[60,20],[60,40]],                       cor:{ parede:'#f2e3c4', telhado:'#5fb36a', det:'#ea278f' } },
+  { id:'galeria',   nome:'Galeria das Chuvas',    b:[27,12,14,8], porta:[34,20],  rota:[[34,20],[34,40],[60,40]],               cor:{ parede:'#e9eef6', telhado:'#7fc4e8', det:'#30248c' } },
+  { id:'cinema',    nome:'Cinema da Curva',       b:[79,12,14,8], porta:[86,20],  rota:[[86,20],[86,40],[60,40]],               cor:{ parede:'#3a2a52', telhado:'#be3828', det:'#ffe27a' } },
+  { id:'salao',     nome:'Salão das Artes',       b:[12,30,14,8], porta:[19,38],  rota:[[19,38],[19,40],[60,40]],               cor:{ parede:'#fff4e0', telhado:'#ff6500', det:'#00b5c9' } },
+  { id:'escola',    nome:'Escola Agêntica',       b:[40,29,14,8], porta:[47,37],  rota:[[47,37],[47,40],[60,40]],               cor:{ parede:'#ffffff', telhado:'#1d1b2a', det:'#e5ec16' } },
+  { id:'mercado',   nome:'Mercado das Lanternas', b:[94,30,14,8], porta:[101,38], rota:[[101,38],[101,40],[60,40]],             cor:{ parede:'#f7d9a8', telhado:'#dfa219', det:'#ff5038' } },
+  { id:'estacao',   nome:'Estação Maré',          b:[64,56,14,8], porta:[71,64],  rota:[[71,64],[71,66],[60,66],[60,40]],       cor:{ parede:'#dfe7ea', telhado:'#007f91', det:'#145dec' } },
+  { id:'biblioteca',nome:'Biblioteca Submersa',   b:[95,57,6,5],  porta:[98,62],  rota:[[98,62],[98,66],[60,66],[60,40]],       cor:{ parede:'#bfeee6', telhado:'#11ba98', det:'#18155f' } }
+];
+const NPC_IDS = ['nix','kiro','brum','gigi','iro','sago','taro','raku','zumi','oru','koda','tumi','nami','sumi','boku','muru'];
+
+/* ---------- o mapa (pintado uma vez só, num canvas fora da tela) ---------- */
+const tipo = new Uint8Array(W * H);    // 0 grama · 1 caminho · 2 água · 3 areia · 4 píer · 5 praça
+const solido = new Uint8Array(W * H);
+const ix = (x, y) => y * W + x;
+function geraTerreno(){
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let t = 0;
+    const mar = 70 + Math.round(Math.sin(x / 7) * 1.2);
+    if (y >= mar) t = 2; else if (y >= mar - 2) t = 3;
+    const l = ((x - 98) / 12) ** 2 + ((y - 60) / 8) ** 2;
+    if (l < 1) t = 2; else if (l < 1.3 && t === 0) t = 3;
+    if (((x - 98) / 5.2) ** 2 + ((y - 59.5) / 4.2) ** 2 < 1) t = 3;       // ilhota da biblioteca
+    tipo[ix(x, y)] = t;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if ((x - HUB.x) ** 2 + (y - HUB.y) ** 2 <= 42) tipo[ix(x, y)] = 5;
+  const pisa = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = ix(x, y); if (tipo[i] === 5) return; tipo[i] = tipo[i] === 2 ? 4 : 1; };
+  LUGARES.forEach(L => { for (let k = 0; k < L.rota.length - 1; k++) { const [ax, ay] = L.rota[k], [bx, by] = L.rota[k + 1];
+    if (ax === bx) for (let y = Math.min(ay, by); y <= Math.max(ay, by) + 1; y++) { pisa(ax, y); pisa(ax + 1, y); }
+    else for (let x = Math.min(ax, bx); x <= Math.max(ax, bx) + 1; x++) { pisa(x, ay); pisa(x, ay + 1); } } });
+  for (let i = 0; i < W * H; i++) if (tipo[i] === 2) solido[i] = 1;
+  LUGARES.forEach(L => { const [bx, by, bw, bh] = L.b; for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) solido[ix(x, y)] = 1; });
+}
+const COR = { grama:['#3fa66b','#48b074','#379a62'], caminho:['#d9c7a3','#cdb98f'], agua:['#2b6fd6','#3a82e6'], areia:['#ead9a8','#e0cd97'], pier:['#a8733f','#8f5f31'], praca:['#e8e2d2','#d8d0bb'] };
+function pintaMapa(){
+  const cv = document.createElement('canvas'); cv.width = WPX; cv.height = HPX; const g = cv.getContext('2d');
+  const P = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = tipo[ix(x, y)], px = x * T, py = y * T, r = rnd(x, y, 1);
+    if (t === 0) { P(px, py, T, T, COR.grama[r < .6 ? 0 : r < .85 ? 1 : 2]);
+      for (let k = 0; k < 3; k++) { const a = rnd(x, y, 10 + k), b = rnd(x, y, 20 + k); P(px + (a * 14 | 0), py + (b * 14 | 0), 1, 2, '#2f8a57'); }
+      if (rnd(x, y, 3) < .05) { const f = ['#ea278f','#e5ec16','#ffffff','#ff6500'][rnd(x, y, 4) * 4 | 0]; P(px + 6, py + 6, 2, 2, f); P(px + 7, py + 8, 1, 2, '#2f8a57'); } }
+    else if (t === 1) { P(px, py, T, T, COR.caminho[r < .7 ? 0 : 1]); if (r < .3) P(px + (r * 40 | 0) % 12, py + 4 + (r * 90 | 0) % 8, 3, 2, '#bca97e'); }
+    else if (t === 2) { P(px, py, T, T, COR.agua[(x + y) % 2]); if (rnd(x, y, 5) < .35) P(px + 2 + (r * 9 | 0), py + 4 + (rnd(x, y, 6) * 8 | 0), 5, 1, '#7fb5ff'); }
+    else if (t === 3) { P(px, py, T, T, COR.areia[r < .7 ? 0 : 1]); if (r < .12) P(px + 5, py + 9, 2, 2, '#fff7dc'); }
+    else if (t === 4) { P(px, py, T, T, COR.pier[0]); for (let k = 0; k < T; k += 4) P(px, py + k + 3, T, 1, COR.pier[1]); }
+    else { P(px, py, T, T, COR.praca[(x + y) % 2]); }
+  }
+  // árvores (longe de caminhos, portas e prédios)
+  const livre = (x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const t = tipo[ix(X, Y)]; if (t !== 0 || solido[ix(X, Y)]) return false; } return true; };
+  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) if (rnd(x, y, 7) < .06 && livre(x, y)) {
+    solido[ix(x, y)] = 1; const px = x * T, py = y * T, v = rnd(x, y, 8);
+    const copa = v < .7 ? ['#1f7a52','#2c9466','#5fc98a'] : v < .85 ? ['#b01c6b','#ea278f','#ff8ac4'] : ['#c24d00','#ff6500','#ffb37a'];
+    P(px + 3, py + 13, 10, 3, 'rgba(0,0,0,.18)'); P(px + 7, py + 8, 3, 7, '#6b4226');
+    P(px + 2, py - 4, 12, 12, copa[0]); P(px + 1, py - 1, 14, 7, copa[0]); P(px + 3, py - 3, 10, 9, copa[1]); P(px + 5, py - 2, 4, 3, copa[2]);
+  }
+  // postes de lanterna ao longo dos caminhos
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (tipo[ix(x, y)] === 0 && tipo[ix(x + 1, y)] === 1 && (x * 3 + y) % 9 === 0 && !solido[ix(x, y)]) {
+    const px = x * T, py = y * T; P(px + 11, py + 2, 2, 12, '#1d1b2a'); P(px + 9, py, 6, 4, '#ffe27a'); P(px + 10, py + 1, 4, 2, '#fff7c2'); }
+  // monumento da praça: a bolinha da pontodot
+  { const cx = HUB.x * T + T, cy = HUB.y * T + T; solido[ix(HUB.x, HUB.y)] = solido[ix(HUB.x + 1, HUB.y)] = solido[ix(HUB.x, HUB.y + 1)] = solido[ix(HUB.x + 1, HUB.y + 1)] = 1;
+    const anel = ['#ea278f','#ff6500','#e5ec16','#11ba98','#145dec','#5425a6'];
+    for (let a = 0; a < 48; a++) { const an = a / 48 * Math.PI * 2; P(Math.round(cx + Math.cos(an) * 17) - 1, Math.round(cy + Math.sin(an) * 17) - 1, 3, 3, anel[a % 6]); }
+    for (let yy = -13; yy <= 13; yy++) for (let xx = -13; xx <= 13; xx++) if (xx * xx + yy * yy <= 169) P(cx + xx, cy + yy, 1, 1, '#1d1b2a');
+    P(cx - 6, cy - 3, 2, 9, '#fff'); P(cx - 6, cy - 3, 5, 2, '#fff'); P(cx - 3, cy - 3, 2, 5, '#fff'); P(cx - 6, cy, 5, 2, '#fff');       // p
+    P(cx + 4, cy - 7, 2, 11, '#fff'); P(cx + 1, cy - 1, 5, 2, '#fff'); P(cx + 1, cy - 1, 2, 5, '#fff'); P(cx + 1, cy + 2, 5, 2, '#fff');   // d
+  }
+  // prédios
+  LUGARES.forEach(L => { const [bx, by, bw, bh] = L.b, x = bx * T, y = by * T, w = bw * T, h = bh * T, c = L.cor, th = Math.round(h * .55);
+    P(x + 3, y + h - 2, w, 5, 'rgba(0,0,0,.2)');
+    if (L.id === 'biblioteca') {     // cúpula de vidro sobre a água
+      for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const dx = (xx - w / 2) / (w / 2), dy = (yy - h) / h; if (dx * dx + dy * dy <= 1) P(x + xx, y + yy, 1, 1, (xx + yy) % 7 === 0 ? '#eafffb' : (yy < h * .45 ? c.telhado : c.parede)); }
+      P(x, y + h - 3, w, 3, c.det); P(x + w / 2 - 5, y + h - 14, 10, 14, '#1d1b2a'); P(x + w / 2 - 3, y + h - 12, 6, 12, '#7fe3d2'); return; }
+    P(x, y, w, h, '#1d1b2a'); P(x + 1, y + 1, w - 2, th - 1, c.telhado); P(x + 1, y + th, w - 2, h - th - 1, c.parede);
+    for (let k = 4; k < th - 2; k += 5) P(x + 1, y + k, w - 2, 1, 'rgba(0,0,0,.22)');
+    P(x + 1, y + th, w - 2, 2, 'rgba(0,0,0,.28)');
+    for (let k = 10; k < w - 18; k += 22) { if (Math.abs(k + 6 - w / 2) < 14) continue; P(x + k, y + th + 8, 12, 12, '#1d1b2a'); P(x + k + 1, y + th + 9, 10, 10, '#ffe27a'); P(x + k + 6, y + th + 9, 1, 10, '#1d1b2a'); P(x + k + 1, y + th + 14, 10, 1, '#1d1b2a'); }
+    P(x + w / 2 - 9, y + h - 24, 18, 24, '#1d1b2a'); P(x + w / 2 - 7, y + h - 22, 14, 22, c.det); P(x + w / 2 + 3, y + h - 11, 2, 2, '#fff');
+    if (L.id === 'mercado') for (let k = 6; k < w - 6; k += 9) { P(x + k, y + th + 3, 1, 3, '#1d1b2a'); P(x + k - 2, y + th + 5, 5, 5, ['#ff5038','#ffe27a','#ea278f','#11ba98'][(k / 9 | 0) % 4]); }
+    if (L.id === 'cinema') { P(x + 12, y + th - 12, w - 24, 12, '#1d1b2a'); P(x + 14, y + th - 10, w - 28, 8, '#fffdf5'); for (let k = 14; k < w - 14; k += 6) P(x + k, y + th - 13, 2, 2, '#ffe27a'); for (let k = 20; k < w - 22; k += 8) P(x + k, y + th - 8, 5, 4, '#be3828'); }
+    if (L.id === 'galeria') for (let k = 6; k < w - 6; k += 7) { const d = rnd(k, by, 9) * (th - 8) | 0; P(x + k, y + 3 + d, 1, 4, '#eaf7ff'); }
+    if (L.id === 'terraco') for (let k = 5; k < w - 6; k += 6) { P(x + k, y + 4 + (k % 12 ? 3 : 0), 4, 4, k % 18 ? '#2c9466' : '#ea278f'); }
+    if (L.id === 'salao') [['#ea278f', 8, 6],['#00b5c9', 30, 14],['#e5ec16', 60, 5],['#5425a6', 150, 10],['#11ba98', 190, 4]].forEach(([cc, kx, ky]) => { P(x + kx, y + th + 4 + ky, 9, 6, cc); P(x + kx + 2, y + th + 2 + ky, 5, 10, cc); });
+    if (L.id === 'escola') { [['#ea278f', 0],['#ff6500', 1],['#e5ec16', 2],['#11ba98', 3],['#145dec', 4],['#5425a6', 5]].forEach(([cc, n]) => P(x + w / 2 - 30 + n * 10, y + th - 9, 8, 4, cc)); for (let yy = -7; yy <= 7; yy++) for (let xx = -7; xx <= 7; xx++) if (xx * xx + yy * yy <= 49) P(x + w / 2 + xx, y + 12 + yy, 1, 1, '#fff'); }
+    if (L.id === 'estacao') { for (let yy = -6; yy <= 6; yy++) for (let xx = -6; xx <= 6; xx++) if (xx * xx + yy * yy <= 36) P(x + w / 2 + xx, y + 12 + yy, 1, 1, '#fffdf5'); P(x + w / 2, y + 8, 1, 5, '#1d1b2a'); P(x + w / 2, y + 12, 4, 1, '#1d1b2a'); }
+  });
+  return cv;
+}
+
+/* ---------- tela ---------- */
+const cv = document.getElementById('c'), cx = cv.getContext('2d');
+let SC = 3, VW = 0, VH = 0, DPR = 1, mapa = null;
+function ajusta(){ DPR = Math.min(2, window.devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR); SC = (VW < 700 ? 2 : 3); }
+addEventListener('resize', ajusta);
+
+/* ---------- gente e IAs ---------- */
+const eu = { id:'', nome:'Você', x: HUB.x * T + T, y: (HUB.y + 4) * T, alvo:null, anda:false, cab:null, fala:'', falaEm:0, cor:'#1d1b2a', dir:1 };
+const outros = new Map();        // id -> { nome, x, y, tx, ty, cab, fala, falaEm, cor, anda }
+const npcs = NPC_IDS.map(id => ({ id, nome: id[0].toUpperCase() + id.slice(1), cor:'#888', x:0, y:0, anda:false, cab:null, dir:1, c:null }));
+function cabeca(src, cb){      // o avatar vira uma cabeça de 12×12 pixels
+  const im = new Image(); im.onload = () => { const k = document.createElement('canvas'); k.width = k.height = 12; const g = k.getContext('2d'); g.imageSmoothingEnabled = true;
+    const s = Math.min(im.naturalWidth, im.naturalHeight); g.drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, 12, 12); cb(k); };
+  im.onerror = () => cb(null); im.src = src;
+}
+const pedra = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); return tx < 0 || ty < 0 || tx >= W || ty >= H || solido[ix(tx, ty)] === 1; };
+const bate = (x, y) => pedra(x - 4, y - 5) || pedra(x + 4, y - 5) || pedra(x - 4, y) || pedra(x + 4, y);
+
+// IAs: cada uma passeia entre os lugares num relógio que é o mesmo para todo mundo (todos veem a mesma cidade, sem servidor)
+const PASSO = 42000, VEL_IA = 46;
+const centro = ([x, y]) => [(x + 1) * T, (y + 1) * T];
+function ondeFica(id, k){ const L = LUGARES[hash(id + ':' + k) % LUGARES.length]; const dx = L.id === 'biblioteca' ? 0 : ((hash(id + 'x' + k) % 7) - 3); const [px, py] = centro(L.porta); return { L, x: px + dx * 10, y: py + (hash(id + 'y' + k) % 9) }; }
+function posIA(n, agora){
+  const t = agora + (hash(n.id) % PASSO), k = Math.floor(t / PASSO), dt = (t % PASSO) / 1000;
+  const a = ondeFica(n.id, k - 1), b = ondeFica(n.id, k);
+  if (a.L === b.L) { n.x = b.x; n.y = b.y; n.anda = false; n.lugar = b.L; return; }
+  const pts = [[a.x, a.y], ...a.L.rota.map(centro), ...b.L.rota.slice(0, -1).reverse().map(centro), [b.x, b.y]];
+  let d = dt * VEL_IA;
+  for (let i = 0; i < pts.length - 1; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[i + 1], s = Math.hypot(x2 - x1, y2 - y1);
+    if (d <= s) { const f = s ? d / s : 0; n.x = x1 + (x2 - x1) * f; n.y = y1 + (y2 - y1) * f; n.anda = true; if (x2 !== x1) n.dir = x2 > x1 ? 1 : -1; n.lugar = null; return; } d -= s; }
+  n.x = b.x; n.y = b.y; n.anda = false; n.lugar = b.L;
+}
+
+/* ---------- controles ---------- */
+const tecla = {};
+addEventListener('keydown', e => { if (document.activeElement && document.activeElement.id === 'falaTxt') { if (e.key === 'Escape') fechaFala(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); abreFala(); return; } if (e.key === 'Escape') { fechaCard(true); return; }
+  tecla[e.key.toLowerCase()] = true; if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault(); eu.alvo = null; });
+addEventListener('keyup', e => { tecla[e.key.toLowerCase()] = false; });
+addEventListener('blur', () => { for (const k in tecla) tecla[k] = false; });
+let camX = 0, camY = 0;
+cv.addEventListener('pointerdown', e => { eu.alvo = { x: camX + e.clientX / SC, y: camY + e.clientY / SC, em: performance.now() }; });
+const fala = document.getElementById('fala'), falaTxt = document.getElementById('falaTxt');
+function abreFala(){ fala.classList.add('on'); falaTxt.focus(); }
+function fechaFala(){ fala.classList.remove('on'); falaTxt.value = ''; falaTxt.blur(); }
+document.getElementById('btFala').onclick = abreFala;
+fala.addEventListener('submit', e => { e.preventDefault(); const t = falaTxt.value.trim().slice(0, 90); fechaFala(); if (!t) return; eu.fala = t; eu.falaEm = Date.now(); try { canal && canal.send({ type:'broadcast', event:'f', payload:{ i: eu.id, t } }); } catch(_){} });
+
+/* ---------- cartão do personagem ---------- */
+const card = document.getElementById('card'); let cardDe = null, cardFechado = null, NARR = null, narrPedida = false;
+function fechaCard(manual){ if (manual && cardDe) cardFechado = cardDe; cardDe = null; card.classList.remove('on'); }
+function abreCard(n){
+  if (cardDe === n.id || cardFechado === n.id) return; cardDe = n.id;
+  const c = n.c || {}, w = NARR && NARR.personagens && NARR.personagens[n.id] && NARR.personagens[n.id].semana;
+  card.innerHTML = `<button class="x" aria-label="Fechar">x</button><div class="cab"><canvas width="12" height="12"></canvas><div><h2>${esc(c.full_name || n.nome)}</h2><small>${esc(c.profile_title || '')}</small></div></div>
+    <p>${esc(c.bio || '')}</p>
+    ${n.lugar ? `<h3>Agora</h3><p>Est&aacute; em ${esc(n.lugar.nome)}.</p>` : `<h3>Agora</h3><p>A caminho de algum lugar.</p>`}
+    <h3>Esta semana</h3><div id="cardSem">${w && w.post ? `${w.titulo ? `<p><b>${esc(w.titulo)}</b></p>` : ''}<p>${esc(w.post)}</p>${w.historia && w.historia !== w.post ? `<details><summary>Ler a hist&oacute;ria</summary><p>${esc(w.historia)}</p></details>` : ''}` : `<p>${NARR ? esc((c.initial_life_post && c.initial_life_post.caption) || 'Sem novidades por enquanto.') : 'Buscando as novidades&hellip;'}</p>`}</div>
+    ${c.school_course ? `<h3>Na escola</h3><p>${esc(c.school_course)}</p>` : ''}`;
+  const k = card.querySelector('canvas'); if (n.cab) k.getContext('2d').drawImage(n.cab, 0, 0);
+  card.querySelector('.x').onclick = () => fechaCard(true); card.classList.add('on');
+  if (!NARR && !narrPedida) { narrPedida = true; fetch('/pd-narrativas.php').then(r => r.ok ? r.json() : null).then(j => { NARR = j || {}; if (cardDe === n.id) { cardDe = null; abreCard(n); } }).catch(() => { NARR = {}; }); }
+}
+
+/* ---------- desenho ---------- */
+const lugarEl = document.getElementById('lugar'); let lugarAtual = '';
+function boneco(e, t, destaque){
+  const x = Math.round(e.x), y = Math.round(e.y), f = e.anda ? (Math.floor(t / 150) % 2) : 0, sobe = e.anda && f ? -1 : 0;
+  cx.fillStyle = 'rgba(0,0,0,.25)'; cx.fillRect(x - 5, y - 1, 10, 3);
+  cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 4, y - 3 + (f ? 0 : 0), 3, 3); cx.fillRect(x + 1, y - 3, 3, 3);
+  if (e.anda) { cx.fillStyle = '#1d1b2a'; cx.fillRect(f ? x - 4 : x + 1, y - 4, 3, 1); }
+  cx.fillStyle = '#1d1b2a'; cx.fillRect(x - 5, y - 10 + sobe, 10, 8); cx.fillStyle = e.cor || '#888'; cx.fillRect(x - 4, y - 9 + sobe, 8, 6);
+  cx.fillStyle = destaque ? '#ffe27a' : '#1d1b2a'; cx.fillRect(x - 7, y - 23 + sobe, 14, 14);
+  if (e.cab) cx.drawImage(e.cab, x - 6, y - 22 + sobe, 12, 12); else { cx.fillStyle = e.cor || '#bbb'; cx.fillRect(x - 6, y - 22 + sobe, 12, 12); }
+}
+function etiqueta(txt, wx, wy, fundo, cor, tam){
+  const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC);
+  cx.font = `700 ${tam || 10}px ui-monospace,Menlo,Consolas,monospace`; const w = Math.ceil(cx.measureText(txt).width) + 8, h = (tam || 10) + 6;
+  cx.fillStyle = fundo; cx.fillRect(sx - (w >> 1), sy - h, w, h); cx.fillStyle = cor; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(txt, sx, sy - h / 2 + 1);
+}
+function balao(txt, wx, wy){
+  const sx = Math.round((wx - camX) * SC), sy = Math.round((wy - camY) * SC); cx.font = '700 11px ui-monospace,Menlo,Consolas,monospace';
+  const w = Math.min(260, Math.ceil(cx.measureText(txt).width) + 14), h = 22;
+  cx.fillStyle = '#1d1b2a'; cx.fillRect(sx - (w >> 1) - 2, sy - h - 2, w + 4, h + 4); cx.fillStyle = '#fffdf5'; cx.fillRect(sx - (w >> 1), sy - h, w, h);
+  cx.fillStyle = '#1d1b2a'; cx.fillRect(sx - 3, sy + 2, 6, 4); cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.save(); cx.beginPath(); cx.rect(sx - (w >> 1) + 4, sy - h, w - 8, h); cx.clip(); cx.fillText(txt, sx, sy - h / 2 + 1); cx.restore();
+}
+let ultimo = performance.now(), enviadoEm = 0, rastroEm = 0;
+function quadro(t){
+  requestAnimationFrame(quadro); if (document.hidden || !mapa) return;
+  const dt = Math.min(.05, (t - ultimo) / 1000); ultimo = t; const agora = Date.now();
+  // eu
+  let dx = (tecla['arrowright'] || tecla['d'] ? 1 : 0) - (tecla['arrowleft'] || tecla['a'] ? 1 : 0), dy = (tecla['arrowdown'] || tecla['s'] ? 1 : 0) - (tecla['arrowup'] || tecla['w'] ? 1 : 0);
+  if (!dx && !dy && eu.alvo) { const ax = eu.alvo.x - eu.x, ay = eu.alvo.y - eu.y, d = Math.hypot(ax, ay); if (d < 3 || t - eu.alvo.em > 9000) eu.alvo = null; else { dx = ax / d; dy = ay / d; } }
+  const m = Math.hypot(dx, dy); eu.anda = false;
+  if (m) { const v = 92 * dt / m, nx = eu.x + dx * v, ny = eu.y + dy * v; let andou = false;
+    if (!bate(nx, eu.y)) { eu.x = nx; andou = true; } if (!bate(eu.x, ny)) { eu.y = ny; andou = true; }
+    eu.anda = andou; if (dx) eu.dir = dx > 0 ? 1 : -1; if (!andou) eu.alvo = null; }
+  if (canal && eu.anda && t - enviadoEm > 110) { enviadoEm = t; try { canal.send({ type:'broadcast', event:'p', payload:{ i: eu.id, x: Math.round(eu.x), y: Math.round(eu.y) } }); } catch(_){} }
+  if (canal && pronto && t - rastroEm > 6000) { rastroEm = t; try { canal.track(meuRastro()); } catch(_){} }
+  // os outros chegam suaves
+  outros.forEach(o => { const ax = o.tx - o.x, ay = o.ty - o.y, d = Math.hypot(ax, ay); o.anda = d > 1.5; if (d > 200) { o.x = o.tx; o.y = o.ty; } else if (o.anda) { const v = Math.min(d, 110 * dt); o.x += ax / d * v; o.y += ay / d * v; } });
+  npcs.forEach(n => posIA(n, agora));
+  // câmera
+  const vw = VW / SC, vh = VH / SC; camX = Math.max(0, Math.min(WPX - vw, eu.x - vw / 2)); camY = Math.max(0, Math.min(HPX - vh, eu.y - 14 - vh / 2)); if (vw > WPX) camX = (WPX - vw) / 2; if (vh > HPX) camY = (HPX - vh) / 2;
+  const k = SC * DPR; cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false; cx.fillStyle = '#12101c'; cx.fillRect(0, 0, cv.width, cv.height);
+  cx.setTransform(k, 0, 0, k, -Math.round(camX * k), -Math.round(camY * k)); cx.drawImage(mapa, 0, 0);
+  // quem está mais perto de mim
+  let perto = null, pd = 30; npcs.forEach(n => { const d = Math.hypot(n.x - eu.x, n.y - eu.y); if (d < pd) { pd = d; perto = n; } });
+  const todos = [...npcs, ...outros.values(), eu].sort((a, b) => a.y - b.y); todos.forEach(e => boneco(e, t, e === perto));
+  // textos (em tela)
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  LUGARES.forEach(L => { const [bx, by, bw] = L.b; etiqueta(L.nome.toUpperCase(), (bx + bw / 2) * T, by * T - 3, '#1d1b2a', '#fffdf5', 10); });
+  npcs.forEach(n => etiqueta(n.nome, n.x, n.y - 25, n === perto ? '#ffe27a' : 'rgba(29,27,42,.78)', n === perto ? '#1d1b2a' : '#fff', 9));
+  outros.forEach(o => { etiqueta(o.nome, o.x, o.y - 25, '#fffdf5', '#1d1b2a', 9); if (o.fala && agora - o.falaEm < 6000) balao(o.fala, o.x, o.y - 38); });
+  etiqueta(eu.nome, eu.x, eu.y - 25, '#ffe27a', '#1d1b2a', 9); if (eu.fala && agora - eu.falaEm < 6000) balao(eu.fala, eu.x, eu.y - 38);
+  // cartão e lugar
+  if (perto) abreCard(perto); else { if (cardDe) fechaCard(false); cardFechado = null; }
+  let nome = ''; LUGARES.forEach(L => { const [px, py] = centro(L.porta); if (Math.hypot(px - eu.x, py - eu.y) < 56) nome = L.nome; });
+  if (nome !== lugarAtual) { lugarAtual = nome; lugarEl.textContent = nome; lugarEl.classList.toggle('on', !!nome); }
+}
+
+/* ---------- ao vivo (Supabase Realtime): quem mais está em Catum ---------- */
+let canal = null, pronto = false;
+const meuRastro = () => ({ i: eu.id, n: eu.nome, a: eu.av || '', x: Math.round(eu.x), y: Math.round(eu.y) });
+function conta(){ document.getElementById('gente').textContent = (outros.size + 1) + ' aqui'; }
+function liga(){
+  canal = sb.channel('catum-mundo', { config: { presence: { key: eu.id }, broadcast: { self: false } } });
+  canal.on('presence', { event: 'sync' }, () => { const st = canal.presenceState(), vivos = new Set();
+    Object.keys(st).forEach(k => { const p = (st[k] || [])[0]; if (!p || p.i === eu.id) return; vivos.add(p.i);
+      let o = outros.get(p.i); if (!o) { o = { id: p.i, nome: String(p.n || 'Alguém').slice(0, 18), x: p.x, y: p.y, tx: p.x, ty: p.y, cab: null, cor: '#' + (hash(p.i) & 0xffffff).toString(16).padStart(6, '0'), fala: '', falaEm: 0, anda: false };
+        outros.set(p.i, o); if (p.a && /^(\/|https:\/\/)/.test(p.a)) cabeca(p.a, k2 => { o.cab = k2; }); } });
+    [...outros.keys()].forEach(id => { if (!vivos.has(id)) outros.delete(id); }); conta(); });
+  canal.on('broadcast', { event: 'p' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o && isFinite(p.x) && isFinite(p.y)) { o.tx = Math.max(0, Math.min(WPX, +p.x)); o.ty = Math.max(0, Math.min(HPX, +p.y)); } });
+  canal.on('broadcast', { event: 'f' }, ({ payload: p }) => { const o = outros.get(p && p.i); if (o) { o.fala = String(p.t || '').slice(0, 90); o.falaEm = Date.now(); } });
+  canal.subscribe(st => { if (st === 'SUBSCRIBED') { pronto = true; canal.track(meuRastro()); } });
+}
+
+/* ---------- começo ---------- */
+async function comeca(){
+  const porta = document.getElementById('porta'), ptxt = document.getElementById('portaTxt');
+  let sess = null; try { sess = (await sb.auth.getSession()).data.session; } catch(_){}
+  if (!sess) { ptxt.innerHTML = 'Catum &eacute; para quem j&aacute; est&aacute; na PD. <a href="/index.html">Entre na PD</a> e volte aqui.'; return; }
+  eu.id = sess.user.id;
+  try { const { data } = await sb.from('profiles').select('name,avatar_url').eq('id', eu.id).maybeSingle(); if (data) { eu.nome = String(data.name || 'Você').split(' ')[0].slice(0, 14); eu.av = data.avatar_url || ''; if (eu.av) cabeca(eu.av, k => { eu.cab = k; }); } } catch(_){}
+  eu.x += (hash(eu.id) % 60) - 30;
+  geraTerreno(); mapa = pintaMapa(); ajusta();
+  npcs.forEach(n => cabeca('/pd/personagens/' + n.id + '/avatar.jpg', k => { n.cab = k; }));
+  fetch('/pd/universo.json').then(r => r.ok ? r.json() : null).then(u => { if (!u) return; npcs.forEach(n => { const c = (u.characters || []).find(x => x.id === n.id); if (c) { n.c = c; n.nome = c.name || n.nome; n.cor = (c.appearance && c.appearance.avatar_background) || n.cor; } }); }).catch(() => {});
+  try { liga(); } catch(e){ console.warn('ao vivo fora:', e); }
+  porta.style.opacity = 0; setTimeout(() => porta.remove(), 450);
+  requestAnimationFrame(quadro);
+}
+comeca();
+})();
+</script>
+</body>
+</html>
