@@ -12,6 +12,8 @@ on:
       larg:  { description: "corte: largura final", required: false, default: "1280" }
       passo: { description: "folha: segundos entre quadros", required: false, default: "3" }
       crf:   { description: "corte: qualidade (menor = melhor)", required: false, default: "27" }
+permissions:
+  contents: write
 jobs:
   v:
     runs-on: ubuntu-latest
@@ -35,5 +37,16 @@ jobs:
             *) echo "ação desconhecida"; exit 1;;
           esac
           ls -la out
-      - uses: actions/upload-artifact@v4
-        with: { name: "saida-${{ github.event.inputs.nome }}-${{ github.event.inputs.acao }}", path: out/, retention-days: 1 }
+      - name: Guardar no ramo midia (o resultado sai pelo próprio repositório)
+        run: |
+          set -e
+          git init -q rep && cd rep
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git config user.name "pontodot-fluxo"; git config user.email "fluxo@users.noreply.github.com"
+          for t in 1 2 3 4 5; do
+            if git fetch -q --depth 1 origin midia 2>/dev/null; then git checkout -q -B midia FETCH_HEAD; else git checkout -q --orphan midia; git rm -rfq . 2>/dev/null || true; fi
+            mkdir -p m && cp -f ../out/* m/ && git add -A m && git commit -q -m "midia: ${{ github.event.inputs.nome }} (${{ github.event.inputs.acao }})" || true
+            if git push -q origin midia; then echo "guardado"; exit 0; fi
+            sleep $((t * 4))
+          done
+          exit 1
