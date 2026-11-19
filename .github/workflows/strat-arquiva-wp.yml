@@ -25,25 +25,15 @@ jobs:
           echo "== raiz antes"; lista "$RAIZ"
           echo "== clientes"; lista "$RAIZ/clientes" | head -40
           echo "== propostas"; lista "$RAIZ/propostas" | head -40
-          if [ "$MODO" = "teste" ]; then
-            curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR" --data-urlencode "name=_arquivo" --data "permissions=0700" | head -c 300; echo
-            curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR/_arquivo" --data-urlencode "name=stratesign-wp-20261119" --data "permissions=0700" | head -c 300; echo
-            echo "== home"; lista "$HOME_DIR" | grep -i arquivo || echo "sem _arquivo"
-            for par in "sourcefiles=$RAIZ/license.txt|destfiles=$DEST" "sourcefiles=/stratesign.com.br/license.txt|destfiles=/_arquivo/stratesign-wp-20261119" "sourcefiles=stratesign.com.br/license.txt|destfiles=_arquivo/stratesign-wp-20261119/license.txt"; do
-              echo "-- $(echo "$par" | sed "s#$HOME_DIR#~#g")"
-              curl -sS --max-time 60 -H "$A" -G "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=$U" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&op=move&doubledecode=0" --data-urlencode "${par%%|*}" --data-urlencode "${par##*|}" | sed "s#$HOME_DIR#~#g" | head -c 500; echo
-              lista "$DEST" | grep license && break
-            done
-            exit 0
-          fi
           [ "$MODO" = "mover" ] || exit 0
-          curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR" --data-urlencode "name=_arquivo" --data "permissions=0700" >/dev/null || true
-          curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR/_arquivo" --data-urlencode "name=stratesign-wp-20261119" --data "permissions=0700" >/dev/null || true
+          mk2() { curl -sS --max-time 30 -H "$A" -G "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=$U" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=mkdir&permissions=0700" --data-urlencode "path=$1" --data-urlencode "name=$2" | head -c 200 | sed "s#$HOME_DIR#~#g"; echo; }
+          mk2 "$HOME_DIR" "_arquivo"; mk2 "$HOME_DIR/_arquivo" "stratesign-wp-20261119"
+          lista "$HOME_DIR/_arquivo" | grep -q "stratesign-wp-20261119" || { echo "A pasta de arquivo não foi criada; nada foi movido."; exit 1; }
           for f in wp-admin wp-content wp-includes index.php license.txt readme.html wp-activate.php wp-blog-header.php wp-comments-post.php wp-config-sample.php wp-config.php wp-cron.php wp-links-opml.php wp-load.php wp-login.php wp-mail.php wp-settings.php wp-signup.php wp-trackback.php xmlrpc.php error_log .htaccess.wp-antes artigo.html novo2026; do
-            R=$(curl -sS --max-time 180 -H "$A" -G "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=$U" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&op=move&doubledecode=0" --data-urlencode "sourcefiles=stratesign.com.br/$f" --data-urlencode "destfiles=_arquivo/stratesign-wp-20261119" || echo '{}')
+            R=$(curl -sS --max-time 180 -H "$A" -G "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=$U" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&op=move&doubledecode=0" --data-urlencode "sourcefiles=$RAIZ/$f" --data-urlencode "destfiles=$DEST" || echo '{}')
             echo "$f -> $(echo "$R" | python3 -c "import json,sys
           try:
-              j=json.load(sys.stdin); d=(j.get('cpanelresult') or {}); r=(d.get('data') or [{}])[0]; print('ok' if str(r.get('result'))=='1' else 'ERRO '+str(r.get('reason') or d.get('error') or j)[:200])
+              j=json.load(sys.stdin); d=(j.get('cpanelresult') or {}); r=(d.get('data') or [{}])[0]; print('ok' if str(r.get('result'))=='1' else 'ERRO '+str(r.get('err') or r.get('reason') or d.get('error') or '')[:200])
           except Exception as e: print('ERRO resposta', e)")"
             sleep 1
           done
