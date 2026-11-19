@@ -86,7 +86,9 @@ body.bolha-on .cta{box-shadow:none}
 .ptx{position:absolute;left:0;right:0;bottom:0;padding:26px 30px 28px;color:#fff}
 .ptx b{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
 .ptx p{margin:0;font-size:clamp(13px,1.1vw,17px);line-height:1.45;max-width:62ch}
-.somd{position:absolute;right:14px;top:12px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:#fff;color:#000;padding:6px 9px}
+.somd{position:absolute;right:12px;top:12px;z-index:3;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.42);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .2s}
+.somd:hover{background:rgba(0,0,0,.7)}
+.somd .s0{display:none}.somd.mudo .s0{display:block}.somd.mudo .s1{display:none}
 .dica{grid-column:7/13;margin:-58vh 0 0;align-self:start;font-size:13px;color:#5d5d5d;pointer-events:none;transition:opacity .24s}
 .lista.tem + .dica{opacity:0}
 

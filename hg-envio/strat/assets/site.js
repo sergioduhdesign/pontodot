@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '23';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '24';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -15,14 +15,18 @@
   function pintaSom() {
     var a = ativo();
     $$('.mi video').forEach(function (v) { v.muted = !(SOM && livre && v === a); });
-    $$('.mi .somd').forEach(function (d) { d.hidden = !(SOM && !livre && a && d.parentNode.contains(a)); });
-    vid.muted = !(SOM && livre) || !!a; $('#somh').hidden = !(SOM && !livre) || calmo;
+    var mudo = !(SOM && livre);
+    $$('.somd').forEach(function (d) { d.classList.toggle('mudo', mudo); d.setAttribute('aria-label', mudo ? 'Ligar o som' : 'Desligar o som'); });
+    vid.muted = mudo || !!a;
   }
-  function libera() { if (livre) return; livre = true; pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); if (!parou && !calmo) tocaVid(); }
+  var liberouAgora = false;
+  function libera() { if (livre) return; livre = true; liberouAgora = true; setTimeout(function () { liberouAgora = false; }, 0); pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); if (!parou && !calmo) tocaVid(); }
   // se o navegador recusar tocar com som, volta a tocar mudo em vez de parar o filme
-  function tocaVid() { try { var p = vid.play(); if (p && p.catch) p.catch(function () { if (!vid.muted) { vid.muted = true; livre = false; $('#somh').hidden = !SOM; toca(vid); } }); } catch (_) {} }
+  function tocaVid() { try { var p = vid.play(); if (p && p.catch) p.catch(function () { if (!vid.muted) { vid.muted = true; livre = false; pintaSom(); toca(vid); } }); } catch (_) {} }
   ['click', 'keydown'].forEach(function (ev) { window.addEventListener(ev, libera, true); });   // só clique e tecla contam como gesto no iPhone
   try { localStorage.removeItem('strat_som'); } catch (_) {}
+  // ícone pequeno de som em cada vídeo: o primeiro clique na página já liga; depois ele alterna mudo e som
+  $$('.somd').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); if (liberouAgora) SOM = true; else SOM = !SOM; livre = true; pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); }); });
 
   /* ---------- 1. capa: o filme entra tocando ---------- */
   var abre = $('#inicio'), vid = $('#vid'), drg = $('#drg'), pausa = $('#pausa'), cta = $('.cta'), conversa = $('#conversa');
