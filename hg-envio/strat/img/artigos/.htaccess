@@ -1,0 +1,5 @@
+# pasta de imagens enviadas pelo painel: nada aqui executa
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">
+	Require all denied
+</FilesMatch>
+Options -ExecCGI

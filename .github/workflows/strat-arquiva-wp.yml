@@ -1,0 +1,40 @@
+name: STRATESIGN — arquivar o WordPress antigo
+# Tira o WordPress antigo da pasta pública de stratesign.com.br SEM apagar: move tudo para ~/_arquivo/stratesign-wp-<data>/ (fora do site).
+# Nunca toca em clientes/, propostas/, .well-known/ nem nos arquivos do site novo. O banco de dados do WordPress fica como está.
+on:
+  workflow_dispatch:
+    inputs:
+      modo: { description: "ver = só lista | mover = arquiva", required: true, default: "ver" }
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Arquivar
+        env:
+          U: ${{ secrets.CPANEL_USER }}
+          H: ${{ secrets.CPANEL_HOST }}
+          T: ${{ secrets.CPANEL_TOKEN }}
+          MODO: ${{ github.event.inputs.modo }}
+        run: |
+          set -e
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          A="Authorization: cpanel $U:$T"
+          HOME_DIR=$(curl -sS --max-time 30 -H "$A" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          RAIZ="$HOME_DIR/stratesign.com.br"; DEST="$HOME_DIR/_arquivo/stratesign-wp-20261119"
+          lista() { curl -sS --max-time 60 -H "$A" "https://$H/execute/Fileman/list_files" --data-urlencode "dir=$1" --data "include_mime=0&show_hidden=1" | python3 -c "import json,sys;[print(('[pasta] ' if x.get('type')=='dir' else '        ')+x['file']) for x in sorted(json.load(sys.stdin).get('data') or [],key=lambda x:x['file']) if x['file'] not in ('.','..')]"; }
+          echo "== raiz antes"; lista "$RAIZ"
+          echo "== clientes"; lista "$RAIZ/clientes" | head -40
+          echo "== propostas"; lista "$RAIZ/propostas" | head -40
+          [ "$MODO" = "mover" ] || exit 0
+          curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR" --data-urlencode "name=_arquivo" --data "permissions=0700" >/dev/null || true
+          curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR/_arquivo" --data-urlencode "name=stratesign-wp-20261119" --data "permissions=0700" >/dev/null || true
+          for f in wp-admin wp-content wp-includes index.php license.txt readme.html wp-activate.php wp-blog-header.php wp-comments-post.php wp-config-sample.php wp-config.php wp-cron.php wp-links-opml.php wp-load.php wp-login.php wp-mail.php wp-settings.php wp-signup.php wp-trackback.php xmlrpc.php error_log .htaccess.wp-antes novo2026; do
+            R=$(curl -sS --max-time 180 -H "$A" -G "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=$U" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&op=move&doubledecode=0" --data-urlencode "sourcefiles=$RAIZ/$f" --data-urlencode "destfiles=$DEST" || echo '{}')
+            echo "$f -> $(echo "$R" | python3 -c "import json,sys
+          try:
+              j=json.load(sys.stdin); d=(j.get('cpanelresult') or {}); r=(d.get('data') or [{}])[0]; print('ok' if str(r.get('result'))=='1' else 'ERRO '+str(r.get('reason') or d.get('error') or j)[:200])
+          except Exception as e: print('ERRO resposta', e)")"
+            sleep 1
+          done
+          echo "== raiz depois"; lista "$RAIZ"
+          echo "== arquivo"; lista "$DEST"

@@ -1,7 +1,7 @@
 <?php
 // Stratesign 2026 — recebe o diagnóstico (5 respostas, resultado, nome e WhatsApp).
-// Guarda cada envio em _briefings/ (pasta fechada ao público). Se existir _config.php
-// com STRAT_DESTINO (e-mail), manda também por e-mail. Só responde ok quando gravou.
+// Guarda cada envio em _briefings/ (pasta fechada ao público). Se o painel tiver um e-mail de destino (Ajustes),
+// manda também por e-mail. Só responde ok quando gravou.
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 function sai($code, $arr) { http_response_code($code); echo json_encode($arr, JSON_UNESCAPED_UNICODE); exit; }
@@ -29,10 +29,11 @@ $vezes[] = $agora; @file_put_contents($trava, implode("\n", $vezes));
 $reg = ['quando' => date('c'), 'nome' => $nome, 'whatsapp' => $contato, 'resultado' => $resultado, 'pontos' => $pontos, 'perguntas' => $perg, 'respostas' => $resp, 'origem' => $limpa($_SERVER['HTTP_REFERER'] ?? '', 200)];
 $arq = $dir . '/briefing-' . date('Ymd-His') . '-' . bin2hex(random_bytes(3)) . '.json';
 if (@file_put_contents($arq, json_encode($reg, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)) === false) sai(500, ['ok' => false, 'erro' => 'não gravou']);
-if (is_file(__DIR__ . '/_config.php')) { @include __DIR__ . '/_config.php'; }
-if (defined('STRAT_DESTINO') && filter_var(STRAT_DESTINO, FILTER_VALIDATE_EMAIL)) {
+// destino do aviso: o e-mail definido no painel (Ajustes)
+$cfg = json_decode((string)@file_get_contents(__DIR__ . '/_dados/config.json'), true); $destino = is_array($cfg) ? trim((string)($cfg['destino'] ?? '')) : '';
+if ($destino !== '' && filter_var($destino, FILTER_VALIDATE_EMAIL)) {
     $txt = "Novo diagnóstico pelo site\n\nNome: $nome\nWhatsApp: $contato\nComece por: $resultado (mercado {$pontos['mercado']}, marca {$pontos['marca']}, campanha {$pontos['campanha']})\n\n";
     foreach ($resp as $i => $r) $txt .= ($i + 1) . '. ' . ($perg[$i] ?? '') . "\n" . $r . "\n\n";
-    @mail(STRAT_DESTINO, '=?UTF-8?B?' . base64_encode('Site Stratesign: diagnóstico de ' . $nome) . '?=', $txt, "Content-Type: text/plain; charset=utf-8\r\nFrom: site@" . preg_replace('/^www\./', '', $_SERVER['HTTP_HOST'] ?? 'stratesign.com.br'));
+    @mail($destino, '=?UTF-8?B?' . base64_encode('Site Stratesign: diagnóstico de ' . $nome) . '?=', $txt, "Content-Type: text/plain; charset=utf-8\r\nFrom: site@" . preg_replace('/^www\./', '', $_SERVER['HTTP_HOST'] ?? 'stratesign.com.br'));
 }
 sai(200, ['ok' => true]);

@@ -1,12 +1,12 @@
 name: STRATESIGN — publicar site novo (stratesign.com.br/novo2026 ou raiz)
 # Envia hg-envio/strat/ para a pasta novo2026 do site da Stratesign na conta HostGator da casa.
 # Com raiz=sim publica na raiz do domínio: não apaga nada do WordPress, guarda o .htaccess anterior em .htaccess.wp-antes
-# e grava o de hg-envio/strat-raiz.htaccess. Não sobrescreve _config.php nem os briefings recebidos.
+# e grava por último o .htaccess do próprio site. Nunca envia _dados/ (artigos e senha do painel ficam só no servidor). Não sobrescreve _config.php nem os briefings recebidos.
 on:
   workflow_dispatch:
     inputs:
       pasta: { description: "pasta de destino dentro de stratesign.com.br", required: false, default: "novo2026" }
-      raiz: { description: "sim = publica na raiz do domínio (ignora pasta)", required: false, default: "nao" }
+      raiz: { description: "sim = publica na raiz do domínio (ignora pasta)", required: false, default: "sim" }
 jobs:
   d:
     runs-on: ubuntu-latest
@@ -49,7 +49,7 @@ jobs:
           n=0; falhas=0
           while IFS= read -r f; do
             rel="${f#$SRC/}"
-            case "$rel" in _config.php|_briefings/briefing-*|_briefings/.t-*) continue;; esac
+            case "$rel" in _config.php|_dados/*|_briefings/briefing-*|_briefings/.t-*) continue;; esac
             if [ "$NA_RAIZ" = "sim" ] && [ "$rel" = ".htaccess" ]; then continue; fi
             dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
             ok=erro
@@ -63,7 +63,7 @@ jobs:
             echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
           done < <(find "$SRC" -type f | sort)
           if [ "$NA_RAIZ" = "sim" ] && [ "$falhas" = "0" ]; then
-            curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/save_file_content" --data-urlencode "dir=$RAIZ" --data-urlencode "file=.htaccess" --data-urlencode "content@hg-envio/strat-raiz.htaccess" | python3 -c "import json,sys;j=json.load(sys.stdin);assert j.get('status')==1,j;print('.htaccess da raiz gravado')"
+            curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/save_file_content" --data-urlencode "dir=$RAIZ" --data-urlencode "file=.htaccess" --data-urlencode "content@hg-envio/strat/.htaccess" | python3 -c "import json,sys;j=json.load(sys.stdin);assert j.get('status')==1,j;print('.htaccess da raiz gravado')"
           fi
           echo "== enviados: $n | falhas: $falhas"
           [ "$falhas" = "0" ]

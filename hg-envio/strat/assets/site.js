@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '14';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '15';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -202,10 +202,10 @@
   }).catch(function () {});
 
   /* ---------- 6. artigos: o bloco só aparece com cinco textos publicados ---------- */
-  fetch('dados/artigos.json?v=' + V).then(function (r) { return r.json(); }).then(function (d) {
+  fetch('artigos.json').then(function (r) { return r.json(); }).then(function (d) {
     var A = (d.artigos || []).filter(function (a) { return a.publicado; }); if (A.length < 5) return;
     A.sort(function (a, b) { return a.data < b.data ? 1 : -1; });
-    $('#arts').innerHTML = A.map(function (a) { var dt = ''; try { dt = new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_) {} return '<a href="artigo.html?a=' + encodeURIComponent(a.slug) + '"><span>' + esc(a.autor) + '</span><b>' + esc(a.titulo) + '</b><span>' + esc(dt) + '</span></a>'; }).join('');
+    $('#arts').innerHTML = A.map(function (a) { var dt = ''; try { dt = new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_) {} return '<a href="artigos/' + encodeURIComponent(a.slug) + '"><span>' + esc(a.autor) + '</span><b>' + esc(a.titulo) + '</b><span>' + esc(dt) + '</span></a>'; }).join('');
     $('#blog').hidden = false; $('#navBlog').hidden = false;
   }).catch(function () {});
 
@@ -242,7 +242,7 @@
       '<div class="bars">' + PIL.map(function (p, k) { return '<div class="rb' + (k === top ? ' top' : '') + '"><span>' + p + '</span><i data-w="' + Math.round(t[k] / mx * 100) + '"></i></div>'; }).join('') + '</div>' +
       '<p>' + TXT[top] + '</p>' +
       '<form class="fld" id="fq" novalidate><input type="text" id="fqN" placeholder="Seu nome" maxlength="120" autocomplete="name" aria-label="Seu nome"><input type="tel" id="fqW" placeholder="WhatsApp com DDD" maxlength="24" autocomplete="tel" inputmode="tel" aria-label="WhatsApp com DDD"><input type="text" class="mel" id="fqM" name="site" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit" class="btn" id="fqB">Enviar →</button></form>' +
-      '<div class="fm" id="fqMsg" role="status"></div><button type="button" class="bk" id="bk">← voltar</button></div>';
+      '<p class="fpv">Usamos seu nome e WhatsApp só para retornar o diagnóstico. <a href="/privacidade">Privacidade</a>.</p><div class="fm" id="fqMsg" role="status"></div><button type="button" class="bk" id="bk">← voltar</button></div>';
     requestAnimationFrame(function () { requestAnimationFrame(function () { $$('.rb i', bq).forEach(function (b) { b.style.width = b.dataset.w + '%'; }); }); });
     D.top = top; D.t = t;
   }

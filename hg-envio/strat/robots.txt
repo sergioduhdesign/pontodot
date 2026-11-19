@@ -1,0 +1,24 @@
+# Stratesign — stratesign.com.br
+User-agent: *
+Allow: /
+Disallow: /painel/
+Disallow: /propostas/
+Disallow: /novo2026/
+
+# Leitura por assistentes de IA: liberada. Resumo do site em /llms.txt
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://stratesign.com.br/sitemap.xml
