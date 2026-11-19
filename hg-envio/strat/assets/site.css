@@ -174,10 +174,14 @@ body.bolha-on .cta{box-shadow:none}
 .arts a span:last-child{text-align:right;color:var(--mineral2)}
 
 /* ---------- 7. conversa: diagnóstico em cinco perguntas ---------- */
-.conversa{background:#fff;color:var(--tinta);min-height:100vh;min-height:100svh;padding:13vh var(--m) 12vh;display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:clamp(24px,6vw,100px);align-content:center}
-.conversa h2{margin:0;font-size:clamp(34px,4.6vw,76px);font-weight:300;letter-spacing:-.045em;line-height:.92}
-.conversa h2 b{font-weight:800}
-.conversa .side p{font-size:clamp(16px,1.6vw,24px);line-height:1.2;max-width:34ch;margin:22px 0 0;color:#555;font-weight:300}
+.conversa{background:#fff;color:var(--tinta);min-height:100vh;min-height:100svh;padding:13vh var(--m) 12vh;display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(34px,6vh,70px);align-content:start}
+.conversa h2{margin:0;color:var(--verde);font-weight:800;text-transform:uppercase;letter-spacing:-.035em;line-height:.96;display:flex;flex-direction:column;gap:clamp(8px,1.2vw,18px)}
+.conversa h2 .c1{font-size:clamp(26px,4.6vw,78px);max-width:20ch}
+.conversa h2 .c2{font-size:clamp(76px,15.8vw,280px);color:#f2b400;letter-spacing:-.065em;line-height:.8;margin:.02em 0 .04em;white-space:nowrap}
+.conversa h2 .c3{font-size:clamp(18px,2.2vw,36px);font-weight:700;text-transform:none;letter-spacing:-.02em;line-height:1.1}
+.conversa h2 .c4{font-size:clamp(22px,3.4vw,58px)}
+.conversa .side p{font-size:clamp(15px,1.3vw,19px);line-height:1.35;max-width:52ch;margin:clamp(22px,3vw,40px) 0 0;color:#555;font-weight:400}
+.conversa .bq{max-width:980px}
 .bq{min-height:420px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .bar{height:3px;background:rgba(0,0,0,.08);position:relative;margin-bottom:34px}
 .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--magenta);width:0;transition:width .8s cubic-bezier(.2,.7,.2,1)}
@@ -272,7 +276,8 @@ body.bolha-on .cta{box-shadow:none}
   .tl figcaption p{font-size:12.5px}
   .arts a{grid-template-columns:1fr;gap:6px}
   .arts a span:last-child{text-align:left}
-  .conversa{grid-template-columns:1fr;padding:90px 16px 110px}
+  .conversa{padding:90px 16px 110px}
+  .conversa h2 .c1{font-size:8vw}.conversa h2 .c2{font-size:15.6vw}.conversa h2 .c3{font-size:4.6vw}.conversa h2 .c4{font-size:6.4vw}
   .bq h3{font-size:34px}.opt{font-size:22px;padding:16px 0}.res p{font-size:19px}
   .res .rb{grid-template-columns:120px 1fr}
   .pe{padding:7vh 0 100px}
