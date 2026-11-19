@@ -13,7 +13,7 @@
 <meta property="og:image" content="media/dragao.jpg">
 <link rel="preload" href="fonts/montserrat-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="media/dragao.jpg" as="image">
-<link rel="stylesheet" href="assets/site.css?v=5">
+<link rel="stylesheet" href="assets/site.css?v=6">
 </head>
 <body>
 <a class="pula" href="#trabalhos">Ir para os trabalhos</a>
@@ -25,6 +25,7 @@
     <a href="#autores">Autores</a>
     <a href="#blog" id="navBlog" hidden>Artigos</a>
     <a href="#acervo">Explorar o acervo</a>
+    <button type="button" id="som" aria-pressed="true">Som ligado</button>
   </nav>
 </header>
 <a class="cta" href="#conversa">Vamos conversar?</a>
@@ -34,7 +35,7 @@
     <div class="palco">
       <video class="drg" id="drg" poster="media/dragao.jpg" muted playsinline loop autoplay preload="metadata" aria-label="Carranca de dragão da Strat, esculpida e pintada com as cores do Brasil, girando"><source src="media/dragao.mp4" type="video/mp4"></video>
       <div class="filme" id="filme">
-        <video id="vid" poster="media/abertura.jpg" muted playsinline loop preload="none" aria-label="Filme de portfólio: Grupo Taiwan, Vistas Joanópolis, SIMM Brasil, Marcus Araujo, MIXED e Reserva Canastra"></video>
+        <video id="vid" src="media/abertura.mp4?v=6" poster="media/abertura.jpg" autoplay muted playsinline loop preload="auto" aria-label="Filme de portfólio: Grupo Taiwan, Vistas Joanópolis, SIMM Brasil, Marcus Araujo, MIXED e Reserva Canastra"></video>
         <button type="button" class="pausa" id="pausa" aria-pressed="false">Pausar</button>
       </div>
       <h1 class="tit"><span>A agência do</span> <span>imobiliário</span> <span>brasileiro.</span></h1>
@@ -50,18 +51,18 @@
       <h2 class="rot" id="t-marcas">Cinco marcas, cinco trabalhos</h2>
       <ul class="lista" id="lista">
         <li class="mi" data-k="datastore">
-          <button type="button" class="mb" aria-expanded="false" aria-controls="p-datastore"><img src="img/l-datastore.png" width="215" height="34" alt="Datastore / SIMM Brasil" class="lg lg-datastore"></button>
+          <button type="button" class="mb" aria-expanded="false" aria-controls="p-datastore"><img src="img/l-datastore.png?v=6" width="294" height="125" alt="Datastore / SIMM Brasil" class="lg lg-datastore"></button>
           <div class="painel" id="p-datastore">
             <video muted playsinline loop preload="none" poster="media/m-datastore.jpg" data-src="media/m-datastore.mp4" aria-label="Filme do case Datastore / SIMM Brasil"></video>
-            <div class="pel"></div>
+            <div class="pel"></div><span class="somd" hidden>Clique para ouvir</span>
             <div class="ptx"><b>Datastore / SIMM Brasil</b><p>Demos identidade ao SIMM Brasil e levamos a inteligência da Datastore do estudo ao palco. A mesma direção criativa atravessa o congresso, suas campanhas e os projetos editoriais.</p></div>
           </div>
         </li>
         <li class="mi" data-k="marcus">
-          <button type="button" class="mb" aria-expanded="false" aria-controls="p-marcus"><img src="img/l-marcus.png" width="180" height="300" alt="Marcus Araujo" class="lg lg-marcus"></button>
+          <button type="button" class="mb" aria-expanded="false" aria-controls="p-marcus"><img src="img/l-marcus.png?v=6" width="254" height="68" alt="Marcus Araujo" class="lg lg-marcus"></button>
           <div class="painel" id="p-marcus">
             <video muted playsinline loop preload="none" poster="media/m-marcus.jpg" data-src="media/m-marcus.mp4" aria-label="Filme do case Marcus Araujo"></video>
-            <div class="pel"></div>
+            <div class="pel"></div><span class="somd" hidden>Clique para ouvir</span>
             <div class="ptx"><b>Marcus Araujo</b><p>Construímos a marca pessoal de Marcus e levamos seu olhar sobre o morar para os livros. A coleção Meu Imóvel, Meu Mundo ganhou projeto editorial. Meu Imóvel, Meu Mundinho ganhou também ilustrações de Sérgio Duh.</p></div>
           </div>
         </li>
@@ -69,7 +70,7 @@
           <button type="button" class="mb" aria-expanded="false" aria-controls="p-biosphere"><img src="img/l-biosphere.png" width="900" height="226" alt="Biosphere / Cauã Reymond" class="lg lg-biosphere"></button>
           <div class="painel" id="p-biosphere">
             <video muted playsinline loop preload="none" poster="media/m-biosphere.jpg" data-src="media/m-biosphere.mp4" aria-label="Filme do case Biosphere / Cauã Reymond"></video>
-            <div class="pel"></div>
+            <div class="pel"></div><span class="somd" hidden>Clique para ouvir</span>
             <div class="ptx"><b>Biosphere / Cauã Reymond</b><p>Para a Biosphere, de Cauã Reymond, criamos o conceito de marca e a narrativa de Vistas Joanópolis. A paisagem, a arquitetura e a visão de Cauã ganharam uma história comum para apresentar o empreendimento.</p></div>
           </div>
         </li>
@@ -77,7 +78,7 @@
           <button type="button" class="mb" aria-expanded="false" aria-controls="p-faro"><img src="img/l-faro.png" width="926" height="94" alt="Faro Imobiliário" class="lg lg-faro"></button>
           <div class="painel" id="p-faro">
             <video muted playsinline loop preload="none" poster="media/m-faro.jpg" data-src="media/m-faro.mp4" aria-label="Filme do case Faro Imobiliário"></video>
-            <div class="pel"></div>
+            <div class="pel"></div><span class="somd" hidden>Clique para ouvir</span>
             <div class="ptx"><b>Faro Imobiliário</b><p>Levamos a presença de Rodrigo Faro para o lançamento imobiliário. No Residencial Varanda, do Grupo Taiwan, criamos a campanha para falar direto com quem estava escolhendo onde morar.</p></div>
           </div>
         </li>
@@ -85,7 +86,7 @@
           <button type="button" class="mb" aria-expanded="false" aria-controls="p-britto"><img src="img/l-britto.png" width="278" height="97" alt="Romero Britto / L’Atelier" class="lg lg-britto"></button>
           <div class="painel" id="p-britto">
             <video muted playsinline loop preload="none" poster="media/m-britto.jpg" data-src="media/m-britto.mp4" aria-label="Filme do case Romero Britto / L’Atelier"></video>
-            <div class="pel"></div>
+            <div class="pel"></div><span class="somd" hidden>Clique para ouvir</span>
             <div class="ptx"><b>Romero Britto / L’Atelier</b><p>Na L’Atelier, a obra de Romero Britto encontra a arquitetura. A Strat assina a direção estratégica e a narrativa de marca que apresentam esse encontro ao mercado.</p></div>
           </div>
         </li>
@@ -98,9 +99,9 @@
     <div class="grade">
       <h2 class="dois" id="t-autores"><span>Marcus antecipa o movimento do mercado.</span> <b>Sérgio cria a marca que vai ocupar esse espaço.</b></h2>
       <div class="dupla">
-        <figure class="au"><div class="ft"><img src="img/marcus.jpg" alt="Marcus Araujo sentado na sede da Datastore, mãos unidas, olhando para a câmera" loading="lazy" decoding="async"></div>
+        <figure class="au"><div class="ft"><img src="img/marcus.jpg?v=6" alt="Marcus Araujo sentado, mãos unidas, sorrindo para a câmera" loading="lazy" decoding="async"></div>
           <figcaption><h3>Marcus Araujo <i>·</i> <span>Estratégia</span></h3><p>Pesquisador, autor de Meu Imóvel, Meu Mundo e curador do SIMM Brasil, Marcus estuda como os brasileiros querem morar. Na Strat, transforma os dados de demanda em decisões sobre produto, público e posicionamento.</p></figcaption></figure>
-        <figure class="au"><div class="ft"><img src="img/sergio.jpg" alt="Sérgio Duh ri, de perfil, num set de filmagem" loading="lazy" decoding="async"></div>
+        <figure class="au"><div class="ft"><img src="img/sergio.jpg?v=6" alt="Sérgio Duh ri, de perfil, num set de filmagem" loading="lazy" decoding="async"></div>
           <figcaption><h3>Sérgio Duh <i>·</i> <span>Direção criativa</span></h3><p>Brander e diretor de criação, Sérgio desenha marcas há mais de 25 anos. Liderou projetos no Brasil, nos Estados Unidos, na França e na Austrália. Professor convidado no curso de Marketing Imobiliário da USP, dá forma às decisões de estratégia, da primeira ideia de marca à campanha na rua.</p></figcaption></figure>
       </div>
       <dl class="prova">
@@ -112,15 +113,13 @@
   </section>
 
   <section class="manif" id="manifesto" aria-labelledby="t-manif">
-    <div class="mp">
-      <img class="mfundo" src="img/manifesto-fundo.jpg" alt="" loading="lazy" decoding="async">
-      <div class="mpol" id="mpol" aria-hidden="true"></div>
-      <div class="mfrase">
-        <h2 id="t-manif"><span>O metro quadrado se calcula.</span> <b>A vontade de morar, a gente cria.</b></h2>
-        <p class="mapoio">Mas nosso diferencial ainda é a criatividade humana.</p>
-        <p class="mnomes" id="mnomes"></p>
-      </div>
+    <div class="mnm" id="mnm" aria-hidden="true"></div>
+    <div class="mtr" id="mtr" aria-hidden="true"></div>
+    <div class="mfrase">
+      <h2 id="t-manif"><span>O metro quadrado se calcula.</span> <b>A vontade de morar, a gente cria.</b></h2>
+      <p class="mapoio">Mas nosso diferencial ainda é a criatividade humana.</p>
     </div>
+    <p class="vis" id="mnomes"></p>
   </section>
 
   <section class="acervo" id="acervo" aria-labelledby="t-acervo">
@@ -144,19 +143,8 @@
   </section>
 
   <section class="conversa" id="conversa" aria-labelledby="t-conversa">
-    <div class="grade">
-      <h2 class="rot" id="t-conversa">Vamos conversar?</h2>
-      <form class="cv" id="cv" novalidate>
-        <p class="pos" id="cvPos" aria-live="polite"></p>
-        <div id="cvCorpo"></div>
-        <div class="cvb">
-          <button type="button" class="bt sec" id="cvVolta">Voltar</button>
-          <button type="submit" class="bt" id="cvVai">Continuar</button>
-        </div>
-        <p class="cvmsg" id="cvMsg" role="status"></p>
-        <input type="text" name="site" id="cvMel" tabindex="-1" autocomplete="off" aria-hidden="true" class="mel">
-      </form>
-    </div>
+    <div class="side"><h2 id="t-conversa">Antes de falar, <b>um diagnóstico.</b></h2><p>Cinco perguntas, um minuto. Você descobre por onde começar: inteligência de mercado, marca ou campanha.</p></div>
+    <div class="bq" id="bq" aria-live="polite"><noscript><p>Ative o JavaScript para fazer o diagnóstico.</p></noscript></div>
   </section>
 </main>
 
@@ -167,6 +155,6 @@
     <p class="pe-c">© 2026 Stratesign</p>
   </div>
 </footer>
-<script src="assets/site.js?v=5" defer></script>
+<script src="assets/site.js?v=6" defer></script>
 </body>
 </html>

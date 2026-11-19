@@ -1,7 +1,7 @@
-/* Stratesign 2026 · V2 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
+/* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '5';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '6';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -9,49 +9,92 @@
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var toca = function (v) { try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (_) {} };
 
-  /* ---------- 1. capa ---------- */
-  var abre = $('#inicio'), vid = $('#vid'), drg = $('#drg'), pausa = $('#pausa'), cta = $('.cta'), conversa = $('#conversa');
-  var parou = false, carregou = false;
-  function carregaFilme() { if (carregou) return; carregou = true; vid.src = 'media/abertura.mp4?v=' + V; vid.load(); var p = vid.play(); if (p && p.catch) p.catch(function () { parou = true; pinta(); }); }
-  function pinta() { pausa.textContent = parou ? 'Reproduzir' : 'Pausar'; pausa.setAttribute('aria-pressed', parou ? 'true' : 'false'); }
-  pausa.addEventListener('click', function () { if (!carregou) { parou = false; carregaFilme(); pinta(); return; } parou = !parou; if (parou) vid.pause(); else toca(vid); pinta(); });
-  if (calmo) { parou = true; pinta(); try { drg.pause(); drg.removeAttribute('autoplay'); } catch (_) {} }
-  else { toca(drg); if (document.readyState === 'complete') setTimeout(carregaFilme, 300); else window.addEventListener('load', function () { setTimeout(carregaFilme, 300); }); }
+  /* ---------- som: ligado por padrão; o navegador só libera depois do primeiro clique ou toque ---------- */
+  var SOM = true, livre = false, bSom = $('#som');
+  try { if (localStorage.getItem('strat_som') === '0') SOM = false; } catch (_) {}
+  function ativo() { return $('.mi.on video'); }
+  function pintaSom() {
+    bSom.textContent = SOM ? 'Som ligado' : 'Som desligado'; bSom.setAttribute('aria-pressed', SOM ? 'true' : 'false');
+    var a = ativo();
+    $$('.mi video').forEach(function (v) { v.muted = !(SOM && livre && v === a); });
+    $$('.somd').forEach(function (d) { d.hidden = !(SOM && !livre && a && d.parentNode.contains(a)); });
+    vid.muted = !(SOM && livre) || !!a;
+  }
+  function libera() { if (livre) return; livre = true; pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); }
+  ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) { window.addEventListener(ev, libera, { passive: true }); });
+  bSom.addEventListener('click', function () { SOM = !SOM; try { localStorage.setItem('strat_som', SOM ? '1' : '0'); } catch (_) {} livre = true; pintaSom(); });
 
-  /* ---------- 4. manifesto: preparo das polaroides ---------- */
-  var manif = $('#manifesto'), mp = $('.mp'), mpol = $('#mpol'), POL = [];
-  var ORDEM = ['02', '04', '12', '14', '19', '33', '42', '45', '48', '52', '55', '01', '07', '09', '16', '20', '23', '26', '29', '31', '36', '38', '40', '44', '47', '50', '53', '56'];
-  // lugares de pouso: faixa de cima, faixa de baixo e quinas, deixando o centro legível
-  var LUG = [[9, 17, -9], [91, 80, 7], [27, 12, 5], [72, 86, -6], [50, 9, -3], [10, 82, 6], [90, 16, 8], [36, 90, -8], [64, 11, 9], [4, 50, -12], [96, 52, 11],
-             [18, 88, -4], [81, 10, -7], [44, 87, 4], [57, 14, -10], [26, 82, 9], [74, 18, 3], [13, 30, 12], [88, 68, -9], [50, 91, 2], [33, 17, -6], [66, 84, 7],
-             [6, 66, 8], [94, 33, -5], [40, 10, 7], [60, 90, -3], [20, 14, -11], [80, 84, 10]];
-  var NG = 5;                                             // grupos de chegada
-  function montaPol() {
-    var est = estreito();
-    (est ? ORDEM.slice(0, 16) : ORDEM).forEach(function (n, i) {
-      var d = document.createElement('div'); d.className = 'pl';
-      var L = LUG[i % LUG.length].slice(); if (est) { L[1] = L[1] < 50 ? 5 + (L[1] / 50) * 15 : 81 + ((L[1] - 50) / 50) * 15; L[0] = 12 + L[0] * 0.76; }
-      var g = i < 11 ? Math.floor(i / 4) : 3 + Math.floor((i - 11) / 9);       // os 11 primeiros abrem, em três levas
-      g = Math.min(NG - 1, g);
-      var im = new Image(); im.alt = ''; im.decoding = 'async'; im.loading = 'lazy'; im.src = 'img/pol/' + n + '.webp?v=' + V; d.appendChild(im);
-      d.style.left = L[0] + '%'; d.style.top = L[1] + '%'; d.style.zIndex = String(1 + (i * 7) % 5);
-      mpol.appendChild(d);
-      POL.push({ el: d, g: g, rot: L[2], r0: L[2] + (i % 2 ? 26 : -24), esc: 0.82 + ((i * 37) % 30) / 100, atraso: ((i * 53) % 10) / 100, fica: g >= NG - 2, dx: (i % 2 ? 1 : -1) * (6 + (i * 13) % 12) });
-    });
+  /* ---------- 1. capa: o filme entra tocando ---------- */
+  var abre = $('#inicio'), vid = $('#vid'), drg = $('#drg'), pausa = $('#pausa'), cta = $('.cta'), conversa = $('#conversa');
+  var parou = false;
+  function pinta() { pausa.textContent = parou ? 'Reproduzir' : 'Pausar'; pausa.setAttribute('aria-pressed', parou ? 'true' : 'false'); }
+  function entra() { if (parou || calmo) return; vid.muted = true; toca(vid); toca(drg); }
+  pausa.addEventListener('click', function () { parou = !parou; if (parou) vid.pause(); else toca(vid); pinta(); });
+  if (calmo) { parou = true; pinta(); try { vid.pause(); vid.removeAttribute('autoplay'); drg.pause(); drg.removeAttribute('autoplay'); } catch (_) {} }
+  else { entra(); ['loadeddata', 'canplay'].forEach(function (ev) { vid.addEventListener(ev, function () { if (vid.paused) entra(); }); }); window.addEventListener('load', entra); window.addEventListener('pageshow', entra); document.addEventListener('visibilitychange', function () { if (!document.hidden) entra(); }); }
+
+  /* ---------- 4. manifesto: nomes gigantes correndo e rastro de imagens no mouse ---------- */
+  var manif = $('#manifesto'), mnm = $('#mnm'), mtr = $('#mtr'), LN = [], manifVisto = false;
+  var NPOL = 56, fila = [], prox = 0, ult = null, zi = 1, pre = false;
+  function pol(n) { return 'img/pol/' + ('0' + n).slice(-2) + '.webp?v=' + V; }
+  function precarrega() { if (pre) return; pre = true; for (var i = 1; i <= NPOL; i++) { var im = new Image(); im.decoding = 'async'; im.src = pol(i); } }
+  var ORD = []; (function () { for (var i = 1; i <= NPOL; i++) ORD.push(i); for (var j = ORD.length - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = ORD[j]; ORD[j] = ORD[k]; ORD[k] = t; } })();
+  function solta1(x, y, dx, dy) {
+    var d;
+    if (fila.length < 16) { d = document.createElement('div'); d.className = 'tr'; d.appendChild(new Image()); mtr.appendChild(d); fila.push(d); } else { d = fila.shift(); fila.push(d); }
+    var im = d.firstChild; im.alt = ''; im.src = pol(ORD[prox++ % NPOL]);
+    var r = (Math.random() * 26 - 13), e = 0.8 + Math.random() * 0.5, vx = Math.max(-90, Math.min(90, dx * 0.9)), vy = Math.max(-90, Math.min(90, dy * 0.9));
+    d.style.zIndex = String(zi++);
+    if (d._a) d._a.cancel();
+    var T = function (px, py, rot, sc) { return 'translate3d(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px,0) rotate(' + rot.toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')'; };
+    if (!d.animate) { d.style.opacity = 1; d.style.transform = T(x, y, r, e); return; }
+    d._a = d.animate([
+      { opacity: 0, transform: T(x - vx * 0.6, y - vy * 0.6, r * 2.2, e * 0.55), offset: 0 },
+      { opacity: 1, transform: T(x, y, r, e), offset: 0.12 },
+      { opacity: 1, transform: T(x + vx * 0.25, y + vy * 0.25, r * 0.8, e), offset: 0.7 },
+      { opacity: 0, transform: T(x + vx * 0.4, y + vy * 0.4 + 120, r * 1.6, e * 0.86), offset: 1 }
+    ], { duration: 1700, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' });
   }
-  function pintaPol(p) {
-    var vh = window.innerHeight;
-    POL.forEach(function (o) {
-      var ini = 0.05 + o.g * 0.15 + o.atraso * 0.4, t = (p - ini) / 0.17;
-      if (calmo) { o.el.style.opacity = 1; o.el.style.transform = 'rotate(' + o.rot + 'deg) scale(' + o.esc + ')'; return; }
-      if (t <= 0) { o.el.style.opacity = 0; return; }
-      var e = Math.min(1, t); e = 1 - Math.pow(1 - e, 3);                               // cai e assenta
-      var y = (1 - e) * -1.25 * vh, x = (1 - e) * o.dx * 6, r = o.r0 + (o.rot - o.r0) * e, op = 1;
-      if (!o.fica) { var s = (p - (ini + 0.42)) / 0.16; if (s > 0) { var q = Math.min(1, s); q = q * q; y += q * 1.3 * vh; r += q * (o.dx > 0 ? 18 : -18); if (s >= 1) op = 0; } }   // sai de cena depois de ser vista
-      o.el.style.opacity = op; o.el.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) rotate(' + r.toFixed(2) + 'deg) scale(' + o.esc + ')';
-    });
+  function rastro(e) {
+    var b = manif.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    if (!ult) { ult = { x: x, y: y }; return; }
+    var dx = x - ult.x, dy = y - ult.y, passo = estreito() ? 70 : 96;
+    if (dx * dx + dy * dy < passo * passo) return;
+    ult = { x: x, y: y }; solta1(x, y, dx, dy);
   }
-  montaPol();
+  if (!calmo) {
+    manif.addEventListener('pointermove', rastro, { passive: true });
+    manif.addEventListener('pointerleave', function () { ult = null; });
+    manif.addEventListener('pointerdown', function (e) { var b = manif.getBoundingClientRect(); for (var i = 0; i < 5; i++) solta1(e.clientX - b.left + (Math.random() * 260 - 130), e.clientY - b.top + (Math.random() * 220 - 110), Math.random() * 120 - 60, Math.random() * 120 - 60); });
+  }
+  // no toque não há mouse: as imagens vão surgindo conforme a seção rola
+  var ultY = 0;
+  function rastroRola(m) {
+    if (calmo || !window.matchMedia('(hover: none)').matches) return;
+    if (Math.abs(m.top - ultY) < 46) return; ultY = m.top;
+    var w = manif.clientWidth, h = manif.clientHeight; solta1(w * (0.14 + Math.random() * 0.72), h * (0.12 + Math.random() * 0.76), Math.random() * 80 - 40, -50);
+  }
+  function montaNomes(nomes) {
+    var linhas = estreito() ? 6 : 5, por = Math.ceil(nomes.length / linhas);
+    for (var i = 0; i < linhas; i++) {
+      var parte = nomes.slice(i * por, (i + 1) * por); if (!parte.length) parte = nomes.slice(0, por);
+      var h = parte.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('');
+      var d = document.createElement('div'); d.className = 'ln'; d.innerHTML = h + h + h; mnm.appendChild(d);
+      LN.push({ el: d, x: 0, dir: i % 2 ? 1 : -1, vel: 0.35 + (i * 37 % 5) * 0.09, w: 0 });
+    }
+    medeNomes(); if (calmo) LN.forEach(function (o, i) { o.el.style.transform = 'translate3d(' + (-(i % 3) * 9) + 'vw,0,0)'; });
+    if (calmo) { var w = manif.clientWidth, hh = manif.clientHeight, P = [[10, 16], [88, 20], [14, 84], [86, 82], [50, 10], [50, 90]]; P.forEach(function (q, i) { var t = document.createElement('div'); t.className = 'tr'; var im = new Image(); im.alt = ''; im.src = pol(ORD[i]); t.appendChild(im); t.style.opacity = 1; t.style.transform = 'translate3d(' + (w * q[0] / 100) + 'px,' + (hh * q[1] / 100) + 'px,0) rotate(' + ((i % 2 ? 1 : -1) * (4 + i * 2)) + 'deg) scale(.8)'; mtr.appendChild(t); }); }
+  }
+  function medeNomes() { LN.forEach(function (o) { o.w = o.el.scrollWidth / 3; }); }
+  var impulso = 0, ultRola = window.pageYOffset, girando = false;
+  function giraNomes() {
+    if (!manifVisto || calmo || document.hidden) { girando = false; return; }
+    impulso *= 0.92;
+    LN.forEach(function (o) { if (!o.w) return; o.x += o.dir * (o.vel + impulso * (0.5 + o.vel)); if (o.x <= -o.w) o.x += o.w; if (o.x > 0) o.x -= o.w; o.el.style.transform = 'translate3d(' + o.x.toFixed(1) + 'px,0,0)'; });
+    requestAnimationFrame(giraNomes);
+  }
+  function ligaNomes() { if (!girando && !calmo) { girando = true; requestAnimationFrame(giraNomes); } }
+  window.addEventListener('resize', medeNomes);
 
   /* ---------- rolagem ---------- */
   var tic = false;
@@ -60,24 +103,30 @@
     var vh = window.innerHeight, r = abre.getBoundingClientRect();
     if (!calmo && !estreito()) { var p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh))), e = Math.min(1, p / 0.78); e = e * e * (3 - 2 * e); abre.style.setProperty('--p', e.toFixed(4)); }
     else abre.style.setProperty('--p', '0');
-    if (carregou && !parou) { if (r.bottom < 0) { if (!vid.paused) vid.pause(); } else if (vid.paused) toca(vid); }
+    if (!parou) { if (r.bottom < 0) { if (!vid.paused) vid.pause(); } else if (vid.paused) toca(vid); }
     if (!calmo) { if (r.bottom < 0) { if (!drg.paused) drg.pause(); } else if (drg.paused) toca(drg); }
-    var m = manif.getBoundingClientRect();
-    if (m.top < vh && m.bottom > 0) { var pm = calmo ? 1 : Math.min(1, Math.max(0, -m.top / Math.max(1, m.height - vh))); mp.style.setProperty('--pm', pm.toFixed(4)); pintaPol(pm); }
+    var m = manif.getBoundingClientRect(), y = window.pageYOffset;
+    manifVisto = m.top < vh && m.bottom > 0;
+    if (m.top < vh * 2.5 && m.bottom > -vh) precarrega();
+    if (manifVisto) { impulso = Math.max(-14, Math.min(14, impulso + (y - ultRola) * 0.05)); ligaNomes(); rastroRola(m); }
+    ultRola = y;
     var c = conversa.getBoundingClientRect(); cta.classList.toggle('fora', c.top < vh * 0.6);
   }
   function pede() { if (!tic) { tic = true; requestAnimationFrame(rola); } }
   window.addEventListener('scroll', pede, { passive: true }); window.addEventListener('resize', pede); rola();
-  if (calmo) { mp.style.setProperty('--pm', '1'); pintaPol(1); }
 
   /* ---------- 2. cinco marcas: um filme ativo por vez ---------- */
   var lista = $('#lista'), itens = $$('.mi');
   function ativa(li) {
     itens.forEach(function (x) {
       var on = x === li, v = $('video', x); x.classList.toggle('on', on); $('.mb', x).setAttribute('aria-expanded', on ? 'true' : 'false');
-      if (on) { if (!v.src && v.dataset.src) { v.src = v.dataset.src + '?v=' + V; v.load(); } if (!calmo) toca(v); } else { try { v.pause(); } catch (_) {} }
+      if (on) {
+        if (!v.src && v.dataset.src) { v.src = v.dataset.src + '?v=' + V; v.load(); }
+        v.muted = !(SOM && livre);
+        if (!calmo || livre) { try { var p = v.play(); if (p && p.catch) p.catch(function () { v.muted = true; livre = false; pintaSom(); toca(v); }); } catch (_) {} }
+      } else { try { v.pause(); v.muted = true; } catch (_) {} }
     });
-    lista.classList.toggle('tem', !!li);
+    lista.classList.toggle('tem', !!li); pintaSom();
   }
   itens.forEach(function (li) {
     var b = $('.mb', li);
@@ -135,7 +184,7 @@
   fetch('dados/social.json?v=' + V).then(function (r) { return r.json(); }).then(function (d) {
     // nomes de clientes reais para o fim do manifesto (o índice inteiro)
     var vistos = {}, nomes = []; d.forEach(function (x) { var n = x.nome.replace(/\s*\(.*\)$/, ''); if (!vistos[n]) { vistos[n] = 1; nomes.push(n); } });
-    mnomes.textContent = nomes.join('  ·  ');
+    mnomes.textContent = 'Marcas criadas pela Strat: ' + nomes.join(', ') + '.'; montaNomes(nomes); rola();
     L = d.filter(function (x) { return !!x.img; });                    // só entra na vitrine quem tem print verdadeiro
     N = L.length; var g = L.findIndex(function (x) { return x.arroba === 'geovilleurbanismo'; }); cur = pos = g < 0 ? 0 : g; monta();
   }).catch(function () { central.textContent = 'A vitrine não carregou. Atualize a página.'; });
@@ -148,40 +197,61 @@
     $('#blog').hidden = false; $('#navBlog').hidden = false;
   }).catch(function () {});
 
-  /* ---------- 7. conversa: uma pergunta por tela ---------- */
-  var PERG = [
-    'Que decisão sobre este projeto está mais difícil de tomar hoje?',
-    'Quem precisa escolher esse imóvel e o que essa pessoa está comparando com ele?',
-    'O que já existe no produto, no lugar ou na equipe que tornaria a promessa crível?',
-    'Em que ponto a venda perde força hoje e qual evidência mostrou isso?',
-    'Que resultado, em qual prazo, faria essa conversa ter valido a pena?'
+  /* ---------- 7. conversa: diagnóstico em cinco perguntas (mesmo desenho do sergioduh.com) ---------- */
+  // pesos por resposta: [inteligência de mercado, marca, campanha]
+  var Q = [
+    { q: 'O que você está colocando <b>no mundo?</b>', o: [['Um lançamento imobiliário', [1, 2, 3]], ['Uma incorporadora ou uma marca', [1, 3, 0]], ['Um loteamento ou bairro planejado', [2, 2, 1]], ['Ainda estou estudando o terreno', [3, 0, 0]]] },
+    { q: 'Em que <b>ponto</b> está?', o: [['Só o terreno e uma ideia', [3, 1, 0]], ['Produto definido, ainda sem marca', [1, 3, 1]], ['No ar, mas sem tração', [1, 1, 3]], ['Vendendo e quero escalar', [0, 1, 3]]] },
+    { q: 'O que mais <b>trava</b> hoje?', o: [['Não sei para quem vender', [3, 0, 0]], ['Não pareço com o que sou', [0, 3, 0]], ['Ninguém percebe o valor', [1, 3, 1]], ['O interesse chega e não vira visita', [1, 0, 3]]] },
+    { q: 'Como você quer ser <b>lembrado?</b>', o: [['Por entender a cidade', [3, 0, 0]], ['Por uma marca forte', [0, 3, 0]], ['Por uma campanha que parou a rua', [0, 0, 3]], ['Pelos resultados', [1, 1, 1]]] },
+    { q: 'Para <b>quando</b>?', o: [['Esta semana', [0, 0, 0]], ['Este mês', [0, 0, 0]], ['Este trimestre', [0, 0, 0]], ['Só explorando', [0, 0, 0]]] }
   ];
-  var cv = $('#cv'), corpo = $('#cvCorpo'), posEl = $('#cvPos'), bVolta = $('#cvVolta'), bVai = $('#cvVai'), msg = $('#cvMsg'), mel = $('#cvMel');
-  var E = { passo: 0, r: ['', '', '', '', ''], nome: '', contato: '', empresa: '', fim: false };
-  try { var g0 = JSON.parse(sessionStorage.getItem('strat_cv') || 'null'); if (g0 && g0.r && g0.r.length === 5) { E = g0; E.fim = false; } } catch (_) {}
-  function guarda() { try { sessionStorage.setItem('strat_cv', JSON.stringify(E)); } catch (_) {} }
-  function le() { var t = $('#cvT'); if (t) E.r[E.passo] = t.value; var n = $('#cvN'); if (n) { E.nome = n.value; E.contato = $('#cvC').value; E.empresa = $('#cvE').value; } guarda(); }
-  function mostra(foco) {
-    msg.textContent = '';
-    if (E.fim) { posEl.textContent = ''; corpo.innerHTML = '<h3>Recebemos. Obrigado.</h3><p style="font-size:17px;max-width:48ch">Suas respostas chegaram à Strat. O retorno vem pelo contato que você deixou.</p>'; bVolta.hidden = true; bVai.hidden = true; return; }
-    bVolta.hidden = E.passo === 0; bVai.hidden = false; bVai.disabled = false;
-    if (E.passo < 5) { posEl.textContent = (E.passo + 1) + '/5'; corpo.innerHTML = '<label class="q" for="cvT">' + esc(PERG[E.passo]) + '</label><textarea id="cvT" rows="3" maxlength="1500" placeholder="Escreva aqui"></textarea>'; $('#cvT').value = E.r[E.passo]; bVai.textContent = 'Continuar'; }
-    else if (E.passo === 5) { posEl.textContent = 'Seu contato'; corpo.innerHTML = '<h3>Para quem a Strat responde?</h3><div class="cps"><label>Nome<input type="text" id="cvN" maxlength="120" autocomplete="name"></label><label>E-mail ou WhatsApp<input type="text" id="cvC" maxlength="160" autocomplete="email"></label><label>Empresa (opcional)<input type="text" id="cvE" maxlength="160" autocomplete="organization"></label></div>'; $('#cvN').value = E.nome; $('#cvC').value = E.contato; $('#cvE').value = E.empresa; bVai.textContent = 'Ver a síntese'; }
-    else { posEl.textContent = 'Síntese'; corpo.innerHTML = '<h3>Confira antes de enviar.</h3><ol class="sin">' + PERG.map(function (q, i) { return '<li><b>' + esc(q) + '</b><span>' + (esc(E.r[i]) || '—') + '</span></li>'; }).join('') + '<li><b>Contato</b><span>' + esc(E.nome) + ' · ' + esc(E.contato) + (E.empresa ? ' · ' + esc(E.empresa) : '') + '</span></li></ol>'; bVai.textContent = 'Enviar'; }
-    if (foco) { var f = $('#cvT') || $('#cvN'); if (f) f.focus({ preventScroll: true }); }
+  var PIL = ['Inteligência de mercado', 'Marca', 'Campanha'];
+  var TXT = [
+    'Antes da marca e da mídia, falta saber quem compra, quanto paga e o que a cidade já oferece. A Strat começa pelo estudo, com os dados da Datastore, e só depois desenha o resto.',
+    'O produto existe, mas ainda não tem nome, cara e história que sustentem o preço. A Strat começa pela marca: conceito, identidade e a narrativa que o corretor consegue repetir.',
+    'O que falta é rua. A Strat começa pela campanha: a ideia, as peças e a mídia que levam gente ao estande, com o orçamento que o lançamento tem.'
+  ];
+  var bq = $('#bq'), D = { i: 0, r: [], fim: false };
+  function soma() { var t = [0, 0, 0]; D.r.forEach(function (k, n) { var w = Q[n].o[k][1]; t[0] += w[0]; t[1] += w[1]; t[2] += w[2]; }); return t; }
+  function barra(p) { return '<div class="bar"><i style="width:' + p + '%"></i></div>'; }
+  function passo(foco) {
+    var n = D.i;
+    if (n < Q.length) {
+      var x = Q[n];
+      bq.innerHTML = '<div>' + barra(Math.round(n / Q.length * 100)) + '<div class="n">' + ('0' + (n + 1)).slice(-2) + ' / ' + ('0' + Q.length).slice(-2) + '</div><h3>' + x.q + '</h3></div>' +
+        '<div><div class="opts">' + x.o.map(function (o, k) { return '<button type="button" class="opt" data-k="' + k + '"><span>' + esc(o[0]) + '</span><span aria-hidden="true">→</span></button>'; }).join('') + '</div>' +
+        (n > 0 ? '<button type="button" class="bk" id="bk">← voltar</button>' : '') + '</div>';
+      if (foco) { var f = $('.opt', bq); if (f) f.focus({ preventScroll: true }); }
+      return;
+    }
+    var t = soma(), mx = Math.max(t[0], t[1], t[2], 1), top = t.indexOf(Math.max(t[0], t[1], t[2]));
+    bq.innerHTML = '<div class="res">' + barra(100) + '<div class="n">Diagnóstico</div><h3>Comece por <b>' + PIL[top].toLowerCase() + '.</b></h3>' +
+      '<div class="bars">' + PIL.map(function (p, k) { return '<div class="rb' + (k === top ? ' top' : '') + '"><span>' + p + '</span><i data-w="' + Math.round(t[k] / mx * 100) + '"></i></div>'; }).join('') + '</div>' +
+      '<p>' + TXT[top] + '</p>' +
+      '<form class="fld" id="fq" novalidate><input type="text" id="fqN" placeholder="Seu nome" maxlength="120" autocomplete="name" aria-label="Seu nome"><input type="tel" id="fqW" placeholder="WhatsApp com DDD" maxlength="24" autocomplete="tel" inputmode="tel" aria-label="WhatsApp com DDD"><input type="text" class="mel" id="fqM" name="site" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit" class="btn" id="fqB">Enviar →</button></form>' +
+      '<div class="fm" id="fqMsg" role="status"></div><button type="button" class="bk" id="bk">← voltar</button></div>';
+    requestAnimationFrame(function () { requestAnimationFrame(function () { $$('.rb i', bq).forEach(function (b) { b.style.width = b.dataset.w + '%'; }); }); });
+    D.top = top; D.t = t;
   }
-  cv.addEventListener('input', le);
-  bVolta.addEventListener('click', function () { le(); if (E.passo > 0) E.passo--; guarda(); mostra(true); });
-  cv.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); bVai.click(); } });
-  cv.addEventListener('submit', function (e) {
-    e.preventDefault(); le();
-    if (E.passo < 5) { if (!E.r[E.passo].trim()) { msg.textContent = 'Escreva uma resposta, mesmo curta, para seguir.'; return; } E.passo++; guarda(); return mostra(true); }
-    if (E.passo === 5) { if (E.nome.trim().length < 2) { msg.textContent = 'Diga seu nome.'; return; } if (!/@.+\..+/.test(E.contato) && E.contato.replace(/\D/g, '').length < 10) { msg.textContent = 'Deixe um e-mail ou um WhatsApp com DDD.'; return; } E.passo = 6; guarda(); return mostra(false); }
-    bVai.disabled = true; msg.textContent = 'Enviando…';
-    fetch('enviar.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ perguntas: PERG, respostas: E.r, nome: E.nome, contato: E.contato, empresa: E.empresa, site: mel.value }) })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j && j.ok === true, j: j }; }); })
-      .then(function (x) { if (!x.ok) throw new Error((x.j && x.j.erro) || 'falha'); E.fim = true; try { sessionStorage.removeItem('strat_cv'); } catch (_) {} mostra(false); })
-      .catch(function (err) { bVai.disabled = false; msg.textContent = 'Não foi possível enviar agora' + (err && err.message && err.message !== 'falha' ? ' (' + err.message + ')' : '') + '. Suas respostas continuam aqui; tente de novo.'; });
+  bq.addEventListener('click', function (e) {
+    var o = e.target.closest('.opt'); if (o) { D.r[D.i] = +o.dataset.k; D.i++; return passo(true); }
+    if (e.target.closest('#bk')) { D.i = Math.max(0, D.i - 1); D.r.length = D.i; passo(true); }
   });
-  mostra(false);
+  bq.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nome = $('#fqN').value.trim(), zap = $('#fqW').value.trim(), msg = $('#fqMsg'), b = $('#fqB');
+    if (nome.length < 2) { msg.textContent = 'Diga seu nome.'; $('#fqN').focus(); return; }
+    if (zap.replace(/\D/g, '').length < 10) { msg.textContent = 'Deixe um WhatsApp com DDD.'; $('#fqW').focus(); return; }
+    b.disabled = true; msg.textContent = 'Enviando…';
+    fetch('enviar.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      nome: nome, whatsapp: zap, site: $('#fqM').value,
+      perguntas: Q.map(function (x) { return x.q.replace(/<[^>]+>/g, ''); }), respostas: D.r.map(function (k, n) { return Q[n].o[k][0]; }),
+      resultado: PIL[D.top], pontos: { mercado: D.t[0], marca: D.t[1], campanha: D.t[2] } }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j && j.ok === true, j: j }; }); })
+      .then(function (x) { if (!x.ok) throw new Error((x.j && x.j.erro) || 'falha'); $('#fq').remove(); var k = $('#bk', bq); if (k) k.remove(); msg.textContent = 'Recebido. A Strat retorna no WhatsApp com o diagnóstico completo.'; })
+      .catch(function (err) { b.disabled = false; msg.textContent = 'Não foi possível enviar agora' + (err && err.message && err.message !== 'falha' ? ' (' + err.message + ')' : '') + '. Tente de novo.'; });
+  });
+  passo(false);
+  pintaSom();
 })();
