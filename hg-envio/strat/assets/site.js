@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '25';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '26';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -92,24 +92,29 @@
   function pede() { if (!tic) { tic = true; requestAnimationFrame(rola); } }
   window.addEventListener('scroll', pede, { passive: true }); window.addEventListener('resize', pede); rola();
 
-  /* ---------- 2. cinco marcas: um filme ativo por vez ---------- */
+  /* ---------- 2. seis marcas: um filme ativo por vez; clicar traz o texto do case sobre o vídeo ---------- */
   var lista = $('#lista'), itens = $$('.mi');
   function ativa(li) {
     itens.forEach(function (x) {
-      var on = x === li, v = $('video', x); x.classList.toggle('on', on); $('.mb', x).setAttribute('aria-expanded', on ? 'true' : 'false');
+      var on = x === li, v = $('video', x); x.classList.toggle('on', on); if (!on) x.classList.remove('txt'); $('.mb', x).setAttribute('aria-expanded', on ? 'true' : 'false');
       if (on) {
         if (!v.src && v.dataset.src) { v.src = v.dataset.src + '?v=' + V; v.load(); }
         v.muted = !(SOM && livre);
         if (!calmo || livre) { try { var p = v.play(); if (p && p.catch) p.catch(function () { v.muted = true; livre = false; pintaSom(); toca(v); }); } catch (_) {} }
       } else { try { v.pause(); v.muted = true; } catch (_) {} }
     });
-    lista.classList.toggle('tem', !!li); pintaSom();
+    lista.classList.toggle('tem', !!li); $('#mwrap').classList.toggle('tem', !!li); pintaSom();
   }
   itens.forEach(function (li) {
     var b = $('.mb', li);
     li.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse' && !estreito()) ativa(li); });
     b.addEventListener('focus', function () { if (b.matches(':focus-visible')) ativa(li); });
-    b.addEventListener('click', function () { if (estreito() || !li.classList.contains('on')) ativa(li.classList.contains('on') && estreito() ? null : li); });
+    b.addEventListener('click', function () {
+      if (estreito()) return ativa(li.classList.contains('on') ? null : li);
+      if (!li.classList.contains('on')) ativa(li);
+      li.classList.toggle('txt');
+    });
+    $('.painel', li).addEventListener('click', function (e) { if (!estreito() && !e.target.closest('.somd')) li.classList.toggle('txt'); });
   });
   lista.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && !estreito()) ativa(null); });
   lista.addEventListener('keydown', function (e) { if (e.key === 'Escape') ativa(null); });

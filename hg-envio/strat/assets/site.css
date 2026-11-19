@@ -68,29 +68,38 @@ body.bolha-on .cta{box-shadow:none}
 .apoio p{margin:0 0 16px}
 .apoio a{font-size:13px;font-weight:700;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:3px}
 
-/* ---------- 2. cinco marcas, cinco trabalhos ---------- */
+/* ---------- 2. seis marcas ---------- */
 .marcas{background:#000;color:#fff;padding:13vh 0 15vh}
-.marcas .rot{margin-bottom:8vh;color:var(--mineral2)}
-.lista{grid-column:1/-1;list-style:none;margin:0;padding:0;position:relative}
-.mi{width:calc(var(--col) * 4.6);border-top:1px solid #2a2a2a}
+.mwrap{grid-column:1/-1;position:relative}
+.mch{position:absolute;left:calc(var(--col) * 5.2);right:0;top:50%;transform:translateY(-50%);margin:0;text-align:right;font-size:min(6.1vw,12.4vh);line-height:.9;letter-spacing:-.05em;font-weight:700;color:#77766f;transition:opacity .3s;text-wrap:balance}
+.mch span,.mch a{display:block}
+.mch a{color:#fff;font-weight:800;text-decoration:none;margin-top:.12em;transition:color .2s}
+.mch a:hover{color:var(--magenta)}
+.mwrap.tem .mch{opacity:0;pointer-events:none}
+.lista{list-style:none;margin:0;padding:0;position:static}
+.mi{width:calc(var(--col) * 4.7);border-top:1px solid #2a2a2a}
 .mi:last-child{border-bottom:1px solid #2a2a2a}
-.mb{display:flex;align-items:center;width:100%;height:clamp(84px,13.2vh,128px);transition:opacity .24s}
+.mb{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px 14px;width:100%;padding:clamp(14px,2.3vh,22px) 0;text-align:left;transition:opacity .24s}
 .lista.tem .mi:not(.on) .mb{opacity:.34}
-.lg{width:auto;height:auto;max-width:none;flex:none;align-self:center;object-fit:contain;object-position:left center}
-.lg-datastore{height:56px}.lg-marcus{height:34px}.lg-biosphere{height:52px}.lg-faro{height:21px}.lg-britto{height:58px}
+.lg{width:auto;height:auto;max-width:none;justify-self:start;object-fit:contain;object-position:left center;grid-column:1}
+.lg-datastore{height:46px}.lg-marcus{height:28px}.lg-simm{height:34px}.lg-biosphere{height:42px}.lg-faro{height:18px}.lg-britto{height:46px}
+.ind{grid-column:1;font-size:clamp(11px,.86vw,13px);line-height:1.4;color:#a3a29c;font-weight:400}
+.ind span{white-space:nowrap}
+.ind b{color:#fff;font-weight:800}.ind i{font-style:normal;color:#55544f;margin:0 .35em}
 .painel{position:absolute;left:calc(var(--col) * 5.4);right:0;top:50%;transform:translateY(-50%);aspect-ratio:16/9;background:var(--grafite);overflow:hidden;opacity:0;pointer-events:none;transition:opacity .24s}
 .mi.on .painel{opacity:1;pointer-events:auto}
 .painel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.painel .pel{position:absolute;inset:0;background:#000;opacity:.3}                /* película uniforme, começa em 25% */
+.painel{cursor:pointer}
+.painel .pel{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .35s}
+.mi.txt .painel .pel{opacity:.42}                /* película uniforme, começa em 25% */
 .painel .pel::after{content:"";position:absolute;left:0;right:0;bottom:0;height:58%;background:#000;opacity:.6}
-.ptx{position:absolute;left:0;right:0;bottom:0;padding:26px 30px 28px;color:#fff}
+.ptx{position:absolute;left:0;right:0;bottom:0;padding:26px 30px 28px;color:#fff;opacity:0;transform:translateY(10px);transition:opacity .35s,transform .45s cubic-bezier(.2,.7,.2,1)}
+.mi.txt .ptx{opacity:1;transform:none}
 .ptx b{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
 .ptx p{margin:0;font-size:clamp(13px,1.1vw,17px);line-height:1.45;max-width:62ch}
 .somd{position:absolute;right:12px;top:12px;z-index:3;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.42);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .2s}
 .somd:hover{background:rgba(0,0,0,.7)}
 .somd .s0{display:none}.somd.mudo .s0{display:block}.somd.mudo .s1{display:none}
-.dica{grid-column:7/13;margin:-58vh 0 0;align-self:start;font-size:13px;color:#5d5d5d;pointer-events:none;transition:opacity .24s}
-.lista.tem + .dica{opacity:0}
 
 /* ---------- 3. Marcus + Sérgio ---------- */
 .autores{background:#fff;padding:13vh 0 12vh}
@@ -252,19 +261,20 @@ body.bolha-on .cta{box-shadow:none}
   .filme{position:relative;left:auto;top:auto;width:calc(100% - 32px);height:auto;aspect-ratio:16/9;margin:18px 16px 0}
   .apoio{position:static;width:auto;opacity:1;transform:none;padding:22px 16px 0;font-size:15px}
   .marcas{padding:9vh 0 11vh}
-  .marcas .rot{margin-bottom:26px}
+  .mch{position:static;transform:none;text-align:left;font-size:10.6vw;line-height:.92;margin:0 0 30px}
+  .mwrap.tem .mch{opacity:1;pointer-events:auto}
   .mi{width:auto}
-  .mb{height:74px}
-  .lg-datastore{height:44px}.lg-marcus{height:28px}.lg-biosphere{height:40px}.lg-faro{height:17px}.lg-britto{height:44px}
-  .mb::after{content:"";flex:none;margin-left:auto;margin-right:4px;width:11px;height:11px;border-right:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:translateY(-3px) rotate(45deg);transition:transform .6s cubic-bezier(.2,.7,.2,1);opacity:.9}
+  .mb{padding:18px 0;gap:10px 14px}
+  .lg-datastore{height:40px}.lg-marcus{height:25px}.lg-simm{height:30px}.lg-biosphere{height:36px}.lg-faro{height:16px}.lg-britto{height:40px}
+  .ind{font-size:11.5px}
+  .mb::after{content:"";grid-column:2;grid-row:1/3;margin-right:4px;width:11px;height:11px;border-right:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:translateY(-3px) rotate(45deg);transition:transform .6s cubic-bezier(.2,.7,.2,1);opacity:.9}
   .mi.on .mb::after{transform:translateY(3px) rotate(-135deg)}
   .painel{position:relative;left:auto;right:auto;top:auto;transform:none;display:block;visibility:visible;opacity:0;pointer-events:none;aspect-ratio:auto;margin:0;background:#000;overflow:hidden;max-height:0;transition:max-height .8s cubic-bezier(.2,.7,.2,1),opacity .6s ease,margin .8s cubic-bezier(.2,.7,.2,1)}
   .mi.on .painel{max-height:640px;opacity:1;pointer-events:auto;margin:0 0 18px}
   .painel video{position:relative;inset:auto;display:block;width:100%;aspect-ratio:16/9;height:auto;object-fit:cover}
   .painel .pel{display:none}
-  .ptx{position:static;padding:14px 0 6px}
+  .ptx{position:static;padding:14px 0 6px;opacity:1;transform:none}
   .ptx p{font-size:14.5px}
-  .dica{grid-column:1/-1;margin:16px 0 0}
   .autores{padding:10vh 0 9vh}
   .dois{grid-column:1/-1;margin-bottom:34px}
   .dupla{grid-column:1/-1;max-width:none}
