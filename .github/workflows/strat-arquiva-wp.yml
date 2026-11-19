@@ -25,6 +25,17 @@ jobs:
           echo "== raiz antes"; lista "$RAIZ"
           echo "== clientes"; lista "$RAIZ/clientes" | head -40
           echo "== propostas"; lista "$RAIZ/propostas" | head -40
+          if [ "$MODO" = "teste" ]; then
+            curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR" --data-urlencode "name=_arquivo" --data "permissions=0700" | head -c 300; echo
+            curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR/_arquivo" --data-urlencode "name=stratesign-wp-20261119" --data "permissions=0700" | head -c 300; echo
+            echo "== home"; lista "$HOME_DIR" | grep -i arquivo || echo "sem _arquivo"
+            for par in "sourcefiles=$RAIZ/license.txt|destfiles=$DEST" "sourcefiles=/stratesign.com.br/license.txt|destfiles=/_arquivo/stratesign-wp-20261119" "sourcefiles=stratesign.com.br/license.txt|destfiles=_arquivo/stratesign-wp-20261119/license.txt"; do
+              echo "-- $(echo "$par" | sed "s#$HOME_DIR#~#g")"
+              curl -sS --max-time 60 -H "$A" -G "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=$U" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&op=move&doubledecode=0" --data-urlencode "${par%%|*}" --data-urlencode "${par##*|}" | sed "s#$HOME_DIR#~#g" | head -c 500; echo
+              lista "$DEST" | grep license && break
+            done
+            exit 0
+          fi
           [ "$MODO" = "mover" ] || exit 0
           curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR" --data-urlencode "name=_arquivo" --data "permissions=0700" >/dev/null || true
           curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$HOME_DIR/_arquivo" --data-urlencode "name=stratesign-wp-20261119" --data "permissions=0700" >/dev/null || true
