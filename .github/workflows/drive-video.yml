@@ -1,0 +1,39 @@
+name: Drive — vídeo grande (folha de quadros, corte leve ou arquivo)
+# Para vídeos acima do limite do conector. O arquivo precisa estar com "qualquer pessoa com o link".
+# acao: folha (um quadro a cada "passo" segundos) | corte (trecho ss+t reduzido, sem som) | baixar (arquivo como está)
+on:
+  workflow_dispatch:
+    inputs:
+      id:    { description: "id do arquivo no Drive", required: true }
+      nome:  { description: "nome base de saída (sem extensão)", required: true }
+      acao:  { description: "folha | corte | baixar", required: true, default: "folha" }
+      ss:    { description: "corte: início em segundos", required: false, default: "0" }
+      t:     { description: "corte: duração em segundos", required: false, default: "8" }
+      larg:  { description: "corte: largura final", required: false, default: "1280" }
+      passo: { description: "folha: segundos entre quadros", required: false, default: "3" }
+      crf:   { description: "corte: qualidade (menor = melhor)", required: false, default: "27" }
+jobs:
+  v:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { ID: "${{ github.event.inputs.id }}", NOME: "${{ github.event.inputs.nome }}", ACAO: "${{ github.event.inputs.acao }}", SS: "${{ github.event.inputs.ss }}", T: "${{ github.event.inputs.t }}", LARG: "${{ github.event.inputs.larg }}", PASSO: "${{ github.event.inputs.passo }}", CRF: "${{ github.event.inputs.crf }}" }
+        run: |
+          set -e
+          case "$ID" in *[!A-Za-z0-9_-]*) echo "id inválido"; exit 1;; esac
+          NOME=$(basename "$NOME" | tr -c 'A-Za-z0-9._-' '_' | sed 's/_$//')
+          for v in "$SS" "$T" "$LARG" "$PASSO" "$CRF"; do case "$v" in *[!0-9.]*) echo "número inválido"; exit 1;; esac; done
+          sudo apt-get -qq update >/dev/null; sudo apt-get -qq install -y ffmpeg >/dev/null
+          mkdir out
+          curl -sSL --max-time 900 "https://drive.usercontent.google.com/download?id=$ID&export=download&confirm=t" -o src.bin
+          ls -la src.bin; file src.bin | cut -c1-120
+          if file src.bin | grep -qi "html"; then echo "O Drive devolveu página (arquivo não está público por link)."; exit 1; fi
+          ffprobe -v error -show_entries format=duration:stream=codec_type,codec_name,width,height,r_frame_rate -of default=nw=1 src.bin | tr '\n' ' '; echo
+          case "$ACAO" in
+            folha)  ffmpeg -v error -i src.bin -vf "fps=1/$PASSO,scale=256:-2,drawtext=text='%{pts\:hms}':x=4:y=4:fontsize=16:fontcolor=white:box=1:boxcolor=black@0.6,tile=10x12" -frames:v 1 -q:v 5 "out/$NOME-folha.jpg" ;;
+            corte)  ffmpeg -v error -ss "$SS" -t "$T" -i src.bin -vf "scale=$LARG:-2" -an -c:v libx264 -preset slow -crf "$CRF" -pix_fmt yuv420p -movflags +faststart "out/$NOME.mp4"; ffmpeg -v error -i "out/$NOME.mp4" -frames:v 1 -q:v 3 "out/$NOME.jpg" ;;
+            baixar) mv src.bin "out/$NOME" ;;
+            *) echo "ação desconhecida"; exit 1;;
+          esac
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with: { name: "saida-${{ github.event.inputs.nome }}-${{ github.event.inputs.acao }}", path: out/, retention-days: 1 }
