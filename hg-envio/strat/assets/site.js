@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '22';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '23';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,15 +29,16 @@
   function medeCta() { document.documentElement.style.setProperty('--ctaw', cta.offsetWidth + 'px'); }
   medeCta(); window.addEventListener('resize', medeCta); window.addEventListener('load', medeCta); if (document.fonts && document.fonts.ready) document.fonts.ready.then(medeCta);
   // banner de entrada: cresce do botão, fecha quando a página rola
-  var bolha = $('#bolha'), bolhaT = null;
+  var bolha = $('#bolha'), bolhaT = null, bolhaNao = false;
   function bolhaFecha() { clearTimeout(bolhaT); if (!bolha.classList.contains('on')) return; bolha.classList.remove('on'); document.body.classList.remove('bolha-on'); }
-  function bolhaAbre() { if (window.pageYOffset > 30 || bolha.classList.contains('on')) return; bolha.classList.add('on'); document.body.classList.add('bolha-on'); }
+  function bolhaAbre() { if (bolhaNao || window.pageYOffset > 30 || bolha.classList.contains('on')) return; bolha.classList.add('on'); document.body.classList.add('bolha-on'); }
   // abre sempre que a página está no topo: ao entrar e ao voltar lá para cima
   function bolhaOlha() { if (window.pageYOffset > 40) bolhaFecha(); else if (!bolha.classList.contains('on')) { clearTimeout(bolhaT); bolhaT = setTimeout(bolhaAbre, 700); } }
   bolhaT = setTimeout(bolhaAbre, 900);
   window.addEventListener('scroll', bolhaOlha, { passive: true }); window.addEventListener('pageshow', bolhaOlha);
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape') bolhaFecha(); });
-  bolha.addEventListener('click', bolhaFecha); cta.addEventListener('click', bolhaFecha);
+  $('a', bolha).addEventListener('click', bolhaFecha); cta.addEventListener('click', bolhaFecha);
+  $('#bolhaX').addEventListener('click', function () { bolhaNao = true; bolhaFecha(); });   // fechou no X: não volta nesta visita
   var idade = $('#idade'); if (idade) idade.textContent = (new Date().getFullYear() - 2012) + ' anos';
   var parou = false;
   function pinta() { pausa.textContent = parou ? 'Reproduzir' : 'Pausar'; pausa.setAttribute('aria-pressed', parou ? 'true' : 'false'); }
