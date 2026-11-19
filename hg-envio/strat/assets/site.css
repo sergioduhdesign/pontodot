@@ -97,21 +97,27 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .prova dd{margin:8px 0 0;font-size:13px;max-width:30ch}
 
 /* ---------- 4. manifesto: nomes gigantes e rastro de imagens ---------- */
-.manif{position:relative;background:#000;color:#fff;height:100vh;height:100svh;min-height:560px;overflow:hidden;cursor:crosshair}
+.manif{position:relative;background:#000;color:#fff;height:100vh;height:100svh;min-height:560px;overflow:hidden;cursor:default;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .mnm{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:0;z-index:0}
 .mnm .ln{white-space:nowrap;font-weight:800;font-size:min(11.5vw,17vh);line-height:.84;letter-spacing:-.055em;text-transform:uppercase;will-change:transform}
 .mnm .ln span{color:#1d1d1d;transition:color .12s;padding-right:.34em;cursor:default}
 .mnm .ln:nth-child(even) span{color:transparent;-webkit-text-stroke:1.5px #3a3a3a}
 .mnm .ln span:hover{color:#fff;-webkit-text-stroke:0 transparent}
 .mnm .ln:nth-child(3n) span:hover{color:var(--magenta)}
-.mtr{position:absolute;inset:0;z-index:2;pointer-events:none}
-.tr{position:absolute;left:0;top:0;width:clamp(150px,17vw,280px);margin:calc(clamp(150px,17vw,280px) / -2) 0 0 calc(clamp(150px,17vw,280px) / -2);opacity:0;will-change:transform,opacity}
-.tr img{width:100%;height:auto;display:block}
 .mfrase{position:absolute;left:var(--m);right:var(--m);top:50%;transform:translateY(-50%);z-index:3;pointer-events:none;mix-blend-mode:difference}
 .mfrase h2{margin:0;font-size:min(7.2vw,13vh);font-weight:800;letter-spacing:-.055em;line-height:.9}
 .mfrase h2 span{display:block;color:#fff}
 .mfrase h2 b{display:block;font-weight:800;color:var(--magenta)}
 .mapoio{margin:22px 0 0;font-size:clamp(13px,1.2vw,18px);font-weight:700;letter-spacing:-.01em;color:#fff}
+
+/* ---------- mural: grade com tamanhos variados ---------- */
+.mural{background:#000;padding:6px}
+.mgr{display:grid;grid-template-columns:repeat(8,1fr);grid-auto-rows:calc((100vw - 12px - 42px) / 8);grid-auto-flow:dense;gap:6px}
+.mg{position:relative;overflow:hidden;background:#111;opacity:0;transform:translateY(26px);transition:opacity 1s ease,transform 1.2s cubic-bezier(.16,1,.3,1)}
+.mg.v{opacity:1;transform:none}
+.mg.w{grid-column:span 2}.mg.t{grid-row:span 2}.mg.g{grid-column:span 2;grid-row:span 2}
+.mg img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);transition:filter .5s,transform 1.2s cubic-bezier(.16,1,.3,1)}
+.mg:hover img{filter:none;transform:scale(1.04)}
 
 /* ---------- 5. vitrine de Instagrams ---------- */
 .acervo{background:#fff;padding:15vh 0 12vh;overflow:hidden}
@@ -233,7 +239,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .manif{height:88svh}
   .mnm .ln{font-size:25vw}
   .mfrase h2{font-size:11.6vw}
-  .tr{width:42vw;margin:-21vw 0 0 -21vw}
+  .mgr{grid-template-columns:repeat(4,1fr);grid-auto-rows:calc((100vw - 12px - 18px) / 4)}
+  .mg img{filter:none}
   .acervo{padding:9vh 0 8vh}
   .giro{--cw:66vw;margin-top:30px;height:calc(var(--cw) * 16 / 9 + 250px)}
   .seta{display:none}

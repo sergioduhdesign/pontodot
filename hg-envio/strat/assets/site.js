@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '9';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '10';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -35,71 +35,8 @@
   if (calmo) { parou = true; pinta(); try { vid.pause(); vid.removeAttribute('autoplay'); drg.pause(); drg.removeAttribute('autoplay'); } catch (_) {} }
   else { entra(); ['loadeddata', 'canplay'].forEach(function (ev) { vid.addEventListener(ev, function () { if (vid.paused) entra(); }); }); window.addEventListener('load', entra); window.addEventListener('pageshow', entra); document.addEventListener('visibilitychange', function () { if (!document.hidden) entra(); }); }
 
-  /* ---------- 4. manifesto: nomes gigantes correndo e rastro de imagens no mouse ---------- */
-  var manif = $('#manifesto'), mnm = $('#mnm'), mtr = $('#mtr'), LN = [], manifVisto = false;
-  var NPOL = 56, fila = [], prox = 0, ult = null, zi = 1, pre = false;
-  function pol(n) { return 'img/pol/' + ('0' + n).slice(-2) + '.webp?v=' + V; }
-  function precarrega() { if (pre) return; pre = true; for (var i = 1; i <= NPOL; i++) { var im = new Image(); im.decoding = 'async'; im.src = pol(i); } }
-  var ORD = []; (function () { for (var i = 1; i <= NPOL; i++) ORD.push(i); for (var j = ORD.length - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = ORD[j]; ORD[j] = ORD[k]; ORD[k] = t; } })();
-  function pega() { var d; if (fila.length < 16) { d = document.createElement('div'); d.className = 'tr'; d.appendChild(new Image()); mtr.appendChild(d); } else d = fila.shift(); fila.push(d); return d; }
-  var Tf = function (px, py, rot, sc) { return 'translate3d(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px,0) rotate(' + rot.toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')'; };
-  // no toque: o card chega devagar e fica enquanto o dedo estiver na tela
-  function pousa(x, y) {
-    var d = pega(), im = d.firstChild; im.alt = ''; im.src = pol(ORD[prox++ % NPOL]);
-    var r = Math.random() * 18 - 9, e = 0.86 + Math.random() * 0.3;
-    d.style.zIndex = String(zi++); d._fim = Tf(x, y, r, e); d._r = r; d._e = e; d._x = x; d._y = y; d._vivo = true;
-    if (d._a) d._a.cancel();
-    if (!d.animate) { d.style.opacity = 1; d.style.transform = d._fim; return; }
-    d._a = d.animate([{ opacity: 0, transform: Tf(x, y + 22, r * 1.8, e * 0.84) }, { opacity: 1, transform: d._fim }], { duration: 1300, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' });
-  }
-  function recolhe() {
-    var n = 0;
-    fila.forEach(function (d) {
-      if (!d._vivo) return; d._vivo = false;
-      if (!d.animate) { d.style.opacity = 0; return; }
-      var op = getComputedStyle(d).opacity, tr = getComputedStyle(d).transform; if (d._a) d._a.cancel();
-      d._a = d.animate([{ opacity: op, transform: tr }, { opacity: 0, transform: Tf(d._x, d._y + 34, d._r * 1.3, d._e * 0.95) }], { duration: 1200, delay: (n++) * 60, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' });
-    });
-  }
-  var dedo = null;
-  function toque(e) {
-    var t = e.touches[0]; if (!t) return; var b = manif.getBoundingClientRect(), x = t.clientX - b.left, y = t.clientY - b.top, agora = performance.now();
-    if (y < 0 || y > b.height) return;
-    if (!dedo) { dedo = { x: x, y: y, t: agora }; pousa(x, y); return; }
-    var dx = x - dedo.x, dy = y - dedo.y; if (dx * dx + dy * dy < 84 * 84 || agora - dedo.t < 240) return;
-    dedo = { x: x, y: y, t: agora }; pousa(x, y);
-  }
-  function soltaDedo() { if (!dedo) return; dedo = null; recolhe(); }
-  function solta1(x, y, dx, dy) {
-    var d = pega();
-    var im = d.firstChild; im.alt = ''; im.src = pol(ORD[prox++ % NPOL]);
-    var r = (Math.random() * 26 - 13), e = 0.8 + Math.random() * 0.5, vx = Math.max(-90, Math.min(90, dx * 0.9)), vy = Math.max(-90, Math.min(90, dy * 0.9));
-    d.style.zIndex = String(zi++);
-    if (d._a) d._a.cancel();
-    var T = function (px, py, rot, sc) { return 'translate3d(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px,0) rotate(' + rot.toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')'; };
-    if (!d.animate) { d.style.opacity = 1; d.style.transform = T(x, y, r, e); return; }
-    d._a = d.animate([
-      { opacity: 0, transform: T(x - vx * 0.6, y - vy * 0.6, r * 2.2, e * 0.55), offset: 0 },
-      { opacity: 1, transform: T(x, y, r, e), offset: 0.12 },
-      { opacity: 1, transform: T(x + vx * 0.25, y + vy * 0.25, r * 0.8, e), offset: 0.7 },
-      { opacity: 0, transform: T(x + vx * 0.4, y + vy * 0.4 + 120, r * 1.6, e * 0.86), offset: 1 }
-    ], { duration: 1700, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' });
-  }
-  function rastro(e) {
-    var b = manif.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
-    if (!ult) { ult = { x: x, y: y }; return; }
-    var dx = x - ult.x, dy = y - ult.y, passo = estreito() ? 70 : 96;
-    if (dx * dx + dy * dy < passo * passo) return;
-    ult = { x: x, y: y }; solta1(x, y, dx, dy);
-  }
-  if (!calmo) {
-    manif.addEventListener('touchstart', function (e) { precarrega(); toque(e); }, { passive: true });
-    manif.addEventListener('touchmove', toque, { passive: true });
-    window.addEventListener('touchend', soltaDedo, { passive: true }); window.addEventListener('touchcancel', soltaDedo, { passive: true });
-    manif.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') rastro(e); }, { passive: true });
-    manif.addEventListener('pointerleave', function () { ult = null; });
-    manif.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') return; var b = manif.getBoundingClientRect(); for (var i = 0; i < 5; i++) solta1(e.clientX - b.left + (Math.random() * 260 - 130), e.clientY - b.top + (Math.random() * 220 - 110), Math.random() * 120 - 60, Math.random() * 120 - 60); });
-  }
+  /* ---------- 4. manifesto: nomes gigantes correndo atrás da frase ---------- */
+  var manif = $('#manifesto'), mnm = $('#mnm'), LN = [], manifVisto = false;
   function montaNomes(nomes) {
     var linhas = estreito() ? 6 : 5, por = Math.ceil(nomes.length / linhas);
     for (var i = 0; i < linhas; i++) {
@@ -109,7 +46,6 @@
       LN.push({ el: d, x: 0, dir: i % 2 ? 1 : -1, vel: 0.35 + (i * 37 % 5) * 0.09, w: 0 });
     }
     medeNomes(); if (calmo) LN.forEach(function (o, i) { o.el.style.transform = 'translate3d(' + (-(i % 3) * 9) + 'vw,0,0)'; });
-    if (calmo) { var w = manif.clientWidth, hh = manif.clientHeight, P = [[10, 16], [88, 20], [14, 84], [86, 82], [50, 10], [50, 90]]; P.forEach(function (q, i) { var t = document.createElement('div'); t.className = 'tr'; var im = new Image(); im.alt = ''; im.src = pol(ORD[i]); t.appendChild(im); t.style.opacity = 1; t.style.transform = 'translate3d(' + (w * q[0] / 100) + 'px,' + (hh * q[1] / 100) + 'px,0) rotate(' + ((i % 2 ? 1 : -1) * (4 + i * 2)) + 'deg) scale(.8)'; mtr.appendChild(t); }); }
   }
   function medeNomes() { LN.forEach(function (o) { o.w = o.el.scrollWidth / 3; }); }
   var impulso = 0, ultRola = window.pageYOffset, girando = false;
@@ -133,7 +69,6 @@
     if (!calmo) { if (r.bottom < 0) { if (!drg.paused) drg.pause(); } else if (drg.paused) toca(drg); }
     var m = manif.getBoundingClientRect(), y = window.pageYOffset;
     manifVisto = m.top < vh && m.bottom > 0;
-    if (m.top < vh * 2.5 && m.bottom > -vh) precarrega();
     if (manifVisto) { impulso = Math.max(-14, Math.min(14, impulso + (y - ultRola) * 0.05)); ligaNomes(); }
     ultRola = y;
     var c = conversa.getBoundingClientRect(); cta.classList.toggle('fora', c.top < vh * 0.6);
@@ -214,6 +149,19 @@
     L = d.filter(function (x) { return !!x.img; });                    // só entra na vitrine quem tem print verdadeiro
     N = L.length; var g = L.findIndex(function (x) { return x.arroba === 'geovilleurbanismo'; }); cur = pos = g < 0 ? 0 : g; monta();
   }).catch(function () { central.textContent = 'A vitrine não carregou. Atualize a página.'; });
+
+  /* ---------- mural: grade de imagens com tamanhos variados ---------- */
+  fetch('dados/grade.json?v=' + V).then(function (r) { return r.json(); }).then(function (G) {
+    var mgr = $('#mgr'), q = 0;
+    var io = 'IntersectionObserver' in window && !calmo ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' }) : null;
+    G.forEach(function (g, i) {
+      var r = g[1] / g[2], c = r > 1.22 ? 'w' : r < 0.82 ? 't' : (q++ % 4 === 0 ? 'g' : '');
+      if (c === 'w' && i % 5 === 0) c = 'g';
+      var d = document.createElement('figure'); d.className = 'mg' + (c ? ' ' + c : ''); d.style.margin = 0; d.style.transitionDelay = ((i % 4) * 90) + 'ms';
+      var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = g[1]; im.height = g[2]; im.src = 'img/gr/' + g[0] + '.webp?v=' + V; d.appendChild(im);
+      mgr.appendChild(d); if (io) io.observe(d); else d.classList.add('v');
+    });
+  }).catch(function () {});
 
   /* ---------- 6. artigos: o bloco só aparece com cinco textos publicados ---------- */
   fetch('dados/artigos.json?v=' + V).then(function (r) { return r.json(); }).then(function (d) {
