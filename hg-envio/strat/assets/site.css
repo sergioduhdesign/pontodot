@@ -9,7 +9,11 @@
   --m:4vw; --col:calc((100vw - 2 * var(--m)) / 12); --p:0;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-snap-type:y mandatory}
+/* rolagem que encaixa: a página para no começo de cada seção; dentro de seção mais alta que a tela rola solta */
+main>section,.pe{scroll-snap-align:start;scroll-snap-stop:normal}
+.pe{scroll-snap-align:end}
+.abre::after{content:"";position:absolute;left:0;right:0;bottom:0;height:100vh;height:100svh;scroll-snap-align:start;pointer-events:none}
 body{margin:0;background:var(--branco);color:var(--tinta);font-family:Mont,"Helvetica Neue",Arial,sans-serif;font-weight:400;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 img,video,svg{display:block;max-width:100%}
 a{color:inherit}
@@ -253,6 +257,7 @@ body.bolha-on .cta{box-shadow:none}
   .sub{grid-column:1/-1}
   /* capa: título e dragão primeiro, filme logo abaixo */
   .abre{height:auto}
+  .abre::after{display:none}
   .palco{position:relative;height:auto;overflow:visible;padding:66px 0 96px}
   .drg{position:relative;left:auto;top:auto;height:auto;width:80vw;margin:0 auto;display:block}
   .tit{left:13vw;bottom:auto;top:calc(66px + 11vw);transform:rotate(180deg);writing-mode:vertical-rl;font-size:17.6vw;line-height:.86;letter-spacing:-.05em}
@@ -307,6 +312,7 @@ body.bolha-on .cta{box-shadow:none}
   .abre{height:auto}
   .palco{position:relative}
   .bolha,.bolha.on{transition:opacity .3s}
+  html{scroll-snap-type:none}
   .tl,.painel,.mb{transition:none}
 }
 /* nunca deixar uma palavra sozinha na última linha */
