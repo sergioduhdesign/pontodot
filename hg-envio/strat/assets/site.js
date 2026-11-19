@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '12';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '13';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -109,7 +109,7 @@
       f.innerHTML = '<div class="im"></div><figcaption><b>' + esc(x.nome) + '</b><i>@' + esc(x.arroba) + '</i><p>' + esc(x.legenda) + '</p><a href="' + esc(x.url) + '" target="_blank" rel="noopener">Abrir Instagram ↗</a></figcaption>';
       pista.appendChild(f); els.push(f);
     });
-    desenha(); anuncia(); degrade();
+    desenha(); anuncia();
   }
   function desenha() {
     var cw = els[0] ? els[0].offsetWidth : 280, est = estreito();
@@ -141,9 +141,7 @@
   });
   function solta() { if (!ar) return; var a = ar; ar = null; giro.classList.remove('arr'); if (!a.andou) { if (a.alvo) { var i = +a.alvo.dataset.i; if (i !== cur) vai(i); } return; } var passo = (els[0] ? els[0].offsetWidth : 280); vai(Math.round(pos - (a.vx * 180) / passo)); }
   window.addEventListener('pointerup', solta); window.addEventListener('pointercancel', solta);
-  // degradê do preto (fim do mural) ao branco, terminando no começo dos cards
-  function degrade() { var ac = $('#acervo'), t = ac.getBoundingClientRect().top, g0 = $('.h2', ac).getBoundingClientRect().bottom - t + 8, cw = els[0] ? els[0].offsetWidth : 280, g1 = giro.getBoundingClientRect().top - t + 20 + cw * 16 / 9 * 0.42; ac.style.setProperty('--g0', g0 + 'px'); ac.style.setProperty('--g1', Math.max(g1, g0 + 160) + 'px'); }
-  window.addEventListener('resize', function () { if (N) desenha(); degrade(); }); window.addEventListener('load', degrade);
+  window.addEventListener('resize', function () { if (N) desenha(); });
   fetch('dados/social.json?v=' + V).then(function (r) { return r.json(); }).then(function (d) {
     // nomes de clientes reais para o fim do manifesto (o índice inteiro)
     var vistos = {}, nomes = []; d.forEach(function (x) { var n = x.nome.replace(/\s*\(.*\)$/, ''); if (!vistos[n]) { vistos[n] = 1; nomes.push(n); } });
@@ -168,12 +166,33 @@
       var bl = document.createElement('div'); bl.className = 'bl';
       var pg = b.oito ? -1 : (k % 4 === 0 || k % 4 === 3 ? 0 : 2);   // onde entra a imagem grande: à esquerda ou à direita
       b.itens.forEach(function (g, m) {
-        var d = document.createElement('figure'); d.className = 'mg' + (m === pg ? ' g' : ''); d.style.transitionDelay = ((m % 4) * 90) + 'ms';
-        var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = g[1]; im.height = g[2]; im.src = 'img/gr/' + g[0] + '.webp?v=' + V; d.appendChild(im);
+        var d = document.createElement('figure'); d.className = 'mg' + (m === pg ? ' g' : ''); d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', 'Ampliar imagem'); d.dataset.s = 'img/gr/' + g[0] + '.webp?v=' + V; d.style.transitionDelay = ((m % 4) * 90) + 'ms';
+        var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = g[1]; im.height = g[2]; im.draggable = false; im.src = 'img/gr/' + g[0] + '.webp?v=' + V; d.appendChild(im);
         bl.appendChild(d); if (io) io.observe(d); else d.classList.add('v');
       });
       mgr.appendChild(bl);
     });
+    // clicar (ou segurar) abre a imagem grande; clicar fora, Esc ou Fechar volta
+    var todas = $$('.mg', mgr), at = -1, luz = document.createElement('div'); luz.className = 'luz'; luz.setAttribute('role', 'dialog'); luz.setAttribute('aria-modal', 'true'); luz.setAttribute('aria-label', 'Imagem ampliada');
+    luz.innerHTML = '<img alt=""><button type="button" class="lx">Fechar</button><button type="button" class="la" aria-label="Imagem anterior">←</button><button type="button" class="lp" aria-label="Próxima imagem">→</button><div class="ln2"></div>';
+    document.body.appendChild(luz);
+    var foco = null;
+    function abre(k) { at = (k + todas.length) % todas.length; $('img', luz).src = todas[at].dataset.s; $('.ln2', luz).textContent = (at + 1) + ' / ' + todas.length; if (!luz.classList.contains('on')) { foco = document.activeElement; luz.classList.add('on'); document.documentElement.style.overflow = 'hidden'; $('.lx', luz).focus({ preventScroll: true }); } }
+    function fecha() { if (at < 0) return; at = -1; luz.classList.remove('on'); document.documentElement.style.overflow = ''; if (foco && foco.focus) foco.focus({ preventScroll: true }); }
+    var seg = null, abriu = false;
+    mgr.addEventListener('pointerdown', function (e) { var f = e.target.closest('.mg'); if (!f) return; abriu = false; clearTimeout(seg); seg = setTimeout(function () { abriu = true; abre(todas.indexOf(f)); }, 420); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { mgr.addEventListener(ev, function () { clearTimeout(seg); }); });
+    window.addEventListener('scroll', function () { clearTimeout(seg); }, { passive: true });
+    window.addEventListener('pointerup', function () { setTimeout(function () { abriu = false; }, 60); });
+    mgr.addEventListener('click', function (e) { var f = e.target.closest('.mg'); if (f && !abriu) abre(todas.indexOf(f)); abriu = false; });
+    mgr.addEventListener('contextmenu', function (e) { if (e.target.closest('.mg') && e.pointerType !== 'mouse' && window.matchMedia('(hover: none)').matches) e.preventDefault(); });
+    mgr.addEventListener('keydown', function (e) { var f = e.target.closest('.mg'); if (f && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abre(todas.indexOf(f)); } });
+    var solto = 0;
+    luz.addEventListener('pointerup', function () { solto = performance.now(); });
+    luz.addEventListener('click', function (e) { if (e.target.closest('.la')) return abre(at - 1); if (e.target.closest('.lp')) return abre(at + 1); if (abriu) { abriu = false; return; } fecha(); });
+    window.addEventListener('keydown', function (e) { if (at < 0) return; if (e.key === 'Escape') fecha(); else if (e.key === 'ArrowLeft') abre(at - 1); else if (e.key === 'ArrowRight') abre(at + 1); });
+    var tx = null; luz.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+    luz.addEventListener('touchend', function (e) { if (tx == null) return; var dx = e.changedTouches[0].clientX - tx; tx = null; if (Math.abs(dx) > 50) { abriu = true; abre(at + (dx < 0 ? 1 : -1)); setTimeout(function () { abriu = false; }, 350); } }, { passive: true });
   }).catch(function () {});
 
   /* ---------- 6. artigos: o bloco só aparece com cinco textos publicados ---------- */

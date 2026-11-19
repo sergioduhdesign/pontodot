@@ -119,9 +119,20 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .mg.g{grid-column:span 2;grid-row:span 2}
 .mg img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);transition:filter .5s,transform 1.2s cubic-bezier(.16,1,.3,1)}
 .mg:hover img{filter:none;transform:scale(1.04)}
+.mg{cursor:zoom-in}
+.mg:focus-visible{outline:2px solid var(--magenta);outline-offset:-2px}
+.luz{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease;-webkit-user-select:none;user-select:none}
+.luz.on{opacity:1;pointer-events:auto}
+.luz img{max-width:min(92vw,900px);max-height:82vh;width:auto;height:auto;min-width:min(92vw,62vh);object-fit:contain;transform:scale(.96);transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.luz.on img{transform:none}
+.luz button{position:absolute;color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em;padding:14px 16px}
+.luz .lx{right:var(--m);top:18px}
+.luz .la,.luz .lp{top:50%;transform:translateY(-50%);font-size:22px}
+.luz .la{left:calc(var(--m) - 8px)}.luz .lp{right:calc(var(--m) - 8px)}
+.luz .ln2{pointer-events:none;position:absolute;left:0;right:0;bottom:18px;text-align:center;color:#8c8b86;font-size:12px;font-variant-numeric:tabular-nums}
 
 /* ---------- 5. vitrine de Instagrams ---------- */
-.acervo{--g0:34vh;--g1:70vh;background:linear-gradient(to bottom,#000 0,#000 var(--g0),#fff var(--g1));color:var(--tinta);padding:15vh 0 12vh;overflow:hidden}
+.acervo{background:#fff;padding:15vh 0 12vh;overflow:hidden}
 .giro{position:relative;margin-top:7vh;--cw:min(19vw,290px);height:calc(var(--cw) * 16 / 9 + 250px);perspective:1500px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none;outline-offset:-4px}
 .giro::before{content:"";position:absolute;left:0;right:0;top:calc(var(--cw) * 8 / 9 + 20px);height:calc(var(--cw) * .82);transform:translateY(-50%);background:var(--mineral);z-index:0}
 .giro.arr{cursor:grabbing}
@@ -136,7 +147,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .tl figcaption i{display:block;font-style:normal;font-size:11px;color:var(--mineral2);margin-top:3px;overflow-wrap:anywhere}
 .tl figcaption p{margin:8px 0 0;font-size:11.5px;line-height:1.45;display:none}
 .tl.c figcaption p{display:block;color:var(--tinta)}
-.acervo .h2{color:#fff}
 .tl:not(.c) figcaption{opacity:.55}
 .tl:not(.v) figcaption{visibility:hidden}
 .tl figcaption a{display:none;margin-top:10px;font-size:12px;font-weight:700;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px}
@@ -243,6 +253,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .mfrase h2{font-size:11.6vw}
   .mgr{--u:calc((100vw - 12px - 18px) / 4);grid-template-columns:1fr}
   .mg img{filter:none}
+  .luz .la,.luz .lp{top:auto;bottom:6px;transform:none}
   .acervo{padding:9vh 0 8vh}
   .giro{--cw:66vw;margin-top:30px;height:calc(var(--cw) * 16 / 9 + 250px)}
   .seta{display:none}
