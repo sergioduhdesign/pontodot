@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '8';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '9';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -17,9 +17,12 @@
     bSom.textContent = SOM ? 'Som ligado' : 'Som desligado'; bSom.setAttribute('aria-pressed', SOM ? 'true' : 'false');
     var a = ativo();
     $$('.mi video').forEach(function (v) { v.muted = !(SOM && livre && v === a); });
-    $$('.somd').forEach(function (d) { d.hidden = !(SOM && !livre && a && d.parentNode.contains(a)); });
+    $$('.mi .somd').forEach(function (d) { d.hidden = !(SOM && !livre && a && d.parentNode.contains(a)); });
+    vid.muted = !(SOM && livre) || !!a; $('#somh').hidden = !(SOM && !livre) || calmo;
   }
-  function libera() { if (livre) return; livre = true; pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); }
+  function libera() { if (livre) return; livre = true; pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); if (!parou && !calmo) tocaVid(); }
+  // se o navegador recusar tocar com som, volta a tocar mudo em vez de parar o filme
+  function tocaVid() { try { var p = vid.play(); if (p && p.catch) p.catch(function () { if (!vid.muted) { vid.muted = true; livre = false; $('#somh').hidden = !SOM; toca(vid); } }); } catch (_) {} }
   ['click', 'keydown'].forEach(function (ev) { window.addEventListener(ev, libera, true); });   // só clique e tecla contam como gesto no iPhone
   bSom.addEventListener('click', function () { SOM = !SOM; try { localStorage.setItem('strat_som', SOM ? '1' : '0'); } catch (_) {} livre = true; pintaSom(); });
 
@@ -27,8 +30,8 @@
   var abre = $('#inicio'), vid = $('#vid'), drg = $('#drg'), pausa = $('#pausa'), cta = $('.cta'), conversa = $('#conversa');
   var parou = false;
   function pinta() { pausa.textContent = parou ? 'Reproduzir' : 'Pausar'; pausa.setAttribute('aria-pressed', parou ? 'true' : 'false'); }
-  function entra() { if (parou || calmo) return; vid.muted = true; toca(vid); toca(drg); }
-  pausa.addEventListener('click', function () { parou = !parou; if (parou) vid.pause(); else toca(vid); pinta(); });
+  function entra() { if (parou || calmo) return; if (!livre) vid.muted = true; tocaVid(); toca(drg); }
+  pausa.addEventListener('click', function () { parou = !parou; if (parou) vid.pause(); else tocaVid(); pinta(); });
   if (calmo) { parou = true; pinta(); try { vid.pause(); vid.removeAttribute('autoplay'); drg.pause(); drg.removeAttribute('autoplay'); } catch (_) {} }
   else { entra(); ['loadeddata', 'canplay'].forEach(function (ev) { vid.addEventListener(ev, function () { if (vid.paused) entra(); }); }); window.addEventListener('load', entra); window.addEventListener('pageshow', entra); document.addEventListener('visibilitychange', function () { if (!document.hidden) entra(); }); }
 
@@ -126,7 +129,7 @@
     var vh = window.innerHeight, r = abre.getBoundingClientRect();
     if (!calmo && !estreito()) { var p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh))), e = Math.min(1, p / 0.78); e = e * e * (3 - 2 * e); abre.style.setProperty('--p', e.toFixed(4)); }
     else abre.style.setProperty('--p', '0');
-    if (!parou) { if (r.bottom < 0) { if (!vid.paused) vid.pause(); } else if (vid.paused) toca(vid); }
+    if (!parou) { if (r.bottom < 0) { if (!vid.paused) vid.pause(); } else if (vid.paused) tocaVid(); }
     if (!calmo) { if (r.bottom < 0) { if (!drg.paused) drg.pause(); } else if (drg.paused) toca(drg); }
     var m = manif.getBoundingClientRect(), y = window.pageYOffset;
     manifVisto = m.top < vh && m.bottom > 0;
