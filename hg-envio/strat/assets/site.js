@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '18';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '19';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -28,6 +28,14 @@
   var abre = $('#inicio'), vid = $('#vid'), drg = $('#drg'), pausa = $('#pausa'), cta = $('.cta'), conversa = $('#conversa');
   function medeCta() { document.documentElement.style.setProperty('--ctaw', cta.offsetWidth + 'px'); }
   medeCta(); window.addEventListener('resize', medeCta); window.addEventListener('load', medeCta); if (document.fonts && document.fonts.ready) document.fonts.ready.then(medeCta);
+  // banner de entrada: cresce do botão, fecha quando a página rola
+  var bolha = $('#bolha'), bolhaViu = false;
+  function bolhaFecha() { if (!bolha.classList.contains('on')) return; bolha.classList.remove('on'); document.body.classList.remove('bolha-on'); }
+  function bolhaAbre() { if (bolhaViu || window.pageYOffset > 30 || location.hash) return; bolhaViu = true; bolha.classList.add('on'); document.body.classList.add('bolha-on'); }
+  setTimeout(bolhaAbre, 900);
+  window.addEventListener('scroll', function () { if (window.pageYOffset > 40) { bolhaViu = true; bolhaFecha(); } }, { passive: true });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') bolhaFecha(); });
+  bolha.addEventListener('click', bolhaFecha); cta.addEventListener('click', bolhaFecha);
   var idade = $('#idade'); if (idade) idade.textContent = (new Date().getFullYear() - 2012) + ' anos';
   var parou = false;
   function pinta() { pausa.textContent = parou ? 'Reproduzir' : 'Pausar'; pausa.setAttribute('aria-pressed', parou ? 'true' : 'false'); }
@@ -230,17 +238,17 @@
   /* ---------- 7. conversa: diagnóstico em cinco perguntas (mesmo desenho do sergioduh.com) ---------- */
   // pesos por resposta: [inteligência de mercado, marca, campanha]
   var Q = [
-    { q: 'O que você está colocando <b>no mundo?</b>', o: [['Um lançamento imobiliário', [1, 2, 3]], ['Uma incorporadora ou uma marca', [1, 3, 0]], ['Um loteamento ou bairro planejado', [2, 2, 1]], ['Ainda estou estudando o terreno', [3, 0, 0]]] },
-    { q: 'Em que <b>ponto</b> está?', o: [['Só o terreno e uma ideia', [3, 1, 0]], ['Produto definido, ainda sem marca', [1, 3, 1]], ['No ar, mas sem tração', [1, 1, 3]], ['Vendendo e quero escalar', [0, 1, 3]]] },
-    { q: 'O que mais <b>trava</b> hoje?', o: [['Não sei para quem vender', [3, 0, 0]], ['Não pareço com o que sou', [0, 3, 0]], ['Ninguém percebe o valor', [1, 3, 1]], ['O interesse chega e não vira visita', [1, 0, 3]]] },
-    { q: 'Como você quer ser <b>lembrado?</b>', o: [['Por entender a cidade', [3, 0, 0]], ['Por uma marca forte', [0, 3, 0]], ['Por uma campanha que parou a rua', [0, 0, 3]], ['Pelos resultados', [1, 1, 1]]] },
-    { q: 'Para <b>quando</b>?', o: [['Esta semana', [0, 0, 0]], ['Este mês', [0, 0, 0]], ['Este trimestre', [0, 0, 0]], ['Só explorando', [0, 0, 0]]] }
+    { q: 'Onde o seu lançamento está <b>sangrando?</b>', o: [['O estande está vazio', [1, 1, 3]], ['Tem visita, mas ninguém fecha', [2, 3, 0]], ['Vendo, mas só com desconto', [1, 3, 1]], ['Nem lancei e já estou com medo', [3, 1, 0]]] },
+    { q: 'Quanto tempo dá para seguir <b>nesse ritmo?</b>', o: [['Menos de três meses', [0, 0, 3]], ['Até o fim do ano', [1, 1, 2]], ['Tenho fôlego, mas não quero queimar', [2, 2, 0]], ['Não fiz essa conta', [3, 0, 0]]] },
+    { q: 'O que o comprador diz quando <b>some?</b>', o: [['Achei caro', [1, 3, 0]], ['Vou esperar o juro cair', [3, 0, 1]], ['Gostei mais do concorrente', [1, 3, 1]], ['Nada. Ele nem chegou a vir', [0, 1, 3]]] },
+    { q: 'E o <b>concorrente</b> ao lado?', o: [['Vende mais com produto pior', [0, 3, 2]], ['Está derrubando o preço', [2, 2, 0]], ['Aparece em todo lugar, eu não', [0, 1, 3]], ['Não sei o que ele está fazendo', [3, 0, 0]]] },
+    { q: 'Se nada mudar, como você entra em <b>2027?</b>', o: [['Com estoque parado', [1, 1, 3]], ['Com a marca queimada por desconto', [0, 3, 1]], ['Sem saber qual produto lançar', [3, 1, 0]], ['Bem. Quero entrar melhor ainda', [1, 1, 1]]] }
   ];
   var PIL = ['Inteligência de mercado', 'Marca', 'Campanha'];
   var TXT = [
-    'Antes da marca e da mídia, falta saber quem compra, quanto paga e o que a cidade já oferece. A Strat começa pelo estudo, com os dados da Datastore, e só depois desenha o resto.',
-    'O produto existe, mas ainda não tem nome, cara e história que sustentem o preço. A Strat começa pela marca: conceito, identidade e a narrativa que o corretor consegue repetir.',
-    'O que falta é rua. A Strat começa pela campanha: a ideia, as peças e a mídia que levam gente ao estande, com o orçamento que o lançamento tem.'
+    'Você está decidindo no escuro, e em mercado instável isso custa caro. Antes de pôr mais um real em mídia, a Strat levanta quem ainda compra na sua praça, quanto paga e o que o concorrente entrega, com os dados da Datastore.',
+    'O produto pode ser bom, mas não está parecendo. Quando o comprador não enxerga diferença, ele compara preço e você paga em desconto. A Strat começa pela marca: conceito, identidade e o argumento que sustenta o valor na mesa do corretor.',
+    'O problema é rua, e o tempo está contra. A Strat começa pela campanha: uma ideia que faça o lançamento ser visto, as peças e a mídia para encher o estande com o orçamento que existe.'
   ];
   var bq = $('#bq'), D = { i: 0, r: [], fim: false };
   function soma() { var t = [0, 0, 0]; D.r.forEach(function (k, n) { var w = Q[n].o[k][1]; t[0] += w[0]; t[1] += w[1]; t[2] += w[2]; }); return t; }
