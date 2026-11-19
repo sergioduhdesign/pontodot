@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '7';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '8';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -38,9 +38,37 @@
   function pol(n) { return 'img/pol/' + ('0' + n).slice(-2) + '.webp?v=' + V; }
   function precarrega() { if (pre) return; pre = true; for (var i = 1; i <= NPOL; i++) { var im = new Image(); im.decoding = 'async'; im.src = pol(i); } }
   var ORD = []; (function () { for (var i = 1; i <= NPOL; i++) ORD.push(i); for (var j = ORD.length - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = ORD[j]; ORD[j] = ORD[k]; ORD[k] = t; } })();
+  function pega() { var d; if (fila.length < 16) { d = document.createElement('div'); d.className = 'tr'; d.appendChild(new Image()); mtr.appendChild(d); } else d = fila.shift(); fila.push(d); return d; }
+  var Tf = function (px, py, rot, sc) { return 'translate3d(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px,0) rotate(' + rot.toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')'; };
+  // no toque: o card chega devagar e fica enquanto o dedo estiver na tela
+  function pousa(x, y) {
+    var d = pega(), im = d.firstChild; im.alt = ''; im.src = pol(ORD[prox++ % NPOL]);
+    var r = Math.random() * 18 - 9, e = 0.86 + Math.random() * 0.3;
+    d.style.zIndex = String(zi++); d._fim = Tf(x, y, r, e); d._r = r; d._e = e; d._x = x; d._y = y; d._vivo = true;
+    if (d._a) d._a.cancel();
+    if (!d.animate) { d.style.opacity = 1; d.style.transform = d._fim; return; }
+    d._a = d.animate([{ opacity: 0, transform: Tf(x, y + 22, r * 1.8, e * 0.84) }, { opacity: 1, transform: d._fim }], { duration: 1300, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' });
+  }
+  function recolhe() {
+    var n = 0;
+    fila.forEach(function (d) {
+      if (!d._vivo) return; d._vivo = false;
+      if (!d.animate) { d.style.opacity = 0; return; }
+      var op = getComputedStyle(d).opacity, tr = getComputedStyle(d).transform; if (d._a) d._a.cancel();
+      d._a = d.animate([{ opacity: op, transform: tr }, { opacity: 0, transform: Tf(d._x, d._y + 34, d._r * 1.3, d._e * 0.95) }], { duration: 1200, delay: (n++) * 60, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' });
+    });
+  }
+  var dedo = null;
+  function toque(e) {
+    var t = e.touches[0]; if (!t) return; var b = manif.getBoundingClientRect(), x = t.clientX - b.left, y = t.clientY - b.top, agora = performance.now();
+    if (y < 0 || y > b.height) return;
+    if (!dedo) { dedo = { x: x, y: y, t: agora }; pousa(x, y); return; }
+    var dx = x - dedo.x, dy = y - dedo.y; if (dx * dx + dy * dy < 84 * 84 || agora - dedo.t < 240) return;
+    dedo = { x: x, y: y, t: agora }; pousa(x, y);
+  }
+  function soltaDedo() { if (!dedo) return; dedo = null; recolhe(); }
   function solta1(x, y, dx, dy) {
-    var d;
-    if (fila.length < 16) { d = document.createElement('div'); d.className = 'tr'; d.appendChild(new Image()); mtr.appendChild(d); fila.push(d); } else { d = fila.shift(); fila.push(d); }
+    var d = pega();
     var im = d.firstChild; im.alt = ''; im.src = pol(ORD[prox++ % NPOL]);
     var r = (Math.random() * 26 - 13), e = 0.8 + Math.random() * 0.5, vx = Math.max(-90, Math.min(90, dx * 0.9)), vy = Math.max(-90, Math.min(90, dy * 0.9));
     d.style.zIndex = String(zi++);
@@ -62,16 +90,12 @@
     ult = { x: x, y: y }; solta1(x, y, dx, dy);
   }
   if (!calmo) {
-    manif.addEventListener('pointermove', rastro, { passive: true });
+    manif.addEventListener('touchstart', function (e) { precarrega(); toque(e); }, { passive: true });
+    manif.addEventListener('touchmove', toque, { passive: true });
+    window.addEventListener('touchend', soltaDedo, { passive: true }); window.addEventListener('touchcancel', soltaDedo, { passive: true });
+    manif.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') rastro(e); }, { passive: true });
     manif.addEventListener('pointerleave', function () { ult = null; });
-    manif.addEventListener('pointerdown', function (e) { var b = manif.getBoundingClientRect(); for (var i = 0; i < 5; i++) solta1(e.clientX - b.left + (Math.random() * 260 - 130), e.clientY - b.top + (Math.random() * 220 - 110), Math.random() * 120 - 60, Math.random() * 120 - 60); });
-  }
-  // no toque não há mouse: as imagens vão surgindo conforme a seção rola
-  var ultY = 0;
-  function rastroRola(m) {
-    if (calmo || !window.matchMedia('(hover: none)').matches) return;
-    if (Math.abs(m.top - ultY) < 46) return; ultY = m.top;
-    var w = manif.clientWidth, h = manif.clientHeight; solta1(w * (0.14 + Math.random() * 0.72), h * (0.12 + Math.random() * 0.76), Math.random() * 80 - 40, -50);
+    manif.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') return; var b = manif.getBoundingClientRect(); for (var i = 0; i < 5; i++) solta1(e.clientX - b.left + (Math.random() * 260 - 130), e.clientY - b.top + (Math.random() * 220 - 110), Math.random() * 120 - 60, Math.random() * 120 - 60); });
   }
   function montaNomes(nomes) {
     var linhas = estreito() ? 6 : 5, por = Math.ceil(nomes.length / linhas);
@@ -107,7 +131,7 @@
     var m = manif.getBoundingClientRect(), y = window.pageYOffset;
     manifVisto = m.top < vh && m.bottom > 0;
     if (m.top < vh * 2.5 && m.bottom > -vh) precarrega();
-    if (manifVisto) { impulso = Math.max(-14, Math.min(14, impulso + (y - ultRola) * 0.05)); ligaNomes(); rastroRola(m); }
+    if (manifVisto) { impulso = Math.max(-14, Math.min(14, impulso + (y - ultRola) * 0.05)); ligaNomes(); }
     ultRola = y;
     var c = conversa.getBoundingClientRect(); cta.classList.toggle('fora', c.top < vh * 0.6);
   }
