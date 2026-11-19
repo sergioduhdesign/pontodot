@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '13';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '14';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -154,39 +154,45 @@
   fetch('dados/grade.json?v=' + V).then(function (r) { return r.json(); }).then(function (G) {
     var mgr = $('#mgr');
     var io = 'IntersectionObserver' in window && !calmo ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' }) : null;
-    // só quadrados: blocos de 4x2 fechados (um grande + quatro pequenos, ou oito pequenos), para a grade nunca terminar com buraco
-    var nb = 0, i = 0, tudo8 = (G.length % 5 === 3) ? 1 : (G.length % 5 === 0 ? 0 : -1), blocos = [];
-    while (i < G.length) {
-      var resta = G.length - i, oito = (nb === 5 && tudo8 === 1 && resta >= 8), n = oito ? 8 : 5;
-      if (resta < n) break;                                   // sobra que não fecha bloco fica de fora
-      blocos.push({ itens: G.slice(i, i + n), oito: oito }); i += n; nb++;
-    }
-    if (blocos.length % 2) blocos.pop();                      // número par de blocos fecha a última linha no desktop
-    blocos.forEach(function (b, k) {
-      var bl = document.createElement('div'); bl.className = 'bl';
-      var pg = b.oito ? -1 : (k % 4 === 0 || k % 4 === 3 ? 0 : 2);   // onde entra a imagem grande: à esquerda ou à direita
-      b.itens.forEach(function (g, m) {
-        var d = document.createElement('figure'); d.className = 'mg' + (m === pg ? ' g' : ''); d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', 'Ampliar imagem'); d.dataset.s = 'img/gr/' + g[0] + '.webp?v=' + V; d.style.transitionDelay = ((m % 4) * 90) + 'ms';
-        var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = g[1]; im.height = g[2]; im.draggable = false; im.src = 'img/gr/' + g[0] + '.webp?v=' + V; d.appendChild(im);
-        bl.appendChild(d); if (io) io.observe(d); else d.classList.add('v');
+    // fileiras justificadas com três proporções (1:1, 4:3 e 16:9); toda fileira fecha a largura, sem buraco no fim
+    var q = 0;
+    G.forEach(function (g) { var r = g[1] / g[2]; g[3] = r >= 1.3 ? 16 / 9 : r >= 1.12 ? 4 / 3 : (q++ % 3 === 1 ? 4 / 3 : 1); });
+    var modo = null;
+    function montaMural() {
+      var est = estreito(); if (modo === est) return; modo = est;
+      mgr.innerHTML = '';
+      // divide a soma das proporções em fileiras de peso parecido, para nenhuma ficar muito mais alta que as outras
+      var alvo = est ? 2.3 : 5.2, total = 0, filas = [], f = [], cum = 0; G.forEach(function (g) { total += g[3]; });
+      var nf = Math.max(1, Math.round(total / alvo)), por = total / nf;
+      G.forEach(function (g, k) { f.push(g); cum += g[3]; if (filas.length < nf - 1 && cum >= por * (filas.length + 1) - g[3] * 0.5) { filas.push(f); f = []; } });
+      if (f.length) filas.push(f);
+      filas.forEach(function (fl) {
+        var bl = document.createElement('div'); bl.className = 'bl';
+        fl.forEach(function (g, m) {
+          var d = document.createElement('figure'); d.className = 'mg'; d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', 'Ampliar imagem'); d.dataset.s = 'img/gr/' + g[0] + '.webp?v=' + V;
+          d.style.flex = g[3].toFixed(4) + ' 1 0%'; d.style.aspectRatio = g[3].toFixed(4); d.style.transitionDelay = ((m % 5) * 80) + 'ms';
+          var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.draggable = false; im.src = d.dataset.s; d.appendChild(im);
+          bl.appendChild(d); if (io) io.observe(d); else d.classList.add('v');
+        });
+        mgr.appendChild(bl);
       });
-      mgr.appendChild(bl);
-    });
+    }
+    montaMural(); window.addEventListener('resize', montaMural);
     // clicar (ou segurar) abre a imagem grande; clicar fora, Esc ou Fechar volta
-    var todas = $$('.mg', mgr), at = -1, luz = document.createElement('div'); luz.className = 'luz'; luz.setAttribute('role', 'dialog'); luz.setAttribute('aria-modal', 'true'); luz.setAttribute('aria-label', 'Imagem ampliada');
+    var todas = [], at = -1, luz = document.createElement('div'); luz.className = 'luz'; luz.setAttribute('role', 'dialog'); luz.setAttribute('aria-modal', 'true'); luz.setAttribute('aria-label', 'Imagem ampliada');
     luz.innerHTML = '<img alt=""><button type="button" class="lx">Fechar</button><button type="button" class="la" aria-label="Imagem anterior">←</button><button type="button" class="lp" aria-label="Próxima imagem">→</button><div class="ln2"></div>';
     document.body.appendChild(luz);
     var foco = null;
-    function abre(k) { at = (k + todas.length) % todas.length; $('img', luz).src = todas[at].dataset.s; $('.ln2', luz).textContent = (at + 1) + ' / ' + todas.length; if (!luz.classList.contains('on')) { foco = document.activeElement; luz.classList.add('on'); document.documentElement.style.overflow = 'hidden'; $('.lx', luz).focus({ preventScroll: true }); } }
+    function abre(k) { todas = $$('.mg', mgr); if (!todas.length) return; at = (k + todas.length) % todas.length; $('img', luz).src = todas[at].dataset.s; $('.ln2', luz).textContent = (at + 1) + ' / ' + todas.length; if (!luz.classList.contains('on')) { foco = document.activeElement; luz.classList.add('on'); document.documentElement.style.overflow = 'hidden'; $('.lx', luz).focus({ preventScroll: true }); } }
     function fecha() { if (at < 0) return; at = -1; luz.classList.remove('on'); document.documentElement.style.overflow = ''; if (foco && foco.focus) foco.focus({ preventScroll: true }); }
     var seg = null, abriu = false;
-    mgr.addEventListener('pointerdown', function (e) { var f = e.target.closest('.mg'); if (!f) return; abriu = false; clearTimeout(seg); seg = setTimeout(function () { abriu = true; abre(todas.indexOf(f)); }, 420); });
+    mgr.addEventListener('pointerdown', function (e) { var f = e.target.closest('.mg'); if (!f) return; abriu = false; clearTimeout(seg); seg = setTimeout(function () { abriu = true; abre($$('.mg', mgr).indexOf(f)); }, 420); });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { mgr.addEventListener(ev, function () { clearTimeout(seg); }); });
     window.addEventListener('scroll', function () { clearTimeout(seg); }, { passive: true });
     window.addEventListener('pointerup', function () { setTimeout(function () { abriu = false; }, 60); });
-    mgr.addEventListener('click', function (e) { var f = e.target.closest('.mg'); if (f && !abriu) abre(todas.indexOf(f)); abriu = false; });
+    mgr.addEventListener('click', function (e) { var f = e.target.closest('.mg'); if (f && !abriu) abre($$('.mg', mgr).indexOf(f)); abriu = false; });
     mgr.addEventListener('contextmenu', function (e) { if (e.target.closest('.mg') && e.pointerType !== 'mouse' && window.matchMedia('(hover: none)').matches) e.preventDefault(); });
-    mgr.addEventListener('keydown', function (e) { var f = e.target.closest('.mg'); if (f && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abre(todas.indexOf(f)); } });
+    mgr.addEventListener('keydown', function (e) { var f = e.target.closest('.mg'); if (f && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abre($$('.mg', mgr).indexOf(f)); } });
     var solto = 0;
     luz.addEventListener('pointerup', function () { solto = performance.now(); });
     luz.addEventListener('click', function (e) { if (e.target.closest('.la')) return abre(at - 1); if (e.target.closest('.lp')) return abre(at + 1); if (abriu) { abriu = false; return; } fecha(); });
