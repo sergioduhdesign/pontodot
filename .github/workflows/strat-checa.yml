@@ -23,5 +23,5 @@ jobs:
           curl -sS -L --max-time 30 -A "WhatsApp/2.23.20.0 A" "https://stratesign.com.br/" | grep -io '<title>[^<]*</title>\|<meta[^>]*\(og:\|twitter:\|description\|robots\)[^>]*>\|<link rel="canonical"[^>]*>' | head -30
           echo "=================== http e www"
           for u in http://stratesign.com.br/ http://www.stratesign.com.br/ https://www.stratesign.com.br/ "https://stratesign.com.br/?p=123" https://stratesign.com.br/wp-login.php https://stratesign.com.br/algo-que-nao-existe; do
-            curl -sS -o /dev/null --max-time 30 -A "Mozilla/5.0" "$u" -w "$u -> http=%{http_code} vai_para=%{redirect_url}\n" || echo "$u FALHOU"
+            curl -sS -o /dev/null --max-time 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" "$u" -w "$u -> http=%{http_code} vai_para=%{redirect_url}\n" || echo "$u FALHOU"
           done
