@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '26';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '27';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -116,6 +116,16 @@
     });
     $('.painel', li).addEventListener('click', function (e) { if (!estreito() && !e.target.closest('.somd')) li.classList.toggle('txt'); });
   });
+  // no celular o texto de cada marca fica sempre em duas linhas: reduz o corpo até todos caberem
+  function ajustaInd() {
+    var inds = $$('.ind', lista); if (!estreito()) { lista.style.removeProperty('--indf'); return; }
+    for (var f = 11.5; f >= 8.5; f -= 0.25) {
+      lista.style.setProperty('--indf', f + 'px');
+      var ok = inds.every(function (d) { return d.getBoundingClientRect().height <= parseFloat(getComputedStyle(d).lineHeight) * 2 + 2; });
+      if (ok) break;
+    }
+  }
+  ajustaInd(); window.addEventListener('resize', ajustaInd); window.addEventListener('load', ajustaInd); if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustaInd);
   lista.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && !estreito()) ativa(null); });
   lista.addEventListener('keydown', function (e) { if (e.key === 'Escape') ativa(null); });
 
