@@ -12,13 +12,14 @@ on:
       larg:  { description: "corte: largura final", required: false, default: "1280" }
       passo: { description: "folha: segundos entre quadros", required: false, default: "3" }
       crf:   { description: "corte: qualidade (menor = melhor)", required: false, default: "27" }
+      som:   { description: "corte: 1 = manter o áudio", required: false, default: "0" }
 permissions:
   contents: write
 jobs:
   v:
     runs-on: ubuntu-latest
     steps:
-      - env: { ID: "${{ github.event.inputs.id }}", NOME: "${{ github.event.inputs.nome }}", ACAO: "${{ github.event.inputs.acao }}", SS: "${{ github.event.inputs.ss }}", T: "${{ github.event.inputs.t }}", LARG: "${{ github.event.inputs.larg }}", PASSO: "${{ github.event.inputs.passo }}", CRF: "${{ github.event.inputs.crf }}" }
+      - env: { ID: "${{ github.event.inputs.id }}", NOME: "${{ github.event.inputs.nome }}", ACAO: "${{ github.event.inputs.acao }}", SS: "${{ github.event.inputs.ss }}", T: "${{ github.event.inputs.t }}", LARG: "${{ github.event.inputs.larg }}", PASSO: "${{ github.event.inputs.passo }}", CRF: "${{ github.event.inputs.crf }}", SOM: "${{ github.event.inputs.som }}" }
         run: |
           set -e
           case "$ID" in *[!A-Za-z0-9_-]*) echo "id inválido"; exit 1;; esac
@@ -32,7 +33,8 @@ jobs:
           ffprobe -v error -show_entries format=duration:stream=codec_type,codec_name,width,height,r_frame_rate -of default=nw=1 src.bin | tr '\n' ' '; echo
           case "$ACAO" in
             folha)  ffmpeg -v error -i src.bin -vf "fps=1/$PASSO,scale=256:-2,drawtext=text='%{pts\:hms}':x=4:y=4:fontsize=16:fontcolor=white:box=1:boxcolor=black@0.6,tile=10x12" -frames:v 1 -q:v 5 "out/$NOME-folha.jpg" ;;
-            corte)  ffmpeg -v error -ss "$SS" -t "$T" -i src.bin -vf "scale=$LARG:-2" -an -c:v libx264 -preset slow -crf "$CRF" -pix_fmt yuv420p -movflags +faststart "out/$NOME.mp4"; ffmpeg -v error -i "out/$NOME.mp4" -frames:v 1 -q:v 3 "out/$NOME.jpg" ;;
+            corte)  if [ "$SOM" = "1" ]; then AUD="-c:a aac -b:a 112k -ac 2 -af afade=t=in:st=0:d=0.25"; else AUD="-an"; fi
+                    ffmpeg -v error -ss "$SS" -t "$T" -i src.bin -vf "scale=$LARG:-2" $AUD -c:v libx264 -preset slow -crf "$CRF" -pix_fmt yuv420p -movflags +faststart "out/$NOME.mp4"; ffmpeg -v error -i "out/$NOME.mp4" -frames:v 1 -q:v 3 "out/$NOME.jpg" ;;
             baixar) mv src.bin "out/$NOME" ;;
             *) echo "ação desconhecida"; exit 1;;
           esac
