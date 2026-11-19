@@ -65,6 +65,7 @@
   /* ---------- 4. acervo: biblioteca de perfis em giro ---------- */
   var giro = $('#giro'), pista = $('#pista'), central = $('#central'), indice = $('#indice');
   var L = [], els = [], cur = 0, pos = 0, N = 0;
+  var V = '3';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var FONTE = { captura: 'Captura do perfil em novembro de 2026.', press: 'Imagem de arquivo do press da agência.' };
   function mod(a, n) { return ((a % n) + n) % n; }
   function dif(i, p) { var d = i - p; d = d - Math.round(d / N) * N; return d; }       // distância mais curta no laço
@@ -88,7 +89,7 @@
       var d = dif(i, pos), a = Math.abs(d), s = d < 0 ? -1 : 1;
       if (a > 3.2) { f.style.opacity = 0; f.style.pointerEvents = 'none'; f.style.transform = 'translate3d(' + (s * cw * 3) + 'px,0,-600px)'; return; }
       // carrega só o centro e os vizinhos
-      if (a <= 2.5 && L[i].img && !f.querySelector('img')) { var im = new Image(); im.alt = ''; im.decoding = 'async'; im.src = L[i].img; f.insertBefore(im, f.firstChild); }
+      if (a <= 2.5 && L[i].img && !f.querySelector('img')) { var im = new Image(); im.alt = ''; im.decoding = 'async'; im.src = L[i].img + '?v=' + V; f.insertBefore(im, f.firstChild); }
       var m = Math.min(a, 1), resto = Math.max(0, a - 1);
       var x = s * (m * cw * (estreito ? 0.93 : 1.0) + resto * cw * (estreito ? 0.5 : 0.66));
       var ang = -s * (m * 36 + Math.min(resto, 1) * 10);            // vizinhas a 36 e 46 graus
@@ -129,7 +130,7 @@
   }
   window.addEventListener('pointerup', solta); window.addEventListener('pointercancel', solta);
   window.addEventListener('resize', function () { if (N) desenha(); });
-  fetch('dados/social.json').then(function (r) { return r.json(); }).then(function (d) {
+  fetch('dados/social.json?v=' + V).then(function (r) { return r.json(); }).then(function (d) {
     L = d; N = L.length; var g = L.findIndex(function (x) { return x.arroba === 'geovilleurbanismo'; }); cur = pos = g < 0 ? 0 : g; monta();
   }).catch(function () { central.innerHTML = '<p>O acervo não carregou. Atualize a página.</p>'; });
 
