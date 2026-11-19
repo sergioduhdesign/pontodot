@@ -147,6 +147,7 @@ body.bolha-on .cta{box-shadow:none}
 
 /* ---------- 5. vitrine de Instagrams ---------- */
 .acervo{background:#fff;padding:15vh 0 12vh;overflow:hidden}
+.ac-p{grid-column:1/7;margin:clamp(18px,2.4vw,34px) 0 0;font-size:clamp(16px,1.5vw,22px);line-height:1.4;max-width:52ch}
 .giro{position:relative;margin-top:7vh;--cw:min(19vw,290px);height:calc(var(--cw) * 16 / 9 + 250px);perspective:1500px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none;outline-offset:-4px}
 .giro::before{content:"";position:absolute;left:0;right:0;top:calc(var(--cw) * 8 / 9 + 20px);height:calc(var(--cw) * .82);transform:translateY(-50%);background:var(--mineral);z-index:0}
 .giro.arr{cursor:grabbing}
@@ -276,6 +277,7 @@ body.bolha-on .cta{box-shadow:none}
   .mg img{filter:none}
   .luz .la,.luz .lp{top:auto;bottom:6px;transform:none}
   .acervo{padding:9vh 0 8vh}
+  .ac-p{grid-column:1/-1}
   .giro{--cw:66vw;margin-top:30px;height:calc(var(--cw) * 16 / 9 + 250px)}
   .seta{display:none}
   .tl figcaption p{font-size:12.5px}
