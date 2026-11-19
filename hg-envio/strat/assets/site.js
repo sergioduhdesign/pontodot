@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '10';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '11';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -152,14 +152,25 @@
 
   /* ---------- mural: grade de imagens com tamanhos variados ---------- */
   fetch('dados/grade.json?v=' + V).then(function (r) { return r.json(); }).then(function (G) {
-    var mgr = $('#mgr'), q = 0;
+    var mgr = $('#mgr');
     var io = 'IntersectionObserver' in window && !calmo ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' }) : null;
-    G.forEach(function (g, i) {
-      var r = g[1] / g[2], c = r > 1.22 ? 'w' : r < 0.82 ? 't' : (q++ % 4 === 0 ? 'g' : '');
-      if (c === 'w' && i % 5 === 0) c = 'g';
-      var d = document.createElement('figure'); d.className = 'mg' + (c ? ' ' + c : ''); d.style.margin = 0; d.style.transitionDelay = ((i % 4) * 90) + 'ms';
-      var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = g[1]; im.height = g[2]; im.src = 'img/gr/' + g[0] + '.webp?v=' + V; d.appendChild(im);
-      mgr.appendChild(d); if (io) io.observe(d); else d.classList.add('v');
+    // só quadrados: blocos de 4x2 fechados (um grande + quatro pequenos, ou oito pequenos), para a grade nunca terminar com buraco
+    var nb = 0, i = 0, tudo8 = (G.length % 5 === 3) ? 1 : (G.length % 5 === 0 ? 0 : -1), blocos = [];
+    while (i < G.length) {
+      var resta = G.length - i, oito = (nb === 5 && tudo8 === 1 && resta >= 8), n = oito ? 8 : 5;
+      if (resta < n) break;                                   // sobra que não fecha bloco fica de fora
+      blocos.push({ itens: G.slice(i, i + n), oito: oito }); i += n; nb++;
+    }
+    if (blocos.length % 2) blocos.pop();                      // número par de blocos fecha a última linha no desktop
+    blocos.forEach(function (b, k) {
+      var bl = document.createElement('div'); bl.className = 'bl';
+      var pg = b.oito ? -1 : (k % 4 === 0 || k % 4 === 3 ? 0 : 2);   // onde entra a imagem grande: à esquerda ou à direita
+      b.itens.forEach(function (g, m) {
+        var d = document.createElement('figure'); d.className = 'mg' + (m === pg ? ' g' : ''); d.style.transitionDelay = ((m % 4) * 90) + 'ms';
+        var im = new Image(); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async'; im.width = g[1]; im.height = g[2]; im.src = 'img/gr/' + g[0] + '.webp?v=' + V; d.appendChild(im);
+        bl.appendChild(d); if (io) io.observe(d); else d.classList.add('v');
+      });
+      mgr.appendChild(bl);
     });
   }).catch(function () {});
 

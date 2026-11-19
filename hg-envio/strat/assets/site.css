@@ -112,17 +112,18 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 /* ---------- mural: grade com tamanhos variados ---------- */
 .mural{background:#000;padding:6px}
-.mgr{display:grid;grid-template-columns:repeat(8,1fr);grid-auto-rows:calc((100vw - 12px - 42px) / 8);grid-auto-flow:dense;gap:6px}
-.mg{position:relative;overflow:hidden;background:#111;opacity:0;transform:translateY(26px);transition:opacity 1s ease,transform 1.2s cubic-bezier(.16,1,.3,1)}
+.mgr{--u:calc((100vw - 12px - 42px) / 8);display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.bl{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:var(--u);grid-auto-flow:dense;gap:6px}
+.mg{position:relative;margin:0;overflow:hidden;background:#111;opacity:0;transform:translateY(26px);transition:opacity 1s ease,transform 1.2s cubic-bezier(.16,1,.3,1)}
 .mg.v{opacity:1;transform:none}
-.mg.w{grid-column:span 2}.mg.t{grid-row:span 2}.mg.g{grid-column:span 2;grid-row:span 2}
+.mg.g{grid-column:span 2;grid-row:span 2}
 .mg img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);transition:filter .5s,transform 1.2s cubic-bezier(.16,1,.3,1)}
 .mg:hover img{filter:none;transform:scale(1.04)}
 
 /* ---------- 5. vitrine de Instagrams ---------- */
-.acervo{background:#fff;padding:15vh 0 12vh;overflow:hidden}
+.acervo{background:#000;color:#fff;padding:15vh 0 12vh;overflow:hidden}
 .giro{position:relative;margin-top:7vh;--cw:min(19vw,290px);height:calc(var(--cw) * 16 / 9 + 250px);perspective:1500px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none;outline-offset:-4px}
-.giro::before{content:"";position:absolute;left:0;right:0;top:calc(var(--cw) * 8 / 9 + 20px);height:calc(var(--cw) * .82);transform:translateY(-50%);background:var(--mineral);z-index:0}
+.giro::before{content:"";position:absolute;left:0;right:0;top:calc(var(--cw) * 8 / 9 + 20px);height:calc(var(--cw) * .82);transform:translateY(-50%);background:#161616;z-index:0}
 .giro.arr{cursor:grabbing}
 .pista{position:absolute;left:50%;top:20px;width:0;height:0;transform-style:preserve-3d}
 .tl{position:absolute;left:calc(var(--cw) / -2);top:0;width:var(--cw);margin:0;transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .35s;will-change:transform}
@@ -134,14 +135,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .tl figcaption b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:-.01em}
 .tl figcaption i{display:block;font-style:normal;font-size:11px;color:var(--mineral2);margin-top:3px;overflow-wrap:anywhere}
 .tl figcaption p{margin:8px 0 0;font-size:11.5px;line-height:1.45;display:none}
-.tl.c figcaption p{display:block;color:var(--tinta)}
+.tl.c figcaption p{display:block;color:#fff}
 .tl:not(.c) figcaption{opacity:.55}
 .tl:not(.v) figcaption{visibility:hidden}
 .tl figcaption a{display:none;margin-top:10px;font-size:12px;font-weight:700;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px}
 .tl.c figcaption a{display:inline-block}
-.seta{position:absolute;top:calc(var(--cw) * 8 / 9 + 20px);z-index:20;width:52px;height:52px;margin-top:-26px;background:#000;color:#fff;font-size:20px;line-height:1}
+.seta{position:absolute;top:calc(var(--cw) * 8 / 9 + 20px);z-index:20;width:52px;height:52px;margin-top:-26px;background:#fff;color:#000;font-size:20px;line-height:1}
 .seta.ant{left:var(--m)}.seta.pro{right:var(--m)}
-.seta:hover{background:#fff;color:#000;outline:1px solid #000}
+.seta:hover{background:#000;color:#fff;outline:1px solid #fff}
 
 /* ---------- 6. artigos ---------- */
 .blog{background:#000;color:#fff;padding:14vh 0}
@@ -239,7 +240,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .manif{height:88svh}
   .mnm .ln{font-size:25vw}
   .mfrase h2{font-size:11.6vw}
-  .mgr{grid-template-columns:repeat(4,1fr);grid-auto-rows:calc((100vw - 12px - 18px) / 4)}
+  .mgr{--u:calc((100vw - 12px - 18px) / 4);grid-template-columns:1fr}
   .mg img{filter:none}
   .acervo{padding:9vh 0 8vh}
   .giro{--cw:66vw;margin-top:30px;height:calc(var(--cw) * 16 / 9 + 250px)}
