@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '15';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '16';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -10,11 +10,9 @@
   var toca = function (v) { try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (_) {} };
 
   /* ---------- som: ligado por padrão; o navegador só libera depois do primeiro clique ou toque ---------- */
-  var SOM = true, livre = false, bSom = $('#som');
-  try { if (localStorage.getItem('strat_som') === '0') SOM = false; } catch (_) {}
+  var SOM = true, livre = false;
   function ativo() { return $('.mi.on video'); }
   function pintaSom() {
-    bSom.textContent = SOM ? 'Som ligado' : 'Som desligado'; bSom.setAttribute('aria-pressed', SOM ? 'true' : 'false');
     var a = ativo();
     $$('.mi video').forEach(function (v) { v.muted = !(SOM && livre && v === a); });
     $$('.mi .somd').forEach(function (d) { d.hidden = !(SOM && !livre && a && d.parentNode.contains(a)); });
@@ -24,10 +22,13 @@
   // se o navegador recusar tocar com som, volta a tocar mudo em vez de parar o filme
   function tocaVid() { try { var p = vid.play(); if (p && p.catch) p.catch(function () { if (!vid.muted) { vid.muted = true; livre = false; $('#somh').hidden = !SOM; toca(vid); } }); } catch (_) {} }
   ['click', 'keydown'].forEach(function (ev) { window.addEventListener(ev, libera, true); });   // só clique e tecla contam como gesto no iPhone
-  bSom.addEventListener('click', function () { SOM = !SOM; try { localStorage.setItem('strat_som', SOM ? '1' : '0'); } catch (_) {} livre = true; pintaSom(); });
+  try { localStorage.removeItem('strat_som'); } catch (_) {}
 
   /* ---------- 1. capa: o filme entra tocando ---------- */
   var abre = $('#inicio'), vid = $('#vid'), drg = $('#drg'), pausa = $('#pausa'), cta = $('.cta'), conversa = $('#conversa');
+  function medeCta() { document.documentElement.style.setProperty('--ctaw', cta.offsetWidth + 'px'); }
+  medeCta(); window.addEventListener('resize', medeCta); window.addEventListener('load', medeCta); if (document.fonts && document.fonts.ready) document.fonts.ready.then(medeCta);
+  var idade = $('#idade'); if (idade) idade.textContent = (new Date().getFullYear() - 2012) + ' anos';
   var parou = false;
   function pinta() { pausa.textContent = parou ? 'Reproduzir' : 'Pausar'; pausa.setAttribute('aria-pressed', parou ? 'true' : 'false'); }
   function entra() { if (parou || calmo) return; if (!livre) vid.muted = true; tocaVid(); toca(drg); }
@@ -48,14 +49,14 @@
     medeNomes(); if (calmo) LN.forEach(function (o, i) { o.el.style.transform = 'translate3d(' + (-(i % 3) * 9) + 'vw,0,0)'; });
   }
   function medeNomes() { LN.forEach(function (o) { o.w = o.el.scrollWidth / 3; }); }
-  var impulso = 0, ultRola = window.pageYOffset, girando = false;
+  var impulso = 0, ultRola = window.pageYOffset, nomesOn = false;
   function giraNomes() {
-    if (!manifVisto || calmo || document.hidden) { girando = false; return; }
+    if (!manifVisto || calmo || document.hidden) { nomesOn = false; return; }
     impulso *= 0.92;
     LN.forEach(function (o) { if (!o.w) return; o.x += o.dir * (o.vel + impulso * (0.5 + o.vel)); if (o.x <= -o.w) o.x += o.w; if (o.x > 0) o.x -= o.w; o.el.style.transform = 'translate3d(' + o.x.toFixed(1) + 'px,0,0)'; });
     requestAnimationFrame(giraNomes);
   }
-  function ligaNomes() { if (!girando && !calmo) { girando = true; requestAnimationFrame(giraNomes); } }
+  function ligaNomes() { if (!nomesOn && !calmo) { nomesOn = true; requestAnimationFrame(giraNomes); } }
   window.addEventListener('resize', medeNomes);
 
   /* ---------- rolagem ---------- */
@@ -109,7 +110,7 @@
       f.innerHTML = '<div class="im"></div><figcaption><b>' + esc(x.nome) + '</b><i>@' + esc(x.arroba) + '</i><p>' + esc(x.legenda) + '</p><a href="' + esc(x.url) + '" target="_blank" rel="noopener">Abrir Instagram ↗</a></figcaption>';
       pista.appendChild(f); els.push(f);
     });
-    desenha(); anuncia();
+    desenha(); anuncia(); olhaGiro();
   }
   function desenha() {
     var cw = els[0] ? els[0].offsetWidth : 280, est = estreito();
@@ -127,12 +128,29 @@
     });
   }
   function anuncia() { var x = L[cur]; if (x) central.textContent = x.nome + ', @' + x.arroba + '. ' + x.legenda; }
-  function vai(i) { cur = mod(i, N); pos = cur; desenha(); anuncia(); }
+  var girando = false, girou = false;
+  function vai(i) { girando = false; giro.classList.remove('arr'); cur = mod(i, N); pos = cur; desenha(); anuncia(); }
+  function entraGirando() {
+    if (girou || !N) return; girou = true; if (calmo) return;
+    var alvo = cur, ini = cur - Math.min(N - 1, 24), t0 = performance.now(), D = 3600; girando = true; giro.classList.add('arr');
+    (function passo(t) {
+      if (!girando) return;
+      var k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 4); pos = ini + (alvo - ini) * e; desenha();
+      if (k < 1) requestAnimationFrame(passo); else { girando = false; pos = alvo; giro.classList.remove('arr'); desenha(); }
+    })(t0);
+  }
+  var preIg = false;
+  function olhaGiro() {
+    if (!N) return; var r = giro.getBoundingClientRect(), vh = window.innerHeight;
+    if (!preIg && r.top < vh * 2.2) { preIg = true; L.forEach(function (x) { var im = new Image(); im.decoding = 'async'; im.src = x.img + '?v=' + V; }); }
+    if (!girou && r.top < vh * 0.62 && r.bottom > vh * 0.3) entraGirando();
+  }
+  window.addEventListener('scroll', olhaGiro, { passive: true });
   $('#ant').addEventListener('click', function () { vai(cur - 1); });
   $('#pro').addEventListener('click', function () { vai(cur + 1); });
   giro.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { e.preventDefault(); vai(cur - 1); } else if (e.key === 'ArrowRight') { e.preventDefault(); vai(cur + 1); } });
   var ar = null;
-  giro.addEventListener('pointerdown', function (e) { if (e.target.closest('.seta') || e.target.closest('a')) return; ar = { x: e.clientX, y: e.clientY, p0: pos, vx: 0, lx: e.clientX, lt: performance.now(), andou: false, alvo: e.target.closest('.tl') }; });
+  giro.addEventListener('pointerdown', function (e) { if (e.target.closest('.seta') || e.target.closest('a')) return; if (girando) { girando = false; cur = mod(Math.round(pos), N); } ar = { x: e.clientX, y: e.clientY, p0: pos, vx: 0, lx: e.clientX, lt: performance.now(), andou: false, alvo: e.target.closest('.tl') }; });
   window.addEventListener('pointermove', function (e) {
     if (!ar) return; var dx = e.clientX - ar.x;
     if (!ar.andou) { if (Math.abs(e.clientY - ar.y) > 12 && Math.abs(dx) < 8) { ar = null; return; } if (Math.abs(dx) > 8) { ar.andou = true; giro.classList.add('arr'); } else return; }   // preserva a rolagem vertical
@@ -154,15 +172,15 @@
   fetch('dados/grade.json?v=' + V).then(function (r) { return r.json(); }).then(function (G) {
     var mgr = $('#mgr');
     var io = 'IntersectionObserver' in window && !calmo ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('v'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' }) : null;
-    // fileiras justificadas com três proporções (1:1, 4:3 e 16:9); toda fileira fecha a largura, sem buraco no fim
+    // fileiras justificadas com três proporções (1:1, 4:3 e 3:4); toda fileira fecha a largura, sem buraco no fim
     var q = 0;
-    G.forEach(function (g) { var r = g[1] / g[2]; g[3] = r >= 1.3 ? 16 / 9 : r >= 1.12 ? 4 / 3 : (q++ % 3 === 1 ? 4 / 3 : 1); });
+    G.forEach(function (g) { var r = g[1] / g[2], c = q++ % 4; g[3] = r >= 1.12 ? 4 / 3 : r <= 0.9 ? 3 / 4 : (c === 1 ? 4 / 3 : c === 3 ? 3 / 4 : 1); });
     var modo = null;
     function montaMural() {
       var est = estreito(); if (modo === est) return; modo = est;
       mgr.innerHTML = '';
       // divide a soma das proporções em fileiras de peso parecido, para nenhuma ficar muito mais alta que as outras
-      var alvo = est ? 2.3 : 5.2, total = 0, filas = [], f = [], cum = 0; G.forEach(function (g) { total += g[3]; });
+      var alvo = est ? 2.1 : 5.4, total = 0, filas = [], f = [], cum = 0; G.forEach(function (g) { total += g[3]; });
       var nf = Math.max(1, Math.round(total / alvo)), por = total / nf;
       G.forEach(function (g, k) { f.push(g); cum += g[3]; if (filas.length < nf - 1 && cum >= por * (filas.length + 1) - g[3] * 0.5) { filas.push(f); f = []; } });
       if (f.length) filas.push(f);
