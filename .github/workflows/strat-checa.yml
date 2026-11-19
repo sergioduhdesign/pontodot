@@ -1,0 +1,27 @@
+name: STRATESIGN — conferir o site ao vivo
+# Só leitura: mostra como buscadores e apps de mensagem enxergam stratesign.com.br.
+on:
+  workflow_dispatch:
+    inputs:
+      caminhos: { description: "caminhos separados por espaço", required: false, default: "/ /og.jpg /robots.txt /sitemap.xml" }
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conferir
+        env:
+          CAM: ${{ github.event.inputs.caminhos }}
+        run: |
+          for ua in "WhatsApp/2.23.20.0 A" "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36"; do
+            echo "=================== UA: $ua"
+            for c in $CAM; do
+              echo "--- $c"; curl -sS -o /tmp/o -D /tmp/h -L --max-redirs 5 --max-time 30 -A "$ua" "https://stratesign.com.br$c" -w "final=%{url_effective} http=%{http_code} bytes=%{size_download} tipo=%{content_type} redirs=%{num_redirects}\n" || echo "FALHOU"
+              grep -i "^location:\|^x-robots\|^cache-control\|^server:" /tmp/h | tr -d '\r' | sed 's/^/   /' | head -8
+            done
+          done
+          echo "=================== cabeça da home vista pelo WhatsApp"
+          curl -sS -L --max-time 30 -A "WhatsApp/2.23.20.0 A" "https://stratesign.com.br/" | grep -io '<title>[^<]*</title>\|<meta[^>]*\(og:\|twitter:\|description\|robots\)[^>]*>\|<link rel="canonical"[^>]*>' | head -30
+          echo "=================== http e www"
+          for u in http://stratesign.com.br/ http://www.stratesign.com.br/ https://www.stratesign.com.br/ "https://stratesign.com.br/?p=123" https://stratesign.com.br/wp-login.php https://stratesign.com.br/algo-que-nao-existe; do
+            curl -sS -o /dev/null --max-time 30 -A "Mozilla/5.0" "$u" -w "$u -> http=%{http_code} vai_para=%{redirect_url}\n" || echo "$u FALHOU"
+          done
