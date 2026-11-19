@@ -63,7 +63,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .mi:last-child{border-bottom:1px solid #2a2a2a}
 .mb{display:flex;align-items:center;width:100%;height:clamp(84px,13.2vh,128px);transition:opacity .24s}
 .lista.tem .mi:not(.on) .mb{opacity:.34}
-.lg{width:auto;height:auto;max-width:78%}
+.lg{width:auto;height:auto;max-width:none;flex:none;align-self:center;object-fit:contain;object-position:left center}
 .lg-datastore{height:56px}.lg-marcus{height:34px}.lg-biosphere{height:52px}.lg-faro{height:21px}.lg-britto{height:58px}
 .painel{position:absolute;left:calc(var(--col) * 5.4);right:0;top:50%;transform:translateY(-50%);aspect-ratio:16/9;background:var(--grafite);overflow:hidden;opacity:0;pointer-events:none;transition:opacity .24s}
 .mi.on .painel{opacity:1;pointer-events:auto}
@@ -198,12 +198,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .sub{grid-column:1/-1}
   /* capa: título e dragão primeiro, filme logo abaixo */
   .abre{height:auto}
-  .palco{position:relative;height:auto;overflow:visible;padding:66px 0 96px}
-  .drg{position:relative;left:auto;top:auto;height:auto;width:80vw;margin:0 auto;display:block}
-  .tit{left:13vw;bottom:auto;top:calc(66px + 11vw);transform:rotate(180deg);writing-mode:vertical-rl;font-size:17.6vw;line-height:.86;letter-spacing:-.05em}
+  .palco{position:relative;height:auto;overflow:visible;padding:84px 0 96px;display:flex;flex-direction:column}
+  .drg{position:relative;left:auto;top:auto;height:auto;width:78vw;margin:-15vw auto 0;display:block;order:2}
+  .tit{position:relative;left:auto;bottom:auto;top:auto;order:1;padding:0 16px;font-size:13.4vw;line-height:.88;letter-spacing:-.055em}
   .tit span{display:block}
-  .filme{position:relative;left:auto;top:auto;width:calc(100% - 32px);height:auto;aspect-ratio:16/9;margin:18px 16px 0}
-  .apoio{position:static;width:auto;opacity:1;transform:none;padding:22px 16px 0;font-size:15px}
+  .filme{position:relative;left:auto;top:auto;width:calc(100% - 32px);height:auto;aspect-ratio:16/9;margin:18px 16px 0;order:3}
+  .apoio{position:static;width:auto;opacity:1;transform:none;padding:22px 16px 0;font-size:15px;order:4}
   .marcas{padding:9vh 0 11vh}
   .marcas .rot{margin-bottom:26px}
   .mi{width:auto}
@@ -211,7 +211,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .lg-datastore{height:44px}.lg-marcus{height:28px}.lg-biosphere{height:40px}.lg-faro{height:17px}.lg-britto{height:44px}
   .painel{position:relative;left:auto;right:auto;top:auto;transform:none;display:none;aspect-ratio:auto;margin:0 0 18px;background:#000;overflow:visible}
   .mi.on .painel{display:block}
-  .painel video{position:relative;inset:auto;aspect-ratio:16/9;height:auto}
+  .painel video{position:relative;inset:auto;display:block;width:100%;aspect-ratio:16/9;height:auto;object-fit:cover}
   .painel .pel{display:none}
   .ptx{position:static;padding:14px 0 6px}
   .ptx p{font-size:14.5px}

@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '6';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '7';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -18,10 +18,9 @@
     var a = ativo();
     $$('.mi video').forEach(function (v) { v.muted = !(SOM && livre && v === a); });
     $$('.somd').forEach(function (d) { d.hidden = !(SOM && !livre && a && d.parentNode.contains(a)); });
-    vid.muted = !(SOM && livre) || !!a;
   }
   function libera() { if (livre) return; livre = true; pintaSom(); var a = ativo(); if (a && a.paused && !calmo) toca(a); }
-  ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) { window.addEventListener(ev, libera, { passive: true }); });
+  ['click', 'keydown'].forEach(function (ev) { window.addEventListener(ev, libera, true); });   // só clique e tecla contam como gesto no iPhone
   bSom.addEventListener('click', function () { SOM = !SOM; try { localStorage.setItem('strat_som', SOM ? '1' : '0'); } catch (_) {} livre = true; pintaSom(); });
 
   /* ---------- 1. capa: o filme entra tocando ---------- */
