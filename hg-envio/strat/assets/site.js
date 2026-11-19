@@ -1,7 +1,7 @@
 /* Stratesign 2026 · V3 — comportamento da home. Dados em dados/social.json e dados/artigos.json. */
 (function () {
   'use strict';
-  var V = '11';                 // sobe a cada troca de imagens ou dados, para furar o cache
+  var V = '12';                 // sobe a cada troca de imagens ou dados, para furar o cache
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -109,7 +109,7 @@
       f.innerHTML = '<div class="im"></div><figcaption><b>' + esc(x.nome) + '</b><i>@' + esc(x.arroba) + '</i><p>' + esc(x.legenda) + '</p><a href="' + esc(x.url) + '" target="_blank" rel="noopener">Abrir Instagram ↗</a></figcaption>';
       pista.appendChild(f); els.push(f);
     });
-    desenha(); anuncia();
+    desenha(); anuncia(); degrade();
   }
   function desenha() {
     var cw = els[0] ? els[0].offsetWidth : 280, est = estreito();
@@ -141,7 +141,9 @@
   });
   function solta() { if (!ar) return; var a = ar; ar = null; giro.classList.remove('arr'); if (!a.andou) { if (a.alvo) { var i = +a.alvo.dataset.i; if (i !== cur) vai(i); } return; } var passo = (els[0] ? els[0].offsetWidth : 280); vai(Math.round(pos - (a.vx * 180) / passo)); }
   window.addEventListener('pointerup', solta); window.addEventListener('pointercancel', solta);
-  window.addEventListener('resize', function () { if (N) desenha(); });
+  // degradê do preto (fim do mural) ao branco, terminando no começo dos cards
+  function degrade() { var ac = $('#acervo'), t = ac.getBoundingClientRect().top, g0 = $('.h2', ac).getBoundingClientRect().bottom - t + 8, cw = els[0] ? els[0].offsetWidth : 280, g1 = giro.getBoundingClientRect().top - t + 20 + cw * 16 / 9 * 0.42; ac.style.setProperty('--g0', g0 + 'px'); ac.style.setProperty('--g1', Math.max(g1, g0 + 160) + 'px'); }
+  window.addEventListener('resize', function () { if (N) desenha(); degrade(); }); window.addEventListener('load', degrade);
   fetch('dados/social.json?v=' + V).then(function (r) { return r.json(); }).then(function (d) {
     // nomes de clientes reais para o fim do manifesto (o índice inteiro)
     var vistos = {}, nomes = []; d.forEach(function (x) { var n = x.nome.replace(/\s*\(.*\)$/, ''); if (!vistos[n]) { vistos[n] = 1; nomes.push(n); } });
