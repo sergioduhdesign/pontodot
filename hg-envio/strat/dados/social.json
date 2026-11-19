@@ -28,12 +28,12 @@
  },
  {
   "nome": "Imóvel Books",
-  "arroba": "imovel_books",
-  "url": "https://www.instagram.com/imovel_books/",
+  "arroba": "imovelbooks",
+  "url": "https://www.instagram.com/imovelbooks/",
   "legenda": "Editora especializada no mercado imobiliário, com branding, posicionamento e construção editorial estratégica.",
   "grupo": "Atuação recente",
-  "img": null,
-  "fonte": null
+  "img": "img/ig/imovelbooks.jpg",
+  "fonte": "captura"
  },
  {
   "nome": "Biosphere (Cauã Reymond)",
