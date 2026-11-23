@@ -53,7 +53,8 @@ function cpAprende($id, array $novo, $nomeQuem = '') {
                 'ia_user_id' => $quem['id'] ?? null, 'personagem' => $quem['personagem'] ?? null, 'skill_id' => CP_SKILL, 'escopo' => 'cliente', 'cliente_ref' => $old['client_id'],
                 'regra' => 'A equipe corrigiu um texto escrito pela IA (Copy' . ($nomeQuem ? ', por ' . $nomeQuem : '') . '): prefira o jeito da versão corrigida (abertura, tom, tamanho e escolha de palavras).',
                 'exemplo_ruim' => mb_substr($orig, 0, 400), 'exemplo_bom' => mb_substr($atual, 0, 400), 'status' => 'proposta', 'comum' => false]);
-            if (($r['code'] ?? 500) < 300) { $ni[$i]['_licao'] = md5($atual); $criadas++; }
+            if (($r['code'] ?? 500) < 300) { $ni[$i]['_licao'] = md5($atual); $criadas++;
+                try { require_once __DIR__ . '/pd-aprende.php'; pdPratica('copys', 'corrigida', ['skill' => CP_SKILL, 'similaridade' => (int)$pct], $old['client_id'], $quem['id'] ?? null, $quem['personagem'] ?? ''); } catch (Throwable $e) {} }
         }
         $novo[$chave] = $ni; return $novo;
     } catch (Throwable $e) { return $novo; }
