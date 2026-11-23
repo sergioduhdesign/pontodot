@@ -56,6 +56,8 @@ function pdAprendeCorrecao($skill, $area, $cid, $orig, $atual, $rotulo = '', $no
         if (mb_strlen($orig) < 20 || mb_strlen($atual) < 20 || !function_exists('sd_supabase')) return false;
         similar_text(mb_substr($orig, 0, 1500), mb_substr($atual, 0, 1500), $pct);
         if ($pct >= 92 || $pct < 25) return false;      // quase igual (vírgula) ou texto novo (não é correção)
+        $dup = sd_supabase('/rest/v1/pd_licoes?skill_id=eq.' . urlencode($skill) . '&exemplo_bom=eq.' . urlencode(mb_substr($atual, 0, 400)) . '&select=id&limit=1');   // não repete a mesma correção a cada salvamento
+        if (!empty($dup['body'][0])) return false;
         $quem = function_exists('pdQuemFazArea') ? pdQuemFazArea($area) : [];
         $r = sd_supabase('/rest/v1/pd_licoes', 'POST', [
             'ia_user_id' => $quem['id'] ?? null, 'personagem' => $quem['personagem'] ?? null, 'skill_id' => $skill, 'escopo' => $cid ? 'cliente' : 'habilidade', 'cliente_ref' => $cid ?: null,
@@ -78,4 +80,12 @@ function pdPratica($area, $evento, array $dados = [], $cid = null, $iaUserId = n
         $r = sd_supabase('/rest/v1/pd_observacoes', 'POST', ['area' => $area, 'evento' => 'pratica_' . $evento, 'dados' => $dados, 'ia_user_id' => $iaUserId, 'personagem' => (string)$personagem, 'client_id' => $cid ?: null]);
         return ($r['code'] ?? 500) < 300;
     } catch (Throwable $e) { return false; }
+}
+
+/** Textos de uma peça do Estúdio (qualquer chave de texto, em qualquer profundidade), para comparar antes/depois da edição da equipe. */
+function pdAprendeTextosDoc($doc) {
+    $o = []; $walk = function ($v, $k = '') use (&$walk, &$o) {
+        if (is_array($v)) { foreach ($v as $kk => $vv) $walk($vv, (string)$kk); return; }
+        if (is_string($v) && in_array($k, ['text', 'texto', 'txt', 'content', 'titulo', 'headline', 'legenda', 'subtitulo', 'cta'], true) && mb_strlen(trim($v)) >= 3) $o[] = trim(strip_tags($v)); };
+    $walk($doc); return implode("\n", $o);
 }

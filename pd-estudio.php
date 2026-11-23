@@ -133,6 +133,11 @@ if ($acao === 'salvar') {
     $d = ['nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 120) ?: 'Sem nome', 'doc' => $doc, 'mudado_em' => gmdate('c'), 'client_id' => ($b['client_id'] ?? null) ?: null, 'task_id' => ($b['task_id'] ?? null) ?: null];
     if ($fmt) $d['formato'] = $fmt; if (isset($b['modelo'])) $d['modelo'] = (bool)$b['modelo'];
     foreach (['pauta_id' => 'id', 'papel' => 'txt', 'derivada_tipo' => 'txt', 'spec' => 'json', 'roteiro' => 'json', 'ordem' => 'int', 'rodada' => 'int'] as $k => $t) if (array_key_exists($k, $b)) $d[$k] = $t === 'json' ? (is_array($b[$k]) ? $b[$k] : null) : ($t === 'int' ? (int)$b[$k] : (($b[$k] ?? null) ?: null));
+    if ($id) { try {   // aprendizado: a equipe mexeu nos textos de uma peça derivada pela IA → lição proposta (design) na Escola
+        $ant = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id) . '&select=doc,spec,derivada_tipo,client_id')['body'][0] ?? null;
+        if ($ant && (!empty($ant['spec']) || !empty($ant['derivada_tipo']))) { require_once __DIR__ . '/pd-aprende.php';
+            pdAprendeCorrecao('DESIGN_ARTE', 'grafica', $ant['client_id'] ?? null, pdAprendeTextosDoc($ant['doc'] ?? []), pdAprendeTextosDoc($doc), 'peça do Estúdio', (string)($u['name'] ?? '')); }
+    } catch (Throwable $e) {} }
     if (!$id) { $d['criado_por'] = $u['id']; $r = sd_supabase('/rest/v1/pd_pecas', 'POST', $d, ['Prefer: return=representation']); $p = $r['body'][0] ?? null; if (!$p) sd_fail('Não consegui criar a peça: ' . ($r['raw'] ?? ''), 500); $id = $p['id']; }
     if (!empty($b['thumb'])) { try { $d['thumb_url'] = esSobe('thumb/' . $id . '.jpg', esB64($b['thumb']), 'image/jpeg') . '?v=' . time(); } catch (Exception $e) { /* miniatura é melhor esforço */ } }
     $r = sd_supabase('/rest/v1/pd_pecas?id=eq.' . urlencode($id), 'PATCH', $d, ['Prefer: return=representation']); if (empty($r['body'][0])) sd_fail('Não consegui salvar: ' . ($r['raw'] ?? ''), 500);

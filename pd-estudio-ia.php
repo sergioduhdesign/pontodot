@@ -246,7 +246,11 @@ if ($acao === 'derivar') {   // a jogada da IA — vale para qualquer família
     [$refTxt, $refImgs] = $refsTodas ? paReferencias($refsTodas) : [[], []];
     foreach ((array)($b['repertorio'] ?? []) as $rid) { $rid = preg_replace('/[^A-Z0-9]/', '', (string)$rid); $fi = __DIR__ . '/assets/refs/' . $rid . '.jpg'; if ($rid && is_file($fi) && count($refImgs) < 6) { $rr = pdRepertorioRef($rid); $refImgs[] = ['rot' => 'repertório ' . $rid . ' · ' . ($rr['nome'] ?? '') . ' (estude ritmo, hierarquia e matéria; nunca copie)', 'mime' => 'image/jpeg', 'b64' => base64_encode(file_get_contents($fi))]; } }
     $rodada = (int)$p['rodada'] + 1; $hist = is_array($p['historico']) ? $p['historico'] : [];
-    if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]); }
+    if ($feedback) { $hist[] = ['rodada' => $rodada, 'feedback' => $feedback, 'em' => gmdate('c'), 'por' => $u['name']]; sd_supabase('/rest/v1/pd_estudio_licoes', 'POST', ['client_id' => $p['client_id'], 'pauta_id' => $id, 'tipo' => 'feedback', 'texto' => '[' . $famId . '] ' . $feedback, 'por' => $u['id']]);
+        try { require_once __DIR__ . '/pd-aprende.php'; $qq = function_exists('pdQuemFazArea') ? pdQuemFazArea('digital') : [];   // vale como prática da persona e vira lição PROPOSTA na Escola
+            pdPratica('digital', 'corrigida', ['skill' => 'ESTRATEGIA_ESTUDIO', 'origem' => 'feedback_pauta'], $p['client_id'], $qq['id'] ?? null, (string)($qq['personagem'] ?? ''));
+            if (mb_strlen(trim((string)$feedback)) >= 20) sd_supabase('/rest/v1/pd_licoes', 'POST', ['ia_user_id' => $qq['id'] ?? null, 'personagem' => $qq['personagem'] ?? null, 'skill_id' => 'ESTRATEGIA_ESTUDIO', 'escopo' => 'cliente', 'cliente_ref' => $p['client_id'],
+                'regra' => 'A equipe pediu ajuste na estratégia/pauta: ' . mb_substr(trim((string)$feedback), 0, 400), 'exemplo_ruim' => '', 'exemplo_bom' => '', 'status' => 'proposta', 'comum' => false]); } catch (Throwable $e) {} }
     sd_supabase('/rest/v1/pd_pautas?id=eq.' . urlencode($id), 'PATCH', ['status' => 'derivando', 'rodada' => $rodada, 'historico' => $hist, 'kit_status' => $kitSt, 'erro' => null, 'mudado_em' => gmdate('c')]);
     // imagens disponíveis: pasta da pauta (ou cliente › MÍDIA)
     $imgs = []; $thumbs = [];
