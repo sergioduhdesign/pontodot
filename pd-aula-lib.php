@@ -180,6 +180,7 @@ function pdAulaJson($a, $sk, $cfg, $chamado) {
         'exercicio' => ['autor' => ($a['exercicio']['autor'] ?? 'PD')] + (array)$a['exercicio'],
         'versao_atual' => ['rodada' => (int)$a['rodada'], 'arquivos' => pdAulaArquivosRodada($a, (int)$a['rodada'])],
         'tipo' => $a['tipo'] ?? 'arte', 'job_real' => (($a['tipo'] ?? 'arte') === 'documento' || pdAulaEhArteJob($a)) ? ['tarefa' => $a['task_id'] ?? null, 'cliente' => $a['exercicio']['cliente_real'] ?? null, 'contexto' => '00_CONTEXTO.md na raiz da pasta', 'afinacao' => $a['contexto']['afinacao'] ?? '', 'pecas' => pdAulaEhArteJob($a) ? ($a['contexto']['pecas'] ?? []) : null] : null,
+        'pedido_de_ajuda' => $a['contexto']['ajuda'] ?? null,
         'historico' => $hist, 'nota_minima' => (float)($cfg['nota_minima'] ?? 85), 'professor' => ['onde' => 'GPT do Sérgio (o dot localiza pela hierarquia CLIENTE > TIPO > O QUE FAZER)'], 'hierarquia' => pdHierarquia($a, $sk)];
 }
 function pdModeloCorrecao($a, $chamado, $cfg) {
@@ -197,6 +198,9 @@ function pdProfessorTexto($a, $sk, $cfg, $chamado) {
     $L[] = 'ISTO NÃO É PRODUÇÃO: é uma AULA da escola de IAs. Ignore os passos 2–4 da planilha (são de produção).';
     $L[] = 'Chamado: ' . $chamado . ' · Aula: ' . $a['id'] . ' · Rodada ' . $a['rodada'] . ' de ' . $a['max_rodadas'] . ($a['modo'] === 'teste' ? ' · RODADA DE TESTE da ponte (sem efeito sobre a formação)' : '');
     $L[] = 'Aluna: ' . ($a['personagem'] ?: 'IA da casa');
+    if (!empty($a['contexto']['ajuda'])) { $aj = $a['contexto']['ajuda'];
+        $L[] = 'PEDIDO DE AJUDA DA ALUNA (ela não chegou à nota de corte em ' . (int)($aj['na_rodada'] ?? 3) . ' rodadas): "' . ($aj['dificuldade'] ?? '') . '" · Onde trava: ' . ($aj['onde_travei'] ?? '') . ' · Ela pede: ' . ($aj['pergunta'] ?? '');
+        $L[] = 'Por isso, NESTA rodada o parecer deve PEGAR NA MÃO: passo a passo numerado do que fazer, um exemplo concreto pronto do trecho que ela erra e a regra geral por trás (para virar lição). Responda à pergunta dela de forma direta.'; }
     $L[] = 'CLIENTE: ' . $h['cliente'];
     $L[] = 'TIPO DE TRABALHO: ' . $h['tipo'];
     $L[] = 'O QUE FAZER: ' . $h['o_que_fazer'];
@@ -407,10 +411,34 @@ function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
             'escopo' => in_array($l['escopo'] ?? '', ['habilidade', 'universal', 'cliente'], true) ? $l['escopo'] : 'habilidade', 'exemplo_bom' => mb_substr((string)($l['exemplo_bom'] ?? ''), 0, 400), 'exemplo_ruim' => mb_substr((string)($l['exemplo_ruim'] ?? ''), 0, 400), 'aula_id' => $id]);
         $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — o professor aprovou; aguarda a SUA decisão.'];
     }
+    // 3 rodadas sem chegar na nota de corte: a IA (Claude interno) apresenta a dificuldade ao professor e pede o "como fazer" na mão.
+    // Uma vez por aula (sem loop); ganha mais 2 rodadas para aplicar. Se ainda assim não chegar, segue o caminho normal: volta para a equipe.
+    $ctx = (array)($a['contexto'] ?? []);
+    if ((int)$a['rodada'] >= 3 && empty($ctx['ajuda'])) {
+        $ajuda = pdAulaPedirAjuda($a, $cor, $sk ?? null);
+        $ctx['ajuda'] = $ajuda + ['na_rodada' => (int)$a['rodada'], 'em' => gmdate('c')];
+        $patch(['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1, 'max_rodadas' => max((int)$a['max_rodadas'], (int)$a['rodada'] + 2), 'contexto' => $ctx]);
+        try { require_once __DIR__ . '/pd-aprende.php'; pdPratica('escola', 'pediu_ajuda', ['skill' => $a['skill_id'], 'rodada' => (int)$a['rodada'], 'nota' => $nota], null, $a['ia_user_id'], (string)$a['personagem']); } catch (Throwable $e) {}
+        return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — 3 rodadas sem chegar ao corte: a IA apresentou a dificuldade ao professor e pediu o passo a passo; refaz com esse apoio (rodada ' . ((int)$a['rodada'] + 1) . ').'];
+    }
     if ((int)$a['rodada'] >= (int)$a['max_rodadas']) {
         if (($a['tipo'] ?? 'arte') === 'documento' || pdAulaEhArteJob($a)) { $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; volta para a equipe com pendências.']; }
         $patch(['correcoes' => $cor, 'status' => 'reprovada', 'nota_final' => $nota]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — esgotou as rodadas; reprovada.']; }
     $patch(['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — o professor pediu ajustes; a aluna refaz (rodada ' . ((int)$a['rodada'] + 1) . ').'];
+}
+
+/** A aluna (Claude interno) explica ao professor onde está travada. Sempre devolve algo (se a IA falhar, monta o resumo direto das notas). */
+function pdAulaPedirAjuda($a, array $cor, $sk = null) {
+    if (!$sk) $sk = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($a['skill_id']) . '&order=versao.desc&limit=1&select=nome,criterios')['body'][0] ?? null;
+    $linhas = []; foreach ($cor as $c) $linhas[] = 'R' . ($c['rodada'] ?? '?') . ' nota ' . ($c['nota'] ?? '?') . ': ' . mb_substr((string)($c['feedback'] ?? ''), 0, 500);
+    $base = ['dificuldade' => 'Não passei do corte em ' . count($cor) . ' rodadas.', 'onde_travei' => implode(' | ', array_map(fn($l) => mb_substr($l, 0, 160), $linhas)), 'pergunta' => 'Mostre, passo a passo e com um exemplo concreto pronto, como fazer para atingir a nota de corte.'];
+    try {
+        [$t, $c, $e] = pdClaude('Você é a IA aluna de uma agência de branding imobiliário e não conseguiu chegar à nota de corte depois de várias rodadas. Escreva ao professor, em primeira pessoa, curto e honesto, o pedido de ajuda. Diga: o que você entendeu que é pedido, o que já tentou a cada rodada, onde exatamente continua errando (padrão que se repete nos pareceres) e o que precisa dele: o passo a passo e um exemplo concreto, "pegando na mão". Responda SOMENTE JSON: {"dificuldade":"","o_que_tentei":"","onde_travei":"","pergunta":""}.',
+            'HABILIDADE: ' . ($sk['nome'] ?? $a['skill_id']) . "\nCRITÉRIOS: " . json_encode($sk['criterios'] ?? [], JSON_UNESCAPED_UNICODE) . "\nPARECERES ATÉ AGORA:\n" . implode("\n", $linhas), 900);
+        pdIncubSoma($c); $j = pdJson($t);
+        if (is_array($j) && !empty($j['pergunta'])) return ['dificuldade' => mb_substr((string)($j['dificuldade'] ?? ''), 0, 600), 'o_que_tentei' => mb_substr((string)($j['o_que_tentei'] ?? ''), 0, 800), 'onde_travei' => mb_substr((string)($j['onde_travei'] ?? ''), 0, 800), 'pergunta' => mb_substr((string)$j['pergunta'], 0, 500)];
+    } catch (Throwable $e) {}
+    return $base;
 }
 
 /** Sérgio decide (decisão FINAL): 'aprovar' · 'revisar' (comentário e a aluna refaz) · 'reprovar'. */

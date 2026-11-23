@@ -174,5 +174,12 @@ for ($volta = 0; $volta < 8; $volta++) {
 try { sd_supabase('/rest/v1/sd_ia_uso', 'POST', ['user_id' => $u['id'], 'canal' => 'chat', 'modelo' => $model, 'entrada' => $usoIn, 'saida' => $usoOut]); } catch (Throwable $e) {}
 $feitosTxt = trim(implode("\n", array_filter($feitos)));
 $temEscrita = $feitosTxt !== "" && preg_match("/✅|🗑️|💬|🧠/u", $feitosTxt);
+// aprendizado da conversa: pedido atendido = prática; mensagem de correção = prática corrigida + lição PROPOSTA (vale só depois que o gestor aprova)
+try { if (trim((string)$texto) !== '') { require_once __DIR__ . '/pd-aprende.php';
+    $quem = function_exists('pdQuemFazArea') ? pdQuemFazArea('copys') : []; $ehCorr = (bool)preg_match('/^\s*(n[aã]o[,.! ]|n[aã]o [eé] isso|errad|corrij|corrige|refaz|de novo|assim n[aã]o|eu pedi|voc[eê] errou|n[aã]o era)/iu', (string)$msg);
+    $ultIA = ''; foreach (array_reverse((array)($b['historico'] ?? [])) as $h) { $h = (array)$h; if (($h['de'] ?? '') !== 'equipe' && trim((string)($h['t'] ?? '')) !== '') { $ultIA = (string)$h['t']; break; } }
+    pdPratica('conversa', $ehCorr ? 'corrigida' : 'atendeu', ['skill' => 'CONVERSA', 'tem_acao' => !empty($temEscrita)], null, $u['id'] ?? null, (string)($quem['personagem'] ?? ''));
+    if ($ehCorr && mb_strlen($ultIA) > 20 && mb_strlen((string)$msg) > 12) { $r = sd_supabase('/rest/v1/pd_licoes', 'POST', ['ia_user_id' => $quem['id'] ?? null, 'personagem' => $quem['personagem'] ?? null, 'skill_id' => 'CONVERSA', 'escopo' => 'habilidade',
+        'regra' => 'Na conversa, a equipe corrigiu a IA: "' . mb_substr(trim((string)$msg), 0, 300) . '". Entenda o que foi corrigido e não repita.', 'exemplo_ruim' => mb_substr($ultIA, 0, 400), 'exemplo_bom' => '', 'status' => 'proposta', 'comum' => false]); } } } catch (Throwable $e) {}
 if (trim((string)$texto) !== '') pdIaTrabalhoPessoa($u['id'], $temEscrita ? 'executou_tarefa' : 'atendeu', $temEscrita ? 'gestao' : 'atendimento');
 echo json_encode(['reply' => trim($texto), 'feitos' => $feitosTxt, 'lote' => $temEscrita ? $lote : null, 'desfazer' => $temEscrita && iaTemRegistro(), 'ids' => array_values(array_unique($ids)), 'ferramenta' => $houveFerramenta], JSON_UNESCAPED_UNICODE);

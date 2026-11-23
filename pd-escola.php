@@ -214,6 +214,8 @@ if ($acao === 'termometro') {   // o que cada IA está aprendendo: provas (pd_no
     foreach ($lic as $l) { $k = ($l['ia_user_id'] ?? '') . '|' . $l['skill_id']; if (!isset($m[$k])) continue; if ($l['status'] === 'aprovada') $m[$k]['licoes_aprovadas']++; elseif ($l['status'] === 'proposta') $m[$k]['licoes_propostas']++; }
     $praticaIa = []; foreach ($obs as $o) { $ia = $o['ia_user_id'] ?? ''; if (!$ia) continue; $praticaIa[$ia]['total'] = ($praticaIa[$ia]['total'] ?? 0) + 1; if ($o['evento'] === 'pratica_corrigida') $praticaIa[$ia]['corr'] = ($praticaIa[$ia]['corr'] ?? 0) + 1;
         $sk = $o['dados']['skill'] ?? null; if ($sk && isset($m[$ia . '|' . $sk])) { $m[$ia . '|' . $sk]['pratica']++; if ($o['evento'] === 'pratica_corrigida') $m[$ia . '|' . $sk]['pratica_corrigida']++; } }
+    $iaPers = []; foreach ($m as $x) $iaPers[$x['ia_user_id']] = $x['personagem'];
+    foreach ($iaPers as $ia => $pers) foreach ($hn as $sk => $_) { $k = $ia . '|' . $sk; if (!isset($m[$k])) $m[$k] = $novo($ia, $pers, $sk); }
     $porIa = [];
     foreach ($m as $x) {
         $x['situacao'] = $x['passou_corte'] ? ($x['ultima'] !== null && $x['ultima'] >= $corte ? 'entendeu' : 'entendeu, mas oscilou') : ($x['provas'] >= 3 ? 'travada' : ($x['provas'] > 0 ? 'aprendendo' : 'sem prova ainda'));
@@ -357,7 +359,7 @@ function pdEscSkillLimpa($b) {
     return ['nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 90), 'finalidade' => mb_substr(trim((string)($b['finalidade'] ?? '')), 0, 800), 'entradas' => $lst($b['entradas'] ?? []),
         'metodo' => mb_substr(trim((string)($b['metodo'] ?? '')), 0, 6000), 'criterios' => $lst($b['criterios'] ?? [], 15), 'limites' => mb_substr(trim((string)($b['limites'] ?? '')), 0, 1500)];
 }
-if (in_array($acao, ['esc_skills', 'esc_skill_salvar', 'esc_skill_pausar', 'esc_skill_apagar', 'esc_skill_doc', 'esc_aluno', 'esc_ias'], true)) {
+if (in_array($acao, ['esc_skills', 'esc_skill_salvar', 'esc_skill_pausar', 'esc_skill_apagar', 'esc_skill_doc', 'esc_aluno', 'esc_aluno_todas', 'esc_ias'], true)) {
     if (!$ehAdmin) sd_fail('Só admin.', 403);
     $enc = fn($x) => urlencode((string)$x);
     if ($acao === 'esc_skills') {
@@ -411,6 +413,12 @@ if (in_array($acao, ['esc_skills', 'esc_skill_salvar', 'esc_skill_pausar', 'esc_
         pdAulaSup('/rest/v1/pd_formacoes?skill_id=eq.' . $enc($sid), 'DELETE');
         pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . $enc($sid), 'DELETE');
         echo json_encode(['ok' => true]); exit;
+    }
+    if ($acao === 'esc_aluno_todas') {   // {ia_user_id}: inscreve a IA em TODAS as skills ativas (cada uma vira um checkpoint do termômetro)
+        $ia = (string)($b['ia_user_id'] ?? ''); $je = pdAulaSup('/rest/v1/pd_jeito?user_id=eq.' . $enc($ia) . '&select=personagem&limit=1')['body'][0] ?? null; if (!$je) sd_fail('Essa IA ainda não existe.');
+        $hs = pdAulaSup('/rest/v1/pd_habilidades?select=skill_id,pausada&order=versao.desc&limit=500')['body'] ?? []; $vistas = []; $n = 0;
+        foreach ($hs as $h) { if (isset($vistas[$h['skill_id']]) || !empty($h['pausada'])) continue; $vistas[$h['skill_id']] = 1; pdFormacaoMatricula($ia, (string)$je['personagem'], (string)$h['skill_id']); $n++; }
+        echo json_encode(['ok' => true, 'n' => $n]); exit;
     }
     if ($acao === 'esc_aluno') {   // {skill_id, ia_user_id, fazer: matricular|parar|retomar|remover}
         $sid = (string)($b['skill_id'] ?? ''); $ia = (string)($b['ia_user_id'] ?? ''); $fz = (string)($b['fazer'] ?? '');
