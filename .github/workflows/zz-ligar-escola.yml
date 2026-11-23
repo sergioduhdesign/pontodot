@@ -1,0 +1,15 @@
+name: zz-ligar-escola
+on: workflow_dispatch
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar
+        env:
+          T: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          P: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          q() { curl -s -X POST "https://api.supabase.com/v1/projects/$P/database/query" -H "Authorization: Bearer $T" -H "Content-Type: application/json" -d "{\"query\":\"$1\"}"; echo; }
+          echo ANTES; q "select ativa,sandbox,teste_confirmado_em,nota_minima,teto_gasto_dia from pd_incubacao where id=1"
+          q "update pd_incubacao set teste_confirmado_em=coalesce(teste_confirmado_em,now()), ativa=true where id=1 returning ativa,sandbox,teste_confirmado_em"
+          echo DEPOIS; q "select ativa,sandbox,teste_confirmado_em from pd_incubacao where id=1"
