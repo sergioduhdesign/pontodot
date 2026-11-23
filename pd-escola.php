@@ -197,6 +197,37 @@ if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_i
     $r = pdAulaSup('/rest/v1/pd_observacoes', 'POST', $linhas); if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v128 no Supabase.', 500);
     echo json_encode(['ok' => true, 'n' => count($linhas)]); exit;
 }
+if ($acao === 'termometro') {   // o que cada IA está aprendendo: provas (pd_notas) x prática (pd_observacoes "pratica_*"), por persona e habilidade
+    require_once __DIR__ . '/pd-aprende.php';
+    $inc = pdAulaSup('/rest/v1/pd_incubacao?id=eq.1&select=nota_minima,provas_meta')['body'][0] ?? []; $corte = (float)($inc['nota_minima'] ?? 85); $meta = (int)($inc['provas_meta'] ?? 30);
+    $notas = pdAulaSup('/rest/v1/pd_notas?select=ia_user_id,personagem,skill_id,nota,fonte,criada_em&order=criada_em.asc&limit=5000')['body'] ?? [];
+    $forms = pdAulaSup('/rest/v1/pd_formacoes?select=ia_user_id,personagem,skill_id,ativa,apta_em&limit=2000')['body'] ?? [];
+    $hab = pdAulaSup('/rest/v1/pd_habilidades?select=skill_id,nome&limit=500')['body'] ?? []; $hn = []; foreach ($hab as $h) $hn[$h['skill_id']] = $h['nome'];
+    $obs = pdAulaSup('/rest/v1/pd_observacoes?evento=like.pratica_*&select=ia_user_id,area,evento,dados,em&order=em.desc&limit=5000')['body'] ?? [];
+    $lic = pdAulaSup('/rest/v1/pd_licoes?select=ia_user_id,skill_id,status&limit=3000')['body'] ?? [];
+    $m = [];   // chave ia|skill
+    $novo = function ($ia, $pers, $sk) use ($hn) { return ['ia_user_id' => $ia, 'personagem' => $pers, 'skill_id' => $sk, 'habilidade' => $hn[$sk] ?? $sk, 'inscrita' => false, 'apta' => false, 'provas' => 0, 'primeira' => null, 'ultima' => null, 'melhor' => null, 'tentativas_ate_corte' => null, 'passou_corte' => false, 'pratica' => 0, 'pratica_corrigida' => 0, 'licoes_aprovadas' => 0, 'licoes_propostas' => 0]; };
+    foreach ($forms as $f) { $k = $f['ia_user_id'] . '|' . $f['skill_id']; $m[$k] = $m[$k] ?? $novo($f['ia_user_id'], $f['personagem'], $f['skill_id']); $m[$k]['inscrita'] = (bool)$f['ativa']; $m[$k]['apta'] = !empty($f['apta_em']); }
+    foreach ($notas as $n) { $k = $n['ia_user_id'] . '|' . $n['skill_id']; $m[$k] = $m[$k] ?? $novo($n['ia_user_id'], $n['personagem'], $n['skill_id']); $v = (float)$n['nota'];
+        $m[$k]['provas']++; if ($m[$k]['primeira'] === null) $m[$k]['primeira'] = $v; $m[$k]['ultima'] = $v; $m[$k]['melhor'] = max((float)($m[$k]['melhor'] ?? 0), $v);
+        if (!$m[$k]['passou_corte'] && $v >= $corte) { $m[$k]['passou_corte'] = true; $m[$k]['tentativas_ate_corte'] = $m[$k]['provas']; } }
+    foreach ($lic as $l) { $k = ($l['ia_user_id'] ?? '') . '|' . $l['skill_id']; if (!isset($m[$k])) continue; if ($l['status'] === 'aprovada') $m[$k]['licoes_aprovadas']++; elseif ($l['status'] === 'proposta') $m[$k]['licoes_propostas']++; }
+    $praticaIa = []; foreach ($obs as $o) { $ia = $o['ia_user_id'] ?? ''; if (!$ia) continue; $praticaIa[$ia]['total'] = ($praticaIa[$ia]['total'] ?? 0) + 1; if ($o['evento'] === 'pratica_corrigida') $praticaIa[$ia]['corr'] = ($praticaIa[$ia]['corr'] ?? 0) + 1;
+        $sk = $o['dados']['skill'] ?? null; if ($sk && isset($m[$ia . '|' . $sk])) { $m[$ia . '|' . $sk]['pratica']++; if ($o['evento'] === 'pratica_corrigida') $m[$ia . '|' . $sk]['pratica_corrigida']++; } }
+    $porIa = [];
+    foreach ($m as $x) {
+        $x['situacao'] = $x['passou_corte'] ? ($x['ultima'] !== null && $x['ultima'] >= $corte ? 'entendeu' : 'entendeu, mas oscilou') : ($x['provas'] >= 3 ? 'travada' : ($x['provas'] > 0 ? 'aprendendo' : 'sem prova ainda'));
+        $x['saldo'] = ($x['primeira'] !== null && $x['ultima'] !== null) ? round($x['ultima'] - $x['primeira'], 1) : null;
+        $porIa[$x['ia_user_id']]['habilidades'][] = $x; $porIa[$x['ia_user_id']]['personagem'] = $x['personagem']; }
+    $pf = pdAulaSup('/rest/v1/profiles?select=id,name&limit=300')['body'] ?? []; $nm = []; foreach ($pf as $p) $nm[$p['id']] = $p['name'];
+    $ias = [];
+    foreach ($porIa as $id => $v) { $hs = $v['habilidades']; usort($hs, fn($a, $b) => ($b['melhor'] ?? -1) <=> ($a['melhor'] ?? -1));
+        $boas = array_values(array_map(fn($h) => $h['habilidade'], array_filter($hs, fn($h) => $h['passou_corte']))); $trav = array_values(array_map(fn($h) => $h['habilidade'], array_filter($hs, fn($h) => $h['situacao'] === 'travada')));
+        $ias[] = ['ia_user_id' => $id, 'personagem' => $v['personagem'], 'dona' => $nm[$id] ?? '', 'pratica_total' => $praticaIa[$id]['total'] ?? 0, 'pratica_corrigida' => $praticaIa[$id]['corr'] ?? 0,
+            'provas_total' => array_sum(array_column($hs, 'provas')), 'boa_em' => $boas, 'travada_em' => $trav, 'habilidades' => $hs]; }
+    usort($ias, fn($a, $b) => ($b['provas_total'] + $b['pratica_total']) <=> ($a['provas_total'] + $a['pratica_total']));
+    echo json_encode(['corte' => $corte, 'meta_provas' => $meta, 'ias' => $ias], JSON_UNESCAPED_UNICODE); exit;
+}
 if ($acao === 'masters_salvar') { if (!$ehAdmin) sd_fail('Só admin.', 403); $m = is_array($b['masters'] ?? null) ? array_map(fn($v) => strtolower(preg_replace('/[^a-z]/i', '', (string)$v)), $b['masters']) : []; pdAulaSup('/rest/v1/app_settings?id=eq.1', 'PATCH', ['area_masters' => $m]); echo json_encode(['ok' => true]); exit; }
 if (!$ehAdmin) sd_fail('Só admin.', 403);
 if ($acao === 'arte_clientes') {   // aula de arte em segundo plano: quais clientes entram, referências e tipologia
