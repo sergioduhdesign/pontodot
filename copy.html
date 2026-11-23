@@ -60,6 +60,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--gray)}
     <textarea id="dados" style="width:100%;min-height:90px" placeholder="Cole aqui o texto-base: pesquisa, ficha técnica, argumentos, diferenciais…" onchange="dirty=true"></textarea>
     <div class="lab">Links (Drive doc/PDF, site, matéria) · um por linha</div><textarea id="links" style="width:100%;min-height:54px" placeholder="https://…" onchange="dirty=true"></textarea>
     <label class="btn s" style="margin-top:6px"><input type="file" accept=".txt,.md,.docx,.html" multiple style="display:none" onchange="arquivo(this)">+ arquivo (txt, md, docx)</label>
+    <label class="btn s" style="margin-top:6px"><input type="file" accept=".xlsx" style="display:none" onchange="importaExcel(this)">Importar Excel (modelo SD)</label> <a class="btn s" style="margin-top:6px" href="/SD_modelo_lote_aprovacao.xlsx" download>Baixar modelo</a>
     <h3>Estilos <small class="vazio" style="display:inline;text-transform:none;letter-spacing:0">· clique pra compor · toque de novo muda o peso</small></h3>
     <div id="estilos"></div>
     <div id="pdRefs"></div>
@@ -133,8 +134,27 @@ async function salvar(silencio){if(!CP.client_id){if(!silencio)msg('Escolha o cl
 async function abrir(id){try{const {copy:c}=await api('pd-copy.php',{acao:'abrir',id},'Abrindo…');CP.id=c.id;$('#cli').value=c.client_id;if(CP.client_id!==c.client_id)await trocaCliente();$('#nome').value=c.nome;briefingSet(c.briefing);pdStudio.refsSet((c.briefing||{}).repertorio||[]);$('#dados').value=c.dados||'';$('#links').value=(c.links||[]).join('\n');CP.estilos=c.estilos||[];CP.task_id=c.task_id||null;CP.set_id=c.set_id||null;const v=c.variantes||{};CP.variantes=v.itens||[];CP.leitura=v.leitura||'';CP.rodada=v.rodada||0;CP.custo=v.custo||0;CP.calendario=!!v.calendario;CP.ia=v.ia||null;estilosUI();cardsUI();tarefaUI();nomeAba();}catch(e){msg(e.message,6000);}}
 function salvasUI(){$('#salvas').innerHTML=(INI.copys||[]).map(c=>`<div class="estilo" onclick="abrir('${c.id}')"><div style="min-width:0;flex:1"><b>${esc(c.nome)}</b><small>${esc((c.briefing||{}).formato||'')} · ${c.variantes&&c.variantes.itens?c.variantes.itens.length+' variantes':'sem variantes'} · ${new Date(c.mudado_em).toLocaleDateString('pt-BR')}</small></div><button class="btn s" style="min-height:24px;padding:2px 6px" onclick="event.stopPropagation();apagar('${c.id}')" title="Apagar">×</button></div>`).join('')||'<div class="vazio">Nenhuma ainda.</div>';}
 async function apagar(id){if(!confirm('Apagar esta copy?'))return;try{await api('pd-copy.php',{acao:'apagar',id});if(CP.id===id)nova();await trocaCliente();}catch(e){msg(e.message);}}
+// Importa o Excel no MODELO SD (o mesmo do lote de aprovação: ARQUIVO_OU_PASTA, LEGENDA, HASHTAGS, TITULO, TIPO, DATA, HORA; opcionais DIRECAO_VISUAL e CTA).
+// Cada linha vira uma peça da copy; com DATA vira calendário. Depois vale tudo: revisar, "Mandar pro cliente" (link de aprovação) e a tarefa do criativo.
+async function importaExcel(inp){const f=inp.files[0];inp.value='';if(!f)return;if(!CP.client_id){msg('Escolha o cliente primeiro.');return;}
+  try{const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});const nome=wb.SheetNames.includes('IMPORTACAO')?'IMPORTACAO':wb.SheetNames[0];const raw=XLSX.utils.sheet_to_json(wb.Sheets[nome],{header:1,defval:'',raw:false});
+    let h=-1;for(let i=0;i<raw.length;i++){if(raw[i].map(c=>String(c).trim().toUpperCase()).includes('ARQUIVO_OU_PASTA')){h=i;break;}}
+    if(h<0){msg('Não achei a coluna ARQUIVO_OU_PASTA. Use o modelo SD (botão Baixar modelo).',7000);return;}
+    const head=raw[h].map(x=>String(x).trim().toUpperCase());const col=n=>head.indexOf(n);
+    const dt=t=>{t=String(t||'').trim();let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return new Date(+m[3],+m[2]-1,+m[1],12);m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?new Date(+m[1],+m[2]-1,+m[3],12):null;};
+    const itens=[];raw.slice(h+1).forEach(l=>{const g=n=>{const i=col(n);return i>=0?String(l[i]||'').trim():'';};const chave=g('ARQUIVO_OU_PASTA'),leg=g('LEGENDA'),tit=g('TITULO');if(!chave&&!leg&&!tit)return;
+      let tipo=g('TIPO').toUpperCase();if(tipo==='POST'||tipo==='ESTÁTICO'||tipo==='ESTATICO')tipo='FEED';if(tipo==='STORY')tipo='STORIES';if(tipo==='REEL')tipo='REELS';tipo=['FEED','CARROSSEL','STORIES','REELS','BLOG','CAPA_SITE'].includes(tipo)?tipo:'MATERIAL';
+      itens.push({tipo:tipo.toLowerCase(),titulo:tit||chave,texto:leg,hashtags:g('HASHTAGS'),visual:g('DIRECAO_VISUAL')||g('DIRECAO_ARTE'),cta:g('CTA'),_data:dt(g('DATA'))});});
+    if(!itens.length){msg('A planilha não tem linhas preenchidas.');return;}
+    const datas=itens.map(i=>i._data).filter(Boolean);const cal=datas.length===itens.length;let ini=null;
+    if(cal){ini=new Date(Math.min(...datas.map(d=>+d)));itens.forEach(i=>{i.dia=Math.round((i._data-ini)/864e5)+1;});itens.sort((a,b)=>a.dia-b.dia);}
+    itens.forEach(i=>delete i._data);
+    if(CP.variantes.length&&!confirm('Já tem '+CP.variantes.length+' peça(s) aqui. Trocar pelas '+itens.length+' do Excel?'))return;
+    CP.variantes=itens;CP.calendario=cal;CP.leitura='Importado do Excel '+f.name;CP.rodada=CP.rodada||0;CP.inicio=ini?ini.toISOString().slice(0,10):null;if($('#nome').value==='Copy')$('#nome').value=f.name.replace(/\.xlsx$/i,'').slice(0,120);
+    dirty=true;cardsUI();nomeAba();msg(itens.length+' peças importadas'+(cal?' (calendário a partir de '+ini.toLocaleDateString('pt-BR')+')':'')+'. Revise e use "Mandar pro cliente".',8000);
+  }catch(e){msg('Não consegui ler o Excel: '+e.message,7000);}}
 function nova(){CP={id:null,client_id:CP.client_id,variantes:[],estilos:[],task_id:null,calendario:false};tarefaUI();$('#nome').value='Copy';briefingSet({});$('#dados').value='';$('#links').value='';estilosUI();cardsUI();dirty=false;nomeAba();}
-async function aprovacao(interno){if(!CP.variantes.length){msg('Gere primeiro.');return;}if(!CP.id||dirty)await salvar(true);let inicio=null;if(CP.calendario){inicio=prompt('Data do dia 1 (aaaa-mm-dd) — vira a data de publicação de cada peça. Vazio = sem data.','')||null;}
+async function aprovacao(interno){if(!CP.variantes.length){msg('Gere primeiro.');return;}if(!CP.id||dirty)await salvar(true);let inicio=null;if(CP.calendario){inicio=prompt('Data do dia 1 (aaaa-mm-dd) — vira a data de publicação de cada peça. Vazio = sem data.',CP.inicio||'')||null;}
   const N=CP.variantes.length;let indices=null;const alvo=interno?'revisão interna':'o cliente aprovar';
   const k=await pdStudio.escolher(N>1?'Mandar '+(interno?'pra revisão interna':'pro cliente')+':\ntodas as '+N+' '+(CP.calendario?'peças':'variantes')+', ou só uma que você escolher?':'Mandar a peça pra '+alvo+'?',[{k:'todas',label:N>1?'Todas ('+N+')':(interno?'Mandar pra revisão':'Mandar pro cliente'),primario:true}].concat(N>1?[{k:'uma',label:'Só uma'}]:[]).concat([{k:'n',label:'Cancelar'}]));if(!k||k==='n')return;
   if(k==='uma'){const tit=i=>{const v=CP.variantes[i]||{};return (v.dia?'Dia '+v.dia+' · ':'')+(v.titulo||v.headline||v.assunto||v.gancho||'Variante '+(i+1));};
