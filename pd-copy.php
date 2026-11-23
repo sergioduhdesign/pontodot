@@ -5,6 +5,7 @@
 require_once __DIR__ . '/sd-auth.php';
 require_once __DIR__ . '/pd-lib.php';
 define('PD_SO_FUNCOES', 1); require_once __DIR__ . '/pd-estudio-ia.php';   // paClaude / paReferencias / paJson (sem rodar o roteador de lá)
+require_once __DIR__ . '/pd-copy-aprende.php';   // lições da Copy: entram no prompt e nascem das correções da equipe
 @set_time_limit(280);
 header('Content-Type: application/json; charset=utf-8');
 $u = sd_current_user(); if (!in_array($u['role'], ['admin', 'team'], true)) sd_fail('Só a equipe.', 403);
@@ -80,6 +81,7 @@ if ($acao === 'salvar') {
     $id = (string)($b['id'] ?? ''); $d = ['mudado_em' => gmdate('c')]; foreach (['nome', 'dados'] as $k) if (isset($b[$k])) $d[$k] = mb_substr((string)$b[$k], 0, $k === 'nome' ? 120 : 60000);
     foreach (['briefing', 'links', 'estilos', 'variantes'] as $k) if (array_key_exists($k, $b)) $d[$k] = is_array($b[$k]) ? $b[$k] : null;
     if (array_key_exists('task_id', $b)) $d['task_id'] = ($b['task_id'] ?? null) ?: null;
+    if ($id && isset($d['variantes']) && is_array($d['variantes'])) $d['variantes'] = cpAprende($id, $d['variantes'], (string)($u['name'] ?? ''));   // correção humana vira lição PROPOSTA
     if (!$id) { if (empty($b['client_id'])) sd_fail('Toda copy é de um cliente.'); $d['client_id'] = (string)$b['client_id']; $d['criado_por'] = $u['id']; $r = sd_supabase('/rest/v1/pd_copys', 'POST', $d, ['Prefer: return=representation']); } else $r = sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode($id), 'PATCH', $d, ['Prefer: return=representation']);
     if (($r['code'] ?? 500) >= 300) sd_fail('Rode o SQL v128 no Supabase.', 500); echo json_encode(['ok' => true, 'copy' => $r['body'][0] ?? null], JSON_UNESCAPED_UNICODE); exit;
 }
@@ -139,6 +141,7 @@ function cpGerar($b, $u) {
     $ganSel = array_values(array_filter((array)($br['ganchos'] ?? []))); unset($br['ganchos']); $ganTxt = [];
     foreach (cpGanchos() as $g) if (in_array($g['id'], $ganSel, true)) $ganTxt[] = "- {$g['nome']}: {$g['formula']} Exemplo de ritmo (não copie): {$g['ex']}";
     if ($ganTxt) $repBloco .= "\n\nMECANISMOS DE ABERTURA PEDIDOS (a PRIMEIRA frase de cada peça/roteiro segue um deles; com mais de uma variante, distribua os mecanismos entre variantes DIFERENTES em argumento, prova e cena, não só em palavras; a operação escolhida precisa ser sustentada no desenvolvimento; só afirme o que a ficha e os ativos do cliente confirmam: nada de depoimento, número ou comparação inventados; no campo estilo diga qual mecanismo usou e no campo por_que registre a hipótese criativa e a métrica a observar, sem prometer viralização):\n" . implode("\n", $ganTxt);
+    try { require_once __DIR__ . '/pd-aula-lib.php'; $quemLic = pdQuemFazArea('copys'); $repBloco .= cpLicoesBloco($cid, $quemLic['id'] ?? null); } catch (Throwable $e) {}   // o que a equipe já ensinou à IA (lições aprovadas)
     $links = array_slice(array_filter(array_map('trim', (array)($b['links'] ?? []))), 0, 6); $lidos = []; foreach ($links as $lk) { $t = cpLeLink($lk); if ($t !== '') $lidos[] = "[$lk]\n" . mb_substr($t, 0, 12000); }
     $base = []; foreach (cpEstilosBase() as $e) $base[$e['id']] = $e; $sel = (array)($b['estilos'] ?? []); $estTxt = [];
     foreach ($sel as $se) { $sid = (string)($se['id'] ?? ''); $peso = max(1, min(3, (int)($se['peso'] ?? 2))); if (isset($base[$sid])) $estTxt[] = "- {$base[$sid]['nome']} (peso $peso/3): {$base[$sid]['dna']}";
