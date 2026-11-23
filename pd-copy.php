@@ -64,11 +64,13 @@ function cpLeLink($lk) {   // Drive (doc/pdf/md) → texto; site → texto resum
     try { [$txt] = paReferencias([$lk], 0); return implode("\n", (array)$txt); } catch (Exception $e) { return '[não consegui ler ' . $lk . ']'; }
 }
 
+/** Pessoas do time que podem receber a tarefa do criativo (chave = tasks.resp). */
+function cpEquipe() { try { $r = sd_supabase('/rest/v1/profiles?active=eq.true&team_key=not.is.null&client_id=is.null&select=name,team_key&order=name.asc&limit=40')['body'] ?? []; $o = []; foreach ($r as $x) { $k = strtoupper(trim((string)($x['team_key'] ?? ''))); if ($k !== '') $o[] = ['k' => $k, 'nome' => (string)($x['name'] ?? $k)]; } return $o; } catch (Throwable $e) { return []; } }
 if ($acao === 'inicio') {
     $cid = (string)($b['client_id'] ?? ''); $q = '/rest/v1/pd_estilos?ativo=eq.true&area=eq.copys&select=id,nome,resumo,dna,client_id,refs&order=nome.asc'; $q .= $cid ? '&or=(client_id.is.null,client_id.eq.' . urlencode($cid) . ')' : '&client_id=is.null';
     $est = sd_supabase($q)['body'] ?? []; $cp = $cid ? (sd_supabase('/rest/v1/pd_copys?client_id=eq.' . urlencode($cid) . '&select=id,nome,briefing,variantes,mudado_em&order=mudado_em.desc&limit=30')['body'] ?? []) : [];
     $refs = cpRefsDrive();
-    echo json_encode(['ganchos' => cpGanchos(), 'base' => cpEstilosBase(), 'estilos' => $est, 'copys' => $cp, 'refs' => array_map(fn($r) => ['nome' => $r['nome']], $refs), 'quem' => pdQuemFazArea('copys')], JSON_UNESCAPED_UNICODE); exit;
+    echo json_encode(['ganchos' => cpGanchos(), 'base' => cpEstilosBase(), 'estilos' => $est, 'copys' => $cp, 'refs' => array_map(fn($r) => ['nome' => $r['nome']], $refs), 'quem' => pdQuemFazArea('copys'), 'equipe' => cpEquipe()], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'estilo_salvar') {
     $d = ['area' => 'copys', 'nome' => mb_substr(trim((string)($b['nome'] ?? '')), 0, 80) ?: 'Estilo', 'resumo' => mb_substr((string)($b['resumo'] ?? ''), 0, 400), 'dna' => mb_substr((string)($b['dna'] ?? ''), 0, 6000), 'client_id' => ($b['client_id'] ?? null) ?: null, 'criado_por' => $u['id'], 'refs' => is_array($b['refs'] ?? null) ? $b['refs'] : null];
