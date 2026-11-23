@@ -1,0 +1,34 @@
+name: PD — contagem de leitura (temporário)
+on:
+  workflow_dispatch:
+    inputs:
+      arquivo: { description: "php em hg-envio/", required: true }
+      token:   { description: "token", required: true }
+      pasta:   { description: "pasta na conta", required: true }
+      host:    { description: "host público", required: true }
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rodar e apagar
+        env:
+          U: ${{ secrets.CPANEL_USER }}
+          H: ${{ secrets.CPANEL_HOST }}
+          T: ${{ secrets.CPANEL_TOKEN }}
+          ARQ: ${{ github.event.inputs.arquivo }}
+          TOK: ${{ github.event.inputs.token }}
+          PASTA: ${{ github.event.inputs.pasta }}
+          PH: ${{ github.event.inputs.host }}
+        run: |
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          HOME_DIR=$(curl -sS --max-time 30 -H "Authorization: cpanel $U:$T" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          D="$HOME_DIR/$PASTA"
+          case "$ARQ" in zz-pd-*.php) ;; *) echo "nome inválido"; exit 1;; esac
+          R=$(curl -sS --max-time 60 -H "Authorization: cpanel $U:$T" "https://$H/execute/Fileman/save_file_content" --data-urlencode "dir=$D" --data-urlencode "file=$ARQ" --data-urlencode "content@hg-envio/$ARQ")
+          echo "$R" | python3 -c "import json,sys;j=json.load(sys.stdin);print('SUBIU' if j.get('status')==1 else 'ERRO '+str(j.get('errors')))"
+          echo "===== resultado"
+          curl -sSL --max-time 90 "https://$PH/$ARQ?k=$TOK" | head -80 || true
+          echo "===== apagando"
+          curl -sS --max-time 60 -H "Authorization: cpanel $U:$T" "https://$H/json-api/cpanel" --data-urlencode "cpanel_jsonapi_user=${U}" --data "cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&op=unlink" --data-urlencode "sourcefiles=$D/$ARQ" | python3 -c "import sys,json;j=json.load(sys.stdin);print('apagado' if j['cpanelresult']['data'][0]['result']==1 else 'FALHOU apagar')"
+          curl -sSL -o /dev/null -w "depois de apagar: http=%{http_code}\n" "https://$PH/$ARQ?k=$TOK"
