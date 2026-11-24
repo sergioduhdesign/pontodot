@@ -698,11 +698,12 @@ section{padding:64px 0;scroll-snap-align:start}
   /* hero: o botão abre o formulário (painel ao lado no desktop, gaveta no celular) */
   var hero = $('.hero'), cta = $('[data-cta]'), hform = $('.hero-form');
   var wide = function () { return w.matchMedia('(min-width: 960px)').matches; };
-  function setForm(open, focus) {
+  function setForm(open, focus, quiet) {
     if (!hero || !hform) return;
     hero.classList.toggle('open', open);
     if (cta) cta.setAttribute('aria-expanded', String(open));
     if (open) { hform.removeAttribute('inert'); } else { hform.setAttribute('inert', ''); }
+    if (quiet) return;
     if (open) {
       var tgt = wide() ? $('#topo') : hform;
       setTimeout(function () { tgt.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }, wide() ? 0 : 120);
@@ -710,8 +711,37 @@ section{padding:64px 0;scroll-snap-align:start}
     } else if (cta && !wide()) { cta.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }
   }
   if (hform) hform.setAttribute('inert', '');
-  if (cta) cta.addEventListener('click', function () { setForm(!hero.classList.contains('open'), true); });
-  $$('[data-close]').forEach(function (b) { b.addEventListener('click', function () { setForm(false); if (cta) cta.focus({ preventScroll: true }); }); });
+  /* abre sozinho: no primeiro movimento da pessoa ou em até 3 s. No celular, fecha quando ela desce
+     para ver o resto da página e reabre quando volta ao topo. */
+  var autoDone = false, manual = false, autoT = null;
+  function autoOpen() {
+    if (autoDone) return; autoDone = true; clearTimeout(autoT);
+    ['touchstart', 'wheel', 'keydown', 'mousedown'].forEach(function (ev) { d.removeEventListener(ev, autoOpen); });
+    if (!manual && hero && !hero.classList.contains('open')) setForm(true, false, true);
+  }
+  if (hero && hform) {
+    ['touchstart', 'wheel', 'keydown', 'mousedown'].forEach(function (ev) { d.addEventListener(ev, autoOpen, { passive: true }); });
+    var mx = null, my = null;  /* ignora o pointermove sintético que o navegador dispara ao carregar */
+    d.addEventListener('pointermove', function (e) {
+      if (mx === null) { mx = e.clientX; my = e.clientY; return; }
+      if (Math.abs(e.clientX - mx) + Math.abs(e.clientY - my) > 6) autoOpen();
+    }, { passive: true });
+    var y0 = w.scrollY;
+    w.addEventListener('scroll', function () { if (Math.abs(w.scrollY - y0) > 8) autoOpen(); }, { passive: true });
+    autoT = setTimeout(autoOpen, 3000);
+    var ticking = false;
+    var mobSync = function () {
+      ticking = false;
+      if (wide() || manual) return;
+      var open = hero.classList.contains('open');
+      var hdrH = (hdr ? hdr.offsetHeight : 64);
+      if (open && hform.getBoundingClientRect().bottom < hdrH) setForm(false, false, true);
+      else if (!open && autoDone && w.scrollY < 40) setForm(true, false, true);
+    };
+    w.addEventListener('scroll', function () { if (!ticking) { ticking = true; w.requestAnimationFrame(mobSync); } }, { passive: true });
+  }
+  if (cta) cta.addEventListener('click', function () { manual = false; setForm(!hero.classList.contains('open'), true); });
+  $$('[data-close]').forEach(function (b) { b.addEventListener('click', function () { manual = true; setForm(false); if (cta) cta.focus({ preventScroll: true }); }); });
   d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && hero && hero.classList.contains('open')) setForm(false); });
   d.addEventListener('click', function (e) {
     var a = e.target.closest && e.target.closest('a[href="#form"]');
