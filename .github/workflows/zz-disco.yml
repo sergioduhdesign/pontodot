@@ -1,0 +1,15 @@
+name: zz-disco
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - name: du
+        env:
+          S: ${{ secrets.FTP_SERVER }}
+          U: ${{ secrets.FTP_USERNAME }}
+          P: ${{ secrets.FTP_PASSWORD }}
+          D: ${{ secrets.FTP_DIR }}
+        run: |
+          sudo apt-get install -y lftp >/dev/null 2>&1
+          lftp -u "$U","$P" "$S" -e "set ssl:verify-certificate no; set net:timeout 30; cd $D; echo ---; du -h -d1 .; echo ---; cd ..; du -h -d1 . ; quote SITE QUOTA; bye" 2>&1 | tail -60
