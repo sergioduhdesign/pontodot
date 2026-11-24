@@ -152,7 +152,7 @@ async function ntCriar(){
     NT.ativa = false; NT.passo = null; const c = document.querySelector('#campo'); if (c) c.placeholder = 'Fale comigo...';
     try { await carregarReal(); atualizarVersoApp(); } catch(e){}
     const t = (tasksReais || []).find(x => x.id === data.id) || { ...nova, clients: d.client ? { name: d.client.name } : null, products: d.product ? { name: d.product.name } : null };
-    ntFala(`Criada: <b>${data.id}</b>. Já está no board.` + ntCardHtml(t), [['Abrir a tarefa', '', `abrirTarefaReal('${data.id}')`], ['Subir material para aprovação', 'azul', `ntSubirAprovacao('${data.id}')`], ].concat(d.filha ? [['Criar a tarefa filha', 'verde', `ntIniciar('${data.id}')`]] : [['Criar outra', '', 'ntIniciar()']]));
+    ntFala(`Criada: <b>${data.id}</b>. Já está no board.` + ntCardHtml(t), [['Abrir a tarefa', '', `abrirTarefaReal('${data.id}')`], ['Subir material para aprovação', 'azul', `ntSubirAprovacao('${data.id}')`], ['Subir copy', '', `subirCopyTarefa('${data.id}')`], ].concat(d.filha ? [['Criar a tarefa filha', 'verde', `ntIniciar('${data.id}')`]] : [['Criar outra', '', 'ntIniciar()']]));
     if (nova.client_id && /copy|legenda|texto/i.test(nova.action) && typeof adsFala === 'function') adsFala({ acao:'executar_tarefa', task_id: data.id }, '/pd-copy.php').then(j => toast('Copy da ' + data.id + ' montada no Studio › Copys (' + (j.n || 0) + ' itens).')).catch(() => {});
   } catch(e){ ntFala('Não consegui criar: ' + esc(e.message), [['Tentar de novo', 'verde', 'ntCriar()'], ['Cancelar', '', 'ntCancelar()']]); }
 }
