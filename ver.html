@@ -50,6 +50,9 @@ body{background:var(--bg);color:var(--text);padding-bottom:80px}
   padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;
   cursor:pointer;transition:var(--transition);font-family:inherit
 }
+.ap-tiposel{margin-left:auto;font:600 12.5px inherit;font-family:inherit;padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;max-width:200px}
+.ap-tiposel.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.ap-tiposel ~ #btnTudo,.ap-tiposel ~ #btnAgendar{margin-left:0!important}
 .ap-chip:hover{border-color:var(--text3);color:var(--text)}
 .ap-chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .ap-chip[data-f="ajustar"].on{background:#db2777;border-color:#db2777;color:#fff}
@@ -269,6 +272,7 @@ details.ap-cap[open] summary::before{content:"▾"}
   <button class="ap-chip" data-f="pendente">Pendentes <span class="n" id="nPend"></span></button>
   <button class="ap-chip" data-f="aprovado">Aprovados <span class="n" id="nOk"></span></button>
   <button class="ap-chip" data-f="ajustar">Com ajustes <span class="n" id="nFix"></span></button>
+  <select id="apTipo" class="ap-tiposel" aria-label="Filtrar por tipo" style="display:none"></select>
   <button id="btnTudo" style="display:none;margin-left:auto;background:#16a34a;color:#fff;border:none;padding:9px 20px;
     border-radius:7px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(22,163,74,.35)">✓ Aprovar tudo</button>
   <button id="btnPdf" style="background:transparent;color:var(--text2);
@@ -402,8 +406,24 @@ async function load(){
 // ==================================================================
 // RENDER
 // ==================================================================
+
+let kindF = 'all';
+function tiposUI(){
+  const sel = document.getElementById('apTipo'); if (!sel) return;
+  const cont = {}; items.forEach(i => { const k = i.kind || 'generico'; cont[k] = (cont[k] || 0) + 1; });
+  const ks = Object.keys(cont);
+  if (ks.length < 2) { sel.style.display = 'none'; kindF = 'all'; return; }
+  if (kindF !== 'all' && !cont[kindF]) kindF = 'all';
+  sel.style.display = '';
+  sel.innerHTML = `<option value="all">Todos os tipos (${items.length})</option>` + ks.map(k => `<option value="${k}">${esc(KIND_LABEL[k] || k)} (${cont[k]})</option>`).join('');
+  sel.value = kindF; sel.classList.toggle('on', kindF !== 'all');
+  sel.onchange = () => { kindF = sel.value; render(); };
+}
+
 function render(){
   const board = document.getElementById('apBoard');
+  tiposUI();
+  const base = items.filter(i => kindF === 'all' || (i.kind || 'generico') === kindF);
 
   if (!items.length) {
     showEmpty('Nada por aqui ainda', 'A equipe ainda não enviou material neste lote.');
@@ -418,19 +438,20 @@ function render(){
   document.getElementById('apFill').style.width = (total ? (ok/total*100) : 0) + '%';
   document.getElementById('apCount').textContent =
     ok + ' de ' + total + (ok === total ? ' — tudo aprovado' : ' aprovadas');
-  document.getElementById('nAll').textContent  = total;
-  document.getElementById('nPend').textContent = pend;
-  document.getElementById('nOk').textContent   = ok;
-  document.getElementById('nFix').textContent  = fix;
+  document.getElementById('nAll').textContent  = base.length;
+  document.getElementById('nPend').textContent = base.filter(i => i.status === 'pendente').length;
+  document.getElementById('nOk').textContent   = base.filter(i => i.status === 'aprovado').length;
+  document.getElementById('nFix').textContent  = base.filter(i => i.status === 'ajustar').length;
 
   const bp = document.getElementById('btnPdf');
   if (bp) bp.onclick = gerarPDF;
   const btT = document.getElementById('btnTudo');
   if (btT) {
-    btT.style.display = (total - ok) > 0 ? 'block' : 'none';
-    btT.textContent = `✓ Aprovar tudo (${total - ok})`;
+    const faltaB = base.filter(i => i.status !== 'aprovado').length;
+    btT.style.display = faltaB > 0 ? 'block' : 'none';
+    btT.textContent = kindF === 'all' ? `✓ Aprovar tudo (${faltaB})` : `✓ Aprovar ${(KIND_LABEL[kindF] || kindF).toLowerCase()} (${faltaB})`;
     if (bp && true) bp.style.marginLeft = btT.style.display === 'none' ? 'auto' : '';
-    btT.onclick = () => AP.aprovarTudo(items, async (id, decision, comment) => {
+    btT.onclick = () => AP.aprovarTudo(base, async (id, decision, comment) => {
       const { error } = await sb.rpc('review_by_token', { p_token: TOKEN, p_item_id: id, p_decision: decision,
         p_comment: comment || null, p_guest: guest });
       if (error) throw error;
@@ -448,7 +469,7 @@ function render(){
   if (bz) { const pronto = total > 0 && ok === total;
     bz.style.display = pronto ? 'block' : 'none'; bz.onclick = baixarZip; }
 
-  const vis = items.filter(i => filter === 'all' || i.status === filter);
+  const vis = base.filter(i => filter === 'all' || i.status === filter);
 
   if (!vis.length) {
     board.innerHTML = `<div class="ap-empty">
