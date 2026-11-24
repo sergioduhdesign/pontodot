@@ -400,6 +400,7 @@ details.ap-cap[open] summary::before{content:"▾"}
     <p class="ap-eyebrow" id="apEyebrow">Pontodot</p>
     <h1 class="ap-title" id="apTitle">Carregando…</h1>
     <p class="ap-sub" id="apSub"></p>
+    <div id="apTarefas" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;font-size:12.5px"></div>
     <div class="ap-progress">
       <div class="ap-track"><div class="ap-fill" id="apFill"></div></div>
       <div class="ap-count" id="apCount">—</div>
@@ -603,6 +604,23 @@ async function load(){
   document.getElementById('apSub').textContent     = s.subtitle
     || 'Revise cada peça, deixe seu comentário e marque como aprovada ou peça ajuste. Suas observações chegam direto na equipe.';
   document.title = s.title + ' — Pontodot';
+
+  // Dois trabalhos num lote: a tarefa da COPY e a tarefa das ARTES. Mostra os dois títulos e abre cada um.
+  if (profile.role !== 'client') { try {
+    const { data: cp } = await sb.from('pd_copys').select('task_id,criativo_task_id').eq('set_id', SET_ID).limit(1);
+    const ids = [(cp && cp[0] && cp[0].task_id) || null, (cp && cp[0] && cp[0].criativo_task_id) || apSet.task_id || null].filter((x, i, a) => x && a.indexOf(x) === i);
+    const box = document.getElementById('apTarefas');
+    if (box && ids.length) {
+      const { data: ts } = await sb.from('tasks').select('id,action').in('id', ids);
+      const nome = id => ((ts || []).find(t => t.id === id) || {}).action || '';
+      const par = [];
+      if (cp && cp[0] && cp[0].task_id) par.push(['Copy', cp[0].task_id]);
+      const art = (cp && cp[0] && cp[0].criativo_task_id) || apSet.task_id; if (art && art !== (cp && cp[0] && cp[0].task_id)) par.push(['Artes', art]);
+      box.innerHTML = par.map(([r, id]) => `<button type="button" data-t="${esc(id)}" style="all:unset;cursor:pointer;padding:5px 12px;border:1px solid rgba(255,255,255,.28);border-radius:99px;color:#fff;opacity:.9"><b style="opacity:.6;font-weight:600;margin-right:6px">${r}</b>${esc(id)} · ${esc(String(nome(id)).slice(0, 60))}</button>`).join('');
+      box.style.display = 'flex';
+      box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { try { (window.parent && window.parent !== window && window.parent.abrirTarefaReal) ? window.parent.abrirTarefaReal(b.dataset.t) : showToast('Abra a tarefa ' + b.dataset.t + ' na PD.', 'info'); } catch(e){} });
+    }
+  } catch(e){ console.warn(e.message); } }
 
   const { data: it } = await sb.from('approval_items')
     .select('*').eq('set_id', SET_ID).order('position');

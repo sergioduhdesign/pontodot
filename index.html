@@ -2673,14 +2673,14 @@ pdAbertura(false);
 <script src="/js/pd-ajuda.js?v=328"></script>
 <script src="/js/pd-comits.js?v=14"></script>
 <script src="/js/pd-modelos.js?v=1"></script>
-<script src="/js/pd-tarefa-form.js?v=1" defer></script>
+<script src="/js/pd-tarefa-form.js?v=2" defer></script>
 <script>
 // =====================================================================
 // PROTÓTIPO — tudo simulado. Fundo e frases trocam devagar; o S vira a
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v632 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v633 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -11893,6 +11893,29 @@ async function carregarAprovacao(id){
   const box = $('#tcApr'); if (!box || !window.REAL) return;
   let ap = null;
   try { const { data } = await sbR.from('v_task_approval').select('*').eq('task_id', id); ap = (data||[])[0]; } catch(e){}
+  // Tarefa da COPY: o lote nasceu dela, mas o material passou a ser da tarefa das artes (task_id do lote). Mostra o mesmo lote aqui.
+  if (!ap){
+    try {
+      const { data: cp } = await sbR.from('pd_copys').select('id,nome,set_id,criativo_task_id').eq('task_id', id).not('set_id', 'is', null).limit(1);
+      if (cp && cp[0]){
+        const c = cp[0];
+        const { data: its } = await sbR.from('approval_items').select('status,interno_ok').eq('set_id', c.set_id);
+        const { data: st } = await sbR.from('approval_sets').select('interno,share_token').eq('id', c.set_id).limit(1);
+        const tot = (its || []).length, okN = (its || []).filter(x => st && st[0] && st[0].interno ? x.interno_ok : x.status === 'aprovado').length;
+        const pct0 = tot ? Math.round(okN / tot * 100) : 0, art = c.criativo_task_id ? (tasksReais || []).find(x => x.id === c.criativo_task_id) : null;
+        box.innerHTML = `<div class="tc-apr" style="border-left:3px solid var(--roxo)">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px"><b>Copy · ${esc(c.nome || 'calendário de conteúdo')}</b>
+              <div style="color:var(--roxo);font-weight:500;margin-top:2px">${okN} de ${tot} ${st && st[0] && st[0].interno ? 'aprovadas na revisão interna' : 'aprovadas'}</div></div>
+            <button class="btn cp-ic" title="Ver as copys" aria-label="ver copys" onclick="popupIframe('/aprovacao.html?set=${c.set_id}','Copy — ${id}')">${icoMini('olho',14)}</button>
+          </div>
+          <div class="barra"><i style="width:${pct0}%;background:var(--roxo)"></i></div>
+          ${c.criativo_task_id ? `<div style="margin-top:8px"><button class="btn" style="min-height:30px" onclick="abrirTarefaReal('${c.criativo_task_id}')">Tarefa das artes: ${esc(c.criativo_task_id)}${art ? ' · ' + esc(String(art.action).slice(0, 40)) : ''}</button></div>` : ''}
+        </div>`;
+        return;
+      }
+    } catch(e){}
+  }
   if (!ap){
     const subir = `<div class="tc-apr" style="display:flex;gap:8px;align-items:center"><span style="flex:1;opacity:.7">Nenhum material enviado ainda.</span><button class="btn cheio" title="Subir material para aprovação" onclick="popupIframe('/novo-lote.html?embed=1&task=${id}','Subir material — ${id}')">${icoMini('subir',14)} subir material</button><button class="btn" title="Subir só a copy (Excel no modelo SD)" onclick="subirCopyTarefa('${id}')">${icoMini('subir',14)} subir copy</button></div>`;
     box.innerHTML = driveMap[id] ? '' : subir;   // com Drive, a entrega nasce no "importar"
@@ -11927,6 +11950,10 @@ async function carregarAprovacao(id){
       <a class="btn" style="min-height:32px" href="https://wa.me/?text=${encodeURIComponent('confere e aprova por aqui: '+link)}" target="_blank" rel="noopener">whatsapp</a>
     </div>`:''}
   </div>`;
+  // tarefa das artes: aponta pra tarefa da copy que originou o lote
+  try { const { data: cp } = await sbR.from('pd_copys').select('task_id,nome').eq('criativo_task_id', id).limit(1);
+    if (cp && cp[0] && cp[0].task_id){ const m = (tasksReais || []).find(x => x.id === cp[0].task_id), w = box.querySelector('.tc-apr');
+      if (w) w.insertAdjacentHTML('beforeend', `<div style="margin-top:8px"><button class="btn" style="min-height:30px" onclick="abrirTarefaReal('${cp[0].task_id}')">Tarefa da copy: ${esc(cp[0].task_id)}${m ? ' · ' + esc(String(m.action).slice(0, 40)) : ''}</button></div>`); } } catch(e){}
 }
 // ------- a IA do verso: bolinha no canto esquerdo que corre pro centro -------
 function expandirFaleVerso(){
@@ -13224,6 +13251,7 @@ async function publicarTarefa(taskId){
   try {
     const { data: sets } = await sbR.from('approval_sets').select('id').eq('task_id', taskId)
       .order('created_at',{ascending:false}).limit(1);
+    if (!sets || !sets.length){ const { data: cp } = await sbR.from('pd_copys').select('set_id').eq('task_id', taskId).not('set_id', 'is', null).limit(1); if (cp && cp[0]){ popupIframe('/aprovacao.html?set=' + encodeURIComponent(cp[0].set_id), 'Copy — ' + taskId); return; } }
     if (!sets || !sets.length){ toast('Essa tarefa ainda não tem lote de aprovação.'); return; }
     popupIframe('/aprovacao.html?set=' + encodeURIComponent(sets[0].id) + '&publicar=1', 'Publicar — ' + taskId);
   } catch(e){ toast('Não consegui abrir: ' + (e.message||e)); }
