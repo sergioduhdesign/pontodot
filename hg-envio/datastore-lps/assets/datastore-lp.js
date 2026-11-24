@@ -29,19 +29,25 @@
     setTimeout(function () { rv.forEach(function (el) { el.classList.add('in'); }); }, 3500);
   } else { rv.forEach(function (el) { el.classList.add('in'); }); }
 
-  /* barra fixa de CTA no celular: some quando um formulário está visível */
-  var sticky = $('#sticky');
-  var forms = $$('.form-card');
-  if (sticky && 'IntersectionObserver' in w) {
-    var vis = new Set();
-    var sync = function () { sticky.classList.toggle('show', vis.size === 0 && w.scrollY > 380); };
-    var io2 = new IntersectionObserver(function (es) {
-      es.forEach(function (x) { x.isIntersecting ? vis.add(x.target) : vis.delete(x.target); });
-      sync();
-    });
-    forms.forEach(function (f) { io2.observe(f); });
-    w.addEventListener('scroll', sync, { passive: true });
+  /* CTA fixo: aparece só depois que o botão da primeira dobra sai da tela.
+     Desktop: botão no topo à direita. Celular: barra no rodapé. Some enquanto um formulário está à vista. */
+  var sticky = $('#sticky'), hdr = $('.hdr'), heroCta = $('[data-cta]');
+  var visF = new Set();
+  function syncCta() {
+    var out = heroCta ? heroCta.getBoundingClientRect().bottom < 0 : w.scrollY > 500;
+    var on = out && visF.size === 0;
+    if (hdr) hdr.classList.toggle('cta-on', on);
+    if (sticky) sticky.classList.toggle('show', on);
   }
+  if ('IntersectionObserver' in w) {
+    var io2 = new IntersectionObserver(function (es) {
+      es.forEach(function (x) { x.isIntersecting ? visF.add(x.target) : visF.delete(x.target); });
+      syncCta();
+    });
+    $$('.form-card').forEach(function (f) { io2.observe(f); });
+  }
+  w.addEventListener('scroll', syncCta, { passive: true });
+  syncCta();
 
   /* vídeo de fundo: só carrega quando a seção se aproxima e a conexão permite */
   var vid = $('#finalVideo');
