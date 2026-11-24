@@ -954,7 +954,7 @@ function cardCopyHTML(it){
   const st = internoEquipe ? (it.interno_ok ? 'aprovado' : 'pendente') : it.status;
   const badge = internoEquipe ? (it.interno_ok ? 'Aprovado (interno)' : 'Em revisão')
               : it.status === 'aprovado' ? 'Aprovado' : it.status === 'ajustar' ? 'Ajustar' : 'Pendente';
-  let txt = it.caption || '', dir = '';
+  let txt = /^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/i.test(it.caption || '') ? '' : (it.caption || ''), dir = '';
   const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
   if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
   let hash = it.hashtags || '';
