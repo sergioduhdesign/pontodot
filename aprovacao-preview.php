@@ -44,6 +44,7 @@ $cliente     = 'Pontodot';
 $descricao   = 'Confira e aprove o material preparado para você.';
 $imagem      = sd_base() . '/assets/icon-512.png';
 $imagemQuad  = true;
+$ehCopy      = false;
 
 if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
     // Uma consulta só: traz o lote e TODAS as peças (id + media),
@@ -55,7 +56,7 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
             . '/rest/v1/approval_sets?share_token=eq.' . urlencode($token)
             . '&select=id,title,subtitle,task_id,status,'
             . 'clients(name),'
-            . 'approval_items(position,media)'
+            . 'approval_items(position,media,kind)'
             . '&approval_items.order=position.asc',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 8,
@@ -90,14 +91,22 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
 
             $itens = $set['approval_items'] ?? [];
             $totalPecas = is_array($itens) ? count($itens) : 0;
+            // Lote de COPY (só texto): o link tem que dizer que é copy e mostrar um print do texto
+            $semMidia = true; foreach ((array)$itens as $it0) { if (!empty($it0['media'])) { $semMidia = false; break; } }
+            $ehCopy = ($totalPecas > 0 && $semMidia);
 
             $descricao = ($set['task_id'] ? $set['task_id'] . ' · ' : '')
                 . $totalPecas . ' peça' . ($totalPecas === 1 ? '' : 's')
                 . ' para aprovar' . ($set['subtitle'] ? ' — ' . $set['subtitle'] : '');
+            if ($ehCopy) {
+                $descricao = 'Copy · ' . $totalPecas . ' texto' . ($totalPecas === 1 ? '' : 's') . ' para aprovar — títulos, legendas e hashtags.';
+                $titulo = preg_replace('/^\s*copy\s*[-—:·]\s*/iu', '', (string)$set['title']) ?: (string)$set['title'];
+            }
 
             // Imagem de capa: a primeira peça do lote. Se for peça única
             // (mockup), é exatamente essa imagem que deve aparecer.
-            foreach ((array)$itens as $it) { foreach ((array)($it['media'] ?? []) as $m) {
+            if ($ehCopy) { $imagem = sd_base() . '/copy-og.php?t=' . urlencode($token); $imagemQuad = false; }
+            else foreach ((array)$itens as $it) { foreach ((array)($it['media'] ?? []) as $m) {
                 $u = (string)($m['thumb'] ?? '');
                 if ($u === '') { $cand = (string)($m['url'] ?? ''); $ehVid = (strpos((string)($m['mime'] ?? ''), 'video') === 0) || preg_match('/\.(mp4|mov|webm|m4v)(\?|$)/i', $cand); if (!$ehVid) $u = $cand; }
                 if ($u !== '' && preg_match('#^https://#i', $u)) { $imagem = preg_replace_callback('#[^A-Za-z0-9\-._~:/?\#\[\]@!$&\'()*+,;=%]#', fn($x) => rawurlencode($x[0]), $u); $imagemQuad = false; break 2; }
@@ -107,7 +116,7 @@ if (preg_match('/^[0-9a-fA-F-]{36}$/', $token)) {
 }
 
 $urlCompleta = sd_base() . $destino;
-$tituloCompleto = $titulo . ' — ' . $cliente;
+$tituloCompleto = ($ehCopy ? 'COPY · ' : '') . $titulo . ' — ' . $cliente;
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -122,6 +131,11 @@ $tituloCompleto = $titulo . ' — ' . $cliente;
 <meta property="og:description" content="<?= h($descricao) ?>">
 <meta property="og:image" content="<?= h($imagem) ?>">
 <meta property="og:image:secure_url" content="<?= h($imagem) ?>">
+<?php if ($ehCopy): ?>
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<?php endif; ?>
 <?php if ($imagemQuad): ?>
 <meta property="og:image:width" content="512">
 <meta property="og:image:height" content="512">
