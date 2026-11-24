@@ -20,7 +20,7 @@
     ['formato',   h => /^formato\b/.test(h) || h === 'tipo' || h === 'tipo de peca'],
     ['numero',    h => h === 'numero' || h === 'n' || h === 'card'],
     ['cena',      h => h === 'cena'],
-    ['criativo',  h => /^texto (no|na|da) (criativo|arte|peca)|texto completo do card|marcacao de tempo|sugestao de arte|^texto da arte|^roteiro/.test(h)],
+    ['criativo',  h => /^texto (no|na|da) (criativo|arte|peca)|texto completo do card|texto do card|^cards? ?(\/|e) ?cenas|marcacao de tempo|sugestao de arte|^texto da arte|^roteiro/.test(h)],
     ['arte',      h => /direcao (de arte|visual)|ideia de imagem|captacao$/.test(h) && !/^formato/.test(h)],
     ['legenda',   h => /^legenda/.test(h)],
     ['cta',       h => /^interacao|^cta\b|^cta \//.test(h)],
@@ -64,7 +64,7 @@
     }
     return null;
   }
-  const nomePerfil = nome => /semana|fechamento|quinzena|\b\d{1,2} ?a ?\d{1,2}\b|^\d/i.test(nome) ? '' : nome;
+  const nomePerfil = nome => /^sem\b|^extra|semana|fechamento|quinzena|\b\d{1,2} ?a ?\d{1,2}\b|^\d/i.test(nome) ? '' : nome;
 
   function ler(XLSX, buf) {
     const wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true });
@@ -80,19 +80,21 @@
       if (!cab) { resumo.ignoradas.push(nome); return; }
       const { i: h, m } = cab, g = (l, c) => m[c] === undefined ? '' : celula(l[m[c]]);
       const ehCards = m.numero !== undefined && m.criativo !== undefined && /carross/.test(SA(raw[h][m.titulo] || '')) || (m.numero !== undefined && m.formato === undefined && m.criativo !== undefined);
-      const ehCenas = m.cena !== undefined;
+      const ehCenas = m.cena !== undefined; const nSA = SA(nome);
+      const ehCompleto = !ehCards && !ehCenas && /card|cena/.test(nSA) && m.formato !== undefined && m.criativo !== undefined;
       const opcional = /data|comemor|opciona|aprovar$/.test(SA(nome)) && /comemor|opciona|datas/.test(SA(nome));
       let n = 0;
       raw.slice(h + 1).forEach(l => {
         const dt = dataDe(l[m.data]); const tit = g(l, 'titulo'), cri = g(l, 'criativo'), leg = g(l, 'legenda');
         if (!dt && !tit && !cri && !leg) return;
-        if (ehCards || ehCenas) { detalhes.push({ aba: nome, tipo: ehCenas ? 'reels' : 'carrossel', data: dt, titulo: tit, n: g(l, 'numero') || g(l, 'cena'), texto: cri, desc: g(l, 'arte'), legenda: leg, cta: g(l, 'cta'), cuidado: g(l, 'cuidado') }); n++; return; }
+        if (ehCompleto) { detalhes.push({ aba: nome, completo: true, tipo: tipoDe(g(l, 'formato')) || 'carrossel', data: dt, titulo: tit, texto: cri, desc: g(l, 'arte'), legenda: leg, cta: g(l, 'cta'), cuidado: g(l, 'cuidado') }); n++; return; }
+        if (ehCards || ehCenas) { detalhes.push({ aba: nome, tipo: ehCenas || (/reel/.test(nSA) && !/carross/.test(nSA)) ? 'reels' : 'carrossel', data: dt, titulo: tit, n: g(l, 'numero') || g(l, 'cena'), texto: cri, desc: g(l, 'arte'), legenda: leg, cta: g(l, 'cta'), cuidado: g(l, 'cuidado') }); n++; return; }
         let tipo = tipoDe(g(l, 'formato')); if (!tipo) tipo = 'feed';
         if (!cri && !leg && !tit) return;
         itens.push({ tipo, titulo: tit || (cri.split('\n')[0] || '').slice(0, 90), texto: SEM_LEG.test(leg) ? '' : leg, criativo: cri, visual: g(l, 'arte'), cta: g(l, 'cta'), hashtags: g(l, 'hashtags'),
           fonte: g(l, 'fonte'), cuidado: g(l, 'cuidado'), linha: [g(l, 'linha'), g(l, 'produto')].filter(Boolean).join(' · '), perfil: opcional ? 'Datas comemorativas' : nomePerfil(nome), opcional: opcional || /opcional/.test(SA(g(l, 'prioridade'))), _data: dt, _aba: nome }); n++;
       });
-      resumo.abas.push({ nome, n, detalhe: ehCards ? 'cards' : ehCenas ? 'cenas' : '' });
+      resumo.abas.push({ nome, n, detalhe: ehCompleto ? 'completo' : ehCards ? 'cards' : ehCenas ? 'cenas' : '' });
     });
     // 2) detalhes (card a card, cena a cena) entram na peça da mesma data e tipo
     const dKey = d => d ? d.toISOString().slice(0, 10) : '';
@@ -101,6 +103,7 @@
     Object.values(grupos).forEach(gr => {
       const d0 = gr[0]; const alvo = itens.find(it => it.tipo === d0.tipo && dKey(it._data) === dKey(d0.data) && (!d0.titulo || SA(it.titulo).includes(SA(d0.titulo).slice(0, 18)) || SA(d0.titulo).includes(SA(it.titulo).slice(0, 18)))) || itens.find(it => it.tipo === d0.tipo && dKey(it._data) === dKey(d0.data));
       const telas = gr.map(d => ({ n: d.n, texto: d.texto, desc: d.desc }));
+      if (d0.completo) { if (alvo) { if (d0.texto) alvo.criativo = d0.texto; if (!alvo.visual && d0.desc) alvo.visual = d0.desc; if (!alvo.texto && d0.legenda) alvo.texto = d0.legenda; if (!alvo.cta && d0.cta) alvo.cta = d0.cta; if (d0.cuidado && !alvo.cuidado) alvo.cuidado = d0.cuidado; alvo.completo = true; } else itens.push({ tipo: d0.tipo, titulo: d0.titulo || 'Peça', texto: d0.legenda || '', criativo: d0.texto, visual: d0.desc, cta: d0.cta, hashtags: '', fonte: '', cuidado: d0.cuidado, linha: '', perfil: '', opcional: false, _data: d0.data, _aba: d0.aba }); return; }
       if (alvo) { alvo.telas = telas; if (!alvo.texto && d0.legenda) alvo.texto = d0.legenda; if (!alvo.cta && d0.cta) alvo.cta = d0.cta; if (d0.cuidado && !alvo.cuidado) alvo.cuidado = d0.cuidado; }
       else itens.push({ tipo: d0.tipo, titulo: d0.titulo || (d0.tipo === 'reels' ? 'Reels' : 'Carrossel'), texto: d0.legenda || '', criativo: '', telas, visual: '', cta: d0.cta, hashtags: '', fonte: '', cuidado: d0.cuidado, linha: '', perfil: '', opcional: false, _data: d0.data, _aba: d0.aba });
     });
@@ -131,7 +134,7 @@
     const perfis = [...new Set(itens.filter(i => !i.opcional).map(i => i.perfil).filter(Boolean))];
     const comCriativo = itens.filter(i => i.criativo || (i.telas && i.telas.length)).length;
     resumo.total = itens.length; resumo.porTipo = por; resumo.perfis = perfis; resumo.comCriativo = comCriativo;
-    resumo.comTelas = itens.filter(i => i.telas && i.telas.length).length; resumo.opcionais = itens.filter(i => i.opcional).length;
+    resumo.comTelas = itens.filter(i => (i.telas && i.telas.length) || i.completo).length; itens.forEach(i => delete i.completo); resumo.opcionais = itens.filter(i => i.opcional).length;
     return { itens, calendario: cal, inicio: ini, resumo };
   }
 
