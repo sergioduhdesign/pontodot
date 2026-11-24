@@ -124,7 +124,14 @@ body.embed .ap-board{padding-top:16px}
 .ap-card.cp .ap-txt.vazio{color:var(--text3);font-size:12.5px;font-style:italic}
 .ap-card.cp .ap-hash{margin-top:6px}
 .ap-card.cp .ap-dir{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;white-space:pre-line}
-.ap-grid.cpg{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+.ap-grid.cpg{grid-template-columns:repeat(auto-fill,minmax(380px,1fr))}
+.ap-card.cp[data-kind="feed"] .ap-card-top{border-left-color:#2f7fd1}.ap-card.cp[data-kind="carrossel"] .ap-card-top{border-left-color:#7c4dff}
+.ap-card.cp[data-kind="stories"] .ap-card-top{border-left-color:#e5007d}.ap-card.cp[data-kind="reels"] .ap-card-top{border-left-color:#e07a1f}
+.ap-card.cp[data-kind="blog"] .ap-card-top{border-left-color:#0f766e}.ap-card.cp[data-kind="capa_site"] .ap-card-top{border-left-color:#475569}
+.ap-card.cp .ap-body{padding-top:0}
+.ap-card.cp .ap-txt{background:var(--surface2);border-radius:10px;padding:13px 15px;margin-bottom:4px}
+.ap-card.cp .ap-hash{color:var(--text3);font-size:12.5px;line-height:1.5}
+
 @media(max-width:600px){.ap-grid.cpg{grid-template-columns:1fr}}
 .ap-todas{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:1400px;margin:14px auto 0;padding:13px 16px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border)}
 .ap-todas b{flex:1;min-width:200px;font-size:14px}
@@ -970,7 +977,7 @@ function cardCopyHTML(it){
       <div style="margin-top:9px"><button class="ed-toggle" onclick="editarPeca('${it.id}')">✎ Editar texto</button></div>
       <div class="ed-zone" id="ed_${it.id}" style="display:none;margin:10px -16px -14px;border-radius:0"></div>`;
   }
-  return `<div class="ap-card cp" data-id="${it.id}" data-status="${st}">
+  return `<div class="ap-card cp" data-id="${it.id}" data-kind="${esc(it.kind||'feed')}" data-status="${st}">
     <div class="ap-card-top">
       <div class="ap-tags"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>
         <span><span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span></div>

@@ -90,6 +90,23 @@ body{background:var(--bg);color:var(--text);padding-bottom:80px}
 }
 .ap-badge.aprovado{background:rgba(22,163,74,.12);color:#16a34a}
 .ap-badge.ajustar{background:#db2777;color:#fff}
+
+/* Copy (só texto): cartão de leitura, título grande, texto já aberto */
+.ap-card.cp .ap-card-title{font-size:19px;line-height:1.25;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.ap-tipo{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:99px;color:#fff;background:#555}
+.ap-tipo.feed{background:#2f7fd1}.ap-tipo.carrossel{background:#7c4dff}.ap-tipo.stories{background:#e5007d}.ap-tipo.reels{background:#e07a1f}.ap-tipo.blog{background:#0f766e}.ap-tipo.capa_site{background:#475569}
+.ap-card.cp .ap-txt{font-size:14.5px;line-height:1.65;white-space:pre-line;color:var(--text);padding:2px 0 4px}
+.ap-card.cp .ap-txt.vazio{color:var(--text3);font-size:12.5px;font-style:italic}
+.ap-card.cp .ap-dir{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;white-space:pre-line}
+.ap-grid.cpg{grid-template-columns:repeat(auto-fill,minmax(380px,1fr))}
+@media(max-width:600px){.ap-grid.cpg{grid-template-columns:1fr}}
+
+.ap-card.cp[data-kind="feed"] .ap-card-top{border-left-color:#2f7fd1}.ap-card.cp[data-kind="carrossel"] .ap-card-top{border-left-color:#7c4dff}
+.ap-card.cp[data-kind="stories"] .ap-card-top{border-left-color:#e5007d}.ap-card.cp[data-kind="reels"] .ap-card-top{border-left-color:#e07a1f}
+.ap-card.cp[data-kind="blog"] .ap-card-top{border-left-color:#0f766e}.ap-card.cp[data-kind="capa_site"] .ap-card-top{border-left-color:#475569}
+.ap-card.cp .ap-body{padding-top:0}
+.ap-card.cp .ap-txt{background:var(--surface2);border-radius:10px;padding:13px 15px;margin-bottom:4px}
+.ap-card.cp .ap-hash{color:var(--text3);font-size:12.5px;line-height:1.5}
 .ap-card-title{font-size:13.5px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
 
 /* ---------- Mídia ---------- */
@@ -443,7 +460,7 @@ function render(){
   // Galeria (folheto, outdoor, qualquer material) = grade simples.
   // Social = colunas por dia, como no painel original.
   if (apSet.layout === 'galeria') {
-    board.innerHTML = `<div class="ap-grid">${vis.map(cardHTML).join('')}</div>`;
+    board.innerHTML = `<div class="ap-grid${ehCopy()?' cpg':''}">${vis.map(cardHTML).join('')}</div>`;
   } else {
     const groups = [];
     vis.forEach(i => {
@@ -465,7 +482,50 @@ function render(){
   bind();
 }
 
+function ehCopy(){ return items.length > 0 && items.every(i => !(Array.isArray(i.media) && i.media.length) && ['feed','carrossel','stories','reels','blog','capa_site','generico'].includes(i.kind)); }
+
+function cardCopyHTML(it){
+  const badge = it.status === 'aprovado' ? 'Aprovado' : it.status === 'ajustar' ? 'Ajustar' : 'Pendente';
+  let txt = it.caption || '', dir = '';
+  const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
+  if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
+  let hash = it.hashtags || '';
+  if (!hash) { const h = txt.match(/\n+((?:#\S+\s*)+)$/); if (h) { hash = h[1].trim(); txt = txt.slice(0, h.index).trim(); } }
+  const talk = (it._talk || []).map(c => `
+    <div class="ap-msg ${c.is_client ? 'cli' : ''}"><div class="who">${esc(c.author_name)}
+      <span class="when">${new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span></div>${AP.falaHTML(c.body)}</div>`).join('');
+  const acts = it.status === 'aprovado' ? `
+      <div class="ap-btns" style="margin:9px 0 0"><button class="ap-btn travado" disabled>✓ Aprovado</button>
+        <button class="ap-btn rever" onclick="reverMaterial('${it.id}')">Rever</button></div>
+      <div class="ap-tip">Aprovado em ${it.reviewed_at ? new Date(it.reviewed_at).toLocaleDateString('pt-BR') : '—'}.</div>` : `
+      <div class="ap-btns" style="margin:9px 0 0">
+        <button class="ap-btn ok" data-act="aprovado" data-id="${it.id}">✓ Aprovar</button>
+        <button class="ap-btn fix ${it.status==='ajustar'?'on':''}" data-act="ajustar" data-id="${it.id}">✎ Pedir ajuste</button></div>
+      <div class="ap-tip">${it.reviewed_at ? 'Você revisou em ' + new Date(it.reviewed_at).toLocaleDateString('pt-BR') + '. Pode mudar de ideia — é só decidir de novo.' : 'Escreva primeiro, se quiser, e depois escolha.'}</div>`;
+  return `
+  <div class="ap-card cp" data-id="${it.id}" data-kind="${esc(it.kind||'feed')}" data-status="${it.status}">
+    <div class="ap-card-top">
+      <div class="ap-tags"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>
+        <span>${(it.version||1) > 1 ? `<span class="ap-ver" title="Versão corrigida">V${it.version}</span>` : ''}<span class="ap-badge ${it.status}">${badge}</span></span></div>
+      ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
+    </div>
+    <div class="ap-body">
+      ${txt ? `<div class="ap-txt">${esc(txt)}</div>` : `<div class="ap-txt vazio">${it.kind==='stories' ? 'Stories não têm legenda: o conteúdo está nas telas.' : 'Sem texto.'}</div>`}
+      ${hash ? `<div class="ap-hash">${esc(hash)}</div>` : ''}
+      ${dir ? `<div class="ap-dir"><b>Direção visual</b><br>${esc(dir)}</div>` : ''}
+      ${it.publish_at ? `<div class="ap-note">Publicação prevista: ${AP.quando(it.publish_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+    </div>
+    <div class="ap-zone">
+      <div class="ap-lab2">Ajuste no texto</div>
+      <textarea class="ap-ta" id="tt_${it.id}" style="min-height:44px" placeholder="O que mudar no texto (opcional se for aprovar)…"></textarea>
+      ${acts}
+      ${talk ? `<div class="ap-talk">${talk}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 function cardHTML(it){
+  if (ehCopy()) return cardCopyHTML(it);
   const media = Array.isArray(it.media) ? it.media : [];
   const isClient = true;
   const badge = it.status === 'aprovado' ? 'Aprovado'
@@ -628,7 +688,7 @@ async function decide(id, decision){
 
   if (decision === 'ajustar' && !comment) {
     showToast('Escreva o que precisa ser ajustado — na arte, no texto ou nos dois.', 'warn');
-    ta.focus();
+    (ta || tt).focus();
     return;
   }
 
