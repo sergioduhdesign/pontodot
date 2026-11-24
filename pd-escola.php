@@ -151,7 +151,7 @@ if ($acao === 'aulas_documento') {   // o box de aulas: lista + placar por perso
         $lista[] = ['id' => $a['id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'status' => $a['status'], 'rodada' => $a['rodada'], 'max' => $a['max_rodadas'], 'versoes' => count($ent), 'pareceres' => count($cor), 'nota_r1' => $r1, 'nota_final' => $a['nota_final'],
             'task_id' => $a['task_id'], 'cliente' => $a['clients']['name'] ?? '', 'origem' => $a['origem'], 'prazo' => $a['prazo'], 'entregue_em' => $a['entregue_em'], 'pendencias' => $a['pendencias'], 'criada_em' => $a['criada_em'], 'decisao' => $a['parecer_humano'],
             'ultima' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 400), 'ultima_toda' => mb_substr((string)((end($ent) ?: [])['texto'] ?? ''), 0, 12000), 'ultimo_parecer' => mb_substr((string)((end($cor) ?: [])['texto_do_professor'] ?? ''), 0, 3000),
-            'estado' => $a['contexto']['estado'] ?? null, 'pasta' => $a['chamado']['folderUrl'] ?? null, 'notas' => array_map(fn($c) => ['r' => (int)($c['rodada'] ?? 0), 'nota' => round((float)($c['nota'] ?? 0)), 'ressalva' => !empty($c['ressalva'])], $cor),
+            'auto' => !empty($a['contexto']['auto']), 'estado' => $a['contexto']['estado'] ?? null, 'pasta' => $a['chamado']['folderUrl'] ?? null, 'notas' => array_map(fn($c) => ['r' => (int)($c['rodada'] ?? 0), 'nota' => round((float)($c['nota'] ?? 0)), 'ressalva' => !empty($c['ressalva'])], $cor),
             'pareceres' => array_map(fn($c) => ['r' => (int)($c['rodada'] ?? 0), 'nota' => round((float)($c['nota'] ?? 0)), 'fortes' => mb_substr((string)($c['fortes'] ?? ''), 0, 1500), 'problemas' => mb_substr((string)($c['feedback'] ?? ''), 0, 4000), 'em' => $c['em'] ?? null, 'humano' => $c['humano'] ?? null], $cor),
             'tipo' => $ehArte ? 'arte' : 'documento', 'set_aula_id' => $ehArte ? ($a['contexto']['set_aula_id'] ?? null) : null, 'pecas' => $ehArte ? count((array)($a['contexto']['pecas'] ?? [])) : null,
             'thumbs_pd' => $ehArte ? ($pdThumbs[$a['id']] ?? array_values(array_map(fn($pc) => ['url' => $pc['url'], 'titulo' => $pc['titulo'] ?? '', 'kind' => $pc['kind'] ?? ''], (array)((end($ent) ?: [])['pecas'] ?? [])))) : null,
@@ -203,6 +203,17 @@ if ($acao === 'aula_continuar') {   // "continuar treinando": quem acompanha a I
     if ($a['status'] === 'validacao_humana' && $a['nota_final'] !== null && (float)$a['nota_final'] >= 80) sd_fail('Essa já chegou na meta: falta só o gestor aprovar a lição.');
     if (in_array($a['status'], ['validacao_humana', 'reprovada'], true)) pdAulaValidar($aid, 'revisar', PD_SIGA_PROFESSOR, $u['id']);
     echo json_encode(['ok' => true, 'msg' => pdEscSegue($aid) ?: 'Treino continuado.'], JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'aula_auto') {   // "seguir no auto": liga/desliga; a aluna segue refazendo até a nota do professor chegar na meta
+    if (!$perm['admin'] && !$perm['acompanhar']) sd_fail('Sem permissão para acompanhar as aulas.', 403);
+    $aid = (string)($b['id'] ?? ''); $on = !empty($b['ligado']);
+    $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($aid) . '&select=id,status,nota_final,contexto')['body'][0] ?? null; if (!$a) sd_fail('Aula não encontrada.', 404);
+    $ctx = (array)($a['contexto'] ?? []); $ctx['auto'] = $on;
+    pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($aid), 'PATCH', ['contexto' => $ctx]);
+    $msg = $on ? 'No automático: segue treinando até o professor chegar na meta.' : 'Automático desligado.';
+    if ($on && in_array($a['status'], ['validacao_humana', 'reprovada'], true) && ($a['nota_final'] === null || (float)$a['nota_final'] < 80)) { pdAulaValidar($aid, 'revisar', PD_SIGA_PROFESSOR, $u['id']); $msg = pdEscSegue($aid) ?: $msg; }
+    elseif ($on) { $m2 = pdEscSegue($aid); if ($m2) $msg = $m2; }
+    echo json_encode(['ok' => true, 'msg' => $msg], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_id, evento, dados}] — a IA da pessoa (ou a mestre da área) registra como aprendizado
     $lote = is_array($b['lote'] ?? null) ? array_slice($b['lote'], 0, 100) : []; if (!$lote) { echo json_encode(['ok' => true, 'n' => 0]); exit; }

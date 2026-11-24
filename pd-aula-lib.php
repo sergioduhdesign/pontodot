@@ -403,6 +403,12 @@ function pdAulaAplicarCorrecao($a, $j, $prof, $cfg = null) {
         return ['ok' => true, 'msg' => 'PONTE RECONHECIDA: a PD leu o parecer do professor (' . $prof . '). Falta a sua confirmação para liberar a rotina.'];
     }
     pdAulaSup('/rest/v1/pd_notas', 'POST', ['ia_user_id' => $a['ia_user_id'], 'personagem' => $a['personagem'], 'skill_id' => $a['skill_id'], 'fonte' => 'professor', 'nota' => $nota, 'aula_id' => $id]);
+    // "Seguir no auto": a aluna continua refazendo sozinha até o professor chegar na meta (até 10 rodadas); o pedido de ajuda (3ª rodada) segue valendo
+    $ctxA = (array)($a['contexto'] ?? []);
+    if (!empty($ctxA['auto']) && !$aprovou && ((int)$a['rodada'] < 3 || !empty($ctxA['ajuda'])) && (int)$a['rodada'] < 10) {
+        $patch(['correcoes' => $cor, 'status' => 'em_exercicio', 'rodada' => (int)$a['rodada'] + 1, 'max_rodadas' => max((int)$a['max_rodadas'], (int)$a['rodada'] + 1)]);
+        return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — no automático: a aluna refaz (rodada ' . ((int)$a['rodada'] + 1) . ').'];
+    }
     if ($ressalva) { $cor[count($cor) - 1]['ressalva'] = true; $patch(['correcoes' => $cor, 'status' => 'validacao_humana', 'nota_final' => $nota, 'pendencias' => mb_substr('LIBERADA COM RESSALVA (nota ' . round($nota) . '): ' . (string)($j['feedback'] ?? ''), 0, 1800)]); return ['ok' => true, 'msg' => 'Nota ' . $nota . ' — liberada com ressalva; aguarda a SUA decisão.']; }
     if ($aprovou) {
         $l = $j['licao'] ?? null;
