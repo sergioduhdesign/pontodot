@@ -15,8 +15,19 @@ async function ntfBuscaTipo(v){
 }
 function ntfEscolheTipo(id){ const x = (NTF.cat || []).find(c => c.task_id === id); if (!x) return; NTF.tipo = x; const i = document.getElementById('ntfTipo'); if (i) i.value = x.tipo_tarefa; const b = document.getElementById('ntfTipoL'); if (b) b.style.display = 'none';
   const n = document.getElementById('ntfNome'); if (n && !n.value.trim()) n.value = x.tipo_tarefa; }
-function ntfToggleRec(){ const on = document.getElementById('ntfRec').checked; document.getElementById('ntfRecP').style.display = on ? 'grid' : 'none'; if (on) ntfBuscaTipo(''); }
-function ntfDia(b){ const d = b.dataset.d; NTF.dias = NTF.dias.includes(d) ? NTF.dias.filter(x => x !== d) : NTF.dias.concat(d); b.classList.toggle('on', NTF.dias.includes(d)); }
+function ntfToggleRec(){ const on = document.getElementById('ntfRec').checked; document.getElementById('ntfRecP').style.display = on ? 'grid' : 'none'; if (on){ ntfBuscaTipo(''); ntfRecUI(); } }
+const NTF_DN = { SEG:'segunda', TER:'terça', QUA:'quarta', QUI:'quinta', SEX:'sexta', SAB:'sábado', DOM:'domingo' };
+function ntfRecUI(){
+  const v = id => (document.getElementById(id) || {}).value || '', fr = v('ntfFreq') || 's1', mensal = fr[0] === 'm', n = parseInt(fr.slice(1)) || 1, fim = v('ntfFim') || 'n';
+  const show = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
+  show('ntfDomW', mensal); const dias = document.querySelector('#ntfRecP .ntf-dias'); if (dias && dias.parentElement) dias.parentElement.style.display = mensal ? 'none' : '';
+  show('ntfFimN', fim === 'n'); show('ntfFimD', fim === 'd');
+  const un = document.getElementById('ntfUnit'); if (un && mensal && un.value === 'semanas' && !un._tocou) un.value = 'meses';
+  const quando = mensal ? (n === 1 ? 'Todo mês' : 'A cada ' + n + ' meses') + ', no dia ' + (v('ntfDom') || 1) : (n === 1 ? 'Toda semana' : 'A cada ' + n + ' semanas') + (NTF.dias.length ? ', ' + NTF.dias.map(d => NTF_DN[d]).join(', ') : ' (marque os dias)');
+  const ate = fim === 'n' ? ', por ' + (v('ntfCount') || 4) + ' ' + v('ntfUnit') : fim === 'd' ? (v('ntfAte') ? ', até ' + v('ntfAte').split('-').reverse().join('/') : ', até a data que você escolher') : ', sem data para acabar';
+  const r = document.getElementById('ntfRecRes'); if (r) r.textContent = quando + ate + '.';
+}
+function ntfDia(b){ const d = b.dataset.d; NTF.dias = NTF.dias.includes(d) ? NTF.dias.filter(x => x !== d) : NTF.dias.concat(d); b.classList.toggle('on', NTF.dias.includes(d)); ntfRecUI(); }
 function ntfAnoISO(d){ return d ? String(d).slice(0, 10) : ''; }
 function ntfProdutosDe(cid){
   try { const base = (window.ADS && ADS.prods) || (window.SOC && SOC.prods) || window.PRODUTOS || []; return base.filter(p => p.client_id === cid); } catch(e){ return []; }
@@ -82,12 +93,16 @@ function abrirNovaTarefa(maeId){
       <div><label>Vem de outra tarefa?</label><select id="ntfMae">${ntfOpcoesMae(cid0)}</select></div>
       <div class="ntf-full"><label>Briefing</label><textarea id="ntfObs" rows="5" placeholder="O que é, para quem, o que não pode faltar, links…"></textarea></div>
       <div class="ntf-full ntf-chk"><input type="checkbox" id="ntfFilha"><label style="margin:0;opacity:.8;text-transform:none;letter-spacing:0;font-size:13px" for="ntfFilha">Esta tarefa vai gerar outra depois (abre a próxima ao criar)</label></div>
-      <div class="ntf-full ntf-chk"><input type="checkbox" id="ntfRec" onchange="ntfToggleRec()"><label style="margin:0;opacity:.8;text-transform:none;letter-spacing:0;font-size:13px" for="ntfRec">É recorrente (repete toda semana)</label></div>
+      <div class="ntf-full ntf-chk"><input type="checkbox" id="ntfRec" onchange="ntfToggleRec()"><label style="margin:0;opacity:.8;text-transform:none;letter-spacing:0;font-size:13px" for="ntfRec">É recorrente (definir quando repete)</label></div>
       <div class="ntf-rec" id="ntfRecP">
         <div class="ntf-full ntf-lst"><label>Que tipo de peça repete?</label><input id="ntfTipo" placeholder="Comece a digitar: social, calendário de, copy…" autocomplete="off" oninput="ntfBuscaTipo(this.value)" onfocus="ntfBuscaTipo(this.value)"><div class="ntf-opts" id="ntfTipoL"></div></div>
         <div class="ntf-full"><label>Em quais dias da semana entrega?</label><div class="ntf-dias">${[['SEG','Seg'],['TER','Ter'],['QUA','Qua'],['QUI','Qui'],['SEX','Sex'],['SAB','Sáb'],['DOM','Dom']].map(d => `<button type="button" class="ntf-dia" data-d="${d[0]}" onclick="ntfDia(this)">${d[1]}</button>`).join('')}</div></div>
-        <div><label>Repetir por</label><input type="number" min="1" id="ntfCount" value="4"></div>
-        <div><label>Unidade</label><select id="ntfUnit"><option value="semanas">Semanas</option><option value="meses">Meses</option></select></div>
+        <div class="ntf-full"><label>Com que frequência?</label><select id="ntfFreq" onchange="ntfRecUI()"><option value="s1">Toda semana</option><option value="s2">A cada 2 semanas</option><option value="s3">A cada 3 semanas</option><option value="m1">Todo mês, num dia fixo</option><option value="m2">A cada 2 meses, num dia fixo</option></select></div>
+        <div class="ntf-full" id="ntfDomW" style="display:none"><label>Em que dia do mês?</label><input type="number" min="1" max="31" id="ntfDom" value="1"></div>
+        <div><label>Até quando?</label><select id="ntfFim" onchange="ntfRecUI()"><option value="n">Depois de um número de vezes</option><option value="d">Até uma data</option><option value="x">Sem data para acabar</option></select></div>
+        <div id="ntfFimN"><label>Quantas vezes</label><div style="display:flex;gap:6px"><input type="number" min="1" id="ntfCount" value="4" oninput="ntfRecUI()" style="width:80px"><select id="ntfUnit" onchange="ntfRecUI()"><option value="semanas">semanas</option><option value="meses">meses</option></select></div></div>
+        <div id="ntfFimD" style="display:none"><label>Última entrega</label><input type="date" id="ntfAte" onchange="ntfRecUI()"></div>
+        <div class="ntf-full" id="ntfRecRes" style="font-size:12.5px;opacity:.75"></div>
       </div>
     </div></div>`;
   document.body.appendChild(ov);
@@ -108,8 +123,11 @@ async function ntfCriar(){
     if (g('ntfDi')) nova.date_int = g('ntfDi'); const dc = g('ntfDc') || g('ntfDi'); if (dc) nova.date_cli = dc;
     if (g('ntfObs').trim()) nova.obs = g('ntfObs').trim(); if (g('ntfMae')) nova.tarefa_mae_id = g('ntfMae');
     if (document.getElementById('ntfRec').checked){
-      if (!NTF.dias.length){ bt.disabled = false; bt.textContent = 'Criar tarefa'; toast('Marque os dias da semana da recorrência.'); return; }
-      nova.recurrence = { enabled: true, days: NTF.dias.slice(), count: Math.max(1, parseInt(g('ntfCount')) || 4), unit: g('ntfUnit') || 'semanas' };
+      const fr = g('ntfFreq') || 's1', mensal = fr[0] === 'm', fim = g('ntfFim') || 'n';
+      if (!mensal && !NTF.dias.length){ bt.disabled = false; bt.textContent = 'Criar tarefa'; toast('Marque os dias da semana da recorrência.'); return; }
+      if (fim === 'd' && !g('ntfAte')){ bt.disabled = false; bt.textContent = 'Criar tarefa'; toast('Escolha a data da última entrega.'); return; }
+      nova.recurrence = { enabled: true, mode: mensal ? 'mensal' : 'semanal', every: parseInt(fr.slice(1)) || 1, days: mensal ? [] : NTF.dias.slice(), dom: mensal ? Math.max(1, Math.min(31, parseInt(g('ntfDom')) || 1)) : null,
+        end: fim, count: fim === 'n' ? Math.max(1, parseInt(g('ntfCount')) || 4) : null, unit: g('ntfUnit') || (mensal ? 'meses' : 'semanas'), until: fim === 'd' ? g('ntfAte') : null };
       if (NTF.tipo) nova.service_task_id = NTF.tipo.task_id;
     }
     let { data, error } = await sbR.from('tasks').insert(nova).select('id').single();
