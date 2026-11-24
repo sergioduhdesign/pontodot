@@ -115,6 +115,21 @@ body.embed .ap-board{padding-top:16px}
 }
 .ap-badge.aprovado{background:rgba(22,163,74,.12);color:#16a34a}
 .ap-badge.ajustar{background:#db2777;color:#fff}
+
+/* Copy (só texto): cartão de leitura, título grande, texto já aberto */
+.ap-card.cp .ap-card-title{font-size:19px;line-height:1.25;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.ap-tipo{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:99px;color:#fff;background:#555}
+.ap-tipo.feed{background:#2f7fd1}.ap-tipo.carrossel{background:#7c4dff}.ap-tipo.stories{background:#e5007d}.ap-tipo.reels{background:#e07a1f}.ap-tipo.blog{background:#0f766e}.ap-tipo.capa_site{background:#475569}
+.ap-card.cp .ap-txt{font-size:14.5px;line-height:1.65;white-space:pre-line;color:var(--text);padding:2px 0 4px}
+.ap-card.cp .ap-txt.vazio{color:var(--text3);font-size:12.5px;font-style:italic}
+.ap-card.cp .ap-hash{margin-top:6px}
+.ap-card.cp .ap-dir{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;white-space:pre-line}
+.ap-grid.cpg{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+@media(max-width:600px){.ap-grid.cpg{grid-template-columns:1fr}}
+.ap-todas{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:1400px;margin:14px auto 0;padding:13px 16px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border)}
+.ap-todas b{flex:1;min-width:200px;font-size:14px}
+.ap-todas button{border:none;border-radius:8px;padding:10px 18px;font:800 13.5px inherit;font-family:inherit;cursor:pointer;background:#16a34a;color:#fff}
+.ap-todas button.sec{background:transparent;color:var(--text);border:1px solid var(--border);font-weight:700}
 .ap-card-title{font-size:13.5px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
 
 /* ---------- Mídia ---------- */
@@ -436,7 +451,7 @@ details.ap-cap[open] summary::before{content:"▾"}
   mq.addEventListener?.('change', mover); mover(); setInterval(() => { if (!document.hidden) sync(); }, 700);
 })();
 </script>
-<div id="apAviso"></div>
+<div id="apTodas"></div><div id="apAviso"></div>
 
 <div class="ap-board" id="apBoard">
   <div class="ap-load">Carregando material…</div>
@@ -669,7 +684,7 @@ function render(){
   if (btT && equipe && apSet.interno) {
     // Revisão interna: o gestor aprova tudo de uma vez (com exceções)
     btT.style.display = faltaInterno ? 'block' : 'none';
-    btT.textContent = `✓ Aprovar tudo (${faltaInterno})`;
+    btT.textContent = `✓ Aprovar todas (${faltaInterno})`;
     btT.onclick = () => AP.aprovarTudo(items, async (id, decision, comment) => {
       if (decision === 'ajustar') {
         const { error } = await sb.from('approval_comments').insert({ item_id: id, author_id: profile.id,
@@ -713,10 +728,22 @@ function render(){
   if (bi) { bi.style.display = (equipe && drive) ? 'block' : 'none'; bi.onclick = mandarCorrecoesIA; }
 
   const av = document.getElementById('apAviso');
-  if (av) av.innerHTML = (equipe && apSet.interno) ? `<div class="ap-interno"><div>
+  if (av) av.innerHTML = (equipe && apSet.interno && !ehCopy()) ? `<div class="ap-interno"><div>
       <div style="flex:1;min-width:220px"><b>Revisão interna — o cliente ainda não vê este lote · ${total - faltaInterno} de ${total} aprovadas</b>
         <span>Aponte o que precisa mudar em cada peça (vai pra IA no "Correções pra IA") ou libere quando estiver pronto.</span></div>
       <button class="ap-lib" onclick="liberarCliente()">✓ Liberar pro cliente</button></div></div>` : '';
+
+
+  const bar2 = document.getElementById('apTodas');
+  if (bar2) {
+    if (equipe && ehCopy()) {
+      const nOk = items.filter(i => apSet.interno ? i.interno_ok : i.status==='aprovado').length;
+      bar2.innerHTML = `<div class="ap-todas"><b>${apSet.interno ? 'Revisão interna da copy' : 'Copy no cliente'} · ${nOk} de ${total} aprovadas</b>
+        ${apSet.interno ? `<button onclick="document.getElementById('btnTudo').click()">Aprovar todas</button>` : ''}
+        <button class="sec" onclick="linkWhats()">Link pra WhatsApp (aprovação interna)</button>
+        ${apSet.interno ? `<button class="sec" onclick="liberarCliente()">Mandar pro cliente</button>` : ''}</div>`;
+    } else bar2.innerHTML = '';
+  }
 
   const bz = document.getElementById('btnZip');
   if (bz) {
@@ -749,7 +776,7 @@ function render(){
   // Galeria (folheto, outdoor, qualquer material) = grade simples.
   // Social = colunas por dia, como no painel original.
   if (apSet.layout === 'galeria') {
-    board.innerHTML = `<div class="ap-grid">${vis.map(cardHTML).join('')}</div>`;
+    board.innerHTML = `<div class="ap-grid${ehCopy()?' cpg':''}">${vis.map(cardHTML).join('')}</div>`;
   } else {
     const groups = [];
     vis.forEach(i => {
@@ -771,7 +798,10 @@ function render(){
   bind();
 }
 
+function ehCopy(){ return !!apSet && (apSet.modo==='copy' || (items.length && items.every(i=>!(Array.isArray(i.media)&&i.media.length) && ['feed','carrossel','stories','reels','blog','capa_site','generico'].includes(i.kind)))); }
+
 function cardHTML(it){
+  if (ehCopy()) return cardCopyHTML(it);
   const media = Array.isArray(it.media) ? it.media : [];
   const isClient = profile.role === 'client';
   const internoEquipe = apSet.interno && !isClient;
@@ -904,6 +934,55 @@ function cardHTML(it){
         </span>
       </div>
       `}
+      ${talk ? `<div class="ap-talk">${talk}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function cardCopyHTML(it){
+  const isClient = profile.role === 'client';
+  const internoEquipe = apSet.interno && !isClient;
+  const st = internoEquipe ? (it.interno_ok ? 'aprovado' : 'pendente') : it.status;
+  const badge = internoEquipe ? (it.interno_ok ? 'Aprovado (interno)' : 'Em revisão')
+              : it.status === 'aprovado' ? 'Aprovado' : it.status === 'ajustar' ? 'Ajustar' : 'Pendente';
+  let txt = it.caption || '', dir = '';
+  const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
+  if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
+  let hash = it.hashtags || '';
+  if (!hash) { const h = txt.match(/\n+((?:#\S+\s*)+)$/); if (h) { hash = h[1].trim(); txt = txt.slice(0, h.index).trim(); } }
+  const talk = (it._talk || []).map(c => {
+    const int = AP.ehInterno(c.body);
+    return `<div class="ap-msg ${c.is_client ? 'cli' : ''} ${int ? 'int' : ''}"><div class="who">${esc(c.author_name)}${int ? ' <span style="font-size:9.5px;font-weight:800;color:#6d28d9;letter-spacing:.06em">· INTERNO</span>' : ''}
+      <span class="when">${new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span></div>${AP.falaHTML(int ? AP.semInterno(c.body) : c.body)}</div>`; }).join('');
+  const lab = isClient ? 'Ajuste no texto' : (apSet.interno ? 'Apontamento interno · texto' : 'Responder ao cliente');
+  const ph  = isClient ? 'O que mudar no texto (opcional se for aprovar)…' : (apSet.interno ? 'O que precisa mudar no texto…' : 'Escreva e envie — o cliente vê aqui mesmo.');
+  let acts;
+  if (isClient) {
+    acts = it.status === 'aprovado'
+      ? `<div class="ap-btns" style="margin:9px 0 0"><button class="ap-btn travado" disabled>✓ Aprovado</button><button class="ap-btn rever" onclick="reverMaterial('${it.id}')">Rever</button></div>`
+      : `<div class="ap-btns" style="margin:9px 0 0"><button class="ap-btn ok" data-act="aprovado" data-id="${it.id}">✓ Aprovar</button><button class="ap-btn fix ${it.status==='ajustar'?'on':''}" data-act="ajustar" data-id="${it.id}">✎ Pedir ajuste</button></div>`;
+  } else {
+    acts = `<div class="ap-row" style="margin-top:8px"><span class="ap-when">${apSet.interno ? 'Só a equipe vê.' : (it.reviewed_at ? 'Cliente revisou em ' + new Date(it.reviewed_at).toLocaleDateString('pt-BR') : 'Aguardando o cliente')}</span>
+      <span style="display:flex;gap:6px">${apSet.interno ? `<button class="ap-btn ok ${it.interno_ok ? 'on' : ''}" data-int-ok="${it.id}" style="flex:0 0 auto;padding:7px 12px">✓ ${it.interno_ok ? 'Aprovado' : 'Aprovar'}</button>` : ''}
+      <button class="ap-send" data-send="${it.id}">${apSet.interno ? 'Apontar' : 'Responder'}</button></span></div>
+      <div style="margin-top:9px"><button class="ed-toggle" onclick="editarPeca('${it.id}')">✎ Editar texto</button></div>
+      <div class="ed-zone" id="ed_${it.id}" style="display:none;margin:10px -16px -14px;border-radius:0"></div>`;
+  }
+  return `<div class="ap-card cp" data-id="${it.id}" data-status="${st}">
+    <div class="ap-card-top">
+      <div class="ap-tags"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>
+        <span><span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span></div>
+      ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
+    </div>
+    <div class="ap-body">
+      ${txt ? `<div class="ap-txt">${esc(txt)}</div>` : `<div class="ap-txt vazio">${it.kind==='stories' ? 'Stories não têm legenda: o conteúdo está nas telas.' : 'Sem texto.'}</div>`}
+      ${hash ? `<div class="ap-hash">${esc(hash)}</div>` : ''}
+      ${dir ? `<div class="ap-dir"><b>Direção visual</b><br>${esc(dir)}</div>` : ''}
+    </div>
+    <div class="ap-zone">
+      <div class="ap-lab2">${lab}</div>
+      <textarea class="ap-ta" id="${isClient||apSet.interno?'tt_':'ta_'}${it.id}" style="min-height:44px" placeholder="${ph}"></textarea>
+      ${acts}
       ${talk ? `<div class="ap-talk">${talk}</div>` : ''}
     </div>
   </div>`;
@@ -1808,6 +1887,24 @@ async function liberarCliente(jaConfirmado){
     mostrarLinkCliente(link, avisados);
     await load();
   } catch(err){ showToast('Erro ao liberar: ' + err.message, 'error'); }
+}
+
+async function linkWhats(){
+  try {
+    const { data: env, error } = await sb.rpc('send_approval_set', { p_set_id: SET_ID, p_days: 30 });
+    if (error) throw error;
+    const link = `${location.origin}/aprovacao-preview.php?t=${env.token}`;
+    const cli = document.getElementById('apEyebrow').textContent.split(' · ')[0];
+    const msg = `Olá! A copy "${apSet.title}" (${cli}) está pronta para revisão: ${link}`;
+    const ov = document.createElement('div'); ov.className = 'ap-warn';
+    ov.innerHTML = `<div class="ap-warn-box"><h3>Link da copy</h3><p>Para aprovação interna. O cliente só recebe quando você mandar.</p>
+      <input class="ap-ta" value="${esc(link)}" readonly style="min-height:0;margin-bottom:14px">
+      <div class="ap-warn-acts"><button class="no" id="lkCopy">Copiar link</button><button class="yes" id="lkWa" style="background:#16a34a;border-color:#16a34a">WhatsApp</button></div></div>`;
+    document.body.appendChild(ov);
+    ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+    ov.querySelector('#lkCopy').onclick = async () => { try { await navigator.clipboard.writeText(link); showToast('Link copiado.', 'success'); } catch(e){} };
+    ov.querySelector('#lkWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  } catch(err){ showToast('Erro ao gerar o link: ' + err.message, 'error'); }
 }
 
 function mostrarLinkCliente(link, avisados){
