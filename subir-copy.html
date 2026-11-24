@@ -94,8 +94,8 @@ async function mandar(interno){
     const resp=$('#resp').value||null;
     const a=await api('pd-copy.php',{acao:'aprovacao',id,interno:!!interno,inicio:INI?INI.toISOString().slice(0,10):null,indices:null,resp});
     dizer(a.n+' peças no lote.'+(interno?' Revisão interna aberta.':' O cliente aprova no link; depois seguem para os criativos.'));
-    try{parent.postMessage({tipo:'copy-subida',task:TASK,n:a.n},'*');}catch(e){}
-    $('#lista').innerHTML='';$('#bTroca').classList.add('oculto');
+    try{parent.postMessage({tipo:'copy-subida',task:TASK,n:a.n,set:a.set_id},'*');}catch(e){}
+    setTimeout(()=>{location.href='/aprovacao.html?set='+encodeURIComponent(a.set_id);},700);   // abre o visualizador do lote
   }catch(e){dizer(e.message,true);$('#bCli').disabled=$('#bInt').disabled=false;}
   BUSY=false;
 }
