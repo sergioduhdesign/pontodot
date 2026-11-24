@@ -1,0 +1,37 @@
+name: Datastore — publicar LPs no subdomínio lps.datastore.com.br
+# Cria o subdomínio (pasta própria fora do site original) e envia hg-envio/datastore-lps. Não mexe em /datastore.com.br.
+on:
+  workflow_dispatch:
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Subdomínio + envio
+        env:
+          U: ${{ secrets.CPANEL_USER }}
+          H: ${{ secrets.CPANEL_HOST }}
+          T: ${{ secrets.CPANEL_TOKEN }}
+        run: |
+          set -e
+          H="${H#https://}"; H="${H%%/*}"; case "$H" in *:*) ;; *) H="$H:2083";; esac
+          A="Authorization: cpanel $U:$T"
+          HOME_DIR=$(curl -sS --max-time 30 -H "$A" "https://$H/execute/Variables/get_user_information" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['home'])")
+          BASE="$HOME_DIR/lps.datastore.com.br"; SRC=hg-envio/datastore-lps
+          echo "== subdomínio"
+          curl -sS --max-time 60 -H "$A" "https://$H/execute/SubDomain/addsubdomain" --data-urlencode "domain=lps" --data-urlencode "rootdomain=datastore.com.br" --data-urlencode "dir=lps.datastore.com.br" --data "canoff=0&disallowdot=1" | head -c 600; echo
+          for d in assets assets/fonts lp-raio-x lp-pesquisa-demanda; do
+            p="$BASE/$(dirname "$d")"; [ "$(dirname "$d")" = "." ] && p="$BASE"
+            curl -sS --max-time 30 -H "$A" "https://$H/execute/Fileman/mkdir" --data-urlencode "path=$p" --data-urlencode "name=$(basename "$d")" --data "permissions=0755" >/dev/null || true
+          done
+          n=0; falhas=0
+          while IFS= read -r f; do
+            rel="${f#$SRC/}"; dir="$BASE/$(dirname "$rel")"; [ "$(dirname "$rel")" = "." ] && dir="$BASE"
+            R=$(curl -sS --max-time 120 -H "$A" "https://$H/execute/Fileman/upload_files" -F "dir=$dir" -F "overwrite=1" -F "file-1=@$f;filename=$(basename "$f")" || echo '{}')
+            ok=$(echo "$R" | python3 .github/scripts/up_ok.py); echo "$ok  $rel"; n=$((n+1)); [ "$ok" = "ok" ] || falhas=$((falhas+1))
+          done < <(find "$SRC" -type f | sort)
+          echo "== enviados: $n | falhas: $falhas"
+          echo "== DNS"; dig +short A lps.datastore.com.br; dig +short NS datastore.com.br
+          echo "== SSL (AutoSSL, melhor esforço)"; D=lps.datastore.com.br python3 .github/scripts/ssl_geo.py || true
+          for u in lp-raio-x lp-pesquisa-demanda; do echo "$u -> HTTP $(curl -sk -o /dev/null -w '%{http_code}' --max-time 20 https://lps.datastore.com.br/$u/)"; done
+          [ "$falhas" = "0" ]
