@@ -60,3 +60,14 @@ jobs:
             if [ "$dias" -lt 14 ]; then echo "::error::Certificado de $host vence em $dias dias — renovar no cPanel (SSL/TLS Status > Run AutoSSL)"; ruim=1; fi
           done
           exit $ruim
+      - name: Conferir o limite de arquivos da hospedagem (500 mil no HostGator Turbo)
+        env:
+          URL: ${{ secrets.PD_URL }}
+          KEY: ${{ secrets.PD_CRON_KEY }}
+        run: |
+          set -u
+          r=$(curl -sS --max-time 150 "$URL/pd-ping.php?key=$KEY&arquivos=1") || { echo "::warning::Nao consegui contar os arquivos"; exit 0; }
+          n=$(echo "$r" | jq -r '.arquivos // empty'); echo "Arquivos na conta: ${n:-?} de 500000 — $r"
+          [ -z "$n" ] && exit 0
+          if [ "$n" -gt 480000 ]; then echo "::error::A conta esta com $n arquivos: o limite e 500000 e o deploy vai travar. Limpar caches/backups no cPanel."; exit 1; fi
+          if [ "$n" -gt 450000 ]; then echo "::warning::A conta esta com $n arquivos (limite 500000). Hora de limpar caches."; fi
