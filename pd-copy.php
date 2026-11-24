@@ -114,7 +114,7 @@ if ($acao === 'aprovacao') {   // manda pro cliente como a arte: lote de aprova�
         if (($r['code'] ?? 500) >= 300 && strpos((string)($r['raw'] ?? ''), '23514') !== false) sd_fail('O banco ainda não aceita peça de blog/capa do site: rode o SQL v162 no Supabase.', 500); }
     if (($r['code'] ?? 500) >= 300) sd_fail('Não consegui criar as peças do lote: ' . mb_substr((string)($r['raw'] ?? ''), 0, 200), 500);
     sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode($id), 'PATCH', ['set_id' => $sid, 'mudado_em' => gmdate('c')]);
-    $criativo = null; $visual = false; foreach ($linhas as $l) if (in_array($l['kind'], ['feed', 'carrossel', 'stories', 'reels'], true)) $visual = true;
+    $criativo = null; $visual = false; foreach ($linhas as $l) if (in_array($l['kind'], ['feed', 'carrossel', 'stories', 'reels'], true)) $visual = true; foreach ($itens as $it0) if (!empty($it0['unidade'])) $visual = true;   // apresentação, livro, papelaria…: o designer também recebe tarefa
     if ($visual && empty($b['sem_criativo'])) { try { $criativo = pdCopyParaCriativos($cp, $sid, $itens, $u['name'] ?? 'Equipe', $b['resp'] ?? null, $u['id'] ?? null); } catch (Throwable $e) { error_log('copy->criativos: ' . $e->getMessage()); } }
     if ($cp['task_id']) { pdEvento($cp['task_id'], 'aprovacao', 'Copys no lote de aprovação' . ($interno ? ' (revisão interna)' : ''), count($linhas) . ' peça(s) de texto · ' . ($cp['nome'] ?? ''), $u['name'] ?? 'Equipe', 'humano'); if (!$interno) sd_supabase('/rest/v1/tasks?id=eq.' . urlencode($cp['task_id']), 'PATCH', ['status' => 'DELEGADA']); }
     echo json_encode(['ok' => true, 'set_id' => $sid, 'url' => '/aprovacao.html?set=' . $sid, 'n' => count($linhas), 'criativo' => $criativo], JSON_UNESCAPED_UNICODE); exit;
@@ -133,6 +133,7 @@ if ($acao === 'apagar') { sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode((st
 // Ficam na própria legenda do item, marcadas por linha "[nome]", e os visualizadores/baixar-textos leem de lá.
 function cpSecoes($it) {
     $o = ''; $t = fn($v) => trim(str_replace("\r", '', (string)$v));
+    if (!empty($it['unidade'])) $o .= "\n\n[unidade] " . $t($it['unidade']);
     if (!empty($it['perfil']))  $o .= "\n\n[perfil] " . $t($it['perfil']);
     if (!empty($it['opcional'])) $o .= "\n\n[opcional] sim";
     if (isset($it['dia']) && !empty($it['cta'])) $o .= "\n\n[cta] " . $t($it['cta']);
@@ -197,6 +198,14 @@ function cpGerar($b, $u) {
     $quem = pdQuemFazArea('copys'); try { sd_supabase('/rest/v1/pd_ia_trabalho', 'POST', ['ia_user_id' => $quem['id'], 'personagem' => $quem['personagem'], 'client_id' => $cid, 'familia' => 'copys', 'rodada' => 1, 'resultado' => 'gerou', 'custo_usd' => $custo]); } catch (Throwable $e) {}
     return ['ok' => true, 'leitura' => $j['leitura'] ?? '', 'variantes' => $j['variantes'], 'custo_usd' => round($custo, 4), 'quem' => $quem, 'ia_seg' => round(microtime(true) - $t0, 1)];
 
+}
+if ($acao === 'ler_planilha') {   // qualquer planilha (livro, apresentação, papelaria…): a IA devolve só o MAPA das colunas; o texto nunca é reescrito
+    $amostra = mb_substr((string)($b['amostra'] ?? ''), 0, 38000); if (trim($amostra) === '') sd_fail('Planilha vazia.');
+    $system = "Você lê planilhas que uma redatora de agência montou para descrever um trabalho (calendário de social, apresentação comercial com várias telas, livro, papelaria, press, site, qualquer coisa) e diz como transformá-las em PEÇAS de texto para aprovar e depois repassar ao designer. Responde SÓ com JSON válido, sem comentários.\nVocê recebe, por aba, as primeiras linhas com letras de coluna (L12: A=... | B=...). NÃO copie nem reescreva texto: devolva só o mapa.\nFormato: {\"documento\":\"o que é este trabalho, em poucas palavras (ex: apresentação comercial de 30 telas)\",\"unidade\":\"nome de UMA peça no singular (Tela, Página, Capítulo, Peça, Item…)\",\"resumo\":\"1 frase: como a planilha está organizada\",\"abas\":[{\"nome\":\"nome exato da aba\",\"usar\":true,\"unidade\":\"só se esta aba tiver outra unidade\",\"cabecalho\":12,\"colunas\":{\"titulo\":\"B\",\"criativo\":\"C\",\"texto\":\"D\",\"visual\":\"E\",\"cta\":\"\",\"hashtags\":\"\",\"fonte\":\"\",\"cuidado\":\"\",\"tipo\":\"\",\"numero\":\"A\",\"perfil\":\"\",\"data\":\"\"},\"extras\":[\"F\"],\"usar_como_perfil\":false}]}\nSignificado: cabecalho = número da linha de títulos de coluna (0 se não houver); UMA LINHA = UMA PEÇA. titulo = nome da peça (título da tela, do capítulo). criativo = o texto que aparece na arte/página e que o designer precisa. texto = legenda, corpo de apoio, notas de fala. visual = direção de arte/imagem. cuidado = alertas, validações. fonte = origem de dado. tipo = coluna que diz o formato de cada linha (só se existir). numero = ordem da peça. extras = outras colunas úteis que não cabem acima (viram nota). Deixe \"\" quando a coluna não existir. Use usar:false para abas de visão geral, estratégia, fontes, índice ou sem peças; usar_como_perfil:true se cada aba é um perfil/frente diferente. Se for um livro ou documento longo, o corpo do capítulo vai em criativo.";
+    try { [$resp, $custo] = paClaude($system, [['type' => 'text', 'text' => $amostra]], 4000); } catch (Throwable $e) { sd_fail('A IA não respondeu agora: ' . $e->getMessage(), 502); }
+    $j = paJson($resp); if (!$j || empty($j['abas'])) { $j2 = paJson(paJsonConserta($resp)); if ($j2 && !empty($j2['abas'])) $j = $j2; }
+    if (!$j || empty($j['abas'])) sd_fail('Não consegui entender a estrutura dessa planilha.', 502);
+    echo json_encode(['ok' => true, 'mapa' => $j, 'custo_usd' => round((float)$custo, 4)], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'gerar') { echo json_encode(cpGerar($b, $u), JSON_UNESCAPED_UNICODE); exit; }
 sd_fail('Ação desconhecida.');

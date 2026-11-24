@@ -2,7 +2,7 @@
 <title>Subir copy · Pontodot</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="/js/copy-excel.js?v=2"></script>
+<script src="/js/copy-excel.js?v=3"></script>
 <style>
 :root{--ink:#15161A;--gray:#6c6c69;--line:rgba(0,0,0,.12);--bg:#F4F3EF;--card:#fff;--ok:#1f8a55;--bad:#c63d32;--acc:#1f4fd8}
 *{box-sizing:border-box}html,body{height:100%}
@@ -35,10 +35,11 @@ select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:
   <select id="resp" title="Quem faz as artes (tarefa do criativo)"><option value="">Artes: automático (por função)</option></select>
   <span class="res" id="res"></span><span class="esp"></span>
   <a class="btn" href="/SD_modelo_lote_aprovacao.xlsx" download>Baixar o Excel padrão</a>
+  <button class="btn oculto" id="bIA" title="Se não for isso, a IA relê a planilha pela estrutura dela">Não confere? Ler de outro jeito</button>
   <button class="btn" id="bTroca" onclick="document.getElementById('arq').click()">Trocar planilha</button>
 </div>
 <div class="corpo">
-  <div class="drop" id="drop"><b>Solte aqui o Excel da copy</b><span>o Excel completo padrão (modelo SD): uma linha por peça, com legenda, hashtags, data e hora. Ou clique para escolher.</span></div>
+  <div class="drop" id="drop"><b>Solte aqui o Excel da copy</b><span>qualquer planilha que descreva o trabalho: calendário de social, apresentação, livro, papelaria. A PD lê como ela veio e mostra o que entendeu para você confirmar. Ou clique para escolher.</span></div>
   <input type="file" id="arq" accept=".xlsx" style="display:none">
   <div class="conf oculto" id="conf"></div>
   <div class="nota" id="nota">Só a copy: as artes seguem pela tarefa do criativo depois da aprovação do texto.</div>
@@ -62,20 +63,35 @@ async function boot(){
   ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over');}));
   d.addEventListener('drop',e=>{if(e.dataTransfer.files[0])ler(e.dataTransfer.files[0]);});
   $('#bTroca').classList.add('oculto');
-  $('#bCli').onclick=()=>mandar(false);$('#bInt').onclick=()=>mandar(true);
+  $('#bIA').onclick=lerIA;$('#bCli').onclick=()=>mandar(false);$('#bInt').onclick=()=>mandar(true);
 }
+let BUF=null;
 async function ler(f){
   dizer('');
   try{
-    const r=CopyExcel.ler(XLSX,await f.arrayBuffer());
-    if(!r.itens.length){dizer('Não achei peças nessa planilha. Confira se tem as colunas de data, formato e texto.',true);return;}
-    CAL=r.calendario;INI=r.inicio;ITENS=r.itens;NOME=f.name.replace(/\.xlsx$/i,'').slice(0,120)||NOME;
-    $('#drop').classList.add('oculto');$('#bTroca').classList.remove('oculto');$('#nota').classList.add('oculto');
-    $('#conf').textContent=CopyExcel.frase(r);$('#conf').classList.remove('oculto');
-    $('#lista').innerHTML=ITENS.map(v=>{const T=String(v.tipo||'feed').toUpperCase();const cri=(v.telas&&v.telas.length)?v.telas.map(t=>t.texto).join(' / '):v.criativo;return `<div class="it"><span class="tp ${T}">${esc(T)}</span><span class="t">${v.dia?'Dia '+v.dia+' · ':''}${esc(v.titulo)}${v.perfil?` <em class="pf">${esc(v.perfil)}</em>`:''}</span>${cri?`<div class="x cri">${esc(cri)}</div>`:''}${v.texto?`<div class="x">${esc(v.texto)}</div>`:''}</div>`;}).join('');
-    dizer(ITENS.length+' peças lidas'+(CAL&&INI?' · de '+INI.toLocaleDateString('pt-BR',{timeZone:'UTC'}):'')+'. Confirme e mande.');
-    $('#bCli').disabled=$('#bInt').disabled=!CLI;
+    BUF=await f.arrayBuffer();NOME=f.name.replace(/\.xlsx$/i,'').slice(0,120)||NOME;
+    const r=CopyExcel.ler(XLSX,BUF);
+    if(r.itens.length){mostrar(r,CopyExcel.frase(r),false);return;}
+    await lerIA();   // não é calendário de social: a IA descobre como a planilha está organizada
   }catch(e){dizer('Não consegui ler o Excel: '+e.message,true);}
+}
+async function lerIA(){
+  if(!BUF)return;dizer('Lendo como essa planilha está organizada…');$('#bIA').disabled=true;
+  try{
+    const a=await api('pd-copy.php',{acao:'ler_planilha',amostra:CopyExcel.amostra(XLSX,BUF)});
+    const r=CopyExcel.aplicarMapa(XLSX,BUF,a.mapa);
+    if(!r.itens.length){dizer('Não achei peças nessa planilha. Me diga o que ela é e eu releio.',true);$('#bIA').disabled=false;return;}
+    mostrar(r,CopyExcel.fraseGen(r),true);
+  }catch(e){dizer(e.message,true);}
+  $('#bIA').disabled=false;
+}
+function mostrar(r,frase,porIA){
+  CAL=r.calendario;INI=r.inicio;ITENS=r.itens;
+  $('#drop').classList.add('oculto');$('#bTroca').classList.remove('oculto');$('#nota').classList.add('oculto');$('#bIA').classList.toggle('oculto',porIA);
+  $('#conf').textContent=frase;$('#conf').classList.remove('oculto');
+  $('#lista').innerHTML=ITENS.map(v=>{const T=String(v.unidade||v.tipo||'feed').toUpperCase();const cri=(v.telas&&v.telas.length)?v.telas.map(t=>t.texto).join(' / '):v.criativo;return `<div class="it"><span class="tp ${esc(T)}">${esc(T)}</span><span class="t">${v.dia?'Dia '+v.dia+' · ':''}${esc(v.titulo)}${v.perfil?` <em class="pf">${esc(v.perfil)}</em>`:''}</span>${cri?`<div class="x cri">${esc(cri)}</div>`:''}${v.texto?`<div class="x">${esc(v.texto)}</div>`:''}</div>`;}).join('');
+  dizer(ITENS.length+' peças lidas'+(CAL&&INI?' · de '+INI.toLocaleDateString('pt-BR',{timeZone:'UTC'}):'')+'. Confirme e mande.');
+  $('#bCli').disabled=$('#bInt').disabled=!CLI;
 }
 async function mandar(interno){
   if(BUSY||!ITENS.length||!CLI)return;BUSY=true;$('#bCli').disabled=$('#bInt').disabled=true;dizer('Enviando…');

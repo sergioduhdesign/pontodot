@@ -1654,15 +1654,15 @@ AP.pedidoIA = function(t, drv, correcao){
 
 // ---- Seções da copy dentro da legenda: [perfil] [cta] [texto do criativo] [telas] [direção visual] [cuidados] [fonte]
 AP.secoesCopy = function(caption){
-  const ch = { 'perfil':'perfil', 'opcional':'opcional', 'cta':'cta', 'texto do criativo':'criativo', 'telas':'telas', 'direção visual':'visual', 'direcao visual':'visual', 'cuidados':'cuidados', 'fonte':'fonte' };
-  const b = { legenda:[], perfil:[], opcional:[], cta:[], criativo:[], telas:[], visual:[], cuidados:[], fonte:[] }; let cur = 'legenda';
+  const ch = { 'perfil':'perfil', 'opcional':'opcional', 'cta':'cta', 'texto do criativo':'criativo', 'telas':'telas', 'direção visual':'visual', 'direcao visual':'visual', 'cuidados':'cuidados', 'fonte':'fonte', 'unidade':'unidade' };
+  const b = { legenda:[], perfil:[], opcional:[], cta:[], criativo:[], telas:[], visual:[], cuidados:[], fonte:[], unidade:[] }; let cur = 'legenda';
   String(caption || '').replace(/\r/g, '').split('\n').forEach(l => {
-    const m = l.match(/^\[(perfil|opcional|cta|texto do criativo|telas|direção visual|direcao visual|cuidados|fonte)\]\s*(.*)$/i);
+    const m = l.match(/^\[(perfil|opcional|cta|texto do criativo|telas|direção visual|direcao visual|cuidados|fonte|unidade)\]\s*(.*)$/i);
     if (m) { cur = ch[m[1].toLowerCase()]; if (m[2]) b[cur].push(m[2]); } else b[cur].push(l);
   });
   const j = k => b[k].join('\n').trim();
   const telas = b.telas.map(x => x.trim()).filter(Boolean).map(x => { const [a, d] = x.split(' || '); const i = a.indexOf(' | '); return { n: i > 0 ? a.slice(0, i) : '', texto: i > 0 ? a.slice(i + 3) : a, desc: d || '' }; });
-  return { legenda: j('legenda'), perfil: j('perfil'), opcional: !!j('opcional'), cta: j('cta'), criativo: j('criativo'), telas, visual: j('visual'), cuidados: j('cuidados'), fonte: j('fonte') };
+  return { legenda: j('legenda'), perfil: j('perfil'), opcional: !!j('opcional'), cta: j('cta'), criativo: j('criativo'), telas, visual: j('visual'), cuidados: j('cuidados'), fonte: j('fonte'), unidade: j('unidade') };
 };
 // HTML dos textos do criativo (estático: texto da arte; story/carrossel/reels: um bloco por tela/cena)
 AP.criativoHTML = function(sec, kind){

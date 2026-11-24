@@ -147,6 +147,73 @@
       + (R.opcionais ? R.opcionais + ' datas comemorativas opcionais. ' : '') + (R.ignoradas && R.ignoradas.length ? 'Deixei de fora: ' + R.ignoradas.join(', ') + '. ' : '') + 'Confere?';
   }
 
-  const API = { ler, frase, SEM_LEG };
+
+  // ---------------------------------------------------------------------------------
+  // LEITURA GENÉRICA (qualquer planilha: livro, apresentação, papelaria, press…)
+  // A IA olha uma amostra de cada aba e devolve só o MAPA (qual linha é cabeçalho, qual coluna é o quê).
+  // O texto em si nunca passa pela IA: as peças são montadas daqui, célula a célula, sem reescrever nada.
+  // ---------------------------------------------------------------------------------
+  const COL = n => { let s = ''; n++; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const IDX = L => { let n = 0; String(L || '').toUpperCase().replace(/[^A-Z]/g, '').split('').forEach(c => { n = n * 26 + c.charCodeAt(0) - 64; }); return n - 1; };
+  const cel2 = v => v == null ? '' : (v instanceof Date ? v.toISOString().slice(0, 10) : String(v)).replace(/\s+/g, ' ').trim();
+
+  function abas(XLSX, buf) {
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    return wb.SheetNames.map(nome => ({ nome, linhas: XLSX.utils.sheet_to_json(wb.Sheets[nome], { header: 1, raw: true, defval: '', blankrows: true }) }));
+  }
+
+  // amostra compacta para a IA: nome da aba, tamanho e as primeiras linhas com letras de coluna
+  function amostra(XLSX, buf) {
+    return abas(XLSX, buf).map(a => {
+      const L = a.linhas, tot = L.filter(r => r.some(c => cel2(c))).length; let out = '### ABA "' + a.nome + '" (' + L.length + ' linhas, ~' + tot + ' preenchidas)\n', n = 0;
+      for (let i = 0; i < L.length && n < 14; i++) {
+        const cs = L[i].map((c, k) => [COL(k), cel2(c)]).filter(x => x[1]).map(x => x[0] + '=' + (x[1].length > 90 ? x[1].slice(0, 90) + '…' : x[1]));
+        if (cs.length) { out += 'L' + (i + 1) + ': ' + cs.join(' | ') + '\n'; n++; }
+      }
+      return out;
+    }).join('\n').slice(0, 38000);
+  }
+
+  // monta as peças a partir do mapa que a IA devolveu
+  function aplicarMapa(XLSX, buf, mapa) {
+    const todas = abas(XLSX, buf), itens = [], ignoradas = [], usadas = [];
+    (mapa.abas || []).forEach(m => {
+      const a = todas.find(x => x.nome === m.nome); if (!a) return;
+      if (m.usar === false) { ignoradas.push(m.nome); return; }
+      const c = m.colunas || {}, ix = {}; Object.keys(c).forEach(k => { if (c[k]) ix[k] = IDX(c[k]); });
+      const ini = Math.max(0, (parseInt(m.cabecalho, 10) || 0)); const cab = ini ? a.linhas[ini - 1] || [] : [];
+      const uni = (m.unidade || mapa.unidade || 'Peça').trim();
+      const extras = (m.extras || []).map(l => ({ i: IDX(l), h: cel2(cab[IDX(l)]) }));
+      let n = 0;
+      for (let r = ini; r < a.linhas.length; r++) {
+        const l = a.linhas[r], g = k => ix[k] === undefined ? '' : String(l[ix[k]] == null ? '' : (l[ix[k]] instanceof Date ? l[ix[k]].toISOString().slice(0, 10) : l[ix[k]])).replace(/\r/g, '').trim();
+        const tit = g('titulo'), cri = g('criativo'), txt = g('texto'), vis = g('visual');
+        if (!tit && !cri && !txt && !vis) continue;
+        n++;
+        const ex = extras.map(e => { const v = cel2(l[e.i]); return v ? (e.h ? e.h + ': ' : '') + v : ''; }).filter(Boolean).join('\n');
+        const tp = SA(g('tipo')), kindSite = ['feed', 'carrossel', 'stories', 'reels', 'blog'].find(k => tp.indexOf(k) === 0 || (k === 'feed' && /estatic/.test(tp)));
+        const numero = g('numero');
+        itens.push({
+          tipo: kindSite || 'material', unidade: kindSite ? '' : (g('tipo') || uni),
+          titulo: tit || (cri ? cri.split('\n')[0].slice(0, 70) : uni + ' ' + (numero || n)),
+          texto: [txt, ex].filter(Boolean).join('\n\n'), criativo: cri, visual: vis, cta: g('cta'), hashtags: g('hashtags'),
+          fonte: g('fonte'), cuidado: g('cuidado'), perfil: g('perfil') || (m.usar_como_perfil ? m.nome : ''), opcional: false, data: g('data'), ordem: numero
+        });
+      }
+      if (n) usadas.push(m.nome + ' (' + n + ')');
+    });
+    const por = {}; itens.forEach(i => { const k = i.unidade || i.tipo; por[k] = (por[k] || 0) + 1; });
+    const perfis = [...new Set(itens.map(i => i.perfil).filter(Boolean))];
+    const resumo = { total: itens.length, porTipo: por, perfis, comCriativo: itens.filter(i => i.criativo).length, comTelas: 0, opcionais: 0, ignoradas, abas: usadas, generico: true, documento: mapa.documento || '', leitura: mapa.resumo || '' };
+    return { itens, calendario: false, inicio: null, resumo };
+  }
+
+  function fraseGen(r) {
+    const R = r.resumo, t = Object.entries(R.porTipo).map(([k, v]) => v + ' ' + k.toLowerCase() + (v > 1 ? 's' : '')).join(', ');
+    return (R.documento ? 'Entendi: ' + R.documento + '. ' : '') + (R.leitura ? R.leitura + ' ' : '') + 'Montei ' + R.total + ' peça' + (R.total > 1 ? 's' : '') + ' (' + t + ')'
+      + (R.comCriativo ? ', ' + R.comCriativo + ' com texto para a arte' : '') + '.' + (R.ignoradas.length ? ' Deixei de fora: ' + R.ignoradas.join(', ') + '.' : '') + ' Confere?';
+  }
+
+  const API = { ler, frase, SEM_LEG, amostra, aplicarMapa, fraseGen };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.CopyExcel = API;
 })(typeof window !== 'undefined' ? window : globalThis);

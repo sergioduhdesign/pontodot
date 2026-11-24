@@ -494,7 +494,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
-<script src="/js/aprovacao-comum.js?v=553"></script>
+<script src="/js/aprovacao-comum.js?v=554"></script>
 <script src="/js/campanha-painel.js?v=551"></script>
 <script src="/js/briefing-ia.js?v=1"></script>
 <script src="/js/ui.js"></script>
@@ -689,14 +689,17 @@ async function load(){
 // ==================================================================
 
 let kindF = 'all';
+// tipo da peça: kind do banco; em material genérico (tela, página, capítulo…) vale a unidade escrita pela copy no marcador [unidade]
+function kk(i){ if (i.kind === 'material' || i.kind === 'generico' || !i.kind) { const m = String(i.caption||'').match(/^\[unidade\]\s*(.+)$/mi); if (m) return 'u:' + m[1].trim(); } return i.kind || 'generico'; }
+function kl(k){ return String(k).indexOf('u:') === 0 ? String(k).slice(2) : (KIND_LABEL[k] || k); }
 function tiposUI(){
   const sel = document.getElementById('apTipo'); if (!sel) return;
-  const cont = {}; items.forEach(i => { const k = i.kind || 'generico'; cont[k] = (cont[k] || 0) + 1; });
+  const cont = {}; items.forEach(i => { const k = kk(i); cont[k] = (cont[k] || 0) + 1; });
   const ks = Object.keys(cont);
   if (ks.length < 2) { sel.style.display = 'none'; kindF = 'all'; return; }
   if (kindF !== 'all' && !cont[kindF]) kindF = 'all';
   sel.style.display = '';
-  sel.innerHTML = `<option value="all">Todos os tipos (${items.length})</option>` + ks.map(k => `<option value="${k}">${esc(KIND_LABEL[k] || k)} (${cont[k]})</option>`).join('');
+  sel.innerHTML = `<option value="all">Todos os tipos (${items.length})</option>` + ks.map(k => `<option value="${k}">${esc(kl(k))} (${cont[k]})</option>`).join('');
   sel.value = kindF; sel.classList.toggle('on', kindF !== 'all');
   sel.onchange = () => { kindF = sel.value; render(); };
 }
@@ -704,7 +707,7 @@ function tiposUI(){
 function render(){
   const board = document.getElementById('apBoard');
   tiposUI();
-  const base = items.filter(i => kindF === 'all' || (i.kind || 'generico') === kindF);
+  const base = items.filter(i => kindF === 'all' || kk(i) === kindF);
 
   if (!items.length) {
     showEmpty('Nada por aqui ainda', 'A equipe ainda não enviou material neste lote.');
@@ -739,7 +742,7 @@ function render(){
   if (btT && equipe && apSet.interno) {
     // Revisão interna: o gestor aprova tudo de uma vez (com exceções)
     btT.style.display = faltaInterno ? 'block' : 'none';
-    btT.textContent = kindF === 'all' ? `✓ Aprovar todas (${faltaInterno})` : `✓ Aprovar ${(KIND_LABEL[kindF] || kindF).toLowerCase()} (${faltaInterno})`;
+    btT.textContent = kindF === 'all' ? `✓ Aprovar todas (${faltaInterno})` : `✓ Aprovar ${kl(kindF).toLowerCase()} (${faltaInterno})`;
     btT.onclick = () => AP.aprovarTudo(base, async (id, decision, comment) => {
       if (decision === 'ajustar') {
         const { error } = await sb.from('approval_comments').insert({ item_id: id, author_id: profile.id,
@@ -762,7 +765,7 @@ function render(){
   } else if (btT) {
     const faltaB = base.filter(i => i.status !== 'aprovado').length;
     btT.style.display = (!equipe && faltaB > 0) ? 'block' : 'none';
-    btT.textContent = kindF === 'all' ? `✓ Aprovar tudo (${faltaB})` : `✓ Aprovar ${(KIND_LABEL[kindF] || kindF).toLowerCase()} (${faltaB})`;
+    btT.textContent = kindF === 'all' ? `✓ Aprovar tudo (${faltaB})` : `✓ Aprovar ${kl(kindF).toLowerCase()} (${faltaB})`;
     if (bp && !equipe) bp.style.marginLeft = btT.style.display === 'none' ? 'auto' : '';
     btT.onclick = () => AP.aprovarTudo(base, async (id, decision, comment) => {
       const { error } = await sb.rpc('review_approval_item', { p_item_id: id, p_decision: decision,
@@ -856,7 +859,7 @@ function render(){
   bind();
 }
 
-function ehCopy(){ return !!apSet && (apSet.modo==='copy' || (items.length && items.every(i=>!(Array.isArray(i.media)&&i.media.length) && ['feed','carrossel','stories','reels','blog','capa_site','generico'].includes(i.kind)))); }
+function ehCopy(){ return !!apSet && (apSet.modo==='copy' || (items.length && items.every(i=>!(Array.isArray(i.media)&&i.media.length) && ['feed','carrossel','stories','reels','blog','capa_site','generico','material'].includes(i.kind)))); }
 
 function cardHTML(it){
   if (ehCopy()) return cardCopyHTML(it);
@@ -1030,7 +1033,7 @@ const talk = (it._talk || []).map(c => {
   }
   return `<div class="ap-card cp" data-id="${it.id}" data-kind="${esc(it.kind||'feed')}" data-status="${st}">
     <div class="ap-card-top">
-      <div class="ap-tags"><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>${sec.perfil ? `<span class="ap-perfil">${esc(sec.perfil)}</span>` : ''}${sec.opcional ? '<span class="ap-perfil">Opcional</span>' : ''}</span>
+      <div class="ap-tags"><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="ap-tipo ${esc(it.kind||'feed')}">${esc(kl(kk(it)))}</span>${sec.perfil ? `<span class="ap-perfil">${esc(sec.perfil)}</span>` : ''}${sec.opcional ? '<span class="ap-perfil">Opcional</span>' : ''}</span>
         <span><span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span></div>
       ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
     </div>
