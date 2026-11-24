@@ -736,12 +736,14 @@ function render(){
 
   const bar2 = document.getElementById('apTodas');
   if (bar2) {
-    if (equipe && ehCopy()) {
+    if (equipe) {
+      const cpS = ehCopy();
       const nOk = items.filter(i => apSet.interno ? i.interno_ok : i.status==='aprovado').length;
-      bar2.innerHTML = `<div class="ap-todas"><b>${apSet.interno ? 'Revisão interna da copy' : 'Copy no cliente'} · ${nOk} de ${total} aprovadas</b>
-        ${apSet.interno ? `<button onclick="document.getElementById('btnTudo').click()">Aprovar todas</button>` : ''}
-        <button class="sec" onclick="linkWhats()">Link pra WhatsApp (aprovação interna)</button>
-        ${apSet.interno ? `<button class="sec" onclick="liberarCliente()">Mandar pro cliente</button>` : ''}</div>`;
+      bar2.innerHTML = `<div class="ap-todas"><b>${cpS ? (apSet.interno ? 'Revisão interna da copy' : 'Copy no cliente') : 'Textos das peças'} · ${nOk} de ${total} aprovadas</b>
+        ${cpS && apSet.interno ? `<button onclick="document.getElementById('btnTudo').click()">Aprovar todas</button>` : ''}
+        <button class="sec" onclick="baixarTextosArte()" title="Excel com título, texto, hashtags e direção visual de cada peça, sempre na versão atual">Baixar textos pra arte</button>
+        ${cpS ? `<button class="sec" onclick="linkWhats()">Link pra WhatsApp (aprovação interna)</button>` : ''}
+        ${cpS && apSet.interno ? `<button class="sec" onclick="liberarCliente()">Mandar pro cliente</button>` : ''}</div>`;
     } else bar2.innerHTML = '';
   }
 
@@ -1887,6 +1889,27 @@ async function liberarCliente(jaConfirmado){
     mostrarLinkCliente(link, avisados);
     await load();
   } catch(err){ showToast('Erro ao liberar: ' + err.message, 'error'); }
+}
+
+function baixarTextosArte(){
+  try {
+    const rows = [['PECA','DIA','TIPO','TITULO','TEXTO','HASHTAGS','DIRECAO_VISUAL','ID_PECA']];
+    items.forEach((it, n) => {
+      let txt = it.caption || '', dir = '';
+      const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
+      if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
+      let hash = it.hashtags || '';
+      if (!hash) { const h = txt.match(/\n+((?:#\S+\s*)+)$/); if (h) { hash = h[1].trim(); txt = txt.slice(0, h.index).trim(); } }
+      const t = String(it.title || ''), d = t.match(/^Dia\s+(\d+)\s*·\s*(.*)$/);
+      rows.push([n + 1, d ? +d[1] : '', KIND_LABEL[it.kind] || it.kind || '', d ? d[2] : t, txt, hash, dir, it.id]);
+    });
+    const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:6},{wch:6},{wch:12},{wch:36},{wch:70},{wch:30},{wch:40},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws, 'TEXTOS');
+    const nome = String(apSet.title || 'copy').replace(/[^\wÀ-ú -]+/g, '').trim().slice(0, 60) || 'copy';
+    XLSX.writeFile(wb, 'Textos pra arte - ' + nome + '.xlsx');
+    showToast('Excel baixado com a versão atual dos textos (' + items.length + ' peças).', 'success');
+  } catch(e){ showToast('Erro ao gerar o Excel: ' + e.message, 'error'); }
 }
 
 async function linkWhats(){
