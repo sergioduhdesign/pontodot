@@ -131,13 +131,36 @@
     if (w.dataLayer) w.dataLayer.push({ event: 'generate_lead', form_id: f.id || 'lead' });
   }, false);
 
-  /* cards de fase → marcam no formulário e sobem até ele */
+  /* hero: o botão abre o formulário (painel ao lado no desktop, gaveta no celular) */
+  var hero = $('.hero'), cta = $('[data-cta]'), hform = $('.hero-form');
+  var wide = function () { return w.matchMedia('(min-width: 960px)').matches; };
+  function setForm(open, focus) {
+    if (!hero || !hform) return;
+    hero.classList.toggle('open', open);
+    if (cta) cta.setAttribute('aria-expanded', String(open));
+    if (open) { hform.removeAttribute('inert'); } else { hform.setAttribute('inert', ''); }
+    if (open) {
+      var tgt = wide() ? $('#topo') : hform;
+      setTimeout(function () { tgt.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }, wide() ? 0 : 120);
+      if (focus) { var f1 = $('input,select', hform); if (f1 && !('ontouchstart' in w)) setTimeout(function () { f1.focus({ preventScroll: true }); }, 450); }
+    } else if (cta && !wide()) { cta.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }
+  }
+  if (hform) hform.setAttribute('inert', '');
+  if (cta) cta.addEventListener('click', function () { setForm(!hero.classList.contains('open'), true); });
+  $$('[data-close]').forEach(function (b) { b.addEventListener('click', function () { setForm(false); if (cta) cta.focus({ preventScroll: true }); }); });
+  d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && hero && hero.classList.contains('open')) setForm(false); });
+  d.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href="#form"]');
+    if (a) { e.preventDefault(); setForm(true, true); }
+  });
+
+  /* cards de fase → marcam no formulário e abrem o formulário do topo */
   var main = $('#form');
   $$('.ph[data-phase]').forEach(function (b) {
     b.addEventListener('click', function () {
       var r = $$('input[name="fase"]', main)[+b.getAttribute('data-phase')];
       if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
-      main.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      setForm(true, false);
     });
   });
 
