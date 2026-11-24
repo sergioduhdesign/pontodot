@@ -38,6 +38,7 @@ details summary{cursor:pointer;font-size:12px;color:var(--gray)}
 <div class="top">
   <select id="cli" onchange="trocaCliente()" title="Cliente"></select>
   <input class="nome" id="nome" placeholder="Nome desta copy" value="Copy" onchange="dirty=true;nomeAba()"><small id="salvoEm" class="vazio" style="white-space:nowrap"></small><button class="btn s" id="btnTarefa" onclick="tarefa()" title="Trabalho é tarefa: cria no funil ou liga a uma existente">sem tarefa</button>
+  <label class="btn s" id="btnSubir" title="Subir a copy pronta em Excel (modelo SD): vira as peças do lote, segue para aprovação e para a tarefa do criativo"><input type="file" accept=".xlsx" style="display:none" onchange="importaExcel(this)">Subir copy</label>
   <span class="sep"></span>
   <button class="btn i" onclick="nova()" title="Nova copy"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
   <button class="btn i" onclick="salvar()" title="Salvar"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
