@@ -1,0 +1,103 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subir copy · Pontodot</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--ink:#15161A;--gray:#6c6c69;--line:rgba(0,0,0,.12);--bg:#F4F3EF;--card:#fff;--ok:#1f8a55;--bad:#c63d32;--acc:#1f4fd8}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.45 "Helvetica Neue","Inter Tight",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+.barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg)}
+.barra .esp{flex:1}
+.btn{font:600 13px inherit;font-family:inherit;padding:10px 16px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center}
+.btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);min-height:40px}
+.corpo{flex:1;min-height:0;overflow:auto;padding:18px;scrollbar-width:thin}
+.drop{border:1.5px dashed rgba(0,0,0,.28);border-radius:16px;background:var(--card);padding:46px 20px;text-align:center;cursor:pointer;transition:.15s}
+.drop.over{border-color:var(--acc);background:#eef2ff}
+.drop b{display:block;font-size:17px;font-weight:600;margin-bottom:6px}.drop span{color:var(--gray)}
+.nota{color:var(--gray);font-size:12.5px;margin-top:10px}
+.lista{display:grid;gap:8px;margin-top:14px}
+.it{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline}
+.tp{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:#e9e9e6}
+.tp.STORIES{background:#ffd9e8}.tp.REELS{background:#e2d9ff}.tp.CARROSSEL{background:#d9ecff}
+.it .t{font-weight:600}.it .x{grid-column:2;color:var(--gray);font-size:12.5px;white-space:pre-wrap;max-height:3.2em;overflow:hidden}
+.res{font-size:13px;margin-left:4px}.res.ok{color:var(--ok)}.res.bad{color:var(--bad)}
+.oculto{display:none!important}
+</style></head><body>
+<div class="barra">
+  <button class="btn p" id="bCli" disabled>Mandar pro cliente</button>
+  <button class="btn" id="bInt" disabled>Mandar pra revisão interna</button>
+  <select id="resp" title="Quem faz as artes (tarefa do criativo)"><option value="">Artes: automático (por função)</option></select>
+  <span class="res" id="res"></span><span class="esp"></span>
+  <a class="btn" href="/SD_modelo_lote_aprovacao.xlsx" download>Baixar o Excel padrão</a>
+  <button class="btn" id="bTroca" onclick="document.getElementById('arq').click()">Trocar planilha</button>
+</div>
+<div class="corpo">
+  <div class="drop" id="drop"><b>Solte aqui o Excel da copy</b><span>o Excel completo padrão (modelo SD): uma linha por peça, com legenda, hashtags, data e hora. Ou clique para escolher.</span></div>
+  <input type="file" id="arq" accept=".xlsx" style="display:none">
+  <div class="nota" id="nota">Só a copy: as artes seguem pela tarefa do criativo depois da aprovação do texto.</div>
+  <div class="lista" id="lista"></div>
+</div>
+<script>
+const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
+const $=s=>document.querySelector(s),q=new URLSearchParams(location.search),TASK=q.get('task')||'';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let sb,ses,CLI=q.get('cliente')||'',ITENS=[],CAL=false,INI=null,NOME='Copy',BUSY=false;
+function dizer(t,ruim){const e=$('#res');e.textContent=t||'';e.className='res '+(t?(ruim?'bad':'ok'):'');}
+async function api(arq,b){const r=await fetch('/'+arq,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ses.access_token},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Erro '+r.status);return j;}
+async function boot(){
+  sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{autoRefreshToken:false}});ses=(await sb.auth.getSession()).data.session;
+  if(!ses){document.body.innerHTML='<div style="padding:20px">Entre na PD primeiro.</div>';return;}
+  if(TASK&&!CLI){try{const {data}=await sb.from('tasks').select('client_id,action').eq('id',TASK).limit(1);if(data&&data[0]){CLI=data[0].client_id||'';NOME=(data[0].action||'Copy').slice(0,120);}}catch(e){}}
+  if(!CLI){dizer('Esta tarefa não tem cliente. Abra a Copy e escolha o cliente.',true);}
+  else{try{const r=await api('pd-copy.php',{acao:'inicio',client_id:CLI});(r.equipe||[]).slice(0,10).forEach(x=>{const o=document.createElement('option');o.value=x.k;o.textContent='Artes: '+x.nome;$('#resp').appendChild(o);});}catch(e){}}
+  const d=$('#drop'),i=$('#arq');d.onclick=()=>i.click();i.onchange=()=>{if(i.files[0])ler(i.files[0]);i.value='';};
+  ['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over');}));
+  d.addEventListener('drop',e=>{if(e.dataTransfer.files[0])ler(e.dataTransfer.files[0]);});
+  $('#bTroca').classList.add('oculto');
+  $('#bCli').onclick=()=>mandar(false);$('#bInt').onclick=()=>mandar(true);
+}
+const SEM_LEG=/^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/i;
+async function ler(f){
+  dizer('');
+  try{const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});const nome=wb.SheetNames.includes('IMPORTACAO')?'IMPORTACAO':wb.SheetNames[0];
+    const raw=XLSX.utils.sheet_to_json(wb.Sheets[nome],{header:1,defval:'',raw:false});
+    let h=-1;for(let i=0;i<raw.length;i++){if(raw[i].map(c=>String(c).trim().toUpperCase()).includes('ARQUIVO_OU_PASTA')){h=i;break;}}
+    if(h<0){dizer('Não achei a coluna ARQUIVO_OU_PASTA. Use o Excel padrão (botão Baixar).',true);return;}
+    const head=raw[h].map(x=>String(x).trim().toUpperCase()),col=n=>head.indexOf(n);
+    const dt=t=>{t=String(t||'').trim();let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return new Date(+m[3],+m[2]-1,+m[1],12);m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?new Date(+m[1],+m[2]-1,+m[3],12):null;};
+    const itens=[];
+    raw.slice(h+1).forEach(l=>{const g=n=>{const i=col(n);return i>=0?String(l[i]||'').trim():'';};
+      const chave=g('ARQUIVO_OU_PASTA'),leg0=g('LEGENDA'),tit=g('TITULO');if(!chave&&!leg0&&!tit)return;
+      let tipo=g('TIPO').toUpperCase();if(tipo==='POST'||tipo==='ESTÁTICO'||tipo==='ESTATICO')tipo='FEED';if(tipo==='STORY')tipo='STORIES';if(tipo==='REEL')tipo='REELS';
+      tipo=['FEED','CARROSSEL','STORIES','REELS','BLOG','CAPA_SITE'].includes(tipo)?tipo:'MATERIAL';
+      itens.push({tipo:tipo.toLowerCase(),titulo:tit||chave,texto:SEM_LEG.test(leg0)?'':leg0,hashtags:g('HASHTAGS'),visual:g('DIRECAO_VISUAL')||g('DIRECAO_ARTE'),cta:g('CTA'),_data:dt(g('DATA'))});});
+    if(!itens.length){dizer('A planilha não tem linhas preenchidas.',true);return;}
+    const datas=itens.map(i=>i._data).filter(Boolean);CAL=datas.length===itens.length;INI=null;
+    if(CAL){INI=new Date(Math.min(...datas.map(d=>+d)));itens.forEach(i=>{i.dia=Math.round((i._data-INI)/864e5)+1;});itens.sort((a,b)=>a.dia-b.dia);}
+    itens.forEach(i=>delete i._data);ITENS=itens;
+    NOME=f.name.replace(/\.xlsx$/i,'').slice(0,120)||NOME;
+    $('#drop').classList.add('oculto');$('#bTroca').classList.remove('oculto');$('#nota').classList.add('oculto');
+    $('#lista').innerHTML=itens.map(v=>{const T=String(v.tipo||'feed').toUpperCase();return `<div class="it"><span class="tp ${T}">${esc(T)}</span><span class="t">${v.dia?'Dia '+v.dia+' · ':''}${esc(v.titulo)}</span>${v.texto?`<div class="x">${esc(v.texto)}</div>`:''}</div>`;}).join('');
+    dizer(itens.length+' peças lidas'+(CAL?' · de '+INI.toLocaleDateString('pt-BR'):'')+'. Confira e mande.');
+    $('#bCli').disabled=$('#bInt').disabled=!CLI;
+  }catch(e){dizer('Não consegui ler o Excel: '+e.message,true);}
+}
+async function mandar(interno){
+  if(BUSY||!ITENS.length||!CLI)return;BUSY=true;$('#bCli').disabled=$('#bInt').disabled=true;dizer('Enviando…');
+  try{
+    const r=await api('pd-copy.php',{acao:'salvar',id:null,client_id:CLI,nome:NOME,briefing:{},dados:'',links:[],estilos:[],task_id:TASK||null,
+      variantes:{itens:ITENS,leitura:'Importado do Excel '+NOME,rodada:0,custo:0,calendario:CAL,ia:null}});
+    const id=r.copy.id;
+    const resp=$('#resp').value||null;
+    const a=await api('pd-copy.php',{acao:'aprovacao',id,interno:!!interno,inicio:INI?INI.toISOString().slice(0,10):null,indices:null,resp});
+    dizer(a.n+' peças no lote.'+(interno?' Revisão interna aberta.':' O cliente aprova no link; depois seguem para os criativos.'));
+    try{parent.postMessage({tipo:'copy-subida',task:TASK,n:a.n},'*');}catch(e){}
+    $('#lista').innerHTML='';$('#bTroca').classList.add('oculto');
+  }catch(e){dizer(e.message,true);$('#bCli').disabled=$('#bInt').disabled=false;}
+  BUSY=false;
+}
+boot();
+</script></body></html>
