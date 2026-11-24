@@ -104,7 +104,7 @@ if ($acao === 'aprovacao') {   // manda pro cliente como a arte: lote de aprova�
     $linhas = []; foreach ($itens as $i => $it) { if (isset($it['texto']) && preg_match('/^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/iu', (string)$it['texto'])) $it['texto'] = ''; $eh = isset($it['dia']); $tipo = strtolower((string)($it['tipo'] ?? 'feed'));
         $kind = cpKindSite((string)($it['kind'] ?? '')) ?: cpKindSite($tipo) ?: $kindPedido ?: (in_array($tipo, ['feed', 'carrossel', 'stories', 'reels'], true) ? $tipo : 'material'); $site = in_array($kind, ['blog', 'capa_site'], true);
         $texto = ($eh || $site) ? (string)($it['texto'] ?? '') : implode("\n\n", array_filter([(string)($it['texto'] ?? ''), (string)($it['gancho'] ?? ''), !empty($it['cta']) ? 'CTA: ' . $it['cta'] : ''])); $pub = null; if ($eh && $inicio) { $pub = date('Y-m-d', strtotime($inicio . ' +' . (max(1, (int)$it['dia']) - 1) . ' days')) . 'T' . ($kind === 'stories' ? '12:00' : '10:00') . ':00-03:00'; }
-        $linha = ['set_id' => $sid, 'position' => $i, 'kind' => $kind, 'title' => mb_substr(($eh ? 'Dia ' . $it['dia'] . ' · ' : '') . (string)($it['titulo'] ?? $it['headline'] ?? $it['assunto'] ?? ('Variante ' . ($i + 1))), 0, 160), 'caption' => mb_substr($texto . (!empty($it['visual']) ? "\n\n[direção visual] " . $it['visual'] : ''), 0, 4000), 'hashtags' => mb_substr((string)($it['hashtags'] ?? ''), 0, 500) ?: null, 'publish_at' => $pub, 'media' => []];
+        $linha = ['set_id' => $sid, 'position' => $i, 'kind' => $kind, 'title' => mb_substr(($eh ? 'Dia ' . $it['dia'] . ' · ' : '') . (string)($it['titulo'] ?? $it['headline'] ?? $it['assunto'] ?? ('Variante ' . ($i + 1))), 0, 160), 'caption' => mb_substr(rtrim($texto) . cpSecoes($it), 0, 9000), 'hashtags' => mb_substr((string)($it['hashtags'] ?? ''), 0, 500) ?: null, 'publish_at' => $pub, 'media' => []];
         if ($site) {   // post de blog / capa do site: title = título do post, caption = corpo (vira o HTML no WP), headline = subtítulo
             $linha['title'] = mb_substr((string)($it['titulo'] ?? $it['headline'] ?? $it['assunto'] ?? ('Post ' . ($i + 1))), 0, 160);
             $linha['caption'] = mb_substr((string)($it['texto'] ?? ''), 0, 4000);
@@ -129,6 +129,20 @@ if ($acao === 'executar_tarefa') {   // a IA faz sozinha: lê a tarefa, gera e j
 }
 if ($acao === 'apagar') { sd_supabase('/rest/v1/pd_copys?id=eq.' . urlencode((string)($b['id'] ?? '')), 'DELETE'); echo json_encode(['ok' => true]); exit; }
 // Normaliza o tipo de peça de site: blog | capa_site (aceita BLOG, 'post de blog', CAPA, 'capa do site', capa_site). Vazio = não é de site.
+// Seções que a copy escreveu além da legenda (texto do criativo, cards/cenas, direção de arte, CTA, cuidados, fonte, perfil).
+// Ficam na própria legenda do item, marcadas por linha "[nome]", e os visualizadores/baixar-textos leem de lá.
+function cpSecoes($it) {
+    $o = ''; $t = fn($v) => trim(str_replace("\r", '', (string)$v));
+    if (!empty($it['perfil']))  $o .= "\n\n[perfil] " . $t($it['perfil']);
+    if (!empty($it['opcional'])) $o .= "\n\n[opcional] sim";
+    if (isset($it['dia']) && !empty($it['cta'])) $o .= "\n\n[cta] " . $t($it['cta']);
+    if (!empty($it['criativo'])) $o .= "\n\n[texto do criativo]\n" . $t($it['criativo']);
+    if (!empty($it['telas']) && is_array($it['telas'])) { $l = []; foreach ($it['telas'] as $k => $tl) { $l[] = ($t($tl['n'] ?? '') !== '' ? $t($tl['n']) : ($k + 1)) . ' | ' . str_replace("\n", ' / ', $t($tl['texto'] ?? '')) . (!empty($tl['desc']) ? ' || ' . str_replace("\n", ' / ', $t($tl['desc'])) : ''); } if ($l) $o .= "\n\n[telas]\n" . implode("\n", $l); }
+    if (!empty($it['visual']))  $o .= "\n\n[direção visual] " . $t($it['visual']);
+    if (!empty($it['cuidado'])) $o .= "\n\n[cuidados] " . $t($it['cuidado']);
+    if (!empty($it['fonte']))   $o .= "\n\n[fonte] " . $t($it['fonte']);
+    return $o;
+}
 function cpKindSite($v) {
     $v = strtolower(trim((string)$v)); if ($v === '') return '';
     if (in_array($v, ['blog', 'post de blog', 'post_blog', 'artigo'], true)) return 'blog';

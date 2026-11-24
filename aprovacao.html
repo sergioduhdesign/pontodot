@@ -127,6 +127,15 @@ body.embed .ap-board{padding-top:16px}
 .ap-card.cp .ap-txt.vazio{color:var(--text3);font-size:12.5px;font-style:italic}
 .ap-card.cp .ap-hash{margin-top:6px}
 .ap-card.cp .ap-dir{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;white-space:pre-line}
+
+.ap-cri{margin:10px 0 4px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ap-cri-h{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);padding:7px 12px;background:var(--surface2)}
+.ap-cri-t{padding:11px 13px;font-size:15px;line-height:1.45;font-weight:700;letter-spacing:-.005em;white-space:pre-line}
+.ap-tela{display:grid;gap:2px;padding:9px 13px;border-top:1px solid var(--border);font-size:14px;line-height:1.45}
+.ap-tela b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}.ap-tela span{font-weight:600;white-space:pre-line}.ap-tela i{font-size:12px;color:var(--text3);font-style:normal}
+.ap-cta{font-size:13px;color:var(--text2);margin-top:8px}.ap-cta b{font-weight:700}
+.ap-meta{font-size:11.5px;color:var(--text3);line-height:1.5;margin-top:8px;white-space:pre-line}
+.ap-perfil{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--border);color:var(--text2)}
 .ap-grid.cpg{grid-template-columns:repeat(auto-fill,minmax(380px,1fr))}
 .ap-card.cp[data-kind="feed"] .ap-card-top{border-left-color:#2f7fd1}.ap-card.cp[data-kind="carrossel"] .ap-card-top{border-left-color:#7c4dff}
 .ap-card.cp[data-kind="stories"] .ap-card-top{border-left-color:#e5007d}.ap-card.cp[data-kind="reels"] .ap-card-top{border-left-color:#e07a1f}
@@ -485,7 +494,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
-<script src="/js/aprovacao-comum.js?v=551"></script>
+<script src="/js/aprovacao-comum.js?v=553"></script>
 <script src="/js/campanha-painel.js?v=551"></script>
 <script src="/js/briefing-ia.js?v=1"></script>
 <script src="/js/ui.js"></script>
@@ -653,6 +662,7 @@ async function load(){
 
   render();
   listenLive();
+  if (qs.get('baixar') === '1' && !window._baixou && profile.role !== 'client') { window._baixou = true; setTimeout(baixarTextosArte, 400); }
 
   // Veio do botão "Subir correções" da tarefa: abre direto.
   if (qs.get('corrigir') === '1' && !window._corrAberto && profile.role !== 'client') {
@@ -787,7 +797,7 @@ function render(){
       const nOk = items.filter(i => apSet.interno ? i.interno_ok : i.status==='aprovado').length;
       bar2.innerHTML = `<div class="ap-todas"><b>${cpS ? (apSet.interno ? 'Revisão interna da copy' : 'Copy no cliente') : 'Textos das peças'} · ${nOk} de ${total} aprovadas</b>
         ${cpS && apSet.interno ? `<button onclick="document.getElementById('btnTudo').click()">Aprovar todas</button>` : ''}
-        <button class="sec" onclick="baixarTextosArte()" title="Excel com título, texto, hashtags e direção visual de cada peça, sempre na versão atual">Baixar textos pra arte</button>
+        <button class="sec" onclick="baixarTextosArte()" title="Excel só com o que o designer precisa: texto de cada criativo, cards e cenas, direção de arte — na versão atual">Baixar textos dos criativos</button>
         ${cpS ? `<button class="sec" onclick="linkWhats()">Link pra WhatsApp (aprovação interna)</button>` : ''}
         ${cpS && apSet.interno ? `<button class="sec" onclick="liberarCliente()">Mandar pro cliente</button>` : ''}</div>`;
     } else bar2.innerHTML = '';
@@ -883,9 +893,11 @@ function cardHTML(it){
       <div class="sc"><b>${esc(s.cena)}.</b> <span class="d">${esc(s.desc)}</span>
       ${s.texto ? `<div class="t">"${esc(s.texto)}"</div>` : ''}</div>`).join('')}</div>`;
   }
-  if (it.caption) {
+  const secN = AP.secoesCopy(it.caption || '');
+  body += AP.criativoHTML(secN, it.kind);
+  if (secN.legenda) {
     body += `<details class="ap-cap"><summary>Ler legenda completa</summary>
-      <div class="ap-cap-text">${esc(it.caption)}</div></details>`;
+      <div class="ap-cap-text">${esc(secN.legenda)}</div></details>`;
   }
   if (it.hashtags) body += `<div class="ap-hash">${esc(it.hashtags)}</div>`;
 
@@ -993,12 +1005,12 @@ function cardCopyHTML(it){
   const st = internoEquipe ? (it.interno_ok ? 'aprovado' : 'pendente') : it.status;
   const badge = internoEquipe ? (it.interno_ok ? 'Aprovado (interno)' : 'Em revisão')
               : it.status === 'aprovado' ? 'Aprovado' : it.status === 'ajustar' ? 'Ajustar' : 'Pendente';
-  let txt = /^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/i.test(it.caption || '') ? '' : (it.caption || ''), dir = '';
-  const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
-  if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
+  const sec = AP.secoesCopy(it.caption || '');
+  let txt = /^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/i.test(sec.legenda) ? '' : sec.legenda;
   let hash = it.hashtags || '';
   if (!hash) { const h = txt.match(/\n+((?:#\S+\s*)+)$/); if (h) { hash = h[1].trim(); txt = txt.slice(0, h.index).trim(); } }
-  const talk = (it._talk || []).map(c => {
+  const dir = sec.visual;
+const talk = (it._talk || []).map(c => {
     const int = AP.ehInterno(c.body);
     return `<div class="ap-msg ${c.is_client ? 'cli' : ''} ${int ? 'int' : ''}"><div class="who">${esc(c.author_name)}${int ? ' <span style="font-size:9.5px;font-weight:800;color:#6d28d9;letter-spacing:.06em">· INTERNO</span>' : ''}
       <span class="when">${new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span></div>${AP.falaHTML(int ? AP.semInterno(c.body) : c.body)}</div>`; }).join('');
@@ -1018,14 +1030,17 @@ function cardCopyHTML(it){
   }
   return `<div class="ap-card cp" data-id="${it.id}" data-kind="${esc(it.kind||'feed')}" data-status="${st}">
     <div class="ap-card-top">
-      <div class="ap-tags"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>
+      <div class="ap-tags"><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>${sec.perfil ? `<span class="ap-perfil">${esc(sec.perfil)}</span>` : ''}${sec.opcional ? '<span class="ap-perfil">Opcional</span>' : ''}</span>
         <span><span class="ap-badge ${internoEquipe ? (it.interno_ok ? 'aprovado' : '') : it.status}">${badge}</span></span></div>
       ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
     </div>
     <div class="ap-body">
-      ${txt ? `<div class="ap-txt">${esc(txt)}</div>` : `<div class="ap-txt vazio">${it.kind==='stories' ? 'Stories não têm legenda: o conteúdo está nas telas.' : 'Sem texto.'}</div>`}
+      ${AP.criativoHTML(sec, it.kind)}
+      ${txt ? `<div class="ap-lab2" style="margin:12px 0 5px">Legenda</div><div class="ap-txt">${esc(txt)}</div>` : (!sec.criativo && !(sec.telas && sec.telas.length) ? `<div class="ap-txt vazio">${it.kind==='stories' ? 'Stories não têm legenda: o conteúdo está nas telas.' : 'Sem texto.'}</div>` : '')}
       ${hash ? `<div class="ap-hash">${esc(hash)}</div>` : ''}
-      ${dir ? `<div class="ap-dir"><b>Direção visual</b><br>${esc(dir)}</div>` : ''}
+      ${sec.cta ? `<div class="ap-cta"><b>Interação / CTA</b> · ${esc(sec.cta)}</div>` : ''}
+      ${!isClient && dir ? `<div class="ap-dir"><b>Direção de arte</b><br>${esc(dir)}</div>` : ''}
+      ${!isClient && (sec.cuidados || sec.fonte) ? `<div class="ap-meta">${sec.cuidados ? '<b>Cuidados</b> · ' + esc(sec.cuidados) : ''}${sec.cuidados && sec.fonte ? '\n' : ''}${sec.fonte ? '<b>Fonte</b> · ' + esc(sec.fonte) : ''}</div>` : ''}
     </div>
     <div class="ap-zone">
       <div class="ap-lab2">${lab}</div>
@@ -1939,22 +1954,23 @@ async function liberarCliente(jaConfirmado){
 
 function baixarTextosArte(){
   try {
-    const rows = [['PECA','DIA','TIPO','TITULO','TEXTO','HASHTAGS','DIRECAO_VISUAL','ID_PECA']];
+    const rot = { feed:'Estático', carrossel:'Carrossel', stories:'Story', reels:'Reels', blog:'Blog', capa_site:'Capa do site' };
+    const rows = [['PECA','DATA','PERFIL','TIPO','TITULO','TEXTO_NO_CRIATIVO','DIRECAO_DE_ARTE','CUIDADOS','FONTE','ID_PECA']], cards = [['PECA','TITULO','CARD_OU_CENA','TEXTO','IDEIA_DE_IMAGEM']];
     items.forEach((it, n) => {
-      let txt = it.caption || '', dir = '';
-      const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
-      if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
-      let hash = it.hashtags || '';
-      if (!hash) { const h = txt.match(/\n+((?:#\S+\s*)+)$/); if (h) { hash = h[1].trim(); txt = txt.slice(0, h.index).trim(); } }
+      const sec = AP.secoesCopy(it.caption || '');
       const t = String(it.title || ''), d = t.match(/^Dia\s+(\d+)\s*·\s*(.*)$/);
-      rows.push([n + 1, d ? +d[1] : '', KIND_LABEL[it.kind] || it.kind || '', d ? d[2] : t, txt, hash, dir, it.id]);
+      const data = it.publish_at ? AP.quando(it.publish_at).toLocaleDateString('pt-BR') : '';
+      const cri = sec.telas.length ? sec.telas.map(x => (x.n ? x.n + ' | ' : '') + x.texto).join('\n') : sec.criativo;
+      rows.push([n + 1, data, sec.perfil, rot[it.kind] || it.kind || '', d ? d[2] : t, cri, sec.visual, sec.cuidados, sec.fonte, it.id]);
+      sec.telas.forEach(x => cards.push([n + 1, d ? d[2] : t, x.n, x.texto, x.desc]));
     });
     const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{wch:6},{wch:6},{wch:12},{wch:36},{wch:70},{wch:30},{wch:40},{wch:10}];
-    XLSX.utils.book_append_sheet(wb, ws, 'TEXTOS');
+    ws['!cols'] = [{wch:6},{wch:11},{wch:20},{wch:11},{wch:34},{wch:70},{wch:46},{wch:34},{wch:26},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws, 'TEXTOS DOS CRIATIVOS');
+    if (cards.length > 1) { const w2 = XLSX.utils.aoa_to_sheet(cards); w2['!cols'] = [{wch:6},{wch:34},{wch:12},{wch:70},{wch:46}]; XLSX.utils.book_append_sheet(wb, w2, 'CARDS E CENAS'); }
     const nome = String(apSet.title || 'copy').replace(/[^\wÀ-ú -]+/g, '').trim().slice(0, 60) || 'copy';
-    XLSX.writeFile(wb, 'Textos pra arte - ' + nome + '.xlsx');
-    showToast('Excel baixado com a versão atual dos textos (' + items.length + ' peças).', 'success');
+    XLSX.writeFile(wb, 'Textos dos criativos - ' + nome + '.xlsx');
+    showToast('Excel dos textos dos criativos baixado (' + items.length + ' peças).', 'success');
   } catch(e){ showToast('Erro ao gerar o Excel: ' + e.message, 'error'); }
 }
 

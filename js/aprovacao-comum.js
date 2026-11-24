@@ -1652,5 +1652,26 @@ AP.pedidoIA = function(t, drv, correcao){
   ].join('\n');
 };
 
+// ---- Seções da copy dentro da legenda: [perfil] [cta] [texto do criativo] [telas] [direção visual] [cuidados] [fonte]
+AP.secoesCopy = function(caption){
+  const ch = { 'perfil':'perfil', 'opcional':'opcional', 'cta':'cta', 'texto do criativo':'criativo', 'telas':'telas', 'direção visual':'visual', 'direcao visual':'visual', 'cuidados':'cuidados', 'fonte':'fonte' };
+  const b = { legenda:[], perfil:[], opcional:[], cta:[], criativo:[], telas:[], visual:[], cuidados:[], fonte:[] }; let cur = 'legenda';
+  String(caption || '').replace(/\r/g, '').split('\n').forEach(l => {
+    const m = l.match(/^\[(perfil|opcional|cta|texto do criativo|telas|direção visual|direcao visual|cuidados|fonte)\]\s*(.*)$/i);
+    if (m) { cur = ch[m[1].toLowerCase()]; if (m[2]) b[cur].push(m[2]); } else b[cur].push(l);
+  });
+  const j = k => b[k].join('\n').trim();
+  const telas = b.telas.map(x => x.trim()).filter(Boolean).map(x => { const [a, d] = x.split(' || '); const i = a.indexOf(' | '); return { n: i > 0 ? a.slice(0, i) : '', texto: i > 0 ? a.slice(i + 3) : a, desc: d || '' }; });
+  return { legenda: j('legenda'), perfil: j('perfil'), opcional: !!j('opcional'), cta: j('cta'), criativo: j('criativo'), telas, visual: j('visual'), cuidados: j('cuidados'), fonte: j('fonte') };
+};
+// HTML dos textos do criativo (estático: texto da arte; story/carrossel/reels: um bloco por tela/cena)
+AP.criativoHTML = function(sec, kind){
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const rot = kind === 'reels' ? 'Cena' : kind === 'stories' ? 'Story' : 'Card';
+  if (sec.telas && sec.telas.length) return `<div class="ap-cri"><div class="ap-cri-h">${kind === 'reels' ? 'Roteiro cena a cena' : 'Texto de cada card'}</div>${sec.telas.map(t => `<div class="ap-tela"><b>${rot} ${esc(t.n)}</b><span>${esc(String(t.texto).replace(/^\s*(card|cena|story|slide)\s*\d+\s*[|:.-]\s*/i, '').replace(/ \/ /g, '\n'))}</span>${t.desc ? `<i>${esc(t.desc)}</i>` : ''}</div>`).join('')}</div>`;
+  if (sec.criativo) return `<div class="ap-cri"><div class="ap-cri-h">${kind === 'stories' ? 'Texto do story' : 'Texto no criativo'}</div><div class="ap-cri-t">${esc(sec.criativo)}</div></div>`;
+  return '';
+};
+
 window.AP = AP;
 })();

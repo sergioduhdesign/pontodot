@@ -101,6 +101,15 @@ body{background:var(--bg);color:var(--text);padding-bottom:80px}
 .ap-card.cp .ap-txt{font-size:14.5px;line-height:1.65;white-space:pre-line;color:var(--text);padding:2px 0 4px}
 .ap-card.cp .ap-txt.vazio{color:var(--text3);font-size:12.5px;font-style:italic}
 .ap-card.cp .ap-dir{font-size:12px;color:var(--text3);border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;white-space:pre-line}
+
+.ap-cri{margin:10px 0 4px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ap-cri-h{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);padding:7px 12px;background:var(--surface2)}
+.ap-cri-t{padding:11px 13px;font-size:15px;line-height:1.45;font-weight:700;letter-spacing:-.005em;white-space:pre-line}
+.ap-tela{display:grid;gap:2px;padding:9px 13px;border-top:1px solid var(--border);font-size:14px;line-height:1.45}
+.ap-tela b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}.ap-tela span{font-weight:600;white-space:pre-line}.ap-tela i{font-size:12px;color:var(--text3);font-style:normal}
+.ap-cta{font-size:13px;color:var(--text2);margin-top:8px}.ap-cta b{font-weight:700}
+.ap-meta{font-size:11.5px;color:var(--text3);line-height:1.5;margin-top:8px;white-space:pre-line}
+.ap-perfil{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--border);color:var(--text2)}
 .ap-grid.cpg{grid-template-columns:repeat(auto-fill,minmax(380px,1fr))}
 @media(max-width:600px){.ap-grid.cpg{grid-template-columns:1fr}}
 
@@ -304,7 +313,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
-<script src="/js/aprovacao-comum.js?v=551"></script>
+<script src="/js/aprovacao-comum.js?v=553"></script>
 <script src="/js/campanha-painel.js?v=551"></script>
 <script>
 // ==================================================================
@@ -507,12 +516,12 @@ function ehCopy(){ return items.length > 0 && items.every(i => !(Array.isArray(i
 
 function cardCopyHTML(it){
   const badge = it.status === 'aprovado' ? 'Aprovado' : it.status === 'ajustar' ? 'Ajustar' : 'Pendente';
-  let txt = /^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/i.test(it.caption || '') ? '' : (it.caption || ''), dir = '';
-  const m = txt.match(/\n*\[direção visual\]\s*([\s\S]*)$/i);
-  if (m) { dir = m[1].trim(); txt = txt.slice(0, m.index).trim(); }
+  const sec = AP.secoesCopy(it.caption || '');
+  let txt = /^\s*\[?\s*sem\s+legenda[^\]]*\]?\s*$/i.test(sec.legenda) ? '' : sec.legenda;
   let hash = it.hashtags || '';
   if (!hash) { const h = txt.match(/\n+((?:#\S+\s*)+)$/); if (h) { hash = h[1].trim(); txt = txt.slice(0, h.index).trim(); } }
-  const talk = (it._talk || []).map(c => `
+  const dir = sec.visual;
+const talk = (it._talk || []).map(c => `
     <div class="ap-msg ${c.is_client ? 'cli' : ''}"><div class="who">${esc(c.author_name)}
       <span class="when">${new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span></div>${AP.falaHTML(c.body)}</div>`).join('');
   const acts = it.status === 'aprovado' ? `
@@ -526,14 +535,17 @@ function cardCopyHTML(it){
   return `
   <div class="ap-card cp" data-id="${it.id}" data-kind="${esc(it.kind||'feed')}" data-status="${it.status}">
     <div class="ap-card-top">
-      <div class="ap-tags"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>
+      <div class="ap-tags"><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="ap-tipo ${esc(it.kind||'feed')}">${KIND_LABEL[it.kind] || 'Material'}</span>${sec.perfil ? `<span class="ap-perfil">${esc(sec.perfil)}</span>` : ''}${sec.opcional ? '<span class="ap-perfil">Opcional</span>' : ''}</span>
         <span>${(it.version||1) > 1 ? `<span class="ap-ver" title="Versão corrigida">V${it.version}</span>` : ''}<span class="ap-badge ${it.status}">${badge}</span></span></div>
       ${it.title ? `<p class="ap-card-title">${esc(it.title)}</p>` : ''}
     </div>
     <div class="ap-body">
-      ${txt ? `<div class="ap-txt">${esc(txt)}</div>` : `<div class="ap-txt vazio">${it.kind==='stories' ? 'Stories não têm legenda: o conteúdo está nas telas.' : 'Sem texto.'}</div>`}
+      ${AP.criativoHTML(sec, it.kind)}
+      ${txt ? `<div class="ap-lab2" style="margin:12px 0 5px">Legenda</div><div class="ap-txt">${esc(txt)}</div>` : (!sec.criativo && !(sec.telas && sec.telas.length) ? `<div class="ap-txt vazio">${it.kind==='stories' ? 'Stories não têm legenda: o conteúdo está nas telas.' : 'Sem texto.'}</div>` : '')}
       ${hash ? `<div class="ap-hash">${esc(hash)}</div>` : ''}
-      ${dir ? `<div class="ap-dir"><b>Direção visual</b><br>${esc(dir)}</div>` : ''}
+      ${sec.cta ? `<div class="ap-cta"><b>Interação / CTA</b> · ${esc(sec.cta)}</div>` : ''}
+      ${false && dir ? `<div class="ap-dir"><b>Direção de arte</b><br>${esc(dir)}</div>` : ''}
+      ${false && (sec.cuidados || sec.fonte) ? `<div class="ap-meta">${sec.cuidados ? '<b>Cuidados</b> · ' + esc(sec.cuidados) : ''}${sec.cuidados && sec.fonte ? '\n' : ''}${sec.fonte ? '<b>Fonte</b> · ' + esc(sec.fonte) : ''}</div>` : ''}
       ${it.publish_at ? `<div class="ap-note">Publicação prevista: ${AP.quando(it.publish_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
     </div>
     <div class="ap-zone">
@@ -576,9 +588,11 @@ function cardHTML(it){
       <div class="sc"><b>${esc(s.cena)}.</b> <span class="d">${esc(s.desc)}</span>
       ${s.texto ? `<div class="t">"${esc(s.texto)}"</div>` : ''}</div>`).join('')}</div>`;
   }
-  if (it.caption) {
+  const secN = AP.secoesCopy(it.caption || '');
+  body += AP.criativoHTML(secN, it.kind);
+  if (secN.legenda) {
     body += `<details class="ap-cap"><summary>Ler legenda completa</summary>
-      <div class="ap-cap-text">${esc(it.caption)}</div></details>`;
+      <div class="ap-cap-text">${esc(secN.legenda)}</div></details>`;
   }
   if (it.hashtags) body += `<div class="ap-hash">${esc(it.hashtags)}</div>`;
 
