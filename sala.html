@@ -5,7 +5,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{--ink:#121212;--gray:#6c6c69;--line:rgba(0,0,0,.1);--soft:#f5f5f3;--ok:#1f8a55;--mid:#c8941a;--bad:#c63d32;--bg:#fff}
-@media(prefers-color-scheme:dark){:root{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212}}
+:root[data-theme=dark]{--ink:#f2f2f0;--gray:#a3a3a0;--line:rgba(255,255,255,.12);--soft:#1b1c1e;--bg:#121212}
+:root[data-theme=dark] .folha{background:#121212}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 14.5px/1.5 "Inter Tight",system-ui,sans-serif}
 .w{max-width:1040px;margin:0 auto;padding:22px 16px 90px}h1{font-size:28px;letter-spacing:-.03em;margin:0 0 2px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin:30px 0 10px}
 .sub{color:var(--gray);font-size:13px}.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--soft)}
@@ -21,8 +22,22 @@ table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:8px;borde
 input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 .bar{display:grid;gap:2px;margin:12px 0 6px}.bar i{height:12px;border-radius:2px;background:var(--line)}.bar i.b{background:var(--ok)}.bar i.r{background:var(--bad)}.bar i.a{background:#3b6fd8;animation:pp 1.2s infinite}@keyframes pp{50%{opacity:.35}}.form{margin-bottom:10px}
 .msg{padding:60px 0;text-align:center;color:var(--gray)}.log{font-size:13px;color:var(--gray);margin-top:8px;min-height:18px;white-space:pre-wrap}
-</style></head><body><div class="w" id="app"><div class="msg">Carregando…</div></div>
+html.emb,html.emb body{background:transparent!important}
+.folha{max-width:1240px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden}
+html.emb body{padding:68px 20px 28px}
+.folha .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;min-height:64px;padding:0 18px;border-bottom:1px solid var(--line);background:inherit}
+.folha .top h1{font-size:19px;margin:0;letter-spacing:-.01em}
+.folha .top .vb{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.folha .top .vb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.folha .w{max-width:none;padding:8px 22px 40px}
+html{scrollbar-width:thin}
+@media(max-width:999px){html.emb body{padding:calc(var(--safe,0px) + 60px) 0 0}.folha{border-radius:0;border:0;box-shadow:none;min-height:100vh}.folha .w{padding:8px 12px 60px}}
+</style></head><body><div class="folha"><div class="top"><button class="vb" id="btVolta" title="Voltar" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><h1>Escola das IAs</h1></div><div class="w" id="app"><div class="msg">Carregando…</div></div></div>
 <script>
+(function(){try{const R=document.documentElement,emb=self!==top;if(emb)R.classList.add('emb');const sf=new URLSearchParams(location.search).get('safe');if(sf)R.style.setProperty('--safe',Number(sf)+'px');R.setAttribute('data-theme',matchMedia('(max-width:999px)').matches?'dark':'light');}catch(e){}})();
+function fechaSala(){try{parent.postMessage({tipo:'sala-fechar'},'*');}catch(e){}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fechaSala();});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#btVolta')){if(typeof AULA!=='undefined'&&AULA){AULA=null;if(typeof draw==='function'&&P)draw();}else fechaSala();}});
 const SB_URL='https://ibkflplbraltewsjjsqm.supabase.co',SB_KEY='sb_publishable_M5Wws9n27ONN9JmG_qXbSg_e3U1xFxD';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let sb,ses,P=null,AULA=null,LOG='';
@@ -40,7 +55,7 @@ function estado(ia,sk){const mn=+(P.incubacao?.nota_minima||85);const as=P.aulas
   const r=as.find(a=>a.status==='reprovada');if(r)return['rep',r];return['vazio',null];}
 function draw(){const I=P.incubacao||{};const meta=+(I.provas_meta||30),bp=+(I.boas_para_apto||3);
   const esp=P.aulas.filter(a=>a.status==='validacao_humana');
-  let h=`<div><h1>Escola · Formação das IAs</h1><div class="sub">Cada IA faz uma prova simulada por dia. O professor avalia primeiro; você decide. ${bp} entregas boas seguidas = apta para fazer a tarefa de verdade.</div></div>`;
+  let h=`<div><div class="sub">Cada IA faz uma prova simulada por dia. O professor avalia primeiro; você decide. ${bp} entregas boas seguidas = apta para fazer a tarefa de verdade.</div></div>`;
   if(esp.length){h+=`<h2>Aguardam você (${esp.length})</h2><div class="card">${esp.map(a=>{const ia=P.ias.find(x=>x.id===a.ia_user_id);return`<div class="aula" onclick="abre('${a.id}')"><span><b>${esc(ia?ia.nome:a.personagem)}</b> · ${esc(P.habilidades.find(s=>s.skill_id===a.skill_id)?.nome||a.skill_id)}<div class="sub">Já passou pelo professor · nota ${Math.round(a.nota_final||0)} · abrir para decidir</div></span><span class="pl val">Decidir</span></div>`}).join('')}</div>`;}
   h+=`<h2>Evolução</h2>`;
   const fs=P.formacoes.filter(f=>f.ativa||f.sit.fechadas);
