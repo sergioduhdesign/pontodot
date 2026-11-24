@@ -10,6 +10,12 @@ $u = sd_current_user(); $b = sd_body(); $acao = (string)($b['acao'] ?? 'inicio')
 @set_time_limit(60);
 $ehAdmin = $u['role'] === 'admin';
 
+const PD_SIGA_PROFESSOR = 'Siga exatamente o que o professor pediu na última correção.';
+/** Empurra a aula para a próxima etapa na hora (a aluna refaz / confere a professora). Nunca derruba quem chamou. */
+function pdEscSegue($aid) {
+    try { $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($aid) . '&select=*')['body'][0] ?? null; if (!$a || !in_array($a['status'], ['em_exercicio', 'em_correcao'], true)) return null;
+        @set_time_limit(280); $r = pdAulaDocPasso($a); pdAulaSincroniza($aid); return (string)($r['msg'] ?? ''); } catch (Throwable $e) { return null; }
+}
 function pdEscPerm($u) {
     if ($u['role'] === 'admin') return ['matricular' => true, 'acompanhar' => true, 'criar' => true, 'admin' => true];
     $r = pdAulaSup('/rest/v1/pd_escola_perm?user_id=eq.' . urlencode($u['id']) . '&select=matricular,acompanhar,criar&limit=1')['body'][0] ?? [];
@@ -186,8 +192,17 @@ if ($acao === 'orientacao_apagar') {
 }
 if ($acao === 'aula_decidir') {   // Sérgio decide a lição: aprovar | revisar | reprovar (+ parecer, + regra editada)
     if (!$ehAdmin) sd_fail('Só admin decide a aula.', 403);
-    $r = pdAulaValidar((string)($b['id'] ?? ''), (string)($b['decisao'] ?? ''), (string)($b['parecer'] ?? ''), $u['id'], $b['licao'] ?? null);
-    echo json_encode(['ok' => !empty($r['ok'])] + (array)$r, JSON_UNESCAPED_UNICODE); exit;
+    $dec = (string)($b['decisao'] ?? ''); $par = trim((string)($b['parecer'] ?? '')); if ($dec === 'revisar' && $par === '') $par = PD_SIGA_PROFESSOR;   // comentário é opcional: sem ele, "faça o que o professor pediu"
+    $r = pdAulaValidar((string)($b['id'] ?? ''), $dec, $par, $u['id'], $b['licao'] ?? null);
+    $seg = ($dec === 'revisar') ? pdEscSegue((string)($b['id'] ?? '')) : null;   // a próxima rodada já começa: ninguém precisa dar play
+    echo json_encode(['ok' => !empty($r['ok'])] + (array)$r + ($seg ? ['msg' => $seg] : []), JSON_UNESCAPED_UNICODE); exit;
+}
+if ($acao === 'aula_continuar') {   // "continuar treinando": quem acompanha a IA dá o empurrão; não decide lição (isso é do gestor)
+    if (!$perm['admin'] && !$perm['acompanhar']) sd_fail('Sem permissão para acompanhar as aulas.', 403);
+    $aid = (string)($b['id'] ?? ''); $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode($aid) . '&select=id,status,nota_final,modo')['body'][0] ?? null; if (!$a) sd_fail('Aula não encontrada.', 404);
+    if ($a['status'] === 'validacao_humana' && $a['nota_final'] !== null && (float)$a['nota_final'] >= 80) sd_fail('Essa já chegou na meta: falta só o gestor aprovar a lição.');
+    if (in_array($a['status'], ['validacao_humana', 'reprovada'], true)) pdAulaValidar($aid, 'revisar', PD_SIGA_PROFESSOR, $u['id']);
+    echo json_encode(['ok' => true, 'msg' => pdEscSegue($aid) ?: 'Treino continuado.'], JSON_UNESCAPED_UNICODE); exit;
 }
 if ($acao === 'observa') {   // lote de observações: [{area, client_id, peca_id, evento, dados}] — a IA da pessoa (ou a mestre da área) registra como aprendizado
     $lote = is_array($b['lote'] ?? null) ? array_slice($b['lote'], 0, 100) : []; if (!$lote) { echo json_encode(['ok' => true, 'n' => 0]); exit; }

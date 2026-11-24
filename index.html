@@ -2678,7 +2678,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v620 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v621 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -6210,15 +6210,15 @@ function aulPinta(){
       <div class="nota" style="margin:0 0 4px">Nota da 1ª rodada, aula a aula (o que ela já sabe antes de corrigir). Meta: 80.</div>${aulGraf(p.serie || [], 80, 300, 96, i => 'aula ' + (i + 1))}
       <div class="kv"><small>Rodadas até aprovar</small><b>${p.rodadas_ate_ok != null ? p.rodadas_ate_ok : '—'}</b></div></div>`).join('')}</div>` : '<div class="nota">Sem aulas ainda. A primeira nasce quando você cria tarefas de um documento e escolhe "Deixar com a professora esta noite".</div>';
   const linhas = d.aulas.map(a => { const ab = AUL.aberta === a.id; const st = ST[a.status] || [a.status, '#888']; const notas = (a.notas || []).map(n => n.nota); const ult = notas.length ? notas[notas.length - 1] : null; const up = (a.pareceres || [])[ (a.pareceres || []).length - 1 ] || null; const rodadasSobram = Math.max(0, (a.max || 3) - (a.pareceres || []).length);
-    const acoes = !ehAdmin() ? '' : `<div class="cmp-prog" style="border-style:solid;margin-top:12px"><b>O que você pode fazer agora</b>
+    const acoes = !ehAdmin() ? (['validacao_humana','reprovada','em_exercicio','em_correcao'].includes(a.status) && !(a.status === 'validacao_humana' && ult != null && ult >= 80) ? `<div style="margin-top:12px"><button class="btn cheio cp-b" onclick="aulContinuar('${a.id}')">Continuar treinando (até chegar na meta)</button></div>` : '') : `<div class="cmp-prog" style="border-style:solid;margin-top:12px"><b>O que você pode fazer agora</b>
         <div class="nota" style="margin:4px 0 8px;line-height:1.5">Meta: <b>80/100</b> (78–79 libera com ressalva). ${ult == null ? 'Ainda sem nota.' : ult >= 80 ? 'A professora aprovou com ' + ult + '.' : ult >= 78 ? 'Ficou em ' + ult + ': dá pra liberar com ressalva ou pedir mais uma rodada.' : 'Ficou em ' + ult + ', abaixo da meta.'} ${rodadasSobram ? 'Ainda cabem ' + rodadasSobram + ' rodada' + (rodadasSobram === 1 ? '' : 's') + ' nesta aula.' : 'As rodadas desta aula acabaram; "pedir mais uma" abre uma extra.'}</div>
-        <textarea class="cp-sel1" id="aulPar_${a.id}" rows="2" placeholder="Seu comentário para a aluna (obrigatório ao pedir mais uma rodada)"></textarea>
+        <textarea class="cp-sel1" id="aulPar_${a.id}" rows="2" placeholder="Comentário (opcional). Sem ele, a aluna segue o que o professor pediu."></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
           ${a.status === 'validacao_humana' ? `<button class="btn cheio cp-b" onclick="aulDecide('${a.id}','aprovar')">Aprovar e guardar a lição</button>` : ''}
-          ${['validacao_humana','reprovada'].includes(a.status) ? `<button class="btn cp-b" onclick="aulDecide('${a.id}','revisar')">↺ Pedir mais uma rodada (até chegar na meta)</button>` : ''}
+          ${['validacao_humana','reprovada'].includes(a.status) ? `<button class="btn cp-b" onclick="aulDecide('${a.id}','revisar')">Pedir mais uma rodada (até chegar na meta)</button>` : ''}
           ${a.status === 'em_correcao' ? `<button class="btn cp-b" onclick="aulPasso('${a.id}')">Conferir se a professora já respondeu</button>` : ''}
-          ${a.status === 'em_exercicio' ? `<button class="btn cp-b" onclick="aulPasso('${a.id}')">▶ Mandar a aluna refazer agora</button>` : ''}
-          ${a.status === 'validacao_humana' ? `<button class="btn cp-b" onclick="aulDecide('${a.id}','reprovar')">✕ Descartar a lição</button>` : ''}
+          ${a.status === 'em_exercicio' ? `<button class="btn cp-b" onclick="aulPasso('${a.id}')">Mandar a aluna refazer agora</button>` : ''}
+          ${a.status === 'validacao_humana' ? `<button class="btn cp-b" onclick="aulDecide('${a.id}','reprovar')">Descartar a lição</button>` : ''}
           ${a.task_id ? `<button class="btn cp-b" onclick="abrirTarefaReal('${esc(a.task_id)}')">Abrir a tarefa ${esc(a.task_id)}</button>` : ''}${a.pasta ? `<a class="btn cp-b" href="${esc(a.pasta)}" target="_blank" rel="noopener">Pasta no Drive</a>` : ''}</div></div>`;
     return `<div class="cmp-p" style="flex-direction:column;align-items:stretch;padding:12px 14px">
       <div style="display:flex;gap:12px;align-items:center;cursor:pointer" onclick="AUL.aberta=AUL.aberta==='${a.id}'?null:'${a.id}';aulPinta()">${face(a.personagem)}
@@ -6240,7 +6240,8 @@ function aulPinta(){
     <div class="ads-sec">Aulas</div><div class="cmp-pl">${linhas || '<div class="nota">Nenhuma aula ainda.</div>'}</div>`; });
 }
 async function aulPasso(id){ toast('Rodando…'); try { const r = await escolaFala({ acao:'aula_passo', aula_id:id }); toast(r.msg || 'ok'); } catch(e){ toast(e.message); } aulCarrega(); }
-async function aulDecide(id, dec){ const p = (document.getElementById('aulPar_' + id) || {}).value || ''; if (dec === 'revisar' && !p.trim()){ toast('Escreva o que ela deve rever.'); return; }
+async function aulContinuar(id){ toast('Continuando o treino…'); try { const r = await escolaFala({ acao:'aula_continuar', id }); toast(r.msg || 'Treino continuado.'); } catch(e){ toast(e.message); } aulCarrega(); }
+async function aulDecide(id, dec){ const p = (document.getElementById('aulPar_' + id) || {}).value || '';
   try { const r = await escolaFala({ acao:'aula_decidir', id, decisao: dec, parecer: p }); toast(r.msg || 'Decisão registrada.'); } catch(e){ toast(e.message); } aulCarrega(); }
 // DOCUMENTO → TAREFAS: pega o que a Sumi/Muru escreveu, sugere 3+ tarefas (avaliar estratégia, avaliar copy, criativos detalhados) com responsável pela função
 const DT = { itens:[], cliente:'', clientId:'', carregando:false, criando:false, msg:'', origem:'camp', professora:false, afinacao:'' };

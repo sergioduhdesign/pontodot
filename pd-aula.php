@@ -40,8 +40,8 @@ if ($acao === 'ver') {
 }
 if ($acao === 'validar') {
     $dec = (string)($b['decisao'] ?? (!empty($b['aprovar']) ? 'aprovar' : 'reprovar')); if (!in_array($dec, ['aprovar', 'revisar', 'reprovar'], true)) sd_fail('Decisão inválida.');
-    if ($dec === 'revisar' && trim((string)($b['parecer'] ?? '')) === '') sd_fail('Escreva o comentário para a revisão.');
-    pdAulaValidar((string)($b['aula_id'] ?? ''), $dec, (string)($b['parecer'] ?? ''), $u['id'], (string)($b['licao_regra'] ?? '')); echo json_encode(['ok' => true]); exit; }
+    $parecer = trim((string)($b['parecer'] ?? '')); if ($dec === 'revisar' && $parecer === '') $parecer = 'Siga exatamente o que o professor pediu na última correção.';   // comentário opcional
+    pdAulaValidar((string)($b['aula_id'] ?? ''), $dec, $parecer, $u['id'], (string)($b['licao_regra'] ?? '')); echo json_encode(['ok' => true]); exit; }
 if ($acao === 'reenviar') {   // reenvio MANUAL do aviso ao dot (nada é reenviado sozinho)
     $a = pdAulaSup('/rest/v1/pd_aulas?id=eq.' . urlencode((string)($b['aula_id'] ?? '')) . '&select=*')['body'][0] ?? null; if (!$a || $a['status'] !== 'em_correcao') sd_fail('Só dá para reenviar uma aula que está com o professor.');
     $sk = pdAulaSup('/rest/v1/pd_habilidades?skill_id=eq.' . urlencode($a['skill_id']) . '&ativa=eq.true&order=versao.desc&limit=1&select=*')['body'][0] ?? [];
