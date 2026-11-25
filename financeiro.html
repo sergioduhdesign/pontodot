@@ -782,6 +782,7 @@ function vMes(){
   let h = '';
   const prox = somaMes(MES, 1);
   if (podeEditar() && doMes(MES).length && !doMes(prox).some(l => l.grupo === 'saldo')) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + (doMes(prox).length ? ' ainda não foi preparado (só tem o que entrou por contrato).' : ' ainda está vazio.') + '</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Copia o mês inteiro com o novo saldo (o que sobra daqui) e a retirada. Parcelas avançam (5de14 → 6de14) e as que acabaram ficam de fora. Depois é só ajustar ou apagar o que não continua.</div></div>';
+  if (podeEditar() && doMes(MES).length) h += '<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><button class="bt mini sec" data-limpames="1">Limpar ' + MN[mesDe(MES).getMonth()] + '</button></div>';
   h += barraVista() + '<div class="duas" id="listas">' + colunaMes('entrada') + colunaMes('saida') + '</div>';
   $('#cont').innerHTML = h; $('#vOrd').value = VISTA.ord; $('#vQ').value = VISTA.q;
 }
@@ -1169,6 +1170,15 @@ async function virarMes(){
   if (!exS && !(D[AMB] || []).some(x => x.mes > prox) && (CTAS[AMB] || []).some(c => c.valor !== 0)) { const z = await sb.from('fin_contas').update({ valor: 0 }).eq('ambiente', AMB); if (!z.error) { CTAS[AMB] = undefined; zerou = true; } }
   MES = prox; desenha(); toast(rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido, ' + Math.max(0, novos.length - 1) + ' lançamentos copiados' + (zerou ? '; saldo nos bancos zerado para você informar.' : '.') + ' Confira os valores.');
 }
+function folhaLimpaMes(){
+  const R = doMes(MES), pagos = R.filter(l => l.pago).length;
+  folha('<h3>Limpar ' + rotMes(MES) + '</h3><div class="nota" style="padding:0 0 12px;line-height:1.5">Apaga as <b>' + R.length + ' linhas</b> de ' + rotMes(MES) + ' (' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '), incluindo saldo e retirada' + (pagos ? ', e <b>' + pagos + ' já marcada' + (pagos > 1 ? 's' : '') + ' como paga' + (pagos > 1 ? 's' : '') + '</b>' : '') + '. Não dá para desfazer. Depois você prepara o mês de novo a partir de ' + rotMes(somaMes(MES, -1)) + '.</div>' +
+    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt perigo" data-limpaok="1">Apagar o mês inteiro</button></div>');
+}
+async function limpaMes(){
+  const m = MES, a = AMB; const r = await sb.from('fin_lancamentos').delete().eq('ambiente', a).eq('mes', m); if (r.error) return toast(r.error.message);
+  D[a] = (D[a] || []).filter(l => l.mes !== m); fecha(); desenha(); toast(rotMes(m) + ' limpo.');
+}
 async function alternaPago(id){
   const l = dados().find(x => x.id === id); if (!l || !podeEditar()) return; const novo = !l.pago;
   const leve = () => { if (ABA === 'mes' && $('#listas')) { hero(); desLista(); } else desenha(); };   // só o que muda: cabeçalho e listas
@@ -1492,6 +1502,8 @@ document.addEventListener('click', e => {
   if ((el = q('[data-aba]'))) { ANIM = true; ABA = el.dataset.aba; BUSCA = ''; desenha(); return; }
   if ((el = q('[data-novo]'))) { folhaLanc(null, el.dataset.novo); return; }
   if ((el = q('[data-virar]'))) { virarMes(); return; }
+  if (q('[data-limpames]')) { folhaLimpaMes(); return; }
+  if (q('[data-limpaok]')) { limpaMes(); return; }
   if ((el = q('[data-contrato]'))) { folhaContrato(el.dataset.contrato); return; }
   if (q('[data-salvacontrato]')) { salvaContrato(); return; }
   if (q('[data-retirada]')) { if (!podeEditar()) return toast('Você só pode ver.'); folhaRetirada(MES); return; }
