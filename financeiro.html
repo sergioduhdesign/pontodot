@@ -782,6 +782,7 @@ function vMes(){
   let h = '';
   const prox = somaMes(MES, 1);
   if (podeEditar() && doMes(MES).length && !doMes(prox).some(l => l.grupo === 'saldo')) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + (doMes(prox).length ? ' ainda não foi preparado (só tem o que entrou por contrato).' : ' ainda está vazio.') + '</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Traz o saldo daqui, copia fixos e mensais, avança as parcelas (5de14 → 6de14) e deixa de fora o que acabou. O que já está lançado lá não é repetido.</div></div>';
+  else if (podeEditar() && doMes(MES).length) h += '<div class="nota" style="padding:0 2px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rotMes(prox) + ' já foi preparado.<button class="bt mini sec" data-virar="1">Atualizar ' + MN[mesDe(prox).getMonth()] + ' com o que mudou aqui</button></div>';
   h += barraVista() + '<div class="duas" id="listas">' + colunaMes('entrada') + colunaMes('saida') + '</div>';
   $('#cont').innerHTML = h; $('#vOrd').value = VISTA.ord; $('#vQ').value = VISTA.q;
 }
@@ -1167,7 +1168,7 @@ async function virarMes(){
   for (const [lx, v] of muda) { const u = await sb.from('fin_lancamentos').update({ valor: v }).eq('id', lx.id); if (u.error) return toast(u.error.message); lx.valor = v; }
   if (novos.length) { const r = await sb.from('fin_lancamentos').insert(novos).select(); if (r.error) return toast(r.error.message); D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); }
   let zerou = false;   // saldo nos bancos é controle manual do mês: ao avançar a frente do calendário, volta a vazio (e vermelho) para ser informado de novo
-  if (!(D[AMB] || []).some(x => x.mes > prox) && (CTAS[AMB] || []).some(c => c.valor !== 0)) { const z = await sb.from('fin_contas').update({ valor: 0 }).eq('ambiente', AMB); if (!z.error) { CTAS[AMB] = undefined; zerou = true; } }
+  if (!exS && !(D[AMB] || []).some(x => x.mes > prox) && (CTAS[AMB] || []).some(c => c.valor !== 0)) { const z = await sb.from('fin_contas').update({ valor: 0 }).eq('ambiente', AMB); if (!z.error) { CTAS[AMB] = undefined; zerou = true; } }
   MES = prox; desenha(); toast(rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido, ' + Math.max(0, novos.length - 1) + ' lançamentos copiados' + (zerou ? '; saldo nos bancos zerado para você informar.' : '.') + ' Confira os valores.');
 }
 async function alternaPago(id){
