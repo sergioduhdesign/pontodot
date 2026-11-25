@@ -69,6 +69,7 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .sug{border:1px solid var(--lin);background:transparent;color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;display:flex;gap:7px;align-items:center}
 .sug small{color:var(--mut);font-size:11px}
 .sug:active{background:var(--card)}
+.rps{display:flex;gap:6px}.rps button{flex:1;padding:10px 6px;border-radius:12px;border:1px solid var(--lin);background:transparent;color:var(--tx);font:inherit;font-size:13px}.rps button.on{background:var(--acc);color:var(--acc-tx);border-color:var(--acc)}
 .stp{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--lin);border-radius:12px;padding:3px}
 .stp button{width:38px;height:36px;border:0;background:transparent;color:var(--tx);border-radius:9px;display:grid;place-items:center;padding:0}
 .stp button:active{background:var(--card)}
@@ -754,7 +755,7 @@ function hero(){
 function linha(l){
   const tav = avDe(l.descricao, l.sentido);
   const lig = l.grupo === 'retirada' ? '<span class="chip">vai para a Casa</span>' : (l.ambiente === 'casa' && l.sentido === 'entrada' && normNome(l.descricao) === 'STRAT/PD' ? '<span class="chip">ligada à retirada da Empresa</span>' : '');
-  const sub = [lig, tav && l.dia ? '<span class="chip">dia ' + l.dia + '</span>' : '', l.parcela ? '<span class="chip">' + esc(l.parcela) + '</span>' : '', esc([l.forma, l.vendedor, l.obs].filter(Boolean).join(' · '))].join('');
+  const sub = [lig, tav && l.dia ? '<span class="chip">dia ' + l.dia + '</span>' : '', l.parcela ? '<span class="chip">' + esc(l.parcela === 'unico' ? 'só este mês' : l.parcela) + '</span>' : '', esc([l.forma, l.vendedor, l.obs].filter(Boolean).join(' · '))].join('');
   return '<div class="lin ' + (l.conta ? '' : 'memo') + '" data-id="' + l.id + '" style="--gc:' + grupoInfo(l.grupo, l.sentido).cor + '">' + (tav ? avHtml(l.descricao, l.sentido, 'p') : '<div class="dia">' + (l.dia || '·') + '</div>') + '<div class="m"><b>' + esc(l.descricao) + '</b><small>' + (l.conta ? '' : '<span class="chip">anotação</span>') + sub + '</small></div>' +
     '<div class="val ' + (l.sentido === 'entrada' ? 'e' : '') + '">' + (l.sentido === 'entrada' ? '' : '−') + BRL(l.valor) + '</div>' +
     '<button class="ck ' + (l.pago ? 'on' : '') + '" data-pago="' + l.id + '" title="' + (l.sentido === 'entrada' ? 'Recebido' : 'Pago') + '">' + (l.pago ? ICK : '') + '</button></div>';
@@ -1043,7 +1044,7 @@ function folhaLanc(l, sentido){
     '<label class="fl"><span>' + (l.sentido === 'entrada' ? 'Cliente / de onde' : 'O que é') + '</span><input id="fDes" value="' + esc(l.descricao) + '" autocomplete="off"></label><div id="fSug"></div>' +
     '<div class="f2"><label class="fl"><span>Valor (R$)</span><input id="fVal" inputmode="decimal" value="' + esc(l.valor === '' ? '' : String(l.valor).replace('.', ',')) + '"></label><label class="fl"><span>Dia</span><input id="fDia" inputmode="numeric" value="' + esc(l.dia || '') + '"></label></div>' +
     '<div class="f2"><label class="fl"><span>Grupo</span><select id="fGru">' + gs.map(g => '<option value="' + g.chave + '"' + (g.chave === l.grupo ? ' selected' : '') + '>' + esc(g.nome) + '</option>').join('') + (podeEditar() ? '<option value="__novo">+ Novo grupo…</option>' : '') + '</select></label><label class="fl"><span>Como</span><input id="fFor" value="' + esc(l.forma || '') + '" placeholder="transf, PJ, cartão…"></label></div>' +
-    '<input type="hidden" id="fPar" value="' + esc(l.parcela || '') + '" data-orig="' + esc(l.parcela || '') + '">' + stepParcela(l.parcela) +
+    '<input type="hidden" id="fPar" value="' + esc(l.parcela || '') + '" data-orig="' + esc(l.parcela || '') + '">' + repeteUI(l.parcela) +
     (l.sentido === 'entrada' ? '<label class="fl"><span>Vendedor(a)</span><input id="fVen" value="' + esc(l.vendedor || '') + '"></label>' : '') +
     '<label class="fl"><span>Observação</span><input id="fObs" value="' + esc(l.obs || '') + '"></label>' +
     '<label class="chk"><input type="checkbox" id="fPag"' + (l.pago ? ' checked' : '') + '> ' + (l.sentido === 'entrada' ? 'Já recebi' : 'Já paguei') + '</label>' +
@@ -1103,6 +1104,16 @@ function stepParcela(par){
   const bloco = (rot, id, v, a) => '<label class="fl"><span>' + rot + '</span><div class="stp"><button type="button" data-stp="' + id + '-"' + a + '>' + IC_MENOS + '</button><b id="' + id + '">' + v + '</b><button type="button" data-stp="' + id + '+">' + IC_MAIS + '</button></div></label>';
   return '<div class="f2">' + bloco('Parcela nº', 'stN', t ? n : '—', t ? '' : ' disabled') + bloco('Total de parcelas', 'stT', t || '—', '') + '</div>';
 }
+function repeteUI(par){
+  const [, pd] = parcelaDe(par), t = String(par || '').trim(), modo = pd ? 'p' : /^(mensal|fixo)$/i.test(t) ? 'm' : /^unico$/i.test(t) ? 'u' : '';
+  return '<div class="fl"><span>Repetição</span><div class="rps" id="rpSeg">' + [['m', 'Mensal'], ['p', 'Parcelado'], ['u', 'Só este mês']].map(x => '<button type="button" data-rep="' + x[0] + '" class="' + (modo === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div></div><div id="rpStep" style="' + (modo === 'p' ? '' : 'display:none') + '">' + stepParcela(par) + '</div>';
+}
+function repeteEscolhe(k){
+  document.querySelectorAll('#rpSeg button').forEach(b => b.classList.toggle('on', b.dataset.rep === k)); const f = $('#fPar'), st = $('#rpStep');
+  if (st) st.style.display = k === 'p' ? '' : 'none';
+  if (k === 'm') f.value = 'mensal'; else if (k === 'u') f.value = 'unico';
+  else if (!/^\d+\s*de\s*\d+/i.test(f.value)) { f.value = '1de2'; $('#stN').textContent = '1'; $('#stT').textContent = '2'; document.querySelectorAll('#rpStep .stp button').forEach(b => b.disabled = false); }
+}
 function stepMexe(k){
   const id = k.slice(0, -1), d = k.slice(-1) === '+' ? 1 : -1, el = $('#stN'), tl = $('#stT');
   let n = parseInt(el.textContent, 10) || 0, t = parseInt(tl.textContent, 10) || 0, mov = false;
@@ -1128,6 +1139,7 @@ let PEND = null;
 function seguintesDe(l, o){
   const nz = v => (v == null || v === '') ? null : v, campos = {}, nomes = { grupo: 'grupo', valor: 'valor', forma: 'como', dia: 'dia', vendedor: 'vendedor(a)' };
   ['grupo', 'valor', 'forma', 'dia', 'vendedor'].forEach(k => { if (k === 'vendedor' && l.sentido !== 'entrada') return; if (nz(o[k]) !== nz(l[k]) && !(k === 'valor' && Math.abs(o.valor - l.valor) < 0.005)) campos[k] = o[k]; });
+  if (nz(o.parcela) !== nz(l.parcela) && !o.parcela_de && !l.parcela_de) { campos.parcela = o.parcela; nomes.parcela = 'repetição'; }
   if (!Object.keys(campos).length || !l.id) return { lista: [], campos, nomes };
   const nome = normNome(l.descricao), pm = {}; 
   (D[AMB] || []).filter(x => x.id !== l.id && x.mes > l.mes && x.sentido === l.sentido && x.grupo !== 'saldo' && x.grupo !== 'retirada' && normNome(x.descricao) === nome && (x.parcela_de || null) === (l.parcela_de || null)).forEach(x => (pm[x.mes] = pm[x.mes] || []).push(x));
@@ -1135,7 +1147,7 @@ function seguintesDe(l, o){
   return { lista, campos, nomes };
 }
 function folhaPropaga(l, seg){
-  const meses = seg.lista.map(x => x.mes), fmt = (k, v) => k === 'valor' ? BRL(v) : k === 'grupo' ? grupoInfo(v, l.sentido).nome : (v == null || v === '' ? '(vazio)' : v);
+  const meses = seg.lista.map(x => x.mes), fmt = (k, v) => k === 'valor' ? BRL(v) : k === 'parcela' ? (v === 'unico' ? 'só este mês' : v || '(nenhuma)') : k === 'grupo' ? grupoInfo(v, l.sentido).nome : (v == null || v === '' ? '(vazio)' : v);
   folha('<h3>Mudar nos meses seguintes?</h3><div class="nota" style="padding:0 0 12px;line-height:1.55"><b>' + esc(l.descricao) + '</b> se repete em <b>' + seg.lista.length + '</b> mês' + (seg.lista.length > 1 ? 'es' : '') + ' depois deste (' + rotCurto(meses[0]) + (meses.length > 1 ? ' a ' + rotCurto(meses[meses.length - 1]) : '') + '). Você mudou:<br>' +
     Object.keys(seg.campos).map(k => '· ' + seg.nomes[k] + ': ' + esc(String(fmt(k, l[k]))) + ' → <b>' + esc(String(fmt(k, seg.campos[k]))) + '</b>').join('<br>') + '<br>Os meses anteriores não mudam.</div>' +
     '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt sec" data-propaga="0">Só este mês</button><button class="bt" data-propaga="1">Este e os seguintes</button></div>');
@@ -1177,6 +1189,7 @@ async function virarMes(){
   doMes(MES).filter(l => l.conta && l.grupo !== 'saldo' && l.grupo !== 'retirada').forEach(l => {   // retirada é criada à parte (uma só); copiar também duplicava
     const fixa = /^(mensal|fixo)$/i.test((l.parcela || '').trim());
     let par = l.parcela, pn = l.parcela_n;
+    if (/^unico$/i.test((l.parcela || '').trim())) return;   // marcado "só este mês": não continua
     if (l.parcela_de) { if (l.parcela_n >= l.parcela_de) return; pn = l.parcela_n + 1; par = pn + 'de' + l.parcela_de; }
     const nv = { ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: true };
     if (!jaTem(nv)) novos.push(nv);
@@ -1525,6 +1538,7 @@ document.addEventListener('click', e => {
   if ((el = q('[data-novo]'))) { folhaLanc(null, el.dataset.novo); return; }
   if ((el = q('[data-virar]'))) { virarMes(); return; }
   if (q('[data-limpames]')) { folhaLimpaMes(); return; }
+  if ((el = q('[data-rep]'))) { repeteEscolhe(el.dataset.rep); return; }
   if ((el = q('[data-propaga]'))) { if (PEND) { const P = PEND; PEND = null; gravaLanc(P.l, P.o, P.mov, el.dataset.propaga === '1' ? P.seg : null); } return; }
   if (q('[data-limpaok]')) { limpaMes(); return; }
   if ((el = q('[data-contrato]'))) { folhaContrato(el.dataset.contrato); return; }
