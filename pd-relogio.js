@@ -21,7 +21,7 @@
   #pdRel .rl-img svg{width:60%;height:60%}
   #pdRel .rl-veu{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,.05) 30%,rgba(0,0,0,.34) 100%)}
   #pdRel .rl-mao{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.85)) drop-shadow(0 0 4px rgba(0,0,0,.5))}
-  #pdRel .rl-bol{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#dc2626;color:#fff;font:700 11px/20px inherit;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.45);display:none;box-sizing:border-box;pointer-events:none}
+  #pdRel .rl-bol{position:absolute;top:-6px;right:-6px;z-index:3;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#dc2626;color:#fff;font:700 10px/16px inherit;text-align:center;box-shadow:0 0 0 1.5px rgba(255,255,255,.9),0 2px 7px rgba(0,0,0,.5);display:none;box-sizing:border-box;pointer-events:none}
   #pdRel .rl-bol.on{display:block}
   #pdRel .rl-box{position:relative;width:var(--rl,62px)}
   #pdRel .rl-seta{display:block;margin:5px auto 0;width:34px;height:20px;padding:0;border:0;background:none;color:#fff;cursor:pointer;opacity:.92;filter:drop-shadow(0 2px 3px rgba(0,0,0,.65));transition:transform .3s,opacity .2s}
@@ -56,7 +56,7 @@
       <svg class="rl-mao" viewBox="0 0 100 100"><g stroke="#fff" stroke-linecap="round" fill="#fff">
         <circle cx="50" cy="8" r="2" stroke="none" opacity=".9"/><circle cx="92" cy="50" r="2" stroke="none" opacity=".9"/><circle cx="50" cy="92" r="2" stroke="none" opacity=".9"/><circle cx="8" cy="50" r="2" stroke="none" opacity=".9"/>
         <line class="rl-h" x1="50" y1="50" x2="50" y2="28" stroke-width="5"/><line class="rl-m" x1="50" y1="50" x2="50" y2="15" stroke-width="3.2"/><circle cx="50" cy="50" r="3.6" stroke="none"/></g></svg>
-      <i class="rl-bol"></i></button>
+      </button><i class="rl-bol"></i>
     <button class="rl-seta" type="button" aria-label="Ver o que está pendente" title="O que está rolando"><svg viewBox="0 0 34 20"><path d="M7 5l10 10 10-10"/></svg></button>
     <div class="rl-lista" role="list"></div></div>`;
   document.body.appendChild(el);
