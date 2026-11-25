@@ -58,6 +58,9 @@ html.emb .top{padding-top:calc(var(--safe,0px) + 60px)}
 .top .seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .top .seg button.on{box-shadow:0 1px 6px rgba(0,0,0,.25)}
 .ct{display:grid;grid-template-columns:1fr 130px 38px;gap:8px;margin-bottom:8px}.ct input{padding:11px 13px;border-radius:12px;border:1px solid var(--lin);background:transparent;outline:none;min-width:0;width:100%}.ct input:focus{border-color:var(--acc)}.ct .ctV{text-align:right}
+.cp{display:grid;grid-template-columns:1fr 104px 58px 50px 38px;gap:6px;margin-bottom:8px}.cp input{padding:10px 11px;border-radius:12px;border:1px solid var(--lin);background:transparent;outline:none;min-width:0;width:100%;font-size:13.5px}.cp input:focus{border-color:var(--acc)}.cp .cpV{text-align:right}.cp .cpP,.cp .cpD{text-align:center;padding:10px 4px}
+.cph{display:grid;grid-template-columns:1fr 104px 58px 50px 38px;gap:6px;font-size:10.5px;color:var(--mut);letter-spacing:.04em;text-transform:uppercase;margin:4px 2px 4px}.cph span:nth-child(n+2){text-align:center}
+.cpr{width:100%;accent-color:var(--acc);margin:6px 0 0}.cpm{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);padding:0 2px}.cpdv{border:1px solid var(--lin);border-radius:14px;padding:12px 14px;margin:10px 0}.cpdv .ln{margin:6px 0 0}
 .ctx{border:1px solid var(--lin);background:transparent;color:var(--mut);border-radius:12px;display:grid;place-items:center;padding:0}.ctx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .nm-ed{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}.nm-ed .fl{flex:1}.nm-ed .bt{height:44px;padding:0 18px;margin-bottom:10px}.nm-ed .bt[disabled]{opacity:.35}
 .sugok{font-size:12.5px;color:var(--acc);margin:-4px 2px 8px}
@@ -814,7 +817,7 @@ function abrePessoa(nome, sentido){
   const cat0 = R.length ? catDe(R[0]) : 'out', manual = R.some(l => l.categoria);
   abrePessoa._p = { nome, sentido };
   folha('<h3 style="display:flex;align-items:center;gap:12px">' + avHtml(nome, sentido) + esc(nome) + '</h3>' +
-    (podeEditar() ? '<div class="nm-ed"><label class="fl" style="margin:0"><span>Nome (muda em todas as ' + R.length + ' linhas)</span><input id="pNome" value="' + esc(nome) + '" autocomplete="off"></label><button class="bt" id="pSalva" data-renomeia="1" disabled>Salvar</button></div><div id="pSug"></div>' : '') +(sentido === 'saida' && podeEditar() ? '<label class="fl"><span>Categoria (vale para todas as linhas deste nome)</span><select id="catNome" data-ids="' + R.map(l => l.id).join(',') + '"><option value="">Automática · ' + esc(rotCat(cat0)) + '</option>' + Object.entries(CATS).map(([k, v]) => '<option value="' + k + '"' + (manual && cat0 === k ? ' selected' : '') + '>' + esc(rotCat(k)) + '</option>').join('') + '</select></label>' : '') + '<div class="trio" style="margin-bottom:12px"><div><small>Total</small><b>' + BRL0(tot) + '</b></div><div><small>Lançamentos</small><b>' + R.length + '</b></div><div><small>Último</small><b>' + (ult ? rotCurto(ult.mes) : '—') + '</b></div></div>' +
+    (podeEditar() ? '<div class="nm-ed"><label class="fl" style="margin:0"><span>Nome (muda em todas as ' + R.length + ' linhas)</span><input id="pNome" value="' + esc(nome) + '" autocomplete="off"></label><button class="bt" id="pSalva" data-renomeia="1" disabled>Salvar</button></div><div id="pSug"></div>' : '') +(sentido === 'saida' && podeEditar() ? '<label class="fl"><span>Categoria (vale para todas as linhas deste nome)</span><select id="catNome" data-ids="' + R.map(l => l.id).join(',') + '"><option value="">Automática · ' + esc(rotCat(cat0)) + '</option>' + Object.entries(CATS).map(([k, v]) => '<option value="' + k + '"' + (manual && cat0 === k ? ' selected' : '') + '>' + esc(rotCat(k)) + '</option>').join('') + '</select></label>' : '') + (sentido === 'saida' && AMB === 'empresa' && podeEditar() && cat0 === 'eq' ? '<button class="add" style="width:100%;margin:0 0 12px" data-comp="' + esc(nome) + '">Compor pagamento de ' + MN[mesDe(MES).getMonth()] + ' (clientes, valores e divisão)</button>' : '') + '<div class="trio" style="margin-bottom:12px"><div><small>Total</small><b>' + BRL0(tot) + '</b></div><div><small>Lançamentos</small><b>' + R.length + '</b></div><div><small>Último</small><b>' + (ult ? rotCurto(ult.mes) : '—') + '</b></div></div>' +
     (pr != null ? '<div class="prog" style="margin:0 0 12px"><div><div class="ln"><span>Parcelas <b>' + ult.parcela_n + ' de ' + ult.parcela_de + '</b></span><span>faltam ' + (ult.parcela_de - ult.parcela_n) + '</span></div><div class="bar"><i style="width:' + pr + '%"></i></div></div></div>' : '') +
     '<div style="max-height:46vh;overflow:auto">' + R.map(l => '<div class="lin" data-id="' + l.id + '" data-fecha="1"><div class="dia">' + (l.dia || '·') + '</div><div class="m"><b>' + rotMes(l.mes) + '</b><small>' + esc([l.parcela, l.forma, l.obs].filter(Boolean).join(' · ')) + '</small></div><div class="val">' + BRL(l.valor) + '</div><div class="ck ' + (l.pago ? 'on' : '') + '">' + (l.pago ? ICK : '') + '</div></div>').join('') + '</div><div class="bts"><button class="bt sec" data-fechar="1">Fechar</button></div>');
 }
@@ -839,6 +842,66 @@ async function renomeiaPessoa(){
     const rs = await Promise.all(ids.map(l => { const nd = novo + suf(l.descricao); return sb.from('fin_lancamentos').update({ descricao: nd }).eq('id', l.id).then(r => { if (r.error) throw r.error; l.descricao = nd; }); }));
   } catch(e){ bt.textContent = 'Salvar'; bt.disabled = false; return toast('Não consegui salvar tudo: ' + (e.message || e)); }
   fecha(); desenha(); toast('Nome mudado em ' + ids.length + ' linha' + (ids.length > 1 ? 's' : '') + '.');
+}
+
+
+// ---------- composição do pagamento de colaborador: de quais clientes/trabalhos o valor é feito e como é dividido ----------
+let COMP = null;
+const cpLinha = r => '<div class="cp" data-cpid="' + (r.id || '') + '"><input class="cpN" list="cpNomes" value="' + esc(r.cliente || '') + '" placeholder="Cliente / trabalho" autocomplete="off"><input class="cpV" inputmode="decimal" value="' + esc(r.valor ? String(r.valor).replace('.', ',') : '') + '" placeholder="0,00"><input class="cpP" value="' + esc(r.pn ? r.pn + '/' + (r.pd || '') : '') + '" placeholder="n/N" title="Parcela, ex.: 2/6"><input class="cpD" inputmode="numeric" value="' + esc(r.dia || '') + '" placeholder="dia" title="Dia do mês"><button type="button" class="ctx" data-cpdel="1" title="Tirar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
+async function folhaComp(nome){
+  const mes = MES;
+  let rows = [], div = null;
+  try { const r = await sb.from('fin_composicao').select('*').eq('ambiente', AMB).eq('colaborador', nome).eq('mes', mes).order('ordem'); if (r.error) throw r.error; r.data.forEach(x => { if (x.tipo === 'divisao') div = x; else rows.push({ id: x.id, cliente: x.cliente, valor: Number(x.valor), pn: x.parcela_n, pd: x.parcela_de, dia: x.data ? Number(String(x.data).slice(8, 10)) : '' }); }); }
+  catch(e){ return toast(/fin_composicao|relation|schema cache/i.test(e.message || '') ? 'Falta rodar o migration_v189 no Supabase.' : (e.message || 'Erro')); }
+  COMP = { nome, mes, del: [] };
+  const linhas = dados().filter(l => l.sentido === 'saida' && l.mes === mes && normNome(l.descricao) === nome && l.conta), lanc = soma(linhas);
+  if (!rows.length) rows = [{}, {}];
+  const pct = div ? Number(div.pct) : 100, d1 = div ? div.dia1 : (linhas[0] && linhas[0].dia) || '', d2 = div ? div.dia2 : '';
+  const cli = nomesConhecidos('entrada').map(x => '<option value="' + esc(x.nome) + '">').join('');
+  folha('<h3>' + esc(nome) + ' · ' + rotMes(mes) + '</h3><div class="nota" style="padding:0 0 10px;line-height:1.5">De quais clientes ou trabalhos vem o pagamento. O total vira o valor do mês; a divisão diz quanto sai em cada data.</div>' +
+    '<datalist id="cpNomes">' + cli + '</datalist><div class="cph"><span>Cliente / trabalho</span><span>Valor</span><span>Parcela</span><span>Dia</span><span></span></div><div id="cpLista">' + rows.map(cpLinha).join('') + '</div>' +
+    '<button class="add" style="width:100%;margin:2px 0 8px" data-cpadd="1">+ Adicionar cliente</button>' +
+    '<div class="ln" style="margin:4px 0"><span>Total da composição</span><b id="cpTot">—</b></div><div class="ln" style="margin:0 0 4px"><span>Lançado hoje no mês</span><b id="cpLan" data-v="' + lanc + '">' + BRL(lanc) + '</b></div><div class="nota" id="cpDif" style="padding:0 0 4px"></div>' +
+    '<div class="cpdv"><div class="ln" style="margin:0"><span>Divisão do pagamento</span><b id="cpDivT">—</b></div><input type="range" class="cpr" id="cpPct" min="0" max="100" step="5" value="' + pct + '"><div class="cpm"><span>tudo no 2º</span><span>30/70</span><span>50/50</span><span>70/30</span><span>tudo no 1º</span></div>' +
+    '<div class="f2" style="margin-top:10px"><label class="fl" style="margin:0"><span>Dia do 1º pagamento</span><input id="cpD1" inputmode="numeric" value="' + esc(d1) + '"></label><label class="fl" style="margin:0"><span>Dia do 2º pagamento</span><input id="cpD2" inputmode="numeric" value="' + esc(d2) + '"></label></div></div>' +
+    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt sec" data-cpsalva="1">Só guardar</button><button class="bt" data-cpsalva="2">Guardar e aplicar ao mês</button></div>');
+  cpCalc();
+}
+function cpLer(){
+  const out = []; document.querySelectorAll('#cpLista .cp:not(.hid)').forEach(r => {
+    const cliente = r.querySelector('.cpN').value.trim(), raw = r.querySelector('.cpV').value.trim(), v = raw === '' ? 0 : parseValor(raw), pm = /^\s*(\d+)\s*[\/de ]+\s*(\d+)\s*$/i.exec(r.querySelector('.cpP').value), dia = parseInt(r.querySelector('.cpD').value, 10) || null;
+    if (!cliente && !raw) return; out.push({ cliente, valor: isNaN(v) ? 0 : v, pn: pm ? +pm[1] : null, pd: pm ? +pm[2] : null, dia, id: r.dataset.cpid });
+  }); return out;
+}
+function cpCalc(){
+  const R = cpLer(), tot = Math.round(R.reduce((a, x) => a + x.valor, 0) * 100) / 100, pct = +($('#cpPct') || { value: 100 }).value, p1 = Math.round(tot * pct) / 100, p2 = Math.round((tot - p1) * 100) / 100, lan = +($('#cpLan') || { dataset: { v: 0 } }).dataset.v;
+  const set = (id, t) => { const e = $(id); if (e) e.textContent = t; }; set('#cpTot', BRL(tot));
+  set('#cpDivT', pct >= 100 ? 'um pagamento · ' + BRL(p1) : pct <= 0 ? 'um pagamento · ' + BRL(p2) : pct + '% · ' + BRL(p1) + '   +   ' + (100 - pct) + '% · ' + BRL(p2));
+  set('#cpDif', Math.abs(tot - lan) < 0.01 ? 'Bate com o que está lançado.' : (tot > lan ? 'Falta ' + BRL(tot - lan) + ' no lançamento' : 'Sobra ' + BRL(lan - tot) + ' no lançamento') + ' — "Guardar e aplicar" ajusta.');
+}
+async function salvaComp(aplicar){
+  if (!COMP || !podeEditar()) return; const { nome, mes } = COMP, R = cpLer(), tot = Math.round(R.reduce((a, x) => a + x.valor, 0) * 100) / 100, pct = +$('#cpPct').value, d1 = parseInt($('#cpD1').value, 10) || null, d2 = parseInt($('#cpD2').value, 10) || null;
+  if (!R.length) return toast('Coloque ao menos um cliente com valor.'); if (R.some(x => !x.cliente)) return toast('Falta o nome de um cliente.');
+  const dt = d => d ? mes.slice(0, 8) + String(Math.min(28, d)).padStart(2, '0') : null;
+  const rows = R.map((x, i) => ({ ambiente: AMB, colaborador: nome, mes, tipo: 'item', cliente: x.cliente, valor: x.valor, data: dt(x.dia), parcela_n: x.pn, parcela_de: x.pd, ordem: i + 1 }));
+  rows.push({ ambiente: AMB, colaborador: nome, mes, tipo: 'divisao', pct, dia1: d1, dia2: d2, valor: tot, ordem: 999 });
+  try {
+    const d = await sb.from('fin_composicao').delete().eq('ambiente', AMB).eq('colaborador', nome).eq('mes', mes); if (d.error) throw d.error;
+    const r = await sb.from('fin_composicao').insert(rows); if (r.error) throw r.error;
+  } catch(e){ return toast(/fin_composicao|relation|schema cache/i.test(e.message || '') ? 'Falta rodar o migration_v189 no Supabase.' : (e.message || 'Não salvou')); }
+  if (!aplicar) { fecha(); return toast('Composição guardada.'); }
+  // aplica no mês: 1 ou 2 lançamentos (só os ainda não pagos); o que já foi pago fica como está
+  const p1 = Math.round(tot * pct) / 100, p2 = Math.round((tot - p1) * 100) / 100, partes = pct >= 100 ? [[tot, d1]] : pct <= 0 ? [[tot, d2 || d1]] : [[p1, d1], [p2, d2 || d1]];
+  const abertas = dados().filter(l => l.sentido === 'saida' && l.mes === mes && normNome(l.descricao) === nome && l.conta && !l.pago).sort((a, b) => (a.dia || 0) - (b.dia || 0));
+  const modelo = abertas[0] || dados().filter(l => l.sentido === 'saida' && normNome(l.descricao) === nome).sort((a, b) => b.mes.localeCompare(a.mes))[0] || {};
+  try {
+    for (let i = 0; i < partes.length; i++) {
+      const [v, dia] = partes[i], ex = abertas[i];
+      if (ex) { const u = await sb.from('fin_lancamentos').update({ valor: v, dia }).eq('id', ex.id); if (u.error) throw u.error; ex.valor = v; ex.dia = dia; }
+      else { const n = await sb.from('fin_lancamentos').insert({ ambiente: AMB, mes, sentido: 'saida', grupo: modelo.grupo || 'fixo', dia, descricao: nome, valor: v, forma: modelo.forma || null, pago: false, conta: true, obs: 'composto' }).select(); if (n.error) throw n.error; D[AMB].push(Object.assign(n.data[0], { valor: Number(n.data[0].valor) })); }
+    }
+  } catch(e){ return toast(e.message || 'Guardei a composição, mas não consegui ajustar o mês.'); }
+  const sobra = abertas.length - partes.length; fecha(); desenha(); toast('Composição aplicada: ' + partes.map(x => BRL(x[0])).join(' + ') + (sobra > 0 ? ' · há ' + sobra + ' outra(s) linha(s) em aberto deste nome, confira.' : '.'));
 }
 
 // ---------- onde está o dinheiro hoje: saldo real por banco/conta ----------
@@ -1456,6 +1519,10 @@ document.addEventListener('click', e => {
   if (q('[data-ctadd]')) { $('#ctLista').insertAdjacentHTML('beforeend', ctLinha({})); const n = document.querySelectorAll('#ctLista .ctN'); n[n.length - 1].focus(); return; }
   if ((el = q('[data-ctdel]'))) { const r = el.closest('.ct'); if (r.dataset.cid) CT_DEL.push(r.dataset.cid); r.classList.add('hid'); ctSoma(); return; }
   if (q('[data-ctsalva]')) { salvaContas(); return; }
+  if ((el = q('[data-comp]'))) { folhaComp(el.dataset.comp); return; }
+  if (q('[data-cpadd]')) { $('#cpLista').insertAdjacentHTML('beforeend', cpLinha({})); const n = document.querySelectorAll('#cpLista .cpN'); n[n.length - 1].focus(); return; }
+  if ((el = q('[data-cpdel]'))) { el.closest('.cp').classList.add('hid'); cpCalc(); return; }
+  if ((el = q('[data-cpsalva]'))) { salvaComp(el.dataset.cpsalva === '2'); return; }
   if ((el = q('[data-sugp]'))) { $('#pNome').value = el.dataset.sugp; sugerePessoa(); return; }
   if (q('[data-renomeia]')) { renomeiaPessoa(); return; }
   if ((el = q('[data-sug]'))) { $('#fDes').value = el.dataset.sug; sugereNome(); return; }
@@ -1473,6 +1540,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'fDes') { sugereNome(); return; }
   if (e.target.id === 'pNome') { sugerePessoa(); return; }
   if (e.target.classList && e.target.classList.contains('ctV')) { ctSoma(); return; }
+  if (e.target.id === 'cpPct' || (e.target.classList && e.target.classList.contains('cpV'))) { cpCalc(); return; }
   if (!(e.target.closest && e.target.closest('#folha'))) return; if (document.getElementById('cPrev')) previaContrato(); if (e.target.id === 'rVal') { const v = parseValor(e.target.value) || 0; $('#rPR').textContent = BRL0(v); $('#rPS').textContent = BRL0(folhaRetirada._sobra - v); } });
 document.addEventListener('change', async e => {
   const t = e.target;
