@@ -781,7 +781,7 @@ function vMes(){
   vistaLe();
   let h = '';
   const prox = somaMes(MES, 1);
-  if (podeEditar() && doMes(MES).length && !doMes(prox).some(l => l.grupo === 'saldo')) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + (doMes(prox).length ? ' ainda não foi preparado (só tem o que entrou por contrato).' : ' ainda está vazio.') + '</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Traz o saldo daqui, copia fixos e mensais, avança as parcelas (5de14 → 6de14) e deixa de fora o que acabou. O que já está lançado lá não é repetido.</div></div>';
+  if (podeEditar() && doMes(MES).length && !doMes(prox).some(l => l.grupo === 'saldo')) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + (doMes(prox).length ? ' ainda não foi preparado (só tem o que entrou por contrato).' : ' ainda está vazio.') + '</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Copia o mês inteiro com o novo saldo (o que sobra daqui) e a retirada. Parcelas avançam (5de14 → 6de14) e as que acabaram ficam de fora. Depois é só ajustar ou apagar o que não continua.</div></div>';
   h += barraVista() + '<div class="duas" id="listas">' + colunaMes('entrada') + colunaMes('saida') + '</div>';
   $('#cont').innerHTML = h; $('#vOrd').value = VISTA.ord; $('#vQ').value = VISTA.q;
 }
@@ -1155,8 +1155,6 @@ async function virarMes(){
     const fixa = /^(mensal|fixo)$/i.test((l.parcela || '').trim());
     let par = l.parcela, pn = l.parcela_n;
     if (l.parcela_de) { if (l.parcela_n >= l.parcela_de) return; pn = l.parcela_n + 1; par = pn + 'de' + l.parcela_de; }
-    else if (!fixa && l.grupo === 'variavel') return;
-    else if (!fixa && !l.parcela && l.grupo !== 'fixo' && l.grupo !== 'com_nf' && ['sem_nf', 'outro', '', null, undefined].includes(l.grupo)) return;
     const nv = { ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: true };
     if (!jaTem(nv)) novos.push(nv);
   });
