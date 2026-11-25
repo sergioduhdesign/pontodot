@@ -778,7 +778,7 @@ function vMes(){
   vistaLe();
   let h = '';
   const prox = somaMes(MES, 1);
-  if (podeEditar() && doMes(MES).length && !doMes(prox).length) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + ' ainda está vazio.</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Copia fixos e mensais; avança as parcelas (5de14 → 6de14) e deixa de fora o que acabou.</div></div>';
+  if (podeEditar() && doMes(MES).length && !doMes(prox).some(l => l.grupo === 'saldo')) h += '<div class="cx" style="padding:14px"><div class="cab" style="padding:0"><h3 style="font-weight:500;font-size:14px">' + rotMes(prox) + (doMes(prox).length ? ' ainda não foi preparado (só tem o que entrou por contrato).' : ' ainda está vazio.') + '</h3><button class="bt mini" data-virar="1">Preparar ' + MN[mesDe(prox).getMonth()] + '</button></div><div class="nota" style="padding:8px 0 0">Traz o saldo daqui, copia fixos e mensais, avança as parcelas (5de14 → 6de14) e deixa de fora o que acabou. O que já está lançado lá não é repetido.</div></div>';
   h += barraVista() + '<div class="duas" id="listas">' + colunaMes('entrada') + colunaMes('saida') + '</div>';
   $('#cont').innerHTML = h; $('#vOrd').value = VISTA.ord; $('#vQ').value = VISTA.q;
 }
@@ -1083,20 +1083,25 @@ async function duplica(){
   D[AMB].push(Object.assign(r.data, { valor: Number(r.data.valor) })); fecha(); desenha(); toast('Copiado para ' + rotMes(prox) + '.');
 }
 async function virarMes(){
-  const prox = somaMes(MES, 1), novos = [];
+  const prox = somaMes(MES, 1), novos = [], ja = doMes(prox);
+  const chv = l => l.sentido + '|' + normNome(l.descricao) + '|' + (l.parcela_n || (/^(mensal|fixo)$/i.test((l.parcela || '').trim()) ? 'm' : ''));
+  const jaTem = n => ja.some(x => x.conta && x.grupo !== 'saldo' && x.grupo !== 'retirada' && chv(x) === chv(n));   // contrato já lançou: não repete
   doMes(MES).filter(l => l.conta && l.grupo !== 'saldo').forEach(l => {
     const fixa = /^(mensal|fixo)$/i.test((l.parcela || '').trim());
     let par = l.parcela, pn = l.parcela_n;
     if (l.parcela_de) { if (l.parcela_n >= l.parcela_de) return; pn = l.parcela_n + 1; par = pn + 'de' + l.parcela_de; }
     else if (!fixa && l.grupo === 'variavel') return;
     else if (!fixa && !l.parcela && l.grupo !== 'fixo' && l.grupo !== 'com_nf' && ['sem_nf', 'outro', '', null, undefined].includes(l.grupo)) return;
-    novos.push({ ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: true });
+    const nv = { ambiente: AMB, mes: prox, sentido: l.sentido, grupo: l.grupo, dia: l.dia, descricao: l.descricao, parcela: par, parcela_n: pn, parcela_de: l.parcela_de, forma: l.forma, valor: l.valor, obs: l.obs, vendedor: l.vendedor, pago: false, conta: true };
+    if (!jaTem(nv)) novos.push(nv);
   });
-  const t = fluxo(MES); let ret = 0; if (AMB === 'empresa') { ret = t.retirada != null ? t.retirada : (() => { const a = fluxo(somaMes(MES, -1)); return a.retirada != null ? a.retirada : 0; })(); if (ret > 0) novos.push({ ambiente: 'empresa', mes: prox, sentido: 'saida', grupo: 'retirada', dia: ultimoDia(prox), descricao: 'RETIRADA', valor: ret, pago: false, conta: true, obs: 'vai para a Casa (STRAT/PD)' }); }
-  const sg = Math.round((t.sobra - ret) * 100) / 100; if (Math.abs(sg) >= 0.01) novos.push({ ambiente: AMB, mes: prox, sentido: 'entrada', grupo: 'saldo', descricao: 'SALDO', obs: 'mês anterior' + (ret ? ' − retirada ' + BRL0(ret) : ''), valor: sg, pago: true, conta: true });
-  if (!novos.length) return toast('Nada para copiar.');
-  const r = await sb.from('fin_lancamentos').insert(novos).select(); if (r.error) return toast(r.error.message);
-  D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); MES = prox; desenha(); toast(novos.length + ' lançamentos criados — confira os valores.');
+  const exS = ja.find(x => x.grupo === 'saldo'), exR = ja.find(x => x.grupo === 'retirada'), muda = [];
+  const t = fluxo(MES); let ret = 0; if (AMB === 'empresa') { ret = t.retirada != null ? t.retirada : (() => { const a = fluxo(somaMes(MES, -1)); return a.retirada != null ? a.retirada : 0; })(); if (ret > 0 && exR) muda.push([exR, ret]); else if (ret > 0) novos.push({ ambiente: 'empresa', mes: prox, sentido: 'saida', grupo: 'retirada', dia: ultimoDia(prox), descricao: 'RETIRADA', valor: ret, pago: false, conta: true, obs: 'vai para a Casa (STRAT/PD)' }); }
+  const sg = Math.round((t.sobra - ret) * 100) / 100; if (exS) muda.push([exS, sg]); else novos.push({ ambiente: AMB, mes: prox, sentido: 'entrada', grupo: 'saldo', descricao: 'SALDO', obs: 'mês anterior' + (ret ? ' − retirada ' + BRL0(ret) : ''), valor: sg, pago: true, conta: true });
+  if (!novos.length && !muda.length) return toast('Nada para copiar.');
+  for (const [lx, v] of muda) { const u = await sb.from('fin_lancamentos').update({ valor: v }).eq('id', lx.id); if (u.error) return toast(u.error.message); lx.valor = v; }
+  if (novos.length) { const r = await sb.from('fin_lancamentos').insert(novos).select(); if (r.error) return toast(r.error.message); D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); }
+  MES = prox; desenha(); toast(rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido e ' + Math.max(0, novos.length - 1) + ' lançamentos copiados — confira os valores.');
 }
 async function alternaPago(id){
   const l = dados().find(x => x.id === id); if (!l || !podeEditar()) return; const novo = !l.pago;
@@ -1126,7 +1131,7 @@ function folhaContrato(sentido){
 function lerContrato(){
   const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const n = parseInt(g('cN'), 10) || 0, tot = parseValor(g('cTot')), dia = Math.min(31, Math.max(1, parseInt(g('cDia'), 10) || 1)), mes = (g('cMes') || '').length === 7 ? g('cMes') + '-01' : null;
-  let par = parseValor(g('cPar')); const L = [];
+  let par = parseValor(g('cPar')); const L = []; let totalCtr = 0;
   if (!(par > 0) && tot > 0 && n > 0) par = Math.round(tot / n * 100) / 100;
   const nome = g('cNome').trim(), sin = parseValor(g('cSin')), sinDia = parseInt(g('cSiD'), 10) || dia;
   if (nome && par > 0 && mes) {
@@ -1135,13 +1140,14 @@ function lerContrato(){
       let v = par; if (n > 0 && tot > 0 && !(parseValor(g('cPar')) > 0) && i === n) v = Math.round((tot - par * (n - 1)) * 100) / 100;
       L.push({ mes: somaMes(mes, i - 1), dia, parcela: n > 0 ? i + 'de' + n : 'mensal', parcela_n: n > 0 ? i : null, parcela_de: n > 0 ? n : null, valor: v });
     }
+    totalCtr = L.reduce((a, x) => a + x.valor, 0) + (sin > 0 ? sin : 0); L.splice(1);   // só o primeiro mês: os próximos entram quando o mês for preparado
     if (sin > 0) L.unshift({ mes, dia: sinDia, parcela: 'entrada', parcela_n: null, parcela_de: null, valor: sin });
   }
-  return { nome, par, n, L, tot: L.reduce((a, x) => a + x.valor, 0) };
+  return { nome, par, n, L, tot: totalCtr, nPar: n > 0 ? n : 0 };
 }
 function previaContrato(){
   const e = document.getElementById('cPrev'); if (!e) return; const c = lerContrato();
-  e.innerHTML = c.L.length ? 'Vai lançar <b>' + c.L.length + '</b> ' + (c.n > 0 ? 'parcelas' : 'meses (mensal; dá para estender depois)') + ' · total <b>' + BRL(c.tot) + '</b> · de ' + rotCurto(c.L[0].mes) + ' a ' + rotCurto(c.L[c.L.length - 1].mes) : 'Preencha o nome, o valor e o primeiro mês.';
+  e.innerHTML = c.L.length ? 'Vai lançar só <b>' + rotCurto(c.L[0].mes) + '</b> agora' + (c.n > 0 ? ' (parcela 1 de ' + c.n + ' · contrato total <b>' + BRL(c.tot) + '</b>)' : ' (mensal, sem fim)') + '. As próximas parcelas entram quando você preparar cada mês.' : 'Preencha o nome, o valor e o primeiro mês.';
 }
 async function salvaContrato(){
   const c = lerContrato(); if (!c.L.length) return toast('Falta nome, valor ou mês.');
@@ -1149,7 +1155,7 @@ async function salvaContrato(){
   const base = { ambiente: AMB, sentido: CTR, grupo: g('cGru'), descricao: c.nome, forma: g('cFor').trim() || null, obs: g('cObs').trim() || null, vendedor: ent ? (g('cVen').trim() || null) : null, pago: false, conta: true };
   const rows = c.L.map(x => Object.assign({}, base, x));
   const r = await sb.from('fin_lancamentos').insert(rows).select(); if (r.error) return toast(r.error.message);
-  D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); fecha(); desenha(); toast(rows.length + ' lançamentos criados.');
+  D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); fecha(); desenha(); toast(rows.length + ' lançamento' + (rows.length > 1 ? 's' : '') + ' criado' + (rows.length > 1 ? 's' : '') + ' em ' + rotMes(rows[rows.length - 1].mes) + '. Os próximos meses entram ao prepará-los.');
 }
 
 
