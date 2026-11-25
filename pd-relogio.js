@@ -28,7 +28,7 @@
   #pdRel .rl-seta:hover{opacity:1}
   #pdRel .rl-seta svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   #pdRel.aberto .rl-seta{transform:rotate(180deg)}
-  #pdRel .rl-lista{position:absolute;left:50%;top:calc(100% + 2px);width:min(360px,calc(100vw - 24px));max-height:min(64vh,540px);overflow-y:auto;overscroll-behavior:contain;padding:6px 4px 10px;color:#fff;transform:translateX(-50%);display:none;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.4) transparent;text-shadow:0 1px 3px #000,0 0 9px rgba(0,0,0,.85)}
+  #pdRel .rl-lista{position:absolute;left:50%;top:calc(100% + 2px);width:min(360px,calc(100vw - 24px));max-height:min(64vh,540px);overflow-y:auto;overscroll-behavior:contain;padding:8px 6px 10px;border-radius:20px;background:rgba(10,11,10,.78);-webkit-backdrop-filter:blur(26px) saturate(.8);backdrop-filter:blur(26px) saturate(.8);box-shadow:0 18px 44px rgba(0,0,0,.5),inset 0 0 0 .5px rgba(255,255,255,.16);color:#fff;transform:translateX(-50%);display:none;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.4) transparent;text-shadow:0 1px 3px #000,0 0 9px rgba(0,0,0,.85)}
   #pdRel.aberto .rl-lista{display:block;animation:rlIn .28s cubic-bezier(.22,.8,.24,1)}
   #pdRel.acima .rl-lista{top:auto;bottom:calc(100% + 30px)}
   #pdRel.esq .rl-lista{left:0;transform:none}
