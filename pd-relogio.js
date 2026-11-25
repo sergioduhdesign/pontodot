@@ -114,8 +114,10 @@
     const out = [], hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     const T = Array.isArray(g('tasksReais')) ? g('tasksReais') : [];
     const dias = t => { const p = String(t.date_int || t.date_cli || '').slice(0, 10); if (!p) return null; return Math.round((new Date(p + 'T12:00:00') - hoje) / 864e5); };
-    T.forEach(t => {
-      const n = dias(t), st = String(t.status || ''), cli = (t.clients && t.clients.name) || 'SD', quem = t.resp ? ' · ' + t.resp : '';
+    let eu = ''; try { eu = typeof chaveDe === 'function' ? chaveDe(g('perfil')) : ''; } catch (e) {}
+    const minha = t => { if (!eu) return true; const r = typeof semAcento === 'function' ? semAcento(t.resp) : String(t.resp || '').toUpperCase(); return r === eu || r.split(/[,;/&+]+|\s+E\s+/).map(x => x.trim()).includes(eu) || r.split(/\s+/)[0] === eu; };   // só as MINHAS demandas
+    T.filter(minha).forEach(t => {
+      const n = dias(t), st = String(t.status || ''), cli = (t.clients && t.clients.name) || 'SD', quem = '';
       const base = { titulo: String(t.action || t.id).slice(0, 70), tarefa: t.id };
       if (st === 'ALTERAÇÃO') out.push({ ...base, p: 1, u: 1, i: 'aprovacoes', sub: cli + ' · pediu alteração', a: 'aprov' });
       else if (n !== null && n < 0) out.push({ ...base, p: 2 + Math.min(.9, 1 / (1 - n)), u: 1, i: 'tarefas', sub: cli + ' · atrasada ' + (-n) + (n === -1 ? ' dia' : ' dias') + quem, a: 'tarefa', hot: 1 });
