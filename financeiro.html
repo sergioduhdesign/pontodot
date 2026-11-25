@@ -1151,7 +1151,7 @@ async function virarMes(){
   const prox = somaMes(MES, 1), novos = [], ja = doMes(prox);
   const chv = l => l.sentido + '|' + normNome(l.descricao) + '|' + (l.parcela_n || (/^(mensal|fixo)$/i.test((l.parcela || '').trim()) ? 'm' : ''));
   const jaTem = n => ja.some(x => x.conta && x.grupo !== 'saldo' && x.grupo !== 'retirada' && chv(x) === chv(n));   // contrato já lançou: não repete
-  doMes(MES).filter(l => l.conta && l.grupo !== 'saldo').forEach(l => {
+  doMes(MES).filter(l => l.conta && l.grupo !== 'saldo' && l.grupo !== 'retirada').forEach(l => {   // retirada é criada à parte (uma só); copiar também duplicava
     const fixa = /^(mensal|fixo)$/i.test((l.parcela || '').trim());
     let par = l.parcela, pn = l.parcela_n;
     if (l.parcela_de) { if (l.parcela_n >= l.parcela_de) return; pn = l.parcela_n + 1; par = pn + 'de' + l.parcela_de; }
