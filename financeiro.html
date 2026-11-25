@@ -1120,6 +1120,27 @@ async function salvaLanc(){
   if (l.sentido === 'entrada') o.vendedor = ($('#fVen') && $('#fVen').value.trim()) || null;
   o.situacao = o.pago ? 'OK' : (l.situacao && l.situacao.toUpperCase() !== 'OK' ? l.situacao : null);
   const mov = l.id && $('#fMov') && $('#fMov').checked; if (mov) { o.mes = somaMes(l.mes, 1); o.pago = false; o.situacao = null; }
+  if (l.id && !mov) { const seg = seguintesDe(l, o); if (seg.lista.length) { PEND = { l, o, mov, seg }; return folhaPropaga(l, seg); } }   // pagamento que se repete: pergunta se vale para os meses seguintes
+  return gravaLanc(l, o, mov, null);
+}
+// ---- mudou algo num pagamento que se repete: aplicar também aos meses seguintes (nunca aos anteriores)? ----
+let PEND = null;
+function seguintesDe(l, o){
+  const nz = v => (v == null || v === '') ? null : v, campos = {}, nomes = { grupo: 'grupo', valor: 'valor', forma: 'como', dia: 'dia', vendedor: 'vendedor(a)' };
+  ['grupo', 'valor', 'forma', 'dia', 'vendedor'].forEach(k => { if (k === 'vendedor' && l.sentido !== 'entrada') return; if (nz(o[k]) !== nz(l[k]) && !(k === 'valor' && Math.abs(o.valor - l.valor) < 0.005)) campos[k] = o[k]; });
+  if (!Object.keys(campos).length || !l.id) return { lista: [], campos, nomes };
+  const nome = normNome(l.descricao), pm = {}; 
+  (D[AMB] || []).filter(x => x.id !== l.id && x.mes > l.mes && x.sentido === l.sentido && x.grupo !== 'saldo' && x.grupo !== 'retirada' && normNome(x.descricao) === nome && (x.parcela_de || null) === (l.parcela_de || null)).forEach(x => (pm[x.mes] = pm[x.mes] || []).push(x));
+  const lista = []; Object.keys(pm).sort().forEach(m => { let c = pm[m]; if (c.length > 1) c = c.filter(x => x.grupo === l.grupo && Math.abs(x.valor - l.valor) < 0.005); if (c.length === 1) lista.push(c[0]); });
+  return { lista, campos, nomes };
+}
+function folhaPropaga(l, seg){
+  const meses = seg.lista.map(x => x.mes), fmt = (k, v) => k === 'valor' ? BRL(v) : k === 'grupo' ? grupoInfo(v, l.sentido).nome : (v == null || v === '' ? '(vazio)' : v);
+  folha('<h3>Mudar nos meses seguintes?</h3><div class="nota" style="padding:0 0 12px;line-height:1.55"><b>' + esc(l.descricao) + '</b> se repete em <b>' + seg.lista.length + '</b> mês' + (seg.lista.length > 1 ? 'es' : '') + ' depois deste (' + rotCurto(meses[0]) + (meses.length > 1 ? ' a ' + rotCurto(meses[meses.length - 1]) : '') + '). Você mudou:<br>' +
+    Object.keys(seg.campos).map(k => '· ' + seg.nomes[k] + ': ' + esc(String(fmt(k, l[k]))) + ' → <b>' + esc(String(fmt(k, seg.campos[k]))) + '</b>').join('<br>') + '<br>Os meses anteriores não mudam.</div>' +
+    '<div class="bts"><button class="bt sec" data-fechar="1">Cancelar</button><button class="bt sec" data-propaga="0">Só este mês</button><button class="bt" data-propaga="1">Este e os seguintes</button></div>');
+}
+async function gravaLanc(l, o, mov, seg){
   let r;
   if (l.id) r = await sb.from('fin_lancamentos').update(o).eq('id', l.id).select().single();
   else r = await sb.from('fin_lancamentos').insert(Object.assign(o, { ambiente: AMB, mes: MES, sentido: l.sentido })).select().single();
@@ -1127,7 +1148,8 @@ async function salvaLanc(){
   const nv = Object.assign(r.data, { valor: Number(r.data.valor) }), i = D[AMB].findIndex(x => x.id === nv.id);
   if (i >= 0) D[AMB][i] = nv; else D[AMB].push(nv);
   let extra = '';
-  try { if (l.id && $('#fFix') && $('#fFix').checked && d !== (l.descricao || '').trim()) { const c = await corrigeNomes(l, d); if (c) extra += ' · nome corrigido em mais ' + c; } } catch(e){ extra += ' · não consegui corrigir os outros: ' + (e.message || e); }
+  if (seg && seg.lista.length) { const ids = seg.lista.map(x => x.id), u = await sb.from('fin_lancamentos').update(seg.campos).in('id', ids); if (u.error) extra += ' · não consegui mudar os seguintes: ' + u.error.message; else { seg.lista.forEach(x => Object.assign(x, seg.campos)); extra += ' · e em mais ' + ids.length + ' mês' + (ids.length > 1 ? 'es' : ''); } }
+  try { if (l.id && $('#fFix') && $('#fFix').checked && o.descricao !== (l.descricao || '').trim()) { const c = await corrigeNomes(l, o.descricao); if (c) extra += ' · nome corrigido em mais ' + c; } } catch(e){ extra += ' · não consegui corrigir os outros: ' + (e.message || e); }
   try {
     if (AMB === 'casa' && nv.sentido === 'entrada' && normNome(nv.descricao) === 'STRAT/PD' && D.empresa) { const r2 = await setRetirada(nv.mes, nv.valor); extra = ' · retirada da Empresa acompanhou' + r2.aviso; }
     else if (nv.grupo !== 'retirada') { const c = await cascata(AMB, mov ? l.mes : nv.mes); if (c) extra = ' · ' + c + ' mês(es) seguinte(s) atualizado(s)'; }
@@ -1503,6 +1525,7 @@ document.addEventListener('click', e => {
   if ((el = q('[data-novo]'))) { folhaLanc(null, el.dataset.novo); return; }
   if ((el = q('[data-virar]'))) { virarMes(); return; }
   if (q('[data-limpames]')) { folhaLimpaMes(); return; }
+  if ((el = q('[data-propaga]'))) { if (PEND) { const P = PEND; PEND = null; gravaLanc(P.l, P.o, P.mov, el.dataset.propaga === '1' ? P.seg : null); } return; }
   if (q('[data-limpaok]')) { limpaMes(); return; }
   if ((el = q('[data-contrato]'))) { folhaContrato(el.dataset.contrato); return; }
   if (q('[data-salvacontrato]')) { salvaContrato(); return; }
