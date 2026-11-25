@@ -854,14 +854,16 @@ function bancosLinha(){
   if (C === undefined) { CTAS[AMB] = null; carregaContas().then(() => { if ($('#veu').classList.contains('hid')) hero(); }).catch(() => { CTAS[AMB] = []; }); return ''; }
   if (C === null) return '';
   const tot = C.reduce((a, c) => a + c.valor, 0), ult = C.reduce((a, c) => c.atualizado_em > a ? c.atualizado_em : a, '');
+  const vazio = C.length > 0 && C.every(c => c.valor === 0);   // vazio = ainda não informado neste mês: vermelho para destacar
   if (!C.length) return podeEditar() ? '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Saldo atual (nos bancos)</span><b>informar ' + ICL + '</b></div>' : '';
+  if (vazio) return '<div class="ln ed neg" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span class="neg">Saldo atual (nos bancos) · informar o deste mês</span><b class="neg">— ' + ICL + '</b></div>';
   return '<div class="ln ed" data-contas="1" style="margin:8px 0 0;cursor:pointer"><span>Saldo atual (nos bancos) · ' + C.length + ' conta' + (C.length > 1 ? 's' : '') + (ult ? ' · ' + new Date(ult).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '') + '</span><b>' + BRL(tot) + ' ' + ICL + '</b></div>';
 }
-const ctLinha = c => '<div class="ct" data-cid="' + (c.id || '') + '"><input class="ctN" value="' + esc(c.nome || '') + '" placeholder="Onde (Santander, Nu…)" autocomplete="off"><input class="ctV" inputmode="decimal" value="' + esc(c.valor === '' || c.valor == null ? '' : String(c.valor).replace('.', ',')) + '" placeholder="0,00"><button type="button" class="ctx" data-ctdel="1" title="Tirar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
+const ctLinha = c => '<div class="ct" data-cid="' + (c.id || '') + '"><input class="ctN" value="' + esc(c.nome || '') + '" placeholder="Onde (Santander, Nu…)" autocomplete="off"><input class="ctV" inputmode="decimal" value="' + esc(c.valor === '' || c.valor == null || c.valor === 0 ? '' : String(c.valor).replace('.', ',')) + '" placeholder="0,00" style="' + (c.valor === 0 ? 'border-color:var(--verm)' : '') + '"><button type="button" class="ctx" data-ctdel="1" title="Tirar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
 async function folhaContas(){
   let C; try { CTAS[AMB] = CTAS[AMB] || undefined; C = await carregaContas(); } catch(e){ return toast(/fin_contas/.test(e.message || '') ? 'Falta rodar o migration_v188 no Supabase.' : (e.message || 'Erro')); }
   CT_DEL = []; const ed = podeEditar();
-  folha('<h3>Saldo atual</h3><div class="nota" style="padding:0 0 10px;line-height:1.5">Quanto tem hoje em cada banco ou lugar (' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '). Esse é o dinheiro de verdade; não entra na conta dos meses.</div>' +
+  folha('<h3>Saldo atual</h3><div class="nota" style="padding:0 0 10px;line-height:1.5">Quanto tem hoje em cada banco ou lugar (' + (AMB === 'empresa' ? 'Empresa' : 'Casa') + '). Esse é o dinheiro de verdade; não entra na conta dos meses. Ao preparar um mês novo, ele volta a vazio (em vermelho) para você informar de novo.</div>' +
     '<div id="ctLista">' + C.map(ctLinha).join('') + (C.length || !ed ? '' : ctLinha({})) + '</div>' +
     (ed ? '<button class="add" style="width:100%;margin:2px 0 12px" data-ctadd="1">+ Adicionar lugar</button>' : '') +
     '<div class="ln" style="margin:4px 0 8px"><span>Total nos bancos</span><b id="ctTot">—</b></div>' +
@@ -1101,7 +1103,9 @@ async function virarMes(){
   if (!novos.length && !muda.length) return toast('Nada para copiar.');
   for (const [lx, v] of muda) { const u = await sb.from('fin_lancamentos').update({ valor: v }).eq('id', lx.id); if (u.error) return toast(u.error.message); lx.valor = v; }
   if (novos.length) { const r = await sb.from('fin_lancamentos').insert(novos).select(); if (r.error) return toast(r.error.message); D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); }
-  MES = prox; desenha(); toast(rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido e ' + Math.max(0, novos.length - 1) + ' lançamentos copiados — confira os valores.');
+  let zerou = false;   // saldo nos bancos é controle manual do mês: ao avançar a frente do calendário, volta a vazio (e vermelho) para ser informado de novo
+  if (!(D[AMB] || []).some(x => x.mes > prox) && (CTAS[AMB] || []).some(c => c.valor !== 0)) { const z = await sb.from('fin_contas').update({ valor: 0 }).eq('ambiente', AMB); if (!z.error) { CTAS[AMB] = undefined; zerou = true; } }
+  MES = prox; desenha(); toast(rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido, ' + Math.max(0, novos.length - 1) + ' lançamentos copiados' + (zerou ? '; saldo nos bancos zerado para você informar.' : '.') + ' Confira os valores.');
 }
 async function alternaPago(id){
   const l = dados().find(x => x.id === id); if (!l || !podeEditar()) return; const novo = !l.pago;
