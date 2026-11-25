@@ -1169,7 +1169,18 @@ async function virarMes(){
   if (novos.length) { const r = await sb.from('fin_lancamentos').insert(novos).select(); if (r.error) return toast(r.error.message); D[AMB] = D[AMB].concat(r.data.map(x => Object.assign(x, { valor: Number(x.valor) }))); }
   let zerou = false;   // saldo nos bancos é controle manual do mês: ao avançar a frente do calendário, volta a vazio (e vermelho) para ser informado de novo
   if (!exS && !(D[AMB] || []).some(x => x.mes > prox) && (CTAS[AMB] || []).some(c => c.valor !== 0)) { const z = await sb.from('fin_contas').update({ valor: 0 }).eq('ambiente', AMB); if (!z.error) { CTAS[AMB] = undefined; zerou = true; } }
-  MES = prox; desenha(); toast(rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido, ' + Math.max(0, novos.length - 1) + ' lançamentos copiados' + (zerou ? '; saldo nos bancos zerado para você informar.' : '.') + ' Confira os valores.');
+  const seg = await cascata(prox);
+  MES = prox; desenha(); toast((seg ? seg + ' mês(es) seguinte(s) tiveram o saldo recalculado. ' : '') + rotMes(prox) + ' preparado: saldo de ' + rotMes(somaMes(prox, -1)) + ' trazido, ' + Math.max(0, novos.length - 1) + ' lançamentos copiados' + (zerou ? '; saldo nos bancos zerado para você informar.' : '.') + ' Confira os valores.');
+}
+// o saldo de cada mês é guardado como linha; se algo muda num mês anterior, os meses seguintes já preparados precisam seguir (senão o saldo fica velho e parece que acumula errado)
+async function cascata(de){
+  let m = somaMes(de, 1), n = 0, guarda = 0;
+  while (doMes(m).some(l => l.grupo === 'saldo') && guarda++ < 36) {
+    const a = somaMes(m, -1), t = totais(a), rr = AMB === 'empresa' ? retRow(a) : null, v = Math.round((t.sobra - (rr ? rr.valor : 0)) * 100) / 100, ex = doMes(m).find(l => l.grupo === 'saldo');
+    if (Math.abs(ex.valor - v) >= 0.01) { const u = await sb.from('fin_lancamentos').update({ valor: v }).eq('id', ex.id); if (u.error) break; ex.valor = v; n++; }
+    m = somaMes(m, 1);
+  }
+  return n;
 }
 async function alternaPago(id){
   const l = dados().find(x => x.id === id); if (!l || !podeEditar()) return; const novo = !l.pago;
