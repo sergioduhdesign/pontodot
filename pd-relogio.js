@@ -4,7 +4,8 @@
 (function () {
   'use strict';
   if (self !== top || window.pdRel) return;
-  const K_POS = 'sd_rel_pos', K_MODO = 'sd_rel_modo', Z = 9700;
+  const K_POS = 'sd_rel_pos', K_MODO = 'sd_rel_modo', K_OFF = 'sd_rel_off', Z = 9700;
+  let desligado = false; try { desligado = localStorage.getItem(K_OFF) === '1'; } catch (e) {}
   let modo = 'urgentes', canto = null, livre = false, aberto = false, ocupada = false, tam = 124, drag = null, alvo = null, atual = null, raf = 0, ultimaCara = '';
   try { modo = localStorage.getItem(K_MODO) === 'tudo' ? 'tudo' : 'urgentes'; canto = JSON.parse(localStorage.getItem(K_POS) || 'null'); } catch (e) {}
 
@@ -232,7 +233,7 @@
   /* ---------- ciclo: acompanha a tela ---------- */
   function ciclo() {
     if (document.hidden) return;
-    const visivel = !!document.getElementById('telaHome') && !(typeof ehCliente === 'function' && ehCliente());
+    const visivel = !desligado && !!document.getElementById('telaHome') && !(typeof ehCliente === 'function' && ehCliente());
     el.classList.toggle('some', !visivel); if (!visivel) return;
     const oc = ehOcupada(); if (oc !== ocupada) { ocupada = oc; if (oc) { fecha(); } else livre = false; }
     const cara = (typeof caraDaIA === 'function') ? (() => { try { return caraDaIA(); } catch (e) { return ''; } })() : '';
@@ -246,5 +247,6 @@
     .observe(document.body, { childList: true });
   setInterval(ciclo, 700); setInterval(pinta, 15000); setInterval(hora, 20000);
   setTimeout(() => { ciclo(); pinta(); pegaClima(); }, 800); setInterval(pegaClima, 5 * 60e3); pintaClima();
-  window.pdRel = { atualiza: () => { ciclo(); pinta(); }, abre, fecha };
+  window.pdRel = { atualiza: () => { ciclo(); pinta(); }, abre, fecha, desligado: () => desligado,
+    alterna: () => { desligado = !desligado; try { localStorage.setItem(K_OFF, desligado ? '1' : '0'); } catch (e) {} if (desligado) fecha(); ciclo(); if (!desligado) pinta(); return desligado; } };
 })();

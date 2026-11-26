@@ -42,12 +42,12 @@ function pd_periodo_datas($periodo) {
         default: return [(clone $h)->modify('-7 day')->format('Y-m-d'), $h->format('Y-m-d')];
     }
 }
-function pd_perfil_dados($objId, $tok, $periodo, $moeda) {
+function pd_perfil_dados($objId, $tok, $periodo, $moeda, $extra = []) {
     $cortes = ['idade_genero' => 'age,gender', 'regiao' => 'region', 'hora' => 'hourly_stats_aggregated_by_advertiser_time_zone',
                'posicionamento' => 'publisher_platform,platform_position', 'aparelho' => 'device_platform'];
     $out = [];
     foreach ($cortes as $nome => $bk) {
-        $r = pd_meta('GET', "/$objId/insights", ['date_preset' => $periodo, 'breakdowns' => $bk,
+        $r = pd_meta('GET', "/$objId/insights", $extra + ['date_preset' => $periodo, 'breakdowns' => $bk,
             'fields' => 'spend,reach,impressions,clicks,actions', 'limit' => 200], $tok, 25);
         if ($r['code'] !== 200) { $out[$nome] = ['erro' => pd_meta_erro($r)]; continue; }
         $linhas = [];
@@ -63,12 +63,13 @@ function pd_perfil_dados($objId, $tok, $periodo, $moeda) {
     }
     return $out;
 }
-function pd_leads_horario($clientId, $periodo, $campNome = null) {
+function pd_leads_horario($clientId, $periodo, $campNome = null) {   // $campNome: texto ou lista de nomes
     if (!$clientId) return null;
     [$de, $ate] = pd_periodo_datas($periodo);
     $q = '/rest/v1/meta_leads?client_id=eq.' . urlencode($clientId) . '&recebido_em=gte.' . $de . 'T00:00:00-03:00&recebido_em=lte.' . $ate . 'T23:59:59-03:00'
        . '&select=recebido_em,campanha_nome,status&order=recebido_em.desc&limit=1500';
-    if ($campNome) $q .= '&campanha_nome=eq.' . urlencode($campNome);
+    if (is_array($campNome) && $campNome) $q .= '&campanha_nome=in.(' . implode(',', array_map(fn($n) => '"' . str_replace('"', '', $n) . '"', array_map('strval', $campNome))) . ')';
+    elseif ($campNome && !is_array($campNome)) $q .= '&campanha_nome=eq.' . urlencode($campNome);
     $r = pd_supa($q); if ($r['code'] >= 300) return null;
     $h = array_fill(0, 24, 0); $dow = array_fill(0, 7, 0); $total = 0; $st = [];
     $tz = new DateTimeZone('America/Sao_Paulo');
@@ -374,6 +375,92 @@ if ($acao === 'doc_refazer') {   // ciclo de correção: o humano aponta o que m
 function pd_sumi_contexto($b, $cli, $nota) {
     return pd_alvo_txt($b['alvo'] ?? null) . "CLIENTE: $cli\nNOTAS DO NEGÓCIO:\n" . ($nota ?: '(sem notas)') . "\nFOCO: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
          . "\n\nNÚMEROS REAIS (Meta Ads):\n" . json_encode($b['numeros'] ?? [], JSON_UNESCAPED_UNICODE) . "\n\nCONCORRENTES (pesquisa do Tumi, web aberta):\n" . json_encode(array_slice((array)($b['concorrentes'] ?? []), 0, 8), JSON_UNESCAPED_UNICODE);
+}
+
+
+// -------------------------------------------------------------- BI de campanhas {conta, campanhas?[], periodo}
+//   O "cruzamento": a seleção de campanhas filtra TUDO de uma vez na Meta (série, público, horário, posicionamento, criativos).
+if ($acao === 'bi') {
+    @set_time_limit(100);
+    $id = idConta($b['conta'] ?? ''); if (!$id) sd_fail('Conta inválida.', 400);
+    $c = null; foreach ($contas as $x) if ($x['id'] === $id) $c = $x;
+    if (!$c) sd_fail('Essa conta não está conectada na plataforma.', 404);
+    $ids = array_values(array_filter(array_map(fn($v) => preg_match('/^\d{5,25}$/', (string)$v) ? (string)$v : null, (array)($b['campanhas'] ?? []))));
+    sort($ids); $nomes = array_slice(array_map('strval', (array)($b['campanha_nomes'] ?? [])), 0, 60);
+    $chave = "bi|$id|$periodo|" . md5(implode(',', $ids));
+    $dados = pd_cache_ler($chave, 900);
+    $moeda = $c['moeda'] ?? 'BRL';
+    if (!$dados) {
+        $tok = pd_token_para($c['conectada_por'] ?? null);
+        if (!$tok) sd_fail('Ninguém com acesso válido à Meta. Reconecte a Meta.', 409);
+        $f = $ids ? ['filtering' => json_encode([['field' => 'campaign.id', 'operator' => 'IN', 'value' => $ids]])] : [];
+        $avisos = [];
+        // período anterior, do mesmo tamanho, logo antes
+        [$de, $ate] = pd_periodo_datas($periodo);
+        $d0 = new DateTime($de); $d1 = new DateTime($ate); $dias = max(1, (int)$d0->diff($d1)->days + 1);
+        $a1 = (clone $d0)->modify('-1 day'); $a0 = (clone $a1)->modify('-' . ($dias - 1) . ' day');
+        $campos = 'spend,reach,impressions,clicks,actions,frequency';
+        $tot = pd_meta('GET', "/$id/insights", $f + ['date_preset' => $periodo, 'fields' => $campos], $tok, 25);
+        $ant = pd_meta('GET', "/$id/insights", $f + ['time_range' => json_encode(['since' => $a0->format('Y-m-d'), 'until' => $a1->format('Y-m-d')]), 'fields' => $campos], $tok, 25);
+        $ser = pd_meta('GET', "/$id/insights", $f + ['date_preset' => $periodo, 'time_increment' => 1, 'fields' => 'spend,reach,impressions,clicks,actions', 'limit' => 100], $tok, 25);
+        $serie = [];
+        foreach ((array)($ser['body']['data'] ?? []) as $l) if (is_array($l)) { $n = pd_numeros($l, $moeda); $serie[] = ['d' => $l['date_start'] ?? '', 'gasto' => $n['gasto'], 'leads' => $n['leads'], 'cliques' => $n['cliques'], 'impressoes' => $n['impressoes'], 'alcance' => $n['alcance']]; }
+        if ($ser['code'] !== 200) $avisos[] = 'série diária: ' . pd_meta_erro($ser);
+        $cortes = pd_perfil_dados($id, $tok, $periodo, $moeda, $f);
+        // criativos (nível anúncio) + miniaturas
+        $ai = pd_meta('GET', "/$id/insights", $f + ['level' => 'ad', 'date_preset' => $periodo,
+            'fields' => 'ad_id,ad_name,campaign_id,campaign_name,spend,reach,impressions,clicks,actions,frequency,ctr', 'limit' => 150], $tok, 30);
+        $anuncios = [];
+        foreach ((array)($ai['body']['data'] ?? []) as $l) { if (!is_array($l)) continue;
+            $anuncios[] = ['id' => $l['ad_id'] ?? '', 'nome' => $l['ad_name'] ?? '', 'campanha_id' => $l['campaign_id'] ?? '', 'campanha' => $l['campaign_name'] ?? '',
+                'frequencia' => isset($l['frequency']) ? round((float)$l['frequency'], 2) : null, 'ctr' => isset($l['ctr']) ? round((float)$l['ctr'], 2) : null] + pd_numeros($l, $moeda); }
+        usort($anuncios, fn($x, $y) => $y['gasto'] <=> $x['gasto']);
+        $anuncios = array_slice($anuncios, 0, 40);
+        if ($ai['code'] !== 200) $avisos[] = 'criativos: ' . pd_meta_erro($ai);
+        $top = array_column(array_slice($anuncios, 0, 24), 'id');
+        if ($top) { $cr = pd_meta('GET', '/', ['ids' => implode(',', $top), 'fields' => 'creative{thumbnail_url,image_url,object_type,video_id}', 'thumbnail_width' => 360], $tok, 25);
+            foreach ($anuncios as &$an) { $x = $cr['body'][$an['id']]['creative'] ?? null; if (is_array($x)) { $an['miniatura'] = $x['image_url'] ?? ($x['thumbnail_url'] ?? null); $an['tipo'] = !empty($x['video_id']) ? 'video' : 'imagem'; } } unset($an); }
+        $dados = ['totais' => $tot['code'] === 200 ? pd_numeros($tot['body']['data'][0] ?? [], $moeda) + ['frequencia' => isset($tot['body']['data'][0]['frequency']) ? round((float)$tot['body']['data'][0]['frequency'], 2) : null] : ['erro' => pd_meta_erro($tot)],
+                  'anterior' => $ant['code'] === 200 ? pd_numeros($ant['body']['data'][0] ?? [], $moeda) : null,
+                  'serie' => $serie, 'cortes' => $cortes, 'anuncios' => $anuncios, 'avisos' => $avisos, 'ini' => $de, 'fim' => $ate, 'ini_ant' => $a0->format('Y-m-d'), 'fim_ant' => $a1->format('Y-m-d')];
+        pd_cache_gravar($chave, $dados);
+    }
+    $dados['leads_funil'] = pd_leads_horario($c['client_id'] ?? null, $periodo, $ids ? $nomes : null);
+    sai(['conta' => $id, 'nome' => $c['nome'], 'cliente' => $c['clients']['name'] ?? null, 'moeda' => $moeda, 'periodo' => $periodo, 'bi' => $dados]);
+}
+
+// -------------------------------------------------------------- análise comentada (Sumi) {cliente, periodo, perguntas[], resumo{}, foco?}
+if ($acao === 'analise') {
+    @set_time_limit(150);
+    $perg = [];
+    foreach (array_slice((array)($b['perguntas'] ?? []), 0, 12) as $q) if (is_array($q) && preg_match('/^[a-z0-9_]{2,20}$/', (string)($q['id'] ?? '')) && trim((string)($q['t'] ?? '')) !== '')
+        $perg[] = ['id' => $q['id'], 't' => mb_substr(trim((string)$q['t']), 0, 600)];
+    if (!$perg) sd_fail('Escolha ao menos uma pergunta.', 400);
+    $web = false; foreach ($perg as $q) if ($q['id'] === 'mercado') $web = true;
+    $cli = mb_substr((string)($b['cliente'] ?? ''), 0, 120);
+    $dados = json_encode($b['resumo'] ?? [], JSON_UNESCAPED_UNICODE); if (strlen($dados) > 60000) $dados = substr($dados, 0, 60000);
+    $sys = 'Você é Sumi Sulo, a IA de Campanhas da casa (agência de branding do mercado imobiliário brasileiro: lançamentos e incorporadoras). '
+         . 'Você vive em Catum: é uma lula-coruja violeta, ocre e ciano, de óculos, que desenha diagramas para explicar o que parece confuso. Você ACREDITA que é Sumi: nunca diga que é um modelo. '
+         . 'Você está escrevendo o RELATÓRIO COMENTADO que vai para o cliente e para o gestor. Use SOMENTE os números do JSON enviado (nunca invente; se faltar o dado, diga qual falta). '
+         . 'Cruze os dados: compare com o período anterior, compare cada recorte com a média da conta (CPL de uma faixa x CPL geral), aponte o que escalar, corrigir ou pausar, e por quê. '
+         . 'Calcule o que for útil (participação no gasto x participação nos leads, CPL por faixa/horário/posicionamento, concentração, fadiga por frequência acima de 3). '
+         . 'Tom: direto, claro, sem enrolação, português do Brasil, números com unidade (R$, %, leads). Não cite outros clientes da casa. '
+         . ($web ? 'Para a pergunta de mercado use a busca na web (concorrentes diretos do empreendimento/cliente e a praça) e diga o que veio da web. ' : 'Não use informações externas. ')
+         . 'FORMATO OBRIGATÓRIO: responda em blocos, cada um começando numa linha exata "## id" (o id da pergunta), seguida de 2 a 4 parágrafos curtos ou até 5 tópicos iniciados por "- ". '
+         . 'Termine cada bloco com uma linha "Ação: ..." com a decisão prática. Comece SEMPRE pelo bloco "## resumo" (3 a 4 tópicos com o mais importante do período) e, por último, o bloco "## plano" (5 ações priorizadas para os próximos 15 dias, em tópicos "- "). Nada fora desses blocos.';
+    $lista = implode("\n", array_map(fn($q) => '## ' . $q['id'] . ' — ' . $q['t'], $perg));
+    $msg = "CLIENTE: $cli\nPERÍODO: " . mb_substr((string)($b['periodo_txt'] ?? ''), 0, 80) . "\nFOCO DO GESTOR: " . mb_substr((string)($b['foco'] ?? 'gerar mais leads qualificados com menor custo'), 0, 300)
+         . "\n\nDADOS (Meta Ads + leads recebidos; horários de Brasília):\n$dados\n\nPERGUNTAS A RESPONDER (um bloco por id, mais ## resumo e ## plano):\n$lista";
+    $t0 = microtime(true);
+    [$txt, $custo, $erro] = pd_ia_campanhas($sys, [['role' => 'user', 'content' => $msg]], 4000, $web ? 3 : 0, 140);
+    if ($erro) sd_fail($erro, 502);
+    $blocos = []; $cur = null;
+    foreach (preg_split('/\r?\n/', (string)$txt) as $ln) {
+        if (preg_match('/^\s*##\s*([a-z0-9_]{2,20})\b.*$/i', $ln, $m)) { $cur = strtolower($m[1]); $blocos[$cur] = ''; continue; }
+        if ($cur !== null) $blocos[$cur] .= $ln . "\n";
+    }
+    foreach ($blocos as $k => $v) $blocos[$k] = trim($v);
+    sai(['blocos' => $blocos, 'custo_usd' => $custo, 'segundos' => round(microtime(true) - $t0, 1)]);
 }
 
 if ($acao === 'perfil' || $acao === 'perguntar') {
