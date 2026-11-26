@@ -657,7 +657,7 @@ AP.gerarPDF = async function(o){
   const total = items.length;
   const okN = items.filter(i => i.status === 'aprovado').length, fixN = items.filter(i => i.status === 'ajustar').length;
   const X = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  if (!window.PDPDF) await new Promise((ok, no) => { const t = document.createElement('script'); t.src = '/js/pd-pdf.js?v=659'; t.onload = ok; t.onerror = () => no(new Error('Não carreguei o motor de PDF.')); document.head.appendChild(t); });
+  if (!window.PDPDF) await new Promise((ok, no) => { const t = document.createElement('script'); t.src = '/js/pd-pdf.js?v=663'; t.onload = ok; t.onerror = () => no(new Error('Não carreguei o motor de PDF.')); document.head.appendChild(t); });
   const ROT = { feed:'Feed', carrossel:'Carrossel', stories:'Stories', post:'Post', reels:'Reels', anuncio:'Anúncio', material:'Material', generico:'Material' };
   const comMidia = items.filter(i => (i.media || []).length);
   const wide = comMidia.length > 0 && comMidia.every(i => ['anuncio','material','generico'].includes(i.kind));
