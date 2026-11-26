@@ -515,7 +515,7 @@ function pdfCasa(){
   ${prio.length ? '<h2>O que mais pesa no site</h2><div>' + prio.map(x => '<span class="ch" style="border-left:4px solid ' + corCh[x[1].sev] + '">' + e(NOME_P[x[0]] || x[0]) + '<i>' + x[1].n + '</i></span>').join('') + '</div>' : ''}
   ${R.site.length ? '<h2>Pontos do site inteiro</h2>' + R.site.map(x => '<div style="margin:3px 0;font-size:12.5px"><span class="ch" style="border-left:4px solid ' + corCh[x[1]] + '">' + e(SEV[x[1]]) + '</span>' + e(x[2]) + '</div>').join('') : ''}
   <h2>Página por página · antes, depois e o que a ${e(sumi)} identificou</h2>${blocos}`;
-  parent.pdfDoc('Diagnóstico de SEO', e(site.replace(/^https?:\/\//, '')) + ' · auditado em ' + new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR'), nome, corpo, { css, avoid: '.pgx' });
+  parent.pdfDoc('Diagnóstico de SEO', e(site.replace(/^https?:\/\//, '')) + ' · auditado em ' + new Date(FULL.criado_em || Date.now()).toLocaleDateString('pt-BR'), nome, corpo, { css, avoid: '.pgx', rotulo:'Diagnóstico', nota:'Informações confidenciais, de uso restrito à agência e ao cliente indicados.' });
 }
 function relatorioPdfSolo(){
   if (!FULL) return; const R = FULL.resumo, nome = cli().name || '';
