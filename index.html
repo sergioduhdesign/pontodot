@@ -2712,7 +2712,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v658 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v659 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -6416,88 +6416,12 @@ const PDF_LIBS = [['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/htm
 // opts.wide = conteúdo com colunas lado a lado (página um pouco mais larga); opts.css = estilos do conteúdo; opts.rotulo = etiqueta da capa.
 async function pdfDoc(titulo, sub, clienteNome, corpo, opts){ opts = opts || {};
   toast('Preparando o PDF…');
-  const cli = clientesReais.find(x => x.name === clienteNome);
-  const agNome = (typeof AGENCIA_NOME !== 'undefined' && AGENCIA_NOME) || 'SD Studio Design';
-  const agora = new Date();
-  const dataLonga = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
-  const hora = agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-  const W = opts.wide ? 720 : 540, H = Math.round(W * 16 / 9), PAD = Math.round(W * 0.055), TOPO = 64, RODA = 54;
-  const maxH = H - TOPO - RODA - 8;
-  const rast = (u, h) => new Promise(ok => { const im = new Image(); im.onload = () => { try { const w = Math.round(h * (im.naturalWidth || 4) / (im.naturalHeight || 1)) || h * 4, c = document.createElement('canvas'); c.width = w * 3; c.height = h * 3; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL('image/png')); } catch(e){ ok(u); } }; im.onerror = () => ok(u); im.src = u; });
-  const [lgBranco, lgPreto] = await Promise.all([rast(location.origin + '/assets/logo-pontodot-white.svg', 100), rast(location.origin + '/assets/logo-pontodot.svg', 100)]);
-  const ini = esc((clienteNome || 'PD').replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase() || 'PD');
-  const logoCapa = cli && cli.logo_url ? `<img crossorigin="anonymous" src="${esc(cli.logo_url)}" alt="">` : `<span>${ini}</span>`;
-  const logoMini = cli && cli.logo_url ? `<img crossorigin="anonymous" src="${esc(cli.logo_url)}" alt="">` : `<span>${ini}</span>`;
-  const CSS = `*{box-sizing:border-box}body{font:14px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#15161A;margin:0}
-  h2{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#6B6D75;margin:22px 0 10px;font-weight:600}
-  p{margin:0 0 8px}
-  .kk{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:9px}.k{background:#F4F3EF;border-radius:12px;padding:11px 13px}.k small{display:block;color:#6B6D75;font-size:10px;text-transform:uppercase;letter-spacing:.09em}.k b{display:block;font-size:20px;font-weight:600;margin-top:2px}
-  .row{display:flex;gap:13px;align-items:flex-start;padding:14px 0;border-top:1px solid #E4E3DE}.row img.th{width:84px;height:84px;border-radius:50%;object-fit:cover;background:#EEE;flex:0 0 84px}
-  .row .c{flex:1;min-width:0}.row b.n{font-size:14.5px}.row p{margin:3px 0 0;color:#55575F}.row .kk{margin-top:9px;grid-template-columns:repeat(auto-fit,minmax(88px,1fr))}.row .k{padding:7px 10px}.row .k b{font-size:15px}
-  .cp{font-size:10.5px;padding:2px 8px;border-radius:99px;background:#15161A;color:#fff;margin-left:6px;vertical-align:2px}.cp.p{background:#E4E3DE;color:#15161A}
-  table{width:100%;border-collapse:collapse}td{padding:7px 4px;border-top:1px solid #ECEBE6;vertical-align:top}td:last-child{text-align:right}
-  .rod{margin-top:26px;padding-top:12px;border-top:1px solid #E4E3DE;color:#6B6D75;font-size:11px;line-height:1.5}.rod b{color:#15161A;font-weight:600}.rod .leg{display:block;margin-top:5px;color:#8A8C94;font-size:9.5px}`;
-  const BASE = `.pdx{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
-  .pdx .pp{position:relative;width:${W}px;height:${H}px;overflow:hidden;background:#fff;color:#15161A}
-  .pdx .pp-h{position:absolute;left:${PAD}px;right:${PAD}px;top:0;height:${TOPO}px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #E4E3DE;font-size:11px;color:#6B6D75}
-  .pdx .pp-h .mini{width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid #E4E3DE;display:grid;place-items:center;overflow:hidden;flex:0 0 26px}.pdx .pp-h .mini img{width:100%;height:100%;object-fit:contain;padding:3px}.pdx .pp-h .mini span{font-size:9px;font-weight:700;color:#15161A}
-  .pdx .pp-h b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#15161A;font-weight:600;font-size:12px}
-  .pdx .pp-c{position:absolute;left:${PAD}px;right:${PAD}px;top:${TOPO + 4}px;bottom:${RODA}px;overflow:hidden}
-  .pdx .pp-f{position:absolute;left:${PAD}px;right:${PAD}px;bottom:0;height:${RODA}px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #E4E3DE;font-size:10.5px;color:#8A8C94}.pdx .pp-f img{height:13px;width:53px;opacity:.55;display:block}
-  .pdx .capa{background:#0B0C0D;color:#fff;padding:${PAD + 8}px ${PAD + 6}px}
-  .pdx .capa .pl{height:${Math.round(W * 0.07)}px;width:${Math.round(W * 0.07 * 4.058)}px;display:block}
-  .pdx .capa .mid{position:absolute;left:${PAD + 6}px;right:${PAD + 6}px;top:50%;transform:translateY(-52%)}
-  .pdx .capa .av{width:${Math.round(W * 0.27)}px;height:${Math.round(W * 0.27)}px;border-radius:50%;background:#fff;display:grid;place-items:center;overflow:hidden;box-shadow:0 0 0 7px rgba(255,255,255,.07),0 0 0 8px rgba(255,255,255,.18);margin-bottom:${Math.round(W * 0.09)}px}
-  .pdx .capa .av img{width:100%;height:100%;object-fit:contain;padding:${Math.round(W * 0.04)}px}.pdx .capa .av span{font-size:${Math.round(W * 0.08)}px;font-weight:600;color:#0B0C0D;letter-spacing:.02em}
-  .pdx .capa .rot{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:14px}
-  .pdx .capa h1{font-size:${Math.round(W * 0.078)}px;line-height:1.1;font-weight:300;letter-spacing:-.02em;margin:0;color:#fff;word-break:break-word}
-  .pdx .capa .sub{margin-top:16px;font-size:${Math.round(W * 0.03)}px;line-height:1.5;color:rgba(255,255,255,.62)}
-  .pdx .capa .fim{position:absolute;left:${PAD + 6}px;right:${PAD + 6}px;bottom:${PAD + 4}px;border-top:1px solid rgba(255,255,255,.18);padding-top:16px;display:flex;justify-content:space-between;gap:14px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.62)}
-  .pdx .capa .fim b{display:block;color:#fff;font-weight:500;font-size:12.5px}`;
-  const host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-99999px;top:0;background:#fff';
-  const rodape = `<div class="rod"><b>Gerado pela pontodot para a ${esc(agNome)}${clienteNome ? ' · Cliente ' + esc(clienteNome) : ''}</b><br>${esc(dataLonga)}, ${esc(hora)}<span class="leg">${opts.nota || 'Dados obtidos da Meta (Facebook, Instagram e Meta Ads) por conexão autorizada pelo titular das contas, por meio das APIs oficiais da Meta, apenas para leitura e somente para as contas vinculadas a este cliente. Informações confidenciais, de uso restrito à agência e ao cliente indicados; a plataforma não publica, altera nem compartilha esses dados com terceiros. Números sujeitos à atualização e à apuração da própria Meta.'}</span></div>`;
-  host.innerHTML = `<style>${pdfEscopa(CSS)}${pdfEscopa(opts.css || '')}${BASE}</style><div class="pdx"><div class="pp"><div class="pp-c" id="pdMede" style="position:static;width:${W - 2 * PAD}px;overflow:visible;margin:0 ${PAD}px">${corpo}${rodape}</div></div></div>`;
-  document.body.appendChild(host);
   try {
-    await Promise.all(PDF_LIBS.map(l => venCarregaLib(l[0], l[1])));
-    const aguardaImgs = async raiz => { await Promise.all([...raiz.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; setTimeout(r, 5000); }))); };
-    await aguardaImgs(host);
-    // 1) mede os blocos e separa em "unidades" que nunca são cortadas
-    const mede = host.querySelector('#pdMede');
-    const hOf = e => { const cs = getComputedStyle(e), r = e.getBoundingClientRect(); return r.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0); };
-    const unidades = (pai, out) => { [...pai.children].forEach(n => {
-      if (hOf(n) <= maxH || !n.children.length) { out.push(n); return; }
-      if (n.tagName === 'TABLE'){ [...n.querySelectorAll('tr')].forEach(tr => { const t = n.cloneNode(false), b = document.createElement('tbody'); b.appendChild(tr.cloneNode(true)); t.appendChild(b); mede.appendChild(t); out.push(t); }); return; }
-      unidades(n, out); }); return out; };
-    const un = unidades(mede, []);
-    un.forEach(e => { const m = getComputedStyle(e); if (hOf(e) > maxH){ e.style.maxHeight = (maxH - 4) + 'px'; e.style.overflow = 'hidden'; } if (m.display === 'inline') e.style.display = 'block'; });
-    // título de seção sempre junto do bloco seguinte
-    const grupos = []; for (let i = 0; i < un.length; i++){ const e = un[i]; if (/^H[1-4]$/.test(e.tagName) && un[i + 1]){ grupos.push([e, un[i + 1]]); i++; } else grupos.push([e]); }
-    const paginas = []; let atual = [], uso = 0;
-    grupos.forEach(g => { const h = g.reduce((s, e) => s + hOf(e), 0); if (atual.length && uso + h > maxH){ paginas.push(atual); atual = []; uso = 0; } atual.push(...g); uso += h; });
-    if (atual.length) paginas.push(atual);
-    // 2) monta capa + páginas
-    const total = paginas.length + 1;
-    const capa = document.createElement('div'); capa.className = 'pp capa';
-    capa.innerHTML = `<img class="pl" src="${lgBranco}" alt="pontodot">
-      <div class="mid"><div class="av">${logoCapa}</div><div class="rot">${esc(opts.rotulo || 'Relatório')}</div><h1>${esc(titulo)}</h1><div class="sub">${sub}</div></div>
-      <div class="fim"><div>${clienteNome ? '<b>' + esc(clienteNome) + '</b>' : ''}Cliente</div><div style="text-align:right"><b>${esc(dataLonga)}</b>${esc(agNome)}</div></div>`;
-    const pags = [capa];
-    paginas.forEach((us, i) => { const p = document.createElement('div'); p.className = 'pp';
-      p.innerHTML = `<div class="pp-h"><span class="mini">${logoMini}</span><b>${esc(titulo)}</b><span>${esc(dataLonga)}</span></div><div class="pp-c"></div><div class="pp-f"><img src="${lgPreto}" alt="pontodot"><span>${i + 2} / ${total}</span></div>`;
-      const c = p.querySelector('.pp-c'); us.forEach(e => c.appendChild(e)); pags.push(p); });
-    const raiz = host.querySelector('.pdx'); raiz.innerHTML = ''; pags.forEach(p => { p.style.marginBottom = '8px'; raiz.appendChild(p); });
-    await aguardaImgs(host);
-    // 3) cada página vira uma imagem do tamanho exato → PDF em pé
-    const mm = W * 0.2, hh = H * 0.2; let pdf = null;
-    for (let i = 0; i < pags.length; i++){
-      const cv = await html2canvas(pags[i], { scale:2, useCORS:true, backgroundColor: i === 0 ? '#0B0C0D' : '#ffffff', width:W, height:H, windowWidth:W, logging:false });
-      if (!pdf) pdf = new window.jspdf.jsPDF({ unit:'mm', format:[mm, hh], orientation:'portrait', compress:true }); else pdf.addPage([mm, hh], 'portrait');
-      pdf.addImage(cv.toDataURL('image/jpeg', .92), 'JPEG', 0, 0, mm, hh, undefined, 'FAST');
-    }
-    pdf.setProperties({ title: titulo + (clienteNome ? ' — ' + clienteNome : ''), author: agNome, creator: 'pontodot' });
-    venEntrega(pdf.output('blob'), (titulo + (clienteNome ? ' — ' + clienteNome : '') + ' — ' + agora.toLocaleDateString('pt-BR')).replace(/[\/:*?"<>|]/g, '-') + '.pdf', 'application/pdf');
-  } catch(e){ toast('Não consegui gerar o PDF: ' + (e.message || e)); } finally { host.remove(); }
+    if (!window.PDPDF) await new Promise((ok, no) => { const t = document.createElement('script'); t.src = 'js/pd-pdf.js?v=' + SD_VERSAO.split(' ')[0]; t.onload = ok; t.onerror = () => no(new Error('motor de PDF')); document.head.appendChild(t); });
+    const cli = clienteDe(clienteNome);
+    const r = await window.PDPDF.gerar({ titulo, sub, clienteNome: (cli && cli.name) || clienteNome, logoUrl: cli && cli.logo_url, agNome: (typeof AGENCIA_NOME !== 'undefined' && AGENCIA_NOME) || 'SD Studio Design', corpo, opts });
+    venEntrega(r.blob, r.nome, 'application/pdf');
+  } catch(e){ toast('Não consegui gerar o PDF: ' + (e.message || e)); }
 }
 const pdfSel = () => MET.filter(m => metSel().includes(m[0]));
 const pdfKpis = o => `<div class="kk">${pdfSel().map(m => `<div class="k"><small>${m[1]}</small><b>${esc(m[2](o))}</b></div>`).join('')}</div>`;
@@ -6521,7 +6445,7 @@ function pdfConta(conta){
 }
 function pdfTodas(){
   const todas = cpTodasFiltradas(), por = {}; todas.forEach(t => { const k = t.c.cliente || t.c.nome || t.c.conta; (por[k] = por[k] || []).push(t); });
-  const cliN = CP.fcli ? (Object.keys(por)[0] || ((CP.lista || []).find(t => t.c.client_id === CP.fcli) || { c:{} }).c.cliente || '') : '';
+  const cliN = CP.fcli ? (((clientesReais || []).find(x => x.id === CP.fcli) || {}).name || (clienteDe(Object.keys(por)[0]) || {}).name || Object.keys(por)[0] || '') : '';
   const prodN = CP.fprod === '_sem' ? 'sem produto' : (CP.fprod ? adsNomeProd(CP.fprod) : '');
   pdfDoc('Campanhas' + (cliN ? ' · ' + cliN : '') + (prodN ? ' · ' + prodN : ''), `${todas.length} campanha${todas.length === 1 ? '' : 's'} · ${pdfPer()}`, cliN,
     `<h2>Resultado ${cliN ? (prodN ? 'do produto' : 'do cliente') : 'geral'}</h2>${pdfKpis(somaO(todas.map(t => t.x)))}` + Object.keys(por).map(k => `<h2>${esc(k)} · ${brl(somaO(por[k].map(t => t.x)).gasto, 'BRL')}</h2>${por[k].map(t => pdfLinhaCamp(t.x, t.c)).join('')}`).join(''));
@@ -6583,8 +6507,7 @@ function socPeriodo(p){ SOC.periodo = p; SOC.dados = {}; carregarSoc(true); try 
 function cpPeriodoSoc(p){ SOC.periodo = p; SOC.dados = {}; abrirSocialTodas(); }
 function socMudaCliJ(v){ SOC.cli = v; abrirSocialTodas(true); }
 function socAvatar(c, t = 34){
-  const cli = socCli(c);
-  return `<span style="position:relative;display:block;width:${t}px;height:${t}px;flex:0 0 ${t}px">${logoCliente(cli, t)}${c.avatar ? `<img src="${esc(c.avatar)}" referrerpolicy="no-referrer" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:${t}px;height:${t}px;border-radius:50%;object-fit:cover">` : ''}</span>`;
+  return `<span style="position:relative;display:block;width:${t}px;height:${t}px;flex:0 0 ${t}px">${logoCliente(socCli(c) || c.cliente || c.nome, t)}</span>`;
 }
 const somaSoc = arr => { const o = { seguidores:0, alcance:0, visualizacoes:0, interacoes:0, posts:0, curtidas:0, comentarios:0 };
   arr.filter(c => !c.erro).forEach(c => Object.keys(o).forEach(k => { o[k] += c[k] || 0; })); return o; };
@@ -10945,10 +10868,25 @@ function avatarImg(nome, url, s=30){
   if (url) return `<img src="${url}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="">`;
   return `<span class="av" style="width:${s}px;height:${s}px;border-radius:50%;display:grid;place-items:center;font-size:${Math.round(s/3)}px;font-weight:700;flex-shrink:0;border:.5px solid rgba(127,127,127,.45)">${(nome||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</span>`;
 }
+// produto/conta de anúncio debaixo de um cliente usa SEMPRE o avatar do cliente
+window.PD_PRODS = window.PD_PRODS || [];
+function clienteDe(nome){
+  const n0 = String(nome || '').trim(); if (!n0) return null;
+  const nz = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const sem = nz(n0.replace(/\s*[\[(][^\])]*[\])]\s*$/, ''));   // tira "[VF]" / "(Lançamento)" do fim
+  const alvo = nz(n0);
+  let c = clientesReais.find(x => nz(x.name) === alvo) || clientesReais.find(x => nz(x.name) === sem);
+  if (c) return c;
+  const pr = (window.PD_PRODS || []).find(p => nz(p.name) === alvo || nz(p.name) === sem);
+  if (pr) { c = clientesReais.find(x => x.id === pr.client_id); if (c) return c; }
+  const ord = [...clientesReais].sort((a, b) => (b.name || '').length - (a.name || '').length);
+  return ord.find(x => nz(x.name).length > 2 && (alvo.startsWith(nz(x.name) + ' ') || alvo.startsWith(nz(x.name) + '-'))) || null;
+}
 function logoCliente(nome, s=30){
-  const c = clientesReais.find(x => x.name === nome);
+  const c = clienteDe(nome);
   if (c && c.logo_url) return `<img src="${c.logo_url}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="">`;
-  return `<span class="av" style="width:${s}px;height:${s}px;border-radius:50%;display:grid;place-items:center;font-size:${Math.round(s/3)}px;font-weight:700;flex-shrink:0;background:${c?.color||'rgba(127,127,127,.25)'};color:#fff">${(nome||'?').slice(0,2).toUpperCase()}</span>`;
+  const nm = (c && c.name) || nome;
+  return `<span class="av" style="width:${s}px;height:${s}px;border-radius:50%;display:grid;place-items:center;font-size:${Math.round(s/3)}px;font-weight:700;flex-shrink:0;background:${c?.color||'rgba(127,127,127,.25)'};color:#fff">${(nm||'?').slice(0,2).toUpperCase()}</span>`;
 }
 window.REAL = false;
 
@@ -11351,6 +11289,7 @@ async function carregarReal(){
     sbR.from('task_sessions').select('id,task_id').eq('user_id', perfil.id).is('ended_at', null),
     sbR.from('comments').select('body,created_at,task_id,profiles(name,avatar_url)').order('created_at',{ascending:false}).limit(24),
   ]);
+  sbR.from('products').select('id,name,client_id').then(({data}) => { window.PD_PRODS = data || []; }).catch(()=>{});
   sbR.from('clients').select('id,name,color,logo_url,active,drive_id,drive_url')
     .then(({data}) => { clientesReais = data || []; })
     .catch(()=>{ sbR.from('clients').select('id,name,color,logo_url,active')

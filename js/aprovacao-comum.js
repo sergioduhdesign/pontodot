@@ -649,184 +649,108 @@ function melhorGrade(rs, W, H, gap){
 }
 
 AP.gerarPDF = async function(o){
-  // o: { set, items, clienteNome, logoClienteUrl, onProgress, nomeArquivo }
-  const { jsPDF } = window.jspdf;
-  const W = 338.7, H = 190.5, M = 18;
-  const pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:[W, H] });
-  const set = o.set || {}, items = o.items || [];
-  const prog = o.onProgress || (()=>{});
+  // o: { set, items, clienteNome, logoClienteUrl, onProgress, nomeArquivo, retornarBlob }
+  // Usa o motor de PDF da casa (js/pd-pdf.js): capa preta, cabeçalho com bolinha do cliente, rodapé com a PD,
+  // nada cortado entre páginas. Peças de arte (anúncio/material) saem em 16:9; copy e social completo saem em pé (9:16),
+  // uma peça por página: criativo principal em cima, sequenciais menores embaixo, depois o texto.
+  const set = o.set || {}, items = o.items || [], prog = o.onProgress || (()=>{});
   const total = items.length;
-  const okN  = items.filter(i => i.status === 'aprovado').length;
-  const fixN = items.filter(i => i.status === 'ajustar').length;
+  const okN = items.filter(i => i.status === 'aprovado').length, fixN = items.filter(i => i.status === 'ajustar').length;
+  const X = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (!window.PDPDF) await new Promise((ok, no) => { const t = document.createElement('script'); t.src = '/js/pd-pdf.js?v=659'; t.onload = ok; t.onerror = () => no(new Error('Não carreguei o motor de PDF.')); document.head.appendChild(t); });
+  const ROT = { feed:'Feed', carrossel:'Carrossel', stories:'Stories', post:'Post', reels:'Reels', anuncio:'Anúncio', material:'Material', generico:'Material' };
+  const comMidia = items.filter(i => (i.media || []).length);
+  const wide = comMidia.length > 0 && comMidia.every(i => ['anuncio','material','generico'].includes(i.kind));
+  const MAX = wide ? 12 : 10;
 
-  const texto = (txt, x, y, larg, tam, estilo, cor, yMax) => {
-    pdf.setFont('helvetica', estilo || 'normal');
-    pdf.setFontSize(tam);
-    if (Array.isArray(cor)) pdf.setTextColor(cor[0], cor[1], cor[2]); else pdf.setTextColor(cor ?? 20);
-    let linhas = pdf.splitTextToSize(String(txt || ''), larg);
-    const lh = tam * 0.42;
-    if (yMax) {
-      const cabe = Math.max(0, Math.floor((yMax - y) / lh));
-      if (linhas.length > cabe) { linhas = linhas.slice(0, cabe); if (cabe) linhas[cabe-1] = linhas[cabe-1].replace(/\s*\S*$/, '') + ' …'; }
-    }
-    if (linhas.length) pdf.text(linhas, x, y);
-    return y + linhas.length * lh;
-  };
+  // [cta] / [texto do criativo] / [direção visual] / [cuidados] / [fonte] viram blocos com rótulo
+  const secoes = txt => { const out = []; let at = null;
+    String(txt || '').split(/\r?\n/).forEach(l => { const m = l.match(/^\s*\[([^\]]{2,40})\]\s*:?\s*(.*)$/);
+      if (m) { at = { t: m[1], v: m[2] }; out.push(at); } else if (at) at.v += '\n' + l; else { at = { t: '', v: l }; out.push(at); } });
+    return out.map(x => ({ t: x.t, v: x.v.trim() })).filter(x => x.v || x.t); };
+  // texto grande é fatiado em blocos menores (por linha/frase) para fluir entre páginas sem cortar
+  const fatia = v => { const out = []; let at = ''; String(v).split(/\n/).forEach(l => { (l.length > 700 ? l.match(/[^.!?]+[.!?]*\s*/g) || [l] : [l]).forEach(pc => { if (at && (at + '\n' + pc).length > 700) { out.push(at); at = pc; } else at = at ? at + '\n' + pc : pc; }); }); if (at) out.push(at); return out; };
+  const bloco = (t, v, cls) => v ? fatia(v).map((pc, i) => `<div class="sc ${cls || ''}${i ? ' cont' : ''}">${t && !i ? `<small>${X(t)}</small>` : ''}<div class="tv">${X(pc)}</div></div>`).join('') : '';
 
-  let logoSD = null, logoCli = null;
-  try { logoSD = await carregarImagem('/assets/logo-pontodot.svg', 600); } catch(e){}
-  try { if (o.logoClienteUrl) logoCli = await carregarImagem(o.logoClienteUrl, 400); } catch(e){}
+  const css = `
+    .ch{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+    .ch i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:99px;background:#15161A;color:#fff}
+    .ch i.ok{background:#16A34A}.ch i.aj{background:#DB2777}.ch i.pe{background:#9A9CA4}.ch i.v{background:#5A5A62}
+    .tt{font-size:21px;line-height:1.25;font-weight:600;margin:0 0 4px;overflow-wrap:anywhere}
+    .mt{font-size:11.5px;color:#6B6D75;margin:0 0 12px}
+    .main{background:#F4F3EF;border-radius:12px;padding:8px;display:flex;justify-content:center;align-items:center}
+    .main img{display:block;max-width:100%;max-height:var(--imh,520px);width:auto;height:auto;border-radius:6px}
+    .seq{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
+    .seq div{position:relative;background:#F4F3EF;border-radius:8px;padding:4px;height:calc(var(--imh,520px) * .2 + 8px);max-height:112px;display:flex;align-items:center}
+    .seq img{display:block;height:100%;width:auto;border-radius:4px}
+    .num{position:absolute;left:5px;top:5px;background:#15161A;color:#fff;font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px}
+    .sc{margin:0 0 11px}.sc small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6B6D75;margin-bottom:3px}
+    .sc .tv{font-size:13.5px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+    .sc.cont{margin-top:-6px}.sc.cli{border-left:3px solid #DB2777;padding-left:11px}.sc.cli .tv{font-style:italic;color:#9D1B5B}
+    .sc.mu small,.sc.mu .tv{color:#6B6D75}
+    .wi{display:flex;gap:22px}.wi .g{flex:1.45;min-width:0;height:100%;display:grid;gap:7px;grid-template-columns:repeat(var(--c,1),minmax(0,1fr));grid-auto-rows:minmax(0,1fr)}
+    .wi .g div{position:relative;background:#F4F3EF;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;min-width:0}
+    .wi .g img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+    .wi .tc{flex:1;min-width:0;height:100%;overflow:hidden;font-size:var(--fs,12px)}
+    .wi .tt{font-size:1.5em}.wi .mt{font-size:.9em}.wi .sc .tv{font-size:1em}.wi .sc small{font-size:.75em}`;
 
-  // ---------- CAPA ----------
-  pdf.setFillColor(10,10,12); pdf.rect(0, 0, W, H, 'F');
-  if (logoSD) { const lh = 10; pdf.addImage(logoSD.data, 'JPEG', M, 22, lh * logoSD.r, lh); }
-  else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.text('PONTODOT', M, 28); }
-  if (logoCli) { const lh = 16, lw = Math.min(lh * logoCli.r, 60); pdf.addImage(logoCli.data, 'JPEG', W - M - lw, 20, lw, lw / logoCli.r); }
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(12); pdf.setTextColor(160,165,175);
-  pdf.text(String(o.clienteNome || '').toUpperCase(), M, 78);
-  pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(38);
-  pdf.text(pdf.splitTextToSize(set.title || 'Aprovação', W - 2*M), M, 94);
-  if (set.subtitle) {
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(13); pdf.setTextColor(180,183,190);
-    pdf.text(pdf.splitTextToSize(set.subtitle, W - 2*M), M, 110);
-  }
-  pdf.setFontSize(11); pdf.setTextColor(150,154,162);
-  pdf.text(`${total} peça${total!==1?'s':''}  ·  ${okN} aprovada${okN!==1?'s':''}` + (fixN ? `  ·  ${fixN} com ajuste` : ''), M, 132);
-  pdf.setTextColor(115,119,128); pdf.setFontSize(9);
-  pdf.text('Gerado em ' + new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' }), M, 140);
-
-  // ---------- UMA PÁGINA POR PEÇA ----------
-  const AX = M, AY = 20, AH = H - 20 - 14, GAP = 4;
-  const MAX_ARTES = 12;
-  const TXT_MIN = 80;                                     // largura mínima da coluna de texto
-  const AW = W - 2*M - 12 - TXT_MIN;
-
-  for (let n = 0; n < items.length; n++) {
-    const it = items[n];
-    prog(n+1, total);
-
-    pdf.addPage([W, H], 'landscape');
-    pdf.setFillColor(255,255,255); pdf.rect(0, 0, W, H, 'F');
-    pdf.setFillColor(10,10,12); pdf.rect(0, 0, W, 12, 'F');
-    pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5);
-    pdf.text(('PONTODOT — ' + (set.title||'')).toUpperCase(), M, 8);
-
-    const midias = (it.media || []).slice(0, MAX_ARTES);
+  let n = 0;
+  const partes = [];
+  for (const it of items) {
+    prog(++n, total);
+    const midias = (it.media || []).slice(0, MAX);
     const imgs = [];
     for (const m of midias) {
       const src = m.thumb || m.url;
-      imgs.push(AP.ehVideo(m) ? await quadroVideo(m.url || src, 1100) : await carregarImagem(src, 1100));
+      try { imgs.push(AP.ehVideo(m) ? await quadroVideo(m.url || src, wide ? 900 : 1100) : await carregarImagem(src, wide ? 900 : 1100)); } catch(e){ imgs.push(null); }
     }
-    // Sem prévia: usa a proporção esperada para o tipo (stories/reels 9:16)
-    const rPadrao = (it.kind === 'stories' || it.kind === 'reels') ? 9/16 : 1;
-    const rs = imgs.map(im => im ? im.r : rPadrao);
+    const kind = ROT[it.kind] || 'Peça';
+    const est = it.status === 'aprovado' ? ['ok','Aprovado'] : it.status === 'ajustar' ? ['aj','Ajuste pedido'] : ['pe','Pendente'];
+    const chips = `<div class="ch"><i>${X(kind)}</i><i class="${est[0]}">${est[1]}</i>${it.version && it.version > 1 ? `<i class="v">V${it.version}</i>` : ''}</div>`;
+    const quando = it.publish_at ? 'Publicar: ' + AP.quando(it.publish_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+    const dims = imgs.filter(Boolean).map(im => `${im.w}×${im.h}`), un = [...new Set(dims)];
+    const formato = un.length === 1 ? `${un[0]} (${nomeProporcao(imgs.find(Boolean).w, imgs.find(Boolean).h)})` : un.slice(0, 3).join(' · ');
+    const qtd = (it.media || []).length;
+    const meta = [quando, qtd ? `${qtd} arte${qtd !== 1 ? 's' : ''}${formato ? ' · ' + formato : ''}` : ''].filter(Boolean).join('  ·  ');
+    let txt = '';
+    if (it.pitch) txt += bloco('Pitch', it.pitch, 'mu');
+    if (it.headline) txt += bloco('Título', it.headline.replace(/\n/g, '  '));
+    let txtLongo = '', nLongo = 0;   // no wide, blocos grandes vão para uma página de continuação (nada fica cortado)
+    if (it.caption) { const ss = secoes(it.caption); ss.forEach((x, i) => { const b = bloco(x.t || (i === 0 ? 'Legenda' : ''), x.v); if (wide && x.v.length > 420) { txtLongo += bloco((nLongo++ ? '' : (it.title || 'Peça') + ' · ') + (x.t || (i === 0 ? 'Legenda' : '')), x.v); } else txt += b; }); }
+    if (it.hashtags) txt += bloco('Hashtags', it.hashtags, 'mu');
+    if (it.external_url) txt += bloco('Arquivo final', it.external_url, 'mu');
+    (it._talk || []).filter(c => c.is_client).slice(-3).forEach(c => {
+      const pc = AP.parseComentario(c.body);
+      const corpo = [pc.geral, pc.arte && ('Arte: ' + pc.arte), pc.texto && ('Texto: ' + pc.texto)].filter(Boolean).join('\n');
+      txt += bloco('Cliente · ' + (c.author_name || ''), corpo, 'cli'); });
+    const cabeca = `${chips}<div class="tt">${X(it.title || 'Sem título')}</div>${meta ? `<div class="mt">${X(meta)}</div>` : ''}`;
 
-    let usedW = 0;
-    if (midias.length) {
-      const g = melhorGrade(rs, AW, AH, GAP);
-      usedW = g.usedW;
-      const oy = AY + (AH - g.usedH) / 2;
-      midias.forEach((m, i) => {
-        const col = i % g.cols, lin = Math.floor(i / g.cols);
-        const cx = AX + col * (g.colW + GAP), cy = oy + lin * (g.rowH + GAP);
-        const f = g.fits[i];
-        const x = cx + (g.colW - f.w)/2, y = cy + (g.rowH - f.h)/2;
-        const im = imgs[i];
-        if (im) {
-          pdf.addImage(im.data, 'JPEG', x, y, f.w, f.h);
-          pdf.setDrawColor(225,225,228); pdf.setLineWidth(0.2); pdf.rect(x, y, f.w, f.h);
-          if (im.video) { pdf.setFillColor(10,10,12); pdf.circle(x + f.w/2, y + f.h/2, 5, 'F');
-            pdf.setFillColor(255,255,255); pdf.triangle(x+f.w/2-1.6, y+f.h/2-2.6, x+f.w/2-1.6, y+f.h/2+2.6, x+f.w/2+2.8, y+f.h/2, 'F'); }
-        } else {
-          pdf.setFillColor(244,244,246); pdf.rect(x, y, f.w, f.h, 'F');
-          texto(AP.ehVideo(m) ? 'vídeo — ver no link' : 'sem prévia', x + 3, y + f.h/2, f.w - 6, 7.5, 'normal', 150);
-        }
-        if (midias.length > 1) {
-          pdf.setFillColor(10,10,12); pdf.rect(x + 1.5, y + 1.5, 6, 4.4, 'F');
-          pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5); pdf.setTextColor(255,255,255);
-          pdf.text(String(i+1), x + 4.5, y + 4.7, { align:'center' });
-        }
-      });
-      if ((it.media||[]).length > MAX_ARTES) {
-        texto('+ ' + ((it.media||[]).length - MAX_ARTES) + ' arte(s) — ver todas no link de aprovação',
-              AX, H - 9, AW, 7.5, 'normal', 130);
-      }
+    if (wide) {
+      const cols = midias.length <= 1 ? 1 : midias.length <= 4 ? 2 : midias.length <= 9 ? 3 : 4;
+      const g = midias.length ? `<div class="g" style="--c:${cols}">${midias.map((m, i) => `<div>${imgs[i] ? `<img src="${imgs[i].data}" alt="">` : `<span style="font-size:11px;color:#8A8C94">${AP.ehVideo(m) ? 'vídeo — ver no link' : 'sem prévia'}</span>`}${midias.length > 1 ? `<span class="num">${i + 1}</span>` : ''}</div>`).join('')}</div>` : '';
+      partes.push(`<div class="wi" data-pag data-fs="12">${g}<div class="tc" data-tx>${cabeca}${txt}${qtd > MAX ? bloco('', `+ ${qtd - MAX} arte(s): ver todas no link de aprovação`, 'mu') : ''}${txtLongo ? bloco('', 'Texto completo na página seguinte', 'mu') : ''}</div></div>`);
+      if (txtLongo) partes.push(`<div class="it" data-pag>${txtLongo}</div>`);
     } else {
-      usedW = 80;
-      pdf.setFillColor(244,244,246); pdf.rect(AX, AY + AH/2 - 30, usedW, 60, 'F');
-      texto('sem imagem', AX + 6, AY + AH/2, usedW - 12, 9, 'normal', 150);
-    }
-
-    // ----- coluna de texto -----
-    const cx = AX + usedW + 12, cw = W - cx - M, yMax = H - 12;
-    let cy = 26;
-    const rotulo = { feed:'FEED', carrossel:'CARROSSEL', stories:'STORIES', post:'POST',
-                     reels:'REELS', anuncio:'ANÚNCIO', material:'MATERIAL', generico:'MATERIAL' }[it.kind] || 'PEÇA';
-    const est  = it.status === 'aprovado' ? 'APROVADO' : it.status === 'ajustar' ? 'AJUSTE PEDIDO' : 'PENDENTE';
-    const corE = it.status === 'aprovado' ? [22,163,74] : it.status === 'ajustar' ? [219,39,119] : [150,150,150];
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(7);
-    pdf.setTextColor(255,255,255); pdf.setFillColor(10,10,12);
-    pdf.rect(cx, cy - 3.4, pdf.getTextWidth(rotulo) + 6, 5, 'F'); pdf.text(rotulo, cx + 3, cy);
-    let bx = cx + pdf.getTextWidth(rotulo) + 9;
-    pdf.setFillColor(corE[0], corE[1], corE[2]);
-    pdf.rect(bx, cy - 3.4, pdf.getTextWidth(est) + 6, 5, 'F'); pdf.text(est, bx + 3, cy);
-    if (it.version && it.version > 1) {
-      bx += pdf.getTextWidth(est) + 9; const v = 'V' + it.version;
-      pdf.setFillColor(90,90,98); pdf.rect(bx, cy - 3.4, pdf.getTextWidth(v) + 6, 5, 'F'); pdf.text(v, bx + 3, cy);
-    }
-    cy += 9;
-
-    if (it.title) cy = texto(it.title, cx, cy, cw, 13, 'bold', 20, yMax) + 3;
-    if (it.publish_at) cy = texto('Publicar: ' + AP.quando(it.publish_at).toLocaleString('pt-BR',
-      {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}), cx, cy, cw, 8.5, 'normal', 130, yMax) + 1.5;
-
-    // Formato real das artes (o que o cliente está vendo)
-    const dims = imgs.filter(Boolean).map(im => `${im.w}×${im.h}`);
-    const unicos = [...new Set(dims)];
-    const formato = unicos.length === 1 ? `${unicos[0]} (${nomeProporcao(imgs.find(Boolean).w, imgs.find(Boolean).h)})`
-                  : unicos.length ? unicos.slice(0,3).join(' · ') : '';
-    cy = texto(`${(it.media||[]).length} arte${(it.media||[]).length!==1?'s':''}` + (formato ? '  ·  ' + formato : ''),
-               cx, cy, cw, 8, 'normal', 150, yMax) + 3;
-
-    if (it.pitch)   cy = texto(it.pitch, cx, cy, cw, 9, 'normal', 70, yMax) + 3;
-    if (it.caption) cy = texto(it.caption, cx, cy, cw, 9, 'normal', 45, yMax - 18) + 3;
-    else if (it.headline) cy = texto(it.headline.replace(/\n/g,'  '), cx, cy, cw, 8.5, 'normal', 70, yMax - 18) + 3;
-    if (it.hashtags) cy = texto(it.hashtags, cx, cy, cw, 8, 'normal', 130, yMax - 12) + 2;
-    if (it.external_url) cy = texto('Arquivo final: ' + it.external_url, cx, cy, cw, 7.5, 'normal', 130, yMax) + 2;
-
-    const fala = (it._talk || []).filter(c => c.is_client);
-    if (fala.length && cy < yMax - 6) {
-      cy += 2;
-      fala.slice(-3).forEach(c => {
-        const p = AP.parseComentario(c.body);
-        const corpo = [p.geral, p.arte && ('ARTE: ' + p.arte), p.texto && ('TEXTO: ' + p.texto)].filter(Boolean).join('\n');
-        cy = texto(c.author_name + ': "' + corpo + '"', cx, cy, cw, 8.5, 'italic', [219,39,119], yMax) + 1.5;
-      });
+      let media = '';
+      if (midias.length) {
+        const pri = imgs[0];
+        media = `<div class="main">${pri ? `<img src="${pri.data}" alt="">` : `<span style="font-size:11px;color:#8A8C94;padding:30px">${AP.ehVideo(midias[0]) ? 'vídeo — ver no link' : 'sem prévia'}</span>`}</div>`;
+        if (midias.length > 1) media += `<div class="seq">${midias.slice(1).map((m, i) => imgs[i + 1] ? `<div><img src="${imgs[i + 1].data}" alt=""><span class="num">${i + 2}</span></div>` : '').join('')}</div>`;
+        else media += '<div style="height:12px"></div>';
+        if (qtd > MAX) media += bloco('', `+ ${qtd - MAX} arte(s): ver todas no link de aprovação`, 'mu');
+      }
+      partes.push(`<div class="it" data-pag data-imh="${midias.length > 1 ? 470 : 560}">${cabeca}${media}${txt}</div>`);
     }
   }
-
-  // ---------- ASSINATURA ----------
-  pdf.addPage([W, H], 'landscape');
-  pdf.setFillColor(10,10,12); pdf.rect(0, 0, W, H, 'F');
-  if (logoSD) { const lh = 14, lw = lh * logoSD.r; pdf.addImage(logoSD.data, 'JPEG', (W - lw)/2, H/2 - 22, lw, lh); }
-  else { pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold'); pdf.setFontSize(20); pdf.text('PONTODOT', W/2, H/2 - 12, { align:'center' }); }
-  pdf.setFont('helvetica','normal'); pdf.setFontSize(10); pdf.setTextColor(165,170,180);
-  pdf.text(location.host, W/2, H/2 + 4, { align:'center' });
-  pdf.setFontSize(7.5); pdf.setTextColor(110,115,125);
-  pdf.text('Pontodot — documento gerado pela plataforma', W/2, H - 12, { align:'center' });
-
-  const paginas = pdf.internal.getNumberOfPages();
-  for (let p = 2; p < paginas; p++) {
-    pdf.setPage(p);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(150,150,150);
-    pdf.text('Pontodot — ' + (set.title || ''), M, H - 6);
-    pdf.text((p-1) + ' / ' + (paginas-2), W - M, H - 6, { align:'right' });
-  }
-
-  const nome = (o.nomeArquivo || set.title || 'aprovacao').normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9 -]/g,'').trim().replace(/\s+/g,'-');
-  if (o.retornarBlob) return pdf.output('blob');
-  pdf.save(nome + '.pdf');
+  const sub = X(set.subtitle || '') + `<div style="margin-top:12px;font-size:.85em;opacity:.8">${total} peça${total !== 1 ? 's' : ''} · ${okN} aprovada${okN !== 1 ? 's' : ''}${fixN ? ' · ' + fixN + ' com ajuste' : ''}</div>`;
+  const r = await window.PDPDF.gerar({
+    titulo: set.title || 'Aprovação', sub, clienteNome: o.clienteNome || '', logoUrl: o.logoClienteUrl || '',
+    agNome: 'SD Studio Design', corpo: partes.join(''),
+    opts: { formato: wide ? 'wide' : '', css, rotulo: 'Aprovação', nota: 'Documento de aprovação gerado pela plataforma. Reflete o estado de cada peça (aprovada, pendente ou com ajuste) no momento da geração. Conteúdo confidencial, de uso restrito à agência e ao cliente indicados.' }
+  });
+  if (o.retornarBlob) return r.blob;
+  const nome = (o.nomeArquivo || r.nome.replace(/\.pdf$/, '')) + '.pdf';
+  const u = URL.createObjectURL(r.blob), a = document.createElement('a'); a.href = u; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 8000);
 };
 
 // =====================================================================

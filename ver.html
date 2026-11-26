@@ -313,7 +313,7 @@ details.ap-cap[open] summary::before{content:"▾"}
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/js/supabase.js"></script>
 <script src="/js/ui.js"></script>
-<script src="/js/aprovacao-comum.js?v=554"></script>
+<script src="/js/aprovacao-comum.js?v=659"></script>
 <script src="/js/campanha-painel.js?v=551"></script>
 <script>
 // ==================================================================
@@ -408,6 +408,7 @@ async function load(){
   // identidade na faixa preta: logo da PD + logo do cliente (a função do banco é a v187; sem ela cai só no nome)
   let mk = { nome: data.client_name || '', logo: null };
   try { const r = await sb.rpc('get_marca_by_token', { p_token: TOKEN }); if (r.data && r.data.nome) mk = r.data; } catch (e) {}
+  window.__marca = mk;
   if (typeof CampPainel !== 'undefined') CampPainel.marca(document.querySelector('.ap-top-inner'), mk);
   carregarCampanha();
 }
@@ -918,6 +919,7 @@ async function gerarPDF(){
     await AP.gerarPDF({
       set: apSet, items,
       clienteNome: document.getElementById('apEyebrow').textContent.split(' · ')[0],
+      logoClienteUrl: (window.__marca || {}).logo || null,
       onProgress: (n, t) => btn.textContent = `Montando… ${n}/${t}`
     });
     showToast('PDF gerado.', 'success');
