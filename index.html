@@ -1955,6 +1955,30 @@ html.emChat .cfg-area{display:none}
 }
 /* botão com tamanho fixo no estilo inline: texto/ícone sempre no centro (rede de segurança contra botão torto) */
 button[style*="height:"][style*="width:"]:not([style*="display"]){display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;text-align:center;box-sizing:border-box}
+
+/* Subir campanha / Campanhas no CELULAR: uma coluna, título com a largura toda, botões em linha própria, ação principal logo abaixo do voltar */
+@media (max-width:999px){
+  .cp .cp-top{flex-wrap:wrap;gap:8px}
+  .cp .cp-top>span[style*="flex:1"]{display:none}
+  .cp .cp-top>.btn,.cp .cp-top>a.btn{flex:1 1 100%;order:5;justify-content:center;min-height:46px;text-align:center}
+  .cp .cp-top>.acao-cab{display:none}
+  .cp [style*="grid-template-columns"]{grid-template-columns:1fr!important}
+  .cp [style*="display:flex"]{flex-wrap:wrap}
+  .cp input.cp-sel1[style*="width:"]{width:100%!important;flex:1 1 100%}
+  .cp .cmp-p{flex-wrap:wrap;align-items:stretch!important;gap:8px}
+  .cp .cmp-p>div:first-child{flex:1 1 100%!important;min-width:0}
+  .cp .cmp-p>.btn,.cp .cmp-p>a.btn{flex:1 1 calc(50% - 8px);justify-content:center;min-height:44px;text-align:center}
+  .cp .cmp-p>.vt-x{flex:0 0 44px;min-height:44px}
+  .cp .lc-acoes>b{flex:1 1 100%!important}
+  .cp .lc-acoes .btn,.cp .lc-acoes a.btn{flex:1 1 100%;justify-content:center;min-height:46px;text-align:center}
+  .cp .lc-set>div:first-child{flex:1 1 100%!important}
+  .cp .lc-set>.btn{flex:1 1 auto;justify-content:center;min-height:44px}
+  .cp .btn.cheio,.cp a.btn.cheio{background:#F2F2EE!important;color:#0b0c0b!important;border-color:transparent!important}
+  .cp .btn[disabled]{opacity:.4}
+  .cp .ads-per{flex-wrap:wrap}
+  .cp select.cp-sel1,.cp input.cp-sel1,.cp textarea.cp-sel1{min-height:46px;font-size:16px}
+  .cp .cmp-prog{padding:12px}
+}
 </style>
 <style id="app-mobile-fino">
 /* ===== APP (celular): alvos de toque maiores, setinha de "tem mais", sem configurar área ===== */
@@ -2688,7 +2712,7 @@ pdAbertura(false);
 // tela pro "verso" branco (a estrutura atual do SD, repaginada).
 // =====================================================================
 const $ = s => document.querySelector(s);
-window.SD_VERSAO = 'v655 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
+window.SD_VERSAO = 'v656 · pontodot';   // botão direito → Sobre o SD mostra a versão que está no ar
 
 // ---------- carinhas (traço fino, acesas na cor do humor) ----------
 const COR_CARA = { feliz:'var(--verde)', radiante:'var(--verde)', piscada:'var(--azul)',
@@ -6061,12 +6085,12 @@ async function lcPlay(id){
 function lcSetupBloco(){
   if (LC.feito) return '';
   const ss = LC.setups || [];
-  return `<div class="cmp-prog" style="border:1.5px solid var(--verde,#1f8a55);margin:8px 0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  return `<div class="cmp-prog" style="border:1.5px solid var(--verde,#1f8a55);margin:8px 0"><div class="lc-acoes" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <b style="flex:1;min-width:150px">Faça antes: setup em Excel</b>
       <a class="btn cheio cp-b" href="/SD_modelo_campanha_setup.xlsx" download>Baixar Excel de campanha</a>
       <label class="btn cp-b" style="cursor:pointer">Importar Excel preenchido<input type="file" accept=".xlsx" style="display:none" onchange="lcSetupArquivo(this)"></label></div>
     <div class="nota" style="margin-top:4px">Baixe, peça pra sua IA preencher os dados da campanha e integrar com os criativos. Quem sobe pela tarefa cai aqui também.</div>
-    ${ss.length ? `<div style="margin-top:8px">${ss.map((s, i) => `<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-top:1px solid rgba(127,127,127,.2)"><div style="flex:1;min-width:0"><b>${esc(s.titulo || 'Setup')}</b>${s.usado_em ? ' <span class="cp-chip">já usado</span>' : ''}<div class="nota">${s.task_id ? 'tarefa ' + esc(s.task_id) + ' · ' : ''}${new Date(s.criado_em).toLocaleDateString('pt-BR')} · ${(s.dados.anuncios || []).length} anúncio(s)</div></div>
+    ${ss.length ? `<div style="margin-top:8px">${ss.map((s, i) => `<div class="lc-set" style="display:flex;gap:8px;align-items:center;padding:5px 0;border-top:1px solid rgba(127,127,127,.2)"><div style="flex:1;min-width:0"><b>${esc(s.titulo || 'Setup')}</b>${s.usado_em ? ' <span class="cp-chip">já usado</span>' : ''}<div class="nota">${s.task_id ? 'tarefa ' + esc(s.task_id) + ' · ' : ''}${new Date(s.criado_em).toLocaleDateString('pt-BR')} · ${(s.dados.anuncios || []).length} anúncio(s)</div></div>
         <button class="btn cheio cp-b" onclick="lcSetupUsar(${i})">Usar este setup</button><button class="vt-x" title="Descartar" onclick="lcSetupApaga(${i})">✕</button></div>`).join('')}</div>` : ''}</div>`;
 }
 function lcSetupLib(){
