@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><script src="/pd-tema.js?v=650"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0B0C0B">
+<title>Social BI · Pontodot</title>
+<link rel="icon" href="assets/icon-pwa.svg" type="image/svg+xml">
+<style>
+:root{--bg:#0B0C0B;--card:rgba(255,255,255,.045);--tx:rgba(255,255,255,.92);--mut:rgba(255,255,255,.55);--lin:rgba(255,255,255,.16);--acc:#fff;--acc-tx:#0B0C0B;--ok:#2fb36d;--verm:#DB2777;--ouro:#D97706;--r:18px;--veu:rgba(11,12,11,.5);--in:rgba(255,255,255,.06);--c1:#6EA8FF;--c2:#F472B6}
+:root[data-theme=light]{--bg:#F6F5F1;--card:#fff;--tx:#1A1B1E;--mut:rgba(26,27,30,.58);--lin:rgba(26,27,30,.14);--acc:#1A1B1E;--acc-tx:#fff;--ok:#16a34a;--veu:rgba(246,245,241,.7);--in:rgba(26,27,30,.04);--c1:#2563EB;--c2:#DB2777}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html.emb,html.emb body{background:transparent!important}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+b{font-weight:600}
+button,select{font:inherit;color:inherit;cursor:pointer;transition:background-color .2s,opacity .2s,transform .15s}
+button:active:not(:disabled){transform:scale(.97)}
+.hid{display:none!important}
+a{color:inherit}
+#porta{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.pcx{background:var(--card);border:1px solid var(--lin);border-radius:var(--r);padding:28px;max-width:380px;width:100%;text-align:center}
+.pcx h2{margin:0 0 6px;font-size:21px;font-weight:600}.pcx p{margin:0 0 16px;color:var(--mut);font-size:13.5px;line-height:1.5}
+.bt{border:0;border-radius:999px;padding:10px 18px;font-weight:600;background:var(--acc);color:var(--acc-tx)}
+.bt.sec{background:transparent;color:var(--tx);border:1px solid var(--lin)}
+.bt:disabled{opacity:.45;cursor:default}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;min-height:56px;padding:0 14px;border-bottom:1px solid var(--lin);background:var(--veu);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.top .fl1{flex:1}.top h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}.top .sub{font-size:12px;color:var(--mut);margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.btn.i{width:38px;height:38px;border:1px solid var(--lin);border-radius:9px;background:transparent;display:inline-flex;align-items:center;justify-content:center;padding:0;flex:0 0 auto}
+.btn.i svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.btn.i:hover{background:rgba(127,127,127,.12)}
+.corpo{max-width:1240px;margin:0 auto;padding:18px 16px 70px}
+.mut{color:var(--mut)}.pequeno{font-size:12.5px}
+.h2{margin:26px 0 10px;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.card{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:16px 18px}
+/* lista de clientes */
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.cc{border:1px solid var(--lin);border-radius:var(--r);background:var(--card);padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;width:100%}
+.cc:hover{border-color:var(--mut)}
+.cc .n{font-weight:600;font-size:15px}.cc .u{font-size:12px;color:var(--mut)}
+.ava{width:42px;height:42px;border-radius:50%;object-fit:cover;background:var(--in);flex:0 0 auto;display:grid;place-items:center;font-weight:700;font-size:14px;overflow:hidden}
+.ava img{width:100%;height:100%;object-fit:contain;background:#fff}
+/* controles */
+.ctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+.pills{display:inline-flex;border:1px solid var(--lin);border-radius:999px;padding:3px;gap:2px}
+.pills button{border:0;background:transparent;padding:6px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--mut)}
+.pills button.on{background:var(--acc);color:var(--acc-tx)}
+select.sl{border:1px solid var(--lin);background:var(--card);border-radius:999px;padding:8px 14px;font-size:13px;max-width:100%}
+/* BI */
+.hero{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.hero .t{font-size:24px;font-weight:300;letter-spacing:-.02em;line-height:1.15}.hero .d{font-size:12.5px;color:var(--mut);margin-top:2px}
+.kk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.k{border:1px solid var(--lin);border-radius:14px;background:var(--card);padding:12px 14px}
+.k small{display:block;color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em}
+.k b{display:block;font-size:24px;font-weight:600;margin-top:3px;letter-spacing:-.02em}
+.k .dl{font-size:11.5px;margin-top:2px;font-weight:600}
+.dest{display:grid;gap:7px}.dest p{margin:0;padding-left:14px;position:relative;line-height:1.5}.dest p:before{content:"";position:absolute;left:0;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--acc)}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.pst{display:flex;gap:12px;border:1px solid var(--lin);border-radius:14px;background:var(--card);padding:10px;text-decoration:none}
+.pst .im{width:92px;height:92px;border-radius:10px;background:var(--in);flex:0 0 92px;overflow:hidden;position:relative}.pst .im img{width:100%;height:100%;object-fit:cover;display:block}
+.pst .tp{position:absolute;left:5px;top:5px;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(0,0,0,.65);color:#fff;border-radius:6px;padding:2px 6px}
+.pst .tx{min-width:0;flex:1;font-size:12.5px}.pst .tx .dd{color:var(--mut);font-size:11.5px}.pst .tx .ct{margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pst .mm{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:6px;font-size:11.5px;color:var(--mut)}.pst .mm b{color:var(--tx)}
+table.tb{width:100%;border-collapse:collapse;font-size:13px}.tb th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);text-align:left;font-weight:600;padding:6px 6px}.tb td{padding:9px 6px;border-top:1px solid var(--lin)}.tb td:not(:first-child),.tb th:not(:first-child){text-align:right}
+.carrega{padding:60px 20px;text-align:center;color:var(--mut)}.carrega i{display:block;width:30px;height:30px;margin:0 auto 14px;border-radius:50%;border:2px solid var(--lin);border-top-color:var(--tx);animation:gira .8s linear infinite}@keyframes gira{to{transform:rotate(360deg)}}
+.av2{border:1px dashed var(--lin);border-radius:14px;padding:10px 14px;font-size:12px;color:var(--mut);margin-top:18px;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--acc);color:var(--acc-tx);padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.on{opacity:1}
+html.emb body{padding:68px 20px 28px}
+.folha{max-width:1240px;margin:0 auto;background:var(--card);border:1px solid var(--lin);border-radius:var(--r);box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden}
+:root[data-theme=light] .folha{background:#fff}
+.folha .top{position:sticky;top:0;background:inherit;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0 18px;min-height:64px}
+.folha .corpo{max-width:none;margin:0;padding:18px 22px 40px}
+html{scrollbar-width:thin}
+@media(max-width:999px){html.emb body{padding:calc(var(--safe,0px) + 60px) 0 0}.folha{border-radius:0;border:0;box-shadow:none;min-height:100vh}.folha .corpo{padding:14px 12px 60px}.cols,.cols3{grid-template-columns:1fr}.hero .t{font-size:20px}.kk{grid-template-columns:repeat(2,minmax(0,1fr))}.top .sub{display:none}}
+</style>
+</head>
+<body>
+<div id="porta"><div class="pcx"><h2>Social BI</h2><p>Carregando…</p></div></div>
+<div id="app" class="hid">
+  <div class="folha">
+  <div class="top">
+    <button class="btn i" id="btVolta" title="Voltar"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <h1 id="tit">Social BI</h1><span class="sub" id="sub"></span>
+    <span class="fl1"></span><span id="topoAcoes" style="display:flex;gap:8px"></span>
+  </div>
+  <div class="corpo" id="cont"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js?v=sbi1"></script>
+<script>
+(function(){
+'use strict';
+try{
+  const R = document.documentElement, emb = self !== top; if (emb) R.classList.add('emb');
+  const sf = new URLSearchParams(location.search).get('safe'); if (sf) R.style.setProperty('--safe', Number(sf) + 'px');
+  R.setAttribute('data-theme', matchMedia('(max-width:999px)').matches ? 'dark' : 'light');   // desktop: caixa branca; celular (app): escuro
+}catch(e){}
+const $ = s => document.querySelector(s);
+const esc = x => String(x == null ? '' : x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+let tt; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 3600); };
+const nf = n => n == null ? '—' : Number(n).toLocaleString('pt-BR');
+const pc = n => n == null || !isFinite(n) ? '—' : n.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%';
+const dm = d => { const p = String(d).slice(0, 10).split('-'); return p[2] + '/' + p[1]; };
+const PERS = [['last_7d', '7 dias'], ['last_30d', '30 dias'], ['this_month', 'Este mês']];
+const PNOME = { last_7d: 'últimos 7 dias', last_30d: 'últimos 30 dias', this_month: 'este mês' };
+const TIPO = { reels: 'Reels', carousel_album: 'Carrossel', image: 'Imagem', video: 'Vídeo', post: 'Post', story: 'Story' };
+const tipoN = t => TIPO[t] || (t ? t[0].toUpperCase() + t.slice(1) : 'Post');
+const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const IDADES = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+
+let CLIS = [], CID = null, PER = 'last_30d', REDE = 'todas', DATA = null, VIEW = 'lista', CARGA = 0;
+
+async function api(corpo){
+  const { data: { session } } = await sb.auth.getSession();
+  const r = await fetch('/social-bi.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token }, body: JSON.stringify(corpo) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || ('Erro ' + r.status));
+  return j;
+}
+function porta(h){ $('#porta').classList.remove('hid'); $('#app').classList.add('hid'); $('#porta').innerHTML = '<div class="pcx">' + h + '</div>'; }
+function topo(titulo, sub, voltar, acoes){
+  $('#tit').textContent = titulo; $('#sub').textContent = sub || '';
+  const b = $('#btVolta'); b.onclick = voltar || fecha; $('#topoAcoes').innerHTML = acoes || '';
+}
+function fecha(){ try { parent.postMessage({ tipo: 'sbi-fechar' }, '*'); } catch(e){} }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && VIEW === 'lista') fecha(); });
+
+async function boot(){
+  if (!sb) return porta('<h2>Social BI</h2><p>Não consegui carregar.</p>');
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return porta('<h2>Entre na PD</h2><p>O Social BI abre com a sua conta da plataforma.</p><button class="bt" onclick="location.href=\'/\'">Ir para a PD</button>');
+  const me = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+  if (!me.data || !['admin', 'team'].includes(me.data.role)) return porta('<h2>Só a equipe</h2><p>O Social BI é uma ferramenta da equipe.</p>');
+  const [c, l] = await Promise.all([sb.from('clients').select('id,name,logo_url,active').order('name'), api({ acao: 'clientes' }).catch(e => ({ clientes: [], erro: e.message }))]);
+  const por = {}; (l.clientes || []).forEach(x => por[x.id] = x);
+  CLIS = (c.data || []).filter(x => por[x.id]).map(x => ({ id: x.id, name: x.name, logo: x.logo_url, redes: [...new Set(por[x.id].redes)] }));
+  $('#porta').classList.add('hid'); $('#app').classList.remove('hid');
+  const q = new URLSearchParams(location.search).get('cid');
+  if (q && CLIS.some(x => x.id === q)) return abre(q);
+  vLista();
+}
+
+// ------------------------------------------------------------------ lista de clientes
+const NREDE = { instagram: 'Instagram', facebook: 'Facebook' };
+const avatar = (c, tam) => '<span class="ava" style="width:' + tam + 'px;height:' + tam + 'px">' + (c.logo ? '<img src="' + esc(c.logo) + '" alt="" onerror="this.remove()">' : esc((c.name || '?').slice(0, 2).toUpperCase())) + '</span>';
+function vLista(){
+  VIEW = 'lista'; CID = null; DATA = null; topo('Social BI', CLIS.length + ' cliente' + (CLIS.length === 1 ? '' : 's') + ' com redes conectadas', null);
+  $('#cont').innerHTML = CLIS.length ? '<div class="grade">' + CLIS.map(c => '<button class="cc" data-c="' + c.id + '">' + avatar(c, 44) + '<div><div class="n">' + esc(c.name) + '</div><div class="u">' + c.redes.map(r => NREDE[r] || r).join(' · ') + '</div></div></button>').join('') + '</div>'
+    : '<div class="card mut">Nenhum cliente com rede social conectada ainda. Conecte em Redes sociais.</div>';
+  document.querySelectorAll('.cc').forEach(e => e.onclick = () => abre(e.dataset.c));
+}
+
+// ------------------------------------------------------------------ BI de um cliente
+async function abre(id, fresco){
+  CID = id; VIEW = 'bi'; const meu = ++CARGA; if (!fresco) DATA = null;
+  const cli = CLIS.find(x => x.id === id) || {};
+  topo('Social BI', cli.name || '', () => vLista(), '<button class="bt" id="btPdf" disabled>Gerar PDF</button>');
+  $('#cont').innerHTML = controles() + '<div class="carrega"><i></i>Lendo as redes na Meta… pode levar até 20 segundos.</div>';
+  ligaControles();
+  try { const j = await api({ acao: 'bi', client_id: id, periodo: PER, fresco: fresco ? 1 : 0 }); if (meu !== CARGA) return; DATA = j; }
+  catch(e){ if (meu !== CARGA) return; $('#cont').innerHTML = controles() + '<div class="card" style="margin-top:6px">' + esc(e.message) + '</div>'; ligaControles(); return; }
+  pinta();
+}
+function controles(){
+  const cli = CLIS.find(x => x.id === CID) || {}, redes = cli.redes || [];
+  return '<div class="ctl"><select class="sl" id="selCli">' + CLIS.map(c => '<option value="' + c.id + '"' + (c.id === CID ? ' selected' : '') + '>' + esc(c.name) + '</option>').join('') + '</select>' +
+    '<span class="pills" id="pPer">' + PERS.map(p => '<button data-p="' + p[0] + '" class="' + (PER === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</span>' +
+    (redes.length > 1 ? '<span class="pills" id="pRede">' + [['todas', 'Todas'], ['instagram', 'Instagram'], ['facebook', 'Facebook']].filter(r => r[0] === 'todas' || redes.includes(r[0])).map(r => '<button data-r="' + r[0] + '" class="' + (REDE === r[0] ? 'on' : '') + '">' + r[1] + '</button>').join('') + '</span>' : '') +
+    '<span style="flex:1"></span><button class="bt sec" id="btAtu">Atualizar</button></div>';
+}
+function ligaControles(){
+  const s = $('#selCli'); if (s) s.onchange = () => { REDE = 'todas'; abre(s.value); };
+  document.querySelectorAll('#pPer button').forEach(b => b.onclick = () => { PER = b.dataset.p; abre(CID); });
+  document.querySelectorAll('#pRede button').forEach(b => b.onclick = () => { REDE = b.dataset.r; pinta(); });
+  const a = $('#btAtu'); if (a) a.onclick = () => abre(CID, true);
+}
+
+// ------------------------------------------------------------------ números
+const contasOk = () => (DATA.contas || []).filter(c => !c.erro && (REDE === 'todas' || c.plataforma === REDE));
+function somaK(cs, k, de){ let t = 0, h = false; cs.forEach(c => { const v = (c[de || 'totais'] || {})[k]; if (v != null){ t += v; h = true; } }); return h ? t : null; }
+function serieSoma(cs, k){ const m = {}; cs.forEach(c => ((c.serie || {})[k] || []).forEach(x => m[x[0]] = (m[x[0]] || 0) + x[1])); return Object.keys(m).sort().map(d => [d, m[d]]); }
+const inter = p => (p.curtidas || 0) + (p.comentarios || 0) + (p.compart || 0) + (p.salvos || 0);
+function fusoSP(q){ const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date(q)); const o = {}; f.forEach(x => o[x.type] = x.value);
+  return { d: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(o.weekday), h: Number(o.hour) % 24 }; }
+function calc(){
+  const cs = contasOk(), r = {};
+  r.cs = cs; r.seg = cs.reduce((t, c) => t + (c.seguidores || 0), 0);
+  const novos = serieSoma(cs, 'seguidores'); r.segSerie = novos; r.segNovos = novos.length ? novos.reduce((t, x) => t + x[1], 0) : null;
+  ['alcance', 'visualizacoes', 'interacoes', 'engajaram', 'curtidas', 'comentarios', 'compart', 'salvos', 'visitas_perfil', 'cliques_site'].forEach(k => r[k] = somaK(cs, k));
+  r.ant = { alcance: somaK(cs, 'alcance', 'anterior'), visualizacoes: somaK(cs, 'visualizacoes', 'anterior'), interacoes: somaK(cs, 'interacoes', 'anterior'), posts: somaK(cs, 'posts', 'anterior') };
+  r.posts = cs.flatMap(c => (c.posts || []).map(p => Object.assign({ rede: c.plataforma, conta: c.nome }, p))); r.nPosts = r.posts.length;
+  if (r.interacoes == null && r.nPosts) r.interacoes = r.posts.reduce((t, p) => t + inter(p), 0);
+  r.eng = r.alcance ? (r.interacoes || 0) / r.alcance * 100 : null;
+  r.alcSerie = serieSoma(cs, 'alcance');
+  // público (Instagram)
+  const ig = {}; cs.forEach(c => ((c.publico || {}).idade_genero || []).forEach(x => { const a = x.idade || '?'; ig[a] = ig[a] || { F: 0, M: 0, U: 0 }; ig[a][x.genero === 'F' ? 'F' : x.genero === 'M' ? 'M' : 'U'] += x.v; }));
+  r.idade = ig; r.totPub = Object.values(ig).reduce((t, o) => t + o.F + o.M + o.U, 0); r.gen = { F: 0, M: 0, U: 0 }; Object.values(ig).forEach(o => { r.gen.F += o.F; r.gen.M += o.M; r.gen.U += o.U; });
+  const soma = k => { const m = {}; cs.forEach(c => ((c.publico || {})[k] || []).forEach(x => m[x.n] = (m[x.n] || 0) + x.v)); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+  r.cidades = soma('cidades'); r.paises = soma('paises');
+  // conteúdo
+  const fm = {}; r.posts.forEach(p => { const t = p.tipo || 'post', o = fm[t] = fm[t] || { n: 0, i: 0, c: 0 }; o.n++; o.i += inter(p); o.c += p.curtidas || 0; });
+  r.formatos = Object.entries(fm).map(([t, o]) => ({ t, n: o.n, med: o.i / o.n, curt: o.c / o.n })).sort((a, b) => b.med - a.med);
+  const dw = Array.from({ length: 7 }, () => ({ n: 0, i: 0 })), hr = Array.from({ length: 24 }, () => ({ n: 0, i: 0 }));
+  r.posts.forEach(p => { const f = fusoSP(p.quando); if (f.d < 0) return; dw[f.d].n++; dw[f.d].i += inter(p); hr[f.h].n++; hr[f.h].i += inter(p); });
+  r.dow = dw.map(o => o.n ? o.i / o.n : 0); r.dowN = dw.map(o => o.n); r.hora = hr.map(o => o.n ? o.i / o.n : 0); r.horaN = hr.map(o => o.n);
+  r.top = r.posts.slice().sort((a, b) => (inter(b) + (b.comentarios || 0) * 2) - (inter(a) + (a.comentarios || 0) * 2));
+  r.avisos = (DATA.contas || []).flatMap(c => (c.erro ? [c.nome + ': ' + c.erro] : []).concat((c.avisos || []).map(a => c.nome + ' · ' + a)));
+  return r;
+}
+const delta = (cur, ant) => cur == null || ant == null || ant === 0 ? null : (cur - ant) / ant * 100;
+
+// ------------------------------------------------------------------ gráficos (cores por parâmetro: tela usa variáveis, PDF usa hex)
+const PT = { tx: 'var(--tx)', mut: 'var(--mut)', lin: 'var(--lin)', in: 'var(--in)', c1: 'var(--c1)', c2: 'var(--c2)', ok: 'var(--ok)', verm: 'var(--verm)' };
+const PP = { tx: '#15161A', mut: '#6B6D75', lin: '#E4E3DE', in: '#F4F3EF', c1: '#2563EB', c2: '#DB2777', ok: '#16a34a', verm: '#dc2626' };
+function chLinha(dados, P, cor){
+  if (!dados || dados.length < 2) return '<div style="color:' + P.mut + ';font-size:12.5px">Sem série diária para este período.</div>';
+  const W = 640, H = 210, pl = 46, pr = 12, pt = 12, pb = 26, max = Math.max(...dados.map(x => x[1]), 1), n = dados.length;
+  const x = i => pl + (W - pl - pr) * i / (n - 1), y = v => pt + (H - pt - pb) * (1 - v / max);
+  let g = ''; for (let k = 0; k <= 4; k++){ const v = max * k / 4, yy = y(v); g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" style="stroke:' + P.lin + '" stroke-width="1"/><text x="' + (pl - 7) + '" y="' + (yy + 3.5).toFixed(1) + '" text-anchor="end" font-size="10.5" style="fill:' + P.mut + '">' + nf(Math.round(v)) + '</text>'; }
+  const pts = dados.map((d, i) => x(i).toFixed(1) + ',' + y(d[1]).toFixed(1)), ix = [0, Math.floor((n - 1) / 2), n - 1];
+  const lb = ix.map((i, k) => '<text x="' + x(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + (k === 0 ? 'start' : k === 2 ? 'end' : 'middle') + '" font-size="10.5" style="fill:' + P.mut + '">' + dm(dados[i][0]) + '</text>').join('');
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block">' + g + '<path d="M' + pl + ',' + (H - pb) + ' L' + pts.join(' L') + ' L' + x(n - 1).toFixed(1) + ',' + (H - pb) + ' Z" style="fill:' + cor + ';opacity:.13"/><polyline points="' + pts.join(' ') + '" fill="none" style="stroke:' + cor + '" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>' + lb + '</svg>';
+}
+function chBarrasDia(dados, P){
+  if (!dados || dados.length < 2) return '<div style="color:' + P.mut + ';font-size:12.5px">A Meta só entrega os novos seguidores dos últimos 30 dias.</div>';
+  const W = 640, H = 150, pl = 46, pr = 12, pt = 10, pb = 24, n = dados.length, mx = Math.max(...dados.map(x => Math.abs(x[1])), 1), z = pt + (H - pt - pb) / 2, bw = Math.max(2, (W - pl - pr) / n * .66);
+  const bs = dados.map((d, i) => { const h = Math.abs(d[1]) / mx * ((H - pt - pb) / 2), xx = pl + (W - pl - pr) * (i + .5) / n - bw / 2; return '<rect x="' + xx.toFixed(1) + '" y="' + (d[1] >= 0 ? z - h : z).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(h, d[1] ? 1 : 0).toFixed(1) + '" rx="1.5" style="fill:' + (d[1] >= 0 ? P.ok : P.verm) + '"/>'; }).join('');
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block"><line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + z + '" y2="' + z + '" style="stroke:' + P.lin + '"/><text x="' + (pl - 7) + '" y="' + (pt + 4) + '" text-anchor="end" font-size="10.5" style="fill:' + P.mut + '">+' + nf(mx) + '</text><text x="' + (pl - 7) + '" y="' + (H - pb + 4) + '" text-anchor="end" font-size="10.5" style="fill:' + P.mut + '">-' + nf(mx) + '</text>' + bs +
+    '<text x="' + pl + '" y="' + (H - 6) + '" font-size="10.5" style="fill:' + P.mut + '">' + dm(dados[0][0]) + '</text><text x="' + (W - pr) + '" y="' + (H - 6) + '" text-anchor="end" font-size="10.5" style="fill:' + P.mut + '">' + dm(dados[n - 1][0]) + '</text></svg>';
+}
+function hbars(itens, P, cor, fmt){   // [[rótulo, valor]]
+  if (!itens.length) return '<div style="color:' + P.mut + ';font-size:12.5px">Sem dados.</div>';
+  const mx = Math.max(...itens.map(i => i[1]), 1);
+  return itens.map(i => '<div style="display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12.5px"><span style="flex:0 0 34%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + P.tx + '">' + esc(i[0]) + '</span><span style="flex:1;height:10px;border-radius:99px;background:' + P.in + ';overflow:hidden;display:block"><span style="display:block;height:100%;width:' + Math.max(2, i[1] / mx * 100).toFixed(1) + '%;background:' + cor + ';border-radius:99px"></span></span><b style="flex:0 0 auto;min-width:46px;text-align:right;color:' + P.tx + '">' + (fmt ? fmt(i[1]) : nf(i[1])) + '</b></div>').join('');
+}
+function piramide(r, P){
+  if (!r.totPub) return '<div style="color:' + P.mut + ';font-size:12.5px">A Meta não entregou o público (precisa de 100+ seguidores e permissão de insights).</div>';
+  const ages = IDADES.filter(a => r.idade[a]).concat(Object.keys(r.idade).filter(a => !IDADES.includes(a))), pct = v => v / r.totPub * 100, mx = Math.max(...ages.map(a => Math.max(r.idade[a].F, r.idade[a].M)), 1);
+  const gp = r.gen, fp = pct(gp.F), mp = pct(gp.M);
+  const lin = a => { const o = r.idade[a]; return '<div style="display:grid;grid-template-columns:1fr 54px 1fr;align-items:center;gap:6px;margin:6px 0;font-size:12px"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px"><span style="color:' + P.mut + '">' + pc(pct(o.F)) + '</span><span style="display:block;height:12px;width:' + Math.max(2, o.F / mx * 70).toFixed(1) + '%;background:' + P.c2 + ';border-radius:99px 0 0 99px"></span></div><div style="text-align:center;font-weight:600;color:' + P.tx + '">' + esc(a) + '</div><div style="display:flex;align-items:center;gap:6px"><span style="display:block;height:12px;width:' + Math.max(2, o.M / mx * 70).toFixed(1) + '%;background:' + P.c1 + ';border-radius:0 99px 99px 0"></span><span style="color:' + P.mut + '">' + pc(pct(o.M)) + '</span></div></div>'; };
+  return '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px"><span style="color:' + P.c2 + '">Mulheres ' + pc(fp) + '</span><span style="color:' + P.c1 + '">Homens ' + pc(mp) + '</span></div>' + ages.map(lin).join('');
+}
+function colunas(vals, ns, rot, P, cor, alt){
+  const mx = Math.max(...vals, 1), melhor = vals.indexOf(Math.max(...vals));
+  return '<div style="display:flex;align-items:flex-end;gap:6px;height:' + (alt || 120) + 'px">' + vals.map((v, i) => '<div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10.5px;color:' + P.mut + '"><span style="margin-bottom:3px;color:' + (i === melhor && v ? P.tx : P.mut) + ';font-weight:' + (i === melhor && v ? 700 : 400) + '">' + (v ? nf(Math.round(v)) : '') + '</span><span style="display:block;width:100%;max-width:34px;border-radius:6px 6px 2px 2px;height:' + (v ? Math.max(4, v / mx * ((alt || 120) - 40)) : 2) + 'px;background:' + (v ? cor : P.in) + ';opacity:' + (i === melhor || !v ? 1 : .42) + '"></span></div>').join('') + '</div>' +
+    '<div style="display:flex;gap:6px;margin-top:5px">' + rot.map((x, i) => '<div style="flex:1;text-align:center;font-size:10.5px;color:' + P.mut + '">' + x + '<br><span style="opacity:.8">' + (ns[i] ? ns[i] + ' post' + (ns[i] > 1 ? 's' : '') : '') + '</span></div>').join('') + '</div>';
+}
+function destaques(r){
+  const o = [], d = delta(r.alcance, r.ant.alcance);
+  if (r.alcance != null) o.push('O conteúdo alcançou <b>' + nf(r.alcance) + '</b> pessoas' + (d != null ? ', <b>' + (d >= 0 ? 'alta' : 'queda') + ' de ' + pc(Math.abs(d)) + '</b> sobre o período anterior' : '') + '.');
+  if (r.nPosts) o.push('Foram <b>' + r.nPosts + ' publicaç' + (r.nPosts === 1 ? 'ão' : 'ões') + '</b>' + (r.ant.posts != null ? ' (' + r.ant.posts + ' no período anterior)' : '') + ', com <b>' + nf(r.interacoes) + ' interações</b>' + (r.eng != null ? ' e engajamento de <b>' + pc(r.eng) + '</b> sobre o alcance' : '') + '.');
+  if (r.formatos.length && r.nPosts >= 3) { const f = r.formatos[0]; o.push('O formato que mais engaja é <b>' + tipoN(f.t) + '</b>, com média de <b>' + nf(Math.round(f.med)) + '</b> interações por post.'); }
+  const md = r.dow.indexOf(Math.max(...r.dow)); if (r.nPosts >= 6 && r.dow[md]) o.push('Os posts de <b>' + ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][md] + '</b> tiveram a melhor média de interações.');
+  if (r.totPub) { const ages = Object.keys(r.idade), top = ages.map(a => [a, r.idade[a].F + r.idade[a].M + r.idade[a].U]).sort((a, b) => b[1] - a[1])[0], g = r.gen.F >= r.gen.M ? 'mulheres' : 'homens'; o.push('A audiência é majoritariamente de <b>' + g + '</b> (' + pc(Math.max(r.gen.F, r.gen.M) / r.totPub * 100) + '), com a maior faixa em <b>' + top[0] + ' anos</b>' + (r.cidades[0] ? ' e a cidade com mais seguidores é <b>' + esc(r.cidades[0][0]) + '</b>' : '') + '.'); }
+  if (r.segNovos != null && r.segSerie.length) o.push('A conta ganhou <b>' + (r.segNovos >= 0 ? '+' : '') + nf(r.segNovos) + ' seguidores</b> no período.');
+  return o;
+}
+const kpi = (rot, v, d, sufixo, P) => '<div class="k" style="' + (P === PP ? 'background:#F4F3EF;border-radius:12px;padding:11px 13px;border:0' : '') + '"><small' + (P === PP ? '' : '') + '>' + rot + '</small><b>' + v + '</b>' + (d != null ? '<div class="dl" style="color:' + (d >= 0 ? P.ok : P.verm) + ';font-size:11px;font-weight:600;margin-top:2px">' + (d >= 0 ? '▲ ' : '▼ ') + pc(Math.abs(d)) + ' vs. anterior</div>' : (sufixo ? '<div class="dl" style="color:' + P.mut + ';font-size:11px;margin-top:2px">' + sufixo + '</div>' : '')) + '</div>';
+function kpis(r, P){
+  const k = [];
+  k.push(kpi('Seguidores', nf(r.seg), null, r.segNovos != null && r.segSerie.length ? (r.segNovos >= 0 ? '+' : '') + nf(r.segNovos) + ' no período' : '', P));
+  k.push(kpi('Alcance', nf(r.alcance), delta(r.alcance, r.ant.alcance), '', P));
+  k.push(kpi('Visualizações', nf(r.visualizacoes), delta(r.visualizacoes, r.ant.visualizacoes), '', P));
+  k.push(kpi('Interações', nf(r.interacoes), delta(r.interacoes, r.ant.interacoes), '', P));
+  k.push(kpi('Engajamento', pc(r.eng), null, 'interações ÷ alcance', P));
+  k.push(kpi('Publicações', nf(r.nPosts), delta(r.nPosts, r.ant.posts), '', P));
+  if (r.visitas_perfil != null) k.push(kpi('Visitas ao perfil', nf(r.visitas_perfil), null, '', P));
+  if (r.cliques_site) k.push(kpi('Cliques no site', nf(r.cliques_site), null, '', P));
+  if (r.salvos != null) k.push(kpi('Salvamentos', nf(r.salvos), null, '', P));
+  if (r.compart != null) k.push(kpi('Compartilhamentos', nf(r.compart), null, '', P));
+  return k.join('');
+}
+
+// ------------------------------------------------------------------ tela
+function pinta(){
+  if (!DATA) return; const r = calc(), cli = CLIS.find(x => x.id === CID) || {}, P = PT;
+  const a = DATA.ini ? dm(DATA.ini) + ' a ' + dm(DATA.fim) : '';
+  const sec = (t, h) => '<div class="h2">' + t + '</div>' + h;
+  let h = controles() + '<div class="hero">' + avatar(cli, 54) + '<div><div class="t">' + esc(cli.name || '') + '</div><div class="d">Relatório de redes sociais · ' + PNOME[PER] + (a ? ' (' + a + ')' : '') + ' · ' + r.cs.map(c => NREDE[c.plataforma] + (c.usuario ? ' @' + esc(c.usuario) : '')).join(' · ') + '</div></div></div>';
+  if (!r.cs.length) h += '<div class="card" style="margin-top:12px">' + (DATA.erro ? esc(DATA.erro) : 'A Meta não entregou dados das contas deste cliente.') + '</div>';
+  else {
+    h += sec('Resumo do período', '<div class="kk">' + kpis(r, P) + '</div>');
+    const ds = destaques(r); if (ds.length) h += sec('Destaques', '<div class="card dest">' + ds.map(x => '<p>' + x + '</p>').join('') + '</div>');
+    h += sec('Alcance por dia', '<div class="card">' + chLinha(r.alcSerie, P, P.c1) + '</div>');
+    if (r.segSerie.length) h += sec('Seguidores novos por dia', '<div class="card">' + chBarrasDia(r.segSerie, P) + '</div>');
+    h += sec('Público', '<div class="cols"><div class="card"><div class="mut pequeno" style="margin-bottom:6px">Idade e gênero dos seguidores</div>' + piramide(r, P) + '</div><div class="card"><div class="mut pequeno" style="margin-bottom:2px">Cidades com mais seguidores</div>' + hbars(r.cidades.slice(0, 8), P, P.c1, v => r.totPub ? pc(v / r.totPub * 100) : nf(v)) + (r.paises.length ? '<div class="mut pequeno" style="margin:14px 0 2px">Países</div>' + hbars(r.paises.slice(0, 4), P, P.c2, v => r.totPub ? pc(v / r.totPub * 100) : nf(v)) : '') + '</div></div>');
+    h += sec('Conteúdo', '<div class="cols"><div class="card"><div class="mut pequeno" style="margin-bottom:2px">Interações médias por formato</div>' + (r.formatos.length ? hbars(r.formatos.map(f => [tipoN(f.t) + ' · ' + f.n + ' post' + (f.n > 1 ? 's' : ''), Math.round(f.med)]), P, P.c1) : '<div class="mut pequeno">Sem posts no período.</div>') + '</div>' +
+      '<div class="card"><div class="mut pequeno" style="margin-bottom:8px">Interações médias por dia da semana</div>' + colunas(r.dow, r.dowN, DIAS, P, P.c1) + (r.nPosts < 6 ? '<div class="mut pequeno" style="margin-top:8px">Poucos posts no período: use 30 dias para uma leitura mais firme.</div>' : '') + '</div></div>');
+    if (r.horaN.some(n => n)) { const hs = r.horaN.map((n, i) => i).filter(i => r.horaN[i]); h += sec('Melhores horários (Brasília)', '<div class="card">' + colunas(hs.map(i => r.hora[i]), hs.map(i => r.horaN[i]), hs.map(i => i + 'h'), P, P.c2, 110) + '</div>'); }
+    h += sec('Melhores publicações', '<div class="posts">' + (r.top.slice(0, 9).map(p => '<a class="pst" ' + (p.link ? 'href="' + esc(p.link) + '" target="_blank" rel="noopener"' : '') + '><div class="im">' + (p.imagem ? '<img src="' + esc(p.imagem) + '" referrerpolicy="no-referrer" alt="" loading="lazy">' : '') + '<span class="tp">' + esc(tipoN(p.tipo)) + '</span></div><div class="tx"><div class="dd">' + new Date(p.quando).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '') + ' · ' + esc(NREDE[p.rede] || '') + '</div><div class="ct">' + esc(p.texto || '(sem legenda)') + '</div><div class="mm"><span><b>' + nf(p.curtidas) + '</b> curtidas</span><span><b>' + nf(p.comentarios) + '</b> coment.</span>' + (p.alcance != null ? '<span><b>' + nf(p.alcance) + '</b> alcance</span>' : '') + (p.salvos ? '<span><b>' + nf(p.salvos) + '</b> salvos</span>' : '') + (p.compart ? '<span><b>' + nf(p.compart) + '</b> compart.</span>' : '') + '</div></div></a>').join('') || '<div class="card mut">Nenhuma publicação no período.</div>') + '</div>');
+    if (r.cs.length > 1) h += sec('Por rede', '<div class="card" style="overflow-x:auto"><table class="tb"><tr><th>Conta</th><th>Seguidores</th><th>Alcance</th><th>Interações</th><th>Posts</th></tr>' + r.cs.map(c => '<tr><td>' + esc(c.nome) + ' <span class="mut">· ' + (NREDE[c.plataforma] || '') + '</span></td><td>' + nf(c.seguidores) + '</td><td>' + nf((c.totais || {}).alcance) + '</td><td>' + nf((c.totais || {}).interacoes) + '</td><td>' + nf((c.posts || []).length) + '</td></tr>').join('') + '</table></div>');
+    if (r.avisos.length) h += '<div class="av2"><b>A Meta não entregou:</b> ' + r.avisos.map(esc).join(' · ') + '</div>';
+  }
+  $('#cont').innerHTML = h; ligaControles();
+  const b = $('#btPdf'); if (b){ b.disabled = !r.cs.length; b.onclick = () => gerarPdf(r); }
+}
+
+// ------------------------------------------------------------------ PDF (pdfDoc da casa: capa preta + páginas em pé sem corte)
+function gerarPdf(r){
+  const cli = CLIS.find(x => x.id === CID) || {}, P = PP, e = esc;
+  let ok = false; try { ok = (self !== top || window.__pdfTeste) && typeof parent.pdfDoc === 'function'; } catch(x){}
+  if (!ok) return toast('O PDF abre pela plataforma. Abra o Social BI dentro da PD.');
+  const sec = (t, h) => '<h2>' + t + '</h2><div>' + h + '</div>';
+  let c = sec('Resumo do período', '<div class="kk">' + kpis(r, P) + '</div>');
+  const ds = destaques(r); if (ds.length) c += sec('Destaques', ds.map(x => '<p style="margin:0 0 7px;line-height:1.5">• ' + x + '</p>').join(''));
+  c += sec('Alcance por dia', chLinha(r.alcSerie, P, P.c1));
+  if (r.segSerie.length) c += sec('Seguidores novos por dia', chBarrasDia(r.segSerie, P));
+  if (r.totPub) { c += sec('Idade e gênero dos seguidores', piramide(r, P)); c += sec('Cidades com mais seguidores', hbars(r.cidades.slice(0, 8), P, P.c1, v => pc(v / r.totPub * 100))); }
+  if (r.formatos.length) c += sec('Interações médias por formato', hbars(r.formatos.map(f => [tipoN(f.t) + ' · ' + f.n + ' post' + (f.n > 1 ? 's' : ''), Math.round(f.med)]), P, P.c1));
+  if (r.nPosts >= 3) c += sec('Interações médias por dia da semana', colunas(r.dow, r.dowN, DIAS, P, P.c1));
+  if (r.top.length) c += '<h2>Melhores publicações</h2>' + r.top.slice(0, 6).map(p => '<div class="row">' + (p.imagem ? '<img class="th" crossorigin="anonymous" referrerpolicy="no-referrer" src="' + e(p.imagem) + '" alt="">' : '<div style="width:84px;flex:0 0 84px"></div>') + '<div class="c"><b class="n">' + e(tipoN(p.tipo)) + ' · ' + e(new Date(p.quando).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')) + '</b><p>' + e(String(p.texto || '').slice(0, 160)) + '</p><div class="kk"><div class="k"><small>Curtidas</small><b>' + nf(p.curtidas) + '</b></div><div class="k"><small>Comentários</small><b>' + nf(p.comentarios) + '</b></div>' + (p.alcance != null ? '<div class="k"><small>Alcance</small><b>' + nf(p.alcance) + '</b></div>' : '') + (p.salvos ? '<div class="k"><small>Salvos</small><b>' + nf(p.salvos) + '</b></div>' : '') + '</div></div></div>').join('');
+  const a = DATA.ini ? dm(DATA.ini) + ' a ' + dm(DATA.fim) : '';
+  parent.pdfDoc('Social · ' + (cli.name || ''), PNOME[PER].replace(/^./, m => m.toUpperCase()) + (a ? ' · ' + a : '') + ' · ' + r.cs.map(x => NREDE[x.plataforma]).join(' e '), cli.name || '', c,
+    { rotulo: 'Relatório de redes sociais', nota: 'Dados obtidos da Meta (Instagram e Facebook) por conexão autorizada pelo titular das contas, por meio das APIs oficiais, apenas para leitura. Informações confidenciais, de uso restrito à agência e ao cliente indicados. Números sujeitos à apuração da própria Meta.' });
+}
+
+boot().catch(e => porta('<h2>Não abriu</h2><p>' + esc(e.message || e) + '</p>'));
+})();
+</script>
+</body>
+</html>
